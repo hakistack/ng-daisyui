@@ -20,7 +20,7 @@ npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk lucide-angular sweeta
 
 ```css
 @import 'tailwindcss';
-@source "../node_modules/@hakistack/ng-daisyui/**/*.{html,ts}";
+@source "@hakistack/ng-daisyui";
 @plugin 'daisyui';
 ```
 
