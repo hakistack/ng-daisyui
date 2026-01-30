@@ -8,18 +8,18 @@
   "projects": {
     "@hakistack/ng-daisyui": {
       "projectType": "library",
-      "root": "projects/hakistack/ui-components",
-      "sourceRoot": "projects/hakistack/ui-components/src",
+      "root": "projects/hakistack/ng-daisyui",
+      "sourceRoot": "projects/hakistack/ng-daisyui/src",
       "prefix": "ui",
       "architect": {
         "build": {
           "builder": "@angular/build:ng-packagr",
           "configurations": {
             "production": {
-              "tsConfig": "projects/hakistack/ui-components/tsconfig.lib.prod.json"
+              "tsConfig": "projects/hakistack/ng-daisyui/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/hakistack/ui-components/tsconfig.lib.json"
+              "tsConfig": "projects/hakistack/ng-daisyui/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -27,7 +27,7 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "tsConfig": "projects/hakistack/ui-components/tsconfig.spec.json"
+            "tsConfig": "projects/hakistack/ng-daisyui/tsconfig.spec.json"
           }
         }
       }

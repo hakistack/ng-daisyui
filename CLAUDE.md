@@ -22,7 +22,7 @@ This is an Angular 21 monorepo containing a single UI component library (`@hakis
 ### Project Structure
 
 ```
-projects/hakistack/ui-components/
+projects/hakistack/ng-daisyui/
 ├── src/lib/
 │   ├── components/     # Standalone UI components
 │   ├── directives/     # Animation and behavior directives
