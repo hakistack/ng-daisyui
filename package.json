@@ -10,9 +10,9 @@
     "test": "ng test",
     "publish:local": "cd dist/hakistack/ng-daisyui && npm link",
     "publish:github": "cp .npmrc dist/hakistack/ng-daisyui/.npmrc && cd dist/hakistack/ng-daisyui && npm publish",
-    "release:patch": "npm version patch -w @hakistack/ng-daisyui && npm run build",
-    "release:minor": "npm version minor -w @hakistack/ng-daisyui && npm run build",
-    "release:major": "npm version major -w @hakistack/ng-daisyui && npm run build"
+    "release:patch": "cd projects/hakistack/ng-daisyui && npm version patch && cd ../../.. && npm run build",
+    "release:minor": "cd projects/hakistack/ng-daisyui && npm version minor && cd ../../.. && npm run build",
+    "release:major": "cd projects/hakistack/ng-daisyui && npm version major && cd ../../.. && npm run build"
   },
   "prettier": {
     "printWidth": 140,
