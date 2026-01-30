@@ -43,7 +43,6 @@ interface FieldOptions {
  * @example
  * ```typescript
  * const form = createForm({
- *   showSubmit: false, // Hide internal submit button
  *   fields: [
  *     field.text('name', 'Name', { required: true }),
  *     field.email('email', 'Email'),
@@ -55,8 +54,8 @@ interface FieldOptions {
  *
  * // In template
  * <app-dynamic-form [config]="form.config()" />
- * <button (click)="form.submit()">Custom Submit</button>
- * <button (click)="form.reset()">Custom Reset</button>
+ * <button (click)="form.submit()">Submit</button>
+ * <button (click)="form.reset()">Reset</button>
  * ```
  */
 export function createForm(input: CreateFormInput): FormController {
@@ -69,10 +68,6 @@ export function createForm(input: CreateFormInput): FormController {
     description: input.description,
     layout: input.layout || 'vertical',
     gridColumns: input.gridColumns,
-    submitText: input.submitText || 'Submit',
-    resetText: input.resetText || 'Reset',
-    showReset: input.showReset || false,
-    showSubmit: input.showSubmit,
     autoSave: input.autoSave,
     // Regular form
     fields: input.fields,

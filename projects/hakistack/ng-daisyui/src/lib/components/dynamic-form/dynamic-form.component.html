@@ -21,7 +21,7 @@
       [showStepIndicator]="config().stepperConfig?.showStepIndicator !== false"
       [previousButtonText]="config().stepperConfig?.previousText ?? 'Previous'"
       [nextButtonText]="config().stepperConfig?.nextText ?? 'Next'"
-      [completeButtonText]="config().stepperConfig?.completeText ?? config().submitText ?? 'Submit'"
+      [completeButtonText]="config().stepperConfig?.completeText ?? 'Submit'"
       (stepChange)="onStepperStepChange($event)"
       (completed)="onSubmit()"
     >
@@ -96,21 +96,6 @@
       </div>
     }
 
-    @if (config().showSubmit !== false || config().showReset) {
-      <div class="border-base-300 mt-6 flex gap-3 border-t pt-6">
-        @if (config().showSubmit !== false) {
-          <button type="submit" [disabled]="isSubmitDisabled()" class="btn btn-primary">
-            {{ config().submitText || 'Submit' }}
-          </button>
-        }
-
-        @if (config().showReset) {
-          <button type="button" (click)="onReset()" class="btn btn-neutral">
-            {{ config().resetText || 'Reset' }}
-          </button>
-        }
-      </div>
-    }
   }
 </form>
 

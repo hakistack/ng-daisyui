@@ -145,10 +145,6 @@ export interface CreateFormInput {
   readonly description?: string;
   readonly layout?: 'vertical' | 'horizontal' | 'grid';
   readonly gridColumns?: number;
-  readonly submitText?: string;
-  readonly resetText?: string;
-  readonly showReset?: boolean;
-  readonly showSubmit?: boolean;
   /** Auto-save configuration. Set to true for simple enable or provide AutoSaveConfig for full control. */
   readonly autoSave?: boolean | AutoSaveConfig;
   /** Form fields for regular mode. Required unless using steps. */
@@ -169,12 +165,8 @@ export interface FormConfig {
   readonly description?: string;
   /** Form fields for regular mode. Required unless using steps. */
   readonly fields?: readonly FormFieldConfig[];
-  readonly submitText?: string;
-  readonly resetText?: string;
   readonly layout?: 'vertical' | 'horizontal' | 'grid';
   readonly gridColumns?: number;
-  readonly showReset?: boolean;
-  readonly showSubmit?: boolean;
   /** Auto-save configuration. Set to true for simple enable or provide AutoSaveConfig for full control. */
   readonly autoSave?: boolean | AutoSaveConfig;
   readonly validateOnChange?: boolean;

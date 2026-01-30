@@ -4,8 +4,8 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
-      "@hakistack/ui": [
-        "./dist/hakistack/ui"
+      "@hakistack/ng-daisyui": [
+        "./dist/hakistack/ng-daisyui"
       ]
     },
     "strict": true,
@@ -29,10 +29,10 @@
   "files": [],
   "references": [
     {
-      "path": "./projects/hakistack/ui-components/tsconfig.lib.json"
+      "path": "./projects/hakistack/ng-daisyui/tsconfig.lib.json"
     },
     {
-      "path": "./projects/hakistack/ui-components/tsconfig.spec.json"
+      "path": "./projects/hakistack/ng-daisyui/tsconfig.spec.json"
     }
   ]
 }

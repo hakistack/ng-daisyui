@@ -28,17 +28,21 @@ npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk lucide-angular sweeta
 
 ### DynamicFormComponent
 
-Full-featured dynamic form builder with wizard/stepper support, auto-save, and conditional logic.
+Dynamic form builder with wizard/stepper support, auto-save, and conditional logic.
 
 ```typescript
 import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui';
 
 @Component({
   imports: [DynamicFormComponent],
-  template: `<app-dynamic-form [config]="formConfig()" />`
+  template: `
+    <app-dynamic-form [config]="form.config()" />
+    <button (click)="form.submit()" class="btn btn-primary">Submit</button>
+    <button (click)="form.reset()" class="btn">Reset</button>
+  `
 })
 export class MyComponent {
-  readonly formConfig = createForm({
+  readonly form = createForm({
     title: 'User Registration',
     fields: [
       field.text('firstName', 'First Name', { required: true }),
