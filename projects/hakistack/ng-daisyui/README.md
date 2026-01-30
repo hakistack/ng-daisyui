@@ -197,15 +197,19 @@ npm run build
 
 ## Installation (Private Package)
 
-### GitHub Packages
+### From Private Registry
 
 1. Create `.npmrc` in your consuming project:
 ```
-@hakistack:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+@hakistack:registry=https://hakistack-registry.fly.dev
 ```
 
-2. Install:
+2. Login (one-time):
+```bash
+npm login --registry=https://hakistack-registry.fly.dev
+```
+
+3. Install:
 ```bash
 npm install @hakistack/ng-daisyui
 ```
