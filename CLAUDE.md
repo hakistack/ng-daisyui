@@ -41,12 +41,32 @@ projects/hakistack/ng-daisyui/
 - **OnPush Change Detection**: Used throughout for performance
 - **Signals & Computed**: Angular 21 signals for reactive state (`signal()`, `computed()`, `input()`, `output()`)
 - **Builder Functions**: `createForm()`, `createTable()`, `field.*()`, `step()` for type-safe configuration
+- **FormController Pattern**: `createForm()` returns a controller with `config`, `submit()`, `reset()` for external control
 - **Injection Tokens**: `CUSTOM_PIPES`, `FORM_STATE_OPTIONS` for extensibility
 - **Provider Functions**: `provideFormState()` for optional service configuration
 
+### DynamicFormComponent Usage
+
+Forms do not include built-in buttons. Use FormController for external control:
+
+```typescript
+const form = createForm({
+  fields: [
+    field.text('name', 'Name', { required: true }),
+    field.email('email', 'Email'),
+  ],
+  onSubmit: (data) => console.log(data),
+});
+
+// Template
+<app-dynamic-form [config]="form.config()" />
+<button (click)="form.submit()">Submit</button>
+<button (click)="form.reset()">Reset</button>
+```
+
 ### Major Components
 
-- **DynamicFormComponent**: Form builder with wizard support, auto-save, conditional logic (showWhen/hideWhen/requiredWhen/disabledWhen)
+- **DynamicFormComponent**: Form builder with wizard support, auto-save, conditional logic (showWhen/hideWhen/requiredWhen/disabledWhen). No built-in buttons - use FormController.
 - **TableComponent**: Data table with sorting, filtering, pagination (cursor + offset), CDK DataSource integration, PipeRegistry formatters
 - **SelectComponent**: Enhanced dropdown with search and virtual scrolling
 - **DatepickerComponent**: Date/range picker with keyboard navigation
