@@ -197,39 +197,7 @@ npm run build
 
 ## Installation (Private Package)
 
-### Option 1: npm link (Local Development)
-
-```bash
-# In the library workspace
-cd ui-library-workspace
-npm run build
-cd dist/hakistack/ng-daisyui
-npm link
-
-# In your consuming project
-npm link @hakistack/ng-daisyui
-```
-
-### Option 2: Install from Private Git Repository
-
-```bash
-# Via SSH (recommended)
-npm install git+ssh://git@github.com:hakistack/ui-library.git#dist
-
-# Via HTTPS
-npm install git+https://github.com/hakistack/ui-library.git#dist
-```
-
-Or in `package.json`:
-```json
-{
-  "dependencies": {
-    "@hakistack/ng-daisyui": "git+ssh://git@github.com:hakistack/ui-library.git#dist"
-  }
-}
-```
-
-### Option 3: GitHub Packages (Private Registry)
+### GitHub Packages
 
 1. Create `.npmrc` in your consuming project:
 ```
@@ -240,6 +208,17 @@ Or in `package.json`:
 2. Install:
 ```bash
 npm install @hakistack/ng-daisyui
+```
+
+### Local Development (npm link)
+
+```bash
+# In the library workspace
+npm run build
+npm run publish:local
+
+# In your consuming project
+npm link @hakistack/ng-daisyui
 ```
 
 ## License
