@@ -10,6 +10,7 @@ npm run build:watch        # Development build with watch mode
 npm run watch              # Alias for build:watch with development config
 npm test                   # Run unit tests (Vitest)
 npm run publish:local      # npm link from dist for local testing
+npm run publish:github     # Publish to GitHub Packages (requires GITHUB_TOKEN)
 npm run release:patch      # Bump patch version and build
 npm run release:minor      # Bump minor version and build
 npm run release:major      # Bump major version and build
@@ -55,9 +56,7 @@ projects/hakistack/ng-daisyui/
 
 ### Dependencies
 
-**Required peer dependencies**: Tailwind CSS v4+, DaisyUI v5+, @angular/cdk
-
-**Optional**: lucide-angular (icons), sweetalert2 (alerts), fuse.js (fuzzy search), motion (animations)
+**Required peer dependencies**: Tailwind CSS v4+, DaisyUI v5+, @angular/cdk, lucide-angular, sweetalert2, fuse.js, motion
 
 ## Code Style
 
