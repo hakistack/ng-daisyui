@@ -1,0 +1,63 @@
+<div [class]="containerClasses()">
+  @for (toast of toasts(); track toast.id) {
+    <div
+      [class]="getToastClasses(toast)"
+      [attr.role]="toast.sticky ? 'status' : 'alert'"
+      [attr.aria-live]="toast.sticky ? 'polite' : 'assertive'"
+      [attr.aria-atomic]="true"
+      [attr.aria-label]="toast.summary"
+      [attr.tabindex]="toast.tapToDismiss || toast.onTap ? 0 : null"
+      (mouseenter)="onMouseEnter(toast)"
+      (mouseleave)="onMouseLeave(toast)"
+      (click)="onToastClick(toast)"
+      (keydown.enter)="onToastClick(toast)"
+      [class.cursor-pointer]="toast.tapToDismiss || toast.onTap"
+    >
+      <!-- Icon -->
+      <app-lucide-icon [name]="getIcon(toast.severity)" [size]="20" class="shrink-0" />
+
+      <!-- Content -->
+      <div class="flex-1 min-w-0">
+        <span class="font-medium">{{ toast.summary }}</span>
+        @if (toast.detail) {
+          <p class="text-sm opacity-80 mt-0.5 line-clamp-2">{{ toast.detail }}</p>
+        }
+
+        <!-- Action buttons -->
+        @if (toast.actions?.length) {
+          <div class="flex gap-2 mt-2">
+            @for (action of toast.actions; track $index) {
+              <button
+                type="button"
+                [class]="getActionButtonClass(action.style)"
+                (click)="handleActionClick(toast, action, $event)"
+              >
+                {{ action.label }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Dismiss button -->
+      <button
+        type="button"
+        class="btn btn-sm btn-circle btn-ghost shrink-0"
+        aria-label="Dismiss notification"
+        (click)="dismiss(toast.id); $event.stopPropagation()"
+      >
+        <app-lucide-icon name="X" [size]="16" />
+      </button>
+
+      <!-- CSS transition-based progress bar -->
+      @if (toast.progressBar && !toast.sticky) {
+        <div
+          class="toast-progress"
+          [class.paused]="toast.isPaused"
+          [style.width.%]="toast.progressTarget"
+          [style.--progress-duration.ms]="toast.transitionDuration"
+        ></div>
+      }
+    </div>
+  }
+</div>

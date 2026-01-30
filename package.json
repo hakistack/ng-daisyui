@@ -4,12 +4,18 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build @hakistack/ng-daisyui",
+    "build:watch": "ng build @hakistack/ng-daisyui --watch",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "publish:local": "cd dist/hakistack/ng-daisyui && npm link",
+    "publish:github": "cd dist/hakistack/ng-daisyui && npm publish",
+    "release:patch": "npm version patch -w @hakistack/ng-daisyui && npm run build",
+    "release:minor": "npm version minor -w @hakistack/ng-daisyui && npm run build",
+    "release:major": "npm version major -w @hakistack/ng-daisyui && npm run build"
   },
   "prettier": {
-    "printWidth": 100,
+    "printWidth": 140,
     "singleQuote": true,
     "overrides": [
       {
@@ -23,18 +29,31 @@
   "private": true,
   "packageManager": "npm@11.6.3",
   "dependencies": {
+    "@angular/aria": "^21.1.2",
+    "@angular/cdk": "^21.0.0",
     "@angular/common": "^21.0.0",
     "@angular/compiler": "^21.0.0",
     "@angular/core": "^21.0.0",
     "@angular/forms": "^21.0.0",
     "@angular/platform-browser": "^21.0.0",
     "@angular/router": "^21.0.0",
+    "@jsverse/transloco": "^8.2.1",
+    "fuse.js": "^7.1.0",
+    "lucide-angular": "^0.562.0",
+    "motion": "^12.28.1",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "sweetalert2": "^11.26.15",
+    "tslib": "^2.3.0",
+    "ulid": "^3.0.2",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@angular/build": "^21.1.2",
     "@angular/cli": "^21.0.0",
     "@angular/compiler-cli": "^21.0.0",
-    "typescript": "~5.9.2"
+    "jsdom": "^27.1.0",
+    "ng-packagr": "^21.1.0",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
   }
 }

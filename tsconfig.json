@@ -3,6 +3,11 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "paths": {
+      "@hakistack/ui": [
+        "./dist/hakistack/ui"
+      ]
+    },
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
@@ -21,5 +26,13 @@
     "strictInputAccessModifiers": true,
     "strictTemplates": true
   },
-  "files": []
+  "files": [],
+  "references": [
+    {
+      "path": "./projects/hakistack/ui-components/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/hakistack/ui-components/tsconfig.spec.json"
+    }
+  ]
 }

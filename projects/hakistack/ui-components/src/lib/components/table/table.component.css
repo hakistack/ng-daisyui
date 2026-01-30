@@ -1,0 +1,29 @@
+/* :host ::ng-deep .cdk-column-select {
+  width: 2rem;
+  min-width: 2rem;
+  padding-right: 0.25rem;
+} */
+
+/* Ensure filter dropdowns are visible */
+:host ::ng-deep th {
+  overflow: visible !important;
+  position: relative;
+}
+
+/* This targets the input within your component's scope */
+:host input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  display: none;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

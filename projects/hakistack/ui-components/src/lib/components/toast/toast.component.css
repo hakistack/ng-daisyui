@@ -1,0 +1,141 @@
+/* Toast item base styles */
+.toast-item {
+  min-width: 320px;
+  max-width: 420px;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  position: relative;
+  overflow: hidden;
+
+  /* Smooth reordering when other toasts are dismissed */
+  transition: transform 200ms ease-out;
+}
+
+/* Hover effect for interactive toasts */
+.toast-item.cursor-pointer {
+  transition: transform 150ms ease-out;
+}
+
+.toast-item.cursor-pointer:hover {
+  transform: scale(1.02);
+}
+
+/* ===== Position-aware animations ===== */
+
+/* Bottom position animations */
+.toast-enter-bottom {
+  animation: slide-in-bottom 300ms ease-out forwards;
+}
+
+.toast-leave-bottom {
+  animation: slide-out-bottom 300ms ease-in forwards;
+}
+
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-bottom {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Top position animations */
+.toast-enter-top {
+  animation: slide-in-top 300ms ease-out forwards;
+}
+
+.toast-leave-top {
+  animation: slide-out-top 300ms ease-in forwards;
+}
+
+@keyframes slide-in-top {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-top {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+/* ===== CSS Transition-based Progress bar ===== */
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.3;
+  pointer-events: none;
+  border-radius: 0 0 0 var(--rounded-box, 1rem);
+
+  /* Use CSS transition for smooth width animation */
+  transition: width linear;
+  transition-duration: var(--progress-duration, 5000ms);
+}
+
+/* When paused, stop the transition instantly */
+.toast-progress.paused {
+  transition-duration: 0ms;
+  opacity: 0.5;
+}
+
+/* Visual feedback on hover */
+.toast-item:hover .toast-progress {
+  opacity: 0.5;
+}
+
+.toast-item:hover .toast-progress.paused {
+  opacity: 0.6;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .toast-item {
+    transition: none;
+  }
+
+  .toast-item.cursor-pointer {
+    transition: none;
+  }
+
+  .toast-progress {
+    transition: none;
+    width: 100% !important;
+    opacity: 0.2;
+  }
+
+  .toast-enter-bottom,
+  .toast-enter-top,
+  .toast-leave-bottom,
+  .toast-leave-top {
+    animation: none;
+  }
+}

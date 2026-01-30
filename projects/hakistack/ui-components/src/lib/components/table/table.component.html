@@ -1,0 +1,294 @@
+<!-- table.component.html -->
+
+<!-- Main Table Container -->
+<div class="border-base-content/5 bg-base-100 rounded-box overflow-hidden border">
+  <!-- Toolbar: Search + Column Visibility -->
+  @if (hasGlobalSearchSignal() || isColumnVisibilityEnabled()) {
+    <div class="bg-base-200/50 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+      <!-- Left: Global Search -->
+      @if (hasGlobalSearchSignal()) {
+        <div class="flex-1">
+          <app-table-global-search
+            [searchTerm]="globalSearchTerm()"
+            [placeholder]="globalSearchPlaceholderSignal()"
+            [showIcon]="fieldConfig()?.globalSearch?.showIcon ?? true"
+            [showClearButton]="fieldConfig()?.globalSearch?.showClearButton ?? true"
+            [hasSearchTerm]="hasGlobalSearchTermSignal()"
+            (searchChange)="onGlobalSearchChange($event)"
+            (clear)="clearGlobalSearch()"
+          />
+        </div>
+      }
+
+      <!-- Right: Column Visibility Dropdown -->
+      @if (isColumnVisibilityEnabled()) {
+        <app-table-column-visibility
+          [columns]="columnDefsSignal()"
+          [visibilityState]="columnVisibilityState()"
+          [alwaysVisibleColumns]="alwaysVisibleColumns()"
+          (toggleColumn)="toggleColumnVisibility($event)"
+          (showAll)="showAllColumns()"
+          (hideAll)="hideAllColumns()"
+          (reset)="resetColumnVisibility()"
+        />
+      }
+    </div>
+  }
+
+  <!-- Active Filters Bar -->
+  @if (hasActiveFiltersSignal()) {
+    <div
+      role="alert"
+      class="bg-info/10 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <app-lucide-icon name="ListFilter" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+          <span class="text-sm font-semibold">Active Filters ({{ activeFiltersCountSignal() }})</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          @for (filter of activeFiltersSignal(); track filter.field) {
+            <div class="badge badge-primary gap-2 py-3">
+              <span class="font-medium">{{ filter.field }}:</span>
+              <span>{{ filter.value }}</span>
+              <button type="button" class="btn btn-ghost btn-xs p-0" (click)="removeFilter(filter.field)" [attr.aria-label]="'Remove filter for ' + filter.field">
+                <app-lucide-icon name="X" class="h-3 w-3" aria-hidden="true"></app-lucide-icon>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-ghost hover:bg-error/50 gap-2" (click)="clearAllFilters()" aria-label="Clear all filters">
+        <app-lucide-icon name="X" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+        <span>Clear All</span>
+      </button>
+    </div>
+  }
+
+  <!-- Selection Bar -->
+  @if (selectedSignal().size > 0) {
+    <div
+      role="alert"
+      class="bg-info/10 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <div class="flex items-center gap-3">
+        <div class="bg-info/20 flex h-8 w-8 items-center justify-center rounded-lg">
+          <app-lucide-icon name="CheckCheck" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <span class="text-sm font-semibold"> {{ selectedSignal().size }} {{ selectedSignal().size === 1 ? 'item' : 'items' }} selected </span>
+          <span class="text-xs opacity-70">
+            {{ config()?.config?.selectionHintText ?? 'Perform actions on selected items' }}
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        @for (bulkAction of bulkActionListSignal(); track trackByBulkAction($index, bulkAction)) {
+          <button
+            type="button"
+            [class]="classesFor(bulkAction)"
+            [style]="bulkAction.config.buttonStyle"
+            [disabled]="bulkAction.config.disabled?.(selectedArraySignal())"
+            (click)="bulkAction.config.action(selectedArraySignal())"
+          >
+            @if (bulkAction.config.icon) {
+              <app-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></app-lucide-icon>
+            }
+            {{ bulkAction.config.label }}
+          </button>
+        }
+      </div>
+      <button
+        type="button"
+        class="btn btn-sm btn-ghost hover:bg-error/50 gap-2 transition-all duration-200 hover:scale-105 active:scale-95"
+        (click)="clearSelection()"
+        aria-label="Clear selection"
+      >
+        <app-lucide-icon name="X" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+        <span class="max-sm:hidden">{{ config()?.config?.clearSelectionText ?? 'Clear' }}</span>
+      </button>
+    </div>
+  }
+
+  <!-- Table Scroll Container -->
+  <div class="overflow-x-auto">
+  <table cdk-table [dataSource]="dataSource" class="table w-full">
+    <!-- Selection Column -->
+    @if (hasSelectionSignal()) {
+      <ng-container cdkColumnDef="select">
+        <th cdk-header-cell *cdkHeaderCellDef class="w-8 px-4">
+          <label>
+            <input
+              type="checkbox"
+              class="checkbox"
+              [checked]="isAllSelected()"
+              (change)="toggleSelectAll($any($event.target).checked)"
+              [attr.aria-label]="isAllSelected() ? 'Deselect all rows on this page' : 'Select all rows on this page'"
+            />
+          </label>
+        </th>
+        <td cdk-cell *cdkCellDef="let row" class="w-8 px-4">
+          <label>
+            <input
+              type="checkbox"
+              class="checkbox"
+              [checked]="isSelected(row)"
+              (change)="toggleRow(row, $any($event.target).checked)"
+              [attr.aria-label]="isSelected(row) ? 'Deselect row' : 'Select row'"
+            />
+          </label>
+        </td>
+      </ng-container>
+    }
+
+    <!-- Data Columns -->
+    @for (column of columnDefsSignal(); track trackByField($index, column)) {
+      <ng-container [cdkColumnDef]="column.field">
+        <!-- Sortable Column Header -->
+        <th cdk-header-cell *cdkHeaderCellDef class="relative transition-colors duration-200 select-none" role="columnheader">
+          <div class="flex items-center justify-between gap-2">
+            <div
+              class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
+              (click)="sort(column.field)"
+              [attr.aria-sort]="sortFieldSignal() === column.field ? (sortDirectionSignal() === 'Ascending' ? 'ascending' : 'descending') : 'none'"
+              tabindex="0"
+              (keydown.enter)="sort(column.field)"
+              (keydown.space)="sort(column.field)"
+            >
+              <span>{{ column.header }}</span>
+              <span class="text-sm opacity-70" [attr.aria-hidden]="true">
+                @if (sortFieldSignal() === column.field) {
+                  @if (sortDirectionSignal() === 'Ascending') {
+                    <!-- <span>▲</span> -->
+                    <app-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                  } @else {
+                    <!-- <span>▼</span> -->
+                    <app-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                  }
+                } @else {
+                  <!-- <span class="opacity-30">↕</span> -->
+                  <app-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                }
+              </span>
+            </div>
+
+            <!-- Filter Dropdown -->
+            @if (enableFilteringSignal() && hasFilterForColumn(column.field)) {
+              <div class="dropdown dropdown-right">
+                <button
+                  tabindex="0"
+                  type="button"
+                  class="btn btn-ghost btn-xs"
+                  [class.btn-primary]="getActiveFilterForColumn(column.field)"
+                  (click)="$event.stopPropagation()"
+                  [attr.aria-label]="'Filter ' + column.header"
+                >
+                  <app-lucide-icon name="ListFilter" class="h-3 w-3" aria-hidden="true"></app-lucide-icon>
+                  @if (getActiveFilterForColumn(column.field)) {
+                    <span class="badge badge-xs badge-primary">1</span>
+                  }
+                </button>
+                <div tabindex="0" class="dropdown-content card card-compact bg-base-100 z-50 mt-2 w-72 shadow-xl">
+                  <div class="card-body">
+                    <app-table-filter
+                      [column]="column"
+                      [filterConfig]="getFilterForColumn(column.field)!"
+                      [activeFilter]="getActiveFilterForColumn(column.field)"
+                      (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
+                      (closeFilter)="closeAllFilterDropdowns()"
+                    />
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </th>
+
+        <td cdk-cell *cdkCellDef="let row" class="transition-colors duration-200">
+          <!-- {{ formatCell(row, column) | async }} -->
+
+          @if (getCellDisplay(row, column) | async; as display) {
+            @if (display.isHtml) {
+              <span [innerHTML]="display.safeHtml"></span>
+            } @else {
+              {{ display.value }}
+            }
+          }
+        </td>
+      </ng-container>
+    }
+
+    <!-- Actions Column -->
+    @if (hasActionsSignal()) {
+      <ng-container cdkColumnDef="actions">
+        <th cdk-header-cell *cdkHeaderCellDef class="text-center">Actions</th>
+        <td cdk-cell *cdkCellDef="let row" class="text-center">
+          <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+            @for (action of actionListSignal(); track trackByAction($index, action)) {
+              @if (!action.config.hidden?.(row)) {
+                @if (isTooltipVisible(row, action)) {
+                  <div class="tooltip" [attr.data-tip]="getTooltip(row, action) || action.config.label">
+                    <button
+                      type="button"
+                      [class]="classesFor(action)"
+                      [style]="action.config.buttonStyle"
+                      [disabled]="action.config.disabled?.(row)"
+                      (click)="action.config.action(row)"
+                    >
+                      @if (action.config.icon) {
+                        <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                      }
+                      <span [class.sr-only]="!!action.config.icon">
+                        {{ action.config.label }}
+                      </span>
+                    </button>
+                  </div>
+                } @else {
+                  <button
+                    type="button"
+                    [class]="classesFor(action)"
+                    [style]="action.config.buttonStyle"
+                    [disabled]="action.config.disabled?.(row)"
+                    (click)="action.config.action(row)"
+                  >
+                    @if (action.config.icon) {
+                      <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                    }
+                    <span [class.sr-only]="!!action.config.icon">
+                      {{ action.config.label }}
+                    </span>
+                  </button>
+                }
+              }
+            }
+          </div>
+        </td>
+      </ng-container>
+    }
+
+    <!-- Header Row -->
+    <tr cdk-header-row *cdkHeaderRowDef="displayedColumnsSignal()" class="hover:bg-base-50"></tr>
+
+    <!-- Data Rows -->
+    <tr cdk-row *cdkRowDef="let row; columns: displayedColumnsSignal()" class="hover:bg-base-50 transition-colors duration-200" [class]="isSelectedBgClass(row)"></tr>
+  </table>
+  </div>
+
+  <!-- Pagination Footer -->
+  <app-table-pagination
+    [paginationOptions]="paginationOptions()"
+    [totalItems]="totalItemsSignal()"
+    [showFirstLastButtons]="showFirstLastButtons()"
+    [hidePageSize]="hidePageSize()"
+    [showPageSizeOptions]="showPageSizeOptions()"
+    [disabled]="disabled()"
+    [pageIndex]="pageIndexSignal()"
+    [pageSize]="pageSizeSignal()"
+    (pageChange)="handlePaginationPageChange($event)"
+    (cursorChange)="handleCursorChange($event)"
+  />
+</div>

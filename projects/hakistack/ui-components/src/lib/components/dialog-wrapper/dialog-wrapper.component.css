@@ -1,0 +1,10 @@
+/* Minimal dialog container - content components provide their own styling */
+:host {
+  display: block;
+}
+
+.dialog-box {
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
