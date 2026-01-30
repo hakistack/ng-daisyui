@@ -9,7 +9,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "publish:local": "cd dist/hakistack/ng-daisyui && npm link",
-    "publish:github": "cd dist/hakistack/ng-daisyui && npm publish",
+    "publish:github": "cp .npmrc dist/hakistack/ng-daisyui/.npmrc && cd dist/hakistack/ng-daisyui && npm publish",
     "release:patch": "npm version patch -w @hakistack/ng-daisyui && npm run build",
     "release:minor": "npm version minor -w @hakistack/ng-daisyui && npm run build",
     "release:major": "npm version major -w @hakistack/ng-daisyui && npm run build"
