@@ -10,27 +10,8 @@ npm install @hakistack/ng-daisyui
 
 ### Required Dependencies
 
-This library requires **Tailwind CSS v4+** and **DaisyUI v5+**:
-
 ```bash
-# Required - will show warning if missing
-npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk
-```
-
-### Optional Dependencies
-
-```bash
-# For icons (LucideIconComponent)
-npm install lucide-angular
-
-# For alerts (AlertService integration)
-npm install sweetalert2
-
-# For fuzzy search in tables
-npm install fuse.js
-
-# For animation directives
-npm install motion
+npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk lucide-angular sweetalert2 fuse.js motion
 ```
 
 ### Configure Tailwind CSS
