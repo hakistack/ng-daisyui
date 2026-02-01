@@ -191,6 +191,23 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 Toast notifications with stacking and progress bars.
 
+**Setup** - Add `provideToast()` to your app config:
+
+```typescript
+// app.config.ts
+import { provideToast } from '@hakistack/ng-daisyui';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideToast(),
+    // or with custom config:
+    provideToast({ position: 'top-end', maxToasts: 3 }),
+  ],
+};
+```
+
+**Usage:**
+
 ```typescript
 import { ToastService } from '@hakistack/ng-daisyui';
 

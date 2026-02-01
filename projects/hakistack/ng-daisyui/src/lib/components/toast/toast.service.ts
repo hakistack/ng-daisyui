@@ -5,9 +5,12 @@ import {
   computed,
   createComponent,
   DestroyRef,
+  ENVIRONMENT_INITIALIZER,
   EnvironmentInjector,
+  EnvironmentProviders,
   inject,
   Injectable,
+  makeEnvironmentProviders,
   PLATFORM_ID,
   signal,
 } from '@angular/core';
@@ -36,6 +39,7 @@ export class ToastService {
   private readonly timers = new Map<string, ToastTimer>();
 
   private compRef?: ComponentRef<ToastComponent>;
+  private isInitialized = false;
 
   private readonly platformId = inject(PLATFORM_ID);
   private readonly appRef = inject(ApplicationRef);
@@ -43,13 +47,24 @@ export class ToastService {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly userConfig = inject(TOAST_CONFIG, { optional: true });
-  private readonly config: ToastGlobalConfig = { ...DEFAULT_TOAST_CONFIG, ...this.userConfig };
+  readonly config: ToastGlobalConfig = { ...DEFAULT_TOAST_CONFIG, ...this.userConfig };
 
   /** Check if user prefers reduced motion */
   private readonly prefersReducedMotion = this.checkReducedMotion();
 
   constructor() {
-    this.destroyRef.onDestroy(() => this.clear());
+    this.destroyRef.onDestroy(() => this.destroy());
+  }
+
+  /**
+   * Initialize the toast container. Called by provideToast().
+   * @internal
+   */
+  _initialize(): void {
+    if (this.isInitialized || !isPlatformBrowser(this.platformId)) return;
+
+    this.bootstrapContainer();
+    this.isInitialized = true;
   }
 
   /**
@@ -61,12 +76,16 @@ export class ToastService {
   }
 
   /**
-   * Show a toast notification
+   * Show a toast notification.
+   * Requires provideToast() in app.config.ts
    */
   show(options: ToastOptions): string {
-    try {
-      this.ensureContainer();
+    if (!this.isInitialized) {
+      console.warn('ToastService: Not initialized. Add provideToast() to your app.config.ts providers.');
+      return '';
+    }
 
+    try {
       if (this.config.preventDuplicates) {
         const duplicate = this.findDuplicate(options);
         if (duplicate) return duplicate.id;
@@ -90,11 +109,11 @@ export class ToastService {
         onTap: options.onTap,
         actions: options.actions,
         dismissing: false,
-        progressTarget: 100, // Start at 100%, will animate to 0
+        progressTarget: 100,
         isPaused: false,
         createdAt: now,
         remainingTime: life,
-        transitionDuration: 0, // No transition initially
+        transitionDuration: 0,
       };
 
       this._toasts.update(toasts => {
@@ -115,7 +134,6 @@ export class ToastService {
       if (!toast.sticky) {
         this.scheduleAutoDismiss(id, life);
 
-        // Start progress animation after DOM render (next frame)
         if (toast.progressBar && isPlatformBrowser(this.platformId)) {
           requestAnimationFrame(() => {
             this._toasts.update(toasts =>
@@ -151,17 +169,12 @@ export class ToastService {
 
     this._toasts.update(toasts => toasts.map(t => (t.id === id ? { ...t, dismissing: true } : t)));
 
-    // Use shorter duration if reduced motion is preferred
     const exitDuration = this.prefersReducedMotion ? 0 : this.config.exitDuration;
 
     timer(exitDuration)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this._toasts.update(toasts => toasts.filter(t => t.id !== id));
-
-        if (!this.hasToasts()) {
-          this.teardownContainer();
-        }
       });
   }
 
@@ -171,32 +184,26 @@ export class ToastService {
   clear(): void {
     this.clearAllTimers();
     this._toasts.set([]);
-    this.teardownContainer();
   }
 
   /**
    * Pause auto-dismiss timer (on hover)
-   * Uses performance.now() for better precision
    */
   pauseAutoDismiss(id: string): void {
     const timerData = this.timers.get(id);
     if (!timerData) return;
 
-    // Use performance.now() for better precision
     const elapsed = performance.now() - timerData.startTime;
     const remaining = Math.max(0, timerData.remainingTime - elapsed);
 
     clearTimeout(timerData.timerId);
     this.timers.set(id, { ...timerData, remainingTime: remaining });
 
-    // Calculate current progress based on elapsed time
     const toast = this._toasts().find(t => t.id === id);
     if (!toast) return;
 
-    // Calculate where the progress bar should be right now
     const currentProgress = (remaining / toast.life) * 100;
 
-    // Freeze the progress bar at current position
     this._toasts.update(toasts =>
       toasts.map(t =>
         t.id === id
@@ -204,8 +211,8 @@ export class ToastService {
               ...t,
               isPaused: true,
               remainingTime: remaining,
-              progressTarget: currentProgress, // Freeze at current position
-              transitionDuration: 0, // No transition while paused
+              progressTarget: currentProgress,
+              transitionDuration: 0,
             }
           : t
       )
@@ -214,7 +221,6 @@ export class ToastService {
 
   /**
    * Resume auto-dismiss timer (on hover end)
-   * Uses performance.now() for better precision
    */
   resumeAutoDismiss(id: string): void {
     const timerData = this.timers.get(id);
@@ -223,13 +229,11 @@ export class ToastService {
     const toast = this._toasts().find(t => t.id === id);
     if (!toast || toast.sticky) return;
 
-    // Use extended timeout if configured, otherwise use remaining time
     const delay = this.config.extendedTimeOut > 0 ? this.config.extendedTimeOut : timerData.remainingTime;
 
     this.timers.delete(id);
     this.scheduleAutoDismiss(id, delay);
 
-    // Resume animation: keep current width, animate to 0 over remaining time
     this._toasts.update(toasts =>
       toasts.map(t =>
         t.id === id
@@ -237,9 +241,8 @@ export class ToastService {
               ...t,
               isPaused: false,
               remainingTime: delay,
-              // progressWidth stays at current value (set during pause)
-              progressTarget: 0, // Animate to 0
-              transitionDuration: delay, // Over remaining time
+              progressTarget: 0,
+              transitionDuration: delay,
             }
           : t
       )
@@ -266,7 +269,6 @@ export class ToastService {
   handleActionClick(id: string, action: ToastAction): void {
     action.onClick();
 
-    // Dismiss after action unless explicitly set to false
     if (action.dismissOnClick !== false) {
       this.dismiss(id);
     }
@@ -305,13 +307,9 @@ export class ToastService {
     return this._toasts().find(t => t.summary === options.summary && t.severity === options.severity && !t.dismissing);
   }
 
-  private ensureContainer(): void {
-    if (!this.compRef) {
-      this.bootstrapContainer();
-    }
-  }
-
   private bootstrapContainer(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
     this.compRef = createComponent(ToastComponent, {
       environmentInjector: this.envInjector,
     });
@@ -320,12 +318,17 @@ export class ToastService {
     document.body.appendChild(this.compRef.location.nativeElement);
   }
 
-  private teardownContainer(): void {
-    if (!this.compRef) return;
+  private destroy(): void {
+    this.clearAllTimers();
+    this._toasts.set([]);
 
-    this.appRef.detachView(this.compRef.hostView);
-    this.compRef.destroy();
-    this.compRef = undefined;
+    if (this.compRef) {
+      this.appRef.detachView(this.compRef.hostView);
+      this.compRef.destroy();
+      this.compRef = undefined;
+    }
+
+    this.isInitialized = false;
   }
 
   private scheduleAutoDismiss(id: string, delay: number): void {
@@ -349,4 +352,38 @@ export class ToastService {
     this.timers.forEach(timerData => clearTimeout(timerData.timerId));
     this.timers.clear();
   }
+}
+
+/**
+ * Provide toast notifications for your application.
+ * Add to your app.config.ts providers array.
+ *
+ * @example
+ * ```typescript
+ * // app.config.ts
+ * import { provideToast } from '@hakistack/ng-daisyui';
+ *
+ * export const appConfig: ApplicationConfig = {
+ *   providers: [
+ *     provideToast(),
+ *     // or with custom config:
+ *     provideToast({ position: 'top-end', maxToasts: 3 }),
+ *   ],
+ * };
+ * ```
+ */
+export function provideToast(config?: Partial<ToastGlobalConfig>): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    // Provide custom config if specified
+    ...(config ? [{ provide: TOAST_CONFIG, useValue: { ...DEFAULT_TOAST_CONFIG, ...config } }] : []),
+    // Initialize toast container on app startup
+    {
+      provide: ENVIRONMENT_INITIALIZER,
+      multi: true,
+      useValue: () => {
+        const toastService = inject(ToastService);
+        toastService._initialize();
+      },
+    },
+  ]);
 }
