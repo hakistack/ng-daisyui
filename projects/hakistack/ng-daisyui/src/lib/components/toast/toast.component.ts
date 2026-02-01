@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
 
 import { IconName, LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 import { TOAST_CONFIG } from './toast.config';
@@ -14,6 +14,8 @@ type PositionHorizontal = 'start' | 'center' | 'end';
   templateUrl: './toast.component.html',
   styleUrl: './toast.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Use None because component is dynamically created and appended to body
+  encapsulation: ViewEncapsulation.None,
 })
 export class ToastComponent {
   private readonly toastService = inject(ToastService);
