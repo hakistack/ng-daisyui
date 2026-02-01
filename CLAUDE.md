@@ -64,6 +64,19 @@ const form = createForm({
 <button (click)="form.reset()">Reset</button>
 ```
 
+#### Layout Options
+
+| Property | Values | Description |
+|----------|--------|-------------|
+| `layout` | `'vertical'` (default), `'horizontal'`, `'grid'` | Form layout mode |
+| `gap` | `'sm'`, `'md'`, `'lg'` | Gap between fields |
+| `gridColumns` | 1-12 | Number of columns (grid only) |
+| `labelWidth` | `'sm'`, `'md'`, `'lg'`, `'xl'` | Label width (horizontal only) |
+
+**Field-level layout:**
+- `colSpan`: Grid column span. Supports responsive: `{ default: 12, md: 6, lg: 4 }`
+- `width`: Non-grid field width: `'full'`, `'1/2'`, `'1/3'`, `'1/4'`, `'2/3'`, `'3/4'`, `'auto'`
+
 ### Major Components
 
 - **DynamicFormComponent**: Form builder with wizard support, auto-save, conditional logic (showWhen/hideWhen/requiredWhen/disabledWhen). No built-in buttons - use FormController.

@@ -55,6 +55,47 @@ export class MyComponent {
 }
 ```
 
+#### Layout Options
+
+```typescript
+// Vertical (default) - fields stacked
+createForm({
+  layout: 'vertical',
+  gap: 'md', // 'sm' | 'md' | 'lg'
+  fields: [...]
+});
+
+// Horizontal - label beside input
+createForm({
+  layout: 'horizontal',
+  labelWidth: 'md', // 'sm' | 'md' | 'lg' | 'xl'
+  fields: [...]
+});
+
+// Grid - responsive columns
+createForm({
+  layout: 'grid',
+  gridColumns: 3,
+  fields: [
+    field.text('name', 'Name', { colSpan: 2 }), // Span 2 columns
+    field.text('code', 'Code'), // Span 1 column
+    // Responsive colSpan
+    field.text('address', 'Address', { colSpan: { default: 12, md: 6, lg: 4 } }),
+  ]
+});
+
+// Field widths for non-grid layouts
+createForm({
+  layout: 'vertical',
+  fields: [
+    field.text('name', 'Name', { width: 'full' }),
+    field.text('city', 'City', { width: '1/2' }),
+    field.text('state', 'State', { width: '1/4' }),
+    field.text('zip', 'ZIP', { width: '1/4' }),
+  ]
+});
+```
+
 ### TableComponent
 
 Advanced data table with sorting, filtering, pagination, and column visibility.

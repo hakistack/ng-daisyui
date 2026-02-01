@@ -3,7 +3,7 @@ import { ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
 
 import { generateUniqueId } from '../../utils/generate-uuid';
-import { ConditionalLogic, CreateFormInput, FieldType, FieldValidation, FormConfig, FormController, FormFieldConfig, FormSelectOption, FormStep } from './dynamic-form.types';
+import { ConditionalLogic, CreateFormInput, FieldType, FieldValidation, FieldWidth, FormConfig, FormController, FormFieldConfig, FormSelectOption, FormStep, ResponsiveColSpan } from './dynamic-form.types';
 
 // Simplified field options interface
 interface FieldOptions {
@@ -11,7 +11,10 @@ interface FieldOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultValue?: any;
   helpText?: string;
-  colSpan?: number;
+  /** Grid column span (1-12). Can be responsive: { default: 12, md: 6, lg: 4 } */
+  colSpan?: number | ResponsiveColSpan;
+  /** Field width for non-grid layouts: 'full', '1/2', '1/3', '1/4', '2/3', '3/4', 'auto' */
+  width?: FieldWidth;
   cssClass?: string;
   containerClass?: string;
   hidden?: boolean;
@@ -68,6 +71,8 @@ export function createForm(input: CreateFormInput): FormController {
     description: input.description,
     layout: input.layout || 'vertical',
     gridColumns: input.gridColumns,
+    gap: input.gap,
+    labelWidth: input.labelWidth,
     autoSave: input.autoSave,
     // Regular form
     fields: input.fields,
@@ -119,9 +124,10 @@ function createField(key: string, type: FieldType, label?: string, options: Fiel
     defaultValue: options.defaultValue,
     helpText: options.helpText,
     order: 1,
-    colSpan: options.colSpan || 1,
+    colSpan: options.colSpan,
+    width: options.width,
     cssClass: options.cssClass || 'form-control',
-    containerClass: options.containerClass || 'form-group',
+    containerClass: options.containerClass,
     hidden: options.hidden || false,
     disabled: options.disabled || false,
     showWhen: parseCondition(options.showWhen),
@@ -305,9 +311,23 @@ export const validation = {
 
 // Layout helpers
 export const layout = {
-  vertical: () => ({ layout: 'vertical' as const }),
-  horizontal: () => ({ layout: 'horizontal' as const }),
-  grid: (columns = 2) => ({ layout: 'grid' as const, gridColumns: columns }),
+  /** Vertical layout (default) - fields stacked in a column */
+  vertical: (options?: { gap?: 'sm' | 'md' | 'lg' }) => ({
+    layout: 'vertical' as const,
+    gap: options?.gap,
+  }),
+  /** Horizontal layout - label beside input */
+  horizontal: (options?: { gap?: 'sm' | 'md' | 'lg'; labelWidth?: 'sm' | 'md' | 'lg' | 'xl' }) => ({
+    layout: 'horizontal' as const,
+    gap: options?.gap,
+    labelWidth: options?.labelWidth,
+  }),
+  /** Grid layout - fields in responsive grid */
+  grid: (columns = 2, options?: { gap?: 'sm' | 'md' | 'lg' }) => ({
+    layout: 'grid' as const,
+    gridColumns: columns,
+    gap: options?.gap,
+  }),
 };
 
 // Step helpers for wizard/stepper forms

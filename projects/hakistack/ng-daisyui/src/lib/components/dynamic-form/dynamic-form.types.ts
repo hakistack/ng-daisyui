@@ -91,10 +91,26 @@ export interface FormFieldConfig {
   readonly isRangeDate?: boolean;
   readonly orientation?: 'horizontal' | 'vertical'; // For radio buttons and checkboxes
   // Layout properties
-  readonly colSpan?: number; // Grid column span (1-12)
+  /** Grid column span (1-12). Can be responsive: { default: 12, md: 6, lg: 4 } */
+  readonly colSpan?: number | ResponsiveColSpan;
+  /** Field width for non-grid layouts */
+  readonly width?: FieldWidth;
   readonly order?: number; // Field order
   readonly group?: string; // Group fields together
 }
+
+/** Responsive column span configuration */
+export interface ResponsiveColSpan {
+  readonly default?: number; // Base column span (1-12)
+  readonly sm?: number; // sm: breakpoint
+  readonly md?: number; // md: breakpoint
+  readonly lg?: number; // lg: breakpoint
+  readonly xl?: number; // xl: breakpoint
+  readonly '2xl'?: number; // 2xl: breakpoint
+}
+
+/** Field width options for non-grid layouts */
+export type FieldWidth = 'full' | '1/2' | '1/3' | '1/4' | '2/3' | '3/4' | 'auto';
 
 // Extended interfaces for stepper support
 export interface FormStep {
@@ -145,6 +161,10 @@ export interface CreateFormInput {
   readonly description?: string;
   readonly layout?: 'vertical' | 'horizontal' | 'grid';
   readonly gridColumns?: number;
+  /** Gap between fields: 'sm' (gap-2), 'md' (gap-4), 'lg' (gap-6). Default: 'lg' */
+  readonly gap?: 'sm' | 'md' | 'lg';
+  /** Label width for horizontal layout. Default: '1/3' */
+  readonly labelWidth?: 'sm' | 'md' | 'lg' | 'xl';
   /** Auto-save configuration. Set to true for simple enable or provide AutoSaveConfig for full control. */
   readonly autoSave?: boolean | AutoSaveConfig;
   /** Form fields for regular mode. Required unless using steps. */
@@ -167,6 +187,10 @@ export interface FormConfig {
   readonly fields?: readonly FormFieldConfig[];
   readonly layout?: 'vertical' | 'horizontal' | 'grid';
   readonly gridColumns?: number;
+  /** Gap between fields: 'sm' (gap-2), 'md' (gap-4), 'lg' (gap-6). Default: 'lg' */
+  readonly gap?: 'sm' | 'md' | 'lg';
+  /** Label width for horizontal layout. Default: '1/3' */
+  readonly labelWidth?: 'sm' | 'md' | 'lg' | 'xl';
   /** Auto-save configuration. Set to true for simple enable or provide AutoSaveConfig for full control. */
   readonly autoSave?: boolean | AutoSaveConfig;
   readonly validateOnChange?: boolean;

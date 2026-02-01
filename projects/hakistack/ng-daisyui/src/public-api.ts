@@ -27,6 +27,8 @@ export type {
   AutoSaveConfig,
   CreateFormInput,
   FormController,
+  ResponsiveColSpan,
+  FieldWidth,
 } from './lib/components/dynamic-form/dynamic-form.types';
 
 // Table

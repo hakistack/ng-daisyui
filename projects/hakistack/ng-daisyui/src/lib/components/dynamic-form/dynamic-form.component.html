@@ -100,9 +100,12 @@
 </form>
 
 <ng-template #fieldTemplate let-field="field" let-formGroup="formGroup">
-  <div [formGroup]="formGroup" class="form-field-container">
+  <div [formGroup]="formGroup" [class]="isHorizontalLayout() ? 'form-field-container flex items-start gap-4' : 'form-field-container'">
     @if (field.type !== 'hidden') {
-      <label [for]="field.id" class="label mb-1">
+      <label
+        [for]="field.id"
+        [class]="isHorizontalLayout() ? 'label pt-2 flex-shrink-0 ' + labelWidthClass() : 'label mb-1'"
+      >
         <span class="label-text">
           {{ field.label }}
           @if (isFieldRequired(field)) {
@@ -112,7 +115,7 @@
       </label>
     }
 
-    <div class="form-input-container">
+    <div [class]="isHorizontalLayout() ? 'form-input-container flex-1' : 'form-input-container'">
       @switch (field.type) {
         @case ('text') {
           <input [id]="field.id" [formControlName]="field.key" type="text" [placeholder]="field.placeholder || ''" [class]="getBaseInputClasses()" />

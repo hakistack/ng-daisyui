@@ -9,7 +9,7 @@ import { FormStateMetadata, FormStateService } from '../../services/form-state.s
 import { DatepickerComponent } from '../datepicker/datepicker.component';
 import { SelectComponent } from '../select/select.component';
 import { StepperComponent } from '../stepper/stepper.component';
-import { AutoSaveConfig, FormConfig, FormFieldConfig, FormSelectOption, FormStep, FormSubmissionData, StepChangeEvent } from './dynamic-form.types';
+import { AutoSaveConfig, FormConfig, FormFieldConfig, FormSelectOption, FormStep, FormSubmissionData, ResponsiveColSpan, StepChangeEvent } from './dynamic-form.types';
 import { FormUtils } from './dynamic-form.utils';
 
 @Component({
@@ -241,13 +241,27 @@ export class DynamicFormComponent {
   readonly layoutClasses = computed(() => {
     const config = this.config();
     const layout = config.layout || 'vertical';
+    const gapClass = this.getGapClass(config.gap);
 
     if (layout === 'grid') {
       const columns = config.gridColumns || 2;
-      return `grid gap-6 ${this.getGridColumns(columns)}`;
+      return `grid ${gapClass} ${this.getGridColumns(columns)}`;
     }
 
-    return layout === 'horizontal' ? 'space-y-2' : 'space-y-4';
+    if (layout === 'horizontal') {
+      // Horizontal layout uses flex with wrapping for field widths
+      return `flex flex-wrap ${gapClass}`;
+    }
+
+    // Vertical layout
+    return `flex flex-col ${gapClass}`;
+  });
+
+  readonly isHorizontalLayout = computed(() => this.config().layout === 'horizontal');
+
+  readonly labelWidthClass = computed(() => {
+    const width = this.config().labelWidth || 'md';
+    return DynamicFormComponent.LABEL_WIDTH_CLASSES.get(width) || 'w-1/4';
   });
 
   constructor() {
@@ -529,8 +543,61 @@ export class DynamicFormComponent {
   }
 
   getFieldContainerClasses(field: FormFieldConfig): string {
-    const classes = ['form-control w-full', field.colSpan ? `col-span-${field.colSpan}` : '', field.containerClass || ''];
+    const layout = this.config().layout || 'vertical';
+    const classes: string[] = ['form-control'];
+
+    if (layout === 'grid') {
+      // Grid layout: use colSpan
+      classes.push(this.getColSpanClasses(field.colSpan));
+    } else if (layout === 'horizontal' || layout === 'vertical') {
+      // Flex layouts: use width property
+      const widthClass = field.width
+        ? DynamicFormComponent.FIELD_WIDTH_CLASSES.get(field.width) || 'w-full'
+        : 'w-full';
+      classes.push(widthClass);
+    }
+
+    if (field.containerClass) {
+      classes.push(field.containerClass);
+    }
+
     return classes.filter(Boolean).join(' ');
+  }
+
+  /** Get colSpan classes for grid layout (supports responsive values) */
+  private getColSpanClasses(colSpan?: number | ResponsiveColSpan): string {
+    if (!colSpan) return 'col-span-full';
+
+    if (typeof colSpan === 'number') {
+      return DynamicFormComponent.COL_SPAN_CLASSES.get(colSpan) || 'col-span-full';
+    }
+
+    // Responsive colSpan object
+    const classes: string[] = [];
+
+    // Default/base span
+    if (colSpan.default) {
+      classes.push(DynamicFormComponent.COL_SPAN_CLASSES.get(colSpan.default) || '');
+    }
+
+    // Responsive breakpoints
+    const breakpoints: (keyof ResponsiveColSpan)[] = ['sm', 'md', 'lg', 'xl', '2xl'];
+    for (const bp of breakpoints) {
+      const span = colSpan[bp];
+      if (span) {
+        const bpClasses = DynamicFormComponent.RESPONSIVE_COL_SPAN_CLASSES.get(bp);
+        if (bpClasses) {
+          classes.push(bpClasses.get(span) || '');
+        }
+      }
+    }
+
+    return classes.filter(Boolean).join(' ') || 'col-span-full';
+  }
+
+  /** Get gap class from config */
+  private getGapClass(gap?: 'sm' | 'md' | 'lg'): string {
+    return DynamicFormComponent.GAP_CLASSES.get(gap || 'lg') || 'gap-6';
   }
 
   getInputClasses(field: FormFieldConfig, inputType?: string): string {
@@ -548,6 +615,137 @@ export class DynamicFormComponent {
     ['file', 'file-input file-input-bordered file-input-primary w-full'],
     ['select', 'select select-bordered w-full'],
     ['textarea', 'textarea textarea-bordered w-full'],
+  ]);
+
+  // Static colSpan classes for Tailwind JIT compatibility
+  private static readonly COL_SPAN_CLASSES = new Map<number, string>([
+    [1, 'col-span-1'],
+    [2, 'col-span-2'],
+    [3, 'col-span-3'],
+    [4, 'col-span-4'],
+    [5, 'col-span-5'],
+    [6, 'col-span-6'],
+    [7, 'col-span-7'],
+    [8, 'col-span-8'],
+    [9, 'col-span-9'],
+    [10, 'col-span-10'],
+    [11, 'col-span-11'],
+    [12, 'col-span-12'],
+  ]);
+
+  // Responsive colSpan prefix classes
+  private static readonly RESPONSIVE_COL_SPAN_CLASSES = new Map<string, Map<number, string>>([
+    [
+      'sm',
+      new Map([
+        [1, 'sm:col-span-1'],
+        [2, 'sm:col-span-2'],
+        [3, 'sm:col-span-3'],
+        [4, 'sm:col-span-4'],
+        [5, 'sm:col-span-5'],
+        [6, 'sm:col-span-6'],
+        [7, 'sm:col-span-7'],
+        [8, 'sm:col-span-8'],
+        [9, 'sm:col-span-9'],
+        [10, 'sm:col-span-10'],
+        [11, 'sm:col-span-11'],
+        [12, 'sm:col-span-12'],
+      ]),
+    ],
+    [
+      'md',
+      new Map([
+        [1, 'md:col-span-1'],
+        [2, 'md:col-span-2'],
+        [3, 'md:col-span-3'],
+        [4, 'md:col-span-4'],
+        [5, 'md:col-span-5'],
+        [6, 'md:col-span-6'],
+        [7, 'md:col-span-7'],
+        [8, 'md:col-span-8'],
+        [9, 'md:col-span-9'],
+        [10, 'md:col-span-10'],
+        [11, 'md:col-span-11'],
+        [12, 'md:col-span-12'],
+      ]),
+    ],
+    [
+      'lg',
+      new Map([
+        [1, 'lg:col-span-1'],
+        [2, 'lg:col-span-2'],
+        [3, 'lg:col-span-3'],
+        [4, 'lg:col-span-4'],
+        [5, 'lg:col-span-5'],
+        [6, 'lg:col-span-6'],
+        [7, 'lg:col-span-7'],
+        [8, 'lg:col-span-8'],
+        [9, 'lg:col-span-9'],
+        [10, 'lg:col-span-10'],
+        [11, 'lg:col-span-11'],
+        [12, 'lg:col-span-12'],
+      ]),
+    ],
+    [
+      'xl',
+      new Map([
+        [1, 'xl:col-span-1'],
+        [2, 'xl:col-span-2'],
+        [3, 'xl:col-span-3'],
+        [4, 'xl:col-span-4'],
+        [5, 'xl:col-span-5'],
+        [6, 'xl:col-span-6'],
+        [7, 'xl:col-span-7'],
+        [8, 'xl:col-span-8'],
+        [9, 'xl:col-span-9'],
+        [10, 'xl:col-span-10'],
+        [11, 'xl:col-span-11'],
+        [12, 'xl:col-span-12'],
+      ]),
+    ],
+    [
+      '2xl',
+      new Map([
+        [1, '2xl:col-span-1'],
+        [2, '2xl:col-span-2'],
+        [3, '2xl:col-span-3'],
+        [4, '2xl:col-span-4'],
+        [5, '2xl:col-span-5'],
+        [6, '2xl:col-span-6'],
+        [7, '2xl:col-span-7'],
+        [8, '2xl:col-span-8'],
+        [9, '2xl:col-span-9'],
+        [10, '2xl:col-span-10'],
+        [11, '2xl:col-span-11'],
+        [12, '2xl:col-span-12'],
+      ]),
+    ],
+  ]);
+
+  // Field width classes for non-grid layouts
+  private static readonly FIELD_WIDTH_CLASSES = new Map<string, string>([
+    ['full', 'w-full'],
+    ['1/2', 'w-full md:w-[calc(50%-0.75rem)]'],
+    ['1/3', 'w-full md:w-[calc(33.333%-0.75rem)]'],
+    ['1/4', 'w-full md:w-[calc(25%-0.75rem)]'],
+    ['2/3', 'w-full md:w-[calc(66.666%-0.75rem)]'],
+    ['3/4', 'w-full md:w-[calc(75%-0.75rem)]'],
+    ['auto', 'w-auto flex-shrink-0'],
+  ]);
+
+  // Gap classes
+  private static readonly GAP_CLASSES = new Map<string, string>([
+    ['sm', 'gap-2'],
+    ['md', 'gap-4'],
+    ['lg', 'gap-6'],
+  ]);
+
+  // Label width classes for horizontal layout
+  private static readonly LABEL_WIDTH_CLASSES = new Map<string, string>([
+    ['sm', 'w-1/6'],
+    ['md', 'w-1/4'],
+    ['lg', 'w-1/3'],
+    ['xl', 'w-2/5'],
   ]);
 
   getBaseInputClasses(inputType?: string): string {
