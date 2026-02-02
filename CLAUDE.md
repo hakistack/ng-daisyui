@@ -5,6 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build Commands
 
 ```bash
+npm start                  # Serve demo app for local testing
+npm run demo               # Serve demo app and open browser
 npm run build              # Production build to dist/hakistack/ng-daisyui
 npm run build:watch        # Development build with watch mode
 npm run watch              # Alias for build:watch with development config
@@ -23,16 +25,19 @@ This is an Angular 21 monorepo containing a single UI component library (`@hakis
 ### Project Structure
 
 ```
-projects/hakistack/ng-daisyui/
-├── src/lib/
-│   ├── components/     # Standalone UI components
-│   ├── directives/     # Animation and behavior directives
-│   ├── services/       # FormStateService, PipeRegistryService, AccessibilityService
-│   ├── helpers/        # Pagination helpers, search algorithms, fake data
-│   ├── types/          # Shared TypeScript definitions
-│   └── utils/          # Utility functions
-├── src/public-api.ts   # Library exports (barrel file)
-└── ng-package.json     # ng-packagr configuration
+projects/
+├── hakistack/ng-daisyui/   # Library source
+│   ├── src/lib/
+│   │   ├── components/     # Standalone UI components
+│   │   ├── directives/     # Animation and behavior directives
+│   │   ├── services/       # FormStateService, PipeRegistryService, AccessibilityService
+│   │   ├── helpers/        # Pagination helpers, search algorithms, fake data
+│   │   ├── types/          # Shared TypeScript definitions
+│   │   └── utils/          # Utility functions
+│   ├── src/public-api.ts   # Library exports (barrel file)
+│   └── ng-package.json     # ng-packagr configuration
+└── demo/                   # Demo app for local testing (imports library source directly)
+    └── src/app/            # Demo app components
 ```
 
 ### Key Patterns

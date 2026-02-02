@@ -5,7 +5,7 @@
   "compilerOptions": {
     "paths": {
       "@hakistack/ng-daisyui": [
-        "./dist/hakistack/ng-daisyui"
+        "./projects/hakistack/ng-daisyui/src/public-api.ts"
       ]
     },
     "strict": true,
@@ -33,6 +33,9 @@
     },
     {
       "path": "./projects/hakistack/ng-daisyui/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/demo/tsconfig.app.json"
     }
   ]
 }

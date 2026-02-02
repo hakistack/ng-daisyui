@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: silk
+}
+@plugin "../../../projects/hakistack/ng-daisyui/plugin.mjs";
