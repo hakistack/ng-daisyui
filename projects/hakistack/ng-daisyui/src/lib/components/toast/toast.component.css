@@ -1,5 +1,38 @@
-/* Toast item base styles */
+/* ===== Container positioning (bundled utilities) ===== */
+.toast-container {
+  position: fixed;
+  display: flex;
+  pointer-events: none;
+  z-index: 9999;
+  gap: 0.5rem;
+}
+
+.toast-container.toast-top {
+  top: 1rem;
+  flex-direction: column;
+}
+
+.toast-container.toast-bottom {
+  bottom: 1rem;
+  flex-direction: column-reverse;
+}
+
+.toast-container.toast-start {
+  left: 1rem;
+}
+
+.toast-container.toast-end {
+  right: 1rem;
+}
+
+.toast-container.toast-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ===== Toast item base styles ===== */
 .toast-item {
+  pointer-events: auto;
   min-width: 320px;
   max-width: 420px;
   box-shadow:
@@ -7,13 +40,11 @@
     0 4px 6px -4px rgb(0 0 0 / 0.1);
   position: relative;
   overflow: hidden;
-
-  /* Smooth reordering when other toasts are dismissed */
   transition: transform 200ms ease-out;
 }
 
-/* Hover effect for interactive toasts */
 .toast-item.cursor-pointer {
+  cursor: pointer;
   transition: transform 150ms ease-out;
 }
 
@@ -21,9 +52,41 @@
   transform: scale(1.02);
 }
 
-/* ===== Position-aware animations ===== */
+/* Toast content layout */
+.toast-content {
+  flex: 1 1 0%;
+  min-width: 0;
+}
 
-/* Bottom position animations */
+.toast-content .toast-summary {
+  font-weight: 500;
+}
+
+.toast-content .toast-detail {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  margin-top: 0.125rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.toast-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.toast-icon {
+  flex-shrink: 0;
+}
+
+.toast-dismiss {
+  flex-shrink: 0;
+}
+
+/* ===== Position-aware animations ===== */
 .toast-enter-bottom {
   animation: slide-in-bottom 300ms ease-out forwards;
 }
@@ -54,7 +117,6 @@
   }
 }
 
-/* Top position animations */
 .toast-enter-top {
   animation: slide-in-top 300ms ease-out forwards;
 }
@@ -85,7 +147,7 @@
   }
 }
 
-/* ===== CSS Transition-based Progress bar ===== */
+/* ===== Progress bar ===== */
 .toast-progress {
   position: absolute;
   bottom: 0;
@@ -95,19 +157,15 @@
   opacity: 0.3;
   pointer-events: none;
   border-radius: 0 0 0 var(--rounded-box, 1rem);
-
-  /* Use CSS transition for smooth width animation */
   transition: width linear;
   transition-duration: var(--progress-duration, 5000ms);
 }
 
-/* When paused, stop the transition instantly */
 .toast-progress.paused {
   transition-duration: 0ms;
   opacity: 0.5;
 }
 
-/* Visual feedback on hover */
 .toast-item:hover .toast-progress {
   opacity: 0.5;
 }
@@ -116,12 +174,9 @@
   opacity: 0.6;
 }
 
-/* Respect reduced motion preference */
+/* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
-  .toast-item {
-    transition: none;
-  }
-
+  .toast-item,
   .toast-item.cursor-pointer {
     transition: none;
   }

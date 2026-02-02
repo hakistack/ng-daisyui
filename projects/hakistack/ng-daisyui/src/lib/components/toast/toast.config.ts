@@ -1,4 +1,4 @@
-import { InjectionToken } from '@angular/core';
+import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
 import { ToastPosition } from './toast.types';
 
 /**
@@ -74,3 +74,20 @@ export const TOAST_CONFIG = new InjectionToken<Partial<ToastGlobalConfig>>('TOAS
   providedIn: 'root',
   factory: () => DEFAULT_TOAST_CONFIG,
 });
+
+/**
+ * Provide toast service configuration.
+ *
+ * @example
+ * ```typescript
+ * // In app.config.ts
+ * export const appConfig: ApplicationConfig = {
+ *   providers: [
+ *     provideToast({ position: 'top-end', maxToasts: 3 })
+ *   ]
+ * };
+ * ```
+ */
+export function provideToast(config?: Partial<ToastGlobalConfig>): EnvironmentProviders {
+  return makeEnvironmentProviders([{ provide: TOAST_CONFIG, useValue: { ...DEFAULT_TOAST_CONFIG, ...config } }]);
+}

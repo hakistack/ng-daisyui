@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve demo",
+    "demo": "ng serve demo --open",
     "build": "ng build @hakistack/ng-daisyui",
     "build:watch": "ng build @hakistack/ng-daisyui --watch",
     "watch": "ng build --watch --configuration development",
@@ -38,9 +39,11 @@
     "@angular/platform-browser": "^21.0.0",
     "@angular/router": "^21.0.0",
     "@jsverse/transloco": "^8.2.1",
+    "@tailwindcss/postcss": "^4.1.18",
     "fuse.js": "^7.1.0",
     "lucide-angular": "^0.562.0",
     "motion": "^12.28.1",
+    "postcss": "^8.5.6",
     "rxjs": "~7.8.0",
     "sweetalert2": "^11.26.15",
     "tslib": "^2.3.0",
@@ -51,8 +54,11 @@
     "@angular/build": "^21.1.2",
     "@angular/cli": "^21.0.0",
     "@angular/compiler-cli": "^21.0.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "daisyui": "^5.5.16",
     "jsdom": "^27.1.0",
     "ng-packagr": "^21.1.0",
+    "tailwindcss": "^4.1.18",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"
   }

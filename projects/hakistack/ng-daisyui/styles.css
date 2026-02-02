@@ -1,0 +1,12 @@
+/**
+ * @hakistack/ng-daisyui - Alternative CSS Import
+ *
+ * RECOMMENDED: Use the plugin instead:
+ *   @plugin "@hakistack/ng-daisyui";
+ *
+ * Alternative (for @source scanning):
+ *   @import "@hakistack/ng-daisyui/styles.css";
+ */
+
+@source "./src/lib/**/*.html";
+@source "./src/lib/**/*.ts";

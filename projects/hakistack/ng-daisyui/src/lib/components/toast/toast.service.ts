@@ -5,12 +5,9 @@ import {
   computed,
   createComponent,
   DestroyRef,
-  ENVIRONMENT_INITIALIZER,
   EnvironmentInjector,
-  EnvironmentProviders,
   inject,
   Injectable,
-  makeEnvironmentProviders,
   PLATFORM_ID,
   signal,
 } from '@angular/core';
@@ -28,6 +25,21 @@ interface ToastTimer {
   remainingTime: number;
 }
 
+/**
+ * Toast notification service.
+ * Auto-initializes on first use - no provider setup required.
+ *
+ * @example
+ * ```typescript
+ * export class MyComponent {
+ *   private toast = inject(ToastService);
+ *
+ *   showSuccess() {
+ *     this.toast.success('Done!', 'Operation completed');
+ *   }
+ * }
+ * ```
+ */
 @Injectable({
   providedIn: 'root',
 })
@@ -56,20 +68,13 @@ export class ToastService {
     this.destroyRef.onDestroy(() => this.destroy());
   }
 
-  /**
-   * Initialize the toast container. Called by provideToast().
-   * @internal
-   */
-  _initialize(): void {
+  private initialize(): void {
     if (this.isInitialized || !isPlatformBrowser(this.platformId)) return;
 
     this.bootstrapContainer();
     this.isInitialized = true;
   }
 
-  /**
-   * Check if user prefers reduced motion
-   */
   private checkReducedMotion(): boolean {
     if (!isPlatformBrowser(this.platformId)) return false;
     return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -77,11 +82,14 @@ export class ToastService {
 
   /**
    * Show a toast notification.
-   * Requires provideToast() in app.config.ts
    */
   show(options: ToastOptions): string {
+    // Auto-initialize on first use
     if (!this.isInitialized) {
-      console.warn('ToastService: Not initialized. Add provideToast() to your app.config.ts providers.');
+      this.initialize();
+    }
+
+    if (!this.isInitialized) {
       return '';
     }
 
@@ -352,38 +360,4 @@ export class ToastService {
     this.timers.forEach(timerData => clearTimeout(timerData.timerId));
     this.timers.clear();
   }
-}
-
-/**
- * Provide toast notifications for your application.
- * Add to your app.config.ts providers array.
- *
- * @example
- * ```typescript
- * // app.config.ts
- * import { provideToast } from '@hakistack/ng-daisyui';
- *
- * export const appConfig: ApplicationConfig = {
- *   providers: [
- *     provideToast(),
- *     // or with custom config:
- *     provideToast({ position: 'top-end', maxToasts: 3 }),
- *   ],
- * };
- * ```
- */
-export function provideToast(config?: Partial<ToastGlobalConfig>): EnvironmentProviders {
-  return makeEnvironmentProviders([
-    // Provide custom config if specified
-    ...(config ? [{ provide: TOAST_CONFIG, useValue: { ...DEFAULT_TOAST_CONFIG, ...config } }] : []),
-    // Initialize toast container on app startup
-    {
-      provide: ENVIRONMENT_INITIALIZER,
-      multi: true,
-      useValue: () => {
-        const toastService = inject(ToastService);
-        toastService._initialize();
-      },
-    },
-  ]);
 }

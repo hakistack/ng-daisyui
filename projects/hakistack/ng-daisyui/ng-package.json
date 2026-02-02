@@ -5,6 +5,12 @@
     "entryFile": "src/public-api.ts",
     "cssUrl": "inline"
   },
+  "assets": [
+    "plugin.mjs",
+    "plugin.cjs",
+    "styles.css",
+    "src/lib/**/*.html"
+  ],
   "allowedNonPeerDependencies": [
     "lucide-angular",
     "sweetalert2",

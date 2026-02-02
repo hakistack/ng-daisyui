@@ -1,6 +1,6 @@
 {
   "name": "@hakistack/ng-daisyui",
-  "version": "0.1.6",
+  "version": "0.1.11",
   "description": "Angular UI components built with DaisyUI and Tailwind CSS",
   "author": "Hakistack",
   "license": "UNLICENSED",
@@ -20,6 +20,13 @@
     "forms",
     "table"
   ],
+  "exports": {
+    "./plugin": {
+      "import": "./plugin.mjs",
+      "require": "./plugin.cjs"
+    },
+    "./styles.css": "./styles.css"
+  },
   "peerDependencies": {
     "@angular/common": ">=21.0.0",
     "@angular/core": ">=21.0.0",

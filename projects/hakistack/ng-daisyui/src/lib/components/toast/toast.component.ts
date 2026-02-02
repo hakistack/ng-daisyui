@@ -14,7 +14,6 @@ type PositionHorizontal = 'start' | 'center' | 'end';
   templateUrl: './toast.component.html',
   styleUrl: './toast.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // Use None because component is dynamically created and appended to body
   encapsulation: ViewEncapsulation.None,
 })
 export class ToastComponent {
@@ -39,16 +38,15 @@ export class ToastComponent {
   readonly containerClasses = computed(() => {
     const [vertical, horizontal] = this.position().split('-') as [PositionVertical, PositionHorizontal];
 
-    const verticalClass = vertical === 'top' ? 'top-4' : 'bottom-4';
-    const horizontalClass = horizontal === 'start' ? 'left-4' : horizontal === 'end' ? 'right-4' : 'left-1/2 -translate-x-1/2';
+    const classes = ['toast-container'];
+    classes.push(vertical === 'top' ? 'toast-top' : 'toast-bottom');
+    classes.push(horizontal === 'start' ? 'toast-start' : horizontal === 'end' ? 'toast-end' : 'toast-center');
 
-    const flexDirection = vertical === 'top' ? 'flex-col' : 'flex-col-reverse';
-
-    return `fixed flex pointer-events-none z-50 ${verticalClass} ${horizontalClass} ${flexDirection} gap-2`;
+    return classes.join(' ');
   });
 
   getToastClasses(toast: Toast): string {
-    const classes = ['alert', 'toast-item', 'pointer-events-auto'];
+    const classes = ['alert', 'toast-item'];
 
     // Animation class based on position and state
     const isTop = this.positionVertical() === 'top';
@@ -61,6 +59,11 @@ export class ToastComponent {
     // Soft variant
     if (toast.soft) {
       classes.push('alert-soft');
+    }
+
+    // Clickable
+    if (toast.tapToDismiss || toast.onTap) {
+      classes.push('cursor-pointer');
     }
 
     // Severity class

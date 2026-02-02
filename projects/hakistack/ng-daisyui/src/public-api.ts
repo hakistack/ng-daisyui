@@ -99,8 +99,8 @@ export { TabPanelComponent } from './lib/components/tab/tab-panel/tab-panel.comp
 
 // Toast
 export { ToastComponent } from './lib/components/toast/toast.component';
-export { ToastService, provideToast } from './lib/components/toast/toast.service';
-export { TOAST_CONFIG, DEFAULT_TOAST_CONFIG } from './lib/components/toast/toast.config';
+export { ToastService } from './lib/components/toast/toast.service';
+export { TOAST_CONFIG, DEFAULT_TOAST_CONFIG, provideToast } from './lib/components/toast/toast.config';
 export type { ToastGlobalConfig } from './lib/components/toast/toast.config';
 export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } from './lib/components/toast/toast.types';
 

@@ -11,21 +11,20 @@
       (mouseleave)="onMouseLeave(toast)"
       (click)="onToastClick(toast)"
       (keydown.enter)="onToastClick(toast)"
-      [class.cursor-pointer]="toast.tapToDismiss || toast.onTap"
     >
       <!-- Icon -->
-      <app-lucide-icon [name]="getIcon(toast.severity)" [size]="20" class="shrink-0" />
+      <app-lucide-icon [name]="getIcon(toast.severity)" [size]="20" class="toast-icon" />
 
       <!-- Content -->
-      <div class="flex-1 min-w-0">
-        <span class="font-medium">{{ toast.summary }}</span>
+      <div class="toast-content">
+        <span class="toast-summary">{{ toast.summary }}</span>
         @if (toast.detail) {
-          <p class="text-sm opacity-80 mt-0.5 line-clamp-2">{{ toast.detail }}</p>
+          <p class="toast-detail">{{ toast.detail }}</p>
         }
 
         <!-- Action buttons -->
         @if (toast.actions?.length) {
-          <div class="flex gap-2 mt-2">
+          <div class="toast-actions">
             @for (action of toast.actions; track $index) {
               <button
                 type="button"
@@ -42,14 +41,14 @@
       <!-- Dismiss button -->
       <button
         type="button"
-        class="btn btn-sm btn-circle btn-ghost shrink-0"
+        class="btn btn-sm btn-circle btn-ghost toast-dismiss"
         aria-label="Dismiss notification"
         (click)="dismiss(toast.id); $event.stopPropagation()"
       >
         <app-lucide-icon name="X" [size]="16" />
       </button>
 
-      <!-- CSS transition-based progress bar -->
+      <!-- Progress bar -->
       @if (toast.progressBar && !toast.sticky) {
         <div
           class="toast-progress"
