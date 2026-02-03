@@ -52,13 +52,13 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
         <div class="divider divider-horizontal"></div>
 
         @if (modeSignal() === 'offset') {
-          <!-- Enhanced Offset Pagination -->
-          <div class="flex items-center gap-1" role="group" [attr.aria-label]="'Page navigation'">
+          <!-- Offset Pagination - All buttons in join for connected styling -->
+          <div class="join" role="group" [attr.aria-label]="'Page navigation'">
             <!-- First Page Button -->
             @if (showFirstLastButtons()) {
               <button
                 type="button"
-                class="btn btn-sm btn-ghost"
+                class="join-item btn btn-sm"
                 (click)="onFirstPage()"
                 [disabled]="isFirstPageSignal() || disabled()"
                 [attr.aria-label]="'Go to first page'"
@@ -71,7 +71,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
             <!-- Previous Page Button -->
             <button
               type="button"
-              class="btn btn-sm btn-ghost"
+              class="join-item btn btn-sm"
               (click)="onPreviousPage()"
               [disabled]="!hasPreviousPageSignal() || disabled()"
               [attr.aria-label]="'Go to previous page'"
@@ -81,38 +81,35 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
             </button>
 
             <!-- Page Number Buttons -->
-            <div class="join">
-              @for (pageNum of visiblePagesSignal(); track trackByPage($index, pageNum)) {
-                @if (pageNum === currentPageSignal()) {
-                  <!-- Current Page -->
-                  <button
-                    type="button"
-                    class="btn btn-sm join-item btn-active btn-primary rounded-2xl"
-                    [attr.aria-label]="'Current page, page ' + pageNum"
-                    [attr.aria-current]="'page'"
-                    disabled
-                  >
-                    {{ pageNum }}
-                  </button>
-                } @else {
-                  <!-- Other Pages -->
-                  <button
-                    type="button"
-                    class="btn btn-sm join-item btn-ghost rounded-2xl"
-                    (click)="onGotoPage(pageNum)"
-                    [disabled]="disabled()"
-                    [attr.aria-label]="'Go to page ' + pageNum"
-                  >
-                    {{ pageNum }}
-                  </button>
-                }
+            @for (pageNum of visiblePagesSignal(); track trackByPage($index, pageNum)) {
+              @if (pageNum === currentPageSignal()) {
+                <!-- Current Page -->
+                <button
+                  type="button"
+                  class="join-item btn btn-sm btn-active"
+                  [attr.aria-label]="'Current page, page ' + pageNum"
+                  [attr.aria-current]="'page'"
+                >
+                  {{ pageNum }}
+                </button>
+              } @else {
+                <!-- Other Pages -->
+                <button
+                  type="button"
+                  class="join-item btn btn-sm"
+                  (click)="onGotoPage(pageNum)"
+                  [disabled]="disabled()"
+                  [attr.aria-label]="'Go to page ' + pageNum"
+                >
+                  {{ pageNum }}
+                </button>
               }
-            </div>
+            }
 
             <!-- Next Page Button -->
             <button
               type="button"
-              class="btn btn-sm btn-ghost"
+              class="join-item btn btn-sm"
               (click)="onNextPage()"
               [disabled]="!hasNextPageSignal() || disabled()"
               [attr.aria-label]="'Go to next page'"
@@ -125,7 +122,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
             @if (showFirstLastButtons()) {
               <button
                 type="button"
-                class="btn btn-sm btn-ghost"
+                class="join-item btn btn-sm"
                 (click)="onLastPage()"
                 [disabled]="isLastPageSignal() || disabled()"
                 [attr.aria-label]="'Go to last page'"
@@ -137,10 +134,10 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
           </div>
         } @else {
           <!-- Cursor Pagination -->
-          <div class="flex gap-2" role="group" [attr.aria-label]="'Cursor navigation'">
+          <div class="join" role="group" [attr.aria-label]="'Cursor navigation'">
             <button
               type="button"
-              class="btn btn-sm btn-ghost"
+              class="join-item btn btn-sm"
               (click)="onPrevCursorPage()"
               [disabled]="!prevCursorSignal() || disabled()"
               [attr.aria-label]="'Go to previous page'"
@@ -152,7 +149,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
 
             <button
               type="button"
-              class="btn btn-sm btn-ghost"
+              class="join-item btn btn-sm"
               (click)="onNextCursorPage()"
               [disabled]="!nextCursorSignal() || disabled()"
               [attr.aria-label]="'Go to next page'"
