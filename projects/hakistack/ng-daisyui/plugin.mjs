@@ -249,4 +249,26 @@ export default plugin(function ({ addBase, addComponents }) {
       },
     },
   });
+
+  // =====================================================
+  // DISABLED INPUT TEXT COLOR FIX
+  // Override DaisyUI defaults for better readability
+  // =====================================================
+  addComponents({
+    '.input:disabled, .input[disabled], input:disabled, input[disabled]': {
+      color: 'oklch(from var(--color-base-content) l c h / 0.85) !important',
+      '-webkit-text-fill-color': 'oklch(from var(--color-base-content) l c h / 0.85) !important',
+      opacity: '1 !important',
+    },
+    '.select:disabled, .select[disabled]': {
+      color: 'oklch(from var(--color-base-content) l c h / 0.85) !important',
+      '-webkit-text-fill-color': 'oklch(from var(--color-base-content) l c h / 0.85) !important',
+      opacity: '1 !important',
+    },
+    '.textarea:disabled, .textarea[disabled]': {
+      color: 'oklch(from var(--color-base-content) l c h / 0.85) !important',
+      '-webkit-text-fill-color': 'oklch(from var(--color-base-content) l c h / 0.85) !important',
+      opacity: '1 !important',
+    },
+  });
 });
