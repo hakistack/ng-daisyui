@@ -1,6 +1,6 @@
 {
   "name": "@hakistack/ng-daisyui",
-  "version": "0.1.11",
+  "version": "0.1.20",
   "description": "Angular UI components built with DaisyUI and Tailwind CSS",
   "author": "Hakistack",
   "license": "UNLICENSED",
@@ -21,12 +21,18 @@
     "table"
   ],
   "exports": {
+    ".": {
+      "style": "./styles.css",
+      "default": "./styles.css"
+    },
     "./plugin": {
       "import": "./plugin.mjs",
       "require": "./plugin.cjs"
     },
+    "./plugin.mjs": "./plugin.mjs",
     "./styles.css": "./styles.css"
   },
+  "style": "./styles.css",
   "peerDependencies": {
     "@angular/common": ">=21.0.0",
     "@angular/core": ">=21.0.0",
@@ -47,7 +53,8 @@
     }
   },
   "dependencies": {
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "uuid": "^13.0.0"
   },
   "sideEffects": false
 }

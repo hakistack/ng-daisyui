@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { CdkStepperModule } from '@angular/cdk/stepper';
-import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, Injector, input, output, signal, viewChild } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, Injector, input, output, signal, viewChild } from '@angular/core';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormGroup, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { catchError, debounceTime, distinctUntilChanged, Observable, of, startWith, switchMap } from 'rxjs';
@@ -22,6 +22,7 @@ import { FormUtils } from './dynamic-form.utils';
 export class DynamicFormComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
+  private readonly elementRef = inject(ElementRef);
   private readonly formStateService = inject(FormStateService);
 
   // Inputs
@@ -267,6 +268,33 @@ export class DynamicFormComponent {
   constructor() {
     this.setupFormReactivity();
     this.setupExternalTriggers();
+    this.setupFocusOnLoad();
+  }
+
+  /** Focus on field with focusOnLoad: true after the form renders */
+  private setupFocusOnLoad(): void {
+    afterNextRender(
+      () => {
+        const config = this.config();
+        const allFields = config.steps
+          ? config.steps.flatMap(step => [...step.fields])
+          : (config.fields ?? []);
+        const focusField = allFields.find(f => f.focusOnLoad);
+
+        if (focusField) {
+          this.focusField(focusField.id);
+        }
+      },
+      { injector: this.injector },
+    );
+  }
+
+  /** Focus on a specific field by its id */
+  private focusField(fieldId: string): void {
+    const formElement = this.elementRef.nativeElement as HTMLElement;
+    // Use attribute selector since IDs starting with numbers break #id selectors
+    const input = formElement.querySelector<HTMLElement>(`[id="${fieldId}"]`);
+    input?.focus();
   }
 
   /** Watch for external submit/reset triggers from FormController */

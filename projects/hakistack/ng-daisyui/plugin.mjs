@@ -1,10 +1,19 @@
 /**
  * @hakistack/ng-daisyui - Tailwind CSS v4 Plugin
  *
+ * This plugin provides:
+ * - Custom CSS variables for transitions
+ * - Animation keyframes for toast, stepper, dropdown components
+ * - Component-specific styles that require CSS animations
+ * - Reduced motion support
+ *
  * Usage:
  *   @import "tailwindcss";
- *   @plugin "daisyui";
- *   @plugin "@hakistack/ng-daisyui";
+ *   @import "daisyui";
+ *   @import "@hakistack/ng-daisyui";  // Recommended: loads plugin + safelists utilities
+ *
+ * Or directly:
+ *   @plugin "@hakistack/ng-daisyui/plugin.mjs";
  */
 import plugin from 'tailwindcss/plugin';
 
@@ -16,10 +25,6 @@ export default plugin(function ({ addBase, addComponents }) {
     ':root': {
       '--hk-transition-duration': '150ms',
       '--hk-transition-timing': 'cubic-bezier(0.4, 0, 0.2, 1)',
-      '--dropdown-max-height': '25rem',
-      '--dropdown-border-radius': '0.5rem',
-      '--dropdown-shadow': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-      '--dropdown-backdrop-blur': 'blur(8px)',
     },
   });
 
@@ -59,7 +64,7 @@ export default plugin(function ({ addBase, addComponents }) {
       pointerEvents: 'auto',
       minWidth: '320px',
       maxWidth: '420px',
-      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05)',
       position: 'relative',
       overflow: 'hidden',
       transition: 'transform 200ms ease-out',
@@ -135,14 +140,17 @@ export default plugin(function ({ addBase, addComponents }) {
     '.toast-item:hover .toast-progress': {
       opacity: '0.5',
     },
+  });
 
-    // =====================================================
-    // SELECT/DROPDOWN COMPONENT
-    // =====================================================
+  // =====================================================
+  // DROPDOWN/SELECT COMPONENT
+  // =====================================================
+  addComponents({
+    // Dropdown container animation
     '.dropdown-container': {
-      borderRadius: 'var(--dropdown-border-radius)',
-      boxShadow: 'var(--dropdown-shadow)',
-      backdropFilter: 'var(--dropdown-backdrop-blur)',
+      borderRadius: '0.5rem',
+      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05)',
+      backdropFilter: 'blur(8px)',
       transformOrigin: 'top center',
       willChange: 'opacity, transform, max-height',
       contain: 'layout style paint',
@@ -158,7 +166,7 @@ export default plugin(function ({ addBase, addComponents }) {
     '.dropdown-container.dropdown-open': {
       opacity: '1',
       transform: 'scaleY(1)',
-      maxHeight: 'var(--dropdown-max-height)',
+      maxHeight: '25rem',
       pointerEvents: 'auto',
     },
     '.dropdown-container.dropdown-closed': {
@@ -168,13 +176,15 @@ export default plugin(function ({ addBase, addComponents }) {
       pointerEvents: 'none',
     },
     '.dropdown-container:focus-within': {
-      outline: '2px solid hsl(var(--p))',
+      outline: '2px solid oklch(var(--p))',
       outlineOffset: '2px',
     },
+  });
 
-    // =====================================================
-    // STEPPER COMPONENT
-    // =====================================================
+  // =====================================================
+  // STEPPER COMPONENT
+  // =====================================================
+  addComponents({
     '.step-content-wrapper': {
       animation: 'hk-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     },
@@ -217,10 +227,6 @@ export default plugin(function ({ addBase, addComponents }) {
     '@keyframes hk-slide-in-left': {
       from: { opacity: '0', transform: 'translateX(-30px)' },
       to: { opacity: '1', transform: 'translateX(0)' },
-    },
-    '@keyframes hk-fade-in-up': {
-      from: { opacity: '0', transform: 'translateY(10px)' },
-      to: { opacity: '1', transform: 'translateY(0)' },
     },
   });
 

@@ -8,14 +8,14 @@
   "assets": [
     "plugin.mjs",
     "plugin.cjs",
-    "styles.css",
-    "src/lib/**/*.html"
+    "styles.css"
   ],
   "allowedNonPeerDependencies": [
     "lucide-angular",
     "sweetalert2",
     "fuse.js",
     "motion",
-    "tslib"
+    "tslib",
+    "uuid"
   ]
 }

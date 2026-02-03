@@ -4,7 +4,7 @@
 <div class="border-base-content/5 bg-base-100 rounded-box overflow-hidden border">
   <!-- Toolbar: Search + Column Visibility -->
   @if (hasGlobalSearchSignal() || isColumnVisibilityEnabled()) {
-    <div class="bg-base-200/50 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+    <div class="bg-base-200/50 flex flex-wrap items-center justify-between gap-3 border-b border-base-content/10 px-4 py-3">
       <!-- Left: Global Search -->
       @if (hasGlobalSearchSignal()) {
         <div class="flex-1">
@@ -39,7 +39,7 @@
   @if (hasActiveFiltersSignal()) {
     <div
       role="alert"
-      class="bg-info/10 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3"
+      class="bg-info/10 flex flex-wrap items-center justify-between gap-3 border-b border-base-content/10 px-4 py-3"
       aria-live="polite"
       aria-atomic="true"
     >
@@ -71,7 +71,7 @@
   @if (selectedSignal().size > 0) {
     <div
       role="alert"
-      class="bg-info/10 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3"
+      class="bg-info/10 flex flex-wrap items-center justify-between gap-3 border-b border-base-content/10 px-4 py-3"
       aria-live="polite"
       aria-atomic="true"
     >

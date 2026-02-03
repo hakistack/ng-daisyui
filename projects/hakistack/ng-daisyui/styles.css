@@ -1,12 +1,19 @@
 /**
- * @hakistack/ng-daisyui - Alternative CSS Import
+ * @hakistack/ng-daisyui - Tailwind CSS Entry Point
  *
- * RECOMMENDED: Use the plugin instead:
- *   @plugin "@hakistack/ng-daisyui";
+ * Usage in consuming apps:
+ *   @import "tailwindcss";
+ *   @import "daisyui";
+ *   @import "@hakistack/ng-daisyui";
  *
- * Alternative (for @source scanning):
- *   @import "@hakistack/ng-daisyui/styles.css";
+ * This file:
+ * 1. Loads the plugin with component animations and transitions
+ * 2. Safelists all Tailwind utility classes used in component templates
+ *    (necessary because Tailwind can't scan node_modules by default)
  */
 
-@source "./src/lib/**/*.html";
-@source "./src/lib/**/*.ts";
+/* Load the plugin for animations and transitions */
+@plugin "./plugin.mjs";
+
+/* Safelist all Tailwind utility classes used in library components */
+@source inline("bg-base-100 bg-base-200 bg-base-200/50 bg-info/10 bg-info/20 border-base-100 border-base-200 border-base-300 border-base-content/5 border-base-content/10 text-base-content text-base-content/50 text-base-content/60 text-base-content/70 text-base-content/80 text-error text-primary-content hover:bg-base-50 hover:bg-base-200 hover:bg-error/50 hover:text-base-content hover:text-error bg-primary rounded-box rounded-b-box card-border");

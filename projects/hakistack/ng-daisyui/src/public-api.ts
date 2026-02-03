@@ -117,7 +117,19 @@ export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-w
 
 export { FormStateService, provideFormState } from './lib/services/form-state.service';
 export { PipeRegistryService } from './lib/services/pipe-registry.service';
-export { AccessibilityService } from './lib/services/accessibility/accessibility.service';
+
+// Alert Service
+export { AlertService, provideAlert } from './lib/services/alert/alert.service';
+export type { AlertConfig } from './lib/services/alert/alert.service';
+export type {
+  AlertOptions,
+  AlertResult,
+  ConfirmOptions,
+  DeleteConfirmOptions,
+  LoadingOptions,
+  AlertIcon,
+  AlertPosition,
+} from './lib/services/alert/alert.types';
 
 // ============================================================================
 // DIRECTIVES
@@ -128,12 +140,6 @@ export { MotionAnimateDirective } from './lib/directives/motion-animate/motion-a
 export { MotionHoverDirective } from './lib/directives/motion-hover/motion-hover.directive';
 export { MotionScrollDirective } from './lib/directives/motion-scroll/motion-scroll.directive';
 
-// ============================================================================
-// UTILITIES
-// ============================================================================
-
-export { generateUniqueId } from './lib/utils/generate-uuid';
-export { IsDefined } from './lib/utils/is-defined';
 
 // ============================================================================
 // TYPES

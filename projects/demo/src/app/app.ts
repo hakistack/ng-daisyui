@@ -88,6 +88,12 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
                 Toast Notifications
               </a>
             </li>
+            <li>
+              <a routerLink="/alert" routerLinkActive="active">
+                <app-lucide-icon name="MessageSquareWarning" [size]="18" />
+                Alert Dialogs
+              </a>
+            </li>
 
             <li class="menu-title mt-4">Utilities</li>
             <li>

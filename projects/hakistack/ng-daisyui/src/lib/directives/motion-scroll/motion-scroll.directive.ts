@@ -1,6 +1,6 @@
-import { Directive, ElementRef, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Directive, ElementRef, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { scroll, animate } from 'motion';
-import { AccessibilityService } from '../../services/accessibility/accessibility.service';
 
 export type ScrollAxis = 'x' | 'y';
 export type OffsetValue = number | string;
@@ -48,7 +48,7 @@ interface ScrollAnimationOptions {
 })
 export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
-  private readonly a11y = inject(AccessibilityService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   // Main scroll animation keyframes
   readonly motionScroll = input<ScrollAnimationKeyframes | boolean | undefined>(undefined);
@@ -77,6 +77,10 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
     this.element = this.elementRef.nativeElement;
   }
 
+  private prefersReducedMotion(): boolean {
+    return isPlatformBrowser(this.platformId) && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
   ngOnInit(): void {
     this.setupScrollAnimation();
   }
@@ -97,7 +101,7 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
     if (!anim) return;
 
     // Skip scroll animations if reduced motion is active
-    if (this.a11y.isReducedMotionActive()) {
+    if (this.prefersReducedMotion()) {
       return;
     }
 

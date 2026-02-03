@@ -1,6 +1,6 @@
-import { Directive, ElementRef, input, OnInit, OnDestroy, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Directive, ElementRef, input, OnInit, OnDestroy, OnChanges, SimpleChanges, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { animate, inView } from 'motion';
-import { AccessibilityService } from '../../services/accessibility/accessibility.service';
 
 // Enhanced presets with proper Motion API keyframes
 const ANIMATION_PRESETS = {
@@ -113,7 +113,7 @@ interface AnimationControls {
 })
 export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
-  private readonly a11y = inject(AccessibilityService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly motionAnimate = input<AnimationPreset | Record<string, unknown>>('fadeIn');
   readonly motionOptions = input<MotionDirectiveOptions>({});
@@ -128,6 +128,10 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
 
   constructor() {
     this.element = this.elementRef.nativeElement;
+  }
+
+  private prefersReducedMotion(): boolean {
+    return isPlatformBrowser(this.platformId) && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
   ngOnInit(): void {
@@ -218,7 +222,7 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
 
   private playAnimation(): void {
     // Skip animation if reduced motion is active
-    if (this.a11y.isReducedMotionActive()) {
+    if (this.prefersReducedMotion()) {
       // Apply final state instantly without animation
       const keyframes = this.getKeyframes();
       for (const [prop, value] of Object.entries(keyframes)) {

@@ -37,6 +37,8 @@ interface FieldOptions {
   requiredWhen?: string | [string, any] | [string, (value: any, formValues?: Record<string, any>) => boolean];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   disabledWhen?: string | [string, any] | [string, (value: any, formValues?: Record<string, any>) => boolean];
+  /** Focus this field when the form loads */
+  focusOnLoad?: boolean;
 }
 
 /**
@@ -142,6 +144,7 @@ function createField(key: string, type: FieldType, label?: string, options: Fiel
     multiple: options.multiple,
     orientation: options.orientation,
     isSelectSearchable: options.enableSearch,
+    focusOnLoad: options.focusOnLoad,
   };
 }
 

@@ -1,6 +1,6 @@
-import { Directive, ElementRef, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Directive, ElementRef, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { animate, hover } from 'motion';
-import { AccessibilityService } from '../../services/accessibility/accessibility.service';
 
 // Proper types based on Motion.dev API
 export interface HoverOptions {
@@ -59,7 +59,7 @@ interface AnimationControls {
 })
 export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
-  private readonly a11y = inject(AccessibilityService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly hoverKeyframes = input.required<HoverKeyframes>({ alias: 'motionHover' });
   readonly hoverOptions = input<HoverOptions | undefined>();
@@ -79,6 +79,10 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
 
   constructor() {
     this.element = this.elementRef.nativeElement;
+  }
+
+  private prefersReducedMotion(): boolean {
+    return isPlatformBrowser(this.platformId) && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
   ngOnInit(): void {
@@ -148,7 +152,7 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
 
   private setupHoverAnimation(): void {
     // Skip hover animations if reduced motion is active
-    if (this.a11y.isReducedMotionActive()) {
+    if (this.prefersReducedMotion()) {
       return;
     }
 

@@ -1,9 +1,9 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideToast } from '@hakistack/ng-daisyui';
+import { provideToast, provideAlert } from '@hakistack/ng-daisyui';
 
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideBrowserGlobalErrorListeners(), provideRouter(routes), provideToast()],
+  providers: [provideBrowserGlobalErrorListeners(), provideRouter(routes), provideToast(), provideAlert()],
 };

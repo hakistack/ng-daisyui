@@ -5,7 +5,7 @@
     "ng": "ng",
     "start": "ng serve demo",
     "demo": "ng serve demo --open",
-    "build": "ng build @hakistack/ng-daisyui",
+    "build": "ng build @hakistack/ng-daisyui && node scripts/fix-exports.mjs",
     "build:watch": "ng build @hakistack/ng-daisyui --watch",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",

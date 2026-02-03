@@ -9,6 +9,7 @@ export const routes: Routes = [
   { path: 'datepicker', loadComponent: () => import('./demos/datepicker-demo.component').then((m) => m.DatepickerDemoComponent) },
   { path: 'tabs', loadComponent: () => import('./demos/tabs-demo.component').then((m) => m.TabsDemoComponent) },
   { path: 'toast', loadComponent: () => import('./demos/toast-demo.component').then((m) => m.ToastDemoComponent) },
+  { path: 'alert', loadComponent: () => import('./demos/alert-demo.component').then((m) => m.AlertDemoComponent) },
   { path: 'icons', loadComponent: () => import('./demos/icons-demo.component').then((m) => m.IconsDemoComponent) },
   { path: 'motion', loadComponent: () => import('./demos/motion-demo.component').then((m) => m.MotionDemoComponent) },
 ];

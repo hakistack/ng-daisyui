@@ -2,4 +2,7 @@
 @plugin "daisyui" {
   themes: silk
 }
-@plugin "../../../projects/hakistack/ng-daisyui/plugin.mjs";
+
+/* For local monorepo development, import from dist folder */
+/* In consuming apps, use: @import "@hakistack/ng-daisyui"; */
+@import "../../../dist/hakistack/ng-daisyui/styles.css";

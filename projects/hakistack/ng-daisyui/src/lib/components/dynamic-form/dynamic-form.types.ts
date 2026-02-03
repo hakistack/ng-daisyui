@@ -97,6 +97,8 @@ export interface FormFieldConfig {
   readonly width?: FieldWidth;
   readonly order?: number; // Field order
   readonly group?: string; // Group fields together
+  /** Focus this field when the form loads */
+  readonly focusOnLoad?: boolean;
 }
 
 /** Responsive column span configuration */
