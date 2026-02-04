@@ -1,19 +1,22 @@
 {
   "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../../../dist/hakistack/ng-daisyui",
+  "dest": "../../../dist/hakistack/ng-daisyui-v4",
   "lib": {
     "entryFile": "src/public-api.ts",
     "cssUrl": "inline"
   },
   "assets": [
     "plugin.mjs",
-    "plugin.cjs"
+    "plugin.cjs",
+    "styles.css",
+    "safelist.mjs",
+    "safelist.cjs",
+    "tailwind.preset.js"
   ],
   "allowedNonPeerDependencies": [
     "lucide-angular",
     "sweetalert2",
     "fuse.js",
-    "motion",
     "tslib",
     "uuid"
   ]

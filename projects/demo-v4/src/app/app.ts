@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { LucideIconComponent } from '@hakistack/ng-daisyui';
+import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
 
 @Component({
   selector: 'app-root',
@@ -16,7 +16,7 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
           <label for="sidebar" class="btn btn-ghost btn-square">
             <app-lucide-icon name="Menu" [size]="24" />
           </label>
-          <span class="text-xl font-bold">ng-daisyui</span>
+          <span class="text-xl font-bold">ng-daisyui-v4</span>
         </div>
 
         <!-- Page content -->
@@ -31,8 +31,45 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
         <aside class="bg-base-100 w-72 min-h-full border-r border-base-300">
           <!-- Logo -->
           <div class="p-4 border-b border-base-300">
-            <h1 class="text-2xl font-bold text-primary">ng-daisyui</h1>
-            <p class="text-sm text-base-content/60">Component Library Demo</p>
+            <h1 class="text-2xl font-bold text-primary">ng-daisyui-v4</h1>
+            <p class="text-sm text-base-content/60">DaisyUI v4 + Tailwind v3</p>
+          </div>
+
+          <!-- Theme Selector -->
+          <div class="p-4 border-b border-base-300">
+            <label class="label">
+              <span class="label-text">Theme</span>
+            </label>
+            <select class="select select-bordered select-sm w-full" (change)="changeTheme($event)">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option values="sirat">Sirat</option>
+              <option value="cupcake">Cupcake</option>
+              <option value="bumblebee">Bumblebee</option>
+              <option value="emerald">Emerald</option>
+              <option value="corporate">Corporate</option>
+              <option value="synthwave">Synthwave</option>
+              <option value="retro">Retro</option>
+              <option value="cyberpunk">Cyberpunk</option>
+              <option value="valentine">Valentine</option>
+              <option value="halloween">Halloween</option>
+              <option value="garden">Garden</option>
+              <option value="forest">Forest</option>
+              <option value="aqua">Aqua</option>
+              <option value="lofi">Lofi</option>
+              <option value="pastel">Pastel</option>
+              <option value="fantasy">Fantasy</option>
+              <option value="dracula">Dracula</option>
+              <option value="autumn">Autumn</option>
+              <option value="business">Business</option>
+              <option value="lemonade">Lemonade</option>
+              <option value="night">Night</option>
+              <option value="coffee">Coffee</option>
+              <option value="winter">Winter</option>
+              <option value="dim">Dim</option>
+              <option value="nord">Nord</option>
+              <option value="sunset">Sunset</option>
+            </select>
           </div>
 
           <!-- Navigation -->
@@ -108,17 +145,15 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
                 Icons
               </a>
             </li>
-            <li>
-              <a routerLink="/motion" routerLinkActive="active">
-                <app-lucide-icon name="Sparkles" [size]="18" />
-                Motion Directives
-              </a>
-            </li>
           </ul>
         </aside>
       </div>
     </div>
   `,
-  styleUrl: '../styles.css',
 })
-export class App {}
+export class App {
+  changeTheme(event: Event) {
+    const theme = (event.target as HTMLSelectElement).value;
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+}

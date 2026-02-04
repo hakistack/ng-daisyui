@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../out-tsc/demo-v3",
+    "types": [],
+    "paths": {
+      "@hakistack/ng-daisyui-v4": ["../hakistack/ng-daisyui-v4/src/public-api.ts"]
+    }
+  },
+  "files": ["src/main.ts"],
+  "include": ["src/**/*.d.ts"]
+}

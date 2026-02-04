@@ -12,5 +12,4 @@ export const routes: Routes = [
   { path: 'alert', loadComponent: () => import('./demos/alert-demo.component').then((m) => m.AlertDemoComponent) },
   { path: 'dialog', loadComponent: () => import('./demos/dialog-demo.component').then((m) => m.DialogDemoComponent) },
   { path: 'icons', loadComponent: () => import('./demos/icons-demo.component').then((m) => m.IconsDemoComponent) },
-  { path: 'motion', loadComponent: () => import('./demos/motion-demo.component').then((m) => m.MotionDemoComponent) },
 ];

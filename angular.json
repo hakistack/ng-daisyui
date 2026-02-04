@@ -33,20 +33,20 @@
         }
       }
     },
-    "@hakistack/ng-daisyui-v3": {
+    "@hakistack/ng-daisyui-v4": {
       "projectType": "library",
-      "root": "projects/hakistack/ng-daisyui-v3",
-      "sourceRoot": "projects/hakistack/ng-daisyui-v3/src",
+      "root": "projects/hakistack/ng-daisyui-v4",
+      "sourceRoot": "projects/hakistack/ng-daisyui-v4/src",
       "prefix": "ui",
       "architect": {
         "build": {
           "builder": "@angular/build:ng-packagr",
           "configurations": {
             "production": {
-              "tsConfig": "projects/hakistack/ng-daisyui-v3/tsconfig.lib.prod.json"
+              "tsConfig": "projects/hakistack/ng-daisyui-v4/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/hakistack/ng-daisyui-v3/tsconfig.lib.json"
+              "tsConfig": "projects/hakistack/ng-daisyui-v4/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -54,7 +54,7 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "tsConfig": "projects/hakistack/ng-daisyui-v3/tsconfig.spec.json"
+            "tsConfig": "projects/hakistack/ng-daisyui-v4/tsconfig.spec.json"
           }
         }
       }
@@ -138,6 +138,91 @@
             },
             "development": {
               "buildTarget": "demo:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    },
+    "demo-v4": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:class": {
+          "skipTests": true
+        },
+        "@schematics/angular:component": {
+          "skipTests": true
+        },
+        "@schematics/angular:directive": {
+          "skipTests": true
+        },
+        "@schematics/angular:guard": {
+          "skipTests": true
+        },
+        "@schematics/angular:interceptor": {
+          "skipTests": true
+        },
+        "@schematics/angular:pipe": {
+          "skipTests": true
+        },
+        "@schematics/angular:resolver": {
+          "skipTests": true
+        },
+        "@schematics/angular:service": {
+          "skipTests": true
+        }
+      },
+      "root": "projects/demo-v4",
+      "sourceRoot": "projects/demo-v4/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/demo-v4/src/main.ts",
+            "tsConfig": "projects/demo-v4/tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/demo-v4/public"
+              }
+            ],
+            "styles": [
+              "projects/demo-v4/src/styles.css"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2MB",
+                  "maximumError": "3MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "200kB",
+                  "maximumError": "300kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "demo-v4:build:production"
+            },
+            "development": {
+              "buildTarget": "demo-v4:build:development"
             }
           },
           "defaultConfiguration": "development"

@@ -1,29 +1,80 @@
-# @hakistack/ng-daisyui
+# @hakistack/ng-daisyui-v4
 
-Reusable Angular UI components built with DaisyUI v5 and Tailwind CSS v4.
+Reusable Angular UI components built with DaisyUI v4 and Tailwind CSS v3.
 
-> **Note:** This library targets **DaisyUI v5 + Tailwind CSS v4**. For DaisyUI v4 + Tailwind CSS v3, use `@hakistack/ng-daisyui-v3`.
+> **Note:** This is the v3 version targeting **DaisyUI v4 + Tailwind CSS v3**. For DaisyUI v5 + Tailwind CSS v4, use `@hakistack/ng-daisyui`.
 
 ## Installation
 
 ```bash
-npm install @hakistack/ng-daisyui
+npm install @hakistack/ng-daisyui-v4
 ```
 
 ### Required Dependencies
 
 ```bash
-npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk lucide-angular sweetalert2 fuse.js motion
+npm install tailwindcss@^3.4.0 daisyui@^4.12.0 @angular/cdk lucide-angular sweetalert2 fuse.js motion
 ```
 
 ### Configure Tailwind CSS
 
-Add the library to your Tailwind source in `styles.css`:
+**1. Create `tailwind.config.js`:**
+
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/**/*.{html,ts}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [require("daisyui")],
+  daisyui: {
+    themes: ["light", "dark", "cupcake", /* ...other themes */],
+    darkTheme: "dark",
+    base: true,
+    styled: true,
+    utils: true,
+    logs: false
+  }
+};
+```
+
+**2. Configure `styles.css`:**
 
 ```css
-@import 'tailwindcss';
-@source "@hakistack/ng-daisyui";
-@plugin 'daisyui';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+**3. Add safelist for library classes:**
+
+Since Tailwind can't scan `node_modules`, import the safelist to ensure all library component classes are included:
+
+```javascript
+// tailwind.config.js
+const { safelist } = require('@hakistack/ng-daisyui-v4/safelist');
+
+module.exports = {
+  content: ["./src/**/*.{html,ts}"],
+  safelist: safelist,
+  // ... rest of config
+};
+```
+
+Or with ESM:
+
+```javascript
+// tailwind.config.mjs
+import { safelist } from '@hakistack/ng-daisyui-v4/safelist';
+
+export default {
+  content: ["./src/**/*.{html,ts}"],
+  safelist: safelist,
+  // ... rest of config
+};
 ```
 
 ## Components
@@ -33,7 +84,7 @@ Add the library to your Tailwind source in `styles.css`:
 Dynamic form builder with wizard/stepper support, auto-save, and conditional logic.
 
 ```typescript
-import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui';
+import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui-v4';
 
 @Component({
   imports: [DynamicFormComponent],
@@ -103,7 +154,7 @@ createForm({
 Advanced data table with sorting, filtering, pagination, and column visibility.
 
 ```typescript
-import { TableComponent, createTable } from '@hakistack/ng-daisyui';
+import { TableComponent, createTable } from '@hakistack/ng-daisyui-v4';
 
 @Component({
   imports: [TableComponent],
@@ -129,7 +180,7 @@ export class MyComponent {
 Enhanced select dropdown with search and virtual scrolling.
 
 ```typescript
-import { SelectComponent } from '@hakistack/ng-daisyui';
+import { SelectComponent } from '@hakistack/ng-daisyui-v4';
 
 @Component({
   imports: [SelectComponent],
@@ -149,7 +200,7 @@ import { SelectComponent } from '@hakistack/ng-daisyui';
 Date and date range picker with keyboard navigation.
 
 ```typescript
-import { DatepickerComponent } from '@hakistack/ng-daisyui';
+import { DatepickerComponent } from '@hakistack/ng-daisyui-v4';
 
 @Component({
   imports: [DatepickerComponent],
@@ -172,7 +223,7 @@ Multi-step wizard navigation (extends CDK Stepper).
 Accessible tab navigation with icons.
 
 ```typescript
-import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
+import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
 
 @Component({
   imports: [TabGroupComponent, TabPanelComponent],
@@ -197,7 +248,7 @@ Toast notifications with stacking and progress bars.
 
 ```typescript
 // app.config.ts
-import { provideToast } from '@hakistack/ng-daisyui';
+import { provideToast } from '@hakistack/ng-daisyui-v4';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -211,7 +262,7 @@ export const appConfig: ApplicationConfig = {
 **Usage:**
 
 ```typescript
-import { ToastService } from '@hakistack/ng-daisyui';
+import { ToastService } from '@hakistack/ng-daisyui-v4';
 
 @Component({...})
 export class MyComponent {
@@ -227,51 +278,70 @@ export class MyComponent {
 }
 ```
 
-### DialogService
+### AlertService
 
-CDK-based modal dialogs with DaisyUI styling and animations.
+SweetAlert2-based dialogs with DaisyUI styling and i18n support.
+
+**Setup** - Add `provideAlert()` to your app config:
 
 ```typescript
-import { DialogService } from '@hakistack/ng-daisyui';
+// app.config.ts
+import { provideAlert } from '@hakistack/ng-daisyui-v4';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideAlert(),
+    // or with custom config:
+    provideAlert({
+      useSystemTheme: true, // Uses prefers-color-scheme
+      // Or custom theme function:
+      theme: () => themeService.isDarkMode() ? 'dark' : 'light',
+      // Optional i18n support:
+      translate: (key, fallback, params) => transloco.translate(key, params) || fallback,
+      langChange$: transloco.langChanges$,
+    }),
+  ],
+};
+```
+
+**Usage:**
+
+```typescript
+import { AlertService } from '@hakistack/ng-daisyui-v4';
 
 @Component({...})
 export class MyComponent {
-  private dialogService = inject(DialogService);
+  private alertService = inject(AlertService);
 
-  openDialog() {
-    // Open with wrapper (card + animation)
-    const ref = this.dialogService.open(MyDialogComponent, {
-      data: { userId: 123 },
-      disableClose: true,
-    });
+  async showSuccess() {
+    await this.alertService.success('Saved!', 'Your changes have been saved.');
+  }
 
-    ref.closed.subscribe(result => {
-      console.log('Dialog closed with:', result);
+  async showError() {
+    await this.alertService.error('Error', 'Something went wrong.');
+  }
+
+  async confirmDelete() {
+    const result = await this.alertService.confirmDelete({ itemName: 'User' });
+    if (result.isConfirmed) {
+      // Proceed with deletion
+    }
+  }
+
+  async showCountdown() {
+    const result = await this.alertService.countdown({
+      title: 'Session Expiring',
+      html: 'You will be logged out in <kbd class="kbd">{seconds}</kbd> seconds.',
+      timer: 30000,
+      showCancelButton: true,
+      confirmButtonText: 'Stay Logged In',
     });
   }
 
-  openRawDialog() {
-    // Open without wrapper (full control)
-    const ref = this.dialogService.openRaw(MyCustomComponent, {
-      data: { mode: 'edit' },
-      width: '600px',
-    });
-  }
-}
-```
-
-**In your dialog component:**
-
-```typescript
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
-
-@Component({...})
-export class MyDialogComponent {
-  private data = inject(DIALOG_DATA);
-  private dialogRef = inject(DialogRef);
-
-  close(result?: any) {
-    this.dialogRef.close(result);
+  showLoading() {
+    this.alertService.showLoading({ title: 'Processing...' });
+    // Later:
+    this.alertService.hideLoading();
   }
 }
 ```
@@ -290,7 +360,7 @@ Icon wrapper for Lucide icons.
 - **FormStateService** - Auto-save form state management
 - **PipeRegistryService** - Custom pipe registry for table formatters
 - **AccessibilityService** - Accessibility utilities
-- **DialogService** - CDK-based modal dialogs
+- **AlertService** - SweetAlert2 dialogs with DaisyUI styling
 - **ToastService** - Toast notifications
 
 ## Directives
@@ -299,6 +369,18 @@ Icon wrapper for Lucide icons.
 - **MotionAnimateDirective** - Motion.js animation wrapper
 - **MotionHoverDirective** - Hover animations
 - **MotionScrollDirective** - Scroll-triggered animations
+
+## DaisyUI v4 vs v5 Differences
+
+This library is designed for **DaisyUI v4**. Key differences from v5:
+
+| Feature | DaisyUI v4 | DaisyUI v5 |
+|---------|------------|------------|
+| Tailwind | v3.x | v4.x |
+| Config | `require("daisyui")` | `@plugin "daisyui"` |
+| CSS | `@tailwind base/components/utilities` | `@import "tailwindcss"` |
+| Card sizes | `card-compact` | `card-sm` |
+| Input with icon | `<div class="input flex items-center gap-2">` | `<label class="input">` |
 
 ## Building
 
@@ -311,21 +393,18 @@ npm run build
 ### From Private Registry
 
 1. Create `.npmrc` in your consuming project:
-
-```text
+```
 @hakistack:registry=https://hakistack-registry.fly.dev
 ```
 
 2. Login (one-time):
-
 ```bash
 npm login --registry=https://hakistack-registry.fly.dev
 ```
 
 3. Install:
-
 ```bash
-npm install @hakistack/ng-daisyui
+npm install @hakistack/ng-daisyui-v4
 ```
 
 ### Local Development (npm link)
@@ -336,7 +415,7 @@ npm run build
 npm run publish:local
 
 # In your consuming project
-npm link @hakistack/ng-daisyui
+npm link @hakistack/ng-daisyui-v4
 ```
 
 ## License
