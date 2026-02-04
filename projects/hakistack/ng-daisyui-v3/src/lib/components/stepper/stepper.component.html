@@ -1,0 +1,72 @@
+@if (showCard()) {
+  <div class="card card-border bg-base-100 shadow-lg">
+    <div class="card-body">
+      <ng-container *ngTemplateOutlet="stepperContent"></ng-container>
+    </div>
+  </div>
+} @else {
+  <ng-container *ngTemplateOutlet="stepperContent"></ng-container>
+}
+
+<ng-template #stepperContent>
+  <!-- Step Indicators -->
+  <ul class="steps w-full" role="tablist">
+    @for (step of steps; let idx = $index; track idx) {
+      <li
+        class="step transition-colors duration-200"
+        [class.step-primary]="isStepCompleted(idx) || isStepActive(idx)"
+        [class.step-error]="hasStepError(idx)"
+        [class.cursor-pointer]="canNavigateToStep(idx)"
+        [attr.aria-selected]="isStepActive(idx)"
+        [attr.aria-current]="isStepActive(idx) ? 'step' : null"
+        role="tab"
+        [tabindex]="canNavigateToStep(idx) ? 0 : -1"
+        (click)="goToStep(idx)"
+        (keydown.enter)="goToStep(idx)"
+        (keydown.space)="goToStep(idx); $event.preventDefault()"
+      >
+        {{ step.label }}
+        @if (isStepOptional(idx)) {
+          <span class="ml-1 text-xs opacity-60">(Optional)</span>
+        }
+      </li>
+    }
+  </ul>
+
+    <!-- Step Content (Lazy Rendered) -->
+    <div
+      class="step-content-wrapper mt-6"
+      [class.animate-forward]="animateContent() && animationDirection === 'forward'"
+      [class.animate-backward]="animateContent() && animationDirection === 'backward'"
+      role="tabpanel"
+      [attr.aria-labelledby]="'step-' + selectedIndex"
+    >
+      @if (selected && selected.content) {
+        <ng-container [ngTemplateOutlet]="selected.content"></ng-container>
+      }
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="border-base-300 mt-6 flex items-center justify-between border-t pt-6">
+      <!-- Previous Button -->
+      <button type="button" class="btn btn-outline" [disabled]="selectedIndex === 0" (click)="onPrevious()">
+        {{ previousButtonText() }}
+      </button>
+
+      <!-- Step Indicator -->
+      @if (showStepIndicator()) {
+        <span class="text-base-content/70 text-sm"> Step {{ selectedIndex + 1 }} of {{ steps.length }} </span>
+      }
+
+      <!-- Next/Complete Button -->
+      @if (selectedIndex === steps.length - 1) {
+        <button type="button" class="btn btn-primary" [disabled]="linear && selected && !selected.completed" (click)="onComplete()">
+          {{ completeButtonText() }}
+        </button>
+      } @else {
+        <button type="button" class="btn btn-primary" [disabled]="linear && selected && !selected.completed" (click)="onNext()">
+          {{ nextButtonText() }}
+        </button>
+      }
+    </div>
+</ng-template>

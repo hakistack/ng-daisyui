@@ -1,0 +1,65 @@
+{
+  "name": "@hakistack/ng-daisyui-v3",
+  "version": "0.1.0",
+  "description": "Angular UI components built with DaisyUI v4 and Tailwind CSS v3",
+  "author": "Hakistack",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hakistack/ng-daisyui.git"
+  },
+  "publishConfig": {
+    "registry": "https://hakistack-registry.fly.dev"
+  },
+  "keywords": [
+    "angular",
+    "components",
+    "daisyui",
+    "tailwind",
+    "ui-library",
+    "forms",
+    "table",
+    "tailwind-v3",
+    "daisyui-v4"
+  ],
+  "exports": {
+    ".": {
+      "style": "./styles.css"
+    },
+    "./plugin": {
+      "import": "./plugin.mjs",
+      "require": "./plugin.cjs"
+    },
+    "./plugin.mjs": "./plugin.mjs",
+    "./styles.css": "./styles.css",
+    "./safelist": {
+      "import": "./safelist.mjs",
+      "require": "./safelist.cjs"
+    },
+    "./tailwind.preset": "./tailwind.preset.js"
+  },
+  "style": "./styles.css",
+  "peerDependencies": {
+    "@angular/common": ">=17.0.0",
+    "@angular/core": ">=17.0.0",
+    "@angular/forms": ">=17.0.0",
+    "@angular/cdk": ">=17.0.0",
+    "@angular/router": ">=17.0.0",
+    "rxjs": ">=7.8.0",
+    "tailwindcss": "^3.0.0",
+    "daisyui": "^4.0.0",
+    "lucide-angular": ">=0.300.0",
+    "sweetalert2": ">=11.0.0",
+    "fuse.js": ">=7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@angular/router": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "tslib": "^2.3.0",
+    "uuid": "^11.0.0"
+  },
+  "sideEffects": false
+}

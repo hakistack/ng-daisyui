@@ -1,0 +1,8 @@
+/* Import library styles */
+@import "../../hakistack/ng-daisyui-v3/styles.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+

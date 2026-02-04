@@ -33,6 +33,32 @@
         }
       }
     },
+    "@hakistack/ng-daisyui-v3": {
+      "projectType": "library",
+      "root": "projects/hakistack/ng-daisyui-v3",
+      "sourceRoot": "projects/hakistack/ng-daisyui-v3/src",
+      "prefix": "ui",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/hakistack/ng-daisyui-v3/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/hakistack/ng-daisyui-v3/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "projects/hakistack/ng-daisyui-v3/tsconfig.spec.json"
+          }
+        }
+      }
+    },
     "demo": {
       "projectType": "application",
       "schematics": {

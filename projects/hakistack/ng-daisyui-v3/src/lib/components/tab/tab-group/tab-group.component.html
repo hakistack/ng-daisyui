@@ -1,0 +1,47 @@
+<div ngTabs>
+  <!-- Tab List -->
+  <div
+    ngTabList
+    [(selectedTab)]="selectedTab"
+    [selectionMode]="selectionMode()"
+    [orientation]="orientation()"
+    [wrap]="wrap()"
+    role="tablist"
+    class="tabs tabs-lift"
+  >
+    @for (panel of panels.toArray(); track panel.value()) {
+      <button
+        ngTab
+        role="tab"
+        [value]="panel.value()"
+        [disabled]="panel.disabled()"
+        class="tab"
+        [class.tab-active]="selectedTab() === panel.value()"
+        [class.tab-disabled]="panel.disabled()"
+      >
+        @if (panel.icon()) {
+          <app-lucide-icon [name]="panel.icon()!" [size]="16" class="mr-1.5" />
+        }
+        {{ panel.label() }}
+      </button>
+    }
+    <!-- Filler to complete the border -->
+    <div class="tab tab-border-none flex-1 cursor-default"></div>
+  </div>
+
+  <!-- Tab Panels -->
+  <div class="bg-base-100 border-base-300 rounded-b-box border border-t-0 p-4">
+    @for (panel of panels.toArray(); track panel.value()) {
+      <div
+        ngTabPanel
+        role="tabpanel"
+        [value]="panel.value()"
+        [class.hidden]="selectedTab() !== panel.value()"
+      >
+        <ng-template ngTabContent>
+          <ng-container [ngTemplateOutlet]="panel.contentTemplate()"></ng-container>
+        </ng-template>
+      </div>
+    }
+  </div>
+</div>
