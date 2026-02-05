@@ -116,6 +116,14 @@ export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-w
 // ============================================================================
 
 export { FormStateService, provideFormState } from './lib/services/form-state.service';
+export type {
+  FormStateOptions,
+  FormStateApiOptions,
+  FormStateLocalStorageOptions,
+  FormStateStorageMode,
+  FormState,
+  FormStateMetadata,
+} from './lib/services/form-state.service';
 export { PipeRegistryService } from './lib/services/pipe-registry.service';
 
 // Dialog Service
