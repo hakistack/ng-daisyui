@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormsModule } from '@angular/forms';
@@ -285,142 +285,188 @@ export class LongContentDialogComponent {
 // Demo Component
 // ============================================================================
 
+type DialogTab = 'basic' | 'forms' | 'options';
+
 @Component({
   selector: 'app-dialog-demo',
   imports: [LucideIconComponent, JsonPipe],
   template: `
-    <div class="space-y-8">
+    <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Dialog Service</h1>
         <p class="text-base-content/70 mt-2">CDK-based modal dialogs with responsive design</p>
       </div>
 
-      <!-- Basic Dialog -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Basic Dialog</h2>
-          <p class="text-sm text-base-content/60 mb-4">Simple dialog with confirm/cancel buttons</p>
+      <!-- DaisyUI v4 Tabs -->
+      <div role="tablist" class="tabs tabs-boxed w-fit">
+        <button
+          role="tab"
+          class="tab"
+          [class.tab-active]="activeTab() === 'basic'"
+          (click)="activeTab.set('basic')"
+        >
+          Basic
+        </button>
+        <button
+          role="tab"
+          class="tab"
+          [class.tab-active]="activeTab() === 'forms'"
+          (click)="activeTab.set('forms')"
+        >
+          Forms
+        </button>
+        <button
+          role="tab"
+          class="tab"
+          [class.tab-active]="activeTab() === 'options'"
+          (click)="activeTab.set('options')"
+        >
+          Options & Usage
+        </button>
+      </div>
 
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-primary" (click)="openSimpleDialog()">
-              <app-lucide-icon name="Square" [size]="18" />
-              Open Simple Dialog
-            </button>
-          </div>
+      <!-- Basic Tab Content -->
+      @if (activeTab() === 'basic') {
+        <div class="space-y-6">
+          <!-- Basic Dialog -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Basic Dialog</h2>
+              <p class="text-sm text-base-content/60 mb-4">Simple dialog with confirm/cancel buttons</p>
 
-          @if (simpleResult) {
-            <div class="alert alert-info mt-4">
-              <app-lucide-icon name="Info" [size]="18" />
-              <span>Dialog result: {{ simpleResult }}</span>
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-primary" (click)="openSimpleDialog()">
+                  <app-lucide-icon name="Square" [size]="18" />
+                  Open Simple Dialog
+                </button>
+              </div>
+
+              @if (simpleResult) {
+                <div class="alert alert-info mt-4">
+                  <app-lucide-icon name="Info" [size]="18" />
+                  <span>Dialog result: {{ simpleResult }}</span>
+                </div>
+              }
             </div>
-          }
-        </div>
-      </div>
-
-      <!-- Dialog with Data -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Dialog with Data</h2>
-          <p class="text-sm text-base-content/60 mb-4">Pass data to dialog component via DIALOG_DATA</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="openDataDialog()">
-              <app-lucide-icon name="User" [size]="18" />
-              View User Details
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Form Dialog -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Form Dialog</h2>
-          <p class="text-sm text-base-content/60 mb-4">Dialog with form inputs and selects (test responsiveness)</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline btn-success" (click)="openFormDialog('create')">
-              <app-lucide-icon name="UserPlus" [size]="18" />
-              Create User
-            </button>
-            <button class="btn btn-outline" (click)="openFormDialog('edit')">
-              <app-lucide-icon name="Pencil" [size]="18" />
-              Edit User
-            </button>
           </div>
 
-          @if (formResult) {
-            <div class="alert alert-success mt-4">
-              <app-lucide-icon name="Check" [size]="18" />
-              <span>Saved: {{ formResult | json }}</span>
+          <!-- Dialog with Data -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Dialog with Data</h2>
+              <p class="text-sm text-base-content/60 mb-4">Pass data to dialog component via DIALOG_DATA</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="openDataDialog()">
+                  <app-lucide-icon name="User" [size]="18" />
+                  View User Details
+                </button>
+              </div>
             </div>
-          }
-        </div>
-      </div>
-
-      <!-- Long Content Dialog -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Long Content Dialog</h2>
-          <p class="text-sm text-base-content/60 mb-4">Dialog with scrollable content</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="openLongContentDialog()">
-              <app-lucide-icon name="FileText" [size]="18" />
-              View Terms of Service
-            </button>
           </div>
+        </div>
+      }
 
-          @if (termsResult) {
-            <div class="alert mt-4" [class.alert-success]="termsResult === 'accepted'" [class.alert-warning]="termsResult !== 'accepted'">
-              <app-lucide-icon [name]="termsResult === 'accepted' ? 'Check' : 'X'" [size]="18" />
-              <span>Terms {{ termsResult === 'accepted' ? 'accepted' : 'declined' }}</span>
+      <!-- Forms Tab Content -->
+      @if (activeTab() === 'forms') {
+        <div class="space-y-6">
+          <!-- Form Dialog -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Form Dialog</h2>
+              <p class="text-sm text-base-content/60 mb-4">Dialog with form inputs and selects (test responsiveness)</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline btn-success" (click)="openFormDialog('create')">
+                  <app-lucide-icon name="UserPlus" [size]="18" />
+                  Create User
+                </button>
+                <button class="btn btn-outline" (click)="openFormDialog('edit')">
+                  <app-lucide-icon name="Pencil" [size]="18" />
+                  Edit User
+                </button>
+              </div>
+
+              @if (formResult) {
+                <div class="alert alert-success mt-4">
+                  <app-lucide-icon name="Check" [size]="18" />
+                  <span>Saved: {{ formResult | json }}</span>
+                </div>
+              }
             </div>
-          }
-        </div>
-      </div>
+          </div>
 
-      <!-- Dialog Options -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Dialog Options</h2>
-          <p class="text-sm text-base-content/60 mb-4">Control dialog behavior</p>
+          <!-- Long Content Dialog -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Long Content Dialog</h2>
+              <p class="text-sm text-base-content/60 mb-4">Dialog with scrollable content</p>
 
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="openNonClosableDialog()">
-              <app-lucide-icon name="Lock" [size]="18" />
-              Non-closable (ESC/Backdrop disabled)
-            </button>
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="openLongContentDialog()">
+                  <app-lucide-icon name="FileText" [size]="18" />
+                  View Terms of Service
+                </button>
+              </div>
+
+              @if (termsResult) {
+                <div class="alert mt-4" [class.alert-success]="termsResult === 'accepted'" [class.alert-warning]="termsResult !== 'accepted'">
+                  <app-lucide-icon [name]="termsResult === 'accepted' ? 'Check' : 'X'" [size]="18" />
+                  <span>Terms {{ termsResult === 'accepted' ? 'accepted' : 'declined' }}</span>
+                </div>
+              }
+            </div>
           </div>
         </div>
-      </div>
+      }
 
-      <!-- Usage Code -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Usage</h2>
-          <div class="mockup-code text-sm">
-            <pre data-prefix="1"><code>// Inject the service</code></pre>
-            <pre data-prefix="2"><code>private dialogService = inject(DialogService);</code></pre>
-            <pre data-prefix="3"><code></code></pre>
-            <pre data-prefix="4"><code>// Open dialog with data</code></pre>
-            <pre data-prefix="5"><code>const ref = this.dialogService.open(MyComponent, {{ '{' }}</code></pre>
-            <pre data-prefix="6"><code>  data: {{ '{' }} userId: 123 {{ '}' }},</code></pre>
-            <pre data-prefix="7"><code>  disableClose: true,</code></pre>
-            <pre data-prefix="8"><code>{{ '}' }});</code></pre>
-            <pre data-prefix="9"><code></code></pre>
-            <pre data-prefix="10"><code>// Handle result</code></pre>
-            <pre data-prefix="11"><code>ref.closed.subscribe(result => {{ '{' }}</code></pre>
-            <pre data-prefix="12"><code>  console.log('Dialog closed:', result);</code></pre>
-            <pre data-prefix="13"><code>{{ '}' }});</code></pre>
+      <!-- Options & Usage Tab Content -->
+      @if (activeTab() === 'options') {
+        <div class="space-y-6">
+          <!-- Dialog Options -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Dialog Options</h2>
+              <p class="text-sm text-base-content/60 mb-4">Control dialog behavior</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="openNonClosableDialog()">
+                  <app-lucide-icon name="Lock" [size]="18" />
+                  Non-closable (ESC/Backdrop disabled)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Usage Code -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Usage</h2>
+              <div class="mockup-code text-sm">
+                <pre data-prefix="1"><code>// Inject the service</code></pre>
+                <pre data-prefix="2"><code>private dialogService = inject(DialogService);</code></pre>
+                <pre data-prefix="3"><code></code></pre>
+                <pre data-prefix="4"><code>// Open dialog with data</code></pre>
+                <pre data-prefix="5"><code>const ref = this.dialogService.open(MyComponent, {{ '{' }}</code></pre>
+                <pre data-prefix="6"><code>  data: {{ '{' }} userId: 123 {{ '}' }},</code></pre>
+                <pre data-prefix="7"><code>  disableClose: true,</code></pre>
+                <pre data-prefix="8"><code>{{ '}' }});</code></pre>
+                <pre data-prefix="9"><code></code></pre>
+                <pre data-prefix="10"><code>// Handle result</code></pre>
+                <pre data-prefix="11"><code>ref.closed.subscribe(result => {{ '{' }}</code></pre>
+                <pre data-prefix="12"><code>  console.log('Dialog closed:', result);</code></pre>
+                <pre data-prefix="13"><code>{{ '}' }});</code></pre>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      }
     </div>
   `,
 })
 export class DialogDemoComponent {
   private dialogService = inject(DialogService);
+  activeTab = signal<DialogTab>('basic');
 
   simpleResult: string | null = null;
   formResult: any = null;

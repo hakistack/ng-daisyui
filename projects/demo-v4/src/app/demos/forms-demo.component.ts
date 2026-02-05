@@ -2,90 +2,129 @@ import { Component, inject, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { DynamicFormComponent, createForm, field, layout, validation, ToastService, FormSubmissionData } from '@hakistack/ng-daisyui-v4';
 
+type FormsTab = 'layouts' | 'fields' | 'logic';
+
 @Component({
   selector: 'app-forms-demo',
   imports: [DynamicFormComponent, JsonPipe],
   template: `
-    <div class="space-y-8">
+    <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Dynamic Forms</h1>
         <p class="text-base-content/70 mt-2">Build forms declaratively with automatic validation and layout</p>
       </div>
 
-      <!-- Vertical Layout -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Vertical Layout (Default)</h2>
-          <p class="text-sm text-base-content/60 mb-4">Standard stacked form layout</p>
-
-          <app-dynamic-form [config]="verticalForm.config()" />
-
-          <div class="card-actions justify-end mt-4">
-            <button class="btn btn-ghost" (click)="verticalForm.reset()">Reset</button>
-            <button class="btn btn-primary" (click)="verticalForm.submit()">Submit</button>
-          </div>
-        </div>
+      <!-- DaisyUI v4 Tabs -->
+      <div role="tablist" class="tabs tabs-boxed w-fit">
+        <button
+          role="tab"
+          class="tab"
+          [class.tab-active]="activeTab() === 'layouts'"
+          (click)="activeTab.set('layouts')"
+        >
+          Layouts
+        </button>
+        <button
+          role="tab"
+          class="tab"
+          [class.tab-active]="activeTab() === 'fields'"
+          (click)="activeTab.set('fields')"
+        >
+          Field Types
+        </button>
+        <button
+          role="tab"
+          class="tab"
+          [class.tab-active]="activeTab() === 'logic'"
+          (click)="activeTab.set('logic')"
+        >
+          Conditional Logic
+        </button>
       </div>
 
-      <!-- Horizontal Layout -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Horizontal Layout</h2>
-          <p class="text-sm text-base-content/60 mb-4">Labels alongside inputs</p>
+      <!-- Layouts Tab Content -->
+      @if (activeTab() === 'layouts') {
+        <div class="space-y-6">
+          <!-- Vertical Layout -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Vertical Layout (Default)</h2>
+              <p class="text-sm text-base-content/60 mb-4">Standard stacked form layout</p>
 
-          <app-dynamic-form [config]="horizontalForm.config()" />
+              <app-dynamic-form [config]="verticalForm.config()" />
 
-          <div class="card-actions justify-end mt-4">
-            <button class="btn btn-ghost" (click)="horizontalForm.reset()">Reset</button>
-            <button class="btn btn-primary" (click)="horizontalForm.submit()">Submit</button>
+              <div class="card-actions justify-end mt-4">
+                <button class="btn btn-ghost" (click)="verticalForm.reset()">Reset</button>
+                <button class="btn btn-primary" (click)="verticalForm.submit()">Submit</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Horizontal Layout -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Horizontal Layout</h2>
+              <p class="text-sm text-base-content/60 mb-4">Labels alongside inputs</p>
+
+              <app-dynamic-form [config]="horizontalForm.config()" />
+
+              <div class="card-actions justify-end mt-4">
+                <button class="btn btn-ghost" (click)="horizontalForm.reset()">Reset</button>
+                <button class="btn btn-primary" (click)="horizontalForm.submit()">Submit</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grid Layout -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Grid Layout</h2>
+              <p class="text-sm text-base-content/60 mb-4">Responsive multi-column grid with colSpan control</p>
+
+              <app-dynamic-form [config]="gridForm.config()" />
+
+              <div class="card-actions justify-end mt-4">
+                <button class="btn btn-ghost" (click)="gridForm.reset()">Reset</button>
+                <button class="btn btn-primary" (click)="gridForm.submit()">Submit</button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      }
 
-      <!-- Grid Layout -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Grid Layout</h2>
-          <p class="text-sm text-base-content/60 mb-4">Responsive multi-column grid with colSpan control</p>
+      <!-- Field Types Tab Content -->
+      @if (activeTab() === 'fields') {
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">All Field Types</h2>
+            <p class="text-sm text-base-content/60 mb-4">Showcase of available field types</p>
 
-          <app-dynamic-form [config]="gridForm.config()" />
+            <app-dynamic-form [config]="allFieldsForm.config()" />
 
-          <div class="card-actions justify-end mt-4">
-            <button class="btn btn-ghost" (click)="gridForm.reset()">Reset</button>
-            <button class="btn btn-primary" (click)="gridForm.submit()">Submit</button>
+            <div class="card-actions justify-end mt-4">
+              <button class="btn btn-ghost" (click)="allFieldsForm.reset()">Reset</button>
+              <button class="btn btn-primary" (click)="allFieldsForm.submit()">Submit</button>
+            </div>
           </div>
         </div>
-      </div>
+      }
 
-      <!-- All Field Types -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">All Field Types</h2>
-          <p class="text-sm text-base-content/60 mb-4">Showcase of available field types</p>
+      <!-- Conditional Logic Tab Content -->
+      @if (activeTab() === 'logic') {
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">Conditional Logic</h2>
+            <p class="text-sm text-base-content/60 mb-4">Fields that show/hide/require based on other values</p>
 
-          <app-dynamic-form [config]="allFieldsForm.config()" />
+            <app-dynamic-form [config]="conditionalForm.config()" />
 
-          <div class="card-actions justify-end mt-4">
-            <button class="btn btn-ghost" (click)="allFieldsForm.reset()">Reset</button>
-            <button class="btn btn-primary" (click)="allFieldsForm.submit()">Submit</button>
+            <div class="card-actions justify-end mt-4">
+              <button class="btn btn-ghost" (click)="conditionalForm.reset()">Reset</button>
+              <button class="btn btn-primary" (click)="conditionalForm.submit()">Submit</button>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Conditional Logic -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Conditional Logic</h2>
-          <p class="text-sm text-base-content/60 mb-4">Fields that show/hide/require based on other values</p>
-
-          <app-dynamic-form [config]="conditionalForm.config()" />
-
-          <div class="card-actions justify-end mt-4">
-            <button class="btn btn-ghost" (click)="conditionalForm.reset()">Reset</button>
-            <button class="btn btn-primary" (click)="conditionalForm.submit()">Submit</button>
-          </div>
-        </div>
-      </div>
+      }
 
       <!-- Form Output -->
       @if (lastSubmission()) {
@@ -101,6 +140,7 @@ import { DynamicFormComponent, createForm, field, layout, validation, ToastServi
 })
 export class FormsDemoComponent {
   private toast = inject(ToastService);
+  activeTab = signal<FormsTab>('layouts');
   lastSubmission = signal<FormSubmissionData | null>(null);
 
   // Vertical layout form

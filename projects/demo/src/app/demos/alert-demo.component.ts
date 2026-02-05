@@ -1,186 +1,249 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { AlertService, LucideIconComponent } from '@hakistack/ng-daisyui';
+
+type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
 
 @Component({
   selector: 'app-alert-demo',
   imports: [LucideIconComponent],
   template: `
-    <div class="space-y-8">
+    <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Alert Dialogs</h1>
         <p class="text-base-content/70 mt-2">Modal dialogs for confirmations, warnings, and notifications</p>
       </div>
 
-      <!-- Basic Alerts -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Basic Alerts</h2>
-          <p class="text-sm text-base-content/60 mb-4">Different severity levels</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-success" (click)="showSuccess()">
-              <app-lucide-icon name="CircleCheck" [size]="18" />
-              Success
-            </button>
-            <button class="btn btn-error" (click)="showError()">
-              <app-lucide-icon name="CircleX" [size]="18" />
-              Error
-            </button>
-            <button class="btn btn-warning" (click)="showWarning()">
-              <app-lucide-icon name="TriangleAlert" [size]="18" />
-              Warning
-            </button>
-            <button class="btn btn-info" (click)="showInfo()">
-              <app-lucide-icon name="Info" [size]="18" />
-              Info
-            </button>
-          </div>
-        </div>
+      <!-- Tabs -->
+      <div role="tablist" class="tabs tabs-box">
+        <input
+          type="radio"
+          name="alert_tabs"
+          role="tab"
+          class="tab"
+          aria-label="Basic"
+          [checked]="activeTab() === 'basic'"
+          (change)="activeTab.set('basic')"
+        />
+        <input
+          type="radio"
+          name="alert_tabs"
+          role="tab"
+          class="tab"
+          aria-label="Confirmations"
+          [checked]="activeTab() === 'confirm'"
+          (change)="activeTab.set('confirm')"
+        />
+        <input
+          type="radio"
+          name="alert_tabs"
+          role="tab"
+          class="tab"
+          aria-label="Loading"
+          [checked]="activeTab() === 'loading'"
+          (change)="activeTab.set('loading')"
+        />
+        <input
+          type="radio"
+          name="alert_tabs"
+          role="tab"
+          class="tab"
+          aria-label="Advanced"
+          [checked]="activeTab() === 'advanced'"
+          (change)="activeTab.set('advanced')"
+        />
       </div>
 
-      <!-- With Description -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">With Description</h2>
-          <p class="text-sm text-base-content/60 mb-4">Include additional context</p>
+      <!-- Basic Tab -->
+      @if (activeTab() === 'basic') {
+        <div class="space-y-6">
+          <!-- Basic Alerts -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Severity Levels</h2>
+              <p class="text-sm text-base-content/60 mb-4">Different severity levels for various contexts</p>
 
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="showWithDescription()">Success with Description</button>
-            <button class="btn btn-outline" (click)="showErrorWithDescription()">Error with Description</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Confirmation Dialogs -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Confirmation Dialogs</h2>
-          <p class="text-sm text-base-content/60 mb-4">Ask user for confirmation before actions</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="showConfirm()">Basic Confirm</button>
-            <button class="btn btn-outline" (click)="showQuestion()">Yes/No Question</button>
-            <button class="btn btn-outline btn-error" (click)="showDeleteConfirm()">Delete Confirmation</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Delete with Item Name -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Delete with Item Name</h2>
-          <p class="text-sm text-base-content/60 mb-4">Show the item being deleted</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline btn-error" (click)="showDeleteWithItem()">
-              <app-lucide-icon name="Trash2" [size]="18" />
-              Delete "Project Alpha"
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Custom Confirm Styles -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Custom Confirm Styles</h2>
-          <p class="text-sm text-base-content/60 mb-4">Different button styles for confirmations</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-primary" (click)="showPrimaryConfirm()">Primary Style</button>
-            <button class="btn btn-success" (click)="showSuccessConfirm()">Success Style</button>
-            <button class="btn btn-warning" (click)="showWarningConfirm()">Warning Style</button>
-            <button class="btn btn-error" (click)="showErrorConfirm()">Error Style</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Loading State -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Loading State</h2>
-          <p class="text-sm text-base-content/60 mb-4">Show loading indicator during async operations</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="showLoading()">
-              <app-lucide-icon name="Loader" [size]="18" />
-              Show Loading (3s)
-            </button>
-            <button class="btn btn-outline" (click)="showLoadingWithUpdate()">Loading with Update</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Auto-close Timer -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Auto-close Timer</h2>
-          <p class="text-sm text-base-content/60 mb-4">Alert that closes automatically</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="showWithTimer()">Auto-close (3s)</button>
-            <button class="btn btn-outline" (click)="showWithTimerProgress()">With Progress Bar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Live Countdown -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Live Countdown</h2>
-          <p class="text-sm text-base-content/60 mb-4">Countdown with live seconds display (e.g., session timeout)</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-warning" (click)="showCountdown()">
-              <app-lucide-icon name="Clock" [size]="18" />
-              Session Timeout Warning
-            </button>
-            <button class="btn btn-outline" (click)="showCountdownCustom()">Custom Countdown</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Custom Alert -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Custom Alert (Advanced)</h2>
-          <p class="text-sm text-base-content/60 mb-4">Using fire() for advanced customization</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="showCustomAlert()">Custom HTML Content</button>
-            <button class="btn btn-outline" (click)="showWithFooter()">With Footer</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Result Handling -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Result Handling</h2>
-          <p class="text-sm text-base-content/60 mb-4">Handle user responses (check console)</p>
-
-          <div class="flex flex-wrap gap-3">
-            <button class="btn btn-outline" (click)="showWithResultHandling()">Confirm with Result</button>
-          </div>
-
-          @if (lastResult) {
-            <div class="mt-4 p-4 bg-base-200 rounded-lg">
-              <p class="font-mono text-sm">
-                <strong>Last Result:</strong><br />
-                isConfirmed: {{ lastResult.isConfirmed }}<br />
-                isDismissed: {{ lastResult.isDismissed }}<br />
-                isCancelled: {{ lastResult.isCancelled }}<br />
-                dismissReason: {{ lastResult.dismissReason ?? 'N/A' }}
-              </p>
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-success" (click)="showSuccess()">
+                  <app-lucide-icon name="CircleCheck" [size]="18" />
+                  Success
+                </button>
+                <button class="btn btn-error" (click)="showError()">
+                  <app-lucide-icon name="CircleX" [size]="18" />
+                  Error
+                </button>
+                <button class="btn btn-warning" (click)="showWarning()">
+                  <app-lucide-icon name="TriangleAlert" [size]="18" />
+                  Warning
+                </button>
+                <button class="btn btn-info" (click)="showInfo()">
+                  <app-lucide-icon name="Info" [size]="18" />
+                  Info
+                </button>
+              </div>
             </div>
-          }
+          </div>
+
+          <!-- With Description -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">With Description</h2>
+              <p class="text-sm text-base-content/60 mb-4">Include additional context</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="showWithDescription()">Success with Description</button>
+                <button class="btn btn-outline" (click)="showErrorWithDescription()">Error with Description</button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      }
+
+      <!-- Confirm Tab -->
+      @if (activeTab() === 'confirm') {
+        <div class="space-y-6">
+          <!-- Confirmation Dialogs -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Confirmation Dialogs</h2>
+              <p class="text-sm text-base-content/60 mb-4">Ask user for confirmation before actions</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="showConfirm()">Basic Confirm</button>
+                <button class="btn btn-outline" (click)="showQuestion()">Yes/No Question</button>
+                <button class="btn btn-outline btn-error" (click)="showDeleteConfirm()">Delete Confirmation</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delete with Item Name -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Delete with Item Name</h2>
+              <p class="text-sm text-base-content/60 mb-4">Show the item being deleted</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline btn-error" (click)="showDeleteWithItem()">
+                  <app-lucide-icon name="Trash2" [size]="18" />
+                  Delete "Project Alpha"
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Confirm Styles -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Custom Confirm Styles</h2>
+              <p class="text-sm text-base-content/60 mb-4">Different button styles for confirmations</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-primary" (click)="showPrimaryConfirm()">Primary Style</button>
+                <button class="btn btn-success" (click)="showSuccessConfirm()">Success Style</button>
+                <button class="btn btn-warning" (click)="showWarningConfirm()">Warning Style</button>
+                <button class="btn btn-error" (click)="showErrorConfirm()">Error Style</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Loading Tab -->
+      @if (activeTab() === 'loading') {
+        <div class="space-y-6">
+          <!-- Loading State -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Loading State</h2>
+              <p class="text-sm text-base-content/60 mb-4">Show loading indicator during async operations</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="showLoading()">
+                  <app-lucide-icon name="Loader" [size]="18" />
+                  Show Loading (3s)
+                </button>
+                <button class="btn btn-outline" (click)="showLoadingWithUpdate()">Loading with Update</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Auto-close Timer -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Auto-close Timer</h2>
+              <p class="text-sm text-base-content/60 mb-4">Alert that closes automatically</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="showWithTimer()">Auto-close (3s)</button>
+                <button class="btn btn-outline" (click)="showWithTimerProgress()">With Progress Bar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Countdown -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Live Countdown</h2>
+              <p class="text-sm text-base-content/60 mb-4">Countdown with live seconds display (e.g., session timeout)</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-warning" (click)="showCountdown()">
+                  <app-lucide-icon name="Clock" [size]="18" />
+                  Session Timeout Warning
+                </button>
+                <button class="btn btn-outline" (click)="showCountdownCustom()">Custom Countdown</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Advanced Tab -->
+      @if (activeTab() === 'advanced') {
+        <div class="space-y-6">
+          <!-- Custom Alert -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Custom Alert (Advanced)</h2>
+              <p class="text-sm text-base-content/60 mb-4">Using fire() for advanced customization</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="showCustomAlert()">Custom HTML Content</button>
+                <button class="btn btn-outline" (click)="showWithFooter()">With Footer</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Result Handling -->
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title">Result Handling</h2>
+              <p class="text-sm text-base-content/60 mb-4">Handle user responses (check console)</p>
+
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="showWithResultHandling()">Confirm with Result</button>
+              </div>
+
+              @if (lastResult) {
+                <div class="mt-4 p-4 bg-base-200 rounded-lg">
+                  <p class="font-mono text-sm">
+                    <strong>Last Result:</strong><br />
+                    isConfirmed: {{ lastResult.isConfirmed }}<br />
+                    isDismissed: {{ lastResult.isDismissed }}<br />
+                    isCancelled: {{ lastResult.isCancelled }}<br />
+                    dismissReason: {{ lastResult.dismissReason ?? 'N/A' }}
+                  </p>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
 export class AlertDemoComponent {
   private alert = inject(AlertService);
+  activeTab = signal<AlertTab>('basic');
   lastResult: { isConfirmed: boolean; isDismissed: boolean; isCancelled: boolean; dismissReason?: string } | null = null;
 
   // Basic Alerts

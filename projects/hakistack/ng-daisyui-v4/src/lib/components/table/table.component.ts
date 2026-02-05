@@ -1,7 +1,7 @@
 // table.component.ts
 import { CdkTableModule, DataSource } from '@angular/cdk/table';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, OnDestroy, output, Signal, signal, TrackByFunction } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, input, OnDestroy, output, Signal, signal, TrackByFunction } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
 import Fuse, { IFuseOptions } from 'fuse.js';
@@ -13,6 +13,7 @@ import { TableGlobalSearchComponent } from './table-global-search.component';
 import { TablePaginationComponent } from './table-pagination.component';
 import {
   ActionType,
+  BulkActionDropdownOption,
   CellDisplay,
   ColumnDefinition,
   ColumnFilter,
@@ -81,6 +82,18 @@ interface SortState {
 })
 export class TableComponent<T extends object> implements OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly elementRef = inject(ElementRef);
+
+  // Handle click outside to close dropdowns
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    // Check if click is outside any bulk action dropdown
+    const dropdownContainer = target.closest('.bulk-action-dropdown');
+    if (!dropdownContainer) {
+      this.openBulkActionDropdown.set(null);
+    }
+  }
 
   private readonly htmlParser = new DOMParser();
 
@@ -113,6 +126,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly showAlertSignal = signal(false);
   readonly openFilterField = signal<string | null>(null); // Track which filter dropdown is open
   readonly columnVisibilityState = signal<Map<string, boolean>>(new Map()); // Track column visibility
+  readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
 
   // Global search signals
   readonly globalSearchTerm = signal<string>('');
@@ -447,17 +461,26 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly trackByPageSize: TrackByFunction<number> = (_, size) => size;
 
   // Static properties
-  private static readonly ACTION_ORDER: readonly ActionType[] = ['view', 'edit', 'delete', 'upload', 'download', 'print'] as const;
+  private static readonly ACTION_ORDER: readonly ActionType[] = ['view', 'edit', 'delete', 'upload', 'download', 'export', 'print'] as const;
 
-  private static readonly ACTION_CLASSES: Partial<Record<ActionType, string>> = {
+  private static readonly ACTION_CLASSES: Readonly<Record<string, string>> = {
     view: 'btn btn-sm btn-secondary',
     edit: 'btn btn-sm btn-accent',
     delete: 'btn btn-sm btn-error text-white',
     upload: 'btn btn-sm btn-info',
     download: 'btn btn-sm btn-success',
-    export: 'btn btn-sm btn-ghost',
+    export: 'btn btn-sm btn-info',
     print: 'btn btn-sm btn-secondary',
   } as const;
+
+  private static readonly DEFAULT_ACTION_CLASS = 'btn btn-sm btn-ghost';
+
+  private static readonly DEFAULT_EXPORT_OPTIONS: readonly BulkActionDropdownOption[] = [
+    { label: 'CSV', value: 'csv', icon: 'Sheet' },
+    { label: 'Excel', value: 'excel', icon: 'FileSpreadsheet' },
+    { label: 'PDF', value: 'pdf', icon: 'FileText' },
+    { label: 'JSON', value: 'json', icon: 'Braces' },
+  ] as const;
 
   constructor() {
     this.dataSource = new SignalDataSource(this.currentDataSignal);
@@ -564,13 +587,48 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   classesFor({ key, config }: ActionItem<T> | BulkActionItem<T>): string {
-    const defaultClass = 'btn btn-sm btn-ghost';
-    const baseClass = TableComponent.ACTION_CLASSES[key] || defaultClass;
+    const baseClass = TableComponent.ACTION_CLASSES[key] || TableComponent.DEFAULT_ACTION_CLASS;
     const configClass = config.buttonClass || '';
     const transitionClasses = 'transition-all duration-200 hover:scale-105 focus:scale-105';
     const classes = [baseClass, configClass, transitionClasses, ...(config.buttonClasses || [])].filter(Boolean);
 
     return classes.join(' ');
+  }
+
+  // Dropdown bulk action methods
+  isDropdownBulkAction(bulkAction: BulkActionItem<T>): boolean {
+    if (bulkAction.config.dropdownOptions && bulkAction.config.dropdownOptions.length > 0) {
+      return true;
+    }
+    if (bulkAction.key === 'export' && bulkAction.config.useDefaultExportOptions !== false) {
+      return true;
+    }
+    return false;
+  }
+
+  getDropdownOptions(bulkAction: BulkActionItem<T>): readonly BulkActionDropdownOption[] {
+    if (bulkAction.config.dropdownOptions && bulkAction.config.dropdownOptions.length > 0) {
+      return bulkAction.config.dropdownOptions;
+    }
+    if (bulkAction.key === 'export' && bulkAction.config.useDefaultExportOptions !== false) {
+      return TableComponent.DEFAULT_EXPORT_OPTIONS;
+    }
+    return [];
+  }
+
+  toggleBulkActionDropdown(actionKey: string, event: MouseEvent): void {
+    event.stopPropagation();
+    const current = this.openBulkActionDropdown();
+    this.openBulkActionDropdown.set(current === actionKey ? null : actionKey);
+  }
+
+  isBulkActionDropdownOpen(actionKey: string): boolean {
+    return this.openBulkActionDropdown() === actionKey;
+  }
+
+  onBulkActionOptionSelect(bulkAction: BulkActionItem<T>, option: BulkActionDropdownOption): void {
+    this.openBulkActionDropdown.set(null); // Close the dropdown
+    bulkAction.config.action(this.selectedArraySignal(), option);
   }
 
   formatCell(row: T, column: ColumnDefinition<T>): Observable<string> {

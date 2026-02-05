@@ -34,17 +34,33 @@ export interface TableAction<T> {
   buttonStyle?: CSSProperties;
 }
 
+// Dropdown option for bulk actions
+export interface BulkActionDropdownOption {
+  label: string;
+  value: string;
+  icon?: IconName;
+  disabled?: boolean;
+}
+
+// Common export formats
+export type ExportFormat = 'csv' | 'excel' | 'pdf' | 'json';
+
 export interface TableBulkAction<T> {
   type: ActionType;
   label: string;
-  action: (row: T[]) => void;
-  hidden?: (row: T[]) => boolean;
-  disabled?: (row: T[]) => boolean;
+  /** Action handler - called when button is clicked (for non-dropdown) or when dropdown option is selected */
+  action: (rows: T[], option?: BulkActionDropdownOption) => void;
+  hidden?: (rows: T[]) => boolean;
+  disabled?: (rows: T[]) => boolean;
   icon?: IconName;
-  tooltip?: string | ((row: T[]) => string);
+  tooltip?: string | ((rows: T[]) => string);
   buttonClass?: string;
   buttonClasses?: string[];
   buttonStyle?: CSSProperties;
+  /** Dropdown options - if provided, renders as dropdown instead of button */
+  dropdownOptions?: BulkActionDropdownOption[];
+  /** For 'export' type: use default export options (CSV, Excel, PDF, JSON). Set to false to disable. */
+  useDefaultExportOptions?: boolean;
 }
 
 // Global search mode

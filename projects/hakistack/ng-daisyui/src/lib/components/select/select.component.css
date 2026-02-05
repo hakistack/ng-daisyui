@@ -1,11 +1,16 @@
 /* Virtual scroll viewport configuration */
 cdk-virtual-scroll-viewport {
-  height: var(--dropdown-max-height, 25rem);
-  contain: layout style paint;
+  height: 16rem;
+  min-height: 10rem;
+  max-height: 50vh;
 }
 
 /* CSS Custom Properties for theming and configuration */
 :host {
+  /* Ensure the component takes full width */
+  display: block;
+  width: 100%;
+
   --dropdown-max-height: 25rem;
   --dropdown-border-radius: 0.5rem;
   --dropdown-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -22,7 +27,9 @@ cdk-virtual-scroll-viewport {
 
 /* Base dropdown container styles */
 .dropdown-container {
-  /* Layout properties */
+  /* Layout properties - ensure full width */
+  left: 0;
+  right: 0;
   border-radius: var(--dropdown-border-radius);
   box-shadow: var(--dropdown-shadow);
   backdrop-filter: var(--dropdown-backdrop-blur);
@@ -30,7 +37,6 @@ cdk-virtual-scroll-viewport {
 
   /* Performance optimizations */
   will-change: opacity, transform, max-height;
-  contain: layout style paint;
 
   /* Initial closed state */
   opacity: var(--opacity-from);
@@ -127,11 +133,18 @@ cdk-virtual-scroll-viewport {
 /* Responsive design adjustments */
 @media (max-width: 640px) {
   :host {
-    --dropdown-max-height: 12rem;
+    --dropdown-max-height: 50vh;
   }
 
   .dropdown-container {
     --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* Prevent dropdown from extending page on larger screens too */
+@media (min-width: 641px) {
+  :host {
+    --dropdown-max-height: min(25rem, 50vh);
   }
 }
 
@@ -183,7 +196,6 @@ cdk-virtual-scroll-viewport {
 }
 
 /* Performance hint for GPU acceleration */
-.dropdown-container,
 .menu li > a {
   transform: translateZ(0);
 }

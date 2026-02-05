@@ -12,57 +12,82 @@ interface User {
   joinDate: Date;
 }
 
+type TableTab = 'basic' | 'full';
+
 @Component({
   selector: 'app-table-demo',
   imports: [TableComponent, LucideIconComponent],
   template: `
-    <div class="space-y-8">
+    <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Data Table</h1>
         <p class="text-base-content/70 mt-2">Feature-rich data table with sorting, filtering, and pagination</p>
       </div>
 
-      <!-- Basic Table -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Basic Table</h2>
-          <p class="text-sm text-base-content/60 mb-4">Simple table with sorting</p>
-
-          <app-table [data]="users()" [config]="basicConfig" (sortChange)="onSort($event)" />
-        </div>
+      <!-- DaisyUI v5 Tabs (box style, no tab-content body) -->
+      <div role="tablist" class="tabs tabs-box w-fit">
+        <button
+          role="tab"
+          class="tab"
+          [class.tab-active]="activeTab() === 'basic'"
+          (click)="activeTab.set('basic')"
+        >
+          Basic
+        </button>
+        <button
+          role="tab"
+          class="tab"
+          [class.tab-active]="activeTab() === 'full'"
+          (click)="activeTab.set('full')"
+        >
+          Full Featured
+        </button>
       </div>
 
-      <!-- Full Featured Table -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Full Featured Table</h2>
-          <p class="text-sm text-base-content/60 mb-4">Selection, actions, filters, global search, pagination</p>
-
-          <app-table
-            [data]="users()"
-            [config]="fullConfig"
-            [paginationOptions]="paginationOptions"
-            (selectionChange)="onSelection($event)"
-            (sortChange)="onSort($event)"
-            (filterChange)="onFilter($event)"
-            (globalSearchChange)="onSearch($event)"
-            (pageChange)="onPageChange($event)"
-          />
+      <!-- Basic Tab Content -->
+      @if (activeTab() === 'basic') {
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">Basic Table</h2>
+            <p class="text-sm text-base-content/60 mb-4">Simple table with sorting</p>
+            <app-table [data]="users()" [config]="basicConfig" (sortChange)="onSort($event)" />
+          </div>
         </div>
-      </div>
+      }
 
-      <!-- Selection Info -->
-      @if (selectedUsers().length > 0) {
-        <div class="alert alert-info">
-          <app-lucide-icon name="Info" [size]="20" />
-          <span>{{ selectedUsers().length }} user(s) selected</span>
+      <!-- Full Featured Tab Content -->
+      @if (activeTab() === 'full') {
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">Full Featured Table</h2>
+            <p class="text-sm text-base-content/60 mb-4">Selection, actions, filters, global search, pagination</p>
+            <app-table
+              [data]="users()"
+              [config]="fullConfig"
+              [paginationOptions]="paginationOptions"
+              (selectionChange)="onSelection($event)"
+              (sortChange)="onSort($event)"
+              (filterChange)="onFilter($event)"
+              (globalSearchChange)="onSearch($event)"
+              (pageChange)="onPageChange($event)"
+            />
+          </div>
         </div>
+
+        <!-- Selection Info -->
+        @if (selectedUsers().length > 0) {
+          <div class="alert alert-info">
+            <app-lucide-icon name="Info" [size]="20" />
+            <span>{{ selectedUsers().length }} user(s) selected</span>
+          </div>
+        }
       }
     </div>
   `,
 })
 export class TableDemoComponent {
   private toast = inject(ToastService);
+  activeTab = signal<TableTab>('basic');
 
   // Sample data
   users = signal<User[]>([
@@ -232,9 +257,9 @@ export class TableDemoComponent {
       },
       {
         type: 'export',
-        label: 'Export Selected',
+        label: 'Export',
         icon: 'Download',
-        action: (rows) => this.toast.success(`Exporting ${rows.length} users`),
+        action: (rows, option) => this.toast.success(`Exporting ${rows.length} users as ${option?.label ?? 'file'}`),
       },
     ],
     filters: [

@@ -44,6 +44,8 @@ export type {
   ColumnDefinition,
   TableAction,
   TableBulkAction,
+  BulkActionDropdownOption,
+  ExportFormat,
   Formatter,
   StringKey,
   CSSProperties,

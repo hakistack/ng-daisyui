@@ -88,18 +88,56 @@
       </div>
       <div class="flex items-center gap-2">
         @for (bulkAction of bulkActionListSignal(); track trackByBulkAction($index, bulkAction)) {
-          <button
-            type="button"
-            [class]="classesFor(bulkAction)"
-            [style]="bulkAction.config.buttonStyle"
-            [disabled]="bulkAction.config.disabled?.(selectedArraySignal())"
-            (click)="bulkAction.config.action(selectedArraySignal())"
-          >
-            @if (bulkAction.config.icon) {
-              <app-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></app-lucide-icon>
-            }
-            {{ bulkAction.config.label }}
-          </button>
+          @if (isDropdownBulkAction(bulkAction)) {
+            <!-- Dropdown Bulk Action with click-outside handling -->
+            <div class="dropdown dropdown-end bulk-action-dropdown" [class.dropdown-open]="isBulkActionDropdownOpen(bulkAction.key)">
+              <button
+                type="button"
+                [class]="classesFor(bulkAction)"
+                [style]="bulkAction.config.buttonStyle"
+                (click)="toggleBulkActionDropdown(bulkAction.key, $event)"
+              >
+                @if (bulkAction.config.icon) {
+                  <app-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></app-lucide-icon>
+                }
+                {{ bulkAction.config.label }}
+                <app-lucide-icon name="ChevronDown" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+              </button>
+              @if (isBulkActionDropdownOpen(bulkAction.key)) {
+                <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-52 p-2 shadow-lg">
+                  @for (option of getDropdownOptions(bulkAction); track option.value) {
+                    <li>
+                      <button
+                        type="button"
+                        class="flex items-center gap-2"
+                        [disabled]="option.disabled || bulkAction.config.disabled?.(selectedArraySignal())"
+                        (click)="onBulkActionOptionSelect(bulkAction, option)"
+                      >
+                        @if (option.icon) {
+                          <app-lucide-icon [name]="option.icon" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+                        }
+                        {{ option.label }}
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          } @else {
+            <!-- Regular Button Bulk Action -->
+            <button
+              type="button"
+              [class]="classesFor(bulkAction)"
+              [style]="bulkAction.config.buttonStyle"
+              [disabled]="bulkAction.config.disabled?.(selectedArraySignal())"
+              (click)="bulkAction.config.action(selectedArraySignal())"
+            >
+              @if (bulkAction.config.icon) {
+                <app-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></app-lucide-icon>
+              }
+              {{ bulkAction.config.label }}
+            </button>
+          }
         }
       </div>
       <button

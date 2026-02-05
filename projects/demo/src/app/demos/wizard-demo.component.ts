@@ -2,38 +2,66 @@ import { Component, inject, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { DynamicFormComponent, createForm, field, step, ToastService, FormSubmissionData } from '@hakistack/ng-daisyui';
 
+type WizardTab = 'linear' | 'nonlinear';
+
 @Component({
   selector: 'app-wizard-demo',
   imports: [DynamicFormComponent, JsonPipe],
   template: `
-    <div class="space-y-8">
+    <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Form Wizard</h1>
         <p class="text-base-content/70 mt-2">Multi-step forms with validation, navigation, and review</p>
       </div>
 
-      <!-- Basic Wizard -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">User Registration Wizard</h2>
-          <p class="text-sm text-base-content/60 mb-4">Step-by-step registration with validation</p>
-
-          <app-dynamic-form
-            [config]="registrationWizard.config()"
-            (stepChange)="onStepChange($event)"
-          />
-        </div>
+      <!-- Tabs -->
+      <div role="tablist" class="tabs tabs-box">
+        <input
+          type="radio"
+          name="wizard_tabs"
+          role="tab"
+          class="tab"
+          aria-label="Linear Wizard"
+          [checked]="activeTab() === 'linear'"
+          (change)="activeTab.set('linear')"
+        />
+        <input
+          type="radio"
+          name="wizard_tabs"
+          role="tab"
+          class="tab"
+          aria-label="Non-linear Wizard"
+          [checked]="activeTab() === 'nonlinear'"
+          (change)="activeTab.set('nonlinear')"
+        />
       </div>
 
-      <!-- Non-linear Wizard -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">Non-linear Wizard</h2>
-          <p class="text-sm text-base-content/60 mb-4">Jump to any step without completing previous steps</p>
+      <!-- Linear Wizard Tab -->
+      @if (activeTab() === 'linear') {
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">User Registration Wizard</h2>
+            <p class="text-sm text-base-content/60 mb-4">Step-by-step registration with validation</p>
 
-          <app-dynamic-form [config]="nonLinearWizard.config()" />
+            <app-dynamic-form
+              [config]="registrationWizard.config()"
+              (stepChange)="onStepChange($event)"
+            />
+          </div>
         </div>
-      </div>
+      }
+
+      <!-- Non-linear Wizard Tab -->
+      @if (activeTab() === 'nonlinear') {
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">Non-linear Wizard</h2>
+            <p class="text-sm text-base-content/60 mb-4">Jump to any step without completing previous steps</p>
+
+            <app-dynamic-form [config]="nonLinearWizard.config()" />
+          </div>
+        </div>
+      }
 
       <!-- Form Output -->
       @if (lastSubmission()) {
@@ -59,6 +87,7 @@ import { DynamicFormComponent, createForm, field, step, ToastService, FormSubmis
 })
 export class WizardDemoComponent {
   private toast = inject(ToastService);
+  activeTab = signal<WizardTab>('linear');
   lastSubmission = signal<FormSubmissionData | null>(null);
   currentStep = signal<unknown>(null);
 
