@@ -3,6 +3,10 @@ import { JsonPipe } from '@angular/common';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormsModule } from '@angular/forms';
 import { DialogService, LucideIconComponent, SelectComponent } from '@hakistack/ng-daisyui';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
 // ============================================================================
 // Sample Dialog Components
@@ -289,54 +293,37 @@ type DialogTab = 'basic' | 'forms' | 'options';
 
 @Component({
   selector: 'app-dialog-demo',
-  imports: [LucideIconComponent, JsonPipe],
+  imports: [LucideIconComponent, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Dialog Service</h1>
         <p class="text-base-content/70 mt-2">CDK-based modal dialogs with responsive design</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} DialogService {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- Tabs -->
-      <div role="tablist" class="tabs tabs-box">
-        <input
-          type="radio"
-          name="dialog_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Basic"
-          [checked]="activeTab() === 'basic'"
-          (change)="activeTab.set('basic')"
-        />
-        <input
-          type="radio"
-          name="dialog_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Forms"
-          [checked]="activeTab() === 'forms'"
-          (change)="activeTab.set('forms')"
-        />
-        <input
-          type="radio"
-          name="dialog_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Options"
-          [checked]="activeTab() === 'options'"
-          (change)="activeTab.set('options')"
-        />
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-border">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- Basic Tab -->
-      @if (activeTab() === 'basic') {
-        <div class="space-y-6">
-          <!-- Basic Dialog -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Basic Dialog</h2>
-              <p class="text-sm text-base-content/60 mb-4">Simple dialog with confirm/cancel buttons</p>
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="dialog_tabs" role="tab" class="tab" aria-label="Basic"
+            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
+          <input type="radio" name="dialog_tabs" role="tab" class="tab" aria-label="Forms"
+            [checked]="activeTab() === 'forms'" (change)="activeTab.set('forms')" />
+          <input type="radio" name="dialog_tabs" role="tab" class="tab" aria-label="Options"
+            [checked]="activeTab() === 'options'" (change)="activeTab.set('options')" />
+        </div>
 
+        @if (activeTab() === 'basic') {
+          <div class="space-y-6">
+            <app-doc-section title="Basic Dialog" description="Simple dialog with confirm/cancel buttons" [codeExample]="basicCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-primary" (click)="openSimpleDialog()">
                   <app-lucide-icon name="Square" [size]="18" />
@@ -350,30 +337,18 @@ type DialogTab = 'basic' | 'forms' | 'options';
                   <span>Dialog result: {{ simpleResult }}</span>
                 </div>
               }
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Dialog with Data -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Dialog with Data</h2>
-              <p class="text-sm text-base-content/60 mb-4">Pass data to dialog component via DIALOG_DATA</p>
-
+            <app-doc-section title="Dialog with Data" description="Pass data to dialog component via DIALOG_DATA" [codeExample]="dataCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openDataDialog()">
                   <app-lucide-icon name="User" [size]="18" />
                   View User Details
                 </button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Long Content Dialog -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Long Content Dialog</h2>
-              <p class="text-sm text-base-content/60 mb-4">Dialog with scrollable content</p>
-
+            <app-doc-section title="Long Content Dialog" description="Dialog with scrollable content">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openLongContentDialog()">
                   <app-lucide-icon name="FileText" [size]="18" />
@@ -387,18 +362,12 @@ type DialogTab = 'basic' | 'forms' | 'options';
                   <span>Terms {{ termsResult === 'accepted' ? 'accepted' : 'declined' }}</span>
                 </div>
               }
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Forms Tab -->
-      @if (activeTab() === 'forms') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">Form Dialog</h2>
-            <p class="text-sm text-base-content/60 mb-4">Dialog with form inputs and selects (test responsiveness)</p>
-
+        @if (activeTab() === 'forms') {
+          <app-doc-section title="Form Dialog" description="Dialog with form inputs and selects (test responsiveness)" [codeExample]="formCode">
             <div class="flex flex-wrap gap-3">
               <button class="btn btn-outline btn-success" (click)="openFormDialog('create')">
                 <app-lucide-icon name="UserPlus" [size]="18" />
@@ -416,48 +385,37 @@ type DialogTab = 'basic' | 'forms' | 'options';
                 <span>Saved: {{ formResult | json }}</span>
               </div>
             }
-          </div>
-        </div>
-      }
+          </app-doc-section>
+        }
 
-      <!-- Options Tab -->
-      @if (activeTab() === 'options') {
-        <div class="space-y-6">
-          <!-- Dialog Options -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Dialog Options</h2>
-              <p class="text-sm text-base-content/60 mb-4">Control dialog behavior</p>
-
+        @if (activeTab() === 'options') {
+          <div class="space-y-6">
+            <app-doc-section title="Dialog Options" description="Control dialog behavior" [codeExample]="optionsCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openNonClosableDialog()">
                   <app-lucide-icon name="Lock" [size]="18" />
                   Non-closable (ESC/Backdrop disabled)
                 </button>
               </div>
-            </div>
+            </app-doc-section>
+          </div>
+        }
+      }
+
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="DialogService Methods" [entries]="methodDocs" />
+          <app-api-table title="DialogConfig Options" [entries]="configDocs" />
+          <app-api-table title="DialogRef Methods" [entries]="refDocs" />
+
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Usage</h3>
+            <app-code-block [code]="usageCode" />
           </div>
 
-          <!-- Usage Code -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Usage</h2>
-              <div class="mockup-code text-sm">
-                <pre data-prefix="1"><code>// Inject the service</code></pre>
-                <pre data-prefix="2"><code>private dialogService = inject(DialogService);</code></pre>
-                <pre data-prefix="3"><code></code></pre>
-                <pre data-prefix="4"><code>// Open dialog with data</code></pre>
-                <pre data-prefix="5"><code>const ref = this.dialogService.open(MyComponent, {{ '{' }}</code></pre>
-                <pre data-prefix="6"><code>  data: {{ '{' }} userId: 123 {{ '}' }},</code></pre>
-                <pre data-prefix="7"><code>  disableClose: true,</code></pre>
-                <pre data-prefix="8"><code>{{ '}' }});</code></pre>
-                <pre data-prefix="9"><code></code></pre>
-                <pre data-prefix="10"><code>// Handle result</code></pre>
-                <pre data-prefix="11"><code>ref.closed.subscribe(result => {{ '{' }}</code></pre>
-                <pre data-prefix="12"><code>  console.log('Dialog closed:', result);</code></pre>
-                <pre data-prefix="13"><code>{{ '}' }});</code></pre>
-              </div>
-            </div>
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Dialog Component Pattern</h3>
+            <app-code-block [code]="componentCode" />
           </div>
         </div>
       }
@@ -466,6 +424,7 @@ type DialogTab = 'basic' | 'forms' | 'options';
 })
 export class DialogDemoComponent {
   private dialogService = inject(DialogService);
+  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<DialogTab>('basic');
 
   simpleResult: string | null = null;
@@ -495,7 +454,7 @@ export class DialogDemoComponent {
       data: {
         mode,
         user: mode === 'edit' ? { name: 'Jane Smith', email: 'jane@example.com', role: 'editor', country: 'us' } : undefined,
-        height: '90vh', // Example of passing additional dialog config options
+        height: '90vh',
       },
     });
     ref.closed.subscribe((result) => {
@@ -517,4 +476,89 @@ export class DialogDemoComponent {
       disableClose: true,
     });
   }
+
+  // --- Code examples ---
+  basicCode = `const ref = this.dialogService.open(SimpleDialogComponent);
+ref.closed.subscribe(result => {
+  console.log('Dialog closed:', result);
+});`;
+
+  dataCode = `this.dialogService.open(DataDialogComponent, {
+  data: {
+    id: 42,
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'Administrator',
+  },
+});`;
+
+  formCode = `const ref = this.dialogService.open(FormDialogComponent, {
+  data: { mode: 'create' },
+});
+ref.closed.subscribe(result => {
+  if (result) console.log('Saved:', result);
+});`;
+
+  optionsCode = `this.dialogService.open(MyComponent, {
+  disableClose: true,  // Disable ESC and backdrop close
+});`;
+
+  usageCode = `import { DialogService } from '@hakistack/ng-daisyui';
+
+private dialogService = inject(DialogService);
+
+// Open a dialog
+const ref = this.dialogService.open(MyDialogComponent, {
+  data: { key: 'value' },     // Passed via DIALOG_DATA
+  disableClose: false,         // Allow ESC/backdrop close
+});
+
+// Handle result
+ref.closed.subscribe(result => {
+  console.log('Dialog result:', result);
+});`;
+
+  componentCode = `import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
+
+@Component({
+  template: \`
+    <div class="card bg-base-100">
+      <div class="card-body">
+        <h2 class="card-title">{{ data.title }}</h2>
+        <p>{{ data.message }}</p>
+        <div class="card-actions justify-end">
+          <button class="btn btn-ghost" (click)="close()">Cancel</button>
+          <button class="btn btn-primary" (click)="close('ok')">OK</button>
+        </div>
+      </div>
+    </div>
+  \`,
+})
+export class MyDialogComponent {
+  data = inject(DIALOG_DATA);
+  private dialogRef = inject(DialogRef);
+
+  close(result?: string) {
+    this.dialogRef.close(result);
+  }
+}`;
+
+  // --- API docs ---
+  methodDocs: ApiDocEntry[] = [
+    { name: 'open(component, config?)', type: 'DialogRef', description: 'Open a dialog with a component and optional config' },
+  ];
+
+  configDocs: ApiDocEntry[] = [
+    { name: 'data', type: 'any', default: '-', description: 'Data passed to dialog via DIALOG_DATA injection token' },
+    { name: 'disableClose', type: 'boolean', default: 'false', description: 'Disable closing via ESC key and backdrop click' },
+    { name: 'width', type: 'string', default: '-', description: 'Dialog width (CSS value)' },
+    { name: 'height', type: 'string', default: '-', description: 'Dialog height (CSS value)' },
+    { name: 'panelClass', type: 'string | string[]', default: '-', description: 'CSS class(es) for the overlay panel' },
+    { name: 'hasBackdrop', type: 'boolean', default: 'true', description: 'Show backdrop behind dialog' },
+  ];
+
+  refDocs: ApiDocEntry[] = [
+    { name: 'close(result?)', type: 'void', description: 'Close the dialog with an optional result value' },
+    { name: 'closed', type: 'Observable<R>', description: 'Observable that emits when dialog closes with the result' },
+  ];
 }

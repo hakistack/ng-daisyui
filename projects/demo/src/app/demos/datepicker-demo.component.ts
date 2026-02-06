@@ -2,59 +2,45 @@ import { Component, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { JsonPipe, DatePipe } from '@angular/common';
 import { DatepickerComponent } from '@hakistack/ng-daisyui';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
 type DatepickerTab = 'basic' | 'options' | 'advanced';
 
 @Component({
   selector: 'app-datepicker-demo',
-  imports: [DatepickerComponent, ReactiveFormsModule, JsonPipe, DatePipe],
+  imports: [DatepickerComponent, ReactiveFormsModule, JsonPipe, DatePipe, DocSectionComponent, ApiTableComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Datepicker</h1>
         <p class="text-base-content/70 mt-2">Date and date range picker with keyboard navigation</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} DatepickerComponent {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- Tabs -->
-      <div role="tablist" class="tabs tabs-box">
-        <input
-          type="radio"
-          name="datepicker_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Basic"
-          [checked]="activeTab() === 'basic'"
-          (change)="activeTab.set('basic')"
-        />
-        <input
-          type="radio"
-          name="datepicker_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Options"
-          [checked]="activeTab() === 'options'"
-          (change)="activeTab.set('options')"
-        />
-        <input
-          type="radio"
-          name="datepicker_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Advanced"
-          [checked]="activeTab() === 'advanced'"
-          (change)="activeTab.set('advanced')"
-        />
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-border">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- Basic Tab -->
-      @if (activeTab() === 'basic') {
-        <div class="space-y-6">
-          <!-- Basic Datepicker -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Basic Datepicker</h2>
-              <p class="text-sm text-base-content/60 mb-4">Simple single date selection</p>
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="datepicker_tabs" role="tab" class="tab" aria-label="Basic"
+            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
+          <input type="radio" name="datepicker_tabs" role="tab" class="tab" aria-label="Options"
+            [checked]="activeTab() === 'options'" (change)="activeTab.set('options')" />
+          <input type="radio" name="datepicker_tabs" role="tab" class="tab" aria-label="Advanced"
+            [checked]="activeTab() === 'advanced'" (change)="activeTab.set('advanced')" />
+        </div>
 
+        @if (activeTab() === 'basic') {
+          <div class="space-y-6">
+            <app-doc-section title="Basic Datepicker" description="Simple single date selection" [codeExample]="basicCode">
               <div class="max-w-sm">
                 <app-datepicker
                   [formControl]="basicControl"
@@ -63,19 +49,12 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
                   [showTodayButton]="true"
                 />
               </div>
-
               <div class="mt-4 text-sm">
                 Selected: <code class="bg-base-200 px-2 py-1 rounded">{{ basicControl.value | date:'fullDate' }}</code>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Date Range -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Date Range Picker</h2>
-              <p class="text-sm text-base-content/60 mb-4">Select a start and end date</p>
-
+            <app-doc-section title="Date Range Picker" description="Select a start and end date" [codeExample]="rangeCode">
               <div class="max-w-md">
                 <app-datepicker
                   [formControl]="rangeControl"
@@ -84,24 +63,16 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
                   [showClearButton]="true"
                 />
               </div>
-
               <div class="mt-4 text-sm">
                 Selected Range: <code class="bg-base-200 px-2 py-1 rounded">{{ rangeControl.value | json }}</code>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Options Tab -->
-      @if (activeTab() === 'options') {
-        <div class="space-y-6">
-          <!-- Min/Max Dates -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Min/Max Constraints</h2>
-              <p class="text-sm text-base-content/60 mb-4">Restrict selectable date range</p>
-
+        @if (activeTab() === 'options') {
+          <div class="space-y-6">
+            <app-doc-section title="Min/Max Constraints" description="Restrict selectable date range">
               <div class="max-w-sm">
                 <app-datepicker
                   [formControl]="constrainedControl"
@@ -111,20 +82,13 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
                   [showTodayButton]="true"
                 />
               </div>
-
               <div class="mt-4 text-sm space-y-1">
                 <div>Min Date: <code class="bg-base-200 px-2 py-1 rounded">{{ minDate | date:'mediumDate' }}</code></div>
                 <div>Max Date: <code class="bg-base-200 px-2 py-1 rounded">{{ maxDate | date:'mediumDate' }}</code></div>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Disabled Days -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Disabled Days of Week</h2>
-              <p class="text-sm text-base-content/60 mb-4">Weekends disabled</p>
-
+            <app-doc-section title="Disabled Days of Week" description="Weekends disabled">
               <div class="max-w-sm">
                 <app-datepicker
                   [formControl]="weekdaysControl"
@@ -132,19 +96,12 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
                   [disabledDaysOfWeek]="[0, 6]"
                 />
               </div>
-
               <div class="mt-4 text-sm text-base-content/60">
                 Saturday (0) and Sunday (6) are disabled
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Week Numbers -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Week Numbers</h2>
-              <p class="text-sm text-base-content/60 mb-4">Show ISO week numbers</p>
-
+            <app-doc-section title="Week Numbers" description="Show ISO week numbers">
               <div class="max-w-sm">
                 <app-datepicker
                   [formControl]="weekNumbersControl"
@@ -153,20 +110,13 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
                   [firstDayOfWeek]="1"
                 />
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Advanced Tab -->
-      @if (activeTab() === 'advanced') {
-        <div class="space-y-6">
-          <!-- Custom Formatting -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Custom Formatting</h2>
-              <p class="text-sm text-base-content/60 mb-4">Custom date display format</p>
-
+        @if (activeTab() === 'advanced') {
+          <div class="space-y-6">
+            <app-doc-section title="Custom Formatting" description="Custom date display format" [codeExample]="customFormatCode">
               <div class="max-w-sm">
                 <app-datepicker
                   [formControl]="customFormatControl"
@@ -174,19 +124,12 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
                   [customDateFormatter]="customFormatter"
                 />
               </div>
-
               <div class="mt-4 text-sm text-base-content/60">
                 Format: "Day, Month Date, Year"
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Dropdown Positions -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Dropdown Positions</h2>
-              <p class="text-sm text-base-content/60 mb-4">Control where the calendar appears</p>
-
+            <app-doc-section title="Dropdown Positions" description="Control where the calendar appears">
               <div class="grid grid-cols-2 gap-4 max-w-lg">
                 <div>
                   <label class="label"><span class="label-text">Bottom Left (default)</span></label>
@@ -205,26 +148,29 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
                   <app-datepicker placeholder="Top Right" dropdownPosition="top-right" />
                 </div>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Disabled State -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Disabled State</h2>
-              <p class="text-sm text-base-content/60 mb-4">Non-interactive datepicker</p>
-
+            <app-doc-section title="Disabled State" description="Non-interactive datepicker">
               <div class="max-w-sm">
                 <app-datepicker [disabled]="true" placeholder="Disabled datepicker" />
               </div>
-            </div>
+            </app-doc-section>
           </div>
+        }
+      }
+
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="Inputs" [entries]="inputDocs" />
+          <app-api-table title="Outputs" [entries]="outputDocs" />
+          <app-api-table title="Methods" [entries]="methodDocs" />
         </div>
       }
     </div>
   `,
 })
 export class DatepickerDemoComponent {
+  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<DatepickerTab>('basic');
 
   basicControl = new FormControl<Date | null>(null);
@@ -234,11 +180,9 @@ export class DatepickerDemoComponent {
   weekNumbersControl = new FormControl<Date | null>(null);
   customFormatControl = new FormControl<Date | null>(null);
 
-  // Min/Max dates
   minDate = new Date();
-  maxDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+  maxDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Custom formatter
   customFormatter = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -247,4 +191,82 @@ export class DatepickerDemoComponent {
       day: 'numeric',
     });
   };
+
+  // --- Code examples ---
+  basicCode = `// TypeScript
+dateControl = new FormControl<Date | null>(null);
+
+// Template
+<app-datepicker
+  [formControl]="dateControl"
+  placeholder="Select a date"
+  [showClearButton]="true"
+  [showTodayButton]="true"
+/>`;
+
+  rangeCode = `// TypeScript
+rangeControl = new FormControl<{ start: Date; end: Date } | null>(null);
+
+// Template
+<app-datepicker
+  [formControl]="rangeControl"
+  [range]="true"
+  placeholder="Select date range"
+  [showClearButton]="true"
+/>`;
+
+  customFormatCode = `// TypeScript
+customFormatControl = new FormControl<Date | null>(null);
+customFormatter = (date: Date): string => {
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric',
+    month: 'long', day: 'numeric',
+  });
+};
+
+// Template
+<app-datepicker
+  [formControl]="customFormatControl"
+  [customDateFormatter]="customFormatter"
+  placeholder="Select a date"
+/>`;
+
+  // --- API docs ---
+  inputDocs: ApiDocEntry[] = [
+    { name: 'range', type: 'boolean', default: 'false', description: 'Enable date range selection' },
+    { name: 'placeholder', type: 'string', default: "'Select Date'", description: 'Placeholder text' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable the datepicker' },
+    { name: 'locale', type: 'string', default: "'en-US'", description: 'Locale for date formatting' },
+    { name: 'minDate', type: 'Date', default: '-', description: 'Minimum selectable date' },
+    { name: 'maxDate', type: 'Date', default: '-', description: 'Maximum selectable date' },
+    { name: 'disabledDates', type: 'Date[]', default: '[]', description: 'Specific dates to disable' },
+    { name: 'disabledDaysOfWeek', type: 'number[]', default: '[]', description: 'Days of week to disable (0=Sun, 6=Sat)' },
+    { name: 'showWeekNumbers', type: 'boolean', default: 'false', description: 'Show ISO week numbers' },
+    { name: 'firstDayOfWeek', type: 'number', default: '0', description: 'First day of week (0=Sun)' },
+    { name: 'closeOnSelect', type: 'boolean', default: 'true', description: 'Close picker after selection' },
+    { name: 'showClearButton', type: 'boolean', default: 'true', description: 'Show clear button' },
+    { name: 'showTodayButton', type: 'boolean', default: 'false', description: 'Show today shortcut button' },
+    { name: 'dropdownPosition', type: 'DatepickerPosition', default: "'bottom-left'", description: 'Dropdown position relative to input' },
+    { name: 'customDateFormatter', type: '(date: Date) => string', default: '-', description: 'Custom date display formatter' },
+    { name: 'customRangeFormatter', type: '(start: Date, end: Date) => string', default: '-', description: 'Custom range display formatter' },
+  ];
+
+  outputDocs: ApiDocEntry[] = [
+    { name: 'selectionChange', type: 'DatepickerEvent', description: 'Emitted when date selection changes' },
+    { name: 'dateSelected', type: 'Date', description: 'Emitted when a single date is selected' },
+    { name: 'rangeSelected', type: '{ start: Date; end: Date }', description: 'Emitted when a date range is selected' },
+    { name: 'pickerOpened', type: 'void', description: 'Emitted when the picker opens' },
+    { name: 'pickerClosed', type: 'void', description: 'Emitted when the picker closes' },
+    { name: 'viewChanged', type: 'ViewMode', description: 'Emitted when view mode changes (days/months/years)' },
+  ];
+
+  methodDocs: ApiDocEntry[] = [
+    { name: 'togglePicker()', type: 'void', description: 'Toggle picker open/close' },
+    { name: 'openPicker()', type: 'void', description: 'Open the picker' },
+    { name: 'closePicker()', type: 'void', description: 'Close the picker' },
+    { name: 'selectToday()', type: 'void', description: 'Select today\'s date' },
+    { name: 'clearSelection()', type: 'void', description: 'Clear current selection' },
+    { name: 'setView(mode)', type: 'void', description: 'Set view mode (days, months, years)' },
+    { name: 'navigateMonth(direction)', type: 'void', description: 'Navigate to previous/next month' },
+  ];
 }

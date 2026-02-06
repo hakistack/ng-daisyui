@@ -2,313 +2,242 @@ import { Component, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
 import { SelectComponent, SelectOption } from '@hakistack/ng-daisyui';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
 @Component({
   selector: 'app-select-demo',
-  imports: [SelectComponent, ReactiveFormsModule, JsonPipe],
+  imports: [SelectComponent, ReactiveFormsModule, JsonPipe, DocSectionComponent, ApiTableComponent],
   template: `
     <div class="space-y-6">
-      <!-- Header -->
       <div>
         <h1 class="text-3xl font-bold">Select Component</h1>
         <p class="text-base-content/70 mt-2">Enhanced dropdown with search, virtual scrolling, and multiselect support</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} SelectComponent {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- Tabs -->
-      <div role="tablist" class="tabs tabs-box">
-        <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Basic" [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
-        <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Variants" [checked]="activeTab() === 'variants'" (change)="activeTab.set('variants')" />
-        <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Features" [checked]="activeTab() === 'features'" (change)="activeTab.set('features')" />
-        <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Multiselect" [checked]="activeTab() === 'multiselect'" (change)="activeTab.set('multiselect')" />
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-border">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- Tab Content -->
-      <div class="space-y-6">
-        <!-- Basic Tab -->
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Basic" [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
+          <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Variants" [checked]="activeTab() === 'variants'" (change)="activeTab.set('variants')" />
+          <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Features" [checked]="activeTab() === 'features'" (change)="activeTab.set('features')" />
+          <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Multiselect" [checked]="activeTab() === 'multiselect'" (change)="activeTab.set('multiselect')" />
+        </div>
+
         @if (activeTab() === 'basic') {
           <div class="grid gap-6 lg:grid-cols-2">
-            <!-- Basic Select -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Basic Select</h2>
-                <p class="text-sm text-base-content/60 mb-4">Simple dropdown selection</p>
-                <app-select
-                  [options]="basicOptions"
-                  placeholder="Select a fruit"
-                  (selectionChange)="onBasicSelect($event)"
-                />
-                @if (basicSelection()) {
-                  <div class="mt-4 text-sm">
-                    Selected: <span class="font-semibold">{{ basicSelection()?.label }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Searchable Select -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Searchable Select</h2>
-                <p class="text-sm text-base-content/60 mb-4">Filter options by typing</p>
-                <app-select
-                  [options]="countryOptions"
-                  [enableSearch]="true"
-                  placeholder="Select a country"
-                  searchPlaceholder="Search countries..."
-                  [allowClear]="true"
-                  (selectionChange)="onCountrySelect($event)"
-                />
-                @if (countrySelection()) {
-                  <div class="mt-4 text-sm">
-                    Selected: <span class="font-semibold">{{ countrySelection()?.label }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Reactive Forms -->
-            <div class="card bg-base-100 shadow-xl lg:col-span-2">
-              <div class="card-body">
-                <h2 class="card-title">Reactive Forms Integration</h2>
-                <p class="text-sm text-base-content/60 mb-4">Works with Angular FormControl</p>
-                <div class="w-full sm:max-w-sm">
-                  <app-select
-                    [formControl]="formControl"
-                    [options]="basicOptions"
-                    [enableSearch]="true"
-                    [allowClear]="true"
-                    placeholder="Select with FormControl"
-                  />
-                </div>
+            <app-doc-section title="Basic Select" description="Simple dropdown selection" [codeExample]="basicCode">
+              <app-select
+                [options]="basicOptions"
+                placeholder="Select a fruit"
+                (selectionChange)="onBasicSelect($event)"
+              />
+              @if (basicSelection()) {
                 <div class="mt-4 text-sm">
-                  <div>Form Value: <code class="bg-base-200 px-2 py-1 rounded">{{ formControl.value | json }}</code></div>
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <button class="btn btn-sm btn-ghost" (click)="formControl.setValue('banana')">Set to Banana</button>
-                    <button class="btn btn-sm btn-ghost" (click)="formControl.reset()">Reset</button>
-                  </div>
+                  Selected: <span class="font-semibold">{{ basicSelection()?.label }}</span>
+                </div>
+              }
+            </app-doc-section>
+
+            <app-doc-section title="Searchable Select" description="Filter options by typing" [codeExample]="searchableCode">
+              <app-select
+                [options]="countryOptions"
+                [enableSearch]="true"
+                placeholder="Select a country"
+                searchPlaceholder="Search countries..."
+                [allowClear]="true"
+                (selectionChange)="onCountrySelect($event)"
+              />
+              @if (countrySelection()) {
+                <div class="mt-4 text-sm">
+                  Selected: <span class="font-semibold">{{ countrySelection()?.label }}</span>
+                </div>
+              }
+            </app-doc-section>
+
+            <app-doc-section title="Reactive Forms Integration" description="Works with Angular FormControl" [codeExample]="reactiveCode" class="lg:col-span-2">
+              <div class="w-full sm:max-w-sm">
+                <app-select
+                  [formControl]="formControl"
+                  [options]="basicOptions"
+                  [enableSearch]="true"
+                  [allowClear]="true"
+                  placeholder="Select with FormControl"
+                />
+              </div>
+              <div class="mt-4 text-sm">
+                <div>Form Value: <code class="bg-base-200 px-2 py-1 rounded">{{ formControl.value | json }}</code></div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button class="btn btn-sm btn-ghost" (click)="formControl.setValue('banana')">Set to Banana</button>
+                  <button class="btn btn-sm btn-ghost" (click)="formControl.reset()">Reset</button>
                 </div>
               </div>
-            </div>
+            </app-doc-section>
           </div>
         }
 
-        <!-- Variants Tab -->
         @if (activeTab() === 'variants') {
           <div class="space-y-6">
-            <!-- Sizes -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Sizes</h2>
-                <p class="text-sm text-base-content/60 mb-4">Different size variants</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <label class="label"><span class="label-text">Extra Small</span></label>
-                    <app-select [options]="basicOptions" size="xs" placeholder="XS" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Small</span></label>
-                    <app-select [options]="basicOptions" size="sm" placeholder="SM" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Medium (default)</span></label>
-                    <app-select [options]="basicOptions" size="md" placeholder="MD" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Large</span></label>
-                    <app-select [options]="basicOptions" size="lg" placeholder="LG" />
-                  </div>
+            <app-doc-section title="Sizes" description="Different size variants">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label class="label"><span class="label-text">Extra Small</span></label>
+                  <app-select [options]="basicOptions" size="xs" placeholder="XS" />
+                </div>
+                <div>
+                  <label class="label"><span class="label-text">Small</span></label>
+                  <app-select [options]="basicOptions" size="sm" placeholder="SM" />
+                </div>
+                <div>
+                  <label class="label"><span class="label-text">Medium (default)</span></label>
+                  <app-select [options]="basicOptions" size="md" placeholder="MD" />
+                </div>
+                <div>
+                  <label class="label"><span class="label-text">Large</span></label>
+                  <app-select [options]="basicOptions" size="lg" placeholder="LG" />
                 </div>
               </div>
-            </div>
+            </app-doc-section>
 
-            <!-- Colors -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Colors</h2>
-                <p class="text-sm text-base-content/60 mb-4">Different color variants</p>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <app-doc-section title="Colors" description="Different color variants">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                @for (c of colors; track c) {
                   <div>
-                    <label class="label"><span class="label-text">Primary</span></label>
-                    <app-select [options]="basicOptions" color="primary" placeholder="Primary" />
+                    <label class="label"><span class="label-text capitalize">{{ c }}</span></label>
+                    <app-select [options]="basicOptions" [color]="c" [placeholder]="c" />
                   </div>
-                  <div>
-                    <label class="label"><span class="label-text">Secondary</span></label>
-                    <app-select [options]="basicOptions" color="secondary" placeholder="Secondary" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Accent</span></label>
-                    <app-select [options]="basicOptions" color="accent" placeholder="Accent" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Info</span></label>
-                    <app-select [options]="basicOptions" color="info" placeholder="Info" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Success</span></label>
-                    <app-select [options]="basicOptions" color="success" placeholder="Success" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Warning</span></label>
-                    <app-select [options]="basicOptions" color="warning" placeholder="Warning" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Error</span></label>
-                    <app-select [options]="basicOptions" color="error" placeholder="Error" />
-                  </div>
-                  <div>
-                    <label class="label"><span class="label-text">Neutral</span></label>
-                    <app-select [options]="basicOptions" color="neutral" placeholder="Neutral" />
-                  </div>
-                </div>
+                }
               </div>
-            </div>
+            </app-doc-section>
           </div>
         }
 
-        <!-- Features Tab -->
         @if (activeTab() === 'features') {
           <div class="grid gap-6 lg:grid-cols-2">
-            <!-- Virtual Scroll -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Virtual Scrolling</h2>
-                <p class="text-sm text-base-content/60 mb-4">Efficient rendering for large lists (1000+ items)</p>
-                <app-select
-                  [options]="largeOptions"
-                  [enableSearch]="true"
-                  [virtualScroll]="true"
-                  placeholder="Select from 1000 items"
-                  (selectionChange)="onLargeSelect($event)"
-                />
-                @if (largeSelection()) {
-                  <div class="mt-4 text-sm">
-                    Selected: <span class="font-semibold">{{ largeSelection()?.label }}</span>
-                  </div>
-                }
-              </div>
-            </div>
+            <app-doc-section title="Virtual Scrolling" description="Efficient rendering for large lists (1000+ items)" [codeExample]="virtualCode">
+              <app-select
+                [options]="largeOptions"
+                [enableSearch]="true"
+                [virtualScroll]="true"
+                placeholder="Select from 1000 items"
+                (selectionChange)="onLargeSelect($event)"
+              />
+              @if (largeSelection()) {
+                <div class="mt-4 text-sm">
+                  Selected: <span class="font-semibold">{{ largeSelection()?.label }}</span>
+                </div>
+              }
+            </app-doc-section>
 
-            <!-- Disabled State -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Disabled State</h2>
-                <p class="text-sm text-base-content/60 mb-4">Non-interactive select</p>
-                <app-select [options]="basicOptions" [disabled]="true" placeholder="Disabled select" />
-              </div>
-            </div>
+            <app-doc-section title="Disabled State" description="Non-interactive select">
+              <app-select [options]="basicOptions" [disabled]="true" placeholder="Disabled select" />
+            </app-doc-section>
           </div>
         }
 
-        <!-- Multiselect Tab -->
         @if (activeTab() === 'multiselect') {
           <div class="grid gap-6 lg:grid-cols-2">
-            <!-- Basic Multiselect -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Basic Multiselect</h2>
-                <p class="text-sm text-base-content/60 mb-4">Select multiple options with chip display</p>
-                <app-select
-                  [options]="basicOptions"
-                  [multiple]="true"
-                  [enableSearch]="true"
-                  placeholder="Select fruits"
-                  (selectionChange)="onMultiSelect($event)"
-                />
-                @if (multiSelection().length > 0) {
-                  <div class="mt-4 text-sm">
-                    Selected: <span class="font-semibold">{{ getLabels(multiSelection()) }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Multiselect Without Chips -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Without Chips</h2>
-                <p class="text-sm text-base-content/60 mb-4">Shows comma-separated values with count badge</p>
-                <app-select
-                  [options]="countryOptions"
-                  [multiple]="true"
-                  [chipDisplay]="false"
-                  [enableSearch]="true"
-                  placeholder="Select countries"
-                  (selectionChange)="onCountryMultiSelect($event)"
-                />
-                @if (countryMultiSelection().length > 0) {
-                  <div class="mt-4 text-sm">
-                    Selected {{ countryMultiSelection().length }} countries
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Multiselect with Max Limit -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Max Selection Limit</h2>
-                <p class="text-sm text-base-content/60 mb-4">Limit selections to maximum 3 items</p>
-                <app-select
-                  [options]="basicOptions"
-                  [multiple]="true"
-                  [maxSelectedItems]="3"
-                  [enableSearch]="true"
-                  placeholder="Select up to 3 fruits"
-                  (selectionChange)="onLimitedMultiSelect($event)"
-                />
-                @if (limitedMultiSelection().length > 0) {
-                  <div class="mt-4 text-sm">
-                    Selected {{ limitedMultiSelection().length }}/3: <span class="font-semibold">{{ getLabels(limitedMultiSelection()) }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Multiselect with Disabled Options -->
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Disabled Options</h2>
-                <p class="text-sm text-base-content/60 mb-4">Some options can be disabled</p>
-                <app-select
-                  [options]="optionsWithDisabled"
-                  [multiple]="true"
-                  [enableSearch]="true"
-                  placeholder="Select items"
-                />
-              </div>
-            </div>
-
-            <!-- Multiselect with Reactive Forms -->
-            <div class="card bg-base-100 shadow-xl lg:col-span-2">
-              <div class="card-body">
-                <h2 class="card-title">Reactive Forms Integration</h2>
-                <p class="text-sm text-base-content/60 mb-4">Works with Angular FormControl (array values)</p>
-                <div class="w-full sm:max-w-md">
-                  <app-select
-                    [formControl]="multiFormControl"
-                    [options]="basicOptions"
-                    [multiple]="true"
-                    [enableSearch]="true"
-                    [allowClear]="true"
-                    placeholder="Select with FormControl"
-                  />
-                </div>
+            <app-doc-section title="Basic Multiselect" description="Select multiple options with chip display" [codeExample]="multiCode">
+              <app-select
+                [options]="basicOptions"
+                [multiple]="true"
+                [enableSearch]="true"
+                placeholder="Select fruits"
+                (selectionChange)="onMultiSelect($event)"
+              />
+              @if (multiSelection().length > 0) {
                 <div class="mt-4 text-sm">
-                  <div>Form Value: <code class="bg-base-200 px-2 py-1 rounded">{{ multiFormControl.value | json }}</code></div>
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <button class="btn btn-sm btn-ghost" (click)="multiFormControl.setValue(['apple', 'banana'])">Set Apple & Banana</button>
-                    <button class="btn btn-sm btn-ghost" (click)="multiFormControl.reset()">Reset</button>
-                  </div>
+                  Selected: <span class="font-semibold">{{ getLabels(multiSelection()) }}</span>
+                </div>
+              }
+            </app-doc-section>
+
+            <app-doc-section title="Without Chips" description="Shows comma-separated values with count badge">
+              <app-select
+                [options]="countryOptions"
+                [multiple]="true"
+                [chipDisplay]="false"
+                [enableSearch]="true"
+                placeholder="Select countries"
+                (selectionChange)="onCountryMultiSelect($event)"
+              />
+              @if (countryMultiSelection().length > 0) {
+                <div class="mt-4 text-sm">
+                  Selected {{ countryMultiSelection().length }} countries
+                </div>
+              }
+            </app-doc-section>
+
+            <app-doc-section title="Max Selection Limit" description="Limit selections to maximum 3 items">
+              <app-select
+                [options]="basicOptions"
+                [multiple]="true"
+                [maxSelectedItems]="3"
+                [enableSearch]="true"
+                placeholder="Select up to 3 fruits"
+                (selectionChange)="onLimitedMultiSelect($event)"
+              />
+              @if (limitedMultiSelection().length > 0) {
+                <div class="mt-4 text-sm">
+                  Selected {{ limitedMultiSelection().length }}/3: <span class="font-semibold">{{ getLabels(limitedMultiSelection()) }}</span>
+                </div>
+              }
+            </app-doc-section>
+
+            <app-doc-section title="Disabled Options" description="Some options can be disabled">
+              <app-select
+                [options]="optionsWithDisabled"
+                [multiple]="true"
+                [enableSearch]="true"
+                placeholder="Select items"
+              />
+            </app-doc-section>
+
+            <app-doc-section title="Reactive Forms Integration" description="Works with Angular FormControl (array values)" class="lg:col-span-2">
+              <div class="w-full sm:max-w-md">
+                <app-select
+                  [formControl]="multiFormControl"
+                  [options]="basicOptions"
+                  [multiple]="true"
+                  [enableSearch]="true"
+                  [allowClear]="true"
+                  placeholder="Select with FormControl"
+                />
+              </div>
+              <div class="mt-4 text-sm">
+                <div>Form Value: <code class="bg-base-200 px-2 py-1 rounded">{{ multiFormControl.value | json }}</code></div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button class="btn btn-sm btn-ghost" (click)="multiFormControl.setValue(['apple', 'banana'])">Set Apple & Banana</button>
+                  <button class="btn btn-sm btn-ghost" (click)="multiFormControl.reset()">Reset</button>
                 </div>
               </div>
-            </div>
+            </app-doc-section>
           </div>
         }
-      </div>
+      }
+
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="Inputs" [entries]="inputDocs" />
+          <app-api-table title="Outputs" [entries]="outputDocs" />
+          <app-api-table title="Methods" [entries]="methodDocs" />
+        </div>
+      }
     </div>
   `,
 })
 export class SelectDemoComponent {
+  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<'basic' | 'variants' | 'features' | 'multiselect'>('basic');
 
   basicSelection = signal<SelectOption | null>(null);
@@ -321,6 +250,8 @@ export class SelectDemoComponent {
 
   formControl = new FormControl<string | null>(null);
   multiFormControl = new FormControl<string[] | null>(null);
+
+  colors = ['primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error', 'neutral'] as const;
 
   basicOptions: SelectOption[] = [
     { value: 'apple', label: 'Apple' },
@@ -394,4 +325,115 @@ export class SelectDemoComponent {
   getLabels(options: SelectOption[]): string {
     return options.map(o => o.label).join(', ');
   }
+
+  // --- Code examples ---
+  basicCode = `// TypeScript
+options: SelectOption[] = [
+  { value: 'apple', label: 'Apple' },
+  { value: 'banana', label: 'Banana' },
+  { value: 'cherry', label: 'Cherry' },
+];
+
+// Template
+<app-select
+  [options]="options"
+  placeholder="Select a fruit"
+  (selectionChange)="onSelect($event)"
+/>`;
+
+  searchableCode = `// TypeScript
+countryOptions: SelectOption[] = [
+  { value: 'us', label: 'United States' },
+  { value: 'ca', label: 'Canada' },
+  { value: 'uk', label: 'United Kingdom' },
+  // ...more options
+];
+
+// Template
+<app-select
+  [options]="countryOptions"
+  [enableSearch]="true"
+  [allowClear]="true"
+  placeholder="Select a country"
+  searchPlaceholder="Search countries..."
+/>`;
+
+  reactiveCode = `// TypeScript
+formControl = new FormControl<string | null>(null);
+options: SelectOption[] = [
+  { value: 'apple', label: 'Apple' },
+  { value: 'banana', label: 'Banana' },
+  { value: 'cherry', label: 'Cherry' },
+];
+
+// Template
+<app-select
+  [formControl]="formControl"
+  [options]="options"
+  [enableSearch]="true"
+  [allowClear]="true"
+/>`;
+
+  virtualCode = `// TypeScript
+largeOptions: SelectOption[] = Array.from(
+  { length: 1000 },
+  (_, i) => ({ value: \`item-\${i + 1}\`, label: \`Item \${i + 1}\` })
+);
+
+// Template
+<app-select
+  [options]="largeOptions"
+  [enableSearch]="true"
+  [virtualScroll]="true"
+  placeholder="Select from 1000 items"
+/>`;
+
+  multiCode = `// TypeScript
+options: SelectOption[] = [
+  { value: 'apple', label: 'Apple' },
+  { value: 'banana', label: 'Banana' },
+  { value: 'cherry', label: 'Cherry' },
+];
+
+// Template
+<app-select
+  [options]="options"
+  [multiple]="true"
+  [enableSearch]="true"
+  placeholder="Select fruits"
+  (selectionChange)="onMultiSelect($event)"
+/>`;
+
+  // --- API docs ---
+  inputDocs: ApiDocEntry[] = [
+    { name: 'options', type: 'SelectOption[]', default: '[]', description: 'Array of options to display' },
+    { name: 'placeholder', type: 'string', default: "'Select an option'", description: 'Placeholder text when nothing is selected' },
+    { name: 'enableSearch', type: 'boolean', default: 'false', description: 'Enable search/filter input' },
+    { name: 'searchPlaceholder', type: 'string', default: "'Search options...'", description: 'Placeholder for search input' },
+    { name: 'multiple', type: 'boolean', default: 'false', description: 'Enable multi-select mode' },
+    { name: 'maxSelectedItems', type: 'number | null', default: 'null', description: 'Maximum number of selectable items (multi-select)' },
+    { name: 'chipDisplay', type: 'boolean', default: 'true', description: 'Show selected items as chips (multi-select)' },
+    { name: 'maxChipsVisible', type: 'number', default: '3', description: 'Max chips visible before overflow counter' },
+    { name: 'allowClear', type: 'boolean', default: 'true', description: 'Show clear button' },
+    { name: 'virtualScroll', type: 'boolean', default: 'false', description: 'Enable virtual scrolling for large lists' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable the select' },
+    { name: 'size', type: "'xs' | 'sm' | 'md' | 'lg' | 'xl'", default: "'md'", description: 'Size variant' },
+    { name: 'color', type: 'SelectColor | null', default: 'null', description: 'Color variant (primary, secondary, etc.)' },
+    { name: 'showSelectAll', type: 'boolean', default: 'true', description: 'Show select all button (multi-select)' },
+  ];
+
+  outputDocs: ApiDocEntry[] = [
+    { name: 'selectionChange', type: 'SelectOption | SelectOption[] | null', description: 'Emitted when selection changes' },
+    { name: 'searchChange', type: 'string', description: 'Emitted when search term changes' },
+    { name: 'dropdownToggle', type: 'boolean', description: 'Emitted when dropdown opens or closes' },
+  ];
+
+  methodDocs: ApiDocEntry[] = [
+    { name: 'toggleDropdown()', type: 'void', description: 'Toggle dropdown open/close' },
+    { name: 'selectOption(option)', type: 'void', description: 'Programmatically select an option' },
+    { name: 'selectAll()', type: 'void', description: 'Select all options (multi-select)' },
+    { name: 'deselectAll()', type: 'void', description: 'Deselect all options (multi-select)' },
+    { name: 'clearSelection(event)', type: 'void', description: 'Clear current selection' },
+    { name: 'clearSearch(event)', type: 'void', description: 'Clear search input' },
+  ];
 }

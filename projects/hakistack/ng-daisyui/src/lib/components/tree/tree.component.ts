@@ -37,6 +37,7 @@ import {
   TreeNodeState,
   TreeNodeTemplateContext,
   TreeNodeUnselectEvent,
+  TreeSetup,
 } from './tree.types';
 
 @Component({
@@ -50,14 +51,17 @@ import {
   host: {
     class: 'app-tree block',
     '[attr.role]': '"tree"',
-    '[attr.aria-label]': 'config()?.ariaLabel',
-    '[attr.aria-labelledby]': 'config()?.ariaLabelledBy',
+    '[attr.aria-label]': 'resolvedConfig()?.ariaLabel',
+    '[attr.aria-labelledby]': 'resolvedConfig()?.ariaLabelledBy',
   },
 })
 export class TreeComponent<T = unknown> {
   // ============================================================================
   // Inputs
   // ============================================================================
+
+  /** Combined tree setup from createTree() — pass a single object instead of separate nodes + config */
+  readonly tree = input<TreeSetup<T> | null>(null);
 
   /** Tree nodes data */
   readonly nodes = input<TreeNode<T>[]>([]);
@@ -67,6 +71,12 @@ export class TreeComponent<T = unknown> {
 
   /** Currently selected node(s) - for two-way binding */
   readonly selection = input<TreeNode<T> | TreeNode<T>[] | null>(null);
+
+  /** Resolved nodes: tree input wins, falls back to nodes input */
+  protected readonly resolvedNodes = computed(() => this.tree()?.nodes ?? this.nodes());
+
+  /** Resolved config: tree input wins, falls back to config input */
+  protected readonly resolvedConfig = computed(() => this.tree()?.config ?? this.config());
 
   // ============================================================================
   // Outputs
@@ -145,36 +155,36 @@ export class TreeComponent<T = unknown> {
   // ============================================================================
 
   /** Selection mode from config */
-  readonly selectionMode = computed<TreeSelectionMode>(() => this.config()?.selectionMode ?? null);
+  readonly selectionMode = computed<TreeSelectionMode>(() => this.resolvedConfig()?.selectionMode ?? null);
 
   /** Whether drag & drop is enabled */
-  readonly isDragDropEnabled = computed(() => this.config()?.dragDrop ?? false);
+  readonly isDragDropEnabled = computed(() => this.resolvedConfig()?.dragDrop ?? false);
 
   /** Whether filtering is enabled */
-  readonly isFilterable = computed(() => this.config()?.filterable ?? false);
+  readonly isFilterable = computed(() => this.resolvedConfig()?.filterable ?? false);
 
   /** Whether to show connecting lines */
-  readonly showLines = computed(() => this.config()?.showLines ?? false);
+  readonly showLines = computed(() => this.resolvedConfig()?.showLines ?? false);
 
   /** Indent size per level */
-  readonly indentSize = computed(() => this.config()?.indentSize ?? 24);
+  readonly indentSize = computed(() => this.resolvedConfig()?.indentSize ?? 24);
 
   /** Whether propagate selection down is enabled */
-  readonly propagateDown = computed(() => this.config()?.propagateSelectionDown ?? true);
+  readonly propagateDown = computed(() => this.resolvedConfig()?.propagateSelectionDown ?? true);
 
   /** Whether propagate selection up is enabled */
-  readonly propagateUp = computed(() => this.config()?.propagateSelectionUp ?? true);
+  readonly propagateUp = computed(() => this.resolvedConfig()?.propagateSelectionUp ?? true);
 
   /** Empty message */
-  readonly emptyMessage = computed(() => this.config()?.emptyMessage ?? 'No data available');
+  readonly emptyMessage = computed(() => this.resolvedConfig()?.emptyMessage ?? 'No data available');
 
   /** Flattened visible nodes for rendering */
   readonly flatNodes = computed<FlatTreeNode<T>[]>(() => {
-    const nodes = this.nodes();
+    const nodes = this.resolvedNodes();
     const filterText = this.filterText().toLowerCase().trim();
     const isFiltering = filterText.length > 0;
     const matchedKeys = this.matchedFilterKeys();
-    const filterMode = this.config()?.filterMode ?? 'lenient';
+    const filterMode = this.resolvedConfig()?.filterMode ?? 'lenient';
 
     const result: FlatTreeNode<T>[] = [];
     this.flattenNodes(nodes, null, 0, [], result, isFiltering, matchedKeys, filterMode);
@@ -185,7 +195,7 @@ export class TreeComponent<T = unknown> {
   readonly isEmpty = computed(() => this.flatNodes().length === 0);
 
   /** Whether tree is loading */
-  readonly isLoading = computed(() => this.config()?.loading ?? false);
+  readonly isLoading = computed(() => this.resolvedConfig()?.loading ?? false);
 
   // ============================================================================
   // Constructor & Lifecycle
@@ -194,8 +204,8 @@ export class TreeComponent<T = unknown> {
   constructor() {
     // Initialize expanded state from nodes
     effect(() => {
-      const nodes = this.nodes();
-      const expandAll = this.config()?.expandAll ?? false;
+      const nodes = this.resolvedNodes();
+      const expandAll = this.resolvedConfig()?.expandAll ?? false;
 
       if (expandAll) {
         const allKeys = new Set<string>();
@@ -216,7 +226,7 @@ export class TreeComponent<T = unknown> {
 
       if (selection) {
         if (Array.isArray(selection)) {
-          selection.forEach(node => {
+          selection.forEach((node) => {
             const key = this.getNodeKey(node);
             if (key) selectedKeys.add(key);
           });
@@ -238,7 +248,7 @@ export class TreeComponent<T = unknown> {
       }
 
       const matchedKeys = new Set<string>();
-      const nodes = this.nodes();
+      const nodes = this.resolvedNodes();
       this.findMatchingNodes(nodes, filterText, matchedKeys);
       this.matchedFilterKeys.set(matchedKeys);
 
@@ -256,13 +266,11 @@ export class TreeComponent<T = unknown> {
 
   @HostListener('keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
-    if (!this.config()?.keyboardNavigation) return;
+    if (!this.resolvedConfig()?.keyboardNavigation) return;
 
     const flatNodes = this.flatNodes();
     const focusedKey = this.focusedKey();
-    const focusedIndex = focusedKey
-      ? flatNodes.findIndex(fn => this.getNodeKey(fn.node) === focusedKey)
-      : -1;
+    const focusedIndex = focusedKey ? flatNodes.findIndex((fn) => this.getNodeKey(fn.node) === focusedKey) : -1;
 
     switch (event.key) {
       case 'ArrowDown':
@@ -340,7 +348,7 @@ export class TreeComponent<T = unknown> {
 
     // Check for lazy loading
     if (node.leaf === false && !node.children?.length && !this.loadingKeys().has(key)) {
-      this.loadingKeys.update(keys => {
+      this.loadingKeys.update((keys) => {
         const newKeys = new Set(keys);
         newKeys.add(key);
         return newKeys;
@@ -353,7 +361,7 @@ export class TreeComponent<T = unknown> {
       return;
     }
 
-    this.expandedKeys.update(keys => {
+    this.expandedKeys.update((keys) => {
       const newKeys = new Set(keys);
       newKeys.add(key);
       return newKeys;
@@ -370,7 +378,7 @@ export class TreeComponent<T = unknown> {
     const key = this.getNodeKey(node);
     if (!key) return;
 
-    this.expandedKeys.update(keys => {
+    this.expandedKeys.update((keys) => {
       const newKeys = new Set(keys);
       newKeys.delete(key);
       return newKeys;
@@ -394,7 +402,7 @@ export class TreeComponent<T = unknown> {
   /** Expand all nodes */
   expandAll(): void {
     const allKeys = new Set<string>();
-    this.collectAllKeys(this.nodes(), allKeys);
+    this.collectAllKeys(this.resolvedNodes(), allKeys);
     this.expandedKeys.set(allKeys);
   }
 
@@ -416,7 +424,7 @@ export class TreeComponent<T = unknown> {
       this.emitSelection();
       this.nodeSelect.emit({ originalEvent: event || new Event('select'), node });
     } else if (mode === 'multiple') {
-      this.selectedKeys.update(keys => {
+      this.selectedKeys.update((keys) => {
         const newKeys = new Set(keys);
         newKeys.add(key);
         return newKeys;
@@ -433,7 +441,7 @@ export class TreeComponent<T = unknown> {
     const key = this.getNodeKey(node);
     if (!key) return;
 
-    this.selectedKeys.update(keys => {
+    this.selectedKeys.update((keys) => {
       const newKeys = new Set(keys);
       newKeys.delete(key);
       return newKeys;
@@ -455,14 +463,14 @@ export class TreeComponent<T = unknown> {
     const key = this.getNodeKey(node);
     if (!key) return;
 
-    this.loadingKeys.update(keys => {
+    this.loadingKeys.update((keys) => {
       const newKeys = new Set(keys);
       newKeys.delete(key);
       return newKeys;
     });
 
     // Now expand the node
-    this.expandedKeys.update(keys => {
+    this.expandedKeys.update((keys) => {
       const newKeys = new Set(keys);
       newKeys.add(key);
       return newKeys;
@@ -573,16 +581,16 @@ export class TreeComponent<T = unknown> {
     let currentLevel = flatNode.level;
 
     while (currentLevel > level && current) {
-      current = this.findParent(this.nodes(), current);
+      current = this.findParent(this.resolvedNodes(), current);
       currentLevel--;
     }
 
     if (!current) return false;
 
-    const parent = this.findParent(this.nodes(), current);
+    const parent = this.findParent(this.resolvedNodes(), current);
     if (!parent) {
       // Root level
-      const rootNodes = this.nodes();
+      const rootNodes = this.resolvedNodes();
       return rootNodes.indexOf(current) === rootNodes.length - 1;
     }
 
@@ -641,15 +649,15 @@ export class TreeComponent<T = unknown> {
     if (!dragNode || dragNode === targetNode) return;
 
     // Find parents and indices
-    const dragParent = this.findParent(this.nodes(), dragNode);
-    const dropParent = position === 'inside' ? targetNode : this.findParent(this.nodes(), targetNode);
-    const dragIndex = this.findIndex(dragParent ? dragParent.children! : this.nodes(), dragNode);
+    const dragParent = this.findParent(this.resolvedNodes(), dragNode);
+    const dropParent = position === 'inside' ? targetNode : this.findParent(this.resolvedNodes(), targetNode);
+    const dragIndex = this.findIndex(dragParent ? dragParent.children! : this.resolvedNodes(), dragNode);
 
     let dropIndex: number;
     if (position === 'inside') {
       dropIndex = targetNode.children?.length ?? 0;
     } else {
-      const targetIndex = this.findIndex(dropParent ? dropParent.children! : this.nodes(), targetNode);
+      const targetIndex = this.findIndex(dropParent ? dropParent.children! : this.resolvedNodes(), targetNode);
       dropIndex = position === 'before' ? targetIndex : targetIndex + 1;
     }
 
@@ -689,7 +697,7 @@ export class TreeComponent<T = unknown> {
 
     if (isCurrentlySelected) {
       // Unselect
-      this.selectedKeys.update(keys => {
+      this.selectedKeys.update((keys) => {
         const newKeys = new Set(keys);
         newKeys.delete(key);
         return newKeys;
@@ -703,7 +711,7 @@ export class TreeComponent<T = unknown> {
       this.nodeUnselect.emit({ originalEvent: event || new Event('unselect'), node });
     } else {
       // Select
-      this.selectedKeys.update(keys => {
+      this.selectedKeys.update((keys) => {
         const newKeys = new Set(keys);
         newKeys.add(key);
         return newKeys;
@@ -728,7 +736,7 @@ export class TreeComponent<T = unknown> {
   private selectDescendants(node: TreeNode<T>): void {
     if (!node.children) return;
 
-    this.selectedKeys.update(keys => {
+    this.selectedKeys.update((keys) => {
       const newKeys = new Set(keys);
       this.forEachDescendant(node, (n) => {
         const k = this.getNodeKey(n);
@@ -738,7 +746,7 @@ export class TreeComponent<T = unknown> {
     });
 
     // Clear partial selections
-    this.partialSelectedKeys.update(keys => {
+    this.partialSelectedKeys.update((keys) => {
       const newKeys = new Set(keys);
       this.forEachDescendant(node, (n) => {
         const k = this.getNodeKey(n);
@@ -751,7 +759,7 @@ export class TreeComponent<T = unknown> {
   private unselectDescendants(node: TreeNode<T>): void {
     if (!node.children) return;
 
-    this.selectedKeys.update(keys => {
+    this.selectedKeys.update((keys) => {
       const newKeys = new Set(keys);
       this.forEachDescendant(node, (n) => {
         const k = this.getNodeKey(n);
@@ -760,7 +768,7 @@ export class TreeComponent<T = unknown> {
       return newKeys;
     });
 
-    this.partialSelectedKeys.update(keys => {
+    this.partialSelectedKeys.update((keys) => {
       const newKeys = new Set(keys);
       this.forEachDescendant(node, (n) => {
         const k = this.getNodeKey(n);
@@ -771,7 +779,7 @@ export class TreeComponent<T = unknown> {
   }
 
   private updateParentSelection(node: TreeNode<T>): void {
-    const parent = this.findParent(this.nodes(), node);
+    const parent = this.findParent(this.resolvedNodes(), node);
     if (!parent) return;
 
     const parentKey = this.getNodeKey(parent);
@@ -794,7 +802,7 @@ export class TreeComponent<T = unknown> {
       }
     }
 
-    this.selectedKeys.update(keys => {
+    this.selectedKeys.update((keys) => {
       const newKeys = new Set(keys);
       if (allSelected) {
         newKeys.add(parentKey);
@@ -804,7 +812,7 @@ export class TreeComponent<T = unknown> {
       return newKeys;
     });
 
-    this.partialSelectedKeys.update(keys => {
+    this.partialSelectedKeys.update((keys) => {
       const newKeys = new Set(keys);
       if (someSelected && !allSelected) {
         newKeys.add(parentKey);
@@ -830,7 +838,7 @@ export class TreeComponent<T = unknown> {
     const mode = this.selectionMode();
     const selectedKeys = this.selectedKeys();
     const allNodes: TreeNode<T>[] = [];
-    this.collectNodesByKeys(this.nodes(), selectedKeys, allNodes);
+    this.collectNodesByKeys(this.resolvedNodes(), selectedKeys, allNodes);
 
     if (mode === 'single') {
       this.selectionChange.emit(allNodes[0] ?? null);
@@ -839,11 +847,7 @@ export class TreeComponent<T = unknown> {
     }
   }
 
-  private collectNodesByKeys(
-    nodes: TreeNode<T>[],
-    keys: Set<string>,
-    result: TreeNode<T>[]
-  ): void {
+  private collectNodesByKeys(nodes: TreeNode<T>[], keys: Set<string>, result: TreeNode<T>[]): void {
     for (const node of nodes) {
       const key = this.getNodeKey(node);
       if (key && keys.has(key)) {
@@ -863,7 +867,7 @@ export class TreeComponent<T = unknown> {
     result: FlatTreeNode<T>[],
     isFiltering: boolean,
     matchedKeys: Set<string>,
-    filterMode: 'lenient' | 'strict'
+    filterMode: 'lenient' | 'strict',
   ): void {
     nodes.forEach((node, index) => {
       const key = this.getNodeKey(node);
@@ -908,16 +912,7 @@ export class TreeComponent<T = unknown> {
 
       // Recursively add children if expanded
       if (node.children && this.isExpanded(node)) {
-        this.flattenNodes(
-          node.children,
-          node,
-          level + 1,
-          currentPath,
-          result,
-          isFiltering,
-          matchedKeys,
-          filterMode
-        );
+        this.flattenNodes(node.children, node, level + 1, currentPath, result, isFiltering, matchedKeys, filterMode);
       }
     });
   }
@@ -934,11 +929,7 @@ export class TreeComponent<T = unknown> {
     return false;
   }
 
-  private findMatchingNodes(
-    nodes: TreeNode<T>[],
-    filterText: string,
-    result: Set<string>
-  ): void {
+  private findMatchingNodes(nodes: TreeNode<T>[], filterText: string, result: Set<string>): void {
     for (const node of nodes) {
       const label = node.label?.toLowerCase() ?? '';
       if (label.includes(filterText)) {

@@ -1,5 +1,6 @@
 import { TemplateRef } from '@angular/core';
 import { TreeNode, TreeSelectionMode } from '../../api/treenode';
+import { IconName } from '../lucide-icon/lucide-icon.component';
 
 /**
  * Tree component configuration
@@ -190,6 +191,48 @@ export interface TreeFilterEvent {
   filter: string;
   /** Nodes that match the filter */
   matchedNodeCount: number;
+}
+
+/** All-in-one input for createTree — nodes + config combined */
+export interface CreateTreeInput<T = unknown> extends TreeConfig<T> {
+  /** Tree nodes data */
+  nodes: TreeNode<T>[];
+}
+
+/** Return value from createTree */
+export interface TreeSetup<T = unknown> {
+  /** Normalized config (without nodes) */
+  config: TreeConfig<T>;
+  /** The tree nodes */
+  nodes: TreeNode<T>[];
+}
+
+/**
+ * Options for building a tree from a flat data array using node.fromData
+ */
+export interface FromDataOptions<T> {
+  /** Extract label from item */
+  labelFn: (item: T) => string;
+  /** Extract unique key from item (optional, auto-generated if omitted) */
+  keyFn?: (item: T) => string;
+  /** Extract children array from item (for nested source data) */
+  childrenFn?: (item: T) => T[] | undefined;
+  /** Extract icon name from item */
+  iconFn?: (item: T) => IconName | undefined;
+}
+
+/**
+ * Options for building a tree from a flat list with parent IDs
+ */
+export interface BuildTreeOptions<T> {
+  /** Extract unique ID from item */
+  idFn: (item: T) => string;
+  /** Extract parent ID from item (null/undefined for root items) */
+  parentIdFn: (item: T) => string | null | undefined;
+  /** Extract label from item */
+  labelFn: (item: T) => string;
+  /** Extract icon from item */
+  iconFn?: (item: T) => IconName | undefined;
 }
 
 /**

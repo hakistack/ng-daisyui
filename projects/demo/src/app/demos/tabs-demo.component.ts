@@ -1,58 +1,45 @@
 import { Component, signal } from '@angular/core';
 import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
 type TabsTab = 'basic' | 'features' | 'vertical';
 
 @Component({
   selector: 'app-tabs-demo',
-  imports: [TabGroupComponent, TabPanelComponent],
+  imports: [TabGroupComponent, TabPanelComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Tabs</h1>
         <p class="text-base-content/70 mt-2">Accessible tabbed interface with keyboard navigation</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} TabGroupComponent, TabPanelComponent {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- Demo Tabs -->
-      <div role="tablist" class="tabs tabs-box">
-        <input
-          type="radio"
-          name="tabs_demo"
-          role="tab"
-          class="tab"
-          aria-label="Basic"
-          [checked]="activeTab() === 'basic'"
-          (change)="activeTab.set('basic')"
-        />
-        <input
-          type="radio"
-          name="tabs_demo"
-          role="tab"
-          class="tab"
-          aria-label="Features"
-          [checked]="activeTab() === 'features'"
-          (change)="activeTab.set('features')"
-        />
-        <input
-          type="radio"
-          name="tabs_demo"
-          role="tab"
-          class="tab"
-          aria-label="Vertical"
-          [checked]="activeTab() === 'vertical'"
-          (change)="activeTab.set('vertical')"
-        />
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-border">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- Basic Tab -->
-      @if (activeTab() === 'basic') {
-        <div class="space-y-6">
-          <!-- Basic Tabs -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Basic Tabs</h2>
-              <p class="text-sm text-base-content/60 mb-4">Simple horizontal tabs</p>
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="tabs_demo" role="tab" class="tab" aria-label="Basic"
+            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
+          <input type="radio" name="tabs_demo" role="tab" class="tab" aria-label="Features"
+            [checked]="activeTab() === 'features'" (change)="activeTab.set('features')" />
+          <input type="radio" name="tabs_demo" role="tab" class="tab" aria-label="Vertical"
+            [checked]="activeTab() === 'vertical'" (change)="activeTab.set('vertical')" />
+        </div>
 
+        @if (activeTab() === 'basic') {
+          <div class="space-y-6">
+            <app-doc-section title="Basic Tabs" description="Simple horizontal tabs" [codeExample]="basicCode">
               <app-tab-group [(selectedTab)]="basicTab">
                 <app-tab-panel value="overview" label="Overview">
                   <ng-template>
@@ -91,15 +78,9 @@ type TabsTab = 'basic' | 'features' | 'vertical';
               <div class="mt-4 text-sm">
                 Selected Tab: <code class="bg-base-200 px-2 py-1 rounded">{{ basicTab() }}</code>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Tabs with Icons -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Tabs with Icons</h2>
-              <p class="text-sm text-base-content/60 mb-4">Lucide icons in tab labels</p>
-
+            <app-doc-section title="Tabs with Icons" description="Lucide icons in tab labels" [codeExample]="iconCode">
               <app-tab-group>
                 <app-tab-panel value="home" label="Home" icon="House">
                   <ng-template>
@@ -137,20 +118,13 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                   </ng-template>
                 </app-tab-panel>
               </app-tab-group>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Features Tab -->
-      @if (activeTab() === 'features') {
-        <div class="space-y-6">
-          <!-- Disabled Tab -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Disabled Tab</h2>
-              <p class="text-sm text-base-content/60 mb-4">Some tabs can be disabled</p>
-
+        @if (activeTab() === 'features') {
+          <div class="space-y-6">
+            <app-doc-section title="Disabled Tab" description="Some tabs can be disabled" [codeExample]="disabledCode">
               <app-tab-group>
                 <app-tab-panel value="active" label="Active Tab">
                   <ng-template>
@@ -176,15 +150,9 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                   </ng-template>
                 </app-tab-panel>
               </app-tab-group>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Programmatic Control -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Programmatic Control</h2>
-              <p class="text-sm text-base-content/60 mb-4">Control tabs from outside the component</p>
-
+            <app-doc-section title="Programmatic Control" description="Control tabs from outside the component" [codeExample]="programmaticCode">
               <div class="flex gap-2 mb-4">
                 <button class="btn btn-sm btn-outline" (click)="programmaticTab.set('first')">Go to First</button>
                 <button class="btn btn-sm btn-outline" (click)="programmaticTab.set('second')">Go to Second</button>
@@ -210,18 +178,12 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                   </ng-template>
                 </app-tab-panel>
               </app-tab-group>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Vertical Tab -->
-      @if (activeTab() === 'vertical') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">Vertical Tabs</h2>
-            <p class="text-sm text-base-content/60 mb-4">Tabs oriented vertically</p>
-
+        @if (activeTab() === 'vertical') {
+          <app-doc-section title="Vertical Tabs" description="Tabs oriented vertically" [codeExample]="verticalCode">
             <app-tab-group orientation="vertical">
               <app-tab-panel value="general" label="General" icon="Settings">
                 <ng-template>
@@ -259,6 +221,19 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                 </ng-template>
               </app-tab-panel>
             </app-tab-group>
+          </app-doc-section>
+        }
+      }
+
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="TabGroup Inputs" [entries]="groupInputDocs" />
+          <app-api-table title="TabGroup Outputs" [entries]="groupOutputDocs" />
+          <app-api-table title="TabPanel Inputs" [entries]="panelInputDocs" />
+
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Usage</h3>
+            <app-code-block [code]="usageCode" />
           </div>
         </div>
       }
@@ -266,7 +241,133 @@ type TabsTab = 'basic' | 'features' | 'vertical';
   `,
 })
 export class TabsDemoComponent {
+  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<TabsTab>('basic');
   basicTab = signal('overview');
   programmaticTab = signal('first');
+
+  // --- Code examples ---
+  basicCode = `// TypeScript
+activeTab = signal('overview');
+
+// Template
+<app-tab-group [(selectedTab)]="activeTab">
+  <app-tab-panel value="overview" label="Overview">
+    <ng-template>
+      <p>Overview content</p>
+    </ng-template>
+  </app-tab-panel>
+  <app-tab-panel value="features" label="Features">
+    <ng-template>
+      <p>Features content</p>
+    </ng-template>
+  </app-tab-panel>
+</app-tab-group>`;
+
+  iconCode = `// TypeScript
+import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
+
+// Template
+<app-tab-group>
+  <app-tab-panel value="home" label="Home" icon="House">
+    <ng-template>
+      <p>Home content</p>
+    </ng-template>
+  </app-tab-panel>
+  <app-tab-panel value="settings" label="Settings" icon="Settings">
+    <ng-template>
+      <p>Settings content</p>
+    </ng-template>
+  </app-tab-panel>
+</app-tab-group>`;
+
+  disabledCode = `// TypeScript
+import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
+
+// Template
+<app-tab-group>
+  <app-tab-panel value="active" label="Active Tab">
+    <ng-template>
+      <p>This tab is active and clickable.</p>
+    </ng-template>
+  </app-tab-panel>
+  <app-tab-panel value="disabled" label="Disabled" [disabled]="true">
+    <ng-template>
+      <p>This content is inaccessible</p>
+    </ng-template>
+  </app-tab-panel>
+</app-tab-group>`;
+
+  programmaticCode = `// TypeScript
+selectedTab = signal('first');
+
+// Template
+<button (click)="selectedTab.set('second')">Go to Second</button>
+<app-tab-group [(selectedTab)]="selectedTab">
+  <app-tab-panel value="first" label="First Tab">
+    <ng-template>First tab content</ng-template>
+  </app-tab-panel>
+  <app-tab-panel value="second" label="Second Tab">
+    <ng-template>Second tab content</ng-template>
+  </app-tab-panel>
+</app-tab-group>`;
+
+  verticalCode = `// TypeScript
+import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
+
+// Template
+<app-tab-group orientation="vertical">
+  <app-tab-panel value="general" label="General" icon="Settings">
+    <ng-template>
+      <p>General settings content</p>
+    </ng-template>
+  </app-tab-panel>
+  <app-tab-panel value="security" label="Security" icon="Shield">
+    <ng-template>
+      <p>Security settings content</p>
+    </ng-template>
+  </app-tab-panel>
+</app-tab-group>`;
+
+  usageCode = `import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
+
+@Component({
+  imports: [TabGroupComponent, TabPanelComponent],
+  template: \`
+    <app-tab-group
+      [(selectedTab)]="activeTab"
+      orientation="horizontal"
+      (selectedTabChange)="onTabChange($event)">
+
+      <app-tab-panel
+        value="tab1"
+        label="Tab Label"
+        icon="House"
+        [disabled]="false">
+        <ng-template>
+          <!-- Lazy-loaded content -->
+          <p>Tab content here</p>
+        </ng-template>
+      </app-tab-panel>
+
+    </app-tab-group>
+  \`,
+})`;
+
+  // --- API docs ---
+  groupInputDocs: ApiDocEntry[] = [
+    { name: 'selectedTab', type: 'model<string>', description: 'Two-way binding for the active tab value' },
+    { name: 'orientation', type: "'horizontal' | 'vertical'", default: "'horizontal'", description: 'Tab orientation' },
+  ];
+
+  groupOutputDocs: ApiDocEntry[] = [
+    { name: 'selectedTabChange', type: 'string', description: 'Emitted when the selected tab changes' },
+  ];
+
+  panelInputDocs: ApiDocEntry[] = [
+    { name: 'value', type: 'string', description: 'Unique identifier for this tab panel (required)' },
+    { name: 'label', type: 'string', description: 'Display text for the tab button (required)' },
+    { name: 'icon', type: 'IconName', default: '-', description: 'Lucide icon name shown before the label' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable this tab' },
+  ];
 }

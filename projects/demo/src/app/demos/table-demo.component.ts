@@ -1,5 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { TableComponent, createTable, ToastService, LucideIconComponent } from '@hakistack/ng-daisyui';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
 interface User {
   id: number;
@@ -16,51 +20,38 @@ type TableTab = 'basic' | 'full';
 
 @Component({
   selector: 'app-table-demo',
-  imports: [TableComponent, LucideIconComponent],
+  imports: [TableComponent, LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Data Table</h1>
         <p class="text-base-content/70 mt-2">Feature-rich data table with sorting, filtering, and pagination</p>
-      </div>
-
-      <!-- DaisyUI v5 Tabs (box style, no tab-content body) -->
-      <div role="tablist" class="tabs tabs-box w-fit">
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'basic'"
-          (click)="activeTab.set('basic')"
-        >
-          Basic
-        </button>
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'full'"
-          (click)="activeTab.set('full')"
-        >
-          Full Featured
-        </button>
-      </div>
-
-      <!-- Basic Tab Content -->
-      @if (activeTab() === 'basic') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">Basic Table</h2>
-            <p class="text-sm text-base-content/60 mb-4">Simple table with sorting</p>
-            <app-table [data]="users()" [config]="basicConfig" (sortChange)="onSort($event)" />
-          </div>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
         </div>
-      }
+      </div>
 
-      <!-- Full Featured Tab Content -->
-      @if (activeTab() === 'full') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">Full Featured Table</h2>
-            <p class="text-sm text-base-content/60 mb-4">Selection, actions, filters, global search, pagination</p>
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-border">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
+      </div>
+
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-box w-fit">
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'full'" (click)="activeTab.set('full')">Full Featured</button>
+        </div>
+
+        @if (activeTab() === 'basic') {
+          <app-doc-section title="Basic Table" description="Simple table with sorting" [codeExample]="basicCode">
+            <app-table [data]="users()" [config]="basicConfig" (sortChange)="onSort($event)" />
+          </app-doc-section>
+        }
+
+        @if (activeTab() === 'full') {
+          <app-doc-section title="Full Featured Table" description="Selection, actions, filters, global search, pagination" [codeExample]="fullCode">
             <app-table
               [data]="users()"
               [config]="fullConfig"
@@ -71,22 +62,35 @@ type TableTab = 'basic' | 'full';
               (globalSearchChange)="onSearch($event)"
               (pageChange)="onPageChange($event)"
             />
+          </app-doc-section>
+
+          @if (selectedUsers().length > 0) {
+            <div class="alert alert-info">
+              <app-lucide-icon name="Info" [size]="20" />
+              <span>{{ selectedUsers().length }} user(s) selected</span>
+            </div>
+          }
+        }
+      }
+
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="Inputs" [entries]="inputDocs" />
+          <app-api-table title="Outputs" [entries]="outputDocs" />
+          <app-api-table title="Methods" [entries]="methodDocs" />
+
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Builder: createTable()</h3>
+            <app-code-block [code]="builderCode" />
           </div>
         </div>
-
-        <!-- Selection Info -->
-        @if (selectedUsers().length > 0) {
-          <div class="alert alert-info">
-            <app-lucide-icon name="Info" [size]="20" />
-            <span>{{ selectedUsers().length }} user(s) selected</span>
-          </div>
-        }
       }
     </div>
   `,
 })
 export class TableDemoComponent {
   private toast = inject(ToastService);
+  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<TableTab>('basic');
 
   // Sample data
@@ -175,7 +179,6 @@ export class TableDemoComponent {
 
   selectedUsers = signal<User[]>([]);
 
-  // Basic config
   basicConfig = createTable<User>({
     visible: ['id', 'name', 'email', 'role', 'status'],
     headers: {
@@ -198,7 +201,6 @@ export class TableDemoComponent {
     },
   });
 
-  // Full featured config
   fullConfig = createTable<User>({
     visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
     headers: {
@@ -332,4 +334,103 @@ export class TableDemoComponent {
   onPageChange(event: unknown) {
     console.log('Page:', event);
   }
+
+  // --- Code examples ---
+  basicCode = `// TypeScript
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'status'],
+  headers: { id: 'ID', name: 'Full Name' },
+  formatters: {
+    status: (v) => \`<span class="badge">\${v}</span>\`,
+  },
+});
+
+// Template
+<app-table [data]="users()" [config]="config" />`;
+
+  fullCode = `// TypeScript
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'salary', 'status'],
+  hasSelection: true,
+  hasActions: true,
+  actions: [
+    { type: 'view', label: 'View', icon: 'Eye', action: (row) => {} },
+  ],
+  bulkActions: [
+    { type: 'delete', label: 'Delete', icon: 'Trash2', action: (rows) => {} },
+  ],
+  filters: [
+    { field: 'role', type: 'select', options: [...] },
+  ],
+  globalSearch: { enabled: true, mode: 'fuzzy' },
+  columnVisibility: { enabled: true },
+});
+
+// Template
+<app-table
+  [data]="users()"
+  [config]="config"
+  [paginationOptions]="{ mode: 'offset', pageSize: 10 }"
+  (selectionChange)="onSelection($event)"
+  (sortChange)="onSort($event)"
+/>`;
+
+  builderCode = `import { createTable } from '@hakistack/ng-daisyui';
+
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'status'],
+  headers: { id: 'ID', name: 'Full Name' },
+  formatters: {
+    status: (value) => \`<span class="badge">\${value}</span>\`,
+  },
+  hasSelection: true,
+  hasActions: true,
+  actions: [
+    { type: 'edit', label: 'Edit', icon: 'Pencil', action: (row) => {} },
+  ],
+  bulkActions: [
+    { type: 'delete', label: 'Delete', icon: 'Trash2', action: (rows) => {} },
+  ],
+  filters: [
+    { field: 'status', type: 'select', options: [{ label: 'Active', value: 'active' }] },
+  ],
+  globalSearch: { enabled: true, mode: 'fuzzy', debounceTime: 300 },
+  columnVisibility: { enabled: true, alwaysVisible: ['name'] },
+});`;
+
+  // --- API docs ---
+  inputDocs: ApiDocEntry[] = [
+    { name: 'data', type: 'readonly T[] | null', default: 'null', description: 'Array of data rows to display' },
+    { name: 'config', type: 'FieldConfiguration<T> | null', default: 'null', description: 'Table configuration from createTable()' },
+    { name: 'paginationOptions', type: 'PaginationOptions | null', default: 'null', description: 'Pagination settings (mode, pageSize, totalItems)' },
+    { name: 'showFirstLastButtons', type: 'boolean', default: 'true', description: 'Show first/last page navigation buttons' },
+    { name: 'hidePageSize', type: 'boolean', default: 'false', description: 'Hide page size selector' },
+    { name: 'showPageSizeOptions', type: 'boolean', default: 'true', description: 'Show page size dropdown options' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable all table interactions' },
+  ];
+
+  outputDocs: ApiDocEntry[] = [
+    { name: 'selectionChange', type: 'readonly T[]', description: 'Emitted when row selection changes' },
+    { name: 'pageChange', type: 'PageSizeChange', description: 'Emitted on page change (offset mode)' },
+    { name: 'cursorChange', type: 'CursorPageChange', description: 'Emitted on cursor pagination change' },
+    { name: 'sortChange', type: 'SortChange', description: 'Emitted when sort column/direction changes' },
+    { name: 'filterChange', type: 'FilterChange<T>', description: 'Emitted when column filters change' },
+    { name: 'globalSearchChange', type: 'GlobalSearchChange', description: 'Emitted when global search term changes' },
+    { name: 'expansionChange', type: '{ row: T; expanded: boolean }', description: 'Emitted when tree table row is expanded/collapsed' },
+  ];
+
+  methodDocs: ApiDocEntry[] = [
+    { name: 'firstPage()', type: 'void', description: 'Navigate to first page' },
+    { name: 'previousPage()', type: 'void', description: 'Navigate to previous page' },
+    { name: 'nextPage()', type: 'void', description: 'Navigate to next page' },
+    { name: 'lastPage()', type: 'void', description: 'Navigate to last page' },
+    { name: 'gotoPage(n)', type: 'void', description: 'Go to specific page (1-based)' },
+    { name: 'clearSelection()', type: 'void', description: 'Clear all selected rows' },
+    { name: 'sort(field)', type: 'void', description: 'Toggle sorting on a field' },
+    { name: 'applyColumnFilter(field, value, op)', type: 'void', description: 'Apply a column filter' },
+    { name: 'clearAllFilters()', type: 'void', description: 'Clear all active filters' },
+    { name: 'clearGlobalSearch()', type: 'void', description: 'Clear global search term' },
+    { name: 'toggleColumnVisibility(field)', type: 'void', description: 'Toggle visibility of a column' },
+    { name: 'resetColumnVisibility()', type: 'void', description: 'Reset columns to default visibility' },
+  ];
 }

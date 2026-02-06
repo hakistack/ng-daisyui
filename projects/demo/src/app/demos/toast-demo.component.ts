@@ -1,67 +1,47 @@
 import { Component, inject, signal } from '@angular/core';
 import { ToastService, LucideIconComponent } from '@hakistack/ng-daisyui';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
 type ToastTab = 'basic' | 'features' | 'styles' | 'advanced';
 
 @Component({
   selector: 'app-toast-demo',
-  imports: [LucideIconComponent],
+  imports: [LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Toast Notifications</h1>
         <p class="text-base-content/70 mt-2">Non-blocking notifications with actions and progress</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} ToastService {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- Tabs -->
-      <div role="tablist" class="tabs tabs-box">
-        <input
-          type="radio"
-          name="toast_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Basic"
-          [checked]="activeTab() === 'basic'"
-          (change)="activeTab.set('basic')"
-        />
-        <input
-          type="radio"
-          name="toast_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Features"
-          [checked]="activeTab() === 'features'"
-          (change)="activeTab.set('features')"
-        />
-        <input
-          type="radio"
-          name="toast_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Styles"
-          [checked]="activeTab() === 'styles'"
-          (change)="activeTab.set('styles')"
-        />
-        <input
-          type="radio"
-          name="toast_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Advanced"
-          [checked]="activeTab() === 'advanced'"
-          (change)="activeTab.set('advanced')"
-        />
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-border">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- Basic Tab -->
-      @if (activeTab() === 'basic') {
-        <div class="space-y-6">
-          <!-- Basic Toasts -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Severity Levels</h2>
-              <p class="text-sm text-base-content/60 mb-4">Different severity levels for various contexts</p>
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="toast_tabs" role="tab" class="tab" aria-label="Basic"
+            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
+          <input type="radio" name="toast_tabs" role="tab" class="tab" aria-label="Features"
+            [checked]="activeTab() === 'features'" (change)="activeTab.set('features')" />
+          <input type="radio" name="toast_tabs" role="tab" class="tab" aria-label="Styles"
+            [checked]="activeTab() === 'styles'" (change)="activeTab.set('styles')" />
+          <input type="radio" name="toast_tabs" role="tab" class="tab" aria-label="Advanced"
+            [checked]="activeTab() === 'advanced'" (change)="activeTab.set('advanced')" />
+        </div>
 
+        @if (activeTab() === 'basic') {
+          <div class="space-y-6">
+            <app-doc-section title="Severity Levels" description="Different severity levels for various contexts" [codeExample]="severityCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
                   <app-lucide-icon name="CircleCheck" [size]="18" />
@@ -80,124 +60,73 @@ type ToastTab = 'basic' | 'features' | 'styles' | 'advanced';
                   Info
                 </button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- With Details -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">With Details</h2>
-              <p class="text-sm text-base-content/60 mb-4">Include additional context</p>
-
+            <app-doc-section title="With Details" description="Include additional context" [codeExample]="detailCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showWithDetail()">Show with Detail</button>
                 <button class="btn btn-outline" (click)="showLongMessage()">Long Message</button>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Features Tab -->
-      @if (activeTab() === 'features') {
-        <div class="space-y-6">
-          <!-- With Actions -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">With Actions</h2>
-              <p class="text-sm text-base-content/60 mb-4">Interactive toast with buttons</p>
-
+        @if (activeTab() === 'features') {
+          <div class="space-y-6">
+            <app-doc-section title="With Actions" description="Interactive toast with buttons" [codeExample]="actionCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showWithAction()">Single Action</button>
                 <button class="btn btn-outline" (click)="showWithMultipleActions()">Multiple Actions</button>
                 <button class="btn btn-outline" (click)="showUndoAction()">Undo Action</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Custom Duration -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Custom Duration</h2>
-              <p class="text-sm text-base-content/60 mb-4">Control how long the toast is visible</p>
-
+            <app-doc-section title="Custom Duration" description="Control how long the toast is visible">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showShort()">Short (2s)</button>
                 <button class="btn btn-outline" (click)="showMedium()">Medium (5s)</button>
                 <button class="btn btn-outline" (click)="showLong()">Long (10s)</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Progress Bar -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Progress Bar</h2>
-              <p class="text-sm text-base-content/60 mb-4">Show remaining time visually</p>
-
+            <app-doc-section title="Progress Bar" description="Show remaining time visually">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showWithProgress()">With Progress Bar</button>
                 <button class="btn btn-outline" (click)="showWithoutProgress()">Without Progress Bar</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Sticky Toast -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Sticky Toast</h2>
-              <p class="text-sm text-base-content/60 mb-4">Won't auto-dismiss until closed manually</p>
-
+            <app-doc-section title="Sticky Toast" description="Won't auto-dismiss until closed manually" [codeExample]="stickyCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showSticky()">Show Sticky Toast</button>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Styles Tab -->
-      @if (activeTab() === 'styles') {
-        <div class="space-y-6">
-          <!-- Soft Style -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Soft Style</h2>
-              <p class="text-sm text-base-content/60 mb-4">Muted, less prominent styling</p>
-
+        @if (activeTab() === 'styles') {
+          <div class="space-y-6">
+            <app-doc-section title="Soft Style" description="Muted, less prominent styling" [codeExample]="softCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-success" (click)="showSoftSuccess()">Soft Success</button>
                 <button class="btn btn-outline btn-error" (click)="showSoftError()">Soft Error</button>
                 <button class="btn btn-outline btn-warning" (click)="showSoftWarning()">Soft Warning</button>
                 <button class="btn btn-outline btn-info" (click)="showSoftInfo()">Soft Info</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Tap to Dismiss -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Tap to Dismiss</h2>
-              <p class="text-sm text-base-content/60 mb-4">Click anywhere on toast to close</p>
-
+            <app-doc-section title="Tap to Dismiss" description="Click anywhere on toast to close">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showTapToDismiss()">Tap to Dismiss</button>
                 <button class="btn btn-outline" (click)="showNoTapToDismiss()">No Tap to Dismiss</button>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Advanced Tab -->
-      @if (activeTab() === 'advanced') {
-        <div class="space-y-6">
-          <!-- Network Status -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Network Status</h2>
-              <p class="text-sm text-base-content/60 mb-4">Built-in online/offline notifications</p>
-
+        @if (activeTab() === 'advanced') {
+          <div class="space-y-6">
+            <app-doc-section title="Network Status" description="Built-in online/offline notifications" [codeExample]="networkCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-success" (click)="showOnline()">
                   <app-lucide-icon name="Wifi" [size]="18" />
@@ -208,20 +137,27 @@ type ToastTab = 'basic' | 'features' | 'styles' | 'advanced';
                   Offline
                 </button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Clear All -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Bulk Operations</h2>
-              <p class="text-sm text-base-content/60 mb-4">Manage multiple toasts</p>
-
+            <app-doc-section title="Bulk Operations" description="Manage multiple toasts">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-primary" (click)="showMultiple()">Show 3 Toasts</button>
                 <button class="btn btn-ghost" (click)="clearAll()">Clear All</button>
               </div>
-            </div>
+            </app-doc-section>
+          </div>
+        }
+      }
+
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="ToastService Methods" [entries]="methodDocs" />
+          <app-api-table title="ToastMessage Options" [entries]="optionDocs" />
+          <app-api-table title="ToastAction Properties" [entries]="actionDocs" />
+
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Usage</h3>
+            <app-code-block [code]="usageCode" />
           </div>
         </div>
       }
@@ -230,6 +166,7 @@ type ToastTab = 'basic' | 'features' | 'styles' | 'advanced';
 })
 export class ToastDemoComponent {
   private toast = inject(ToastService);
+  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<ToastTab>('basic');
 
   showSuccess() {
@@ -414,4 +351,102 @@ export class ToastDemoComponent {
   clearAll() {
     this.toast.clear();
   }
+
+  // --- Code examples ---
+  severityCode = `private toast = inject(ToastService);
+
+this.toast.success('Operation successful!');
+this.toast.error('Something went wrong!');
+this.toast.warning('Please review your input');
+this.toast.info('New updates available');`;
+
+  detailCode = `this.toast.success('File uploaded', 'Your document has been successfully uploaded.');`;
+
+  actionCode = `this.toast.show({
+  severity: 'info',
+  summary: 'New message received',
+  detail: 'You have 1 unread message',
+  actions: [
+    {
+      label: 'View',
+      onClick: () => console.log('View clicked'),
+      style: 'primary',
+    },
+  ],
+});`;
+
+  stickyCode = `this.toast.show({
+  severity: 'warning',
+  summary: 'Important Notice',
+  detail: 'This toast will not auto-dismiss.',
+  sticky: true,
+});`;
+
+  softCode = `this.toast.show({
+  severity: 'success',
+  summary: 'Soft success',
+  soft: true,
+});`;
+
+  networkCode = `this.toast.networkStatus('online');
+this.toast.networkStatus('offline');`;
+
+  usageCode = `import { ToastService } from '@hakistack/ng-daisyui';
+
+// Inject the service
+private toast = inject(ToastService);
+
+// Quick methods
+this.toast.success('Title', 'Optional detail');
+this.toast.error('Title', 'Optional detail');
+this.toast.warning('Title', 'Optional detail');
+this.toast.info('Title', 'Optional detail');
+
+// Full options
+this.toast.show({
+  severity: 'info',
+  summary: 'Title',
+  detail: 'Detail text',
+  life: 5000,
+  sticky: false,
+  progressBar: true,
+  tapToDismiss: true,
+  soft: false,
+  actions: [
+    { label: 'Undo', onClick: () => {}, style: 'primary' },
+  ],
+});
+
+// Utilities
+this.toast.networkStatus('online');
+this.toast.clear();`;
+
+  // --- API docs ---
+  methodDocs: ApiDocEntry[] = [
+    { name: 'success(summary, detail?)', type: 'void', description: 'Show a success toast' },
+    { name: 'error(summary, detail?)', type: 'void', description: 'Show an error toast' },
+    { name: 'warning(summary, detail?)', type: 'void', description: 'Show a warning toast' },
+    { name: 'info(summary, detail?)', type: 'void', description: 'Show an info toast' },
+    { name: 'show(message)', type: 'void', description: 'Show toast with full ToastMessage options' },
+    { name: 'networkStatus(status)', type: 'void', description: 'Show online/offline status toast' },
+    { name: 'clear()', type: 'void', description: 'Remove all active toasts' },
+  ];
+
+  optionDocs: ApiDocEntry[] = [
+    { name: 'severity', type: "'success' | 'error' | 'warning' | 'info'", description: 'Toast severity level' },
+    { name: 'summary', type: 'string', description: 'Toast title text' },
+    { name: 'detail', type: 'string', default: '-', description: 'Additional detail text' },
+    { name: 'life', type: 'number', default: '4000', description: 'Auto-dismiss duration in milliseconds' },
+    { name: 'sticky', type: 'boolean', default: 'false', description: 'Prevent auto-dismiss' },
+    { name: 'progressBar', type: 'boolean', default: 'true', description: 'Show countdown progress bar' },
+    { name: 'tapToDismiss', type: 'boolean', default: 'true', description: 'Click anywhere on toast to dismiss' },
+    { name: 'soft', type: 'boolean', default: 'false', description: 'Use muted/soft styling' },
+    { name: 'actions', type: 'ToastAction[]', default: '[]', description: 'Action buttons to display' },
+  ];
+
+  actionDocs: ApiDocEntry[] = [
+    { name: 'label', type: 'string', description: 'Button text' },
+    { name: 'onClick', type: '() => void', description: 'Click handler' },
+    { name: 'style', type: "'primary' | 'ghost' | 'error' | 'warning'", default: "'ghost'", description: 'Button style' },
+  ];
 }

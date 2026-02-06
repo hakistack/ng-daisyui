@@ -104,6 +104,9 @@
             ],
             "styles": [
               "projects/demo/src/styles.css"
+            ],
+            "allowedCommonJsDependencies": [
+              "sweetalert2"
             ]
           },
           "configurations": {
@@ -116,8 +119,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "200kB",
-                  "maximumError": "300kB"
+                  "maximumWarning": "300kB",
+                  "maximumError": "500kB"
                 }
               ],
               "outputHashing": "all"
@@ -201,8 +204,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "200kB",
-                  "maximumError": "300kB"
+                  "maximumWarning": "300kB",
+                  "maximumError": "500kB"
                 }
               ],
               "outputHashing": "all"

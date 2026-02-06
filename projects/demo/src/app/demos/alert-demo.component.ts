@@ -1,67 +1,47 @@
 import { Component, inject, signal } from '@angular/core';
 import { AlertService, LucideIconComponent } from '@hakistack/ng-daisyui';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
 type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
 
 @Component({
   selector: 'app-alert-demo',
-  imports: [LucideIconComponent],
+  imports: [LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Alert Dialogs</h1>
         <p class="text-base-content/70 mt-2">Modal dialogs for confirmations, warnings, and notifications</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} AlertService {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- Tabs -->
-      <div role="tablist" class="tabs tabs-box">
-        <input
-          type="radio"
-          name="alert_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Basic"
-          [checked]="activeTab() === 'basic'"
-          (change)="activeTab.set('basic')"
-        />
-        <input
-          type="radio"
-          name="alert_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Confirmations"
-          [checked]="activeTab() === 'confirm'"
-          (change)="activeTab.set('confirm')"
-        />
-        <input
-          type="radio"
-          name="alert_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Loading"
-          [checked]="activeTab() === 'loading'"
-          (change)="activeTab.set('loading')"
-        />
-        <input
-          type="radio"
-          name="alert_tabs"
-          role="tab"
-          class="tab"
-          aria-label="Advanced"
-          [checked]="activeTab() === 'advanced'"
-          (change)="activeTab.set('advanced')"
-        />
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-border">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- Basic Tab -->
-      @if (activeTab() === 'basic') {
-        <div class="space-y-6">
-          <!-- Basic Alerts -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Severity Levels</h2>
-              <p class="text-sm text-base-content/60 mb-4">Different severity levels for various contexts</p>
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="alert_tabs" role="tab" class="tab" aria-label="Basic"
+            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
+          <input type="radio" name="alert_tabs" role="tab" class="tab" aria-label="Confirmations"
+            [checked]="activeTab() === 'confirm'" (change)="activeTab.set('confirm')" />
+          <input type="radio" name="alert_tabs" role="tab" class="tab" aria-label="Loading"
+            [checked]="activeTab() === 'loading'" (change)="activeTab.set('loading')" />
+          <input type="radio" name="alert_tabs" role="tab" class="tab" aria-label="Advanced"
+            [checked]="activeTab() === 'advanced'" (change)="activeTab.set('advanced')" />
+        </div>
 
+        @if (activeTab() === 'basic') {
+          <div class="space-y-6">
+            <app-doc-section title="Severity Levels" description="Different severity levels for various contexts" [codeExample]="severityCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
                   <app-lucide-icon name="CircleCheck" [size]="18" />
@@ -80,82 +60,50 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
                   Info
                 </button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- With Description -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">With Description</h2>
-              <p class="text-sm text-base-content/60 mb-4">Include additional context</p>
-
+            <app-doc-section title="With Description" description="Include additional context" [codeExample]="descriptionCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showWithDescription()">Success with Description</button>
                 <button class="btn btn-outline" (click)="showErrorWithDescription()">Error with Description</button>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Confirm Tab -->
-      @if (activeTab() === 'confirm') {
-        <div class="space-y-6">
-          <!-- Confirmation Dialogs -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Confirmation Dialogs</h2>
-              <p class="text-sm text-base-content/60 mb-4">Ask user for confirmation before actions</p>
-
+        @if (activeTab() === 'confirm') {
+          <div class="space-y-6">
+            <app-doc-section title="Confirmation Dialogs" description="Ask user for confirmation before actions" [codeExample]="confirmCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showConfirm()">Basic Confirm</button>
                 <button class="btn btn-outline" (click)="showQuestion()">Yes/No Question</button>
                 <button class="btn btn-outline btn-error" (click)="showDeleteConfirm()">Delete Confirmation</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Delete with Item Name -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Delete with Item Name</h2>
-              <p class="text-sm text-base-content/60 mb-4">Show the item being deleted</p>
-
+            <app-doc-section title="Delete with Item Name" description="Show the item being deleted" [codeExample]="deleteCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-error" (click)="showDeleteWithItem()">
                   <app-lucide-icon name="Trash2" [size]="18" />
                   Delete "Project Alpha"
                 </button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Custom Confirm Styles -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Custom Confirm Styles</h2>
-              <p class="text-sm text-base-content/60 mb-4">Different button styles for confirmations</p>
-
+            <app-doc-section title="Custom Confirm Styles" description="Different button styles for confirmations">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-primary" (click)="showPrimaryConfirm()">Primary Style</button>
                 <button class="btn btn-success" (click)="showSuccessConfirm()">Success Style</button>
                 <button class="btn btn-warning" (click)="showWarningConfirm()">Warning Style</button>
                 <button class="btn btn-error" (click)="showErrorConfirm()">Error Style</button>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Loading Tab -->
-      @if (activeTab() === 'loading') {
-        <div class="space-y-6">
-          <!-- Loading State -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Loading State</h2>
-              <p class="text-sm text-base-content/60 mb-4">Show loading indicator during async operations</p>
-
+        @if (activeTab() === 'loading') {
+          <div class="space-y-6">
+            <app-doc-section title="Loading State" description="Show loading indicator during async operations" [codeExample]="loadingCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showLoading()">
                   <app-lucide-icon name="Loader" [size]="18" />
@@ -163,28 +111,16 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
                 </button>
                 <button class="btn btn-outline" (click)="showLoadingWithUpdate()">Loading with Update</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Auto-close Timer -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Auto-close Timer</h2>
-              <p class="text-sm text-base-content/60 mb-4">Alert that closes automatically</p>
-
+            <app-doc-section title="Auto-close Timer" description="Alert that closes automatically">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showWithTimer()">Auto-close (3s)</button>
                 <button class="btn btn-outline" (click)="showWithTimerProgress()">With Progress Bar</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Live Countdown -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Live Countdown</h2>
-              <p class="text-sm text-base-content/60 mb-4">Countdown with live seconds display (e.g., session timeout)</p>
-
+            <app-doc-section title="Live Countdown" description="Countdown with live seconds display (e.g., session timeout)" [codeExample]="countdownCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-warning" (click)="showCountdown()">
                   <app-lucide-icon name="Clock" [size]="18" />
@@ -192,33 +128,20 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
                 </button>
                 <button class="btn btn-outline" (click)="showCountdownCustom()">Custom Countdown</button>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Advanced Tab -->
-      @if (activeTab() === 'advanced') {
-        <div class="space-y-6">
-          <!-- Custom Alert -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Custom Alert (Advanced)</h2>
-              <p class="text-sm text-base-content/60 mb-4">Using fire() for advanced customization</p>
-
+        @if (activeTab() === 'advanced') {
+          <div class="space-y-6">
+            <app-doc-section title="Custom Alert (Advanced)" description="Using fire() for advanced customization" [codeExample]="fireCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showCustomAlert()">Custom HTML Content</button>
                 <button class="btn btn-outline" (click)="showWithFooter()">With Footer</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Result Handling -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Result Handling</h2>
-              <p class="text-sm text-base-content/60 mb-4">Handle user responses (check console)</p>
-
+            <app-doc-section title="Result Handling" description="Handle user responses (check console)" [codeExample]="resultCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showWithResultHandling()">Confirm with Result</button>
               </div>
@@ -234,7 +157,21 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
                   </p>
                 </div>
               }
-            </div>
+            </app-doc-section>
+          </div>
+        }
+      }
+
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="AlertService Methods" [entries]="methodDocs" />
+          <app-api-table title="ConfirmOptions" [entries]="confirmOptionDocs" />
+          <app-api-table title="CountdownOptions" [entries]="countdownOptionDocs" />
+          <app-api-table title="AlertResult" [entries]="resultDocs" />
+
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Usage</h3>
+            <app-code-block [code]="usageCode" />
           </div>
         </div>
       }
@@ -243,6 +180,7 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
 })
 export class AlertDemoComponent {
   private alert = inject(AlertService);
+  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<AlertTab>('basic');
   lastResult: { isConfirmed: boolean; isDismissed: boolean; isCancelled: boolean; dismissReason?: string } | null = null;
 
@@ -468,4 +406,143 @@ export class AlertDemoComponent {
       this.alert.info('Dismissed', 'You clicked outside the dialog.');
     }
   }
+
+  // --- Code examples ---
+  severityCode = `private alert = inject(AlertService);
+
+this.alert.success('Operation Successful!');
+this.alert.error('Something went wrong!');
+this.alert.warning('Please review your input');
+this.alert.info('New updates available');`;
+
+  descriptionCode = `this.alert.success('File Uploaded', 'Your document has been uploaded.');`;
+
+  confirmCode = `const result = await this.alert.confirm({
+  title: 'Confirm Action',
+  text: 'Are you sure you want to proceed?',
+});
+if (result.isConfirmed) { /* confirmed */ }`;
+
+  deleteCode = `const result = await this.alert.confirmDelete({
+  itemName: 'Project Alpha',
+});`;
+
+  loadingCode = `this.alert.showLoading({ title: 'Processing...', text: 'Please wait...' });
+// ... async operation ...
+this.alert.updateLoading('Almost done...');
+this.alert.hideLoading();
+this.alert.success('Done!');`;
+
+  countdownCode = `const result = await this.alert.countdown({
+  title: 'Session Expiring',
+  html: 'Logging out in <kbd class="kbd">{seconds}</kbd> seconds.',
+  timer: 10000,
+  icon: 'warning',
+  showCancelButton: true,
+  confirmButtonText: 'Stay Logged In',
+});`;
+
+  fireCode = `await this.alert.fire({
+  title: 'Custom Content',
+  html: '<p>Rich <strong>HTML</strong> content</p>',
+  icon: 'info',
+  footer: '<a href="#">Link</a>',
+  confirmButtonText: 'Got it!',
+});`;
+
+  resultCode = `const result = await this.alert.confirm({
+  title: 'Confirm',
+  text: 'Are you sure?',
+});
+
+// result.isConfirmed  - user clicked confirm
+// result.isCancelled  - user clicked cancel
+// result.isDismissed  - dismissed by backdrop/esc
+// result.dismissReason - 'backdrop' | 'esc' | 'timer'`;
+
+  usageCode = `import { AlertService } from '@hakistack/ng-daisyui';
+
+private alert = inject(AlertService);
+
+// Quick methods
+this.alert.success('Title', 'Description');
+this.alert.error('Title', 'Description');
+this.alert.warning('Title', 'Description');
+this.alert.info('Title', 'Description');
+
+// Confirmation
+const result = await this.alert.confirm({
+  title: 'Confirm',
+  text: 'Are you sure?',
+  confirmStyle: 'primary',  // 'primary' | 'success' | 'warning' | 'error'
+  confirmText: 'Yes',
+  cancelText: 'No',
+  icon: 'warning',           // 'success' | 'error' | 'warning' | 'info' | 'question'
+});
+
+// Delete confirmation
+await this.alert.confirmDelete({ itemName: 'Item' });
+
+// Question (Yes/No)
+await this.alert.question('Title', 'Description');
+
+// Loading state
+this.alert.showLoading({ title: 'Loading...', text: 'Please wait' });
+this.alert.updateLoading('Still working...');
+this.alert.hideLoading();
+
+// Countdown
+await this.alert.countdown({
+  title: 'Countdown',
+  html: 'Closing in {seconds} seconds.',
+  timer: 5000,
+});
+
+// Advanced (direct SweetAlert2)
+await this.alert.fire({ ...swalOptions });
+await this.alert.show({ ...swalOptions });`;
+
+  // --- API docs ---
+  methodDocs: ApiDocEntry[] = [
+    { name: 'success(title, text?)', type: 'Promise<AlertResult>', description: 'Show a success alert' },
+    { name: 'error(title, text?)', type: 'Promise<AlertResult>', description: 'Show an error alert' },
+    { name: 'warning(title, text?)', type: 'Promise<AlertResult>', description: 'Show a warning alert' },
+    { name: 'info(title, text?)', type: 'Promise<AlertResult>', description: 'Show an info alert' },
+    { name: 'confirm(options)', type: 'Promise<AlertResult>', description: 'Show a confirmation dialog' },
+    { name: 'question(title, text?)', type: 'Promise<AlertResult>', description: 'Show a yes/no question dialog' },
+    { name: 'confirmDelete(options?)', type: 'Promise<AlertResult>', description: 'Show a delete confirmation dialog' },
+    { name: 'showLoading(options)', type: 'void', description: 'Show a loading dialog' },
+    { name: 'updateLoading(text)', type: 'void', description: 'Update the loading dialog text' },
+    { name: 'hideLoading()', type: 'void', description: 'Close the loading dialog' },
+    { name: 'countdown(options)', type: 'Promise<AlertResult>', description: 'Show an alert with live countdown' },
+    { name: 'fire(options)', type: 'Promise<SweetAlertResult>', description: 'Direct SweetAlert2 fire with DaisyUI theming' },
+    { name: 'show(options)', type: 'Promise<SweetAlertResult>', description: 'Alias for fire()' },
+  ];
+
+  confirmOptionDocs: ApiDocEntry[] = [
+    { name: 'title', type: 'string', description: 'Dialog title' },
+    { name: 'text', type: 'string', default: '-', description: 'Dialog body text' },
+    { name: 'icon', type: "'success' | 'error' | 'warning' | 'info' | 'question'", default: "'warning'", description: 'Alert icon' },
+    { name: 'confirmText', type: 'string', default: "'Confirm'", description: 'Confirm button text' },
+    { name: 'cancelText', type: 'string', default: "'Cancel'", description: 'Cancel button text' },
+    { name: 'confirmStyle', type: "'primary' | 'success' | 'warning' | 'error'", default: "'primary'", description: 'Confirm button color style' },
+  ];
+
+  countdownOptionDocs: ApiDocEntry[] = [
+    { name: 'title', type: 'string', description: 'Dialog title' },
+    { name: 'html', type: 'string', description: 'HTML content with {seconds} placeholder' },
+    { name: 'timer', type: 'number', description: 'Countdown duration in milliseconds' },
+    { name: 'icon', type: 'SweetAlertIcon', default: '-', description: 'Alert icon' },
+    { name: 'countdownSelector', type: 'string', default: '-', description: 'CSS selector for countdown element' },
+    { name: 'showCancelButton', type: 'boolean', default: 'false', description: 'Show cancel button' },
+    { name: 'confirmButtonText', type: 'string', default: '-', description: 'Confirm button text' },
+    { name: 'cancelButtonText', type: 'string', default: '-', description: 'Cancel button text' },
+  ];
+
+  resultDocs: ApiDocEntry[] = [
+    { name: 'isConfirmed', type: 'boolean', description: 'User clicked the confirm button' },
+    { name: 'isCancelled', type: 'boolean', description: 'User clicked the cancel button' },
+    { name: 'isDismissed', type: 'boolean', description: 'Dialog was dismissed (backdrop, ESC, timer)' },
+    { name: 'dismissReason', type: "'backdrop' | 'esc' | 'timer'", default: '-', description: 'How the dialog was dismissed' },
+  ];
 }

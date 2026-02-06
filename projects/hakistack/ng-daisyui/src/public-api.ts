@@ -130,6 +130,19 @@ export type {
 
 // Tree
 export { TreeComponent } from './lib/components/tree/tree.component';
+export {
+  createTree,
+  node,
+  walkTree,
+  findNode,
+  findNodePath,
+  mapTree,
+  filterTree,
+  flattenTree,
+  countNodes,
+  ensureKeys,
+  buildTree,
+} from './lib/components/tree/tree.helpers';
 export type {
   TreeConfig,
   TreeNodeTemplateContext,
@@ -137,6 +150,10 @@ export type {
   TreeLazyLoadEvent,
   FlatTreeNode,
   TreeNodeState,
+  CreateTreeInput,
+  TreeSetup,
+  FromDataOptions,
+  BuildTreeOptions,
   TreeNodeSelectEvent as TreeSelectEvent,
   TreeNodeUnselectEvent as TreeUnselectEvent,
   TreeNodeExpandEvent as TreeExpandEvent,

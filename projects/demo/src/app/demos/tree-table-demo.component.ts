@@ -1,5 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { TableComponent, createTable, ToastService, LucideIconComponent, TreeNode } from '@hakistack/ng-daisyui';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
 // Example: Department hierarchy using TreeNode
 interface Department {
@@ -23,51 +27,59 @@ type DemoTab = 'treenode' | 'custom' | 'features';
 
 @Component({
   selector: 'app-tree-table-demo',
-  imports: [TableComponent, LucideIconComponent],
+  imports: [TableComponent, LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Tree Table</h1>
         <p class="text-base-content/70 mt-2">Hierarchical data display with expand/collapse, unlimited nesting depth</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- Tabs -->
-      <div role="tablist" class="tabs tabs-box w-fit">
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'treenode'"
-          (click)="activeTab.set('treenode')"
-        >
-          TreeNode Data
-        </button>
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'custom'"
-          (click)="activeTab.set('custom')"
-        >
-          Custom Children
-        </button>
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'features'"
-          (click)="activeTab.set('features')"
-        >
-          Full Features
-        </button>
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-border">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- TreeNode Data Tab -->
-      @if (activeTab() === 'treenode') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">Organization Structure (TreeNode)</h2>
-            <p class="text-sm text-base-content/60 mb-4">
-              Using the standard TreeNode interface with 'children' property
-            </p>
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-box w-fit">
+          <button
+            role="tab"
+            class="tab"
+            [class.tab-active]="activeTab() === 'treenode'"
+            (click)="activeTab.set('treenode')"
+          >
+            TreeNode Data
+          </button>
+          <button
+            role="tab"
+            class="tab"
+            [class.tab-active]="activeTab() === 'custom'"
+            (click)="activeTab.set('custom')"
+          >
+            Custom Children
+          </button>
+          <button
+            role="tab"
+            class="tab"
+            [class.tab-active]="activeTab() === 'features'"
+            (click)="activeTab.set('features')"
+          >
+            Full Features
+          </button>
+        </div>
 
+        <!-- TreeNode Data Tab -->
+        @if (activeTab() === 'treenode') {
+          <app-doc-section
+            title="Organization Structure (TreeNode)"
+            description="Using the standard TreeNode interface with 'children' property"
+            [codeExample]="treeNodeCode"
+          >
             <div class="flex gap-2 mb-4">
               <button class="btn btn-sm btn-outline" (click)="expandAllDepts()">
                 <app-lucide-icon name="ChevronsDownUp" [size]="16" />
@@ -86,74 +98,70 @@ type DemoTab = 'treenode' | 'custom' | 'features';
               [paginationOptions]="paginationOptions"
               (expansionChange)="onExpansionChange($event)"
             />
-          </div>
-        </div>
-      }
+          </app-doc-section>
+        }
 
-      <!-- Custom Children Property Tab -->
-      @if (activeTab() === 'custom') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">File Explorer (Custom Children)</h2>
-            <p class="text-sm text-base-content/60 mb-4">
-              Using a custom 'items' property for children instead of the default 'children'
-            </p>
-
+        <!-- Custom Children Property Tab -->
+        @if (activeTab() === 'custom') {
+          <app-doc-section
+            title="File Explorer (Custom Children)"
+            description="Using a custom 'items' property for children instead of the default 'children'"
+            [codeExample]="customChildrenCode"
+          >
             <app-table
               [data]="fileSystem()"
               [config]="customChildrenConfig"
               [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
             />
-          </div>
-        </div>
-      }
+          </app-doc-section>
+        }
 
-      <!-- Full Features Tab -->
-      @if (activeTab() === 'features') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">Tree Table with Selection, Sorting & Filtering</h2>
-            <p class="text-sm text-base-content/60 mb-4">
-              Full-featured tree table with selection, actions, sorting (root level only), and global search
-            </p>
-
+        <!-- Full Features Tab -->
+        @if (activeTab() === 'features') {
+          <app-doc-section
+            title="Tree Table with Selection, Sorting & Filtering"
+            description="Full-featured tree table with selection, actions, sorting (root level only), and global search"
+          >
             <app-table
               [data]="departmentTree()"
               [config]="fullFeaturedConfig"
               [paginationOptions]="{ mode: 'offset', pageSize: 10 }"
               (selectionChange)="onSelection($event)"
             />
-          </div>
-        </div>
+          </app-doc-section>
 
-        @if (selectedItems().length > 0) {
-          <div class="alert alert-info">
-            <app-lucide-icon name="Info" [size]="20" />
-            <span>{{ selectedItems().length }} item(s) selected</span>
-          </div>
+          @if (selectedItems().length > 0) {
+            <div class="alert alert-info">
+              <app-lucide-icon name="Info" [size]="20" />
+              <span>{{ selectedItems().length }} item(s) selected</span>
+            </div>
+          }
         }
       }
 
-      <!-- Info Card -->
-      <div class="card bg-base-200">
-        <div class="card-body">
-          <h3 class="card-title text-lg">Tree Table Features</h3>
-          <ul class="list-disc list-inside space-y-1 text-sm">
-            <li><strong>Unlimited Nesting:</strong> Supports any depth of hierarchy</li>
-            <li><strong>TreeNode Compatible:</strong> Works with standard TreeNode interface</li>
-            <li><strong>Custom Children Property:</strong> Configure which property contains children</li>
-            <li><strong>Sorting:</strong> Sorts root-level items; children stay with their parent</li>
-            <li><strong>Filtering:</strong> Filters root items; matching roots show all children</li>
-            <li><strong>Selection:</strong> Row selection works with tree rows</li>
-            <li><strong>Expand/Collapse:</strong> Toggle individual rows or expand/collapse all</li>
-          </ul>
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="Tree Table Config (via createTable treeTable option)" [entries]="treeConfigDocs" />
+          <app-api-table title="Table Tree Methods" [entries]="treeMethodDocs" />
+          <app-api-table title="Outputs" [entries]="treeOutputDocs" />
+
+          <div>
+            <h3 class="text-lg font-semibold mb-2">TreeNode Example</h3>
+            <app-code-block [code]="treeNodeCode" />
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Custom Children Property Example</h3>
+            <app-code-block [code]="customChildrenCode" />
+          </div>
         </div>
-      </div>
+      }
     </div>
   `,
 })
 export class TreeTableDemoComponent {
   private toast = inject(ToastService);
+  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<DemoTab>('treenode');
   selectedItems = signal<TreeNode<Department>[]>([]);
 
@@ -470,6 +478,86 @@ export class TreeTableDemoComponent {
     mode: 'offset' as const,
     pageSize: 15,
   };
+
+  // --- API Documentation ---
+
+  treeConfigDocs: ApiDocEntry[] = [
+    { name: 'treeTable.enabled', type: 'boolean', default: 'false', description: 'Enable tree table mode' },
+    { name: 'treeTable.childrenProperty', type: 'string', default: "'children'", description: 'Property name for children array' },
+    { name: 'treeTable.expandAll', type: 'boolean', default: 'false', description: 'Expand all rows initially' },
+    { name: 'treeTable.initialExpandedKeys', type: 'string[]', default: '[]', description: 'Keys of initially expanded rows' },
+    { name: 'treeTable.indentSize', type: 'number', default: '24', description: 'Indent size per level in pixels' },
+    { name: 'treeTable.getRowKey', type: '(row) => string', default: '-', description: 'Function to get unique key from row' },
+  ];
+
+  treeMethodDocs: ApiDocEntry[] = [
+    { name: 'expandAllRows()', type: 'void', description: 'Expand all tree rows' },
+    { name: 'collapseAllRows()', type: 'void', description: 'Collapse all tree rows' },
+    { name: 'toggleRowExpand(row)', type: 'void', description: 'Toggle row expansion' },
+    { name: 'isRowExpanded(row)', type: 'boolean', description: 'Check if row is expanded' },
+    { name: 'getRowLevel(row)', type: 'number', description: 'Get row indentation level' },
+  ];
+
+  treeOutputDocs: ApiDocEntry[] = [
+    { name: 'expansionChange', type: '{ row: T; expanded: boolean }', description: 'Emitted when a row expansion state changes' },
+  ];
+
+  // --- Code Examples ---
+
+  treeNodeCode = `const treeNodeConfig = createTable<TreeNode<Department>>({
+  visible: ['label', 'data'],
+  headers: {
+    label: 'Department',
+    data: 'Details',
+  },
+  formatters: {
+    data: (value) => {
+      const dept = value as Department;
+      return \`<div class="text-sm">
+        <div><strong>Head:</strong> \${dept.head}</div>
+        <div><strong>Budget:</strong> \${dept.budget}</div>
+      </div>\`;
+    },
+  },
+  treeTable: {
+    enabled: true,
+    expandAll: false,
+    initialExpandedKeys: ['eng'],
+    indentSize: 24,
+  },
+});
+
+// Template
+<app-table
+  #deptTable
+  [data]="departmentTree()"
+  [config]="treeNodeConfig"
+  (expansionChange)="onExpansionChange($event)"
+/>`;
+
+  customChildrenCode = `const customChildrenConfig = createTable<FileSystemItem>({
+  visible: ['name', 'type', 'size', 'modified'],
+  headers: {
+    name: 'Name',
+    type: 'Type',
+    size: 'Size',
+    modified: 'Modified',
+  },
+  treeTable: {
+    enabled: true,
+    childrenProperty: 'items', // Custom property name
+    expandAll: true,
+    getRowKey: (row) => row.id,
+    indentSize: 20,
+  },
+});
+
+// Template
+<app-table
+  [data]="fileSystem()"
+  [config]="customChildrenConfig"
+  [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
+/>`;
 
   onExpansionChange(event: { row: TreeNode<Department>; expanded: boolean }) {
     console.log('Expansion changed:', event.row.label, 'expanded:', event.expanded);
