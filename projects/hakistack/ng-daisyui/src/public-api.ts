@@ -37,7 +37,7 @@ export { TablePaginationComponent } from './lib/components/table/table-paginatio
 export { TableFilterComponent } from './lib/components/table/table-filter.component';
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
-export { createTable, projectFields, clearHeaderFormatCache } from './lib/components/table/table.helpers';
+export { createTable, projectFields, clearHeaderFormatCache, flattenTreeData, generateRowKey, getRowChildren, rowHasChildren } from './lib/components/table/table.helpers';
 export type {
   FieldConfig,
   FieldConfiguration,
@@ -68,6 +68,8 @@ export type {
   SortDirection,
   SortConfig,
   CellDisplay,
+  TreeTableConfig,
+  FlattenedRow,
 } from './lib/components/table/table.types';
 
 // Select
@@ -112,6 +114,52 @@ export type { IconName, LowerCaseIconName } from './lib/components/lucide-icon/l
 
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
+
+// Organization Chart
+export { OrganizationChartComponent } from './lib/components/organization-chart/organization-chart.component';
+export type {
+  OrgChartSelectionMode,
+  OrgChartNodeSelectEvent,
+  OrgChartNodeUnselectEvent,
+  OrgChartNodeExpandEvent,
+  OrgChartNodeCollapseEvent,
+  OrgChartNodeTemplateContext,
+  OrgChartOrientation,
+  OrgChartNodeColor,
+} from './lib/components/organization-chart/organization-chart.types';
+
+// Tree
+export { TreeComponent } from './lib/components/tree/tree.component';
+export type {
+  TreeConfig,
+  TreeNodeTemplateContext,
+  TreeFilterEvent,
+  TreeLazyLoadEvent,
+  FlatTreeNode,
+  TreeNodeState,
+  TreeNodeSelectEvent as TreeSelectEvent,
+  TreeNodeUnselectEvent as TreeUnselectEvent,
+  TreeNodeExpandEvent as TreeExpandEvent,
+  TreeNodeCollapseEvent as TreeCollapseEvent,
+  TreeNodeDropEvent as TreeDropEvent,
+  TreeNodeDragStartEvent as TreeDragStartEvent,
+  TreeNodeDragEndEvent as TreeDragEndEvent,
+} from './lib/components/tree/tree.types';
+
+// ============================================================================
+// API (Core Types)
+// ============================================================================
+
+export type {
+  TreeNode,
+  TreeNodeSelectEvent,
+  TreeNodeUnselectEvent,
+  TreeNodeExpandEvent,
+  TreeNodeCollapseEvent,
+  TreeNodeDragStartEvent,
+  TreeNodeDropEvent,
+  TreeSelectionMode,
+} from './lib/api/treenode';
 
 // ============================================================================
 // SERVICES

@@ -1,0 +1,184 @@
+<!-- Filter Input -->
+@if (isFilterable()) {
+  <div class="app-tree-filter mb-3">
+    <div class="relative">
+      <input
+        type="text"
+        class="input input-bordered input-sm w-full pl-9"
+        [placeholder]="config().filterPlaceholder ?? 'Filter...'"
+        [ngModel]="filterText()"
+        (ngModelChange)="filterText.set($event)"
+      />
+      <app-lucide-icon
+        name="Search"
+        class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50"
+        [size]="16"
+      />
+      @if (filterText()) {
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2"
+          (click)="filterText.set('')"
+          aria-label="Clear filter"
+        >
+          <app-lucide-icon name="X" [size]="14" />
+        </button>
+      }
+    </div>
+  </div>
+}
+
+<!-- Loading State -->
+@if (isLoading()) {
+  <div class="flex items-center justify-center py-8">
+    <span class="loading loading-spinner loading-md"></span>
+  </div>
+} @else if (isEmpty()) {
+  <!-- Empty State -->
+  <div class="text-center py-8 text-base-content/60">
+    {{ emptyMessage() }}
+  </div>
+} @else {
+  <!-- Tree Nodes -->
+  <div
+    class="app-tree-container"
+    [class.app-tree-lines]="showLines()"
+    role="group"
+  >
+    @for (flatNode of flatNodes(); track trackByNode($index, flatNode)) {
+      <div
+        class="app-tree-node"
+        [class.app-tree-node-selected]="flatNode.state.selected"
+        [class.app-tree-node-focused]="flatNode.state.focused"
+        [class.app-tree-node-dragging]="flatNode.state.dragging"
+        [class.app-tree-node-drop-target]="flatNode.state.dropTarget"
+        [class.app-tree-node-first]="flatNode.first"
+        [class.app-tree-node-last]="flatNode.last"
+        [attr.data-level]="flatNode.level"
+        [attr.aria-selected]="flatNode.state.selected"
+        [attr.aria-expanded]="hasChildren(flatNode.node) ? isExpanded(flatNode.node) : null"
+        [attr.tabindex]="flatNode.state.focused ? 0 : -1"
+        role="treeitem"
+        [draggable]="isDragDropEnabled() && flatNode.node.draggable !== false"
+        (dragstart)="onDragStart($event, flatNode.node)"
+        (dragend)="onDragEnd($event, flatNode.node)"
+        (dragover)="onDragOver($event, flatNode.node)"
+        (dragleave)="onDragLeave($event, flatNode.node)"
+        (drop)="onDrop($event, flatNode.node, 'inside')"
+      >
+        <!-- Indentation & Lines -->
+        <div
+          class="app-tree-node-indent"
+          [style]="getIndentStyle(flatNode.level)"
+        >
+          <!-- Connecting lines (rendered via CSS) -->
+          @if (showLines()) {
+            @for (i of flatNode.path; track $index; let lineLevel = $index) {
+              <span
+                class="app-tree-line"
+                [class.app-tree-line-last]="isLastAtLevel(flatNode, lineLevel)"
+                [style.left.px]="lineLevel * indentSize() + 12"
+              ></span>
+            }
+          }
+        </div>
+
+        <!-- Toggle Button -->
+        <div class="app-tree-node-toggle w-6 shrink-0">
+          @if (hasChildren(flatNode.node)) {
+            @if (isNodeLoading(flatNode.node)) {
+              <span class="loading loading-spinner loading-xs"></span>
+            } @else {
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs btn-square"
+                (click)="onToggleClick($event, flatNode.node)"
+                [attr.aria-label]="isExpanded(flatNode.node) ? 'Collapse' : 'Expand'"
+              >
+                <app-lucide-icon
+                  [name]="isExpanded(flatNode.node) ? 'ChevronDown' : 'ChevronRight'"
+                  [size]="16"
+                />
+              </button>
+            }
+          }
+        </div>
+
+        <!-- Checkbox (if checkbox mode) -->
+        @if (selectionMode() === 'checkbox') {
+          <div class="app-tree-node-checkbox shrink-0 mr-1">
+            <input
+              type="checkbox"
+              class="checkbox checkbox-sm"
+              [checked]="flatNode.state.selected"
+              [indeterminate]="flatNode.state.partialSelected"
+              [disabled]="flatNode.node.selectable === false"
+              (click)="onCheckboxClick($event, flatNode.node)"
+              (change)="$event.stopPropagation()"
+            />
+          </div>
+        }
+
+        <!-- Node Content -->
+        <div
+          class="app-tree-node-content flex-1 flex items-center gap-2 py-1 px-2 rounded cursor-pointer hover:bg-base-200 transition-colors"
+          [class.bg-primary]="flatNode.state.selected && selectionMode() !== 'checkbox'"
+          [class.text-primary-content]="flatNode.state.selected && selectionMode() !== 'checkbox'"
+          [class.ring-2]="flatNode.state.focused"
+          [class.ring-primary]="flatNode.state.focused"
+          (click)="onNodeClick($event, flatNode.node)"
+        >
+          @if (nodeTemplateRef()) {
+            <!-- Custom Template -->
+            <ng-container
+              *ngTemplateOutlet="nodeTemplateRef()!; context: {
+                $implicit: flatNode.node,
+                node: flatNode.node,
+                level: flatNode.level,
+                expanded: flatNode.state.expanded,
+                selected: flatNode.state.selected,
+                partialSelected: flatNode.state.partialSelected,
+                first: flatNode.first,
+                last: flatNode.last,
+                index: flatNode.index
+              }"
+            />
+          } @else {
+            <!-- Default Template -->
+            @if (flatNode.node.icon) {
+              <app-lucide-icon
+                [name]="isExpanded(flatNode.node) && flatNode.node.expandedIcon ? flatNode.node.expandedIcon : (isExpanded(flatNode.node) ? flatNode.node.icon : (flatNode.node.collapsedIcon ?? flatNode.node.icon))"
+                [size]="18"
+                class="shrink-0"
+              />
+            }
+            <span class="app-tree-node-label truncate">
+              {{ flatNode.node.label }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <!-- Drop zones for reordering (before/after) -->
+      @if (isDragDropEnabled() && isDragging(flatNode.node) === false) {
+        <!-- Drop before indicator -->
+        <div
+          class="app-tree-drop-zone app-tree-drop-before"
+          [style.margin-left.px]="flatNode.level * indentSize() + 24"
+          (dragover)="$event.preventDefault(); $event.stopPropagation()"
+          (drop)="onDrop($event, flatNode.node, 'before')"
+        ></div>
+
+        <!-- Drop after indicator (only for last item or different parent) -->
+        @if (flatNode.last) {
+          <div
+            class="app-tree-drop-zone app-tree-drop-after"
+            [style.margin-left.px]="flatNode.level * indentSize() + 24"
+            (dragover)="$event.preventDefault(); $event.stopPropagation()"
+            (drop)="onDrop($event, flatNode.node, 'after')"
+          ></div>
+        }
+      }
+    }
+  </div>
+}

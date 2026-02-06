@@ -138,6 +138,7 @@ export interface FieldConfig<T> {
   enableFiltering?: boolean; // Global filter enable/disable
   globalSearch?: GlobalSearchConfig<T>; // Global search configuration
   columnVisibility?: ColumnVisibilityConfig; // Column visibility toggle configuration
+  treeTable?: TreeTableConfig<T>; // Tree table configuration
 }
 
 // Enhanced column definition with better type safety
@@ -238,6 +239,45 @@ export interface FilterChange<T = unknown> {
   filters: FilterConfig<T>[]; // All active filters
 }
 
+// Tree table configuration
+export interface TreeTableConfig<T> {
+  /** Enable tree table mode */
+  enabled: boolean;
+
+  /** Property name containing child items. Default: 'children' */
+  childrenProperty?: string;
+
+  /** Row keys to expand on initial render */
+  initialExpandedKeys?: string[];
+
+  /** Expand all rows on initial render. Default: false */
+  expandAll?: boolean;
+
+  /** Custom function to get unique row key for tracking expanded state */
+  getRowKey?: (row: T) => string;
+
+  /** Indentation size in pixels per level. Default: 24 */
+  indentSize?: number;
+}
+
+// Internal type for flattened tree rows
+export interface FlattenedRow<T> {
+  /** Original row data */
+  data: T;
+
+  /** Nesting level (0 = root) */
+  level: number;
+
+  /** Whether this row has children */
+  hasChildren: boolean;
+
+  /** Unique key for this row */
+  key: string;
+
+  /** Parent row key (null for root items) */
+  parentKey: string | null;
+}
+
 // Table configuration that combines all options
 export interface TableConfig<T> {
   fields: FieldConfig<T>;
@@ -247,6 +287,7 @@ export interface TableConfig<T> {
   loading?: boolean;
   selectable?: boolean;
   expandable?: boolean;
+  treeTable?: TreeTableConfig<T>;
 }
 
 export interface CellDisplay {

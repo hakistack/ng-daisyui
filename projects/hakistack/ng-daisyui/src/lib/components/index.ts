@@ -94,6 +94,19 @@ export { TabPanelComponent } from './tab/tab-panel/tab-panel.component';
 // Dialog Wrapper
 export { DialogWrapperComponent } from './dialog-wrapper/dialog-wrapper.component';
 
+// Organization Chart
+export { OrganizationChartComponent } from './organization-chart/organization-chart.component';
+export type {
+  OrgChartSelectionMode,
+  OrgChartNodeSelectEvent,
+  OrgChartNodeUnselectEvent,
+  OrgChartNodeExpandEvent,
+  OrgChartNodeCollapseEvent,
+  OrgChartNodeTemplateContext,
+  OrgChartOrientation,
+  OrgChartNodeColor,
+} from './organization-chart/organization-chart.types';
+
 // Toast
 export { ToastComponent } from './toast/toast.component';
 export { ToastService } from './toast/toast.service';

@@ -183,8 +183,34 @@
       </ng-container>
     }
 
+    <!-- Tree Table Expand Column (only for tree tables) -->
+    @if (isTreeTableSignal()) {
+      <ng-container cdkColumnDef="__tree_expand">
+        <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2">
+          <!-- Empty header for expand column -->
+        </th>
+        <td cdk-cell *cdkCellDef="let row" class="w-10 px-2">
+          @if (hasChildren(row)) {
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs btn-square"
+              (click)="toggleRowExpand(row, $event)"
+              [attr.aria-expanded]="isRowExpanded(row)"
+              [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
+            >
+              <app-lucide-icon
+                [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'"
+                class="h-4 w-4"
+                aria-hidden="true"
+              />
+            </button>
+          }
+        </td>
+      </ng-container>
+    }
+
     <!-- Data Columns -->
-    @for (column of columnDefsSignal(); track trackByField($index, column)) {
+    @for (column of columnDefsSignal(); track trackByField($index, column); let isFirst = $first) {
       <ng-container [cdkColumnDef]="column.field">
         <!-- Sortable Column Header -->
         <th cdk-header-cell *cdkHeaderCellDef class="relative transition-colors duration-200 select-none" role="columnheader">
@@ -246,9 +272,13 @@
           </div>
         </th>
 
-        <td cdk-cell *cdkCellDef="let row" class="transition-colors duration-200">
-          <!-- {{ formatCell(row, column) | async }} -->
-
+        <!-- Apply indentation to first data column in tree mode -->
+        <td
+          cdk-cell
+          *cdkCellDef="let row"
+          class="transition-colors duration-200"
+          [style.padding-left.px]="isTreeTableSignal() && isFirst ? getRowIndentPadding(row) : null"
+        >
           @if (getCellDisplay(row, column) | async; as display) {
             @if (display.isHtml) {
               <span [innerHTML]="display.safeHtml"></span>

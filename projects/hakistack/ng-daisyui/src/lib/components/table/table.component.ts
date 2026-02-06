@@ -22,6 +22,7 @@ import {
   FilterChange,
   FilterConfig,
   FilterOperator,
+  FlattenedRow,
   GlobalSearchChange,
   GlobalSearchConfig,
   PageSizeChange,
@@ -29,7 +30,9 @@ import {
   SortChange,
   TableAction,
   TableBulkAction,
+  TreeTableConfig,
 } from './table.types';
+import { flattenTreeData, generateRowKey, getRowChildren, rowHasChildren } from './table.helpers';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 // Optimized DataSource with proper typing
@@ -118,6 +121,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly sortDirectionChange = output<'Ascending' | 'Descending' | ''>();
   readonly filterChange = output<FilterChange<T>>();
   readonly globalSearchChange = output<GlobalSearchChange>();
+  readonly expansionChange = output<{ row: T; expanded: boolean }>();
 
   // Internal signals
   private readonly sortState = signal<SortState>({ field: '', direction: '' });
@@ -127,6 +131,12 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly openFilterField = signal<string | null>(null); // Track which filter dropdown is open
   readonly columnVisibilityState = signal<Map<string, boolean>>(new Map()); // Track column visibility
   readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
+
+  // Tree table signals
+  readonly expandedRowKeys = signal<Set<string>>(new Set());
+  private treeRowLevelMap = new Map<T, number>(); // Cache row levels for template access
+  private treeRowKeyMap = new Map<T, string>(); // Cache row keys for template access
+  private treeRowHasChildrenMap = new Map<T, boolean>(); // Cache hasChildren for template access
 
   // Global search signals
   readonly globalSearchTerm = signal<string>('');
@@ -170,15 +180,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   // Enhanced pagination computed signals
   readonly pageIndexSignal = computed(() => this.paginationState().pageIndex);
   readonly pageSizeSignal = computed(() => this.paginationState().pageSize);
-  readonly totalItemsSignal = computed(() => {
-    const mode = this.modeSignal();
-    // For server-side pagination, use totalItems from options
-    if (mode === 'cursor') {
-      return this.paginationOptions()?.totalItems ?? this.originalDataSignal().length;
-    }
-    // For client-side pagination, use filtered data length
-    return this.paginationOptions()?.totalItems ?? this.filteredDataSignal().length;
-  });
+  // Note: totalItemsSignal is defined later after displayDataSignal to avoid circular dependency
   readonly pageSizeOptionsSignal = computed(() => this.paginationOptions()?.pageSizeOptions ?? [5, 10, 25, 50, 100]);
   readonly modeSignal = computed(() => this.paginationOptions()?.mode ?? 'offset');
   readonly nextCursorSignal = computed(() => this.paginationOptions()?.nextCursor ?? null);
@@ -234,6 +236,12 @@ export class TableComponent<T extends object> implements OnDestroy {
     return actions.length > 0;
   });
 
+  // Tree table computed signals
+  readonly treeTableConfigSignal = computed(() => this.fieldConfig()?.treeTable);
+  readonly isTreeTableSignal = computed(() => this.treeTableConfigSignal()?.enabled ?? false);
+  readonly treeIndentSizeSignal = computed(() => this.treeTableConfigSignal()?.indentSize ?? 24);
+  private readonly childrenPropertySignal = computed(() => this.treeTableConfigSignal()?.childrenProperty ?? 'children');
+
   // Filter computed signals
   readonly enableFilteringSignal = computed(() => this.fieldConfig()?.enableFiltering ?? false);
   readonly activeFiltersSignal = computed(() => this.filterState());
@@ -268,6 +276,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   private readonly originalDataSignal = computed(() => this.data() ?? []);
 
   // Filtered data signal
+  // For tree tables: filters only apply to root-level items
   private readonly filteredDataSignal = computed(() => {
     const data = this.originalDataSignal();
     const filters = this.filterState();
@@ -283,6 +292,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   });
 
   // Apply global search to filtered data (CLIENT-SIDE ONLY)
+  // For tree tables: search only applies to root-level items
   private readonly globalSearchedDataSignal = computed(() => {
     const data = this.filteredDataSignal(); // Works after column filters
     const searchTerm = this.debouncedSearchTerm();
@@ -335,6 +345,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     });
   });
 
+  // Sort root-level items
   private readonly sortedDataSignal = computed(() => {
     const data = this.globalSearchedDataSignal(); // Use global searched data
     const { field, direction } = this.sortState();
@@ -346,17 +357,75 @@ export class TableComponent<T extends object> implements OnDestroy {
     return [...data].sort((a, b) => this.compareValues((a as Record<string, unknown>)[field], (b as Record<string, unknown>)[field], direction));
   });
 
+  // Flatten tree data after sorting (for tree tables only)
+  // This creates a flat array with level/hierarchy info for display
+  private readonly flattenedTreeDataSignal = computed(() => {
+    const data = this.sortedDataSignal();
+    const isTreeTable = this.isTreeTableSignal();
+
+    if (!isTreeTable) {
+      return null; // Not tree mode, will use sortedDataSignal directly
+    }
+
+    const treeConfig = this.treeTableConfigSignal();
+    const expandedKeys = this.expandedRowKeys();
+    const childrenProp = treeConfig?.childrenProperty ?? 'children';
+    const customGetKey = treeConfig?.getRowKey;
+
+    // Clear and rebuild caches
+    this.treeRowLevelMap.clear();
+    this.treeRowKeyMap.clear();
+    this.treeRowHasChildrenMap.clear();
+
+    const flattened = flattenTreeData(
+      data,
+      expandedKeys,
+      (row, index) => generateRowKey(row, customGetKey, index),
+      childrenProp,
+    );
+
+    // Populate caches for template access
+    for (const item of flattened) {
+      this.treeRowLevelMap.set(item.data, item.level);
+      this.treeRowKeyMap.set(item.data, item.key);
+      this.treeRowHasChildrenMap.set(item.data, item.hasChildren);
+    }
+
+    return flattened;
+  });
+
+  // Get the data for display - either flattened tree data or regular sorted data
+  private readonly displayDataSignal = computed(() => {
+    const flattened = this.flattenedTreeDataSignal();
+    if (flattened) {
+      return flattened.map(f => f.data);
+    }
+    return this.sortedDataSignal();
+  });
+
+  // Total items for pagination - must be defined after displayDataSignal
+  readonly totalItemsSignal = computed(() => {
+    const mode = this.modeSignal();
+    // For server-side pagination, use totalItems from options
+    if (mode === 'cursor') {
+      return this.paginationOptions()?.totalItems ?? this.originalDataSignal().length;
+    }
+    // For client-side pagination, use display data length (includes flattened tree rows)
+    return this.paginationOptions()?.totalItems ?? this.displayDataSignal().length;
+  });
+
   private readonly currentDataSignal = computed(() => {
     const mode = this.modeSignal();
+    const data = this.displayDataSignal(); // Use display data (handles tree flattening)
 
     if (mode === 'offset') {
       const start = this.pageIndexSignal() * this.pageSizeSignal();
       const end = start + this.pageSizeSignal();
-      return this.sortedDataSignal().slice(start, end);
+      return data.slice(start, end);
     }
 
-    // Cursor mode: use sorted data (client-side sorting on current page)
-    return this.sortedDataSignal();
+    // Cursor mode: use display data (client-side sorting on current page)
+    return data;
   });
 
   readonly columnDefsSignal = computed(() => {
@@ -438,6 +507,9 @@ export class TableComponent<T extends object> implements OnDestroy {
       return isVisible !== false; // Show by default if not set
     });
 
+    // Add special columns in order: select, tree_expand, data columns, actions
+    // Note: unshift adds to the beginning, so we add in reverse order
+    if (this.isTreeTableSignal()) visibleColumns.unshift('__tree_expand');
     if (this.hasSelectionSignal()) visibleColumns.unshift('select');
     if (this.hasActionsSignal()) visibleColumns.push('actions');
 
@@ -950,6 +1022,105 @@ export class TableComponent<T extends object> implements OnDestroy {
     return allColumns.filter(f => this.isColumnVisible(f)).length;
   }
 
+  // ============================================================================
+  // Tree Table Methods
+  // ============================================================================
+
+  /**
+   * Checks if the current row has children.
+   */
+  hasChildren(row: T): boolean {
+    return this.treeRowHasChildrenMap.get(row) ?? false;
+  }
+
+  /**
+   * Checks if a row is currently expanded.
+   */
+  isRowExpanded(row: T): boolean {
+    const key = this.treeRowKeyMap.get(row);
+    if (!key) return false;
+    return this.expandedRowKeys().has(key);
+  }
+
+  /**
+   * Gets the indentation level for a row (0 = root).
+   */
+  getRowLevel(row: T): number {
+    return this.treeRowLevelMap.get(row) ?? 0;
+  }
+
+  /**
+   * Calculates the indentation padding for the first cell.
+   */
+  getRowIndentPadding(row: T): number {
+    const level = this.getRowLevel(row);
+    const indentSize = this.treeIndentSizeSignal();
+    // Add base padding (8px) + level-based indent
+    return 8 + (level * indentSize);
+  }
+
+  /**
+   * Toggles the expansion state of a row.
+   */
+  toggleRowExpand(row: T, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    const key = this.treeRowKeyMap.get(row);
+    if (!key) return;
+
+    const currentExpanded = this.expandedRowKeys();
+    const isCurrentlyExpanded = currentExpanded.has(key);
+
+    this.expandedRowKeys.update(keys => {
+      const newKeys = new Set(keys);
+      if (isCurrentlyExpanded) {
+        newKeys.delete(key);
+      } else {
+        newKeys.add(key);
+      }
+      return newKeys;
+    });
+
+    this.expansionChange.emit({ row, expanded: !isCurrentlyExpanded });
+  }
+
+  /**
+   * Expands all rows in the tree.
+   */
+  expandAllRows(): void {
+    const allKeys = new Set<string>();
+    this.collectAllRowKeys(this.originalDataSignal(), allKeys);
+    this.expandedRowKeys.set(allKeys);
+  }
+
+  /**
+   * Collapses all rows in the tree.
+   */
+  collapseAllRows(): void {
+    this.expandedRowKeys.set(new Set());
+  }
+
+  /**
+   * Recursively collects all row keys from the tree.
+   */
+  private collectAllRowKeys(data: readonly T[], keys: Set<string>, startIndex = 0): void {
+    const treeConfig = this.treeTableConfigSignal();
+    const childrenProp = treeConfig?.childrenProperty ?? 'children';
+    const customGetKey = treeConfig?.getRowKey;
+
+    data.forEach((row, index) => {
+      const key = generateRowKey(row, customGetKey, startIndex + index);
+      const children = getRowChildren(row, childrenProp);
+
+      if (children && children.length > 0) {
+        keys.add(key);
+        this.collectAllRowKeys(children, keys, 0);
+      }
+    });
+  }
+
   private saveColumnVisibilityToStorage(): void {
     const config = this.columnVisibilityConfig();
     const storageKey = config?.storageKey;
@@ -1015,6 +1186,20 @@ export class TableComponent<T extends object> implements OnDestroy {
             });
             return newState;
           });
+        }
+      }
+    });
+
+    // Initialize tree table expanded state
+    effect(() => {
+      const treeConfig = this.treeTableConfigSignal();
+      if (treeConfig?.enabled) {
+        // Set initial expanded keys
+        if (treeConfig.expandAll) {
+          // Expand all on next tick to allow data to be loaded first
+          setTimeout(() => this.expandAllRows(), 0);
+        } else if (treeConfig.initialExpandedKeys && treeConfig.initialExpandedKeys.length > 0) {
+          this.expandedRowKeys.set(new Set(treeConfig.initialExpandedKeys));
         }
       }
     });

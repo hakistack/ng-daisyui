@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 
 import { PipeRegistryService } from '../../services';
-import { ColumnDefinition, FieldConfig, FieldConfiguration, Formatter } from './table.types';
+import { ColumnDefinition, FieldConfig, FieldConfiguration, FlattenedRow, Formatter, TreeTableConfig } from './table.types';
 
 // Cache for formatted headers to avoid repeated string processing
 const headerFormatCache = new Map<string, string>();
@@ -38,7 +38,22 @@ function createFieldConfig<T>(config: FieldConfig<T>): FieldConfig<T> {
     filters: config.filters ?? [],
     globalSearch: config.globalSearch,
     columnVisibility: config.columnVisibility,
+    treeTable: config.treeTable ? normalizeTreeTableConfig(config.treeTable) : undefined,
   } as FieldConfig<T>;
+}
+
+/**
+ * Normalizes tree table config with default values.
+ */
+function normalizeTreeTableConfig<T>(config: TreeTableConfig<T>): TreeTableConfig<T> {
+  return {
+    enabled: config.enabled,
+    childrenProperty: config.childrenProperty ?? 'children',
+    initialExpandedKeys: config.initialExpandedKeys ?? [],
+    expandAll: config.expandAll ?? false,
+    getRowKey: config.getRowKey,
+    indentSize: config.indentSize ?? 24,
+  };
 }
 
 /**
@@ -152,4 +167,135 @@ function formatHeader(field: string): string {
  */
 export function clearHeaderFormatCache(): void {
   headerFormatCache.clear();
+}
+
+// ============================================================================
+// Tree Table Utilities
+// ============================================================================
+
+/**
+ * Generates a unique key for a row based on available properties.
+ * Priority: getRowKey function > TreeNode.key > row.id > JSON hash
+ */
+export function generateRowKey<T>(
+  row: T,
+  getRowKey?: (row: T) => string,
+  index?: number,
+): string {
+  // 1. Use custom getRowKey function if provided
+  if (getRowKey) {
+    return getRowKey(row);
+  }
+
+  const record = row as Record<string, unknown>;
+
+  // 2. Use TreeNode.key if available
+  if ('key' in record && typeof record['key'] === 'string') {
+    return record['key'];
+  }
+
+  // 3. Use row.id if available
+  if ('id' in record && (typeof record['id'] === 'string' || typeof record['id'] === 'number')) {
+    return String(record['id']);
+  }
+
+  // 4. Fallback to index-based key or JSON hash
+  if (index !== undefined) {
+    return `__tree_row_${index}`;
+  }
+
+  // 5. Generate a hash from JSON (last resort)
+  try {
+    return `__hash_${hashCode(JSON.stringify(row))}`;
+  } catch {
+    return `__unknown_${Math.random().toString(36).substring(2, 11)}`;
+  }
+}
+
+/**
+ * Simple hash code function for string.
+ */
+function hashCode(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
+
+/**
+ * Gets children from a row based on the configured property name.
+ */
+export function getRowChildren<T>(row: T, childrenProperty: string): T[] | undefined {
+  const record = row as Record<string, unknown>;
+  const children = record[childrenProperty];
+
+  if (Array.isArray(children)) {
+    return children as T[];
+  }
+
+  return undefined;
+}
+
+/**
+ * Checks if a row has children.
+ */
+export function rowHasChildren<T>(row: T, childrenProperty: string): boolean {
+  const children = getRowChildren(row, childrenProperty);
+  return !!children && children.length > 0;
+}
+
+/**
+ * Flattens hierarchical tree data into a flat array for table display.
+ * Only includes children of expanded rows.
+ *
+ * @param data - The hierarchical data array (root level items)
+ * @param expandedKeys - Set of row keys that are currently expanded
+ * @param getKey - Function to get unique key for a row
+ * @param childrenProperty - Property name containing children
+ * @param level - Current nesting level (internal use)
+ * @param parentKey - Key of the parent row (internal use)
+ * @returns Flattened array with level and hierarchy information
+ */
+export function flattenTreeData<T>(
+  data: readonly T[],
+  expandedKeys: Set<string>,
+  getKey: (row: T, index: number) => string,
+  childrenProperty: string,
+  level = 0,
+  parentKey: string | null = null,
+): FlattenedRow<T>[] {
+  const result: FlattenedRow<T>[] = [];
+
+  data.forEach((row, index) => {
+    const key = getKey(row, index);
+    const children = getRowChildren(row, childrenProperty);
+    const hasChildren = !!children && children.length > 0;
+
+    // Add current row to result
+    result.push({
+      data: row,
+      level,
+      hasChildren,
+      key,
+      parentKey,
+    });
+
+    // If expanded and has children, recursively add children
+    if (hasChildren && expandedKeys.has(key)) {
+      const childRows = flattenTreeData(
+        children!,
+        expandedKeys,
+        getKey,
+        childrenProperty,
+        level + 1,
+        key,
+      );
+      result.push(...childRows);
+    }
+  });
+
+  return result;
 }
