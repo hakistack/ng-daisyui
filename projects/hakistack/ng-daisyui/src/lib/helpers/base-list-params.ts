@@ -1,11 +1,10 @@
 import { HttpParams } from '@angular/common/http';
 
-// export type CursorPaginationParams = {
-//   cursor?: string | null;
-//   limit: number;
-//   sortDirection: 'Ascending' | 'Descending';
-// };
-
+/**
+ * Build `HttpParams` for offset-based pagination.
+ *
+ * @deprecated Use `getOffsetHttpParams()` from `pagination.helper` instead.
+ */
 export function getBaseListParams(limit: number, offset: number): HttpParams {
   let params = new HttpParams();
 
@@ -19,6 +18,11 @@ export function getBaseListParams(limit: number, offset: number): HttpParams {
   return params;
 }
 
+/**
+ * Build `HttpParams` for cursor-based pagination.
+ *
+ * @deprecated Use `getCursorHttpParams()` from `pagination.helper` instead.
+ */
 export function getBaseCursorParams(cursor: string | null, pageSize: number, sortField: string, sortDirection: 'Ascending' | 'Descending' | string): HttpParams {
   let params = new HttpParams();
 

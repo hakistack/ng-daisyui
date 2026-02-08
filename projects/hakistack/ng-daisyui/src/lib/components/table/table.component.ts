@@ -1,7 +1,7 @@
 // table.component.ts
 import { CdkTableModule, DataSource } from '@angular/cdk/table';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, input, OnDestroy, output, Signal, signal, TrackByFunction } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, input, OnDestroy, output, Signal, signal, TrackByFunction, untracked } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
 import Fuse, { IFuseOptions } from 'fuse.js';
@@ -98,7 +98,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
   }
 
-  private readonly htmlParser = new DOMParser();
+  private static readonly htmlParser = new DOMParser();
 
   // Inputs as signals
   readonly data = input<readonly T[] | null>(null);
@@ -143,8 +143,9 @@ export class TableComponent<T extends object> implements OnDestroy {
   private readonly debouncedSearchTerm = signal<string>('');
   private searchDebounceTimeout?: ReturnType<typeof setTimeout>;
 
-  // Fuse.js instance for fuzzy search
+  // Fuse.js instance for fuzzy search (cached — only rebuilt when data changes)
   private _fuseInstance?: Fuse<T>;
+  private _fuseDataRef: readonly T[] | null = null;
   private readonly defaultFuseConfig: IFuseOptions<T> = {
     threshold: 0.3,
     ignoreLocation: true,
@@ -1134,12 +1135,14 @@ export class TableComponent<T extends object> implements OnDestroy {
       visibilityObj[field] = visible;
     });
 
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(visibilityObj));
-    } catch (e) {
-      // Silent fail if localStorage is not available
-      console.error('Failed to save column visibility to storage:', e);
-    }
+    // Defer write to avoid blocking the main thread
+    queueMicrotask(() => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(visibilityObj));
+      } catch (e) {
+        console.error('Failed to save column visibility to storage:', e);
+      }
+    });
   }
 
   private loadColumnVisibilityFromStorage(): void {
@@ -1168,7 +1171,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   // Private methods
   private setupEffects(): void {
-    // Initialize column visibility
+    // Initialize column visibility (use untracked for reads that would cause re-trigger)
     effect(() => {
       const config = this.columnVisibilityConfig();
       if (config?.enabled) {
@@ -1176,9 +1179,9 @@ export class TableComponent<T extends object> implements OnDestroy {
         this.loadColumnVisibilityFromStorage();
 
         // If nothing was loaded and there are default visible columns, set them
-        const visibilityState = this.columnVisibilityState();
+        const visibilityState = untracked(() => this.columnVisibilityState());
         if (visibilityState.size === 0 && config.defaultVisible && config.defaultVisible.length > 0) {
-          const allColumns = this.columnDefsSignal().map(c => c.field);
+          const allColumns = untracked(() => this.columnDefsSignal()).map(c => c.field);
           this.columnVisibilityState.update(state => {
             const newState = new Map(state);
             allColumns.forEach(field => {
@@ -1275,28 +1278,50 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   /**
-   * Formats and determines rendering strategy for a cell.
-   * Returns both the value and whether it should be rendered as HTML.
+   * Synchronous fast path for cell display. Returns a `CellDisplay` directly
+   * when the column has no async formatter, or `null` if the formatter returns
+   * an Observable (caller should fall back to `getCellDisplayAsync`).
    */
-  getCellDisplay(row: T, column: ColumnDefinition<T>): Observable<CellDisplay> {
+  getCellDisplaySync(row: T, column: ColumnDefinition<T>): CellDisplay | null {
+    const value = row[column.field];
+
+    if (column.format) {
+      const result = column.format(value, row);
+      if (isObservable(result)) return null; // Needs async path
+      const formatted = result || (column.fallback ?? '—');
+      const html = this.isHtml(formatted);
+      return { value: formatted, isHtml: html, safeHtml: html ? this.sanitizeHtml(formatted) : null };
+    }
+
+    const displayValue = value || value === 0 ? String(value) : (column.fallback ?? '—');
+    const html = this.isHtml(displayValue);
+    return { value: displayValue, isHtml: html, safeHtml: html ? this.sanitizeHtml(displayValue) : null };
+  }
+
+  /**
+   * Async path for cell display. Only used when the column formatter returns an Observable.
+   */
+  getCellDisplayAsync(row: T, column: ColumnDefinition<T>): Observable<CellDisplay> {
     return this.formatCell(row, column).pipe(
       map(value => {
         const html = this.isHtml(value);
-
-        return {
-          value,
-          isHtml: html,
-          safeHtml: html ? this.sanitizeHtml(value) : null,
-        };
+        return { value, isHtml: html, safeHtml: html ? this.sanitizeHtml(value) : null };
       }),
     );
+  }
+
+  /**
+   * @deprecated Use `getCellDisplaySync` with `getCellDisplayAsync` fallback instead.
+   */
+  getCellDisplay(row: T, column: ColumnDefinition<T>): Observable<CellDisplay> {
+    return this.getCellDisplayAsync(row, column);
   }
 
   private isHtml(value: string): boolean {
     if (!value || typeof value !== 'string') return false;
     if (!value.includes('<') || !value.includes('>')) return false;
 
-    const doc = this.htmlParser.parseFromString(value, 'text/html');
+    const doc = TableComponent.htmlParser.parseFromString(value, 'text/html');
 
     return doc.body.children.length > 0 && doc.querySelector('parsererror') === null;
   }
@@ -1418,9 +1443,11 @@ export class TableComponent<T extends object> implements OnDestroy {
       includeScore: config.fuseOptions?.includeScore ?? this.defaultFuseConfig.includeScore,
     };
 
-    // Create or update Fuse instance
-    // We need to recreate it when data changes to ensure index is up-to-date
-    this._fuseInstance = new Fuse([...data], fuseOptions);
+    // Only rebuild Fuse index when data reference changes (avoids O(n) rebuild per keystroke)
+    if (this._fuseDataRef !== data || !this._fuseInstance) {
+      this._fuseInstance = new Fuse([...data], fuseOptions);
+      this._fuseDataRef = data;
+    }
 
     // Perform search and return matched items
     const results = this._fuseInstance.search(searchTerm);

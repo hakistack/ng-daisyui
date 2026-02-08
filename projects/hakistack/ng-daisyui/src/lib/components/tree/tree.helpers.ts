@@ -27,7 +27,7 @@ function generateKey(): string {
  * });
  *
  * // Template
- * <app-tree [nodes]="tree.nodes" [config]="tree.config" />
+ * <app-tree [tree]="tree" />
  * ```
  */
 export function createTree<T = unknown>(input: CreateTreeInput<T>): TreeSetup<T> {
@@ -83,8 +83,8 @@ export const node = {
   create<T = unknown>(label: string, opts?: Partial<TreeNode<T>>): TreeNode<T> {
     return {
       key: generateKey(),
-      label,
       ...opts,
+      label,
     };
   },
 

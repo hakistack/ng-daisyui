@@ -279,11 +279,20 @@
           class="transition-colors duration-200"
           [style.padding-left.px]="isTreeTableSignal() && isFirst ? getRowIndentPadding(row) : null"
         >
-          @if (getCellDisplay(row, column) | async; as display) {
-            @if (display.isHtml) {
-              <span [innerHTML]="display.safeHtml"></span>
+          @let syncDisplay = getCellDisplaySync(row, column);
+          @if (syncDisplay) {
+            @if (syncDisplay.isHtml) {
+              <span [innerHTML]="syncDisplay.safeHtml"></span>
             } @else {
-              {{ display.value }}
+              {{ syncDisplay.value }}
+            }
+          } @else {
+            @if (getCellDisplayAsync(row, column) | async; as asyncDisplay) {
+              @if (asyncDisplay.isHtml) {
+                <span [innerHTML]="asyncDisplay.safeHtml"></span>
+              } @else {
+                {{ asyncDisplay.value }}
+              }
             }
           }
         </td>

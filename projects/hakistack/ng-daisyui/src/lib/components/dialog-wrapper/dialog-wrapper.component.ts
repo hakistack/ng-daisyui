@@ -10,6 +10,13 @@ interface InternalWrapperData<T = unknown> {
   componentData?: unknown;
 }
 
+/**
+ * Internal wrapper component used by `DialogService.open()` to render
+ * a child component inside a CDK dialog with consistent styling.
+ *
+ * Creates a CDK portal outlet and attaches the provided component with
+ * its own injector so the inner component receives the correct `DIALOG_DATA`.
+ */
 @Component({
   selector: 'app-dialog-wrapper',
   imports: [PortalModule],

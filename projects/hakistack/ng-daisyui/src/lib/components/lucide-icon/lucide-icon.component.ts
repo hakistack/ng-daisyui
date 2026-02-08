@@ -5,6 +5,16 @@ import { icons, LucideAngularModule } from 'lucide-angular';
 export type IconName = keyof typeof icons;
 export type LowerCaseIconName = Lowercase<IconName>;
 
+/**
+ * Wrapper component for rendering Lucide icons.
+ *
+ * Provides a simplified API over `lucide-angular` with sensible defaults
+ * for size, color, and stroke width.
+ *
+ * ```html
+ * <app-lucide-icon name="Search" [size]="24" />
+ * ```
+ */
 @Component({
   selector: 'app-lucide-icon',
   imports: [LucideAngularModule],
