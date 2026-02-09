@@ -1,7 +1,8 @@
 import { inject } from '@angular/core';
 
 import { PipeRegistryService } from '../../services';
-import { ColumnDefinition, FieldConfig, FieldConfiguration, FlattenedRow, Formatter, TreeTableConfig } from './table.types';
+import { AGGREGATE_LABELS, AggregateFunction, computeAggregate } from './table-aggregates';
+import { CellEditorConfig, ChildGridConfig, ColumnDefinition, FieldConfig, FieldConfiguration, FlattenedRow, FooterCellDef, FooterConfig, FooterRowDef, Formatter, GroupConfig, ResolvedFooterRow, ResolvedGroupAggregates, RowGroup, StringKey, TreeTableConfig } from './table.types';
 
 // Cache for formatted headers to avoid repeated string processing
 const headerFormatCache = new Map<string, string>();
@@ -11,7 +12,18 @@ export function createTable<T>(config: FieldConfig<T>): FieldConfiguration<T> {
 
   const schema = buildColumnSchema(normalizedConfig);
 
-  return { config: normalizedConfig, columns: schema };
+  // Resolve multi-row footer
+  const resolvedFooterRows = resolveFooterRows(normalizedConfig.footerRows, schema);
+
+  // Auto-enable showFooter when footerRows has entries
+  if (resolvedFooterRows && resolvedFooterRows.length > 0) {
+    (normalizedConfig as { showFooter: boolean }).showFooter = true;
+  }
+
+  // Resolve group-level aggregates (caption + group footer rows)
+  const resolvedGroupAggregates = resolveGroupAggregates(normalizedConfig.grouping, schema);
+
+  return { config: normalizedConfig, columns: schema, resolvedFooterRows, resolvedGroupAggregates, childGrid: normalizedConfig.childGrid };
 }
 
 /**
@@ -39,6 +51,24 @@ function createFieldConfig<T>(config: FieldConfig<T>): FieldConfig<T> {
     globalSearch: config.globalSearch,
     columnVisibility: config.columnVisibility,
     treeTable: config.treeTable ? normalizeTreeTableConfig(config.treeTable) : undefined,
+    stickyColumns: config.stickyColumns ?? {},
+    enableColumnResizing: config.enableColumnResizing ?? false,
+    columnWidths: config.columnWidths ?? {},
+    resizeMode: config.resizeMode ?? 'expand',
+    virtualScroll: config.virtualScroll,
+    enableInlineEditing: config.enableInlineEditing ?? false,
+    cellEditors: config.cellEditors ?? {},
+    showFooter: config.showFooter ?? false,
+    footers: config.footers ?? {},
+    footerRows: config.footerRows,
+    expandableDetail: config.expandableDetail ?? !!config.childGrid,
+    expandMode: config.expandMode ?? 'multi',
+    enableKeyboardNavigation: config.enableKeyboardNavigation ?? false,
+    enableColumnReorder: config.enableColumnReorder ?? false,
+    enableRowReorder: config.enableRowReorder ?? false,
+    showDragHandle: config.showDragHandle ?? true,
+    grouping: config.grouping,
+    childGrid: config.childGrid,
   } as FieldConfig<T>;
 }
 
@@ -83,6 +113,21 @@ function buildColumnSchema<T>(fields: FieldConfig<T>): ColumnDefinition<T>[] {
       columnDef.format = formatFunction;
     }
 
+    // Merge cellEditors config into column definition
+    const editorConfig = fields.cellEditors?.[key as StringKey<T>] as CellEditorConfig | undefined;
+    if (editorConfig) {
+      columnDef.editable = true;
+      columnDef.editType = editorConfig.type;
+      columnDef.editOptions = editorConfig.options;
+      columnDef.editValidator = editorConfig.validator as ColumnDefinition<T>['editValidator'];
+    }
+
+    // Merge footers config into column definition
+    const footerEntry = fields.footers?.[key as StringKey<T>];
+    if (footerEntry) {
+      columnDef.footer = createFooterFunction<T>(footerEntry, key, columnDef.format);
+    }
+
     return columnDef;
   });
 }
@@ -107,6 +152,124 @@ function createFormatFunction<T>(formatter: Formatter<T> | undefined, pipeRegist
   }
 
   return undefined;
+}
+
+/**
+ * Creates a footer function from the footers config entry.
+ * Applies the column's existing format function to the aggregate value, and prepends a label.
+ */
+function createFooterFunction<T>(
+  entry: AggregateFunction | FooterConfig<T>,
+  columnField: StringKey<T>,
+  columnFormat?: ColumnDefinition<T>['format'],
+): (data: readonly T[]) => string | number {
+  const fn: AggregateFunction = typeof entry === 'string' ? entry : entry.fn;
+  const label = typeof entry === 'string' ? AGGREGATE_LABELS[fn] : (entry.label ?? AGGREGATE_LABELS[fn]);
+  const aggregateField = (typeof entry === 'object' && entry.field ? entry.field : columnField) as Extract<keyof T, string>;
+
+  return (data: readonly T[]) => {
+    const value = computeAggregate(data, aggregateField, fn);
+
+    // Apply the column's existing format function to the numeric result
+    let formatted: string;
+    if (columnFormat) {
+      const result = columnFormat(value, {} as T);
+      // Only use sync results (string), skip Observable
+      formatted = typeof result === 'string' ? result : String(value);
+    } else {
+      formatted = String(value);
+    }
+
+    return label ? `${label}: ${formatted}` : formatted;
+  };
+}
+
+/**
+ * Resolves footerRows config into pre-built value-computing functions per cell.
+ * Returns undefined when no footerRows are configured.
+ */
+export function resolveFooterRows<T>(
+  footerRows: FooterRowDef<T>[] | undefined,
+  columns: ColumnDefinition<T>[],
+): ResolvedFooterRow<T>[] | undefined {
+  if (!footerRows || footerRows.length === 0) return undefined;
+
+  // Build a map of column format functions for fallback formatting
+  const columnFormatMap = new Map<string, ColumnDefinition<T>['format']>();
+  for (const col of columns) {
+    if (col.format) columnFormatMap.set(col.field, col.format);
+  }
+
+  return footerRows.map(rowDef => {
+    const cells: Partial<Record<StringKey<T>, (data: readonly T[]) => string>> = {};
+
+    for (const [colField, entry] of Object.entries(rowDef.columns) as [StringKey<T>, AggregateFunction | FooterCellDef<T>][]) {
+      const isShorthand = typeof entry === 'string';
+      const fn: AggregateFunction = isShorthand ? entry : entry.fn;
+      const label = isShorthand ? AGGREGATE_LABELS[fn] : (entry.label ?? AGGREGATE_LABELS[fn]);
+      const aggregateField = (!isShorthand && entry.field ? entry.field : colField) as Extract<keyof T, string>;
+      const cellFormat = !isShorthand && entry.format ? entry.format : undefined;
+      const customFn = !isShorthand && entry.custom ? entry.custom : undefined;
+      const columnFormat = columnFormatMap.get(colField);
+
+      cells[colField] = (data: readonly T[]): string => {
+        // Full custom override
+        if (customFn) {
+          const raw = customFn(data);
+          if (cellFormat) return label ? `${label}: ${cellFormat(Number(raw))}` : cellFormat(Number(raw));
+          return label ? `${label}: ${raw}` : String(raw);
+        }
+
+        const value = computeAggregate(data, aggregateField, fn);
+
+        // Format: cell-level format > column format fallback > plain number
+        let formatted: string;
+        if (cellFormat) {
+          formatted = cellFormat(value);
+        } else if (columnFormat) {
+          const result = columnFormat(value, {} as T);
+          formatted = typeof result === 'string' ? result : String(value);
+        } else {
+          formatted = String(value);
+        }
+
+        return label ? `${label}: ${formatted}` : formatted;
+      };
+    }
+
+    return { cells, class: rowDef.class };
+  });
+}
+
+/**
+ * Resolves group-level aggregate configuration (caption + group footer rows)
+ * into pre-built value-computing functions per cell.
+ */
+export function resolveGroupAggregates<T>(
+  groupConfig: GroupConfig<T> | undefined,
+  columns: ColumnDefinition<T>[],
+): ResolvedGroupAggregates<T> | undefined {
+  if (!groupConfig) return undefined;
+
+  const hasCaptions = groupConfig.captionAggregates != null;
+  const hasGroupFooters = groupConfig.groupFooterRows != null && groupConfig.groupFooterRows.length > 0;
+
+  if (!hasCaptions && !hasGroupFooters) return undefined;
+
+  const result: ResolvedGroupAggregates<T> = {};
+
+  if (hasCaptions) {
+    const resolved = resolveFooterRows([groupConfig.captionAggregates!], columns);
+    if (resolved && resolved.length > 0) {
+      result.resolvedCaptionCells = resolved[0].cells;
+    }
+  }
+
+  if (hasGroupFooters) {
+    result.resolvedGroupFooterRows = resolveFooterRows(groupConfig.groupFooterRows!, columns);
+  }
+
+  return result;
 }
 
 /**
@@ -245,6 +408,78 @@ export function getRowChildren<T>(row: T, childrenProperty: string): T[] | undef
 export function rowHasChildren<T>(row: T, childrenProperty: string): boolean {
   const children = getRowChildren(row, childrenProperty);
   return !!children && children.length > 0;
+}
+
+// ============================================================================
+// Row Grouping Utilities
+// ============================================================================
+
+/**
+ * Groups data by a field and computes aggregates per group.
+ * Single-pass O(n) grouping.
+ */
+export function groupData<T>(
+  data: readonly T[],
+  groupField: StringKey<T>,
+  aggregateConfig?: Partial<Record<StringKey<T>, AggregateFunction>>,
+  groupSortFn?: (a: unknown, b: unknown) => number,
+  groupHeaderLabel?: (groupValue: unknown, rows: T[]) => string,
+  initiallyExpanded = true,
+  resolvedGroupAggregates?: ResolvedGroupAggregates<T>,
+): RowGroup<T>[] {
+  // Group rows by field value
+  const groupMap = new Map<unknown, T[]>();
+  for (const row of data) {
+    const key = (row as Record<string, unknown>)[groupField];
+    let group = groupMap.get(key);
+    if (!group) {
+      group = [];
+      groupMap.set(key, group);
+    }
+    group.push(row);
+  }
+
+  // Build RowGroup array
+  const groups: RowGroup<T>[] = [];
+  for (const [groupValue, rows] of groupMap) {
+    const aggregates: Record<string, number> = {};
+    if (aggregateConfig) {
+      for (const [field, fn] of Object.entries(aggregateConfig)) {
+        if (fn) {
+          aggregates[field] = computeAggregate(rows, field as StringKey<T>, fn as AggregateFunction);
+        }
+      }
+    }
+
+    const groupLabel = groupHeaderLabel
+      ? groupHeaderLabel(groupValue, rows)
+      : String(groupValue ?? 'Unknown');
+
+    const group: RowGroup<T> = {
+      groupValue,
+      groupLabel,
+      rows,
+      aggregates,
+      expanded: initiallyExpanded,
+    };
+
+    // Attach resolved group aggregates
+    if (resolvedGroupAggregates?.resolvedCaptionCells) {
+      group.resolvedCaptionCells = resolvedGroupAggregates.resolvedCaptionCells;
+    }
+    if (resolvedGroupAggregates?.resolvedGroupFooterRows) {
+      group.resolvedGroupFooterRows = resolvedGroupAggregates.resolvedGroupFooterRows;
+    }
+
+    groups.push(group);
+  }
+
+  // Sort groups if custom sort provided
+  if (groupSortFn) {
+    groups.sort((a, b) => groupSortFn(a.groupValue, b.groupValue));
+  }
+
+  return groups;
 }
 
 /**

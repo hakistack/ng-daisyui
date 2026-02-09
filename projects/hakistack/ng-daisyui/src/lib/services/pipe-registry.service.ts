@@ -1,23 +1,60 @@
-import { inject, Injectable, InjectionToken, Injector, PipeTransform, Type } from '@angular/core';
+import {
+  CurrencyPipe,
+  DatePipe,
+  DecimalPipe,
+  JsonPipe,
+  KeyValuePipe,
+  LowerCasePipe,
+  PercentPipe,
+  TitleCasePipe,
+  UpperCasePipe,
+} from '@angular/common';
+import {
+  EnvironmentProviders,
+  inject,
+  Injectable,
+  InjectionToken,
+  Injector,
+  makeEnvironmentProviders,
+  PipeTransform,
+  Type,
+} from '@angular/core';
 
 import { PipeFormatter, BUILTIN_PIPE_REGISTRY, BuiltinPipeName, BuiltinPipesWithOptions, PipeRegistry } from '../types/base-pipes.type';
 
 /**
  * Injection token for extending the pipe registry with custom pipes.
- *
- * @example
- * // In app.config.ts or a module:
- * providers: [
- *   {
- *     provide: CUSTOM_PIPES,
- *     useValue: {
- *       beautifyRoles: BeautifyRolesPipe,
- *       myCustomPipe: MyCustomPipe,
- *     }
- *   }
- * ]
  */
 export const CUSTOM_PIPES = new InjectionToken<PipeRegistry>('CUSTOM_PIPES');
+
+/** Angular's common pipes provided for direct injection */
+const COMMON_PIPES = [
+  CurrencyPipe,
+  DatePipe,
+  DecimalPipe,
+  JsonPipe,
+  KeyValuePipe,
+  LowerCasePipe,
+  PercentPipe,
+  TitleCasePipe,
+  UpperCasePipe,
+];
+
+/**
+ * Provides Angular's common pipes for direct injection and registers custom pipes for PipeRegistryService.
+ *
+ * @example
+ * // In app.config.ts:
+ * providePipes({
+ *   beautifyRoles: BeautifyRolesPipe,
+ * })
+ */
+export function providePipes(customPipes?: PipeRegistry): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    ...COMMON_PIPES,
+    ...(customPipes ? [Object.values(customPipes), { provide: CUSTOM_PIPES, useValue: customPipes }] : []).flat(),
+  ]);
+}
 
 /**
  * Service for applying Angular pipes programmatically.
@@ -90,7 +127,11 @@ export class PipeRegistryService {
    * this.pipeRegistry.transform('currency', 1234.56, { currencyCode: 'USD' });
    * this.pipeRegistry.transform('uppercase', 'hello');
    */
-  transform<K extends BuiltinPipeName>(pipeName: K, value: unknown, options?: K extends keyof BuiltinPipesWithOptions ? BuiltinPipesWithOptions[K] : never): string;
+  transform<K extends BuiltinPipeName>(
+    pipeName: K,
+    value: unknown,
+    options?: K extends keyof BuiltinPipesWithOptions ? BuiltinPipesWithOptions[K] : never,
+  ): string;
   transform(pipeName: string, value: unknown, options?: Record<string, unknown>): string;
   transform(pipeName: string, value: unknown, options?: Record<string, unknown>): string {
     // Handle null/undefined/empty values gracefully

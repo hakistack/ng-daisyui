@@ -1,10 +1,14 @@
 // table.component.ts
 import { CdkTableModule, DataSource } from '@angular/cdk/table';
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, input, OnDestroy, output, Signal, signal, TrackByFunction, untracked } from '@angular/core';
+import { moveItemInArray } from '@angular/cdk/drag-drop';
+import { ScrollingModule } from '@angular/cdk/scrolling';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, contentChild, effect, ElementRef, forwardRef, HostBinding, HostListener, inject, input, OnDestroy, output, PLATFORM_ID, Signal, signal, TemplateRef, TrackByFunction, untracked } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
 import Fuse, { IFuseOptions } from 'fuse.js';
+
+import { AutoFocusDirective } from '../../directives/auto-focus/auto-focus.directive';
 
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 import { TableColumnVisibilityComponent } from './table-column-visibility.component';
@@ -15,8 +19,13 @@ import {
   ActionType,
   BulkActionDropdownOption,
   CellDisplay,
+  CellEditErrorEvent,
+  CellEditEvent,
+  ChildGridConfig,
   ColumnDefinition,
   ColumnFilter,
+  ColumnReorderEvent,
+  ColumnResizeEvent,
   CursorPageChange,
   FieldConfiguration,
   FilterChange,
@@ -25,15 +34,25 @@ import {
   FlattenedRow,
   GlobalSearchChange,
   GlobalSearchConfig,
+  GroupConfig,
+  GroupExpandEvent,
   PageSizeChange,
   PaginationOptions,
+  ResolvedFooterRow,
+  RowExpandEvent,
+  RowGroup,
+  RowReorderEvent,
   SortChange,
+  StringKey,
   TableAction,
   TableBulkAction,
   TreeTableConfig,
+  VirtualScrollConfig,
 } from './table.types';
-import { flattenTreeData, generateRowKey, getRowChildren, rowHasChildren } from './table.helpers';
+import { flattenTreeData, generateRowKey, getRowChildren, groupData, rowHasChildren, resolveGroupAggregates } from './table.helpers';
+import { computeAggregate } from './table-aggregates';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { generateUniqueId } from '../../utils/generate-uuid';
 
 // Optimized DataSource with proper typing
 class SignalDataSource<T> extends DataSource<T> {
@@ -78,7 +97,7 @@ interface SortState {
 
 @Component({
   selector: 'app-table',
-  imports: [CommonModule, CdkTableModule, LucideIconComponent, TableFilterComponent, TablePaginationComponent, TableGlobalSearchComponent, TableColumnVisibilityComponent],
+  imports: [CommonModule, CdkTableModule, ScrollingModule, LucideIconComponent, TableFilterComponent, TablePaginationComponent, TableGlobalSearchComponent, TableColumnVisibilityComponent, AutoFocusDirective, forwardRef(() => TableComponent)],
   templateUrl: './table.component.html',
   styleUrls: ['./table.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -86,6 +105,9 @@ interface SortState {
 export class TableComponent<T extends object> implements OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elementRef = inject(ElementRef);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly hasLocalStorage = this.isBrowser && typeof localStorage !== 'undefined';
 
   // Handle click outside to close dropdowns
   @HostListener('document:click', ['$event'])
@@ -98,7 +120,9 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
   }
 
-  private static readonly htmlParser = new DOMParser();
+  private readonly htmlParser = this.isBrowser && typeof DOMParser !== 'undefined'
+    ? new DOMParser()
+    : null;
 
   // Inputs as signals
   readonly data = input<readonly T[] | null>(null);
@@ -122,6 +146,14 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly filterChange = output<FilterChange<T>>();
   readonly globalSearchChange = output<GlobalSearchChange>();
   readonly expansionChange = output<{ row: T; expanded: boolean }>();
+  readonly columnResize = output<ColumnResizeEvent>();
+  readonly cellEdit = output<CellEditEvent<T>>();
+  readonly cellEditCancel = output<{ row: T; field: string }>();
+  readonly cellEditError = output<CellEditErrorEvent<T>>();
+  readonly detailExpansionChange = output<RowExpandEvent<T>>();
+  readonly columnReorder = output<ColumnReorderEvent>();
+  readonly rowReorder = output<RowReorderEvent<T>>();
+  readonly groupExpandChange = output<GroupExpandEvent>();
 
   // Internal signals
   private readonly sortState = signal<SortState>({ field: '', direction: '' });
@@ -137,6 +169,161 @@ export class TableComponent<T extends object> implements OnDestroy {
   private treeRowLevelMap = new Map<T, number>(); // Cache row levels for template access
   private treeRowKeyMap = new Map<T, string>(); // Cache row keys for template access
   private treeRowHasChildrenMap = new Map<T, boolean>(); // Cache hasChildren for template access
+
+  // ============================================================================
+  // Sticky Columns
+  // ============================================================================
+  readonly stickyStartColumnsSignal = computed(() => {
+    const cols = this.columnDefsSignal();
+    const set = new Set<string>();
+    for (const col of cols) {
+      if (col.sticky === 'start') set.add(col.field);
+    }
+    return set;
+  });
+
+  readonly stickyEndColumnsSignal = computed(() => {
+    const cols = this.columnDefsSignal();
+    const set = new Set<string>();
+    for (const col of cols) {
+      if (col.sticky === 'end') set.add(col.field);
+    }
+    return set;
+  });
+
+  readonly hasStickyColumnsSignal = computed(() => {
+    const config = this.fieldConfig()?.stickyColumns;
+    // Only activate sticky behavior when stickyColumns is explicitly configured with at least one option
+    return config != null && (config.stickySelection != null || config.stickyActions != null);
+  });
+
+  readonly stickySelectionSignal = computed(() => {
+    const config = this.fieldConfig()?.stickyColumns;
+    if (!this.hasStickyColumnsSignal()) return false;
+    return this.hasSelectionSignal() && config?.stickySelection !== false;
+  });
+
+  readonly stickyActionsSignal = computed(() => {
+    const config = this.fieldConfig()?.stickyColumns;
+    if (!this.hasStickyColumnsSignal()) return false;
+    return this.hasActionsSignal() && config?.stickyActions !== false;
+  });
+
+  // ============================================================================
+  // Column Resizing
+  // ============================================================================
+  readonly columnWidthsSignal = signal<Map<string, number>>(new Map());
+  readonly isResizingSignal = signal(false);
+  readonly enableResizingSignal = computed(() => this.fieldConfig()?.enableColumnResizing ?? false);
+  private resizeState: { field: string; startX: number; startWidth: number } | null = null;
+
+  @HostBinding('class.resizing')
+  get isResizingClass(): boolean {
+    return this.isResizingSignal();
+  }
+
+  // Keyboard navigation: host must be focusable
+  @HostBinding('attr.tabindex')
+  get keyboardTabIndex(): number | null {
+    return this.enableKeyboardNavSignal() ? 0 : null;
+  }
+
+  @HostBinding('style.outline')
+  get hostOutline(): string | null {
+    return this.enableKeyboardNavSignal() ? 'none' : null;
+  }
+
+  // ============================================================================
+  // Virtual Scrolling
+  // ============================================================================
+  readonly virtualScrollConfigSignal = computed(() => this.fieldConfig()?.virtualScroll);
+  readonly isVirtualScrollSignal = computed(() => this.virtualScrollConfigSignal()?.enabled ?? false);
+  readonly virtualScrollItemHeightSignal = computed(() => this.virtualScrollConfigSignal()?.itemHeight ?? 48);
+  readonly virtualScrollViewportHeightSignal = computed(() => this.virtualScrollConfigSignal()?.viewportHeight ?? '400px');
+
+  // ============================================================================
+  // Inline Cell Editing
+  // ============================================================================
+  readonly enableEditingSignal = computed(() => this.fieldConfig()?.enableInlineEditing ?? false);
+  readonly editingCell = signal<{ row: T; field: string } | null>(null);
+  readonly editingValue = signal<unknown>(null);
+  readonly editError = signal<string | null>(null);
+
+  // ============================================================================
+  // Feature 1: Summary Footer Row
+  // ============================================================================
+  readonly showFooterSignal = computed(() => this.fieldConfig()?.showFooter ?? false);
+  readonly hasAggregateFooterSignal = computed(() => this.showFooterSignal() && this.columnDefsSignal().some(col => !!col.footer));
+  /** Custom footer template — rendered between table and pagination for full flexibility. */
+  readonly footerTemplate = contentChild<TemplateRef<{ $implicit: readonly T[]; columns: readonly ColumnDefinition<T>[] }>>('tableFooter');
+
+  // Multi-row footer signals
+  readonly resolvedFooterRowsSignal = computed(() => this.config()?.resolvedFooterRows ?? []);
+  readonly hasFooterRowsSignal = computed(() => this.resolvedFooterRowsSignal().length > 0);
+
+  /** True when either multi-row footerRows OR legacy column.footer exists. */
+  readonly hasFooterSignal = computed(() =>
+    this.hasFooterRowsSignal() || this.hasAggregateFooterSignal(),
+  );
+
+  // ============================================================================
+  // Native Drag State (Column & Row Reordering)
+  // ============================================================================
+  readonly draggedColumnField = signal<string | null>(null);
+  readonly dragOverColumnField = signal<string | null>(null);
+  readonly draggedRow = signal<T | null>(null);
+  readonly dragOverRowIndex = signal<number | null>(null);
+
+  // ============================================================================
+  // Feature 2: Expandable Row Detail
+  // ============================================================================
+  readonly rowDetailTemplate = contentChild<TemplateRef<{ $implicit: T }>>('rowDetail');
+  readonly expandedDetailRows = signal<Set<T>>(new Set());
+  readonly isExpandableDetailSignal = computed(() => this.fieldConfig()?.expandableDetail ?? false);
+  readonly expandModeSignal = computed(() => this.fieldConfig()?.expandMode ?? 'multi');
+  readonly showExpandColumnSignal = computed(() => this.isExpandableDetailSignal() && (!!this.rowDetailTemplate() || !!this.childGridConfigSignal()));
+
+  // ============================================================================
+  // Feature 2b: Hierarchy Grid (Child Grid)
+  // ============================================================================
+  readonly childGridConfigSignal = computed(() => this.config()?.childGrid);
+  readonly hasChildGridSignal = computed(() => !!this.childGridConfigSignal());
+
+  // ============================================================================
+  // Feature 3: Keyboard Navigation
+  // ============================================================================
+  readonly enableKeyboardNavSignal = computed(() => this.fieldConfig()?.enableKeyboardNavigation ?? false);
+  readonly activeCellSignal = signal<[number, number] | null>(null);
+
+  // ============================================================================
+  // Feature 4: Column Reordering
+  // ============================================================================
+  readonly enableColumnReorderSignal = computed(() => this.fieldConfig()?.enableColumnReorder ?? false);
+  readonly columnOrderOverride = signal<string[] | null>(null);
+
+  // ============================================================================
+  // Feature 5: Row Reordering
+  // ============================================================================
+  readonly enableRowReorderSignal = computed(() => {
+    const config = this.fieldConfig();
+    if (!config?.enableRowReorder) return false;
+    // Disable when sort or filter is active
+    if (this.sortState().field) return false;
+    if (this.filterState().length > 0) return false;
+    if (this.debouncedSearchTerm()) return false;
+    return true;
+  });
+  readonly showDragHandleColumnSignal = computed(() => this.enableRowReorderSignal() && (this.fieldConfig()?.showDragHandle ?? true));
+
+  // ============================================================================
+  // Feature 6: Row Grouping
+  // ============================================================================
+  readonly groupConfigSignal = computed(() => this.fieldConfig()?.grouping);
+  readonly isGroupedSignal = computed(() => !!this.groupConfigSignal()?.groupBy);
+  readonly expandedGroups = signal<Set<unknown> | null>(null);
+  readonly resolvedGroupAggregatesSignal = computed(() => this.config()?.resolvedGroupAggregates);
+  readonly hasGroupCaptionAggregatesSignal = computed(() => !!this.groupConfigSignal()?.captionAggregates);
+  readonly hasGroupFooterRowsSignal = computed(() => (this.groupConfigSignal()?.groupFooterRows?.length ?? 0) > 0);
 
   // Global search signals
   readonly globalSearchTerm = signal<string>('');
@@ -396,12 +583,81 @@ export class TableComponent<T extends object> implements OnDestroy {
   });
 
   // Get the data for display - either flattened tree data or regular sorted data
-  private readonly displayDataSignal = computed(() => {
+  readonly displayDataSignal = computed(() => {
     const flattened = this.flattenedTreeDataSignal();
     if (flattened) {
       return flattened.map(f => f.data);
     }
     return this.sortedDataSignal();
+  });
+
+  // ============================================================================
+  // Row Grouping Pipeline
+  // ============================================================================
+  readonly groupedDataSignal = computed<RowGroup<T>[]>(() => {
+    const config = this.groupConfigSignal();
+    if (!config?.groupBy) return [];
+
+    const data = this.displayDataSignal();
+    const expandedGroups = this.expandedGroups();
+    const resolvedGroupAggregates = this.resolvedGroupAggregatesSignal();
+
+    const groups = groupData<T>(
+      data,
+      config.groupBy,
+      config.aggregates as Partial<Record<StringKey<T>, import('./table-aggregates').AggregateFunction>>,
+      config.groupSortFn,
+      config.groupHeaderLabel,
+      config.initiallyExpanded ?? true,
+      resolvedGroupAggregates,
+    );
+
+    // Apply expansion state: null = not yet initialized (use defaults), Set = explicit user state
+    for (const group of groups) {
+      group.expanded = expandedGroups === null
+        ? (config.initiallyExpanded ?? true)
+        : expandedGroups.has(group.groupValue);
+    }
+
+    return groups;
+  });
+
+  /** Flattened display rows for grouped mode: group-header, data, group-footer sentinel rows */
+  readonly groupedDisplaySignal = computed<Array<
+    | { type: 'group-header'; group: RowGroup<T> }
+    | { type: 'group-footer'; group: RowGroup<T>; footerRowIndex?: number }
+    | { type: 'data'; row: T }
+  >>(() => {
+    const groups = this.groupedDataSignal();
+    if (groups.length === 0) return [];
+
+    const config = this.groupConfigSignal();
+    const showGroupFooter = config?.showGroupFooter ?? false;
+    const hasGroupFooterRows = this.hasGroupFooterRowsSignal();
+
+    const result: Array<
+      | { type: 'group-header'; group: RowGroup<T> }
+      | { type: 'group-footer'; group: RowGroup<T>; footerRowIndex?: number }
+      | { type: 'data'; row: T }
+    > = [];
+    for (const group of groups) {
+      result.push({ type: 'group-header', group });
+      if (group.expanded) {
+        for (const row of group.rows) {
+          result.push({ type: 'data', row });
+        }
+        if (hasGroupFooterRows && group.resolvedGroupFooterRows) {
+          // Emit one display row per group footer row (column-aligned)
+          for (let i = 0; i < group.resolvedGroupFooterRows.length; i++) {
+            result.push({ type: 'group-footer', group, footerRowIndex: i });
+          }
+        } else if (showGroupFooter) {
+          // Legacy single full-colspan footer
+          result.push({ type: 'group-footer', group });
+        }
+      }
+    }
+    return result;
   });
 
   // Total items for pagination - must be defined after displayDataSignal
@@ -419,6 +675,9 @@ export class TableComponent<T extends object> implements OnDestroy {
     const mode = this.modeSignal();
     const data = this.displayDataSignal(); // Use display data (handles tree flattening)
 
+    // Virtual scroll: return all data (CDK handles viewport)
+    if (this.isVirtualScrollSignal()) return data;
+
     if (mode === 'offset') {
       const start = this.pageIndexSignal() * this.pageSizeSignal();
       const end = start + this.pageSizeSignal();
@@ -429,7 +688,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     return data;
   });
 
-  readonly columnDefsSignal = computed(() => {
+  readonly columnDefsSignal = computed((): ColumnDefinition<T>[] => {
     const cols = this.columns();
     if (cols?.length) return cols;
 
@@ -495,26 +754,59 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly selectedArraySignal = computed(() => [...this.selectedSignal()]);
 
   readonly displayedColumnsSignal = computed(() => {
-    const allColumns = this.columnDefsSignal().map(c => c.field);
+    let dataColumns = this.columnDefsSignal().map(c => c.field);
     const visibilityState = this.columnVisibilityState();
 
     // Filter columns based on visibility
-    const visibleColumns: string[] = allColumns.filter(field => {
-      // If column visibility is not enabled, show all columns
+    dataColumns = dataColumns.filter(field => {
       if (!this.isColumnVisibilityEnabled()) return true;
-
-      // Check visibility state
       const isVisible = visibilityState.get(field);
-      return isVisible !== false; // Show by default if not set
+      return isVisible !== false;
     });
 
-    // Add special columns in order: select, tree_expand, data columns, actions
-    // Note: unshift adds to the beginning, so we add in reverse order
+    // Apply column order override (from column reordering)
+    const orderOverride = this.columnOrderOverride();
+    if (orderOverride) {
+      const ordered: StringKey<T>[] = [];
+      for (const col of orderOverride) {
+        if ((dataColumns as string[]).includes(col)) ordered.push(col as StringKey<T>);
+      }
+      // Append any columns not in the override (newly added columns)
+      for (const col of dataColumns) {
+        if (!(ordered as string[]).includes(col)) ordered.push(col);
+      }
+      dataColumns = ordered;
+    }
+
+    const visibleColumns: string[] = [...dataColumns];
+
+    // Add special columns in order: drag_handle, select, tree_expand, detail_expand, data, actions
+    if (this.showExpandColumnSignal()) visibleColumns.unshift('__detail_expand');
     if (this.isTreeTableSignal()) visibleColumns.unshift('__tree_expand');
     if (this.hasSelectionSignal()) visibleColumns.unshift('select');
+    if (this.showDragHandleColumnSignal()) visibleColumns.unshift('__drag_handle');
     if (this.hasActionsSignal()) visibleColumns.push('actions');
 
     return visibleColumns;
+  });
+
+  // Ordered column defs respecting column reorder
+  readonly orderedColumnDefsSignal = computed(() => {
+    const cols = this.columnDefsSignal();
+    const orderOverride = this.columnOrderOverride();
+    if (!orderOverride) return cols;
+
+    const colMap = new Map(cols.map(c => [c.field, c]));
+    const ordered: ColumnDefinition<T>[] = [];
+    for (const field of orderOverride) {
+      const col = colMap.get(field as StringKey<T>);
+      if (col) ordered.push(col);
+    }
+    // Append any not in override
+    for (const col of cols) {
+      if (!ordered.includes(col)) ordered.push(col);
+    }
+    return ordered;
   });
 
   readonly isAllSelected = computed(() => {
@@ -641,6 +933,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   // Enhanced sort method with server-side support
   sort(field: string): void {
+    if (this.isResizingSignal()) return; // Skip sort while resizing
     const currentSort = this.sortState();
     const newDirection = this.calculateNewSortDirection(field, currentSort);
     const newSortState: SortState = {
@@ -1122,11 +1415,528 @@ export class TableComponent<T extends object> implements OnDestroy {
     });
   }
 
+  // ============================================================================
+  // Sticky Column Methods
+  // ============================================================================
+
+  isStickyStart(field: string): boolean {
+    if (field === 'select') return this.stickySelectionSignal();
+    return this.stickyStartColumnsSignal().has(field);
+  }
+
+  isStickyEnd(field: string): boolean {
+    if (field === 'actions') return this.stickyActionsSignal();
+    return this.stickyEndColumnsSignal().has(field);
+  }
+
+  // ============================================================================
+  // Column Resizing Methods
+  // ============================================================================
+
+  getColumnWidth(field: string): number | null {
+    return this.columnWidthsSignal().get(field) ?? null;
+  }
+
+  onResizeStart(field: string, event: PointerEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const th = (event.target as HTMLElement).closest('th');
+    if (!th) return;
+
+    this.isResizingSignal.set(true);
+    this.resizeState = { field, startX: event.clientX, startWidth: th.offsetWidth };
+
+    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  onResizeMove(event: PointerEvent): void {
+    if (!this.resizeState) return;
+
+    const { field, startX, startWidth } = this.resizeState;
+    const diff = event.clientX - startX;
+    let newWidth = Math.max(startWidth + diff, 50); // minimum 50px
+
+    // Enforce column min/max from column definition
+    const col = this.columnDefsSignal().find(c => c.field === field);
+    if (col?.minWidth) newWidth = Math.max(newWidth, col.minWidth);
+    if (col?.maxWidth) newWidth = Math.min(newWidth, col.maxWidth);
+
+    this.columnWidthsSignal.update(m => {
+      const newMap = new Map(m);
+      newMap.set(field, newWidth);
+      return newMap;
+    });
+  }
+
+  onResizeEnd(): void {
+    if (!this.resizeState) return;
+
+    const { field, startWidth } = this.resizeState;
+    const newWidth = this.columnWidthsSignal().get(field) ?? startWidth;
+
+    this.columnResize.emit({ field, width: newWidth, previousWidth: startWidth });
+    this.resizeState = null;
+    this.isResizingSignal.set(false);
+  }
+
+  // ============================================================================
+  // Inline Cell Editing Methods
+  // ============================================================================
+
+  startEdit(row: T, field: string): void {
+    if (!this.enableEditingSignal()) return;
+    const col = this.columnDefsSignal().find(c => c.field === field);
+    if (!col?.editable) return;
+
+    this.editingCell.set({ row, field });
+    this.editingValue.set(row[field as keyof T]);
+    this.editError.set(null);
+  }
+
+  confirmEdit(): void {
+    const cell = this.editingCell();
+    if (!cell) return;
+
+    const { row, field } = cell;
+    const newValue = this.editingValue();
+    const col = this.columnDefsSignal().find(c => c.field === field);
+
+    // Run validator if present
+    if (col?.editValidator) {
+      const result = col.editValidator(newValue, row);
+      if (result !== true) {
+        const errorMsg = typeof result === 'string' ? result : 'Invalid value';
+        this.editError.set(errorMsg);
+        this.cellEditError.emit({ row, field, value: newValue, error: errorMsg });
+        return;
+      }
+    }
+
+    const oldValue = row[field as keyof T];
+    this.cellEdit.emit({ row, field, oldValue, newValue });
+
+    this.editingCell.set(null);
+    this.editingValue.set(null);
+    this.editError.set(null);
+  }
+
+  cancelEdit(): void {
+    const cell = this.editingCell();
+    if (cell) {
+      this.cellEditCancel.emit({ row: cell.row, field: cell.field });
+    }
+    this.editingCell.set(null);
+    this.editingValue.set(null);
+    this.editError.set(null);
+  }
+
+  isEditing(row: T, field: string): boolean {
+    const cell = this.editingCell();
+    return cell?.row === row && cell?.field === field;
+  }
+
+  getEditorType(column: ColumnDefinition<T>): string {
+    return column.editType ?? 'text';
+  }
+
+  onEditKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.confirmEdit();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelEdit();
+    }
+  }
+
+  // ============================================================================
+  // Feature 1: Summary Footer Row Methods
+  // ============================================================================
+
+  getFooterValue(column: ColumnDefinition<T>): string {
+    if (!column.footer) return '';
+    const data = this.displayDataSignal();
+    const result = column.footer(data);
+    return String(result);
+  }
+
+  getFooterRowCellValue(row: ResolvedFooterRow<T>, column: ColumnDefinition<T>): string {
+    const fn = row.cells[column.field];
+    if (!fn) return '';
+    return fn(this.displayDataSignal());
+  }
+
+  /**
+   * Column name sets for CDK multi-row footer.
+   * Each footer row gets its own prefixed column set (e.g. '__fr0_salary', '__fr1_salary')
+   * so CDK renders each row with its own cdkFooterCellDef — different content per row.
+   */
+  readonly footerColumnSets = computed(() => {
+    const rows = this.resolvedFooterRowsSignal();
+    if (!rows.length) return [];
+    const baseCols = this.displayedColumnsSignal();
+    return rows.map((_, i) => baseCols.map(col => `__fr${i}_${col}`));
+  });
+
+  /** Look up the footer aggregate value for a given footer row + base column name. */
+  getFooterCellValueForCol(rowIdx: number, baseCol: string): string {
+    const footerRow = this.resolvedFooterRowsSignal()[rowIdx];
+    if (!footerRow) return '';
+    const column = this.orderedColumnDefsSignal().find(c => c.field === baseCol);
+    if (!column) return ''; // Special column (select, actions, etc.) — empty cell
+    return this.getFooterRowCellValue(footerRow, column);
+  }
+
+  // ============================================================================
+  // Feature 2: Expandable Row Detail Methods
+  // ============================================================================
+
+  isDetailExpanded(row: T): boolean {
+    return this.expandedDetailRows().has(row);
+  }
+
+  toggleDetailExpand(row: T, event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+
+    const mode = this.expandModeSignal();
+    const isExpanded = this.expandedDetailRows().has(row);
+
+    this.expandedDetailRows.update(set => {
+      const newSet = mode === 'single' ? new Set<T>() : new Set(set);
+      if (isExpanded) {
+        newSet.delete(row);
+      } else {
+        newSet.add(row);
+      }
+      return newSet;
+    });
+
+    this.detailExpansionChange.emit({ row, expanded: !isExpanded });
+  }
+
+  expandAllDetails(): void {
+    const data = this.currentDataSignal();
+    this.expandedDetailRows.set(new Set(data));
+  }
+
+  collapseAllDetails(): void {
+    this.expandedDetailRows.set(new Set());
+  }
+
+  // ============================================================================
+  // Feature 2b: Hierarchy Grid (Child Grid) Methods
+  // ============================================================================
+
+  getChildGridData(row: T): readonly unknown[] {
+    const cfg = this.childGridConfigSignal();
+    if (!cfg) return [];
+    if (cfg.childDataFn) return cfg.childDataFn(row);
+    if (cfg.childDataProperty) return (row as Record<string, unknown>)[cfg.childDataProperty] as unknown[] ?? [];
+    return [];
+  }
+
+  getChildGridContainerClass(): string {
+    const cfg = this.childGridConfigSignal();
+    const bordered = cfg?.bordered !== false;
+    return [
+      'child-grid-wrapper',
+      bordered ? 'child-grid-bordered' : '',
+      cfg?.containerClass ?? '',
+    ].filter(Boolean).join(' ');
+  }
+
+  // ============================================================================
+  // Feature 3: Keyboard Navigation Methods
+  // ============================================================================
+
+  getCellId(rowIndex: number, colIndex: number): string {
+    return `cell-${rowIndex}-${colIndex}`;
+  }
+
+  getActiveCellId(): string | null {
+    const cell = this.activeCellSignal();
+    if (!cell) return null;
+    return this.getCellId(cell[0], cell[1]);
+  }
+
+  @HostListener('keydown', ['$event'])
+  onTableKeydown(event: KeyboardEvent): void {
+    if (!this.enableKeyboardNavSignal()) return;
+
+    const cell = this.activeCellSignal();
+    if (!cell && !['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+
+    const data = this.currentDataSignal();
+    const cols = this.displayedColumnsSignal();
+    const maxRow = data.length - 1;
+    const maxCol = cols.length - 1;
+
+    let [row, col] = cell ?? [0, 0];
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        row = Math.min(row + 1, maxRow);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        row = Math.max(row - 1, 0);
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        col = Math.min(col + 1, maxCol);
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        col = Math.max(col - 1, 0);
+        break;
+      case 'Home':
+        event.preventDefault();
+        col = 0;
+        if (event.ctrlKey) row = 0;
+        break;
+      case 'End':
+        event.preventDefault();
+        col = maxCol;
+        if (event.ctrlKey) row = maxRow;
+        break;
+      case 'Enter': {
+        event.preventDefault();
+        const colName = cols[col];
+        const rowData = data[row];
+        if (rowData) {
+          // Toggle expand if on expand column
+          if (colName === '__detail_expand') {
+            this.toggleDetailExpand(rowData);
+          } else if (colName !== 'select' && colName !== 'actions' && colName !== '__drag_handle') {
+            // Start edit if editable
+            this.startEdit(rowData, colName);
+          }
+        }
+        break;
+      }
+      case ' ':
+        event.preventDefault();
+        if (cell && data[row]) {
+          const colName = cols[col];
+          if (colName === 'select' || this.hasSelectionSignal()) {
+            this.toggleRow(data[row], !this.isSelected(data[row]));
+          }
+        }
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.activeCellSignal.set(null);
+        return;
+      default:
+        return;
+    }
+
+    this.activeCellSignal.set([row, col]);
+    // Scroll active cell into view
+    requestAnimationFrame(() => {
+      const id = this.getCellId(row, col);
+      const el = this.elementRef.nativeElement.querySelector(`#${id}`);
+      el?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+  }
+
+  isActiveCell(rowIndex: number, colIndex: number): boolean {
+    const cell = this.activeCellSignal();
+    if (!cell) return false;
+    return cell[0] === rowIndex && cell[1] === colIndex;
+  }
+
+  /** Focus the host and set active cell when a cell is clicked (keyboard nav). */
+  onCellClick(rowIndex: number, colIndex: number): void {
+    if (!this.enableKeyboardNavSignal()) return;
+    this.activeCellSignal.set([rowIndex, colIndex]);
+    this.elementRef.nativeElement.focus();
+  }
+
+  // ============================================================================
+  // Feature 4: Column Reordering (Native HTML5 Drag)
+  // ============================================================================
+
+  onColumnDragStart(field: string, event: DragEvent): void {
+    if (!this.enableColumnReorderSignal()) return;
+    this.draggedColumnField.set(field);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', field);
+    }
+  }
+
+  onColumnDragOver(field: string, event: DragEvent): void {
+    if (!this.enableColumnReorderSignal() || !this.draggedColumnField()) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    this.dragOverColumnField.set(field);
+  }
+
+  onColumnDragLeave(): void {
+    this.dragOverColumnField.set(null);
+  }
+
+  onColumnDrop(field: string, event: DragEvent): void {
+    event.preventDefault();
+    const fromField = this.draggedColumnField();
+    this.draggedColumnField.set(null);
+    this.dragOverColumnField.set(null);
+
+    if (!fromField || fromField === field) return;
+
+    const cols = [...this.displayedColumnsSignal()];
+    const specialCols = new Set(['select', '__tree_expand', '__detail_expand', '__drag_handle', 'actions']);
+    const dataCols = cols.filter(c => !specialCols.has(c));
+
+    const fromIdx = dataCols.indexOf(fromField);
+    const toIdx = dataCols.indexOf(field);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    moveItemInArray(dataCols, fromIdx, toIdx);
+    this.columnOrderOverride.set(dataCols);
+
+    this.columnReorder.emit({
+      previousIndex: fromIdx,
+      currentIndex: toIdx,
+      columns: dataCols,
+    });
+  }
+
+  onColumnDragEnd(): void {
+    this.draggedColumnField.set(null);
+    this.dragOverColumnField.set(null);
+  }
+
+  // ============================================================================
+  // Feature 5: Row Reordering (Native HTML5 Drag)
+  // ============================================================================
+
+  onRowDragStart(row: T, event: DragEvent): void {
+    if (!this.enableRowReorderSignal()) return;
+    this.draggedRow.set(row);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', '');
+    }
+    (event.target as HTMLElement).classList.add('dragging');
+  }
+
+  onRowDragOver(row: T, event: DragEvent): void {
+    if (!this.enableRowReorderSignal() || !this.draggedRow()) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    const data = this.currentDataSignal();
+    this.dragOverRowIndex.set(data.indexOf(row));
+  }
+
+  onRowDrop(row: T, event: DragEvent): void {
+    event.preventDefault();
+    const sourceRow = this.draggedRow();
+    this.draggedRow.set(null);
+    this.dragOverRowIndex.set(null);
+
+    if (!sourceRow || sourceRow === row) return;
+
+    const data = this.currentDataSignal();
+    const fromIdx = data.indexOf(sourceRow);
+    const toIdx = data.indexOf(row);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    this.rowReorder.emit({
+      row: sourceRow,
+      previousIndex: fromIdx,
+      currentIndex: toIdx,
+      data,
+    });
+  }
+
+  onRowDragEnd(event: DragEvent): void {
+    this.draggedRow.set(null);
+    this.dragOverRowIndex.set(null);
+    (event.target as HTMLElement).classList.remove('dragging');
+  }
+
+  // ============================================================================
+  // Feature 6: Row Grouping Methods
+  // ============================================================================
+
+  toggleGroupExpand(groupValue: unknown): void {
+    const groups = this.groupedDataSignal();
+    const group = groups.find(g => g.groupValue === groupValue);
+    if (!group) return;
+
+    const wasExpanded = group.expanded;
+
+    this.expandedGroups.update(set => {
+      // Lazy-initialize: if null (never interacted), populate from current state
+      let newSet: Set<unknown>;
+      if (set === null) {
+        // First interaction: populate set based on current expanded state of all groups
+        newSet = new Set(groups.filter(g => g.expanded).map(g => g.groupValue));
+      } else {
+        newSet = new Set(set);
+      }
+
+      if (wasExpanded) {
+        newSet.delete(groupValue);
+      } else {
+        newSet.add(groupValue);
+      }
+      return newSet;
+    });
+
+    this.groupExpandChange.emit({ groupValue, expanded: !wasExpanded });
+  }
+
+  expandAllGroups(): void {
+    const groups = this.groupedDataSignal();
+    this.expandedGroups.set(new Set(groups.map(g => g.groupValue)));
+  }
+
+  collapseAllGroups(): void {
+    this.expandedGroups.set(new Set());
+  }
+
+  getGroupAggregateValue(group: RowGroup<T>, field: string): string {
+    const val = group.aggregates[field];
+    return val != null ? String(Math.round(val * 100) / 100) : '';
+  }
+
+  getGroupCaptionValue(group: RowGroup<T>, field: string): string {
+    const fn = group.resolvedCaptionCells?.[field as StringKey<T>];
+    if (!fn) return '';
+    return fn(group.rows);
+  }
+
+  getGroupFooterRowCellValue(group: RowGroup<T>, footerRowIndex: number, column: ColumnDefinition<T>): string {
+    const footerRow = group.resolvedGroupFooterRows?.[footerRowIndex];
+    if (!footerRow) return '';
+    const fn = footerRow.cells[column.field];
+    if (!fn) return '';
+    return fn(group.rows);
+  }
+
+  // Row predicates for grouped CDK table
+  isGroupHeaderRow = (_: number, item: unknown): boolean => {
+    return (item as { type?: string })?.type === 'group-header';
+  };
+
+  isGroupFooterRow = (_: number, item: unknown): boolean => {
+    return (item as { type?: string })?.type === 'group-footer';
+  };
+
+  isDataRow = (_: number, item: unknown): boolean => {
+    return (item as { type?: string })?.type === 'data' || !(item as { type?: string })?.type;
+  };
+
   private saveColumnVisibilityToStorage(): void {
     const config = this.columnVisibilityConfig();
     const storageKey = config?.storageKey;
 
     if (!storageKey) return;
+    if (!this.hasLocalStorage) return;
 
     const visibilityState = this.columnVisibilityState();
     const visibilityObj: Record<string, boolean> = {};
@@ -1150,6 +1960,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const storageKey = config?.storageKey;
 
     if (!storageKey) return;
+    if (!this.hasLocalStorage) return;
 
     try {
       const stored = localStorage.getItem(storageKey);
@@ -1171,6 +1982,23 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   // Private methods
   private setupEffects(): void {
+    // Runtime compatibility warnings
+    effect(() => {
+      const config = this.fieldConfig();
+      if (config?.expandableDetail && config?.virtualScroll?.enabled) {
+        console.warn('[TableComponent] Expandable detail rows and virtual scroll are mutually exclusive. Virtual scroll requires uniform row heights. Expandable detail will be disabled.');
+      }
+      if (config?.grouping?.groupBy && config?.treeTable?.enabled) {
+        console.warn('[TableComponent] Row grouping and tree table are mutually exclusive. Tree table takes precedence.');
+      }
+    });
+
+    // Note: group expansion initialization is handled lazily.
+    // expandedGroups starts as null (uninitialized). groupedDataSignal treats
+    // null as "use defaults" (initiallyExpanded). On first user interaction,
+    // toggleGroupExpand populates the Set from current state. An empty Set
+    // means "all collapsed" (not "all expanded").
+
     // Initialize column visibility (use untracked for reads that would cause re-trigger)
     effect(() => {
       const config = this.columnVisibilityConfig();
@@ -1321,7 +2149,8 @@ export class TableComponent<T extends object> implements OnDestroy {
     if (!value || typeof value !== 'string') return false;
     if (!value.includes('<') || !value.includes('>')) return false;
 
-    const doc = TableComponent.htmlParser.parseFromString(value, 'text/html');
+    if (!this.htmlParser) return false;
+    const doc = this.htmlParser.parseFromString(value, 'text/html');
 
     return doc.body.children.length > 0 && doc.querySelector('parsererror') === null;
   }

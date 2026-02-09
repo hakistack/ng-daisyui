@@ -37,8 +37,10 @@ export { TablePaginationComponent } from './lib/components/table/table-paginatio
 export { TableFilterComponent } from './lib/components/table/table-filter.component';
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
-export { createTable, projectFields, clearHeaderFormatCache, flattenTreeData, generateRowKey, getRowChildren, rowHasChildren } from './lib/components/table/table.helpers';
+export { createTable, projectFields, clearHeaderFormatCache, flattenTreeData, generateRowKey, getRowChildren, rowHasChildren, groupData, resolveFooterRows, resolveGroupAggregates } from './lib/components/table/table.helpers';
+export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
 export type {
+  ChildGridConfig,
   FieldConfig,
   FieldConfiguration,
   ColumnDefinition,
@@ -70,7 +72,24 @@ export type {
   CellDisplay,
   TreeTableConfig,
   FlattenedRow,
+  VirtualScrollConfig,
+  CellEditorConfig,
+  CellEditEvent,
+  CellEditErrorEvent,
+  ColumnResizeEvent,
+  FooterConfig,
+  FooterRowDef,
+  FooterCellDef,
+  ResolvedFooterRow,
+  RowExpandEvent,
+  ColumnReorderEvent,
+  RowReorderEvent,
+  GroupConfig,
+  RowGroup,
+  GroupExpandEvent,
+  ResolvedGroupAggregates,
 } from './lib/components/table/table.types';
+export type { AggregateFunction } from './lib/components/table/table-aggregates';
 
 // Select
 export { SelectComponent } from './lib/components/select/select.component';

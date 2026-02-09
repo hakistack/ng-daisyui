@@ -23,7 +23,7 @@
       <!-- Right: Column Visibility Dropdown -->
       @if (isColumnVisibilityEnabled()) {
         <app-table-column-visibility
-          [columns]="columnDefsSignal()"
+          [columns]="$any(columnDefsSignal())"
           [visibilityState]="columnVisibilityState()"
           [alwaysVisibleColumns]="alwaysVisibleColumns()"
           (toggleColumn)="toggleColumnVisibility($event)"
@@ -153,162 +153,805 @@
   }
 
   <!-- Table Scroll Container -->
-  <div class="overflow-x-auto">
-  <table cdk-table [dataSource]="dataSource" class="table w-full">
-    <!-- Selection Column -->
-    @if (hasSelectionSignal()) {
-      <ng-container cdkColumnDef="select">
-        <th cdk-header-cell *cdkHeaderCellDef class="w-8 px-4">
-          <label>
-            <input
-              type="checkbox"
-              class="checkbox"
-              [checked]="isAllSelected()"
-              (change)="toggleSelectAll($any($event.target).checked)"
-              [attr.aria-label]="isAllSelected() ? 'Deselect all rows on this page' : 'Select all rows on this page'"
-            />
-          </label>
-        </th>
-        <td cdk-cell *cdkCellDef="let row" class="w-8 px-4">
-          <label>
-            <input
-              type="checkbox"
-              class="checkbox"
-              [checked]="isSelected(row)"
-              (change)="toggleRow(row, $any($event.target).checked)"
-              [attr.aria-label]="isSelected(row) ? 'Deselect row' : 'Select row'"
-            />
-          </label>
-        </td>
-      </ng-container>
-    }
+  @if (isVirtualScrollSignal()) {
+    <!-- Virtual Scroll Mode -->
+    <cdk-virtual-scroll-viewport
+      [itemSize]="virtualScrollItemHeightSignal()"
+      [style.height]="virtualScrollViewportHeightSignal()"
+      class="overflow-auto"
+    >
+      <table class="table virtual-scroll-table w-full">
+        <thead>
+          <tr>
+            @if (hasSelectionSignal()) {
+              <th class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
+                <label>
+                  <input
+                    type="checkbox"
+                    class="checkbox"
+                    [checked]="isAllSelected()"
+                    (change)="toggleSelectAll($any($event.target).checked)"
+                    [attr.aria-label]="isAllSelected() ? 'Deselect all rows on this page' : 'Select all rows on this page'"
+                  />
+                </label>
+              </th>
+            }
+            @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+              <th
+                class="relative transition-colors duration-200 select-none"
+                [class.sticky-start]="isStickyStart(column.field)"
+                [class.sticky-end]="isStickyEnd(column.field)"
+                [style.width.px]="getColumnWidth(column.field)"
+                [style.min-width.px]="column.minWidth"
+                [style.max-width.px]="column.maxWidth"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div
+                    class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
+                    (click)="sort(column.field)"
+                    tabindex="0"
+                    (keydown.enter)="sort(column.field)"
+                    (keydown.space)="sort(column.field)"
+                  >
+                    <span>{{ column.header }}</span>
+                    <span class="text-sm opacity-70" aria-hidden="true">
+                      @if (sortFieldSignal() === column.field) {
+                        @if (sortDirectionSignal() === 'Ascending') {
+                          <app-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                        } @else {
+                          <app-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                        }
+                      } @else {
+                        <app-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                      }
+                    </span>
+                  </div>
+                </div>
+                @if (enableResizingSignal() && column.resizable !== false) {
+                  <div
+                    class="resize-handle"
+                    (pointerdown)="onResizeStart(column.field, $event)"
+                    (pointermove)="onResizeMove($event)"
+                    (pointerup)="onResizeEnd()"
+                    (pointercancel)="onResizeEnd()"
+                  ></div>
+                }
+              </th>
+            }
+            @if (hasActionsSignal()) {
+              <th class="text-center" [class.sticky-end]="stickyActionsSignal()">Actions</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *cdkVirtualFor="let row of displayDataSignal()"
+            [style.height.px]="virtualScrollItemHeightSignal()"
+            class="hover:bg-base-50 transition-colors duration-200"
+            [class]="isSelectedBgClass(row)"
+          >
+            @if (hasSelectionSignal()) {
+              <td class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
+                <label>
+                  <input
+                    type="checkbox"
+                    class="checkbox"
+                    [checked]="isSelected(row)"
+                    (change)="toggleRow(row, $any($event.target).checked)"
+                    [attr.aria-label]="isSelected(row) ? 'Deselect row' : 'Select row'"
+                  />
+                </label>
+              </td>
+            }
+            @for (column of orderedColumnDefsSignal(); track trackByField($index, column); let isFirst = $first) {
+              <td
+                class="transition-colors duration-200"
+                [class.sticky-start]="isStickyStart(column.field)"
+                [class.sticky-end]="isStickyEnd(column.field)"
+                [style.width.px]="getColumnWidth(column.field)"
+                [style.min-width.px]="column.minWidth"
+                [style.max-width.px]="column.maxWidth"
+                [style.padding-left.px]="isTreeTableSignal() && isFirst ? getRowIndentPadding(row) : null"
+              >
+                @if (enableEditingSignal() && isEditing(row, column.field)) {
+                  <div class="edit-cell" (keydown)="onEditKeydown($event)">
+                    @switch (getEditorType(column)) {
+                      @case ('toggle') {
+                        <input type="checkbox" class="toggle toggle-sm"
+                          [checked]="editingValue()"
+                          (change)="editingValue.set($any($event.target).checked)" />
+                      }
+                      @case ('select') {
+                        <select class="select select-sm select-bordered w-full"
+                          [value]="editingValue()"
+                          (change)="editingValue.set($any($event.target).value)">
+                          @for (opt of column.editOptions; track opt.value) {
+                            <option [value]="opt.value">{{ opt.label }}</option>
+                          }
+                        </select>
+                      }
+                      @case ('number') {
+                        <input type="number" class="input input-sm input-bordered w-full"
+                          [value]="editingValue()"
+                          (input)="editingValue.set(+$any($event.target).value)"
+                          appAutoFocus />
+                      }
+                      @case ('date') {
+                        <input type="date" class="input input-sm input-bordered w-full"
+                          [value]="editingValue()"
+                          (input)="editingValue.set($any($event.target).value)"
+                          appAutoFocus />
+                      }
+                      @default {
+                        <input type="text" class="input input-sm input-bordered w-full"
+                          [value]="editingValue()"
+                          (input)="editingValue.set($any($event.target).value)"
+                          appAutoFocus />
+                      }
+                    }
+                    @if (editError()) {
+                      <span class="text-error text-xs">{{ editError() }}</span>
+                    }
+                    <div class="edit-cell-actions">
+                      <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
+                        <app-lucide-icon name="Check" class="h-3 w-3" />
+                      </button>
+                      <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
+                        <app-lucide-icon name="X" class="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <div (dblclick)="startEdit(row, column.field)" [class.cursor-pointer]="column.editable">
+                    @let syncDisplay = getCellDisplaySync(row, column);
+                    @if (syncDisplay) {
+                      @if (syncDisplay.isHtml) {
+                        <span [innerHTML]="syncDisplay.safeHtml"></span>
+                      } @else {
+                        {{ syncDisplay.value }}
+                      }
+                    } @else {
+                      @if (getCellDisplayAsync(row, column) | async; as asyncDisplay) {
+                        @if (asyncDisplay.isHtml) {
+                          <span [innerHTML]="asyncDisplay.safeHtml"></span>
+                        } @else {
+                          {{ asyncDisplay.value }}
+                        }
+                      }
+                    }
+                  </div>
+                }
+              </td>
+            }
+            @if (hasActionsSignal()) {
+              <td class="text-center" [class.sticky-end]="stickyActionsSignal()">
+                <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+                  @for (action of actionListSignal(); track trackByAction($index, action)) {
+                    @if (!action.config.hidden?.(row)) {
+                      <button
+                        type="button"
+                        [class]="classesFor(action)"
+                        [style]="action.config.buttonStyle"
+                        [disabled]="action.config.disabled?.(row)"
+                        (click)="action.config.action(row)"
+                      >
+                        @if (action.config.icon) {
+                          <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                        }
+                        <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
+                      </button>
+                    }
+                  }
+                </div>
+              </td>
+            }
+          </tr>
+        </tbody>
+        <!-- Virtual Scroll Footer -->
+        @if (hasFooterSignal()) {
+          <tfoot>
+            @if (hasFooterRowsSignal()) {
+              @for (footerRow of resolvedFooterRowsSignal(); track $index) {
+                <tr class="bg-base-200/50 font-semibold footer-row" [class]="footerRow.class ?? ''">
+                  @if (hasSelectionSignal()) { <td></td> }
+                  @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                    <td class="font-semibold">
+                      {{ getFooterRowCellValue(footerRow, column) }}
+                    </td>
+                  }
+                  @if (hasActionsSignal()) { <td></td> }
+                </tr>
+              }
+            } @else {
+              <tr class="bg-base-200/50 font-semibold footer-row">
+                @if (hasSelectionSignal()) { <td></td> }
+                @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                  <td class="font-semibold">
+                    @if (column.footer) { {{ getFooterValue(column) }} }
+                  </td>
+                }
+                @if (hasActionsSignal()) { <td></td> }
+              </tr>
+            }
+          </tfoot>
+        }
+      </table>
+    </cdk-virtual-scroll-viewport>
+  } @else if (isGroupedSignal() && !isTreeTableSignal()) {
+    <!-- Grouped Table Mode -->
+    <div class="overflow-x-auto">
+      <table class="table w-full" [attr.role]="enableKeyboardNavSignal() ? 'grid' : 'table'">
+        <!-- Header -->
+        <thead>
+          <tr>
+            @if (showDragHandleColumnSignal()) {
+              <th class="w-10 px-2"></th>
+            }
+            @if (hasSelectionSignal()) {
+              <th class="w-8 px-4">
+                <label>
+                  <input type="checkbox" class="checkbox"
+                    [checked]="isAllSelected()"
+                    (change)="toggleSelectAll($any($event.target).checked)"
+                    [attr.aria-label]="isAllSelected() ? 'Deselect all' : 'Select all'" />
+                </label>
+              </th>
+            }
+            @if (showExpandColumnSignal()) {
+              <th class="w-10 px-2"></th>
+            }
+            @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+              <th class="relative transition-colors duration-200 select-none">
+                <div class="flex items-center gap-1">
+                  <div class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
+                    (click)="sort(column.field)" tabindex="0" (keydown.enter)="sort(column.field)" (keydown.space)="sort(column.field)">
+                    <span>{{ column.header }}</span>
+                    <span class="text-sm opacity-70" aria-hidden="true">
+                      @if (sortFieldSignal() === column.field) {
+                        @if (sortDirectionSignal() === 'Ascending') {
+                          <app-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                        } @else {
+                          <app-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                        }
+                      } @else {
+                        <app-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                      }
+                    </span>
+                  </div>
+                </div>
+              </th>
+            }
+            @if (hasActionsSignal()) {
+              <th class="text-center">Actions</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (displayRow of groupedDisplaySignal(); track $index) {
+            @if (displayRow.type === 'group-header') {
+              <tr class="bg-base-200/70 group-header-row cursor-pointer" (click)="toggleGroupExpand(displayRow.group.groupValue)">
+                <td [attr.colspan]="displayedColumnsSignal().length" class="py-2 px-4">
+                  <div class="flex items-center gap-2 font-semibold">
+                    <app-lucide-icon
+                      [name]="displayRow.group.expanded ? 'ChevronDown' : 'ChevronRight'"
+                      class="h-4 w-4"
+                      aria-hidden="true"
+                    />
+                    <span>{{ displayRow.group.groupLabel }}</span>
+                    <span class="badge badge-sm badge-neutral">{{ displayRow.group.rows.length }}</span>
+                    @if (hasGroupCaptionAggregatesSignal()) {
+                      <span class="ml-2 text-base-content/60 text-sm font-normal flex items-center gap-3">
+                        @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                          @let captionVal = getGroupCaptionValue(displayRow.group, column.field);
+                          @if (captionVal) {
+                            <span class="group-caption-aggregate">{{ captionVal }}</span>
+                          }
+                        }
+                      </span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @else if (displayRow.type === 'data') {
+              <tr class="hover:bg-base-50 transition-colors duration-200" [class]="isSelectedBgClass(displayRow.row)">
+                @if (showDragHandleColumnSignal()) {
+                  <td class="w-10 px-2"></td>
+                }
+                @if (hasSelectionSignal()) {
+                  <td class="w-8 px-4">
+                    <label>
+                      <input type="checkbox" class="checkbox"
+                        [checked]="isSelected(displayRow.row)"
+                        (change)="toggleRow(displayRow.row, $any($event.target).checked)" />
+                    </label>
+                  </td>
+                }
+                @if (showExpandColumnSignal()) {
+                  <td class="w-10 px-2">
+                    @if (hasChildGridSignal() || rowDetailTemplate()) {
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-xs btn-square"
+                        (click)="toggleDetailExpand(displayRow.row, $event)"
+                        [attr.aria-expanded]="isDetailExpanded(displayRow.row)"
+                        [attr.aria-label]="isDetailExpanded(displayRow.row) ? 'Collapse details' : 'Expand details'"
+                      >
+                        <app-lucide-icon
+                          [name]="isDetailExpanded(displayRow.row) ? 'ChevronDown' : 'ChevronRight'"
+                          class="h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    }
+                  </td>
+                }
+                @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                  <td>
+                    @let syncDisplay = getCellDisplaySync(displayRow.row, column);
+                    @if (syncDisplay) {
+                      @if (syncDisplay.isHtml) {
+                        <span [innerHTML]="syncDisplay.safeHtml"></span>
+                      } @else {
+                        {{ syncDisplay.value }}
+                      }
+                    } @else {
+                      @if (getCellDisplayAsync(displayRow.row, column) | async; as asyncDisplay) {
+                        @if (asyncDisplay.isHtml) {
+                          <span [innerHTML]="asyncDisplay.safeHtml"></span>
+                        } @else {
+                          {{ asyncDisplay.value }}
+                        }
+                      }
+                    }
+                  </td>
+                }
+                @if (hasActionsSignal()) {
+                  <td class="text-center">
+                    <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+                      @for (action of actionListSignal(); track trackByAction($index, action)) {
+                        @if (!action.config.hidden?.(displayRow.row)) {
+                          <button type="button" [class]="classesFor(action)" [style]="action.config.buttonStyle"
+                            [disabled]="action.config.disabled?.(displayRow.row)" (click)="action.config.action(displayRow.row)">
+                            @if (action.config.icon) {
+                              <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                            }
+                            <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
+                          </button>
+                        }
+                      }
+                    </div>
+                  </td>
+                }
+              </tr>
+              <!-- Detail row in grouped mode (when expanded) -->
+              @if (isDetailExpanded(displayRow.row)) {
+                <tr>
+                  <td [attr.colspan]="displayedColumnsSignal().length" class="p-0">
+                    <div class="detail-content" [class.px-4]="!!rowDetailTemplate()" [class.py-2]="!!rowDetailTemplate()">
+                      @if (rowDetailTemplate()) {
+                        <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: displayRow.row }" />
+                      } @else if (hasChildGridSignal()) {
+                        <div [class]="getChildGridContainerClass()">
+                          <app-table
+                            [config]="$any(childGridConfigSignal()!.config)"
+                            [data]="$any(getChildGridData(displayRow.row))"
+                            [paginationOptions]="$any(childGridConfigSignal()!.pagination) ?? null"
+                          />
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            } @else if (displayRow.type === 'group-footer') {
+              @if (displayRow.footerRowIndex != null) {
+                <!-- Column-aligned multi-row group footer -->
+                <tr class="bg-base-200/30 group-footer-row">
+                  @if (showDragHandleColumnSignal()) { <td></td> }
+                  @if (hasSelectionSignal()) { <td></td> }
+                  @if (showExpandColumnSignal()) { <td></td> }
+                  @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                    <td class="text-sm text-base-content/70 font-medium">
+                      {{ getGroupFooterRowCellValue(displayRow.group, displayRow.footerRowIndex, column) }}
+                    </td>
+                  }
+                  @if (hasActionsSignal()) { <td></td> }
+                </tr>
+              } @else {
+                <!-- Legacy full-colspan group footer (backward compat) -->
+                <tr class="bg-base-200/30 group-footer-row">
+                  <td [attr.colspan]="displayedColumnsSignal().length" class="py-1 px-4">
+                    <div class="flex items-center gap-4 text-sm text-base-content/70">
+                      @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                        @if (getGroupAggregateValue(displayRow.group, column.field)) {
+                          <span class="font-medium">{{ column.header }}: {{ getGroupAggregateValue(displayRow.group, column.field) }}</span>
+                        }
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          }
+        </tbody>
+        <!-- Footer Row (summary across all groups) -->
+        @if (hasFooterSignal()) {
+          <tfoot>
+            @if (hasFooterRowsSignal()) {
+              @for (footerRow of resolvedFooterRowsSignal(); track $index) {
+                <tr class="bg-base-200/50 font-semibold footer-row" [class]="footerRow.class ?? ''">
+                  @if (showDragHandleColumnSignal()) { <td></td> }
+                  @if (hasSelectionSignal()) { <td></td> }
+                  @if (showExpandColumnSignal()) { <td></td> }
+                  @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                    <td class="font-semibold">
+                      {{ getFooterRowCellValue(footerRow, column) }}
+                    </td>
+                  }
+                  @if (hasActionsSignal()) { <td></td> }
+                </tr>
+              }
+            } @else {
+              <tr class="bg-base-200/50 font-semibold footer-row">
+                @if (showDragHandleColumnSignal()) { <td></td> }
+                @if (hasSelectionSignal()) { <td></td> }
+                @if (showExpandColumnSignal()) { <td></td> }
+                @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                  <td class="font-semibold">
+                    @if (column.footer) { {{ getFooterValue(column) }} }
+                  </td>
+                }
+                @if (hasActionsSignal()) { <td></td> }
+              </tr>
+            }
+          </tfoot>
+        }
+      </table>
+    </div>
+  } @else {
+    <!-- Normal CDK Table Mode -->
+    <div class="overflow-x-auto">
+    <table cdk-table [dataSource]="dataSource" [multiTemplateDataRows]="showExpandColumnSignal()" class="table w-full"
+      [attr.role]="enableKeyboardNavSignal() ? 'grid' : 'table'"
+      [attr.aria-activedescendant]="getActiveCellId()">
 
-    <!-- Tree Table Expand Column (only for tree tables) -->
-    @if (isTreeTableSignal()) {
-      <ng-container cdkColumnDef="__tree_expand">
-        <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2">
-          <!-- Empty header for expand column -->
-        </th>
-        <td cdk-cell *cdkCellDef="let row" class="w-10 px-2">
-          @if (hasChildren(row)) {
+      <!-- Drag Handle Column (Row Reordering) -->
+      @if (showDragHandleColumnSignal()) {
+        <ng-container cdkColumnDef="__drag_handle">
+          <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2"></th>
+          <td cdk-cell *cdkCellDef="let row" class="w-10 px-2 cursor-grab">
+            <app-lucide-icon name="GripVertical" class="h-4 w-4 opacity-40" aria-hidden="true" />
+          </td>
+          @if (hasFooterSignal() && !hasFooterRowsSignal()) {
+            <td cdk-footer-cell *cdkFooterCellDef></td>
+          }
+        </ng-container>
+      }
+
+      <!-- Selection Column -->
+      @if (hasSelectionSignal()) {
+        <ng-container cdkColumnDef="select">
+          <th cdk-header-cell *cdkHeaderCellDef class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
+            <label>
+              <input
+                type="checkbox"
+                class="checkbox"
+                [checked]="isAllSelected()"
+                (change)="toggleSelectAll($any($event.target).checked)"
+                [attr.aria-label]="isAllSelected() ? 'Deselect all rows on this page' : 'Select all rows on this page'"
+              />
+            </label>
+          </th>
+          <td cdk-cell *cdkCellDef="let row" class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
+            <label>
+              <input
+                type="checkbox"
+                class="checkbox"
+                [checked]="isSelected(row)"
+                (change)="toggleRow(row, $any($event.target).checked)"
+                [attr.aria-label]="isSelected(row) ? 'Deselect row' : 'Select row'"
+              />
+            </label>
+          </td>
+          @if (hasFooterSignal() && !hasFooterRowsSignal()) {
+            <td cdk-footer-cell *cdkFooterCellDef></td>
+          }
+        </ng-container>
+      }
+
+      <!-- Tree Table Expand Column (only for tree tables) -->
+      @if (isTreeTableSignal()) {
+        <ng-container cdkColumnDef="__tree_expand">
+          <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2">
+            <!-- Empty header for expand column -->
+          </th>
+          <td cdk-cell *cdkCellDef="let row" class="w-10 px-2">
+            @if (hasChildren(row)) {
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs btn-square"
+                (click)="toggleRowExpand(row, $event)"
+                [attr.aria-expanded]="isRowExpanded(row)"
+                [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
+              >
+                <app-lucide-icon
+                  [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'"
+                  class="h-4 w-4"
+                  aria-hidden="true"
+                />
+              </button>
+            }
+          </td>
+          @if (hasFooterSignal() && !hasFooterRowsSignal()) {
+            <td cdk-footer-cell *cdkFooterCellDef></td>
+          }
+        </ng-container>
+      }
+
+      <!-- Detail Expand Column -->
+      @if (showExpandColumnSignal()) {
+        <ng-container cdkColumnDef="__detail_expand">
+          <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2"></th>
+          <td cdk-cell *cdkCellDef="let row" class="w-10 px-2">
             <button
               type="button"
               class="btn btn-ghost btn-xs btn-square"
-              (click)="toggleRowExpand(row, $event)"
-              [attr.aria-expanded]="isRowExpanded(row)"
-              [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
+              (click)="toggleDetailExpand(row, $event)"
+              [attr.aria-expanded]="isDetailExpanded(row)"
+              [attr.aria-label]="isDetailExpanded(row) ? 'Collapse details' : 'Expand details'"
             >
               <app-lucide-icon
-                [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'"
+                [name]="isDetailExpanded(row) ? 'ChevronDown' : 'ChevronRight'"
                 class="h-4 w-4"
                 aria-hidden="true"
               />
             </button>
+          </td>
+          @if (hasFooterSignal() && !hasFooterRowsSignal()) {
+            <td cdk-footer-cell *cdkFooterCellDef></td>
           }
-        </td>
-      </ng-container>
-    }
+        </ng-container>
+      }
 
-    <!-- Data Columns -->
-    @for (column of columnDefsSignal(); track trackByField($index, column); let isFirst = $first) {
-      <ng-container [cdkColumnDef]="column.field">
-        <!-- Sortable Column Header -->
-        <th cdk-header-cell *cdkHeaderCellDef class="relative transition-colors duration-200 select-none" role="columnheader">
-          <div class="flex items-center justify-between gap-2">
-            <div
-              class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
-              (click)="sort(column.field)"
-              [attr.aria-sort]="sortFieldSignal() === column.field ? (sortDirectionSignal() === 'Ascending' ? 'ascending' : 'descending') : 'none'"
-              tabindex="0"
-              (keydown.enter)="sort(column.field)"
-              (keydown.space)="sort(column.field)"
-            >
-              <span>{{ column.header }}</span>
-              <span class="text-sm opacity-70" [attr.aria-hidden]="true">
-                @if (sortFieldSignal() === column.field) {
-                  @if (sortDirectionSignal() === 'Ascending') {
-                    <!-- <span>▲</span> -->
-                    <app-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
-                  } @else {
-                    <!-- <span>▼</span> -->
-                    <app-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
-                  }
-                } @else {
-                  <!-- <span class="opacity-30">↕</span> -->
-                  <app-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
-                }
-              </span>
-            </div>
-
-            <!-- Filter Dropdown -->
-            @if (enableFilteringSignal() && hasFilterForColumn(column.field)) {
-              <div class="dropdown dropdown-right">
-                <button
-                  tabindex="0"
-                  type="button"
-                  class="btn btn-ghost btn-xs"
-                  [class.btn-primary]="getActiveFilterForColumn(column.field)"
-                  (click)="$event.stopPropagation()"
-                  [attr.aria-label]="'Filter ' + column.header"
-                >
-                  <app-lucide-icon name="ListFilter" class="h-3 w-3" aria-hidden="true"></app-lucide-icon>
-                  @if (getActiveFilterForColumn(column.field)) {
-                    <span class="badge badge-xs badge-primary">1</span>
-                  }
-                </button>
-                <div tabindex="0" class="dropdown-content card card-compact bg-base-100 z-50 mt-2 w-72 shadow-xl">
-                  <div class="card-body">
-                    <app-table-filter
-                      [column]="column"
-                      [filterConfig]="getFilterForColumn(column.field)!"
-                      [activeFilter]="getActiveFilterForColumn(column.field)"
-                      (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
-                      (closeFilter)="closeAllFilterDropdowns()"
+      <!-- Detail Content Column (spans full width, used with multiTemplateDataRows) -->
+      @if (showExpandColumnSignal()) {
+        <ng-container cdkColumnDef="__detail_content">
+          <td cdk-cell *cdkCellDef="let row" [attr.colspan]="displayedColumnsSignal().length" class="detail-content-cell">
+            @if (isDetailExpanded(row)) {
+              <div class="detail-content"
+                   [class.bg-base-200/30]="!!rowDetailTemplate()"
+                   [class.border-t]="!!rowDetailTemplate()"
+                   [class.border-base-content/10]="!!rowDetailTemplate()"
+                   [class.p-4]="!!rowDetailTemplate()"
+                   [class.p-0]="!rowDetailTemplate()">
+                @if (rowDetailTemplate()) {
+                  <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: row }" />
+                } @else if (hasChildGridSignal()) {
+                  <div [class]="getChildGridContainerClass()">
+                    <app-table
+                      [config]="$any(childGridConfigSignal()!.config)"
+                      [data]="$any(getChildGridData(row))"
+                      [paginationOptions]="$any(childGridConfigSignal()!.pagination) ?? null"
                     />
                   </div>
-                </div>
+                }
               </div>
             }
-          </div>
-        </th>
+          </td>
+        </ng-container>
+      }
 
-        <!-- Apply indentation to first data column in tree mode -->
-        <td
-          cdk-cell
-          *cdkCellDef="let row"
-          class="transition-colors duration-200"
-          [style.padding-left.px]="isTreeTableSignal() && isFirst ? getRowIndentPadding(row) : null"
-        >
-          @let syncDisplay = getCellDisplaySync(row, column);
-          @if (syncDisplay) {
-            @if (syncDisplay.isHtml) {
-              <span [innerHTML]="syncDisplay.safeHtml"></span>
-            } @else {
-              {{ syncDisplay.value }}
-            }
-          } @else {
-            @if (getCellDisplayAsync(row, column) | async; as asyncDisplay) {
-              @if (asyncDisplay.isHtml) {
-                <span [innerHTML]="asyncDisplay.safeHtml"></span>
-              } @else {
-                {{ asyncDisplay.value }}
+      <!-- Data Columns -->
+      @for (column of orderedColumnDefsSignal(); track trackByField($index, column); let isFirst = $first; let colIdx = $index) {
+        <ng-container [cdkColumnDef]="column.field">
+          <!-- Sortable Column Header -->
+          <th
+            cdk-header-cell
+            *cdkHeaderCellDef
+            class="relative transition-colors duration-200 select-none"
+            role="columnheader"
+            [class.sticky-start]="isStickyStart(column.field)"
+            [class.sticky-end]="isStickyEnd(column.field)"
+            [class.drag-over]="dragOverColumnField() === column.field"
+            [style.width.px]="getColumnWidth(column.field)"
+            [style.min-width.px]="column.minWidth"
+            [style.max-width.px]="column.maxWidth"
+            [attr.draggable]="enableColumnReorderSignal() && column.reorderable !== false"
+            (dragstart)="onColumnDragStart(column.field, $event)"
+            (dragover)="onColumnDragOver(column.field, $event)"
+            (dragleave)="onColumnDragLeave()"
+            (drop)="onColumnDrop(column.field, $event)"
+            (dragend)="onColumnDragEnd()"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div
+                class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
+                (click)="sort(column.field)"
+                [attr.aria-sort]="sortFieldSignal() === column.field ? (sortDirectionSignal() === 'Ascending' ? 'ascending' : 'descending') : 'none'"
+                tabindex="0"
+                (keydown.enter)="sort(column.field)"
+                (keydown.space)="sort(column.field)"
+              >
+                <span>{{ column.header }}</span>
+                <span class="text-sm opacity-70" [attr.aria-hidden]="true">
+                  @if (sortFieldSignal() === column.field) {
+                    @if (sortDirectionSignal() === 'Ascending') {
+                      <app-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                    } @else {
+                      <app-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                    }
+                  } @else {
+                    <app-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                  }
+                </span>
+              </div>
+
+              <!-- Filter Dropdown -->
+              @if (enableFilteringSignal() && hasFilterForColumn(column.field)) {
+                <div class="dropdown dropdown-right">
+                  <button
+                    tabindex="0"
+                    type="button"
+                    class="btn btn-ghost btn-xs"
+                    [class.btn-primary]="getActiveFilterForColumn(column.field)"
+                    (click)="$event.stopPropagation()"
+                    [attr.aria-label]="'Filter ' + column.header"
+                  >
+                    <app-lucide-icon name="ListFilter" class="h-3 w-3" aria-hidden="true"></app-lucide-icon>
+                    @if (getActiveFilterForColumn(column.field)) {
+                      <span class="badge badge-xs badge-primary">1</span>
+                    }
+                  </button>
+                  <div tabindex="0" class="dropdown-content card card-compact bg-base-100 z-50 mt-2 w-72 shadow-xl">
+                    <div class="card-body">
+                      <app-table-filter
+                        [column]="column"
+                        [filterConfig]="getFilterForColumn(column.field)!"
+                        [activeFilter]="getActiveFilterForColumn(column.field)"
+                        (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
+                        (closeFilter)="closeAllFilterDropdowns()"
+                      />
+                    </div>
+                  </div>
+                </div>
               }
-            }
-          }
-        </td>
-      </ng-container>
-    }
+            </div>
 
-    <!-- Actions Column -->
-    @if (hasActionsSignal()) {
-      <ng-container cdkColumnDef="actions">
-        <th cdk-header-cell *cdkHeaderCellDef class="text-center">Actions</th>
-        <td cdk-cell *cdkCellDef="let row" class="text-center">
-          <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-            @for (action of actionListSignal(); track trackByAction($index, action)) {
-              @if (!action.config.hidden?.(row)) {
-                @if (isTooltipVisible(row, action)) {
-                  <div class="tooltip" [attr.data-tip]="getTooltip(row, action) || action.config.label">
+            <!-- Resize Handle -->
+            @if (enableResizingSignal() && column.resizable !== false) {
+              <div
+                class="resize-handle"
+                (pointerdown)="onResizeStart(column.field, $event)"
+                (pointermove)="onResizeMove($event)"
+                (pointerup)="onResizeEnd()"
+                (pointercancel)="onResizeEnd()"
+              ></div>
+            }
+          </th>
+
+          <!-- Data Cell with editing support -->
+          <td
+            cdk-cell
+            *cdkCellDef="let row; let rowIdx = dataIndex"
+            class="transition-colors duration-200"
+            [class.sticky-start]="isStickyStart(column.field)"
+            [class.sticky-end]="isStickyEnd(column.field)"
+            [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, colIdx)"
+            [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, colIdx) : null"
+            [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
+            [style.width.px]="getColumnWidth(column.field)"
+            [style.min-width.px]="column.minWidth"
+            [style.max-width.px]="column.maxWidth"
+            [style.padding-left.px]="isTreeTableSignal() && isFirst ? getRowIndentPadding(row) : null"
+            (click)="onCellClick(rowIdx, colIdx)"
+          >
+            @if (enableEditingSignal() && isEditing(row, column.field)) {
+              <!-- Edit Mode -->
+              <div class="edit-cell" (keydown)="onEditKeydown($event)">
+                @switch (getEditorType(column)) {
+                  @case ('toggle') {
+                    <input type="checkbox" class="toggle toggle-sm"
+                      [checked]="editingValue()"
+                      (change)="editingValue.set($any($event.target).checked)" />
+                  }
+                  @case ('select') {
+                    <select class="select select-sm select-bordered w-full"
+                      [value]="editingValue()"
+                      (change)="editingValue.set($any($event.target).value)">
+                      @for (opt of column.editOptions; track opt.value) {
+                        <option [value]="opt.value">{{ opt.label }}</option>
+                      }
+                    </select>
+                  }
+                  @case ('number') {
+                    <input type="number" class="input input-sm input-bordered w-full"
+                      [value]="editingValue()"
+                      (input)="editingValue.set(+$any($event.target).value)"
+                      appAutoFocus />
+                  }
+                  @case ('date') {
+                    <input type="date" class="input input-sm input-bordered w-full"
+                      [value]="editingValue()"
+                      (input)="editingValue.set($any($event.target).value)"
+                      appAutoFocus />
+                  }
+                  @default {
+                    <input type="text" class="input input-sm input-bordered w-full"
+                      [value]="editingValue()"
+                      (input)="editingValue.set($any($event.target).value)"
+                      appAutoFocus />
+                  }
+                }
+                @if (editError()) {
+                  <span class="text-error text-xs">{{ editError() }}</span>
+                }
+                <div class="edit-cell-actions">
+                  <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
+                    <app-lucide-icon name="Check" class="h-3 w-3" />
+                  </button>
+                  <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
+                    <app-lucide-icon name="X" class="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <!-- Display Mode -->
+              <div (dblclick)="startEdit(row, column.field)" [class.cursor-pointer]="column.editable">
+                @let syncDisplay = getCellDisplaySync(row, column);
+                @if (syncDisplay) {
+                  @if (syncDisplay.isHtml) {
+                    <span [innerHTML]="syncDisplay.safeHtml"></span>
+                  } @else {
+                    {{ syncDisplay.value }}
+                  }
+                } @else {
+                  @if (getCellDisplayAsync(row, column) | async; as asyncDisplay) {
+                    @if (asyncDisplay.isHtml) {
+                      <span [innerHTML]="asyncDisplay.safeHtml"></span>
+                    } @else {
+                      {{ asyncDisplay.value }}
+                    }
+                  }
+                }
+              </div>
+            }
+          </td>
+
+          <!-- Footer Cell (legacy single-row only; multi-row uses raw tfoot) -->
+          @if (hasFooterSignal() && !hasFooterRowsSignal()) {
+            <td cdk-footer-cell *cdkFooterCellDef class="font-semibold">
+              @if (column.footer) { {{ getFooterValue(column) }} }
+            </td>
+          }
+        </ng-container>
+      }
+
+      <!-- Actions Column -->
+      @if (hasActionsSignal()) {
+        <ng-container cdkColumnDef="actions">
+          <th cdk-header-cell *cdkHeaderCellDef class="text-center" [class.sticky-end]="stickyActionsSignal()">Actions</th>
+          <td cdk-cell *cdkCellDef="let row" class="text-center" [class.sticky-end]="stickyActionsSignal()">
+            <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+              @for (action of actionListSignal(); track trackByAction($index, action)) {
+                @if (!action.config.hidden?.(row)) {
+                  @if (isTooltipVisible(row, action)) {
+                    <div class="tooltip" [attr.data-tip]="getTooltip(row, action) || action.config.label">
+                      <button
+                        type="button"
+                        [class]="classesFor(action)"
+                        [style]="action.config.buttonStyle"
+                        [disabled]="action.config.disabled?.(row)"
+                        (click)="action.config.action(row)"
+                      >
+                        @if (action.config.icon) {
+                          <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                        }
+                        <span [class.sr-only]="!!action.config.icon">
+                          {{ action.config.label }}
+                        </span>
+                      </button>
+                    </div>
+                  } @else {
                     <button
                       type="button"
                       [class]="classesFor(action)"
@@ -323,49 +966,81 @@
                         {{ action.config.label }}
                       </span>
                     </button>
-                  </div>
-                } @else {
-                  <button
-                    type="button"
-                    [class]="classesFor(action)"
-                    [style]="action.config.buttonStyle"
-                    [disabled]="action.config.disabled?.(row)"
-                    (click)="action.config.action(row)"
-                  >
-                    @if (action.config.icon) {
-                      <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
-                    }
-                    <span [class.sr-only]="!!action.config.icon">
-                      {{ action.config.label }}
-                    </span>
-                  </button>
+                  }
                 }
               }
-            }
-          </div>
-        </td>
-      </ng-container>
-    }
+            </div>
+          </td>
+          @if (hasFooterSignal() && !hasFooterRowsSignal()) {
+            <td cdk-footer-cell *cdkFooterCellDef></td>
+          }
+        </ng-container>
+      }
 
-    <!-- Header Row -->
-    <tr cdk-header-row *cdkHeaderRowDef="displayedColumnsSignal()" class="hover:bg-base-50"></tr>
+      <!-- Header Row -->
+      <tr cdk-header-row *cdkHeaderRowDef="displayedColumnsSignal()"
+        class="hover:bg-base-50"></tr>
 
-    <!-- Data Rows -->
-    <tr cdk-row *cdkRowDef="let row; columns: displayedColumnsSignal()" class="hover:bg-base-50 transition-colors duration-200" [class]="isSelectedBgClass(row)"></tr>
-  </table>
-  </div>
+      <!-- Data Rows -->
+      <tr cdk-row *cdkRowDef="let row; columns: displayedColumnsSignal()"
+        class="hover:bg-base-50 transition-colors duration-200"
+        [class]="isSelectedBgClass(row)"
+        [attr.draggable]="enableRowReorderSignal()"
+        (dragstart)="onRowDragStart(row, $event)"
+        (dragover)="onRowDragOver(row, $event)"
+        (drop)="onRowDrop(row, $event)"
+        (dragend)="onRowDragEnd($event)"></tr>
 
-  <!-- Pagination Footer -->
-  <app-table-pagination
-    [paginationOptions]="paginationOptions()"
-    [totalItems]="totalItemsSignal()"
-    [showFirstLastButtons]="showFirstLastButtons()"
-    [hidePageSize]="hidePageSize()"
-    [showPageSizeOptions]="showPageSizeOptions()"
-    [disabled]="disabled()"
-    [pageIndex]="pageIndexSignal()"
-    [pageSize]="pageSizeSignal()"
-    (pageChange)="handlePaginationPageChange($event)"
-    (cursorChange)="handleCursorChange($event)"
-  />
+      <!-- Detail Content Row (for expandable rows) -->
+      @if (showExpandColumnSignal()) {
+        <tr cdk-row *cdkRowDef="let row; columns: ['__detail_content']"
+          class="detail-row"
+          [class.hidden]="!isDetailExpanded(row)"></tr>
+      }
+
+      <!-- Footer Row (legacy single-row via CDK) -->
+      @if (hasFooterSignal() && !hasFooterRowsSignal()) {
+        <tr cdk-footer-row *cdkFooterRowDef="displayedColumnsSignal()" class="bg-base-200/50 font-semibold footer-row"></tr>
+      }
+
+      <!-- Multi-row footer: prefixed column defs so each row gets its own cell content -->
+      @if (hasFooterRowsSignal()) {
+        @for (footerRow of resolvedFooterRowsSignal(); track $index; let rowIdx = $index) {
+          @for (baseCol of displayedColumnsSignal(); track baseCol) {
+            <ng-container [cdkColumnDef]="'__fr' + rowIdx + '_' + baseCol">
+              <td cdk-footer-cell *cdkFooterCellDef class="font-semibold">
+                {{ getFooterCellValueForCol(rowIdx, baseCol) }}
+              </td>
+            </ng-container>
+          }
+          <tr cdk-footer-row *cdkFooterRowDef="footerColumnSets()[rowIdx]"
+            class="bg-base-200/50 font-semibold footer-row" [class]="footerRow.class ?? ''"></tr>
+        }
+      }
+    </table>
+    </div>
+  }
+
+  <!-- Custom Footer (flexible content area — between table and pagination) -->
+  @if (footerTemplate()) {
+    <div class="border-t border-base-content/10 bg-base-200/30 px-4 py-3">
+      <ng-container *ngTemplateOutlet="footerTemplate()!; context: { $implicit: displayDataSignal(), columns: columnDefsSignal() }" />
+    </div>
+  }
+
+  <!-- Pagination Footer (hidden when virtual scroll is active) -->
+  @if (!isVirtualScrollSignal()) {
+    <app-table-pagination
+      [paginationOptions]="paginationOptions()"
+      [totalItems]="totalItemsSignal()"
+      [showFirstLastButtons]="showFirstLastButtons()"
+      [hidePageSize]="hidePageSize()"
+      [showPageSizeOptions]="showPageSizeOptions()"
+      [disabled]="disabled()"
+      [pageIndex]="pageIndexSignal()"
+      [pageSize]="pageSizeSignal()"
+      (pageChange)="handlePaginationPageChange($event)"
+      (cursorChange)="handleCursorChange($event)"
+    />
+  }
 </div>
