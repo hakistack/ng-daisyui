@@ -1,6 +1,7 @@
 import { Directive, ElementRef, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, inject, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
 import { scroll, animate } from 'motion';
+import type { AnimationControls } from '../motion.types';
+import { prefersReducedMotion, safeStopAnimation } from '../motion.utils';
 
 export type ScrollAxis = 'x' | 'y';
 export type OffsetValue = number | string;
@@ -29,17 +30,9 @@ export interface ScrollOptions {
 
 export type ScrollAnimationKeyframes = Record<string, unknown[] | unknown>;
 
-/** Animation controls interface for Motion.js */
-interface AnimationControls {
-  stop: () => void;
-  finished?: Promise<void>;
-}
-
-/** Animation options for scroll-linked animations */
 interface ScrollAnimationOptions {
   ease?: 'linear' | 'easeIn' | 'easeOut' | 'easeInOut';
   duration?: number;
-  [key: string]: unknown;
 }
 
 @Directive({
@@ -50,22 +43,17 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
 
-  // Main scroll animation keyframes
   readonly motionScroll = input<ScrollAnimationKeyframes | boolean | undefined>(undefined);
 
-  // Scroll options
   readonly scrollOptions = input<ScrollOptions>({});
 
-  // Individual scroll configuration options (for convenience)
   readonly scrollContainer = input<HTMLElement | undefined>();
   readonly scrollTarget = input<HTMLElement | undefined>();
   readonly scrollAxis = input<ScrollAxis>('y');
   readonly scrollOffset = input<ScrollOffset | undefined>();
 
-  // Animation options
   readonly animationOptions = input<ScrollAnimationOptions>({});
 
-  // Event outputs
   readonly scrollProgress = output<number>();
   readonly scrollInfo = output<ScrollInfo>();
 
@@ -77,16 +65,19 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
     this.element = this.elementRef.nativeElement;
   }
 
-  private prefersReducedMotion(): boolean {
-    return isPlatformBrowser(this.platformId) && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  }
-
   ngOnInit(): void {
     this.setupScrollAnimation();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['scrollAnimation'] || changes['scrollOptions'] || changes['scrollContainer'] || changes['scrollTarget'] || changes['scrollAxis'] || changes['scrollOffset']) {
+    if (
+      changes['motionScroll'] ||
+      changes['scrollOptions'] ||
+      changes['scrollContainer'] ||
+      changes['scrollTarget'] ||
+      changes['scrollAxis'] ||
+      changes['scrollOffset']
+    ) {
       this.cleanup();
       this.setupScrollAnimation();
     }
@@ -100,18 +91,15 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
     const anim = this.motionScroll();
     if (!anim) return;
 
-    // Skip scroll animations if reduced motion is active
-    if (this.prefersReducedMotion()) {
+    if (prefersReducedMotion(this.platformId)) {
       return;
     }
 
     const options = this.buildScrollOptions();
 
     if (typeof anim === 'object') {
-      // Animation keyframes provided - create scroll-linked animation
       this.setupScrollLinkedAnimation(options, anim);
     } else {
-      // Boolean true - setup scroll progress tracking only
       this.setupScrollProgressTracking(options);
     }
   }
@@ -128,7 +116,6 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
 
   private setupScrollLinkedAnimation(options: ScrollOptions, keyframes: ScrollAnimationKeyframes): void {
     try {
-      // Create animation first
       const animationOpts = {
         ease: 'linear' as const,
         ...this.animationOptions(),
@@ -137,26 +124,23 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.animationControls = animate(this.element, keyframes, animationOpts) as any;
 
-      // Link animation to scroll - use type assertion for Motion.js compatibility
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.cleanupFunction = scroll(this.animationControls as any, this.filterScrollOptions(options) as any);
-    } catch (error) {
-      console.warn('Motion scroll-linked animation failed:', error);
-      // Fallback to progress tracking
+    } catch {
+      // Scroll-linked animation failed — fall back to progress tracking
       this.setupScrollProgressTracking(options);
     }
   }
 
   private setupScrollProgressTracking(options: ScrollOptions): void {
     try {
-       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.cleanupFunction = scroll((progress: number, info: ScrollInfo) => {
-        // Emit progress and info events
         this.scrollProgress.emit(progress);
         this.scrollInfo.emit(info);
       }, this.filterScrollOptions(options) as any);
-    } catch (error) {
-      console.warn('Motion scroll tracking failed:', error);
+    } catch {
+      // Scroll tracking failed — element may not be scrollable
     }
   }
 
@@ -183,30 +167,19 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private cleanup(): void {
-    // Stop any running animation
-    if (this.animationControls && typeof this.animationControls.stop === 'function') {
-      try {
-        this.animationControls.stop();
-      } catch (error) {
-        console.warn('Failed to stop scroll animation:', error);
-      }
-    }
+    safeStopAnimation(this.animationControls);
 
-    // Clean up scroll listener
     if (this.cleanupFunction) {
       try {
         this.cleanupFunction();
-      } catch (error) {
-        console.warn('Failed to cleanup scroll listener:', error);
+      } catch {
+        // Cleanup may fail if scroll context was already disposed
       }
     }
 
     this.cleanupFunction = undefined;
     this.animationControls = null;
   }
-
-  // Public methods for programmatic control - Note: With signals, these are now read-only
-  // Consumers should update the input bindings directly to change values
 
   public stop(): void {
     this.cleanup();

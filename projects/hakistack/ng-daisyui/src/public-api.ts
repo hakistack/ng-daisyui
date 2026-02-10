@@ -237,6 +237,26 @@ export { MotionAnimateDirective } from './lib/directives/motion-animate/motion-a
 export { MotionHoverDirective } from './lib/directives/motion-hover/motion-hover.directive';
 export { MotionScrollDirective } from './lib/directives/motion-scroll/motion-scroll.directive';
 
+// Motion shared types
+export type {
+  Easing,
+  EasingFunction,
+  AnimationPreset,
+  TriggerType,
+  MotionAnimationOptions,
+  MotionDirectiveOptions,
+} from './lib/directives/motion.types';
+export type {
+  HoverKeyframes,
+  HoverOptions,
+} from './lib/directives/motion-hover/motion-hover.directive';
+export type {
+  ScrollAnimationKeyframes,
+  ScrollOptions,
+  ScrollAxis,
+  ScrollOffset,
+} from './lib/directives/motion-scroll/motion-scroll.directive';
+
 
 // ============================================================================
 // TYPES
