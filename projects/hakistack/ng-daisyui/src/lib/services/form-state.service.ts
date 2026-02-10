@@ -4,9 +4,6 @@ import { isPlatformBrowser } from '@angular/common';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-// ============================================================================
-// Types
-// ============================================================================
 
 /**
  * Metadata for form state (wizard step, validation state, etc.)
@@ -55,15 +52,9 @@ export type FormStateOptions = FormStateApiOptions | FormStateLocalStorageOption
  */
 export type FormStateStorageMode = 'api' | 'localStorage';
 
-// ============================================================================
-// Internal Injection Token (not exported)
-// ============================================================================
 
 const FORM_STATE_OPTIONS = new InjectionToken<FormStateOptions>('FORM_STATE_OPTIONS');
 
-// ============================================================================
-// Provider Function
-// ============================================================================
 
 /**
  * Provides form state auto-save functionality.
@@ -81,9 +72,6 @@ export function provideFormState(options: FormStateOptions): EnvironmentProvider
   return makeEnvironmentProviders([{ provide: FORM_STATE_OPTIONS, useValue: options }]);
 }
 
-// ============================================================================
-// Service
-// ============================================================================
 
 /**
  * Service for persisting and loading form state.
@@ -220,9 +208,6 @@ export class FormStateService {
     return this.http!.delete<void>(`${this.apiUrl}/${formId}`);
   }
 
-  // ============================================================================
-  // LocalStorage helpers
-  // ============================================================================
 
   private loadFromLocalStorage(formId: string): FormState | null {
     if (!this.isBrowser) return null;

@@ -1,40 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, ElementRef, effect, forwardRef, inject, input, OnDestroy, output, signal, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, effect, forwardRef, inject, input, OnDestroy, output, signal, viewChild } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, NG_VALIDATORS, ValidationErrors, Validator, AbstractControl } from '@angular/forms';
 import { generateUniqueId } from '../../utils/generate-uuid';
 import { DatepickerConfig, DatepickerEvent, DatepickerPosition, DayCell, MonthInfo, ViewMode, WeekdayInfo, YearInfo } from './datepicker.types';
 import { DatepickerUtilsService } from './datepicker-utils.service';
 
-/**
- * A comprehensive, accessible datepicker component with single date and range selection support.
- *
- * Features:
- * - Single date and date range selection
- * - Keyboard navigation and accessibility
- * - Reactive forms integration with validation
- * - Customizable localization and formatting
- * - Min/max date constraints
- * - Flexible positioning and styling
- * - Progressive year/month/day navigation
- * - OnPush change detection for optimal performance
- *
- * @example
- * // Single date picker
- * <app-datepicker
- *   [formControl]="dateControl"
- *   placeholder="Select a date"
- *   [minDate]="minDate"
- *   [maxDate]="maxDate"
- * />
- *
- * @example
- * // Date range picker
- * <app-datepicker
- *   range
- *   [formControl]="rangeControl"
- *   placeholder="Select date range"
- * />
- */
 @Component({
   selector: 'app-datepicker',
   imports: [CommonModule],
@@ -56,7 +26,7 @@ import { DatepickerUtilsService } from './datepicker-utils.service';
   ],
 })
 export class DatepickerComponent implements ControlValueAccessor, Validator, OnDestroy {
-  @ViewChild('dpRoot', { static: true }) private readonly dpRoot!: ElementRef<HTMLElement>;
+  private readonly dpRoot = viewChild.required<ElementRef<HTMLElement>>('dpRoot');
 
   private readonly dateUtils = inject(DatepickerUtilsService);
   private readonly cellIdCache = new Map<string, string>();
@@ -66,14 +36,12 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   private boundDocumentKeydown = this.onDocumentKeydown.bind(this);
   private documentListenersAttached = false;
 
-  // ===== Form Control Integration =====
   // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
   private onChange = (_value: Date | { start: Date; end: Date } | null) => {};
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private onTouched = () => {};
   private isFormDisabled = false;
 
-  // ===== Configuration =====
   private readonly defaultConfig: DatepickerConfig = {
     dateFormat: { year: 'numeric', month: 'short', day: 'numeric' },
     monthFormat: { month: 'short' },
@@ -82,10 +50,8 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     closeOnSelect: true,
     showClearButton: true,
     showTodayButton: false,
-    animationDuration: 200,
   };
 
-  // ===== Inputs =====
   // Selection mode
   readonly range = input<boolean>(false);
 
@@ -122,7 +88,6 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   readonly customDateFormatter = input<((date: Date) => string) | undefined>();
   readonly customRangeFormatter = input<((start: Date, end: Date) => string) | undefined>();
 
-  // ===== Outputs =====
   readonly selectionChange = output<DatepickerEvent>();
   readonly dateSelected = output<Date>();
   readonly rangeSelected = output<{ start: Date; end: Date }>();
@@ -130,7 +95,6 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   readonly pickerClosed = output<void>();
   readonly viewChanged = output<ViewMode>();
 
-  // ===== State Signals =====
   readonly isOpen = signal(false);
   readonly currentView = signal<ViewMode>('days');
   readonly currentMonth = signal(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
@@ -142,13 +106,12 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
   // Form state signals
   readonly isTouched = signal(false);
-  readonly isInvalid = signal(false);
-  readonly validationErrors = signal<ValidationErrors | null>(null);
+  readonly validationErrors = computed(() => this.validateInternal());
+  readonly isInvalid = computed(() => !!this.validationErrors());
 
   // Unique instance ID for this component
   private readonly instanceId = generateUniqueId();
 
-  // ===== Computed Properties =====
   readonly isDisabled = computed(() => this.disabled() || this.isFormDisabled);
 
   readonly inputId = computed(() => {
@@ -172,7 +135,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
     return Array.from({ length: 7 }, (_, i) => {
       const adjustedDay = (firstDay + i) % 7;
-      const date = new Date(2026, 0, adjustedDay + 1);
+      const date = new Date(2023, 0, adjustedDay + 1);
       return {
         label: formatter.format(date),
         index: adjustedDay,
@@ -215,7 +178,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     const formatter = new Intl.DateTimeFormat(this.locale(), this.defaultConfig.monthFormat);
     return Array.from({ length: 12 }, (_, i) => ({
       index: i,
-      label: formatter.format(new Date(2026, i, 1)),
+      label: formatter.format(new Date(2023, i, 1)),
       isSelected: i === this.currentMonth().getMonth(),
       id: `month-${i}`,
     }));
@@ -291,7 +254,6 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     this.removeDocumentListeners();
   }
 
-  // ===== Document Listener Management =====
   private addDocumentListeners(): void {
     if (this.documentListenersAttached) return;
     document.addEventListener('click', this.boundDocumentClick, { passive: true });
@@ -328,40 +290,14 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     }
   }
 
-  // ===== Lifecycle & Effects =====
   private setupEffects(): void {
-    // Emit open/close events
-    effect(() => {
-      if (this.isOpen()) {
-        this.pickerOpened.emit();
-      } else {
-        this.pickerClosed.emit();
-      }
-    });
-
     // Clear cache when month changes
     effect(() => {
       this.currentMonth();
       this.clearCellIdCache();
     });
-
-    // Emit value changes and update validation
-    effect(() => {
-      const value = this.currentValue();
-      this.onChange(value);
-
-      const errors = this.validateInternal();
-      this.validationErrors.set(errors);
-      this.isInvalid.set(!!errors);
-    });
-
-    // Emit view changes
-    effect(() => {
-      this.viewChanged.emit(this.currentView());
-    });
   }
 
-  // ===== ControlValueAccessor Implementation =====
   writeValue(value: Date | { start: Date; end: Date } | null): void {
     if (!value) {
       this.clearSelection();
@@ -388,7 +324,6 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     this.isFormDisabled = isDisabled;
   }
 
-  // ===== Validator Implementation =====
   validate(control: AbstractControl): ValidationErrors | null {
     const value = control ? control.value : this.currentValue();
     return this.performValidation(value);
@@ -433,7 +368,6 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     return Object.keys(errors).length > 0 ? errors : null;
   }
 
-  // ===== Public API Methods =====
   togglePicker(): void {
     if (this.isDisabled()) return;
 
@@ -441,14 +375,15 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     this.isOpen.set(willOpen);
 
     if (willOpen) {
+      this.pickerOpened.emit();
       this.addDocumentListeners();
-      this.currentView.set('days');
-      // Set current month to selected date if available
+      this.updateView('days');
       const date = this.selectedDate() || this.rangeStart();
       if (date) {
         this.currentMonth.set(this.dateUtils.getStartOfMonth(date));
       }
     } else {
+      this.pickerClosed.emit();
       this.removeDocumentListeners();
       this.markAsTouched();
     }
@@ -457,6 +392,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   closePicker(): void {
     if (this.isOpen()) {
       this.isOpen.set(false);
+      this.pickerClosed.emit();
       this.removeDocumentListeners();
       this.markAsTouched();
     }
@@ -465,8 +401,9 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   openPicker(): void {
     if (!this.isDisabled() && !this.isOpen()) {
       this.isOpen.set(true);
+      this.pickerOpened.emit();
       this.addDocumentListeners();
-      this.currentView.set('days');
+      this.updateView('days');
     }
   }
 
@@ -478,19 +415,24 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   setView(mode: ViewMode): void {
+    this.updateView(mode);
+  }
+
+  private updateView(mode: ViewMode): void {
     this.currentView.set(mode);
+    this.viewChanged.emit(mode);
   }
 
   goToYearView(): void {
-    this.currentView.set('years');
+    this.updateView('years');
   }
 
   goToMonthView(): void {
-    this.currentView.set('months');
+    this.updateView('months');
   }
 
   goToDayView(): void {
-    this.currentView.set('days');
+    this.updateView('days');
   }
 
   navigateMonth(direction: 'prev' | 'next'): void {
@@ -508,13 +450,13 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   selectYear(year: number): void {
     const currentMonth = this.currentMonth().getMonth();
     this.currentMonth.set(new Date(year, currentMonth, 1));
-    this.currentView.set('months');
+    this.updateView('months');
   }
 
   selectMonth(monthIndex: number): void {
     const currentYear = this.currentMonth().getFullYear();
     this.currentMonth.set(new Date(currentYear, monthIndex, 1));
-    this.currentView.set('days');
+    this.updateView('days');
   }
 
   selectToday(): void {
@@ -541,6 +483,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     this.rangeStart.set(null);
     this.rangeEnd.set(null);
     this.hoveredDate.set(null);
+    this.onChange(null);
     this.markAsTouched();
   }
 
@@ -578,9 +521,9 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     return classes.join(' ');
   }
 
-  // ===== Private Helper Methods =====
   private handleSingleDateSelection(date: Date): void {
     this.selectedDate.set(date);
+    this.onChange(this.currentValue());
     this.dateSelected.emit(date);
     this.selectionChange.emit({
       type: 'date',
@@ -603,12 +546,14 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
       this.rangeStart.set(date);
       this.rangeEnd.set(null);
       this.hoveredDate.set(null);
+      this.onChange(this.currentValue());
     } else {
       // Complete the range
       if (this.dateUtils.isSameDay(date, start)) {
         // Clicking same date - reset
         this.rangeStart.set(null);
         this.rangeEnd.set(null);
+        this.onChange(this.currentValue());
       } else {
         // Complete range - always put earlier date as start
         const comparison = this.dateUtils.compareDates(date, start);
@@ -618,6 +563,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
         this.rangeStart.set(earlierDate);
         this.rangeEnd.set(laterDate);
         this.hoveredDate.set(null);
+        this.onChange(this.currentValue());
 
         this.rangeSelected.emit({ start: earlierDate, end: laterDate });
         this.selectionChange.emit({
@@ -765,9 +711,8 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     return new Date(startYear, 0, 1);
   }
 
-  // ===== Event Handlers =====
   onClickOutside(event: Event): void {
-    if (!this.dpRoot.nativeElement.contains(event.target as Node)) {
+    if (!this.dpRoot().nativeElement.contains(event.target as Node)) {
       this.closePicker();
     }
   }

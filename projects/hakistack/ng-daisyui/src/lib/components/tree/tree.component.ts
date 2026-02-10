@@ -5,7 +5,6 @@ import {
   contentChild,
   effect,
   ElementRef,
-  HostListener,
   input,
   output,
   signal,
@@ -14,13 +13,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  CdkDragDrop,
-  CdkDrag,
-  CdkDropList,
-  DragDropModule,
-} from '@angular/cdk/drag-drop';
-
 import { TreeNode, TreeSelectionMode } from '../../api/treenode';
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 import {
@@ -42,8 +34,7 @@ import {
 
 @Component({
   selector: 'app-tree',
-  standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, LucideIconComponent],
+  imports: [CommonModule, FormsModule, LucideIconComponent],
   templateUrl: './tree.component.html',
   styleUrl: './tree.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,12 +44,10 @@ import {
     '[attr.role]': '"tree"',
     '[attr.aria-label]': 'resolvedConfig()?.ariaLabel',
     '[attr.aria-labelledby]': 'resolvedConfig()?.ariaLabelledBy',
+    '(keydown)': 'onKeyDown($event)',
   },
 })
 export class TreeComponent<T = unknown> {
-  // ============================================================================
-  // Inputs
-  // ============================================================================
 
   /** Combined tree setup from createTree() — pass a single object instead of separate nodes + config */
   readonly tree = input<TreeSetup<T> | null>(null);
@@ -78,9 +67,6 @@ export class TreeComponent<T = unknown> {
   /** Resolved config: tree input wins, falls back to config input */
   protected readonly resolvedConfig = computed(() => this.tree()?.config ?? this.config());
 
-  // ============================================================================
-  // Outputs
-  // ============================================================================
 
   /** Emitted when selection changes */
   readonly selectionChange = output<TreeNode<T> | TreeNode<T>[] | null>();
@@ -112,16 +98,10 @@ export class TreeComponent<T = unknown> {
   /** Emitted when filter changes */
   readonly filterChange = output<TreeFilterEvent>();
 
-  // ============================================================================
-  // Content Children (Templates)
-  // ============================================================================
 
   /** Custom node template */
   readonly nodeTemplateRef = contentChild<TemplateRef<TreeNodeTemplateContext<T>>>('nodeTemplate');
 
-  // ============================================================================
-  // Internal State
-  // ============================================================================
 
   /** Map of node key -> expanded state */
   private readonly expandedKeys = signal<Set<string>>(new Set());
@@ -139,7 +119,14 @@ export class TreeComponent<T = unknown> {
   readonly filterText = signal<string>('');
 
   /** Set of node keys that match filter */
-  private readonly matchedFilterKeys = signal<Set<string>>(new Set());
+  private readonly matchedFilterKeys = computed(() => {
+    const filterText = this.filterText().toLowerCase().trim();
+    if (!filterText) return new Set<string>();
+
+    const matchedKeys = new Set<string>();
+    this.findMatchingNodes(this.resolvedNodes(), filterText, matchedKeys);
+    return matchedKeys;
+  });
 
   /** Currently focused node key */
   private readonly focusedKey = signal<string | null>(null);
@@ -150,9 +137,6 @@ export class TreeComponent<T = unknown> {
   /** Valid drop target node */
   private readonly dropTargetKey = signal<string | null>(null);
 
-  // ============================================================================
-  // Computed Signals
-  // ============================================================================
 
   /** Selection mode from config */
   readonly selectionMode = computed<TreeSelectionMode>(() => this.resolvedConfig()?.selectionMode ?? null);
@@ -197,9 +181,6 @@ export class TreeComponent<T = unknown> {
   /** Whether tree is loading */
   readonly isLoading = computed(() => this.resolvedConfig()?.loading ?? false);
 
-  // ============================================================================
-  // Constructor & Lifecycle
-  // ============================================================================
 
   constructor() {
     // Initialize expanded state from nodes
@@ -239,32 +220,20 @@ export class TreeComponent<T = unknown> {
       this.selectedKeys.set(selectedKeys);
     });
 
-    // Update filter matches when filter text changes
-    effect(() => {
-      const filterText = this.filterText().toLowerCase().trim();
-      if (!filterText) {
-        this.matchedFilterKeys.set(new Set());
-        return;
-      }
-
-      const matchedKeys = new Set<string>();
-      const nodes = this.resolvedNodes();
-      this.findMatchingNodes(nodes, filterText, matchedKeys);
-      this.matchedFilterKeys.set(matchedKeys);
-
-      // Emit filter event
-      this.filterChange.emit({
-        filter: filterText,
-        matchedNodeCount: matchedKeys.size,
-      });
-    });
   }
 
-  // ============================================================================
-  // Keyboard Navigation
-  // ============================================================================
 
-  @HostListener('keydown', ['$event'])
+  onFilterTextChange(text: string): void {
+    this.filterText.set(text);
+    const trimmed = text.toLowerCase().trim();
+    if (trimmed) {
+      this.filterChange.emit({
+        filter: trimmed,
+        matchedNodeCount: this.matchedFilterKeys().size,
+      });
+    }
+  }
+
   onKeyDown(event: KeyboardEvent): void {
     if (!this.resolvedConfig()?.keyboardNavigation) return;
 
@@ -337,9 +306,6 @@ export class TreeComponent<T = unknown> {
     }
   }
 
-  // ============================================================================
-  // Public Methods
-  // ============================================================================
 
   /** Expand a node */
   expandNode(node: TreeNode<T>, event?: Event): void {
@@ -477,9 +443,6 @@ export class TreeComponent<T = unknown> {
     });
   }
 
-  // ============================================================================
-  // Template Helpers
-  // ============================================================================
 
   /** Check if node has children */
   hasChildren(node: TreeNode<T>): boolean {
@@ -597,9 +560,6 @@ export class TreeComponent<T = unknown> {
     return parent.children ? parent.children.indexOf(current) === parent.children.length - 1 : false;
   }
 
-  // ============================================================================
-  // Drag & Drop
-  // ============================================================================
 
   onDragStart(event: DragEvent, node: TreeNode<T>): void {
     if (!this.isDragDropEnabled() || node.draggable === false) return;
@@ -685,9 +645,6 @@ export class TreeComponent<T = unknown> {
     return this.draggingNode() === node;
   }
 
-  // ============================================================================
-  // Private Helpers
-  // ============================================================================
 
   private toggleCheckbox(node: TreeNode<T>, event?: Event): void {
     const key = this.getNodeKey(node);
@@ -734,46 +691,31 @@ export class TreeComponent<T = unknown> {
   }
 
   private selectDescendants(node: TreeNode<T>): void {
-    if (!node.children) return;
-
-    this.selectedKeys.update((keys) => {
-      const newKeys = new Set(keys);
-      this.forEachDescendant(node, (n) => {
-        const k = this.getNodeKey(n);
-        if (k) newKeys.add(k);
-      });
-      return newKeys;
-    });
-
-    // Clear partial selections
-    this.partialSelectedKeys.update((keys) => {
-      const newKeys = new Set(keys);
-      this.forEachDescendant(node, (n) => {
-        const k = this.getNodeKey(n);
-        if (k) newKeys.delete(k);
-      });
-      return newKeys;
-    });
+    this.updateDescendantKeys(node, 'add');
   }
 
   private unselectDescendants(node: TreeNode<T>): void {
+    this.updateDescendantKeys(node, 'delete');
+  }
+
+  private updateDescendantKeys(node: TreeNode<T>, selectedOp: 'add' | 'delete'): void {
     if (!node.children) return;
+
+    const descendantKeys: string[] = [];
+    this.forEachDescendant(node, (n) => {
+      const k = this.getNodeKey(n);
+      if (k) descendantKeys.push(k);
+    });
 
     this.selectedKeys.update((keys) => {
       const newKeys = new Set(keys);
-      this.forEachDescendant(node, (n) => {
-        const k = this.getNodeKey(n);
-        if (k) newKeys.delete(k);
-      });
+      for (const k of descendantKeys) newKeys[selectedOp](k);
       return newKeys;
     });
 
     this.partialSelectedKeys.update((keys) => {
       const newKeys = new Set(keys);
-      this.forEachDescendant(node, (n) => {
-        const k = this.getNodeKey(n);
-        if (k) newKeys.delete(k);
-      });
+      for (const k of descendantKeys) newKeys.delete(k);
       return newKeys;
     });
   }

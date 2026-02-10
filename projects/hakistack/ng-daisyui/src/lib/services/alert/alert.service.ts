@@ -6,9 +6,6 @@ import Swal, { SweetAlertOptions, SweetAlertResult } from 'sweetalert2';
 
 import { AlertOptions, AlertResult, ConfirmOptions, CountdownOptions, DeleteConfirmOptions, LoadingOptions } from './alert.types';
 
-// ============================================================================
-// Configuration
-// ============================================================================
 
 /**
  * Configuration for AlertService
@@ -65,9 +62,6 @@ export function provideAlert(config?: AlertConfig): EnvironmentProviders {
   return makeEnvironmentProviders([{ provide: ALERT_CONFIG, useValue: config ?? {} }]);
 }
 
-// ============================================================================
-// Service
-// ============================================================================
 
 interface ButtonTexts {
   confirm: string;
@@ -131,9 +125,6 @@ export class AlertService {
     timerProgressBar: 'bg-primary h-1 rounded-full',
   } as const;
 
-  // =====================
-  // Simple Alert Methods
-  // =====================
 
   /**
    * Show a basic alert dialog
@@ -246,9 +237,6 @@ export class AlertService {
     return this.mapResult(result);
   }
 
-  // =====================
-  // Confirmation Dialogs
-  // =====================
 
   /**
    * Show confirmation dialog
@@ -314,9 +302,6 @@ export class AlertService {
     });
   }
 
-  // =====================
-  // Loading State
-  // =====================
 
   /**
    * Show loading dialog
@@ -349,9 +334,6 @@ export class AlertService {
     Swal.update({ text });
   }
 
-  // =====================
-  // Advanced / Direct Access
-  // =====================
 
   /**
    * Direct access to SweetAlert2 fire method
@@ -371,9 +353,6 @@ export class AlertService {
     });
   }
 
-  // =====================
-  // Private Helpers
-  // =====================
 
   private getTheme(): 'light' | 'dark' {
     // Custom theme function takes priority

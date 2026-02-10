@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ContentChild, input, TemplateRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, contentChild, input, TemplateRef } from '@angular/core';
 import { IconName } from '../../lucide-icon/lucide-icon.component';
 
 @Component({
@@ -21,9 +21,5 @@ export class TabPanelComponent {
   /** Whether the tab is disabled */
   disabled = input(false);
 
-  /** Reference to the content template */
-  @ContentChild(TemplateRef) contentTemplateRef!: TemplateRef<unknown>;
-
-  /** Computed signal for the content template */
-  contentTemplate = () => this.contentTemplateRef;
+  readonly contentTemplateRef = contentChild.required(TemplateRef);
 }

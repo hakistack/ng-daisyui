@@ -1,5 +1,25 @@
 <!-- table.component.html -->
 
+<!-- Shared cell display template (sync fast-path with async fallback) -->
+<ng-template #cellValueTpl let-row let-column="column">
+  @let syncDisplay = getCellDisplaySync(row, column);
+  @if (syncDisplay) {
+    @if (syncDisplay.isHtml) {
+      <span [innerHTML]="syncDisplay.safeHtml"></span>
+    } @else {
+      {{ syncDisplay.value }}
+    }
+  } @else {
+    @if (getCellDisplayAsync(row, column) | async; as asyncDisplay) {
+      @if (asyncDisplay.isHtml) {
+        <span [innerHTML]="asyncDisplay.safeHtml"></span>
+      } @else {
+        {{ asyncDisplay.value }}
+      }
+    }
+  }
+</ng-template>
+
 <!-- Main Table Container -->
 <div class="border-base-content/5 bg-base-100 rounded-box overflow-hidden border">
   <!-- Toolbar: Search + Column Visibility -->
@@ -142,7 +162,7 @@
       </div>
       <button
         type="button"
-        class="btn btn-sm btn-ghost hover:bg-error/50 gap-2 transition-all duration-200 hover:scale-105 active:scale-95"
+        class="btn btn-sm btn-ghost hover:bg-error/50 gap-2 transition-colors duration-200"
         (click)="clearSelection()"
         aria-label="Clear selection"
       >
@@ -303,22 +323,7 @@
                   </div>
                 } @else {
                   <div (dblclick)="startEdit(row, column.field)" [class.cursor-pointer]="column.editable">
-                    @let syncDisplay = getCellDisplaySync(row, column);
-                    @if (syncDisplay) {
-                      @if (syncDisplay.isHtml) {
-                        <span [innerHTML]="syncDisplay.safeHtml"></span>
-                      } @else {
-                        {{ syncDisplay.value }}
-                      }
-                    } @else {
-                      @if (getCellDisplayAsync(row, column) | async; as asyncDisplay) {
-                        @if (asyncDisplay.isHtml) {
-                          <span [innerHTML]="asyncDisplay.safeHtml"></span>
-                        } @else {
-                          {{ asyncDisplay.value }}
-                        }
-                      }
-                    }
+                    <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
                   </div>
                 }
               </td>
@@ -487,22 +492,7 @@
                 }
                 @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                   <td>
-                    @let syncDisplay = getCellDisplaySync(displayRow.row, column);
-                    @if (syncDisplay) {
-                      @if (syncDisplay.isHtml) {
-                        <span [innerHTML]="syncDisplay.safeHtml"></span>
-                      } @else {
-                        {{ syncDisplay.value }}
-                      }
-                    } @else {
-                      @if (getCellDisplayAsync(displayRow.row, column) | async; as asyncDisplay) {
-                        @if (asyncDisplay.isHtml) {
-                          <span [innerHTML]="asyncDisplay.safeHtml"></span>
-                        } @else {
-                          {{ asyncDisplay.value }}
-                        }
-                      }
-                    }
+                    <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: displayRow.row, column: column }" />
                   </td>
                 }
                 @if (hasActionsSignal()) {
@@ -897,22 +887,7 @@
             } @else {
               <!-- Display Mode -->
               <div (dblclick)="startEdit(row, column.field)" [class.cursor-pointer]="column.editable">
-                @let syncDisplay = getCellDisplaySync(row, column);
-                @if (syncDisplay) {
-                  @if (syncDisplay.isHtml) {
-                    <span [innerHTML]="syncDisplay.safeHtml"></span>
-                  } @else {
-                    {{ syncDisplay.value }}
-                  }
-                } @else {
-                  @if (getCellDisplayAsync(row, column) | async; as asyncDisplay) {
-                    @if (asyncDisplay.isHtml) {
-                      <span [innerHTML]="asyncDisplay.safeHtml"></span>
-                    } @else {
-                      {{ asyncDisplay.value }}
-                    }
-                  }
-                }
+                <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
               </div>
             }
           </td>

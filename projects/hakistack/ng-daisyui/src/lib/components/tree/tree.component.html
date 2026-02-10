@@ -7,7 +7,7 @@
         class="input input-bordered input-sm w-full pl-9"
         [placeholder]="config().filterPlaceholder ?? 'Filter...'"
         [ngModel]="filterText()"
-        (ngModelChange)="filterText.set($event)"
+        (ngModelChange)="onFilterTextChange($event)"
       />
       <app-lucide-icon
         name="Search"
@@ -18,7 +18,7 @@
         <button
           type="button"
           class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2"
-          (click)="filterText.set('')"
+          (click)="onFilterTextChange('')"
           aria-label="Clear filter"
         >
           <app-lucide-icon name="X" [size]="14" />

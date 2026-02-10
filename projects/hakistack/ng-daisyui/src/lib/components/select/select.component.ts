@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, input, output, signal, ViewChild, WritableSignal, forwardRef, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, input, output, signal, viewChild, WritableSignal, forwardRef, OnDestroy } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import Fuse, { IFuseOptions } from 'fuse.js';
@@ -46,9 +46,9 @@ export type SelectColor = 'neutral' | 'primary' | 'secondary' | 'accent' | 'info
 })
 export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
-  @ViewChild('dropdownRoot') private readonly dropdownRoot!: ElementRef<HTMLElement>;
-  @ViewChild('searchInput') private readonly searchInput!: ElementRef<HTMLInputElement>;
-  @ViewChild('viewport') private readonly viewport?: CdkVirtualScrollViewport;
+  private readonly dropdownRoot = viewChild.required<ElementRef<HTMLElement>>('dropdownRoot');
+  private readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
+  private readonly viewport = viewChild<CdkVirtualScrollViewport>('viewport');
 
   // Bound event handlers for proper cleanup
   private boundDocumentClick = this.onDocumentClick.bind(this);
@@ -100,9 +100,6 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   readonly selectedOptions: WritableSignal<SelectOption[]> = signal([]);
   readonly dropdownOpen: WritableSignal<boolean> = signal(false);
   readonly highlightedIndex: WritableSignal<number> = signal(-1);
-
-  // Track if component has been initialized (to skip initial effect emissions)
-  private initialized = false;
 
   // Form Control Integration
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -253,10 +250,6 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   constructor() {
     this.setupEffects();
-    // Mark as initialized after a microtask to allow initial effect runs to be skipped
-    queueMicrotask(() => {
-      this.initialized = true;
-    });
   }
 
   ngOnDestroy(): void {
@@ -266,43 +259,9 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   private setupEffects(): void {
     // Reset Fuse cache when options change or search is enabled/disabled
     effect(() => {
-      this.effectiveOptions(); // Track options changes
-      this.enableSearch(); // Track search enabled state
+      this.effectiveOptions();
+      this.enableSearch();
       this._fuse = undefined;
-    });
-
-    // Emit selection changes and notify form control (single select only)
-    // Multi-select emissions are handled directly in the selection methods
-    effect(() => {
-      if (this.multiple()) return; // Skip for multi-select
-
-      const selection = this.selectedOption();
-
-      // Skip initial emission
-      if (!this.initialized) return;
-
-      this.selectionChange.emit(selection);
-
-      // Notify form control of changes
-      if (selection) {
-        this._onChange(selection.value);
-      } else {
-        this._onChange(null);
-      }
-    });
-
-    // Emit search changes with debounce (only when search is enabled)
-    effect(() => {
-      if (this.enableSearch()) {
-        const term = this.searchTerm();
-        this.searchChange.emit(term);
-      }
-    });
-
-    // Emit dropdown state changes
-    effect(() => {
-      const isOpen = this.dropdownOpen();
-      this.dropdownToggle.emit(isOpen);
     });
   }
 
@@ -357,11 +316,12 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
     const willOpen = !this.dropdownOpen();
     this.dropdownOpen.set(willOpen);
+    this.dropdownToggle.emit(willOpen);
 
     if (willOpen) {
       this.handleDropdownOpen();
     } else {
-      this._onTouched(); // Mark as touched when closing dropdown
+      this._onTouched();
     }
   }
 
@@ -373,6 +333,8 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
       this.toggleOptionSelection(option);
     } else {
       this.selectedOption.set(option);
+      this.selectionChange.emit(option);
+      this._onChange(option.value);
       this.closeDropdown();
     }
     this._onTouched();
@@ -445,6 +407,8 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
       this.emitMultiSelectChange([]);
     } else {
       this.selectedOption.set(null);
+      this.selectionChange.emit(null);
+      this._onChange(null);
     }
     this._onTouched();
   }
@@ -460,6 +424,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
     event.stopPropagation();
     this.searchTerm.set('');
+    this.searchChange.emit('');
     this.resetHighlight();
     this.scheduleViewportUpdate();
   }
@@ -469,6 +434,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
     const inputValue = (event.target as HTMLInputElement).value;
     this.searchTerm.set(inputValue);
+    this.searchChange.emit(inputValue);
     this.resetHighlight();
     this.scheduleViewportUpdate();
   }
@@ -514,9 +480,9 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   // Event handlers
   onDocumentClick(event: MouseEvent): void {
-    if (!this.dropdownOpen() || !this.dropdownRoot?.nativeElement) return;
+    if (!this.dropdownOpen() || !this.dropdownRoot()?.nativeElement) return;
 
-    const isClickOutside = !this.dropdownRoot.nativeElement.contains(event.target as Node);
+    const isClickOutside = !this.dropdownRoot().nativeElement.contains(event.target as Node);
     if (isClickOutside) {
       this.closeDropdown();
     }
@@ -588,24 +554,25 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
     if (this.enableSearch()) {
       this.searchTerm.set('');
+      this.searchChange.emit('');
     }
 
     this.setInitialHighlight();
     this.scheduleViewportUpdate(() => {
       // Scroll virtual viewport to top
       if (this.shouldUseVirtualScroll()) {
-        this.viewport?.scrollToIndex(0);
+        this.viewport()?.scrollToIndex(0);
       }
       if (this.enableSearch()) {
-        this.searchInput?.nativeElement?.focus();
+        this.searchInput().nativeElement.focus();
       }
     });
   }
 
   private closeDropdown(): void {
     this.dropdownOpen.set(false);
+    this.dropdownToggle.emit(false);
     this.resetHighlight();
-    // Remove document listeners when dropdown closes
     this.removeDocumentListeners();
   }
 
@@ -628,14 +595,14 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   private scheduleViewportUpdate(callback?: () => void): void {
     // Use requestAnimationFrame for better performance
     requestAnimationFrame(() => {
-      this.viewport?.checkViewportSize();
+      this.viewport()?.checkViewportSize();
       callback?.();
     });
   }
 
   private scrollToIndex(index: number): void {
     if (this.shouldUseVirtualScroll()) {
-      this.viewport?.scrollToIndex(index, 'smooth');
+      this.viewport()?.scrollToIndex(index, 'smooth');
     } else {
       const optionElement = document.getElementById(this.getOptionId(index));
       optionElement?.scrollIntoView({

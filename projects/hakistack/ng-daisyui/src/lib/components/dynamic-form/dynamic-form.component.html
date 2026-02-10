@@ -156,13 +156,6 @@
             [enableSearch]="field.isSelectSearchable"
           ></app-select>
         }
-        <!-- @case ('multiselect') {
-          <select [id]="field.key" [formControlName]="field.key" [class]="getBaseInputClasses()" multiple>
-            @for (option of getFieldOptions(field); track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
-            }
-          </select>
-        } -->
         @case ('checkbox') {
           <div class="form-control">
             <label class="label cursor-pointer justify-start gap-2">

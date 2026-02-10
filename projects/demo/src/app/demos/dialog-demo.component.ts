@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormsModule } from '@angular/forms';
+import { delay } from 'rxjs';
 import { DialogService, LucideIconComponent, SelectComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -433,7 +434,7 @@ export class DialogDemoComponent {
 
   openSimpleDialog() {
     const ref = this.dialogService.open(SimpleDialogComponent);
-    ref.closed.subscribe((result) => {
+    ref.closed.pipe(delay(0)).subscribe((result) => {
       this.simpleResult = result ? String(result) : 'cancelled';
     });
   }
@@ -457,7 +458,7 @@ export class DialogDemoComponent {
         height: '90vh',
       },
     });
-    ref.closed.subscribe((result) => {
+    ref.closed.pipe(delay(0)).subscribe((result) => {
       if (result) {
         this.formResult = result;
       }
@@ -466,7 +467,7 @@ export class DialogDemoComponent {
 
   openLongContentDialog() {
     const ref = this.dialogService.open(LongContentDialogComponent);
-    ref.closed.subscribe((result) => {
+    ref.closed.pipe(delay(0)).subscribe((result) => {
       this.termsResult = result ? String(result) : 'declined';
     });
   }

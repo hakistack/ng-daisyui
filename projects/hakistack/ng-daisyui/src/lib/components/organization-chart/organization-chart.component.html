@@ -26,16 +26,16 @@
       [class.border-t-success]="getNodeColor(node) === 'success'"
       [class.border-t-warning]="getNodeColor(node) === 'warning'"
       [class.border-t-error]="getNodeColor(node) === 'error'"
-      [ngStyle]="getNodeStyle(node)"
+      [style]="getNodeStyle(node)"
       (click)="selectNode($event, node)"
       [attr.role]="selectionMode() ? 'button' : null"
       [attr.tabindex]="selectionMode() && node.selectable !== false ? 0 : null"
       (keydown.enter)="selectNode($event, node)"
       (keydown.space)="$event.preventDefault(); selectNode($event, node)"
     >
-      @if (nodeTemplate) {
+      @if (nodeTemplate()) {
         <ng-container
-          *ngTemplateOutlet="nodeTemplate; context: getTemplateContext(node, level)"
+          *ngTemplateOutlet="nodeTemplate()!; context: getTemplateContext(node, level)"
         ></ng-container>
       } @else {
         <div class="flex items-center justify-center gap-2">

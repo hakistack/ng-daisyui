@@ -258,12 +258,7 @@ export const field = {
       ...options,
     }),
 
-  // Date/time fields
   date: (key: string, label?: string, options?: FieldOptions) => createField(key, 'date', label, options),
-
-  // time: (key: string, label?: string, options?: FieldOptions) => createField(key, 'time', label, options),
-
-  // datetime: (key: string, label?: string, options?: FieldOptions) => createField(key, 'datetime-local', label, options),
 
   // File field
   file: (key: string, label?: string, options?: FieldOptions) =>

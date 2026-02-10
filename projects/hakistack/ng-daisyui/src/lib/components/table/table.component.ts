@@ -3,7 +3,7 @@ import { CdkTableModule, DataSource } from '@angular/cdk/table';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, contentChild, effect, ElementRef, forwardRef, HostBinding, HostListener, inject, input, OnDestroy, output, PLATFORM_ID, Signal, signal, TemplateRef, TrackByFunction, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, contentChild, effect, ElementRef, forwardRef, inject, input, OnDestroy, output, PLATFORM_ID, Signal, signal, TemplateRef, TrackByFunction, untracked } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
 import Fuse, { IFuseOptions } from 'fuse.js';
@@ -101,6 +101,13 @@ interface SortState {
   templateUrl: './table.component.html',
   styleUrls: ['./table.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.resizing]': 'isResizingSignal()',
+    '[attr.tabindex]': 'enableKeyboardNavSignal() ? 0 : null',
+    '[style.outline]': "enableKeyboardNavSignal() ? 'none' : null",
+    '(document:click)': 'onDocumentClick($event)',
+    '(keydown)': 'onTableKeydown($event)',
+  },
 })
 export class TableComponent<T extends object> implements OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
@@ -110,7 +117,6 @@ export class TableComponent<T extends object> implements OnDestroy {
   private readonly hasLocalStorage = this.isBrowser && typeof localStorage !== 'undefined';
 
   // Handle click outside to close dropdowns
-  @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
     // Check if click is outside any bulk action dropdown
@@ -123,6 +129,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   private readonly htmlParser = this.isBrowser && typeof DOMParser !== 'undefined'
     ? new DOMParser()
     : null;
+  private readonly htmlCache = new Map<string, boolean>();
 
   // Inputs as signals
   readonly data = input<readonly T[] | null>(null);
@@ -159,7 +166,6 @@ export class TableComponent<T extends object> implements OnDestroy {
   private readonly sortState = signal<SortState>({ field: '', direction: '' });
   private readonly filterState = signal<FilterConfig<T>[]>([]);
   readonly selectedSignal = signal(new Set<T>());
-  readonly showAlertSignal = signal(false);
   readonly openFilterField = signal<string | null>(null); // Track which filter dropdown is open
   readonly columnVisibilityState = signal<Map<string, boolean>>(new Map()); // Track column visibility
   readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
@@ -217,21 +223,6 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly enableResizingSignal = computed(() => this.fieldConfig()?.enableColumnResizing ?? false);
   private resizeState: { field: string; startX: number; startWidth: number } | null = null;
 
-  @HostBinding('class.resizing')
-  get isResizingClass(): boolean {
-    return this.isResizingSignal();
-  }
-
-  // Keyboard navigation: host must be focusable
-  @HostBinding('attr.tabindex')
-  get keyboardTabIndex(): number | null {
-    return this.enableKeyboardNavSignal() ? 0 : null;
-  }
-
-  @HostBinding('style.outline')
-  get hostOutline(): string | null {
-    return this.enableKeyboardNavSignal() ? 'none' : null;
-  }
 
   // ============================================================================
   // Virtual Scrolling
@@ -250,7 +241,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly editError = signal<string | null>(null);
 
   // ============================================================================
-  // Feature 1: Summary Footer Row
+  // Summary Footer Row
   // ============================================================================
   readonly showFooterSignal = computed(() => this.fieldConfig()?.showFooter ?? false);
   readonly hasAggregateFooterSignal = computed(() => this.showFooterSignal() && this.columnDefsSignal().some(col => !!col.footer));
@@ -275,7 +266,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly dragOverRowIndex = signal<number | null>(null);
 
   // ============================================================================
-  // Feature 2: Expandable Row Detail
+  // Expandable Row Detail
   // ============================================================================
   readonly rowDetailTemplate = contentChild<TemplateRef<{ $implicit: T }>>('rowDetail');
   readonly expandedDetailRows = signal<Set<T>>(new Set());
@@ -284,25 +275,25 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly showExpandColumnSignal = computed(() => this.isExpandableDetailSignal() && (!!this.rowDetailTemplate() || !!this.childGridConfigSignal()));
 
   // ============================================================================
-  // Feature 2b: Hierarchy Grid (Child Grid)
+  // Hierarchy Grid (Child Grid)
   // ============================================================================
   readonly childGridConfigSignal = computed(() => this.config()?.childGrid);
   readonly hasChildGridSignal = computed(() => !!this.childGridConfigSignal());
 
   // ============================================================================
-  // Feature 3: Keyboard Navigation
+  // Keyboard Navigation
   // ============================================================================
   readonly enableKeyboardNavSignal = computed(() => this.fieldConfig()?.enableKeyboardNavigation ?? false);
   readonly activeCellSignal = signal<[number, number] | null>(null);
 
   // ============================================================================
-  // Feature 4: Column Reordering
+  // Column Reordering
   // ============================================================================
   readonly enableColumnReorderSignal = computed(() => this.fieldConfig()?.enableColumnReorder ?? false);
   readonly columnOrderOverride = signal<string[] | null>(null);
 
   // ============================================================================
-  // Feature 5: Row Reordering
+  // Row Reordering
   // ============================================================================
   readonly enableRowReorderSignal = computed(() => {
     const config = this.fieldConfig();
@@ -316,7 +307,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly showDragHandleColumnSignal = computed(() => this.enableRowReorderSignal() && (this.fieldConfig()?.showDragHandle ?? true));
 
   // ============================================================================
-  // Feature 6: Row Grouping
+  // Row Grouping
   // ============================================================================
   readonly groupConfigSignal = computed(() => this.fieldConfig()?.grouping);
   readonly isGroupedSignal = computed(() => !!this.groupConfigSignal()?.groupBy);
@@ -341,9 +332,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     minMatchCharLength: 1,
     keys: [], // Will be populated dynamically with searchable fields
   };
-
-  // Computed signal for animation class
-  readonly alertAnimationClass = computed(() => (this.showAlertSignal() ? 'animate__animated animate__fadeIn' : 'animate__animated animate__fadeOut'));
 
   // Global search computed signals
   readonly hasGlobalSearchSignal = computed(() => this.fieldConfig()?.globalSearch?.enabled ?? false);
@@ -374,49 +362,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly nextCursorSignal = computed(() => this.paginationOptions()?.nextCursor ?? null);
   readonly prevCursorSignal = computed(() => this.paginationOptions()?.prevCursor ?? null);
 
-  // Pagination calculations
-  readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));
-  readonly currentPageSignal = computed(() => this.pageIndexSignal() + 1); // 1-based for display
-  readonly startIndexSignal = computed(() => this.pageIndexSignal() * this.pageSizeSignal() + 1);
-  readonly endIndexSignal = computed(() => Math.min((this.pageIndexSignal() + 1) * this.pageSizeSignal(), this.totalItemsSignal()));
-
-  // Navigation state for cursor pagination
-  readonly hasPreviousPageSignal = computed(() => {
-    if (this.modeSignal() === 'cursor') {
-      return !!this.prevCursorSignal() && !this.disabled();
-    }
-    return this.pageIndexSignal() > 0 && !this.disabled();
-  });
-
-  readonly hasNextPageSignal = computed(() => {
-    if (this.modeSignal() === 'cursor') {
-      return !!this.nextCursorSignal() && !this.disabled();
-    }
-    return this.pageIndexSignal() < this.totalPagesSignal() - 1 && !this.disabled();
-  });
-  readonly isFirstPageSignal = computed(() => this.pageIndexSignal() === 0);
-  readonly isLastPageSignal = computed(() => this.pageIndexSignal() === this.totalPagesSignal() - 1);
-
-  // Visible page range for pagination buttons
-  readonly visiblePagesSignal = computed(() => {
-    const currentPage = this.currentPageSignal();
-    const totalPages = this.totalPagesSignal();
-    const maxVisiblePages = 7; // Show max 7 page buttons
-
-    if (totalPages <= maxVisiblePages) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-
-    const half = Math.floor(maxVisiblePages / 2);
-    let start = Math.max(1, currentPage - half);
-    const end = Math.min(totalPages, start + maxVisiblePages - 1);
-
-    if (end - start + 1 < maxVisiblePages) {
-      start = Math.max(1, end - maxVisiblePages + 1);
-    }
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  });
+  private readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));
 
   readonly hasSelectionSignal = computed(() => this.fieldConfig()?.hasSelection ?? false);
   readonly hasActionsSignal = computed(() => {
@@ -860,28 +806,29 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
   }
 
-  // Enhanced pagination methods
   firstPage(): void {
-    if (!this.isFirstPageSignal() && !this.disabled()) {
+    if (this.pageIndexSignal() > 0 && !this.disabled()) {
       this.updatePagination({ pageIndex: 0, pageSize: this.pageSizeSignal() });
     }
   }
 
   previousPage(): void {
-    if (this.hasPreviousPageSignal()) {
+    if (this.pageIndexSignal() > 0 && !this.disabled()) {
       this.updatePagination({ pageIndex: this.pageIndexSignal() - 1, pageSize: this.pageSizeSignal() });
     }
   }
 
   nextPage(): void {
-    if (this.hasNextPageSignal()) {
+    const lastPage = this.totalPagesSignal() - 1;
+    if (this.pageIndexSignal() < lastPage && !this.disabled()) {
       this.updatePagination({ pageIndex: this.pageIndexSignal() + 1, pageSize: this.pageSizeSignal() });
     }
   }
 
   lastPage(): void {
-    if (!this.isLastPageSignal() && !this.disabled()) {
-      this.updatePagination({ pageIndex: this.totalPagesSignal() - 1, pageSize: this.pageSizeSignal() });
+    const lastPage = this.totalPagesSignal() - 1;
+    if (this.pageIndexSignal() < lastPage && !this.disabled()) {
+      this.updatePagination({ pageIndex: lastPage, pageSize: this.pageSizeSignal() });
     }
   }
 
@@ -895,30 +842,6 @@ export class TableComponent<T extends object> implements OnDestroy {
   clearSelection(): void {
     this.selectedSignal.set(new Set());
     this.selectionChange.emit([]);
-  }
-
-  changePageSize(pageSize: number): void {
-    if (pageSize > 0 && !this.disabled()) {
-      const mode = this.modeSignal();
-
-      if (mode === 'offset') {
-        // For offset pagination, calculate new page index to maintain position
-        const currentIndex = this.pageIndexSignal();
-        const currentStart = currentIndex * this.pageSizeSignal();
-        const newPageIndex = Math.floor(currentStart / pageSize);
-
-        this.updatePagination({ pageIndex: newPageIndex, pageSize });
-      } else {
-        // For cursor pagination, just update page size - parent will handle server call
-        this.paginationState.update(state => ({
-          ...state,
-          pageSize,
-        }));
-
-        // Emit a special page change event for cursor mode page size changes
-        this.pageChange.emit({ pageIndex: 0, pageSize });
-      }
-    }
   }
 
   private updatePagination(options: { pageIndex: number; pageSize: number }): void {
@@ -956,7 +879,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   classesFor({ key, config }: ActionItem<T> | BulkActionItem<T>): string {
     const baseClass = TableComponent.ACTION_CLASSES[key] || TableComponent.DEFAULT_ACTION_CLASS;
     const configClass = config.buttonClass || '';
-    const transitionClasses = 'transition-all duration-200 hover:scale-105 focus:scale-105';
+    const transitionClasses = 'transition-colors duration-200';
     const classes = [baseClass, configClass, transitionClasses, ...(config.buttonClasses || [])].filter(Boolean);
 
     return classes.join(' ');
@@ -1006,19 +929,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     bulkAction.config.action(this.selectedArraySignal(), option);
   }
 
-  formatCell(row: T, column: ColumnDefinition<T>): Observable<string> {
-    const value = row[column.field];
-
-    if (column.format) {
-      const result = column.format(value, row);
-      const formatted = isObservable(result) ? result : of(result || (column.fallback ?? '—'));
-      return formatted;
-    }
-
-    const displayValue = value || value === 0 ? String(value) : (column.fallback ?? '—');
-    return of(displayValue);
-  }
-
   toggleRow(row: T, checked: boolean): void {
     this.selectedSignal.update(selectedSet => {
       const newSet = new Set(selectedSet);
@@ -1061,21 +971,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     return {
       'bg-base-200': this.isSelected(row),
     };
-  }
-
-  // Cursor pagination methods (for server-side)
-  nextCursorPage(): void {
-    const nextCursor = this.nextCursorSignal();
-    if (nextCursor && !this.disabled()) {
-      this.cursorChange.emit({ cursor: nextCursor, direction: 'next' });
-    }
-  }
-
-  prevCursorPage(): void {
-    const prevCursor = this.prevCursorSignal();
-    if (prevCursor && !this.disabled()) {
-      this.cursorChange.emit({ cursor: prevCursor, direction: 'prev' });
-    }
   }
 
   // Handler methods for pagination component
@@ -1311,41 +1206,25 @@ export class TableComponent<T extends object> implements OnDestroy {
     this.saveColumnVisibilityToStorage();
   }
 
-  getVisibleColumnsCount(): number {
-    const allColumns = this.columnDefsSignal().map(c => c.field);
-    return allColumns.filter(f => this.isColumnVisible(f)).length;
-  }
-
   // ============================================================================
   // Tree Table Methods
   // ============================================================================
 
-  /**
-   * Checks if the current row has children.
-   */
   hasChildren(row: T): boolean {
     return this.treeRowHasChildrenMap.get(row) ?? false;
   }
 
-  /**
-   * Checks if a row is currently expanded.
-   */
   isRowExpanded(row: T): boolean {
     const key = this.treeRowKeyMap.get(row);
     if (!key) return false;
     return this.expandedRowKeys().has(key);
   }
 
-  /**
-   * Gets the indentation level for a row (0 = root).
-   */
+  /** 0 = root level */
   getRowLevel(row: T): number {
     return this.treeRowLevelMap.get(row) ?? 0;
   }
 
-  /**
-   * Calculates the indentation padding for the first cell.
-   */
   getRowIndentPadding(row: T): number {
     const level = this.getRowLevel(row);
     const indentSize = this.treeIndentSizeSignal();
@@ -1353,9 +1232,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     return 8 + (level * indentSize);
   }
 
-  /**
-   * Toggles the expansion state of a row.
-   */
   toggleRowExpand(row: T, event?: MouseEvent): void {
     if (event) {
       event.stopPropagation();
@@ -1380,18 +1256,12 @@ export class TableComponent<T extends object> implements OnDestroy {
     this.expansionChange.emit({ row, expanded: !isCurrentlyExpanded });
   }
 
-  /**
-   * Expands all rows in the tree.
-   */
   expandAllRows(): void {
     const allKeys = new Set<string>();
     this.collectAllRowKeys(this.originalDataSignal(), allKeys);
     this.expandedRowKeys.set(allKeys);
   }
 
-  /**
-   * Collapses all rows in the tree.
-   */
   collapseAllRows(): void {
     this.expandedRowKeys.set(new Set());
   }
@@ -1550,7 +1420,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   // ============================================================================
-  // Feature 1: Summary Footer Row Methods
+  // Summary Footer Row Methods
   // ============================================================================
 
   getFooterValue(column: ColumnDefinition<T>): string {
@@ -1588,7 +1458,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   // ============================================================================
-  // Feature 2: Expandable Row Detail Methods
+  // Expandable Row Detail Methods
   // ============================================================================
 
   isDetailExpanded(row: T): boolean {
@@ -1624,7 +1494,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   // ============================================================================
-  // Feature 2b: Hierarchy Grid (Child Grid) Methods
+  // Hierarchy Grid (Child Grid) Methods
   // ============================================================================
 
   getChildGridData(row: T): readonly unknown[] {
@@ -1646,7 +1516,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   // ============================================================================
-  // Feature 3: Keyboard Navigation Methods
+  // Keyboard Navigation Methods
   // ============================================================================
 
   getCellId(rowIndex: number, colIndex: number): string {
@@ -1659,7 +1529,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     return this.getCellId(cell[0], cell[1]);
   }
 
-  @HostListener('keydown', ['$event'])
   onTableKeydown(event: KeyboardEvent): void {
     if (!this.enableKeyboardNavSignal()) return;
 
@@ -1755,7 +1624,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   // ============================================================================
-  // Feature 4: Column Reordering (Native HTML5 Drag)
+  // Column Reordering (Native HTML5 Drag)
   // ============================================================================
 
   onColumnDragStart(field: string, event: DragEvent): void {
@@ -1810,7 +1679,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   // ============================================================================
-  // Feature 5: Row Reordering (Native HTML5 Drag)
+  // Row Reordering (Native HTML5 Drag)
   // ============================================================================
 
   onRowDragStart(row: T, event: DragEvent): void {
@@ -1859,7 +1728,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   // ============================================================================
-  // Feature 6: Row Grouping Methods
+  // Row Grouping Methods
   // ============================================================================
 
   toggleGroupExpand(groupValue: unknown): void {
@@ -1917,19 +1786,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     if (!fn) return '';
     return fn(group.rows);
   }
-
-  // Row predicates for grouped CDK table
-  isGroupHeaderRow = (_: number, item: unknown): boolean => {
-    return (item as { type?: string })?.type === 'group-header';
-  };
-
-  isGroupFooterRow = (_: number, item: unknown): boolean => {
-    return (item as { type?: string })?.type === 'group-footer';
-  };
-
-  isDataRow = (_: number, item: unknown): boolean => {
-    return (item as { type?: string })?.type === 'data' || !(item as { type?: string })?.type;
-  };
 
   private saveColumnVisibilityToStorage(): void {
     const config = this.columnVisibilityConfig();
@@ -2051,6 +1907,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Reset pagination when data changes
     effect(() => {
       this.data(); // Subscribe to data changes
+      this.htmlCache.clear();
       this.paginationState.update(state => ({
         ...state,
         pageIndex: 0,
@@ -2130,29 +1987,36 @@ export class TableComponent<T extends object> implements OnDestroy {
    * Async path for cell display. Only used when the column formatter returns an Observable.
    */
   getCellDisplayAsync(row: T, column: ColumnDefinition<T>): Observable<CellDisplay> {
-    return this.formatCell(row, column).pipe(
-      map(value => {
-        const html = this.isHtml(value);
-        return { value, isHtml: html, safeHtml: html ? this.sanitizeHtml(value) : null };
+    const value = row[column.field];
+    let formatted$: Observable<string>;
+
+    if (column.format) {
+      const result = column.format(value, row);
+      formatted$ = isObservable(result) ? result : of(result || (column.fallback ?? '—'));
+    } else {
+      formatted$ = of(value || value === 0 ? String(value) : (column.fallback ?? '—'));
+    }
+
+    return formatted$.pipe(
+      map(v => {
+        const html = this.isHtml(v);
+        return { value: v, isHtml: html, safeHtml: html ? this.sanitizeHtml(v) : null };
       }),
     );
-  }
-
-  /**
-   * @deprecated Use `getCellDisplaySync` with `getCellDisplayAsync` fallback instead.
-   */
-  getCellDisplay(row: T, column: ColumnDefinition<T>): Observable<CellDisplay> {
-    return this.getCellDisplayAsync(row, column);
   }
 
   private isHtml(value: string): boolean {
     if (!value || typeof value !== 'string') return false;
     if (!value.includes('<') || !value.includes('>')) return false;
 
+    const cached = this.htmlCache.get(value);
+    if (cached !== undefined) return cached;
+
     if (!this.htmlParser) return false;
     const doc = this.htmlParser.parseFromString(value, 'text/html');
-
-    return doc.body.children.length > 0 && doc.querySelector('parsererror') === null;
+    const result = doc.body.children.length > 0 && doc.querySelector('parsererror') === null;
+    this.htmlCache.set(value, result);
+    return result;
   }
 
   private sanitizeHtml(value: string): SafeHtml {
@@ -2183,9 +2047,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
   }
 
-  /**
-   * Emits all sort-related events
-   */
   private emitSortEvents(sortState: SortState): void {
     this.sortFieldChange.emit(sortState.field);
     this.sortDirectionChange.emit(sortState.direction);

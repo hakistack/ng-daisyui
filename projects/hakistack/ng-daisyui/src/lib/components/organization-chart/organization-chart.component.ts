@@ -1,7 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ContentChild,
+  contentChild,
   TemplateRef,
   computed,
   input,
@@ -25,17 +25,14 @@ import {
 
 @Component({
   selector: 'app-organization-chart',
-  standalone: true,
   imports: [CommonModule, LucideIconComponent],
   templateUrl: './organization-chart.component.html',
   styleUrl: './organization-chart.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrganizationChartComponent<T = unknown> {
-  // Template for custom node rendering
-  @ContentChild('nodeTemplate') nodeTemplate?: TemplateRef<OrgChartNodeTemplateContext<T>>;
+  readonly nodeTemplate = contentChild<TemplateRef<OrgChartNodeTemplateContext<T>>>('nodeTemplate');
 
-  // Inputs
   /** The hierarchical data to display */
   readonly value = input<TreeNode<T>[]>([]);
 
@@ -66,7 +63,6 @@ export class OrganizationChartComponent<T = unknown> {
   /** Line color */
   readonly lineColor = input<string>('');
 
-  // Outputs
   /** Emitted when a node is selected */
   readonly onNodeSelect = output<OrgChartNodeSelectEvent<T>>();
 
@@ -82,10 +78,8 @@ export class OrganizationChartComponent<T = unknown> {
   /** Emitted when selection changes (for two-way binding) */
   readonly selectionChange = output<TreeNode<T> | TreeNode<T>[] | null>();
 
-  // Internal state
   private readonly _selection: WritableSignal<TreeNode<T>[]> = signal([]);
 
-  // Computed properties
   readonly containerClasses = computed(() => {
     const classes = ['org-chart'];
     if (this.orientation() === 'horizontal') {
@@ -102,33 +96,21 @@ export class OrganizationChartComponent<T = unknown> {
     return color ? { borderColor: color } : {};
   });
 
-  /**
-   * Check if a node is selected
-   */
   isNodeSelected(node: TreeNode<T>): boolean {
     const currentSelection = this._selection();
     return currentSelection.some(n => this.isSameNode(n, node));
   }
 
-  /**
-   * Check if a node has children
-   */
   hasChildren(node: TreeNode<T>): boolean {
     // If leaf is explicitly true, it has no children
     if (node.leaf === true) return false;
     return !!node.children && node.children.length > 0;
   }
 
-  /**
-   * Check if a node is expanded
-   */
   isExpanded(node: TreeNode<T>): boolean {
     return node.expanded === true;
   }
 
-  /**
-   * Get the icon for a node based on its state
-   */
   getNodeIcon(node: TreeNode<T>): IconName | undefined {
     if (this.hasChildren(node)) {
       if (this.isExpanded(node) && node.expandedIcon) {
@@ -141,9 +123,6 @@ export class OrganizationChartComponent<T = unknown> {
     return node.icon;
   }
 
-  /**
-   * Toggle node expand/collapse state
-   */
   toggleNode(event: Event, node: TreeNode<T>): void {
     event.stopPropagation();
 
@@ -161,9 +140,6 @@ export class OrganizationChartComponent<T = unknown> {
     }
   }
 
-  /**
-   * Handle node selection
-   */
   selectNode(event: Event, node: TreeNode<T>): void {
     if (!this.selectionMode() || node.selectable === false) {
       return;
@@ -202,16 +178,10 @@ export class OrganizationChartComponent<T = unknown> {
     }
   }
 
-  /**
-   * Get the color for a node
-   */
   getNodeColor(node: TreeNode<T>): OrgChartNodeColor {
     return (node.type as OrgChartNodeColor) || this.nodeColor();
   }
 
-  /**
-   * Get the CSS classes for a node
-   */
   getNodeClasses(node: TreeNode<T>, level: number): string {
     const classes = ['org-chart-node'];
 
@@ -243,16 +213,10 @@ export class OrganizationChartComponent<T = unknown> {
     return classes.join(' ');
   }
 
-  /**
-   * Get inline styles for a node
-   */
   getNodeStyle(node: TreeNode<T>): Record<string, string> {
     return node.style || {};
   }
 
-  /**
-   * Get template context for a node
-   */
   getTemplateContext(node: TreeNode<T>, level: number): OrgChartNodeTemplateContext<T> {
     return {
       $implicit: node,
@@ -265,16 +229,10 @@ export class OrganizationChartComponent<T = unknown> {
     };
   }
 
-  /**
-   * Track function for ngFor
-   */
   trackByNode(_: number, node: TreeNode<T>): string {
     return node.key || node.label || JSON.stringify(node.data);
   }
 
-  /**
-   * Check if two nodes are the same
-   */
   private isSameNode(node1: TreeNode<T>, node2: TreeNode<T>): boolean {
     if (node1.key && node2.key) {
       return node1.key === node2.key;
