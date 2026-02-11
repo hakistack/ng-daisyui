@@ -155,6 +155,11 @@ export interface AutoSaveConfig {
   readonly debounceMs?: number;
   /** Clear saved state after successful submit (default: true) */
   readonly clearOnSubmit?: boolean;
+  /**
+   * Override the global storage mode for this specific form.
+   * If not set, uses the mode from provideFormState().
+   */
+  readonly storage?: 'api' | 'localStorage';
 }
 
 /** Input configuration for createForm helper */

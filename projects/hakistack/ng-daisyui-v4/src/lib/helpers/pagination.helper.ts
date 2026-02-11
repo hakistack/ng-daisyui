@@ -2,9 +2,6 @@ import { signal, computed, Signal, WritableSignal } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
 import { CursorPage } from '../models/paged-response';
 
-// ============================================================================
-// TYPES & INTERFACES
-// ============================================================================
 
 export type SortDirection = 'Ascending' | 'Descending';
 
@@ -146,18 +143,12 @@ export interface OffsetPaginationState {
   getHttpParams: () => HttpParams;
 }
 
-// ============================================================================
-// DEFAULT VALUES
-// ============================================================================
 
 const DEFAULT_PAGE_SIZE = 10;
 const DEFAULT_PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 const DEFAULT_SORT_FIELD = 'createdAt';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'Descending';
 
-// ============================================================================
-// CURSOR PAGINATION
-// ============================================================================
 
 /**
  * Creates a cursor-based pagination state manager
@@ -288,9 +279,6 @@ export function createCursorPagination(options: CursorPaginationOptions = {}): C
   };
 }
 
-// ============================================================================
-// OFFSET PAGINATION
-// ============================================================================
 
 /**
  * Creates an offset-based pagination state manager
@@ -415,9 +403,6 @@ export function createOffsetPagination(options: OffsetPaginationOptions = {}): O
   };
 }
 
-// ============================================================================
-// CONVERSION HELPERS (for table component compatibility)
-// ============================================================================
 
 import { PaginationOptions } from '../components';
 
@@ -452,9 +437,6 @@ export function toOffsetTablePaginationOptions(state: OffsetPaginationState): Pa
   };
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
 
 /**
  * Creates HTTP params for cursor pagination (standalone function)

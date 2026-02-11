@@ -14,7 +14,7 @@ import { ColumnDefinition } from './table.types';
         <span>Columns</span>
         <span class="badge badge-sm badge-neutral">{{ visibleColumnsCount() }}/{{ columns().length }}</span>
       </summary>
-      <div class="dropdown-content card card-compact bg-base-100 z-10 mt-2 w-72 shadow-xl">
+      <div class="dropdown-content card card-sm bg-base-100 z-10 mt-2 w-72 shadow-xl">
         <div class="card-body gap-3 p-4">
           <!-- Column toggles -->
           <div class="flex flex-col gap-1">

@@ -6,9 +6,6 @@ import Swal, { SweetAlertOptions, SweetAlertResult } from 'sweetalert2';
 
 import { AlertOptions, AlertResult, ConfirmOptions, CountdownOptions, DeleteConfirmOptions, LoadingOptions } from './alert.types';
 
-// ============================================================================
-// Configuration
-// ============================================================================
 
 /**
  * Configuration for AlertService
@@ -65,9 +62,6 @@ export function provideAlert(config?: AlertConfig): EnvironmentProviders {
   return makeEnvironmentProviders([{ provide: ALERT_CONFIG, useValue: config ?? {} }]);
 }
 
-// ============================================================================
-// Service
-// ============================================================================
 
 interface ButtonTexts {
   confirm: string;
@@ -122,18 +116,15 @@ export class AlertService {
     htmlContainer: 'text-base-content/80 text-base',
     closeButton: 'btn btn-sm btn-circle btn-ghost absolute right-2 top-2',
     icon: 'swal2-icon-daisyui border-4 mb-4',
-    actions: 'flex gap-3 mt-6 w-full justify-center',
+    actions: 'flex gap-3 mt-6 w-full justify-end',
     confirmButton: BUTTON_STYLES.primary,
     denyButton: BUTTON_STYLES.warning,
     cancelButton: BUTTON_STYLES.secondary,
-    loader: 'hidden', // Hide loader by default, showLoading() will make it visible
+    loader: 'loading loading-spinner loading-md',
     footer: 'text-base-content/50 text-sm border-t border-base-200 mt-4 pt-4 w-full',
     timerProgressBar: 'bg-primary h-1 rounded-full',
   } as const;
 
-  // =====================
-  // Simple Alert Methods
-  // =====================
 
   /**
    * Show a basic alert dialog
@@ -246,9 +237,6 @@ export class AlertService {
     return this.mapResult(result);
   }
 
-  // =====================
-  // Confirmation Dialogs
-  // =====================
 
   /**
    * Show confirmation dialog
@@ -314,9 +302,6 @@ export class AlertService {
     });
   }
 
-  // =====================
-  // Loading State
-  // =====================
 
   /**
    * Show loading dialog
@@ -329,11 +314,6 @@ export class AlertService {
       allowEscapeKey: options.allowClose ?? false,
       showConfirmButton: false,
       theme: this.getTheme(),
-      buttonsStyling: false,
-      customClass: {
-        ...this.baseCustomClass,
-        loader: 'loading loading-spinner loading-md', // Override to show loader
-      },
       didOpen: () => {
         Swal.showLoading();
       },
@@ -354,9 +334,6 @@ export class AlertService {
     Swal.update({ text });
   }
 
-  // =====================
-  // Advanced / Direct Access
-  // =====================
 
   /**
    * Direct access to SweetAlert2 fire method
@@ -376,9 +353,6 @@ export class AlertService {
     });
   }
 
-  // =====================
-  // Private Helpers
-  // =====================
 
   private getTheme(): 'light' | 'dark' {
     // Custom theme function takes priority

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, ElementRef, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
@@ -155,18 +155,14 @@ export interface FilterApplyEvent {
     </div>
   `,
 })
-export class TableFilterComponent<T extends object> {
-  private readonly elementRef = inject(ElementRef);
-
+export class TableFilterComponent<T extends object> implements OnInit {
   column = input.required<ColumnDefinition<T>>();
   filterConfig = input.required<ColumnFilter<T>>();
   activeFilter = input<FilterConfig<T>>();
 
-  // Outputs using new output() function
   readonly apply = output<FilterApplyEvent>();
   readonly closeFilter = output<void>();
 
-  // Filter value signals
   textValue = signal<string>('');
   numberValue = signal<number | null>(null);
   selectValue = signal<unknown>(null);
@@ -194,50 +190,49 @@ export class TableFilterComponent<T extends object> {
     }
   }
 
-  constructor() {
-    effect(() => {
-      const config = this.filterConfig();
-      const active = this.activeFilter();
+  ngOnInit(): void {
+    const config = this.filterConfig();
+    const active = this.activeFilter();
 
-      const defaultOp = config.defaultOperator ?? this.getDefaultOperator();
-      this.selectedOperator.set(defaultOp);
+    const defaultOp = config.defaultOperator ?? this.getDefaultOperator();
+    this.selectedOperator.set(defaultOp);
 
-      if (active) {
-        this.selectedOperator.set(active.operator);
+    if (active) {
+      this.selectedOperator.set(active.operator);
 
-        switch (config.type) {
-          case 'text':
-            this.textValue.set(String(active.value ?? ''));
-            break;
-          case 'number':
-            this.numberValue.set(active.value as number);
-            break;
-          case 'select':
-          case 'boolean':
-            this.selectValue.set(active.value);
-            this.booleanValue.set(active.value as boolean);
-            break;
-          case 'multiselect':
-            this.multiSelectValue.set(Array.isArray(active.value) ? active.value : []);
-            break;
-          case 'date':
-            this.dateValue.set(String(active.value ?? ''));
-            break;
-          case 'numberRange':
-            if (Array.isArray(active.value) && active.value.length === 2) {
-              this.rangeMin.set(active.value[0] as number);
-              this.rangeMax.set(active.value[1] as number);
-            }
-            break;
-          case 'dateRange':
-            if (Array.isArray(active.value) && active.value.length === 2) {
-              this.dateRangeStart.set(String(active.value[0]));
-              this.dateRangeEnd.set(String(active.value[1]));
-            }
-            break;
-        }
+      switch (config.type) {
+        case 'text':
+          this.textValue.set(String(active.value ?? ''));
+          break;
+        case 'number':
+          this.numberValue.set(active.value as number);
+          break;
+        case 'select':
+          this.selectValue.set(active.value);
+          break;
+        case 'boolean':
+          this.booleanValue.set(active.value as boolean);
+          break;
+        case 'multiselect':
+          this.multiSelectValue.set(Array.isArray(active.value) ? active.value : []);
+          break;
+        case 'date':
+          this.dateValue.set(String(active.value ?? ''));
+          break;
+        case 'numberRange':
+          if (Array.isArray(active.value) && active.value.length === 2) {
+            this.rangeMin.set(active.value[0] as number);
+            this.rangeMax.set(active.value[1] as number);
+          }
+          break;
+        case 'dateRange':
+          if (Array.isArray(active.value) && active.value.length === 2) {
+            this.dateRangeStart.set(String(active.value[0]));
+            this.dateRangeEnd.set(String(active.value[1]));
+          }
+          break;
       }
-    });
+    }
   }
 
   isOptionSelected(value: unknown): boolean {
@@ -321,12 +316,7 @@ export class TableFilterComponent<T extends object> {
   }
 
   private closeDropdown(): void {
-    // Blur the dropdown to close it (DaisyUI dropdown behavior)
-    const dropdown = this.elementRef.nativeElement.closest('.dropdown');
-    if (dropdown) {
-      const activeElement = document.activeElement as HTMLElement;
-      activeElement?.blur();
-    }
+    this.closeFilter.emit();
   }
 
   private getDefaultOperator(): FilterOperator {

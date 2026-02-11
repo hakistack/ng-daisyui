@@ -3,14 +3,15 @@ import { SafeHtml } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
 
 import { PipeFormatter } from '../../types/base-pipes.type';
-import { IconName } from '../lucide-icon/lucide-icon.component'; // Common type aliases with better constraints
+import { IconName } from '../lucide-icon/lucide-icon.component';
+import { AggregateFunction } from './table-aggregates';
 
 // Common type aliases with better constraints
 export type StringKey<T> = Extract<keyof T, string>;
 export type CSSProperties = Partial<CSSStyleDeclaration>;
 
 // Table action types with better type safety
-export type ActionType = 'view' | 'edit' | 'delete' | 'upload' | 'download' | 'export' | 'print' | (string & {});
+export type ActionType = 'view' | 'edit' | 'delete' | 'upload' | 'download' | 'print' | (string & {});
 
 // Formatter type - uses unknown for value to avoid contravariance issues with generics
 export type Formatter<T> = ((value: unknown, row: T) => string | Observable<string>) | PipeFormatter;
@@ -18,6 +19,28 @@ export type Formatter<T> = ((value: unknown, row: T) => string | Observable<stri
 export interface FieldConfiguration<T> {
   readonly config: FieldConfig<T>;
   readonly columns: ColumnDefinition<T>[];
+  readonly resolvedFooterRows?: ResolvedFooterRow<T>[];
+  readonly resolvedGroupAggregates?: ResolvedGroupAggregates<T>;
+  readonly childGrid?: ChildGridConfig<T>;
+}
+
+// Hierarchy Grid (Child Grid) configuration
+export interface ChildGridConfig<TParent = unknown> {
+  /** Column configuration for the child table (from createTable) */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: FieldConfiguration<any>;
+  /** Property name on the parent row that holds the child array */
+  childDataProperty?: string;
+  /** Function to resolve child data from the parent row */
+  childDataFn?: (parentRow: TParent) => readonly unknown[];
+  /** Pagination options for the child table */
+  pagination?: PaginationOptions;
+  /** Whether only one child grid can be expanded at a time (default: 'multi') */
+  expandMode?: 'single' | 'multi';
+  /** Show a left border to indicate hierarchy (default: true) */
+  bordered?: boolean;
+  /** Additional CSS class for the child grid container */
+  containerClass?: string;
 }
 
 // Enhanced table action interface with better type safety
@@ -138,6 +161,70 @@ export interface FieldConfig<T> {
   enableFiltering?: boolean; // Global filter enable/disable
   globalSearch?: GlobalSearchConfig<T>; // Global search configuration
   columnVisibility?: ColumnVisibilityConfig; // Column visibility toggle configuration
+  treeTable?: TreeTableConfig<T>; // Tree table configuration
+
+  // Sticky columns
+  /** Sticky columns configuration */
+  stickyColumns?: {
+    /** Auto-stick selection checkbox column. Default: true when hasSelection */
+    stickySelection?: boolean;
+    /** Auto-stick actions column. Default: true when hasActions */
+    stickyActions?: boolean;
+  };
+
+  // Column resizing
+  /** Enable column resizing */
+  enableColumnResizing?: boolean;
+  /** Column widths (can be set programmatically or via resize) */
+  columnWidths?: Partial<Record<StringKey<T>, number>>;
+  /** Resize mode: 'fit' adjusts neighbor, 'expand' changes table width */
+  resizeMode?: 'fit' | 'expand';
+
+  // Virtual scrolling
+  /** Virtual scrolling configuration for large datasets */
+  virtualScroll?: VirtualScrollConfig;
+
+  // Inline editing
+  /** Enable inline cell editing */
+  enableInlineEditing?: boolean;
+  /** Cell editors config per field (alternative to ColumnDefinition) */
+  cellEditors?: Partial<Record<StringKey<T>, CellEditorConfig>>;
+
+  // Summary footer row
+  /** Show footer row with aggregate values */
+  showFooter?: boolean;
+  /** Footer aggregate per column. Shorthand: `'sum'` or full: `{ fn: 'sum', label: 'Total' }` */
+  footers?: Partial<Record<StringKey<T>, AggregateFunction | FooterConfig<T>>>;
+  /** Multi-row footer configuration — each entry defines one footer row with per-column aggregates */
+  footerRows?: FooterRowDef<T>[];
+
+  // Expandable row detail
+  /** Enable expandable detail rows (requires #rowDetail template) */
+  expandableDetail?: boolean;
+  /** Expand mode: 'single' allows one expanded row, 'multi' allows many. Default: 'multi' */
+  expandMode?: 'single' | 'multi';
+
+  // Keyboard navigation
+  /** Enable keyboard navigation (arrow keys, Enter, Space, Escape) */
+  enableKeyboardNavigation?: boolean;
+
+  // Column reordering
+  /** Enable column reordering via drag and drop */
+  enableColumnReorder?: boolean;
+
+  // Row reordering
+  /** Enable row reordering via drag and drop */
+  enableRowReorder?: boolean;
+  /** Show a drag handle column for row reordering */
+  showDragHandle?: boolean;
+
+  // Row grouping
+  /** Row grouping configuration */
+  grouping?: GroupConfig<T>;
+
+  // Hierarchy Grid (Child Grid)
+  /** Child grid configuration for nested table rendering */
+  childGrid?: ChildGridConfig<T>;
 }
 
 // Enhanced column definition with better type safety
@@ -147,6 +234,36 @@ export interface ColumnDefinition<T> {
   format?: (value: unknown, row: T) => string | Observable<string>;
   fallback?: string;
   filter?: ColumnFilter<T>; // Filter configuration for this column
+
+  // Sticky columns
+  /** Pin column to start or end of table during horizontal scroll */
+  sticky?: 'start' | 'end';
+
+  // Column resizing
+  /** Whether this column can be resized. Default: true when resizing enabled */
+  resizable?: boolean;
+  /** Minimum column width in px */
+  minWidth?: number;
+  /** Maximum column width in px */
+  maxWidth?: number;
+
+  // Inline editing
+  /** Whether this column supports inline editing */
+  editable?: boolean;
+  /** Editor type for this column */
+  editType?: 'text' | 'number' | 'select' | 'date' | 'toggle';
+  /** Options for select editor */
+  editOptions?: { label: string; value: unknown }[];
+  /** Validation function — return true for valid, string for error message */
+  editValidator?: (value: unknown, row: T) => boolean | string;
+
+  // Summary footer
+  /** Footer aggregate function for this column */
+  footer?: (data: readonly T[]) => string | number;
+
+  // Column reordering
+  /** Whether this column can be reordered. Default: true when reorder enabled */
+  reorderable?: boolean;
 }
 
 // Enhanced pagination configuration
@@ -238,6 +355,45 @@ export interface FilterChange<T = unknown> {
   filters: FilterConfig<T>[]; // All active filters
 }
 
+// Tree table configuration
+export interface TreeTableConfig<T> {
+  /** Enable tree table mode */
+  enabled: boolean;
+
+  /** Property name containing child items. Default: 'children' */
+  childrenProperty?: string;
+
+  /** Row keys to expand on initial render */
+  initialExpandedKeys?: string[];
+
+  /** Expand all rows on initial render. Default: false */
+  expandAll?: boolean;
+
+  /** Custom function to get unique row key for tracking expanded state */
+  getRowKey?: (row: T) => string;
+
+  /** Indentation size in pixels per level. Default: 24 */
+  indentSize?: number;
+}
+
+// Internal type for flattened tree rows
+export interface FlattenedRow<T> {
+  /** Original row data */
+  data: T;
+
+  /** Nesting level (0 = root) */
+  level: number;
+
+  /** Whether this row has children */
+  hasChildren: boolean;
+
+  /** Unique key for this row */
+  key: string;
+
+  /** Parent row key (null for root items) */
+  parentKey: string | null;
+}
+
 // Table configuration that combines all options
 export interface TableConfig<T> {
   fields: FieldConfig<T>;
@@ -247,10 +403,159 @@ export interface TableConfig<T> {
   loading?: boolean;
   selectable?: boolean;
   expandable?: boolean;
+  treeTable?: TreeTableConfig<T>;
 }
 
 export interface CellDisplay {
   value: string;
   isHtml: boolean;
   safeHtml: SafeHtml | null;
+}
+
+// Virtual scrolling configuration
+export interface VirtualScrollConfig {
+  /** Enable virtual scrolling */
+  enabled: boolean;
+  /** Row height in px (required for CDK virtual scroll) */
+  itemHeight: number;
+  /** Viewport height as CSS value (e.g., '400px', '60vh') */
+  viewportHeight: string;
+  /** Buffer size — number of extra items rendered above/below viewport */
+  bufferSize?: number;
+}
+
+// Footer aggregate configuration per column
+export interface FooterConfig<T = unknown> {
+  /** Aggregate function to apply */
+  fn: AggregateFunction;
+  /** Custom label prefix (e.g. "Total"). Defaults to "Sum", "Avg", etc. Set to '' to hide label. */
+  label?: string;
+  /** Aggregate a different field than the column (e.g. show salary sum in a 'name' column) */
+  field?: StringKey<T>;
+}
+
+// Cell editor configuration (field-level)
+export interface CellEditorConfig {
+  type: 'text' | 'number' | 'select' | 'date' | 'toggle';
+  options?: { label: string; value: unknown }[];
+  validator?: (value: unknown, row: unknown) => boolean | string;
+}
+
+// Column resize event
+export interface ColumnResizeEvent {
+  field: string;
+  width: number;
+  previousWidth: number;
+}
+
+// Cell edit event
+export interface CellEditEvent<T = unknown> {
+  row: T;
+  field: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
+// Cell edit error event
+export interface CellEditErrorEvent<T = unknown> {
+  row: T;
+  field: string;
+  value: unknown;
+  error: string;
+}
+
+// Expandable row detail event
+export interface RowExpandEvent<T = unknown> {
+  row: T;
+  expanded: boolean;
+}
+
+// Column reorder event
+export interface ColumnReorderEvent {
+  previousIndex: number;
+  currentIndex: number;
+  columns: string[];
+}
+
+// Row reorder event
+export interface RowReorderEvent<T = unknown> {
+  row: T;
+  previousIndex: number;
+  currentIndex: number;
+  data: readonly T[];
+}
+
+// Row grouping configuration
+export interface GroupConfig<T> {
+  /** Field to group rows by */
+  groupBy: StringKey<T>;
+  /** Aggregate functions per column to display in group footer */
+  aggregates?: Partial<Record<StringKey<T>, AggregateFunction>>;
+  /** Whether groups are initially expanded. Default: true */
+  initiallyExpanded?: boolean;
+  /** Show aggregate footer row per group */
+  showGroupFooter?: boolean;
+  /** Custom label for group header */
+  groupHeaderLabel?: (groupValue: unknown, rows: T[]) => string;
+  /** Custom sort function for group ordering */
+  groupSortFn?: (a: unknown, b: unknown) => number;
+  /** Caption aggregates shown inline in the group header row */
+  captionAggregates?: FooterRowDef<T>;
+  /** Multi-row footer per group. Column-aligned cells.
+   *  Takes precedence over legacy `aggregates + showGroupFooter`. */
+  groupFooterRows?: FooterRowDef<T>[];
+}
+
+// Internal: a single row group
+export interface RowGroup<T> {
+  groupValue: unknown;
+  groupLabel: string;
+  rows: T[];
+  aggregates: Record<string, number>;
+  expanded: boolean;
+  resolvedCaptionCells?: Partial<Record<StringKey<T>, (data: readonly T[]) => string>>;
+  resolvedGroupFooterRows?: ResolvedFooterRow<T>[];
+}
+
+// Group expand/collapse event
+export interface GroupExpandEvent {
+  groupValue: unknown;
+  expanded: boolean;
+}
+
+// ============================================================================
+// Multi-Row Footer Types
+// ============================================================================
+
+/** A single footer row definition — maps columns to aggregates */
+export interface FooterRowDef<T> {
+  columns: Partial<Record<StringKey<T>, AggregateFunction | FooterCellDef<T>>>;
+  class?: string;
+}
+
+/** Full footer cell definition with formatting and custom overrides */
+export interface FooterCellDef<T = unknown> {
+  fn: AggregateFunction;
+  /** Label prefix (e.g. "Total", "Average"). Defaults to AGGREGATE_LABELS[fn]. Set to '' to hide. */
+  label?: string;
+  /** Aggregate a different field than the column */
+  field?: StringKey<T>;
+  /** Format the computed value (e.g. currency formatting) */
+  format?: (value: number) => string;
+  /** Per-cell CSS class */
+  class?: string;
+  /** Full override — ignores fn, computes value from raw data */
+  custom?: (data: readonly T[]) => string | number;
+}
+
+/** Internal: pre-built footer row with value functions per column */
+export interface ResolvedFooterRow<T> {
+  cells: Partial<Record<StringKey<T>, (data: readonly T[]) => string>>;
+  class?: string;
+}
+
+/** Pre-resolved group aggregate functions (caption + group footer rows) */
+export interface ResolvedGroupAggregates<T> {
+  resolvedCaptionCells?: Partial<Record<StringKey<T>, (data: readonly T[]) => string>>;
+  resolvedGroupFooterRows?: ResolvedFooterRow<T>[];
 }

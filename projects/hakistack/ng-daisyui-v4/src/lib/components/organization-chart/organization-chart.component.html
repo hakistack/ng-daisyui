@@ -1,0 +1,100 @@
+<div [class]="containerClasses()">
+  @for (node of value(); track trackByNode($index, node)) {
+    <ng-container
+      *ngTemplateOutlet="nodeTree; context: { $implicit: node, level: 0 }"
+    ></ng-container>
+  }
+</div>
+
+<!-- Recursive node tree template -->
+<ng-template #nodeTree let-node let-level="level">
+  <div class="flex flex-col items-center">
+    <!-- Node content -->
+    <div
+      class="card bg-base-100 border border-base-300 shadow-sm px-5 py-3 min-w-35 relative transition-all duration-200"
+      [class.cursor-pointer]="selectionMode() && node.selectable !== false"
+      [class.hover:shadow-md]="selectionMode() && node.selectable !== false"
+      [class.hover:border-primary]="selectionMode() && node.selectable !== false"
+      [class.ring-2]="isNodeSelected(node)"
+      [class.ring-primary]="isNodeSelected(node)"
+      [class.border-t-4]="true"
+      [class.border-t-primary]="getNodeColor(node) === 'primary'"
+      [class.border-t-secondary]="getNodeColor(node) === 'secondary'"
+      [class.border-t-accent]="getNodeColor(node) === 'accent'"
+      [class.border-t-neutral]="getNodeColor(node) === 'neutral'"
+      [class.border-t-info]="getNodeColor(node) === 'info'"
+      [class.border-t-success]="getNodeColor(node) === 'success'"
+      [class.border-t-warning]="getNodeColor(node) === 'warning'"
+      [class.border-t-error]="getNodeColor(node) === 'error'"
+      [style]="getNodeStyle(node)"
+      (click)="selectNode($event, node)"
+      [attr.role]="selectionMode() ? 'button' : null"
+      [attr.tabindex]="selectionMode() && node.selectable !== false ? 0 : null"
+      (keydown.enter)="selectNode($event, node)"
+      (keydown.space)="$event.preventDefault(); selectNode($event, node)"
+    >
+      @if (nodeTemplate()) {
+        <ng-container
+          *ngTemplateOutlet="nodeTemplate()!; context: getTemplateContext(node, level)"
+        ></ng-container>
+      } @else {
+        <div class="flex items-center justify-center gap-2">
+          @if (node.loading) {
+            <span class="loading loading-spinner loading-sm"></span>
+          } @else if (getNodeIcon(node)) {
+            <app-lucide-icon [name]="$any(getNodeIcon(node))" [size]="20" class="opacity-70" />
+          }
+          <span class="font-medium text-sm whitespace-nowrap">{{ node.label }}</span>
+        </div>
+      }
+
+      @if (collapsible() && hasChildren(node)) {
+        <button
+          type="button"
+          class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 flex items-center justify-center bg-base-100 border border-base-300 rounded-full hover:bg-base-200 z-10"
+          (click)="toggleNode($event, node)"
+          [attr.aria-expanded]="isExpanded(node)"
+          aria-label="Toggle children"
+        >
+          <app-lucide-icon
+            [name]="isExpanded(node) ? 'ChevronDown' : 'ChevronRight'"
+            [size]="14"
+          />
+        </button>
+      }
+    </div>
+
+    <!-- Children -->
+    @if (hasChildren(node) && isExpanded(node)) {
+      <!-- Vertical line down from parent -->
+      @if (showLines()) {
+        <div class="w-0.5 h-5 bg-base-300"></div>
+      }
+
+      <!-- Children row -->
+      <div class="flex">
+        @for (child of node.children; track trackByNode($index, child); let first = $first; let last = $last; let count = $count) {
+          <div class="flex flex-col items-center">
+            <!-- Top connector row: horizontal line pieces + vertical drop -->
+            @if (showLines()) {
+              <div class="flex w-full">
+                <!-- Left half of horizontal line -->
+                <div class="flex-1 h-0.5" [class.bg-base-300]="!first" [class.bg-transparent]="first"></div>
+                <!-- Right half of horizontal line -->
+                <div class="flex-1 h-0.5" [class.bg-base-300]="!last" [class.bg-transparent]="last"></div>
+              </div>
+              <!-- Vertical line down to child -->
+              <div class="w-0.5 h-4 bg-base-300"></div>
+            }
+            <!-- Child node (with padding for spacing) -->
+            <div class="px-2">
+              <ng-container
+                *ngTemplateOutlet="nodeTree; context: { $implicit: child, level: level + 1 }"
+              ></ng-container>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</ng-template>

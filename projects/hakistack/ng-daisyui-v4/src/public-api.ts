@@ -37,8 +37,10 @@ export { TablePaginationComponent } from './lib/components/table/table-paginatio
 export { TableFilterComponent } from './lib/components/table/table-filter.component';
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
-export { createTable, projectFields, clearHeaderFormatCache } from './lib/components/table/table.helpers';
+export { createTable, projectFields, clearHeaderFormatCache, flattenTreeData, generateRowKey, getRowChildren, rowHasChildren, groupData, resolveFooterRows, resolveGroupAggregates } from './lib/components/table/table.helpers';
+export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
 export type {
+  ChildGridConfig,
   FieldConfig,
   FieldConfiguration,
   ColumnDefinition,
@@ -68,12 +70,31 @@ export type {
   SortDirection,
   SortConfig,
   CellDisplay,
+  TreeTableConfig,
+  FlattenedRow,
+  VirtualScrollConfig,
+  CellEditorConfig,
+  CellEditEvent,
+  CellEditErrorEvent,
+  ColumnResizeEvent,
+  FooterConfig,
+  FooterRowDef,
+  FooterCellDef,
+  ResolvedFooterRow,
+  RowExpandEvent,
+  ColumnReorderEvent,
+  RowReorderEvent,
+  GroupConfig,
+  RowGroup,
+  GroupExpandEvent,
+  ResolvedGroupAggregates,
 } from './lib/components/table/table.types';
+export type { AggregateFunction } from './lib/components/table/table-aggregates';
 
 // Select
 export { SelectComponent } from './lib/components/select/select.component';
 export type { SelectOption } from './lib/components/select/select.types';
-export type { SelectSize, SelectColor } from './lib/components/select/select.component';
+export type { SelectSize, SelectColor, SelectValue } from './lib/components/select/select.component';
 
 // Datepicker
 export { DatepickerComponent } from './lib/components/datepicker/datepicker.component';
@@ -113,11 +134,82 @@ export type { IconName, LowerCaseIconName } from './lib/components/lucide-icon/l
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
 
+// Organization Chart
+export { OrganizationChartComponent } from './lib/components/organization-chart/organization-chart.component';
+export type {
+  OrgChartSelectionMode,
+  OrgChartNodeSelectEvent,
+  OrgChartNodeUnselectEvent,
+  OrgChartNodeExpandEvent,
+  OrgChartNodeCollapseEvent,
+  OrgChartNodeTemplateContext,
+  OrgChartOrientation,
+  OrgChartNodeColor,
+} from './lib/components/organization-chart/organization-chart.types';
+
+// Tree
+export { TreeComponent } from './lib/components/tree/tree.component';
+export {
+  createTree,
+  node,
+  walkTree,
+  findNode,
+  findNodePath,
+  mapTree,
+  filterTree,
+  flattenTree,
+  countNodes,
+  ensureKeys,
+  buildTree,
+} from './lib/components/tree/tree.helpers';
+export type {
+  TreeConfig,
+  TreeNodeTemplateContext,
+  TreeFilterEvent,
+  TreeLazyLoadEvent,
+  FlatTreeNode,
+  TreeNodeState,
+  CreateTreeInput,
+  TreeSetup,
+  FromDataOptions,
+  BuildTreeOptions,
+  TreeNodeSelectEvent as TreeSelectEvent,
+  TreeNodeUnselectEvent as TreeUnselectEvent,
+  TreeNodeExpandEvent as TreeExpandEvent,
+  TreeNodeCollapseEvent as TreeCollapseEvent,
+  TreeNodeDropEvent as TreeDropEvent,
+  TreeNodeDragStartEvent as TreeDragStartEvent,
+  TreeNodeDragEndEvent as TreeDragEndEvent,
+} from './lib/components/tree/tree.types';
+
+// ============================================================================
+// API (Core Types)
+// ============================================================================
+
+export type {
+  TreeNode,
+  TreeNodeSelectEvent,
+  TreeNodeUnselectEvent,
+  TreeNodeExpandEvent,
+  TreeNodeCollapseEvent,
+  TreeNodeDragStartEvent,
+  TreeNodeDropEvent,
+  TreeSelectionMode,
+} from './lib/api/treenode';
+
 // ============================================================================
 // SERVICES
 // ============================================================================
 
 export { FormStateService, provideFormState } from './lib/services/form-state.service';
+export type {
+  FormStateOptions,
+  FormStateApiOptions,
+  FormStateLocalStorageOptions,
+  FormStateStorageMode,
+  FormState,
+  FormStateMetadata,
+} from './lib/services/form-state.service';
 export { PipeRegistryService } from './lib/services/pipe-registry.service';
 
 // Dialog Service
@@ -144,6 +236,26 @@ export { AutoFocusDirective } from './lib/directives/auto-focus/auto-focus.direc
 export { MotionAnimateDirective } from './lib/directives/motion-animate/motion-animate.directive';
 export { MotionHoverDirective } from './lib/directives/motion-hover/motion-hover.directive';
 export { MotionScrollDirective } from './lib/directives/motion-scroll/motion-scroll.directive';
+
+// Motion shared types
+export type {
+  Easing,
+  EasingFunction,
+  AnimationPreset,
+  TriggerType,
+  MotionAnimationOptions,
+  MotionDirectiveOptions,
+} from './lib/directives/motion.types';
+export type {
+  HoverKeyframes,
+  HoverOptions,
+} from './lib/directives/motion-hover/motion-hover.directive';
+export type {
+  ScrollAnimationKeyframes,
+  ScrollOptions,
+  ScrollAxis,
+  ScrollOffset,
+} from './lib/directives/motion-scroll/motion-scroll.directive';
 
 
 // ============================================================================

@@ -1,0 +1,156 @@
+/* Tree Component Styles */
+
+.app-tree {
+  /* CSS custom properties for theming */
+  --tree-line-color: hsl(var(--bc) / 0.2);
+  --tree-line-width: 1px;
+  --tree-node-height: 32px;
+}
+
+/* Tree Container */
+.app-tree-container {
+  position: relative;
+}
+
+/* Tree Node */
+.app-tree-node {
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-height: var(--tree-node-height);
+}
+
+.app-tree-node-indent {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Node States */
+.app-tree-node-dragging {
+  opacity: 0.5;
+}
+
+.app-tree-node-drop-target > .app-tree-node-content {
+  outline: 2px dashed hsl(var(--p));
+  outline-offset: 2px;
+}
+
+/* Connecting Lines */
+.app-tree-lines .app-tree-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--tree-line-width);
+  background-color: var(--tree-line-color);
+}
+
+/* Horizontal line to node */
+.app-tree-lines .app-tree-node::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--indent, 0) - 12px);
+  top: 50%;
+  width: 12px;
+  height: var(--tree-line-width);
+  background-color: var(--tree-line-color);
+}
+
+/* Hide horizontal line for root nodes */
+.app-tree-lines .app-tree-node[data-level="0"]::before {
+  display: none;
+}
+
+/* Vertical line styling */
+.app-tree-lines .app-tree-node-indent {
+  position: relative;
+}
+
+/* Last node at level - shorter vertical line */
+.app-tree-lines .app-tree-line.app-tree-line-last {
+  bottom: 50%;
+}
+
+/* Drop Zones */
+.app-tree-drop-zone {
+  height: 4px;
+  margin: -2px 0;
+  position: relative;
+  z-index: 10;
+}
+
+.app-tree-drop-zone:hover {
+  background-color: hsl(var(--p) / 0.3);
+  border-radius: 2px;
+}
+
+/* Alternative: Show line indicator on hover */
+.app-tree-drop-zone::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.app-tree-drop-zone:hover::after {
+  background-color: hsl(var(--p));
+}
+
+/* Checkbox alignment */
+.app-tree-node-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+/* Node Content */
+.app-tree-node-content {
+  min-height: 28px;
+  user-select: none;
+}
+
+/* Focus styles for keyboard navigation */
+.app-tree-node-focused .app-tree-node-content {
+  outline: none;
+}
+
+/* Loading spinner in toggle area */
+.app-tree-node-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Animation for expand/collapse */
+.app-tree-node {
+  animation: tree-node-appear 0.15s ease-out;
+}
+
+@keyframes tree-node-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Lines implementation using pseudo-elements */
+.app-tree-lines .app-tree-node {
+  --indent: calc(var(--level, 0) * 24px);
+}
+
+.app-tree-lines .app-tree-node[data-level="1"] { --level: 1; }
+.app-tree-lines .app-tree-node[data-level="2"] { --level: 2; }
+.app-tree-lines .app-tree-node[data-level="3"] { --level: 3; }
+.app-tree-lines .app-tree-node[data-level="4"] { --level: 4; }
+.app-tree-lines .app-tree-node[data-level="5"] { --level: 5; }
+.app-tree-lines .app-tree-node[data-level="6"] { --level: 6; }
+.app-tree-lines .app-tree-node[data-level="7"] { --level: 7; }
+.app-tree-lines .app-tree-node[data-level="8"] { --level: 8; }
+.app-tree-lines .app-tree-node[data-level="9"] { --level: 9; }
+.app-tree-lines .app-tree-node[data-level="10"] { --level: 10; }

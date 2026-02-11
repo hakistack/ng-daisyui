@@ -1,56 +1,46 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideIconComponent, IconName } from '@hakistack/ng-daisyui-v4';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
-type IconsTab = 'usage' | 'styling' | 'browse';
+type IconsTab = 'basic' | 'categories' | 'playground';
 
 @Component({
   selector: 'app-icons-demo',
-  imports: [LucideIconComponent, FormsModule],
+  imports: [LucideIconComponent, FormsModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Lucide Icons</h1>
         <p class="text-base-content/70 mt-2">Beautiful, consistent icons from Lucide</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} LucideIconComponent {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- DaisyUI v4 Tabs -->
-      <div role="tablist" class="tabs tabs-boxed w-fit">
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'usage'"
-          (click)="activeTab.set('usage')"
-        >
-          Usage
-        </button>
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'styling'"
-          (click)="activeTab.set('styling')"
-        >
-          Styling
-        </button>
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'browse'"
-          (click)="activeTab.set('browse')"
-        >
-          Browse & Playground
-        </button>
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-bordered">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- Usage Tab Content -->
-      @if (activeTab() === 'usage') {
-        <div class="space-y-6">
-          <!-- Basic Usage -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Basic Usage</h2>
-              <p class="text-sm text-base-content/60 mb-4">Simple icon rendering</p>
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-boxed">
+          <input type="radio" name="icons_tabs" role="tab" class="tab" aria-label="Basic"
+            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
+          <input type="radio" name="icons_tabs" role="tab" class="tab" aria-label="Categories"
+            [checked]="activeTab() === 'categories'" (change)="activeTab.set('categories')" />
+          <input type="radio" name="icons_tabs" role="tab" class="tab" aria-label="Playground"
+            [checked]="activeTab() === 'playground'" (change)="activeTab.set('playground')" />
+        </div>
 
+        @if (activeTab() === 'basic') {
+          <div class="space-y-6">
+            <app-doc-section title="Basic Usage" description="Simple icon rendering" [codeExample]="basicCode">
               <div class="flex items-center gap-6">
                 <app-lucide-icon name="Heart" />
                 <app-lucide-icon name="Star" />
@@ -59,23 +49,17 @@ type IconsTab = 'usage' | 'styling' | 'browse';
                 <app-lucide-icon name="User" />
                 <app-lucide-icon name="Mail" />
               </div>
+            </app-doc-section>
 
-              <div class="mt-4 text-sm text-base-content/60">
-                <code class="bg-base-200 px-2 py-1 rounded">&lt;app-lucide-icon name="Heart" /&gt;</code>
-              </div>
-            </div>
-          </div>
-
-          <!-- Sizes -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Sizes</h2>
-              <p class="text-sm text-base-content/60 mb-4">Control icon size with the size input</p>
-
+            <app-doc-section title="Sizes" description="Control icon size with the size input" [codeExample]="sizeCode">
               <div class="flex items-end gap-6">
                 <div class="text-center">
                   <app-lucide-icon name="Star" [size]="16" />
                   <div class="text-xs mt-2">16px</div>
+                </div>
+                <div class="text-center">
+                  <app-lucide-icon name="Star" [size]="20" />
+                  <div class="text-xs mt-2">20px</div>
                 </div>
                 <div class="text-center">
                   <app-lucide-icon name="Star" [size]="24" />
@@ -94,41 +78,24 @@ type IconsTab = 'usage' | 'styling' | 'browse';
                   <div class="text-xs mt-2">64px</div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      }
+            </app-doc-section>
 
-      <!-- Styling Tab Content -->
-      @if (activeTab() === 'styling') {
-        <div class="space-y-6">
-          <!-- Colors -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Colors</h2>
-              <p class="text-sm text-base-content/60 mb-4">Use any CSS color value</p>
-
+            <app-doc-section title="Colors" description="Use any CSS color value" [codeExample]="colorCode">
               <div class="flex items-center gap-6">
                 <app-lucide-icon name="Heart" [size]="32" color="red" />
                 <app-lucide-icon name="Heart" [size]="32" color="pink" />
                 <app-lucide-icon name="Heart" [size]="32" color="#9333ea" />
+                <app-lucide-icon name="Heart" [size]="32" color="hsl(330, 80%, 60%)" />
                 <app-lucide-icon name="Heart" [size]="32" class="text-primary" />
                 <app-lucide-icon name="Heart" [size]="32" class="text-secondary" />
                 <app-lucide-icon name="Heart" [size]="32" class="text-accent" />
               </div>
-
               <div class="mt-4 text-sm text-base-content/60">
                 Use <code class="bg-base-200 px-1">color</code> prop or Tailwind text color classes
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Stroke Width -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Stroke Width</h2>
-              <p class="text-sm text-base-content/60 mb-4">Adjust line thickness</p>
-
+            <app-doc-section title="Stroke Width" description="Adjust line thickness" [codeExample]="strokeCode">
               <div class="flex items-center gap-8">
                 <div class="text-center">
                   <app-lucide-icon name="Circle" [size]="32" [strokeWidth]="1" />
@@ -151,98 +118,126 @@ type IconsTab = 'usage' | 'styling' | 'browse';
                   <div class="text-xs mt-2">3</div>
                 </div>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
+        }
+
+        @if (activeTab() === 'categories') {
+          <app-doc-section title="Common Icons by Category" description="Browse commonly used icons">
+            <h3 class="font-semibold mt-4 mb-2">Actions</h3>
+            <div class="flex flex-wrap gap-4">
+              @for (icon of actionIcons; track icon) {
+                <div class="tooltip" [attr.data-tip]="icon">
+                  <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
+                    <app-lucide-icon [name]="icon" [size]="24" />
+                  </div>
+                </div>
+              }
+            </div>
+
+            <h3 class="font-semibold mt-6 mb-2">Navigation</h3>
+            <div class="flex flex-wrap gap-4">
+              @for (icon of navIcons; track icon) {
+                <div class="tooltip" [attr.data-tip]="icon">
+                  <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
+                    <app-lucide-icon [name]="icon" [size]="24" />
+                  </div>
+                </div>
+              }
+            </div>
+
+            <h3 class="font-semibold mt-6 mb-2">Communication</h3>
+            <div class="flex flex-wrap gap-4">
+              @for (icon of commIcons; track icon) {
+                <div class="tooltip" [attr.data-tip]="icon">
+                  <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
+                    <app-lucide-icon [name]="icon" [size]="24" />
+                  </div>
+                </div>
+              }
+            </div>
+
+            <h3 class="font-semibold mt-6 mb-2">Status</h3>
+            <div class="flex flex-wrap gap-4">
+              @for (icon of statusIcons; track icon) {
+                <div class="tooltip" [attr.data-tip]="icon">
+                  <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
+                    <app-lucide-icon [name]="icon" [size]="24" />
+                  </div>
+                </div>
+              }
+            </div>
+
+            <h3 class="font-semibold mt-6 mb-2">Media</h3>
+            <div class="flex flex-wrap gap-4">
+              @for (icon of mediaIcons; track icon) {
+                <div class="tooltip" [attr.data-tip]="icon">
+                  <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
+                    <app-lucide-icon [name]="icon" [size]="24" />
+                  </div>
+                </div>
+              }
+            </div>
+          </app-doc-section>
+        }
+
+        @if (activeTab() === 'playground') {
+          <app-doc-section title="Playground" description="Customize icon properties">
+            <div class="grid md:grid-cols-2 gap-8">
+              <div class="space-y-4">
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Icon Name</span></label>
+                  <select class="select select-bordered" [(ngModel)]="playgroundIcon">
+                    @for (icon of allIcons; track icon) {
+                      <option [value]="icon">{{ icon }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Size: {{ playgroundSize }}px</span></label>
+                  <input type="range" class="range" min="16" max="96" [(ngModel)]="playgroundSize" />
+                </div>
+
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Stroke Width: {{ playgroundStroke }}</span></label>
+                  <input type="range" class="range" min="0.5" max="4" step="0.5" [(ngModel)]="playgroundStroke" />
+                </div>
+
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Color</span></label>
+                  <input type="color" class="w-full h-10 rounded cursor-pointer" [(ngModel)]="playgroundColor" />
+                </div>
+              </div>
+
+              <div class="flex items-center justify-center bg-base-200 rounded-xl p-8 min-h-50">
+                <app-lucide-icon
+                  [name]="playgroundIcon"
+                  [size]="playgroundSize"
+                  [strokeWidth]="playgroundStroke"
+                  [color]="playgroundColor"
+                />
+              </div>
+            </div>
+
+            <div class="mt-4 p-4 bg-base-200 rounded-lg">
+              <code class="text-sm">
+                &lt;app-lucide-icon name="{{ playgroundIcon }}" [size]="{{ playgroundSize }}" [strokeWidth]="{{
+                  playgroundStroke
+                }}" color="{{ playgroundColor }}" /&gt;
+              </code>
+            </div>
+          </app-doc-section>
+        }
       }
 
-      <!-- Browse & Playground Tab Content -->
-      @if (activeTab() === 'browse') {
+      @if (pageTab() === 'api') {
         <div class="space-y-6">
-          <!-- Icon Categories -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Common Icons by Category</h2>
-              <p class="text-sm text-base-content/60 mb-4">Browse commonly used icons</p>
+          <app-api-table title="LucideIcon Inputs" [entries]="inputDocs" />
 
-              <!-- Actions -->
-              <h3 class="font-semibold mt-4 mb-2">Actions</h3>
-              <div class="flex flex-wrap gap-4">
-                @for (icon of actionIcons; track icon) {
-                  <div class="tooltip" [attr.data-tip]="icon">
-                    <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
-                      <app-lucide-icon [name]="icon" [size]="24" />
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <!-- Navigation -->
-              <h3 class="font-semibold mt-6 mb-2">Navigation</h3>
-              <div class="flex flex-wrap gap-4">
-                @for (icon of navIcons; track icon) {
-                  <div class="tooltip" [attr.data-tip]="icon">
-                    <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
-                      <app-lucide-icon [name]="icon" [size]="24" />
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <!-- Status -->
-              <h3 class="font-semibold mt-6 mb-2">Status</h3>
-              <div class="flex flex-wrap gap-4">
-                @for (icon of statusIcons; track icon) {
-                  <div class="tooltip" [attr.data-tip]="icon">
-                    <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
-                      <app-lucide-icon [name]="icon" [size]="24" />
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-          </div>
-
-          <!-- Interactive Playground -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Playground</h2>
-              <p class="text-sm text-base-content/60 mb-4">Customize icon properties</p>
-
-              <div class="grid md:grid-cols-2 gap-8">
-                <!-- Controls -->
-                <div class="space-y-4">
-                  <div class="form-control">
-                    <label class="label"><span class="label-text">Icon Name</span></label>
-                    <select class="select select-bordered" [(ngModel)]="playgroundIcon">
-                      @for (icon of allIcons; track icon) {
-                        <option [value]="icon">{{ icon }}</option>
-                      }
-                    </select>
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label"><span class="label-text">Size: {{ playgroundSize }}px</span></label>
-                    <input type="range" class="range" min="16" max="96" [(ngModel)]="playgroundSize" />
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label"><span class="label-text">Stroke Width: {{ playgroundStroke }}</span></label>
-                    <input type="range" class="range" min="0.5" max="4" step="0.5" [(ngModel)]="playgroundStroke" />
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label"><span class="label-text">Color</span></label>
-                    <input type="color" class="w-full h-10 rounded cursor-pointer" [(ngModel)]="playgroundColor" />
-                  </div>
-                </div>
-
-                <!-- Preview -->
-                <div class="flex items-center justify-center bg-base-200 rounded-xl p-8 min-h-50">
-                  <app-lucide-icon [name]="playgroundIcon" [size]="playgroundSize" [strokeWidth]="playgroundStroke" [color]="playgroundColor" />
-                </div>
-              </div>
-            </div>
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Usage</h3>
+            <app-code-block [code]="usageCode" />
           </div>
         </div>
       }
@@ -250,32 +245,118 @@ type IconsTab = 'usage' | 'styling' | 'browse';
   `,
 })
 export class IconsDemoComponent {
-  activeTab = signal<IconsTab>('usage');
+  pageTab = signal<'examples' | 'api'>('examples');
+  activeTab = signal<IconsTab>('basic');
+
+  // Playground state
   playgroundIcon: IconName = 'Heart';
   playgroundSize = 48;
   playgroundStroke = 2;
   playgroundColor = '#3b82f6';
 
+  // Icon categories (using new Lucide naming convention)
   actionIcons: IconName[] = ['Plus', 'Minus', 'X', 'Check', 'Pencil', 'Trash2', 'Copy', 'Save', 'Download', 'Upload', 'Share', 'RefreshCw'];
-  navIcons: IconName[] = ['House', 'Menu', 'ChevronLeft', 'ChevronRight', 'ChevronUp', 'ChevronDown', 'ArrowLeft', 'ArrowRight', 'Search'];
-  statusIcons: IconName[] = ['CircleCheck', 'CircleX', 'CircleAlert', 'TriangleAlert', 'Info', 'Clock', 'Loader'];
+  navIcons: IconName[] = ['House', 'Menu', 'ChevronLeft', 'ChevronRight', 'ChevronUp', 'ChevronDown', 'ArrowLeft', 'ArrowRight', 'ExternalLink', 'Search'];
+  commIcons: IconName[] = ['Mail', 'MessageSquare', 'Phone', 'Video', 'Send', 'Bell', 'AtSign', 'Inbox'];
+  statusIcons: IconName[] = ['CircleCheck', 'CircleX', 'CircleAlert', 'TriangleAlert', 'Info', 'CircleQuestionMark', 'Clock', 'Loader'];
+  mediaIcons: IconName[] = ['Image', 'Camera', 'Film', 'Music', 'Play', 'Pause', 'Volume2', 'Mic'];
 
   allIcons: IconName[] = [
     ...this.actionIcons,
     ...this.navIcons,
+    ...this.commIcons,
     ...this.statusIcons,
+    ...this.mediaIcons,
     'Heart',
     'Star',
     'User',
     'Users',
     'Settings',
     'Lock',
+    'Unlock',
     'Eye',
+    'EyeOff',
     'Calendar',
-    'File',
     'Folder',
+    'File',
+    'FileText',
+    'Code',
+    'Terminal',
+    'Database',
     'Globe',
+    'Map',
     'Sun',
     'Moon',
+    'Cloud',
+    'Zap',
+    'Gift',
+    'Shield',
+    'Award',
+    'Flag',
+    'Bookmark',
+    'Tag',
+    'Link',
+    'Paperclip',
   ].sort() as IconName[];
+
+  // --- Code examples ---
+  basicCode = `// TypeScript
+import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+
+@Component({
+  imports: [LucideIconComponent],
+})
+
+// Template
+<app-lucide-icon name="Heart" />
+<app-lucide-icon name="Star" />
+<app-lucide-icon name="House" />`;
+
+  sizeCode = `// Template
+<app-lucide-icon name="Star" [size]="16" />
+<app-lucide-icon name="Star" [size]="24" />
+<app-lucide-icon name="Star" [size]="32" />
+<app-lucide-icon name="Star" [size]="48" />`;
+
+  colorCode = `// TypeScript
+import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+
+// Template
+<!-- Using color prop -->
+<app-lucide-icon name="Heart" color="red" />
+<app-lucide-icon name="Heart" color="#9333ea" />
+<app-lucide-icon name="Heart" color="hsl(330, 80%, 60%)" />
+
+<!-- Using Tailwind classes -->
+<app-lucide-icon name="Heart" class="text-primary" />
+<app-lucide-icon name="Heart" class="text-secondary" />`;
+
+  strokeCode = `// Template
+<app-lucide-icon name="Circle" [strokeWidth]="1" />
+<app-lucide-icon name="Circle" [strokeWidth]="1.5" />
+<app-lucide-icon name="Circle" [strokeWidth]="2" />    <!-- default -->
+<app-lucide-icon name="Circle" [strokeWidth]="2.5" />
+<app-lucide-icon name="Circle" [strokeWidth]="3" />`;
+
+  usageCode = `import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+
+@Component({
+  imports: [LucideIconComponent],
+  template: \`
+    <app-lucide-icon
+      name="Heart"        <!-- Icon name (required) -->
+      [size]="24"          <!-- Size in pixels (default: 24) -->
+      [strokeWidth]="2"    <!-- Stroke width (default: 2) -->
+      color="red"          <!-- CSS color value -->
+    />
+  \`,
+})`;
+
+  // --- API docs ---
+  inputDocs: ApiDocEntry[] = [
+    { name: 'name', type: 'IconName', description: 'Lucide icon name (required). See lucide.dev/icons for the full list.' },
+    { name: 'size', type: 'number', default: '24', description: 'Icon size in pixels' },
+    { name: 'strokeWidth', type: 'number', default: '2', description: 'Stroke line width' },
+    { name: 'color', type: 'string', default: "'currentColor'", description: 'CSS color value. Alternatively use Tailwind text-* classes.' },
+  ];
 }

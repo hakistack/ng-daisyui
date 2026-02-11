@@ -22,12 +22,12 @@
 
 /* Error step styling */
 .step.step-error::after {
-  background-color: oklch(var(--er));
+  background-color: hsl(var(--er));
   box-shadow: 0 0 0 3px rgba(var(--er) / 0.2);
 }
 
 .step.step-error::before {
-  background-color: oklch(var(--er));
+  background-color: hsl(var(--er));
 }
 
 .step.cursor-pointer:hover::after {

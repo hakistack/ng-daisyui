@@ -151,7 +151,8 @@ export class DynamicFormComponent {
       if (!formId || !this.formStateService.isConfigured) {
         return of(null);
       }
-      return this.formStateService.load(formId).pipe(catchError(() => of(null)));
+      const storageMode = this.getAutoSaveConfig()?.storage;
+      return this.formStateService.load(formId, storageMode).pipe(catchError(() => of(null)));
     },
   });
 
@@ -163,9 +164,10 @@ export class DynamicFormComponent {
         return of(null);
       }
       const autoSaveConfig = this.getAutoSaveConfig();
+      const storageMode = autoSaveConfig?.storage;
       return of(pending).pipe(
         debounceTime(autoSaveConfig?.debounceMs ?? 1000),
-        switchMap(({ formId, values, metadata }) => this.formStateService.save(formId, values, metadata)),
+        switchMap(({ formId, values, metadata }) => this.formStateService.save(formId, values, metadata, storageMode)),
         catchError(error => {
           console.error('Auto-save failed:', error);
           return of(null);
@@ -341,7 +343,7 @@ export class DynamicFormComponent {
     if (submissionData.valid && autoSaveConfig?.clearOnSubmit !== false) {
       const formId = this.autoSaveFormId();
       if (formId && this.formStateService.isConfigured) {
-        this.formStateService.clear(formId).subscribe();
+        this.formStateService.clear(formId, autoSaveConfig?.storage).subscribe();
         this.pendingSave.set(null);
       }
     }

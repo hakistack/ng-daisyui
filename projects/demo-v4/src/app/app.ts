@@ -95,6 +95,24 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
                 Table
               </a>
             </li>
+            <li>
+              <a routerLink="/tree-table" routerLinkActive="active">
+                <app-lucide-icon name="ListTree" [size]="18" />
+                Tree Table
+              </a>
+            </li>
+            <li>
+              <a routerLink="/tree" routerLinkActive="active">
+                <app-lucide-icon name="GitBranch" [size]="18" />
+                Tree
+              </a>
+            </li>
+            <li>
+              <a routerLink="/org-chart" routerLinkActive="active">
+                <app-lucide-icon name="Network" [size]="18" />
+                Organization Chart
+              </a>
+            </li>
 
             <li class="menu-title mt-4">Inputs</li>
             <li>
@@ -143,6 +161,12 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
               <a routerLink="/icons" routerLinkActive="active">
                 <app-lucide-icon name="Smile" [size]="18" />
                 Icons
+              </a>
+            </li>
+            <li>
+              <a routerLink="/motion" routerLinkActive="active">
+                <app-lucide-icon name="Sparkles" [size]="18" />
+                Motion Directives
               </a>
             </li>
           </ul>

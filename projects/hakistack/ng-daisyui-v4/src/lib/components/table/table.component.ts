@@ -1,10 +1,14 @@
 // table.component.ts
 import { CdkTableModule, DataSource } from '@angular/cdk/table';
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, input, OnDestroy, output, Signal, signal, TrackByFunction } from '@angular/core';
+import { moveItemInArray } from '@angular/cdk/drag-drop';
+import { ScrollingModule } from '@angular/cdk/scrolling';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, contentChild, effect, ElementRef, forwardRef, inject, input, OnDestroy, output, PLATFORM_ID, Signal, signal, TemplateRef, TrackByFunction, untracked } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
 import Fuse, { IFuseOptions } from 'fuse.js';
+
+import { AutoFocusDirective } from '../../directives/auto-focus/auto-focus.directive';
 
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 import { TableColumnVisibilityComponent } from './table-column-visibility.component';
@@ -15,22 +19,40 @@ import {
   ActionType,
   BulkActionDropdownOption,
   CellDisplay,
+  CellEditErrorEvent,
+  CellEditEvent,
+  ChildGridConfig,
   ColumnDefinition,
   ColumnFilter,
+  ColumnReorderEvent,
+  ColumnResizeEvent,
   CursorPageChange,
   FieldConfiguration,
   FilterChange,
   FilterConfig,
   FilterOperator,
+  FlattenedRow,
   GlobalSearchChange,
   GlobalSearchConfig,
+  GroupConfig,
+  GroupExpandEvent,
   PageSizeChange,
   PaginationOptions,
+  ResolvedFooterRow,
+  RowExpandEvent,
+  RowGroup,
+  RowReorderEvent,
   SortChange,
+  StringKey,
   TableAction,
   TableBulkAction,
+  TreeTableConfig,
+  VirtualScrollConfig,
 } from './table.types';
+import { flattenTreeData, generateRowKey, getRowChildren, groupData, rowHasChildren, resolveGroupAggregates } from './table.helpers';
+import { computeAggregate } from './table-aggregates';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { generateUniqueId } from '../../utils/generate-uuid';
 
 // Optimized DataSource with proper typing
 class SignalDataSource<T> extends DataSource<T> {
@@ -75,17 +97,26 @@ interface SortState {
 
 @Component({
   selector: 'app-table',
-  imports: [CommonModule, CdkTableModule, LucideIconComponent, TableFilterComponent, TablePaginationComponent, TableGlobalSearchComponent, TableColumnVisibilityComponent],
+  imports: [CommonModule, CdkTableModule, ScrollingModule, LucideIconComponent, TableFilterComponent, TablePaginationComponent, TableGlobalSearchComponent, TableColumnVisibilityComponent, AutoFocusDirective, forwardRef(() => TableComponent)],
   templateUrl: './table.component.html',
   styleUrls: ['./table.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.resizing]': 'isResizingSignal()',
+    '[attr.tabindex]': 'enableKeyboardNavSignal() ? 0 : null',
+    '[style.outline]': "enableKeyboardNavSignal() ? 'none' : null",
+    '(document:click)': 'onDocumentClick($event)',
+    '(keydown)': 'onTableKeydown($event)',
+  },
 })
 export class TableComponent<T extends object> implements OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elementRef = inject(ElementRef);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly hasLocalStorage = this.isBrowser && typeof localStorage !== 'undefined';
 
   // Handle click outside to close dropdowns
-  @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
     // Check if click is outside any bulk action dropdown
@@ -95,7 +126,10 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
   }
 
-  private readonly htmlParser = new DOMParser();
+  private readonly htmlParser = this.isBrowser && typeof DOMParser !== 'undefined'
+    ? new DOMParser()
+    : null;
+  private readonly htmlCache = new Map<string, boolean>();
 
   // Inputs as signals
   readonly data = input<readonly T[] | null>(null);
@@ -118,23 +152,178 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly sortDirectionChange = output<'Ascending' | 'Descending' | ''>();
   readonly filterChange = output<FilterChange<T>>();
   readonly globalSearchChange = output<GlobalSearchChange>();
+  readonly expansionChange = output<{ row: T; expanded: boolean }>();
+  readonly columnResize = output<ColumnResizeEvent>();
+  readonly cellEdit = output<CellEditEvent<T>>();
+  readonly cellEditCancel = output<{ row: T; field: string }>();
+  readonly cellEditError = output<CellEditErrorEvent<T>>();
+  readonly detailExpansionChange = output<RowExpandEvent<T>>();
+  readonly columnReorder = output<ColumnReorderEvent>();
+  readonly rowReorder = output<RowReorderEvent<T>>();
+  readonly groupExpandChange = output<GroupExpandEvent>();
 
   // Internal signals
   private readonly sortState = signal<SortState>({ field: '', direction: '' });
   private readonly filterState = signal<FilterConfig<T>[]>([]);
   readonly selectedSignal = signal(new Set<T>());
-  readonly showAlertSignal = signal(false);
   readonly openFilterField = signal<string | null>(null); // Track which filter dropdown is open
   readonly columnVisibilityState = signal<Map<string, boolean>>(new Map()); // Track column visibility
   readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
+
+  // Tree table signals
+  readonly expandedRowKeys = signal<Set<string>>(new Set());
+  private treeRowLevelMap = new Map<T, number>(); // Cache row levels for template access
+  private treeRowKeyMap = new Map<T, string>(); // Cache row keys for template access
+  private treeRowHasChildrenMap = new Map<T, boolean>(); // Cache hasChildren for template access
+
+  // ============================================================================
+  // Sticky Columns
+  // ============================================================================
+  readonly stickyStartColumnsSignal = computed(() => {
+    const cols = this.columnDefsSignal();
+    const set = new Set<string>();
+    for (const col of cols) {
+      if (col.sticky === 'start') set.add(col.field);
+    }
+    return set;
+  });
+
+  readonly stickyEndColumnsSignal = computed(() => {
+    const cols = this.columnDefsSignal();
+    const set = new Set<string>();
+    for (const col of cols) {
+      if (col.sticky === 'end') set.add(col.field);
+    }
+    return set;
+  });
+
+  readonly hasStickyColumnsSignal = computed(() => {
+    const config = this.fieldConfig()?.stickyColumns;
+    // Only activate sticky behavior when stickyColumns is explicitly configured with at least one option
+    return config != null && (config.stickySelection != null || config.stickyActions != null);
+  });
+
+  readonly stickySelectionSignal = computed(() => {
+    const config = this.fieldConfig()?.stickyColumns;
+    if (!this.hasStickyColumnsSignal()) return false;
+    return this.hasSelectionSignal() && config?.stickySelection !== false;
+  });
+
+  readonly stickyActionsSignal = computed(() => {
+    const config = this.fieldConfig()?.stickyColumns;
+    if (!this.hasStickyColumnsSignal()) return false;
+    return this.hasActionsSignal() && config?.stickyActions !== false;
+  });
+
+  // ============================================================================
+  // Column Resizing
+  // ============================================================================
+  readonly columnWidthsSignal = signal<Map<string, number>>(new Map());
+  readonly isResizingSignal = signal(false);
+  readonly enableResizingSignal = computed(() => this.fieldConfig()?.enableColumnResizing ?? false);
+  private resizeState: { field: string; startX: number; startWidth: number } | null = null;
+
+
+  // ============================================================================
+  // Virtual Scrolling
+  // ============================================================================
+  readonly virtualScrollConfigSignal = computed(() => this.fieldConfig()?.virtualScroll);
+  readonly isVirtualScrollSignal = computed(() => this.virtualScrollConfigSignal()?.enabled ?? false);
+  readonly virtualScrollItemHeightSignal = computed(() => this.virtualScrollConfigSignal()?.itemHeight ?? 48);
+  readonly virtualScrollViewportHeightSignal = computed(() => this.virtualScrollConfigSignal()?.viewportHeight ?? '400px');
+
+  // ============================================================================
+  // Inline Cell Editing
+  // ============================================================================
+  readonly enableEditingSignal = computed(() => this.fieldConfig()?.enableInlineEditing ?? false);
+  readonly editingCell = signal<{ row: T; field: string } | null>(null);
+  readonly editingValue = signal<unknown>(null);
+  readonly editError = signal<string | null>(null);
+
+  // ============================================================================
+  // Summary Footer Row
+  // ============================================================================
+  readonly showFooterSignal = computed(() => this.fieldConfig()?.showFooter ?? false);
+  readonly hasAggregateFooterSignal = computed(() => this.showFooterSignal() && this.columnDefsSignal().some(col => !!col.footer));
+  /** Custom footer template — rendered between table and pagination for full flexibility. */
+  readonly footerTemplate = contentChild<TemplateRef<{ $implicit: readonly T[]; columns: readonly ColumnDefinition<T>[] }>>('tableFooter');
+
+  // Multi-row footer signals
+  readonly resolvedFooterRowsSignal = computed(() => this.config()?.resolvedFooterRows ?? []);
+  readonly hasFooterRowsSignal = computed(() => this.resolvedFooterRowsSignal().length > 0);
+
+  /** True when either multi-row footerRows OR legacy column.footer exists. */
+  readonly hasFooterSignal = computed(() =>
+    this.hasFooterRowsSignal() || this.hasAggregateFooterSignal(),
+  );
+
+  // ============================================================================
+  // Native Drag State (Column & Row Reordering)
+  // ============================================================================
+  readonly draggedColumnField = signal<string | null>(null);
+  readonly dragOverColumnField = signal<string | null>(null);
+  readonly draggedRow = signal<T | null>(null);
+  readonly dragOverRowIndex = signal<number | null>(null);
+
+  // ============================================================================
+  // Expandable Row Detail
+  // ============================================================================
+  readonly rowDetailTemplate = contentChild<TemplateRef<{ $implicit: T }>>('rowDetail');
+  readonly expandedDetailRows = signal<Set<T>>(new Set());
+  readonly isExpandableDetailSignal = computed(() => this.fieldConfig()?.expandableDetail ?? false);
+  readonly expandModeSignal = computed(() => this.fieldConfig()?.expandMode ?? 'multi');
+  readonly showExpandColumnSignal = computed(() => this.isExpandableDetailSignal() && (!!this.rowDetailTemplate() || !!this.childGridConfigSignal()));
+
+  // ============================================================================
+  // Hierarchy Grid (Child Grid)
+  // ============================================================================
+  readonly childGridConfigSignal = computed(() => this.config()?.childGrid);
+  readonly hasChildGridSignal = computed(() => !!this.childGridConfigSignal());
+
+  // ============================================================================
+  // Keyboard Navigation
+  // ============================================================================
+  readonly enableKeyboardNavSignal = computed(() => this.fieldConfig()?.enableKeyboardNavigation ?? false);
+  readonly activeCellSignal = signal<[number, number] | null>(null);
+
+  // ============================================================================
+  // Column Reordering
+  // ============================================================================
+  readonly enableColumnReorderSignal = computed(() => this.fieldConfig()?.enableColumnReorder ?? false);
+  readonly columnOrderOverride = signal<string[] | null>(null);
+
+  // ============================================================================
+  // Row Reordering
+  // ============================================================================
+  readonly enableRowReorderSignal = computed(() => {
+    const config = this.fieldConfig();
+    if (!config?.enableRowReorder) return false;
+    // Disable when sort or filter is active
+    if (this.sortState().field) return false;
+    if (this.filterState().length > 0) return false;
+    if (this.debouncedSearchTerm()) return false;
+    return true;
+  });
+  readonly showDragHandleColumnSignal = computed(() => this.enableRowReorderSignal() && (this.fieldConfig()?.showDragHandle ?? true));
+
+  // ============================================================================
+  // Row Grouping
+  // ============================================================================
+  readonly groupConfigSignal = computed(() => this.fieldConfig()?.grouping);
+  readonly isGroupedSignal = computed(() => !!this.groupConfigSignal()?.groupBy);
+  readonly expandedGroups = signal<Set<unknown> | null>(null);
+  readonly resolvedGroupAggregatesSignal = computed(() => this.config()?.resolvedGroupAggregates);
+  readonly hasGroupCaptionAggregatesSignal = computed(() => !!this.groupConfigSignal()?.captionAggregates);
+  readonly hasGroupFooterRowsSignal = computed(() => (this.groupConfigSignal()?.groupFooterRows?.length ?? 0) > 0);
 
   // Global search signals
   readonly globalSearchTerm = signal<string>('');
   private readonly debouncedSearchTerm = signal<string>('');
   private searchDebounceTimeout?: ReturnType<typeof setTimeout>;
 
-  // Fuse.js instance for fuzzy search
+  // Fuse.js instance for fuzzy search (cached — only rebuilt when data changes)
   private _fuseInstance?: Fuse<T>;
+  private _fuseDataRef: readonly T[] | null = null;
   private readonly defaultFuseConfig: IFuseOptions<T> = {
     threshold: 0.3,
     ignoreLocation: true,
@@ -143,9 +332,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     minMatchCharLength: 1,
     keys: [], // Will be populated dynamically with searchable fields
   };
-
-  // Computed signal for animation class
-  readonly alertAnimationClass = computed(() => (this.showAlertSignal() ? 'animate__animated animate__fadeIn' : 'animate__animated animate__fadeOut'));
 
   // Global search computed signals
   readonly hasGlobalSearchSignal = computed(() => this.fieldConfig()?.globalSearch?.enabled ?? false);
@@ -170,69 +356,25 @@ export class TableComponent<T extends object> implements OnDestroy {
   // Enhanced pagination computed signals
   readonly pageIndexSignal = computed(() => this.paginationState().pageIndex);
   readonly pageSizeSignal = computed(() => this.paginationState().pageSize);
-  readonly totalItemsSignal = computed(() => {
-    const mode = this.modeSignal();
-    // For server-side pagination, use totalItems from options
-    if (mode === 'cursor') {
-      return this.paginationOptions()?.totalItems ?? this.originalDataSignal().length;
-    }
-    // For client-side pagination, use filtered data length
-    return this.paginationOptions()?.totalItems ?? this.filteredDataSignal().length;
-  });
+  // Note: totalItemsSignal is defined later after displayDataSignal to avoid circular dependency
   readonly pageSizeOptionsSignal = computed(() => this.paginationOptions()?.pageSizeOptions ?? [5, 10, 25, 50, 100]);
   readonly modeSignal = computed(() => this.paginationOptions()?.mode ?? 'offset');
   readonly nextCursorSignal = computed(() => this.paginationOptions()?.nextCursor ?? null);
   readonly prevCursorSignal = computed(() => this.paginationOptions()?.prevCursor ?? null);
 
-  // Pagination calculations
-  readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));
-  readonly currentPageSignal = computed(() => this.pageIndexSignal() + 1); // 1-based for display
-  readonly startIndexSignal = computed(() => this.pageIndexSignal() * this.pageSizeSignal() + 1);
-  readonly endIndexSignal = computed(() => Math.min((this.pageIndexSignal() + 1) * this.pageSizeSignal(), this.totalItemsSignal()));
-
-  // Navigation state for cursor pagination
-  readonly hasPreviousPageSignal = computed(() => {
-    if (this.modeSignal() === 'cursor') {
-      return !!this.prevCursorSignal() && !this.disabled();
-    }
-    return this.pageIndexSignal() > 0 && !this.disabled();
-  });
-
-  readonly hasNextPageSignal = computed(() => {
-    if (this.modeSignal() === 'cursor') {
-      return !!this.nextCursorSignal() && !this.disabled();
-    }
-    return this.pageIndexSignal() < this.totalPagesSignal() - 1 && !this.disabled();
-  });
-  readonly isFirstPageSignal = computed(() => this.pageIndexSignal() === 0);
-  readonly isLastPageSignal = computed(() => this.pageIndexSignal() === this.totalPagesSignal() - 1);
-
-  // Visible page range for pagination buttons
-  readonly visiblePagesSignal = computed(() => {
-    const currentPage = this.currentPageSignal();
-    const totalPages = this.totalPagesSignal();
-    const maxVisiblePages = 7; // Show max 7 page buttons
-
-    if (totalPages <= maxVisiblePages) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-
-    const half = Math.floor(maxVisiblePages / 2);
-    let start = Math.max(1, currentPage - half);
-    const end = Math.min(totalPages, start + maxVisiblePages - 1);
-
-    if (end - start + 1 < maxVisiblePages) {
-      start = Math.max(1, end - maxVisiblePages + 1);
-    }
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  });
+  private readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));
 
   readonly hasSelectionSignal = computed(() => this.fieldConfig()?.hasSelection ?? false);
   readonly hasActionsSignal = computed(() => {
     const actions = this.fieldConfig()?.actions ?? [];
     return actions.length > 0;
   });
+
+  // Tree table computed signals
+  readonly treeTableConfigSignal = computed(() => this.fieldConfig()?.treeTable);
+  readonly isTreeTableSignal = computed(() => this.treeTableConfigSignal()?.enabled ?? false);
+  readonly treeIndentSizeSignal = computed(() => this.treeTableConfigSignal()?.indentSize ?? 24);
+  private readonly childrenPropertySignal = computed(() => this.treeTableConfigSignal()?.childrenProperty ?? 'children');
 
   // Filter computed signals
   readonly enableFilteringSignal = computed(() => this.fieldConfig()?.enableFiltering ?? false);
@@ -268,6 +410,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   private readonly originalDataSignal = computed(() => this.data() ?? []);
 
   // Filtered data signal
+  // For tree tables: filters only apply to root-level items
   private readonly filteredDataSignal = computed(() => {
     const data = this.originalDataSignal();
     const filters = this.filterState();
@@ -283,6 +426,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   });
 
   // Apply global search to filtered data (CLIENT-SIDE ONLY)
+  // For tree tables: search only applies to root-level items
   private readonly globalSearchedDataSignal = computed(() => {
     const data = this.filteredDataSignal(); // Works after column filters
     const searchTerm = this.debouncedSearchTerm();
@@ -335,6 +479,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     });
   });
 
+  // Sort root-level items
   private readonly sortedDataSignal = computed(() => {
     const data = this.globalSearchedDataSignal(); // Use global searched data
     const { field, direction } = this.sortState();
@@ -346,20 +491,150 @@ export class TableComponent<T extends object> implements OnDestroy {
     return [...data].sort((a, b) => this.compareValues((a as Record<string, unknown>)[field], (b as Record<string, unknown>)[field], direction));
   });
 
+  // Flatten tree data after sorting (for tree tables only)
+  // This creates a flat array with level/hierarchy info for display
+  private readonly flattenedTreeDataSignal = computed(() => {
+    const data = this.sortedDataSignal();
+    const isTreeTable = this.isTreeTableSignal();
+
+    if (!isTreeTable) {
+      return null; // Not tree mode, will use sortedDataSignal directly
+    }
+
+    const treeConfig = this.treeTableConfigSignal();
+    const expandedKeys = this.expandedRowKeys();
+    const childrenProp = treeConfig?.childrenProperty ?? 'children';
+    const customGetKey = treeConfig?.getRowKey;
+
+    // Clear and rebuild caches
+    this.treeRowLevelMap.clear();
+    this.treeRowKeyMap.clear();
+    this.treeRowHasChildrenMap.clear();
+
+    const flattened = flattenTreeData(
+      data,
+      expandedKeys,
+      (row, index) => generateRowKey(row, customGetKey, index),
+      childrenProp,
+    );
+
+    // Populate caches for template access
+    for (const item of flattened) {
+      this.treeRowLevelMap.set(item.data, item.level);
+      this.treeRowKeyMap.set(item.data, item.key);
+      this.treeRowHasChildrenMap.set(item.data, item.hasChildren);
+    }
+
+    return flattened;
+  });
+
+  // Get the data for display - either flattened tree data or regular sorted data
+  readonly displayDataSignal = computed(() => {
+    const flattened = this.flattenedTreeDataSignal();
+    if (flattened) {
+      return flattened.map(f => f.data);
+    }
+    return this.sortedDataSignal();
+  });
+
+  // ============================================================================
+  // Row Grouping Pipeline
+  // ============================================================================
+  readonly groupedDataSignal = computed<RowGroup<T>[]>(() => {
+    const config = this.groupConfigSignal();
+    if (!config?.groupBy) return [];
+
+    const data = this.displayDataSignal();
+    const expandedGroups = this.expandedGroups();
+    const resolvedGroupAggregates = this.resolvedGroupAggregatesSignal();
+
+    const groups = groupData<T>(
+      data,
+      config.groupBy,
+      config.aggregates as Partial<Record<StringKey<T>, import('./table-aggregates').AggregateFunction>>,
+      config.groupSortFn,
+      config.groupHeaderLabel,
+      config.initiallyExpanded ?? true,
+      resolvedGroupAggregates,
+    );
+
+    // Apply expansion state: null = not yet initialized (use defaults), Set = explicit user state
+    for (const group of groups) {
+      group.expanded = expandedGroups === null
+        ? (config.initiallyExpanded ?? true)
+        : expandedGroups.has(group.groupValue);
+    }
+
+    return groups;
+  });
+
+  /** Flattened display rows for grouped mode: group-header, data, group-footer sentinel rows */
+  readonly groupedDisplaySignal = computed<Array<
+    | { type: 'group-header'; group: RowGroup<T> }
+    | { type: 'group-footer'; group: RowGroup<T>; footerRowIndex?: number }
+    | { type: 'data'; row: T }
+  >>(() => {
+    const groups = this.groupedDataSignal();
+    if (groups.length === 0) return [];
+
+    const config = this.groupConfigSignal();
+    const showGroupFooter = config?.showGroupFooter ?? false;
+    const hasGroupFooterRows = this.hasGroupFooterRowsSignal();
+
+    const result: Array<
+      | { type: 'group-header'; group: RowGroup<T> }
+      | { type: 'group-footer'; group: RowGroup<T>; footerRowIndex?: number }
+      | { type: 'data'; row: T }
+    > = [];
+    for (const group of groups) {
+      result.push({ type: 'group-header', group });
+      if (group.expanded) {
+        for (const row of group.rows) {
+          result.push({ type: 'data', row });
+        }
+        if (hasGroupFooterRows && group.resolvedGroupFooterRows) {
+          // Emit one display row per group footer row (column-aligned)
+          for (let i = 0; i < group.resolvedGroupFooterRows.length; i++) {
+            result.push({ type: 'group-footer', group, footerRowIndex: i });
+          }
+        } else if (showGroupFooter) {
+          // Legacy single full-colspan footer
+          result.push({ type: 'group-footer', group });
+        }
+      }
+    }
+    return result;
+  });
+
+  // Total items for pagination - must be defined after displayDataSignal
+  readonly totalItemsSignal = computed(() => {
+    const mode = this.modeSignal();
+    // For server-side pagination, use totalItems from options
+    if (mode === 'cursor') {
+      return this.paginationOptions()?.totalItems ?? this.originalDataSignal().length;
+    }
+    // For client-side pagination, use display data length (includes flattened tree rows)
+    return this.paginationOptions()?.totalItems ?? this.displayDataSignal().length;
+  });
+
   private readonly currentDataSignal = computed(() => {
     const mode = this.modeSignal();
+    const data = this.displayDataSignal(); // Use display data (handles tree flattening)
+
+    // Virtual scroll: return all data (CDK handles viewport)
+    if (this.isVirtualScrollSignal()) return data;
 
     if (mode === 'offset') {
       const start = this.pageIndexSignal() * this.pageSizeSignal();
       const end = start + this.pageSizeSignal();
-      return this.sortedDataSignal().slice(start, end);
+      return data.slice(start, end);
     }
 
-    // Cursor mode: use sorted data (client-side sorting on current page)
-    return this.sortedDataSignal();
+    // Cursor mode: use display data (client-side sorting on current page)
+    return data;
   });
 
-  readonly columnDefsSignal = computed(() => {
+  readonly columnDefsSignal = computed((): ColumnDefinition<T>[] => {
     const cols = this.columns();
     if (cols?.length) return cols;
 
@@ -425,23 +700,59 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly selectedArraySignal = computed(() => [...this.selectedSignal()]);
 
   readonly displayedColumnsSignal = computed(() => {
-    const allColumns = this.columnDefsSignal().map(c => c.field);
+    let dataColumns = this.columnDefsSignal().map(c => c.field);
     const visibilityState = this.columnVisibilityState();
 
     // Filter columns based on visibility
-    const visibleColumns: string[] = allColumns.filter(field => {
-      // If column visibility is not enabled, show all columns
+    dataColumns = dataColumns.filter(field => {
       if (!this.isColumnVisibilityEnabled()) return true;
-
-      // Check visibility state
       const isVisible = visibilityState.get(field);
-      return isVisible !== false; // Show by default if not set
+      return isVisible !== false;
     });
 
+    // Apply column order override (from column reordering)
+    const orderOverride = this.columnOrderOverride();
+    if (orderOverride) {
+      const ordered: StringKey<T>[] = [];
+      for (const col of orderOverride) {
+        if ((dataColumns as string[]).includes(col)) ordered.push(col as StringKey<T>);
+      }
+      // Append any columns not in the override (newly added columns)
+      for (const col of dataColumns) {
+        if (!(ordered as string[]).includes(col)) ordered.push(col);
+      }
+      dataColumns = ordered;
+    }
+
+    const visibleColumns: string[] = [...dataColumns];
+
+    // Add special columns in order: drag_handle, select, tree_expand, detail_expand, data, actions
+    if (this.showExpandColumnSignal()) visibleColumns.unshift('__detail_expand');
+    if (this.isTreeTableSignal()) visibleColumns.unshift('__tree_expand');
     if (this.hasSelectionSignal()) visibleColumns.unshift('select');
+    if (this.showDragHandleColumnSignal()) visibleColumns.unshift('__drag_handle');
     if (this.hasActionsSignal()) visibleColumns.push('actions');
 
     return visibleColumns;
+  });
+
+  // Ordered column defs respecting column reorder
+  readonly orderedColumnDefsSignal = computed(() => {
+    const cols = this.columnDefsSignal();
+    const orderOverride = this.columnOrderOverride();
+    if (!orderOverride) return cols;
+
+    const colMap = new Map(cols.map(c => [c.field, c]));
+    const ordered: ColumnDefinition<T>[] = [];
+    for (const field of orderOverride) {
+      const col = colMap.get(field as StringKey<T>);
+      if (col) ordered.push(col);
+    }
+    // Append any not in override
+    for (const col of cols) {
+      if (!ordered.includes(col)) ordered.push(col);
+    }
+    return ordered;
   });
 
   readonly isAllSelected = computed(() => {
@@ -461,7 +772,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly trackByPageSize: TrackByFunction<number> = (_, size) => size;
 
   // Static properties
-  private static readonly ACTION_ORDER: readonly ActionType[] = ['view', 'edit', 'delete', 'upload', 'download', 'export', 'print'] as const;
+  private static readonly ACTION_ORDER: readonly ActionType[] = ['view', 'edit', 'delete', 'upload', 'download', 'print'] as const;
 
   private static readonly ACTION_CLASSES: Readonly<Record<string, string>> = {
     view: 'btn btn-sm btn-secondary',
@@ -469,12 +780,13 @@ export class TableComponent<T extends object> implements OnDestroy {
     delete: 'btn btn-sm btn-error text-white',
     upload: 'btn btn-sm btn-info',
     download: 'btn btn-sm btn-success',
-    export: 'btn btn-sm btn-info',
     print: 'btn btn-sm btn-secondary',
+    export: 'btn btn-sm btn-info',
   } as const;
 
   private static readonly DEFAULT_ACTION_CLASS = 'btn btn-sm btn-ghost';
 
+  /** Default export options for bulk export actions */
   private static readonly DEFAULT_EXPORT_OPTIONS: readonly BulkActionDropdownOption[] = [
     { label: 'CSV', value: 'csv', icon: 'Sheet' },
     { label: 'Excel', value: 'excel', icon: 'FileSpreadsheet' },
@@ -494,28 +806,29 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
   }
 
-  // Enhanced pagination methods
   firstPage(): void {
-    if (!this.isFirstPageSignal() && !this.disabled()) {
+    if (this.pageIndexSignal() > 0 && !this.disabled()) {
       this.updatePagination({ pageIndex: 0, pageSize: this.pageSizeSignal() });
     }
   }
 
   previousPage(): void {
-    if (this.hasPreviousPageSignal()) {
+    if (this.pageIndexSignal() > 0 && !this.disabled()) {
       this.updatePagination({ pageIndex: this.pageIndexSignal() - 1, pageSize: this.pageSizeSignal() });
     }
   }
 
   nextPage(): void {
-    if (this.hasNextPageSignal()) {
+    const lastPage = this.totalPagesSignal() - 1;
+    if (this.pageIndexSignal() < lastPage && !this.disabled()) {
       this.updatePagination({ pageIndex: this.pageIndexSignal() + 1, pageSize: this.pageSizeSignal() });
     }
   }
 
   lastPage(): void {
-    if (!this.isLastPageSignal() && !this.disabled()) {
-      this.updatePagination({ pageIndex: this.totalPagesSignal() - 1, pageSize: this.pageSizeSignal() });
+    const lastPage = this.totalPagesSignal() - 1;
+    if (this.pageIndexSignal() < lastPage && !this.disabled()) {
+      this.updatePagination({ pageIndex: lastPage, pageSize: this.pageSizeSignal() });
     }
   }
 
@@ -531,30 +844,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     this.selectionChange.emit([]);
   }
 
-  changePageSize(pageSize: number): void {
-    if (pageSize > 0 && !this.disabled()) {
-      const mode = this.modeSignal();
-
-      if (mode === 'offset') {
-        // For offset pagination, calculate new page index to maintain position
-        const currentIndex = this.pageIndexSignal();
-        const currentStart = currentIndex * this.pageSizeSignal();
-        const newPageIndex = Math.floor(currentStart / pageSize);
-
-        this.updatePagination({ pageIndex: newPageIndex, pageSize });
-      } else {
-        // For cursor pagination, just update page size - parent will handle server call
-        this.paginationState.update(state => ({
-          ...state,
-          pageSize,
-        }));
-
-        // Emit a special page change event for cursor mode page size changes
-        this.pageChange.emit({ pageIndex: 0, pageSize });
-      }
-    }
-  }
-
   private updatePagination(options: { pageIndex: number; pageSize: number }): void {
     this.paginationState.update(state => ({
       ...state,
@@ -567,6 +856,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   // Enhanced sort method with server-side support
   sort(field: string): void {
+    if (this.isResizingSignal()) return; // Skip sort while resizing
     const currentSort = this.sortState();
     const newDirection = this.calculateNewSortDirection(field, currentSort);
     const newSortState: SortState = {
@@ -589,59 +879,54 @@ export class TableComponent<T extends object> implements OnDestroy {
   classesFor({ key, config }: ActionItem<T> | BulkActionItem<T>): string {
     const baseClass = TableComponent.ACTION_CLASSES[key] || TableComponent.DEFAULT_ACTION_CLASS;
     const configClass = config.buttonClass || '';
-    const transitionClasses = 'transition-all duration-200 hover:scale-105 focus:scale-105';
+    const transitionClasses = 'transition-colors duration-200';
     const classes = [baseClass, configClass, transitionClasses, ...(config.buttonClasses || [])].filter(Boolean);
 
     return classes.join(' ');
   }
 
-  // Dropdown bulk action methods
+  /** Check if a bulk action should render as a dropdown */
   isDropdownBulkAction(bulkAction: BulkActionItem<T>): boolean {
+    // Has explicit dropdown options
     if (bulkAction.config.dropdownOptions && bulkAction.config.dropdownOptions.length > 0) {
       return true;
     }
+    // Is export type and default options not explicitly disabled
     if (bulkAction.key === 'export' && bulkAction.config.useDefaultExportOptions !== false) {
       return true;
     }
     return false;
   }
 
+  /** Get dropdown options for a bulk action */
   getDropdownOptions(bulkAction: BulkActionItem<T>): readonly BulkActionDropdownOption[] {
+    // Use explicit options if provided
     if (bulkAction.config.dropdownOptions && bulkAction.config.dropdownOptions.length > 0) {
       return bulkAction.config.dropdownOptions;
     }
+    // Use default export options for export type
     if (bulkAction.key === 'export' && bulkAction.config.useDefaultExportOptions !== false) {
       return TableComponent.DEFAULT_EXPORT_OPTIONS;
     }
     return [];
   }
 
+  /** Toggle bulk action dropdown open/close */
   toggleBulkActionDropdown(actionKey: string, event: MouseEvent): void {
     event.stopPropagation();
     const current = this.openBulkActionDropdown();
     this.openBulkActionDropdown.set(current === actionKey ? null : actionKey);
   }
 
+  /** Check if a bulk action dropdown is open */
   isBulkActionDropdownOpen(actionKey: string): boolean {
     return this.openBulkActionDropdown() === actionKey;
   }
 
+  /** Handle dropdown option selection */
   onBulkActionOptionSelect(bulkAction: BulkActionItem<T>, option: BulkActionDropdownOption): void {
     this.openBulkActionDropdown.set(null); // Close the dropdown
     bulkAction.config.action(this.selectedArraySignal(), option);
-  }
-
-  formatCell(row: T, column: ColumnDefinition<T>): Observable<string> {
-    const value = row[column.field];
-
-    if (column.format) {
-      const result = column.format(value, row);
-      const formatted = isObservable(result) ? result : of(result || (column.fallback ?? '—'));
-      return formatted;
-    }
-
-    const displayValue = value || value === 0 ? String(value) : (column.fallback ?? '—');
-    return of(displayValue);
   }
 
   toggleRow(row: T, checked: boolean): void {
@@ -686,21 +971,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     return {
       'bg-base-200': this.isSelected(row),
     };
-  }
-
-  // Cursor pagination methods (for server-side)
-  nextCursorPage(): void {
-    const nextCursor = this.nextCursorSignal();
-    if (nextCursor && !this.disabled()) {
-      this.cursorChange.emit({ cursor: nextCursor, direction: 'next' });
-    }
-  }
-
-  prevCursorPage(): void {
-    const prevCursor = this.prevCursorSignal();
-    if (prevCursor && !this.disabled()) {
-      this.cursorChange.emit({ cursor: prevCursor, direction: 'prev' });
-    }
   }
 
   // Handler methods for pagination component
@@ -936,9 +1206,585 @@ export class TableComponent<T extends object> implements OnDestroy {
     this.saveColumnVisibilityToStorage();
   }
 
-  getVisibleColumnsCount(): number {
-    const allColumns = this.columnDefsSignal().map(c => c.field);
-    return allColumns.filter(f => this.isColumnVisible(f)).length;
+  // ============================================================================
+  // Tree Table Methods
+  // ============================================================================
+
+  hasChildren(row: T): boolean {
+    return this.treeRowHasChildrenMap.get(row) ?? false;
+  }
+
+  isRowExpanded(row: T): boolean {
+    const key = this.treeRowKeyMap.get(row);
+    if (!key) return false;
+    return this.expandedRowKeys().has(key);
+  }
+
+  /** 0 = root level */
+  getRowLevel(row: T): number {
+    return this.treeRowLevelMap.get(row) ?? 0;
+  }
+
+  getRowIndentPadding(row: T): number {
+    const level = this.getRowLevel(row);
+    const indentSize = this.treeIndentSizeSignal();
+    // Add base padding (8px) + level-based indent
+    return 8 + (level * indentSize);
+  }
+
+  toggleRowExpand(row: T, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    const key = this.treeRowKeyMap.get(row);
+    if (!key) return;
+
+    const currentExpanded = this.expandedRowKeys();
+    const isCurrentlyExpanded = currentExpanded.has(key);
+
+    this.expandedRowKeys.update(keys => {
+      const newKeys = new Set(keys);
+      if (isCurrentlyExpanded) {
+        newKeys.delete(key);
+      } else {
+        newKeys.add(key);
+      }
+      return newKeys;
+    });
+
+    this.expansionChange.emit({ row, expanded: !isCurrentlyExpanded });
+  }
+
+  expandAllRows(): void {
+    const allKeys = new Set<string>();
+    this.collectAllRowKeys(this.originalDataSignal(), allKeys);
+    this.expandedRowKeys.set(allKeys);
+  }
+
+  collapseAllRows(): void {
+    this.expandedRowKeys.set(new Set());
+  }
+
+  /**
+   * Recursively collects all row keys from the tree.
+   */
+  private collectAllRowKeys(data: readonly T[], keys: Set<string>, startIndex = 0): void {
+    const treeConfig = this.treeTableConfigSignal();
+    const childrenProp = treeConfig?.childrenProperty ?? 'children';
+    const customGetKey = treeConfig?.getRowKey;
+
+    data.forEach((row, index) => {
+      const key = generateRowKey(row, customGetKey, startIndex + index);
+      const children = getRowChildren(row, childrenProp);
+
+      if (children && children.length > 0) {
+        keys.add(key);
+        this.collectAllRowKeys(children, keys, 0);
+      }
+    });
+  }
+
+  // ============================================================================
+  // Sticky Column Methods
+  // ============================================================================
+
+  isStickyStart(field: string): boolean {
+    if (field === 'select') return this.stickySelectionSignal();
+    return this.stickyStartColumnsSignal().has(field);
+  }
+
+  isStickyEnd(field: string): boolean {
+    if (field === 'actions') return this.stickyActionsSignal();
+    return this.stickyEndColumnsSignal().has(field);
+  }
+
+  // ============================================================================
+  // Column Resizing Methods
+  // ============================================================================
+
+  getColumnWidth(field: string): number | null {
+    return this.columnWidthsSignal().get(field) ?? null;
+  }
+
+  onResizeStart(field: string, event: PointerEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const th = (event.target as HTMLElement).closest('th');
+    if (!th) return;
+
+    this.isResizingSignal.set(true);
+    this.resizeState = { field, startX: event.clientX, startWidth: th.offsetWidth };
+
+    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  onResizeMove(event: PointerEvent): void {
+    if (!this.resizeState) return;
+
+    const { field, startX, startWidth } = this.resizeState;
+    const diff = event.clientX - startX;
+    let newWidth = Math.max(startWidth + diff, 50); // minimum 50px
+
+    // Enforce column min/max from column definition
+    const col = this.columnDefsSignal().find(c => c.field === field);
+    if (col?.minWidth) newWidth = Math.max(newWidth, col.minWidth);
+    if (col?.maxWidth) newWidth = Math.min(newWidth, col.maxWidth);
+
+    this.columnWidthsSignal.update(m => {
+      const newMap = new Map(m);
+      newMap.set(field, newWidth);
+      return newMap;
+    });
+  }
+
+  onResizeEnd(): void {
+    if (!this.resizeState) return;
+
+    const { field, startWidth } = this.resizeState;
+    const newWidth = this.columnWidthsSignal().get(field) ?? startWidth;
+
+    this.columnResize.emit({ field, width: newWidth, previousWidth: startWidth });
+    this.resizeState = null;
+    this.isResizingSignal.set(false);
+  }
+
+  // ============================================================================
+  // Inline Cell Editing Methods
+  // ============================================================================
+
+  startEdit(row: T, field: string): void {
+    if (!this.enableEditingSignal()) return;
+    const col = this.columnDefsSignal().find(c => c.field === field);
+    if (!col?.editable) return;
+
+    this.editingCell.set({ row, field });
+    this.editingValue.set(row[field as keyof T]);
+    this.editError.set(null);
+  }
+
+  confirmEdit(): void {
+    const cell = this.editingCell();
+    if (!cell) return;
+
+    const { row, field } = cell;
+    const newValue = this.editingValue();
+    const col = this.columnDefsSignal().find(c => c.field === field);
+
+    // Run validator if present
+    if (col?.editValidator) {
+      const result = col.editValidator(newValue, row);
+      if (result !== true) {
+        const errorMsg = typeof result === 'string' ? result : 'Invalid value';
+        this.editError.set(errorMsg);
+        this.cellEditError.emit({ row, field, value: newValue, error: errorMsg });
+        return;
+      }
+    }
+
+    const oldValue = row[field as keyof T];
+    this.cellEdit.emit({ row, field, oldValue, newValue });
+
+    this.editingCell.set(null);
+    this.editingValue.set(null);
+    this.editError.set(null);
+  }
+
+  cancelEdit(): void {
+    const cell = this.editingCell();
+    if (cell) {
+      this.cellEditCancel.emit({ row: cell.row, field: cell.field });
+    }
+    this.editingCell.set(null);
+    this.editingValue.set(null);
+    this.editError.set(null);
+  }
+
+  isEditing(row: T, field: string): boolean {
+    const cell = this.editingCell();
+    return cell?.row === row && cell?.field === field;
+  }
+
+  getEditorType(column: ColumnDefinition<T>): string {
+    return column.editType ?? 'text';
+  }
+
+  onEditKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.confirmEdit();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelEdit();
+    }
+  }
+
+  // ============================================================================
+  // Summary Footer Row Methods
+  // ============================================================================
+
+  getFooterValue(column: ColumnDefinition<T>): string {
+    if (!column.footer) return '';
+    const data = this.displayDataSignal();
+    const result = column.footer(data);
+    return String(result);
+  }
+
+  getFooterRowCellValue(row: ResolvedFooterRow<T>, column: ColumnDefinition<T>): string {
+    const fn = row.cells[column.field];
+    if (!fn) return '';
+    return fn(this.displayDataSignal());
+  }
+
+  /**
+   * Column name sets for CDK multi-row footer.
+   * Each footer row gets its own prefixed column set (e.g. '__fr0_salary', '__fr1_salary')
+   * so CDK renders each row with its own cdkFooterCellDef — different content per row.
+   */
+  readonly footerColumnSets = computed(() => {
+    const rows = this.resolvedFooterRowsSignal();
+    if (!rows.length) return [];
+    const baseCols = this.displayedColumnsSignal();
+    return rows.map((_, i) => baseCols.map(col => `__fr${i}_${col}`));
+  });
+
+  /** Look up the footer aggregate value for a given footer row + base column name. */
+  getFooterCellValueForCol(rowIdx: number, baseCol: string): string {
+    const footerRow = this.resolvedFooterRowsSignal()[rowIdx];
+    if (!footerRow) return '';
+    const column = this.orderedColumnDefsSignal().find(c => c.field === baseCol);
+    if (!column) return ''; // Special column (select, actions, etc.) — empty cell
+    return this.getFooterRowCellValue(footerRow, column);
+  }
+
+  // ============================================================================
+  // Expandable Row Detail Methods
+  // ============================================================================
+
+  isDetailExpanded(row: T): boolean {
+    return this.expandedDetailRows().has(row);
+  }
+
+  toggleDetailExpand(row: T, event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+
+    const mode = this.expandModeSignal();
+    const isExpanded = this.expandedDetailRows().has(row);
+
+    this.expandedDetailRows.update(set => {
+      const newSet = mode === 'single' ? new Set<T>() : new Set(set);
+      if (isExpanded) {
+        newSet.delete(row);
+      } else {
+        newSet.add(row);
+      }
+      return newSet;
+    });
+
+    this.detailExpansionChange.emit({ row, expanded: !isExpanded });
+  }
+
+  expandAllDetails(): void {
+    const data = this.currentDataSignal();
+    this.expandedDetailRows.set(new Set(data));
+  }
+
+  collapseAllDetails(): void {
+    this.expandedDetailRows.set(new Set());
+  }
+
+  // ============================================================================
+  // Hierarchy Grid (Child Grid) Methods
+  // ============================================================================
+
+  getChildGridData(row: T): readonly unknown[] {
+    const cfg = this.childGridConfigSignal();
+    if (!cfg) return [];
+    if (cfg.childDataFn) return cfg.childDataFn(row);
+    if (cfg.childDataProperty) return (row as Record<string, unknown>)[cfg.childDataProperty] as unknown[] ?? [];
+    return [];
+  }
+
+  getChildGridContainerClass(): string {
+    const cfg = this.childGridConfigSignal();
+    const bordered = cfg?.bordered !== false;
+    return [
+      'child-grid-wrapper',
+      bordered ? 'child-grid-bordered' : '',
+      cfg?.containerClass ?? '',
+    ].filter(Boolean).join(' ');
+  }
+
+  // ============================================================================
+  // Keyboard Navigation Methods
+  // ============================================================================
+
+  getCellId(rowIndex: number, colIndex: number): string {
+    return `cell-${rowIndex}-${colIndex}`;
+  }
+
+  getActiveCellId(): string | null {
+    const cell = this.activeCellSignal();
+    if (!cell) return null;
+    return this.getCellId(cell[0], cell[1]);
+  }
+
+  onTableKeydown(event: KeyboardEvent): void {
+    if (!this.enableKeyboardNavSignal()) return;
+
+    const cell = this.activeCellSignal();
+    if (!cell && !['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+
+    const data = this.currentDataSignal();
+    const cols = this.displayedColumnsSignal();
+    const maxRow = data.length - 1;
+    const maxCol = cols.length - 1;
+
+    let [row, col] = cell ?? [0, 0];
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        row = Math.min(row + 1, maxRow);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        row = Math.max(row - 1, 0);
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        col = Math.min(col + 1, maxCol);
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        col = Math.max(col - 1, 0);
+        break;
+      case 'Home':
+        event.preventDefault();
+        col = 0;
+        if (event.ctrlKey) row = 0;
+        break;
+      case 'End':
+        event.preventDefault();
+        col = maxCol;
+        if (event.ctrlKey) row = maxRow;
+        break;
+      case 'Enter': {
+        event.preventDefault();
+        const colName = cols[col];
+        const rowData = data[row];
+        if (rowData) {
+          // Toggle expand if on expand column
+          if (colName === '__detail_expand') {
+            this.toggleDetailExpand(rowData);
+          } else if (colName !== 'select' && colName !== 'actions' && colName !== '__drag_handle') {
+            // Start edit if editable
+            this.startEdit(rowData, colName);
+          }
+        }
+        break;
+      }
+      case ' ':
+        event.preventDefault();
+        if (cell && data[row]) {
+          const colName = cols[col];
+          if (colName === 'select' || this.hasSelectionSignal()) {
+            this.toggleRow(data[row], !this.isSelected(data[row]));
+          }
+        }
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.activeCellSignal.set(null);
+        return;
+      default:
+        return;
+    }
+
+    this.activeCellSignal.set([row, col]);
+    // Scroll active cell into view
+    requestAnimationFrame(() => {
+      const id = this.getCellId(row, col);
+      const el = this.elementRef.nativeElement.querySelector(`#${id}`);
+      el?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+  }
+
+  isActiveCell(rowIndex: number, colIndex: number): boolean {
+    const cell = this.activeCellSignal();
+    if (!cell) return false;
+    return cell[0] === rowIndex && cell[1] === colIndex;
+  }
+
+  /** Focus the host and set active cell when a cell is clicked (keyboard nav). */
+  onCellClick(rowIndex: number, colIndex: number): void {
+    if (!this.enableKeyboardNavSignal()) return;
+    this.activeCellSignal.set([rowIndex, colIndex]);
+    this.elementRef.nativeElement.focus();
+  }
+
+  // ============================================================================
+  // Column Reordering (Native HTML5 Drag)
+  // ============================================================================
+
+  onColumnDragStart(field: string, event: DragEvent): void {
+    if (!this.enableColumnReorderSignal()) return;
+    this.draggedColumnField.set(field);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', field);
+    }
+  }
+
+  onColumnDragOver(field: string, event: DragEvent): void {
+    if (!this.enableColumnReorderSignal() || !this.draggedColumnField()) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    this.dragOverColumnField.set(field);
+  }
+
+  onColumnDragLeave(): void {
+    this.dragOverColumnField.set(null);
+  }
+
+  onColumnDrop(field: string, event: DragEvent): void {
+    event.preventDefault();
+    const fromField = this.draggedColumnField();
+    this.draggedColumnField.set(null);
+    this.dragOverColumnField.set(null);
+
+    if (!fromField || fromField === field) return;
+
+    const cols = [...this.displayedColumnsSignal()];
+    const specialCols = new Set(['select', '__tree_expand', '__detail_expand', '__drag_handle', 'actions']);
+    const dataCols = cols.filter(c => !specialCols.has(c));
+
+    const fromIdx = dataCols.indexOf(fromField);
+    const toIdx = dataCols.indexOf(field);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    moveItemInArray(dataCols, fromIdx, toIdx);
+    this.columnOrderOverride.set(dataCols);
+
+    this.columnReorder.emit({
+      previousIndex: fromIdx,
+      currentIndex: toIdx,
+      columns: dataCols,
+    });
+  }
+
+  onColumnDragEnd(): void {
+    this.draggedColumnField.set(null);
+    this.dragOverColumnField.set(null);
+  }
+
+  // ============================================================================
+  // Row Reordering (Native HTML5 Drag)
+  // ============================================================================
+
+  onRowDragStart(row: T, event: DragEvent): void {
+    if (!this.enableRowReorderSignal()) return;
+    this.draggedRow.set(row);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', '');
+    }
+    (event.target as HTMLElement).classList.add('dragging');
+  }
+
+  onRowDragOver(row: T, event: DragEvent): void {
+    if (!this.enableRowReorderSignal() || !this.draggedRow()) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    const data = this.currentDataSignal();
+    this.dragOverRowIndex.set(data.indexOf(row));
+  }
+
+  onRowDrop(row: T, event: DragEvent): void {
+    event.preventDefault();
+    const sourceRow = this.draggedRow();
+    this.draggedRow.set(null);
+    this.dragOverRowIndex.set(null);
+
+    if (!sourceRow || sourceRow === row) return;
+
+    const data = this.currentDataSignal();
+    const fromIdx = data.indexOf(sourceRow);
+    const toIdx = data.indexOf(row);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    this.rowReorder.emit({
+      row: sourceRow,
+      previousIndex: fromIdx,
+      currentIndex: toIdx,
+      data,
+    });
+  }
+
+  onRowDragEnd(event: DragEvent): void {
+    this.draggedRow.set(null);
+    this.dragOverRowIndex.set(null);
+    (event.target as HTMLElement).classList.remove('dragging');
+  }
+
+  // ============================================================================
+  // Row Grouping Methods
+  // ============================================================================
+
+  toggleGroupExpand(groupValue: unknown): void {
+    const groups = this.groupedDataSignal();
+    const group = groups.find(g => g.groupValue === groupValue);
+    if (!group) return;
+
+    const wasExpanded = group.expanded;
+
+    this.expandedGroups.update(set => {
+      // Lazy-initialize: if null (never interacted), populate from current state
+      let newSet: Set<unknown>;
+      if (set === null) {
+        // First interaction: populate set based on current expanded state of all groups
+        newSet = new Set(groups.filter(g => g.expanded).map(g => g.groupValue));
+      } else {
+        newSet = new Set(set);
+      }
+
+      if (wasExpanded) {
+        newSet.delete(groupValue);
+      } else {
+        newSet.add(groupValue);
+      }
+      return newSet;
+    });
+
+    this.groupExpandChange.emit({ groupValue, expanded: !wasExpanded });
+  }
+
+  expandAllGroups(): void {
+    const groups = this.groupedDataSignal();
+    this.expandedGroups.set(new Set(groups.map(g => g.groupValue)));
+  }
+
+  collapseAllGroups(): void {
+    this.expandedGroups.set(new Set());
+  }
+
+  getGroupAggregateValue(group: RowGroup<T>, field: string): string {
+    const val = group.aggregates[field];
+    return val != null ? String(Math.round(val * 100) / 100) : '';
+  }
+
+  getGroupCaptionValue(group: RowGroup<T>, field: string): string {
+    const fn = group.resolvedCaptionCells?.[field as StringKey<T>];
+    if (!fn) return '';
+    return fn(group.rows);
+  }
+
+  getGroupFooterRowCellValue(group: RowGroup<T>, footerRowIndex: number, column: ColumnDefinition<T>): string {
+    const footerRow = group.resolvedGroupFooterRows?.[footerRowIndex];
+    if (!footerRow) return '';
+    const fn = footerRow.cells[column.field];
+    if (!fn) return '';
+    return fn(group.rows);
   }
 
   private saveColumnVisibilityToStorage(): void {
@@ -946,6 +1792,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const storageKey = config?.storageKey;
 
     if (!storageKey) return;
+    if (!this.hasLocalStorage) return;
 
     const visibilityState = this.columnVisibilityState();
     const visibilityObj: Record<string, boolean> = {};
@@ -954,12 +1801,14 @@ export class TableComponent<T extends object> implements OnDestroy {
       visibilityObj[field] = visible;
     });
 
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(visibilityObj));
-    } catch (e) {
-      // Silent fail if localStorage is not available
-      console.error('Failed to save column visibility to storage:', e);
-    }
+    // Defer write to avoid blocking the main thread
+    queueMicrotask(() => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(visibilityObj));
+      } catch (e) {
+        console.error('Failed to save column visibility to storage:', e);
+      }
+    });
   }
 
   private loadColumnVisibilityFromStorage(): void {
@@ -967,6 +1816,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const storageKey = config?.storageKey;
 
     if (!storageKey) return;
+    if (!this.hasLocalStorage) return;
 
     try {
       const stored = localStorage.getItem(storageKey);
@@ -988,7 +1838,24 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   // Private methods
   private setupEffects(): void {
-    // Initialize column visibility
+    // Runtime compatibility warnings
+    effect(() => {
+      const config = this.fieldConfig();
+      if (config?.expandableDetail && config?.virtualScroll?.enabled) {
+        console.warn('[TableComponent] Expandable detail rows and virtual scroll are mutually exclusive. Virtual scroll requires uniform row heights. Expandable detail will be disabled.');
+      }
+      if (config?.grouping?.groupBy && config?.treeTable?.enabled) {
+        console.warn('[TableComponent] Row grouping and tree table are mutually exclusive. Tree table takes precedence.');
+      }
+    });
+
+    // Note: group expansion initialization is handled lazily.
+    // expandedGroups starts as null (uninitialized). groupedDataSignal treats
+    // null as "use defaults" (initiallyExpanded). On first user interaction,
+    // toggleGroupExpand populates the Set from current state. An empty Set
+    // means "all collapsed" (not "all expanded").
+
+    // Initialize column visibility (use untracked for reads that would cause re-trigger)
     effect(() => {
       const config = this.columnVisibilityConfig();
       if (config?.enabled) {
@@ -996,9 +1863,9 @@ export class TableComponent<T extends object> implements OnDestroy {
         this.loadColumnVisibilityFromStorage();
 
         // If nothing was loaded and there are default visible columns, set them
-        const visibilityState = this.columnVisibilityState();
+        const visibilityState = untracked(() => this.columnVisibilityState());
         if (visibilityState.size === 0 && config.defaultVisible && config.defaultVisible.length > 0) {
-          const allColumns = this.columnDefsSignal().map(c => c.field);
+          const allColumns = untracked(() => this.columnDefsSignal()).map(c => c.field);
           this.columnVisibilityState.update(state => {
             const newState = new Map(state);
             allColumns.forEach(field => {
@@ -1006,6 +1873,20 @@ export class TableComponent<T extends object> implements OnDestroy {
             });
             return newState;
           });
+        }
+      }
+    });
+
+    // Initialize tree table expanded state
+    effect(() => {
+      const treeConfig = this.treeTableConfigSignal();
+      if (treeConfig?.enabled) {
+        // Set initial expanded keys
+        if (treeConfig.expandAll) {
+          // Expand all on next tick to allow data to be loaded first
+          setTimeout(() => this.expandAllRows(), 0);
+        } else if (treeConfig.initialExpandedKeys && treeConfig.initialExpandedKeys.length > 0) {
+          this.expandedRowKeys.set(new Set(treeConfig.initialExpandedKeys));
         }
       }
     });
@@ -1026,6 +1907,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Reset pagination when data changes
     effect(() => {
       this.data(); // Subscribe to data changes
+      this.htmlCache.clear();
       this.paginationState.update(state => ({
         ...state,
         pageIndex: 0,
@@ -1081,19 +1963,44 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   /**
-   * Formats and determines rendering strategy for a cell.
-   * Returns both the value and whether it should be rendered as HTML.
+   * Synchronous fast path for cell display. Returns a `CellDisplay` directly
+   * when the column has no async formatter, or `null` if the formatter returns
+   * an Observable (caller should fall back to `getCellDisplayAsync`).
    */
-  getCellDisplay(row: T, column: ColumnDefinition<T>): Observable<CellDisplay> {
-    return this.formatCell(row, column).pipe(
-      map(value => {
-        const html = this.isHtml(value);
+  getCellDisplaySync(row: T, column: ColumnDefinition<T>): CellDisplay | null {
+    const value = row[column.field];
 
-        return {
-          value,
-          isHtml: html,
-          safeHtml: html ? this.sanitizeHtml(value) : null,
-        };
+    if (column.format) {
+      const result = column.format(value, row);
+      if (isObservable(result)) return null; // Needs async path
+      const formatted = result || (column.fallback ?? '—');
+      const html = this.isHtml(formatted);
+      return { value: formatted, isHtml: html, safeHtml: html ? this.sanitizeHtml(formatted) : null };
+    }
+
+    const displayValue = value || value === 0 ? String(value) : (column.fallback ?? '—');
+    const html = this.isHtml(displayValue);
+    return { value: displayValue, isHtml: html, safeHtml: html ? this.sanitizeHtml(displayValue) : null };
+  }
+
+  /**
+   * Async path for cell display. Only used when the column formatter returns an Observable.
+   */
+  getCellDisplayAsync(row: T, column: ColumnDefinition<T>): Observable<CellDisplay> {
+    const value = row[column.field];
+    let formatted$: Observable<string>;
+
+    if (column.format) {
+      const result = column.format(value, row);
+      formatted$ = isObservable(result) ? result : of(result || (column.fallback ?? '—'));
+    } else {
+      formatted$ = of(value || value === 0 ? String(value) : (column.fallback ?? '—'));
+    }
+
+    return formatted$.pipe(
+      map(v => {
+        const html = this.isHtml(v);
+        return { value: v, isHtml: html, safeHtml: html ? this.sanitizeHtml(v) : null };
       }),
     );
   }
@@ -1102,9 +2009,14 @@ export class TableComponent<T extends object> implements OnDestroy {
     if (!value || typeof value !== 'string') return false;
     if (!value.includes('<') || !value.includes('>')) return false;
 
-    const doc = this.htmlParser.parseFromString(value, 'text/html');
+    const cached = this.htmlCache.get(value);
+    if (cached !== undefined) return cached;
 
-    return doc.body.children.length > 0 && doc.querySelector('parsererror') === null;
+    if (!this.htmlParser) return false;
+    const doc = this.htmlParser.parseFromString(value, 'text/html');
+    const result = doc.body.children.length > 0 && doc.querySelector('parsererror') === null;
+    this.htmlCache.set(value, result);
+    return result;
   }
 
   private sanitizeHtml(value: string): SafeHtml {
@@ -1135,9 +2047,6 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
   }
 
-  /**
-   * Emits all sort-related events
-   */
   private emitSortEvents(sortState: SortState): void {
     this.sortFieldChange.emit(sortState.field);
     this.sortDirectionChange.emit(sortState.direction);
@@ -1224,9 +2133,11 @@ export class TableComponent<T extends object> implements OnDestroy {
       includeScore: config.fuseOptions?.includeScore ?? this.defaultFuseConfig.includeScore,
     };
 
-    // Create or update Fuse instance
-    // We need to recreate it when data changes to ensure index is up-to-date
-    this._fuseInstance = new Fuse([...data], fuseOptions);
+    // Only rebuild Fuse index when data reference changes (avoids O(n) rebuild per keystroke)
+    if (this._fuseDataRef !== data || !this._fuseInstance) {
+      this._fuseInstance = new Fuse([...data], fuseOptions);
+      this._fuseDataRef = data;
+    }
 
     // Perform search and return matched items
     const results = this._fuseInstance.search(searchTerm);

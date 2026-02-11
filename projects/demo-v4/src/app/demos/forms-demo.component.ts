@@ -1,137 +1,110 @@
 import { Component, inject, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { DynamicFormComponent, createForm, field, layout, validation, ToastService, FormSubmissionData } from '@hakistack/ng-daisyui-v4';
+import { DocSectionComponent } from '../shared/doc-section.component';
+import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
+import { ApiDocEntry } from '../shared/api-table.types';
 
-type FormsTab = 'layouts' | 'fields' | 'logic';
+type FormTab = 'layouts' | 'fields' | 'conditional';
 
 @Component({
   selector: 'app-forms-demo',
-  imports: [DynamicFormComponent, JsonPipe],
+  imports: [DynamicFormComponent, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Dynamic Forms</h1>
         <p class="text-base-content/70 mt-2">Build forms declaratively with automatic validation and layout</p>
+        <div class="mt-2">
+          <code class="badge badge-outline text-xs">import {{ '{' }} DynamicFormComponent, createForm, field {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+        </div>
       </div>
 
-      <!-- DaisyUI v4 Tabs -->
-      <div role="tablist" class="tabs tabs-boxed w-fit">
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'layouts'"
-          (click)="activeTab.set('layouts')"
-        >
-          Layouts
-        </button>
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'fields'"
-          (click)="activeTab.set('fields')"
-        >
-          Field Types
-        </button>
-        <button
-          role="tab"
-          class="tab"
-          [class.tab-active]="activeTab() === 'logic'"
-          (click)="activeTab.set('logic')"
-        >
-          Conditional Logic
-        </button>
+      <!-- Page Tabs -->
+      <div role="tablist" class="tabs tabs-bordered">
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
+        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
       </div>
 
-      <!-- Layouts Tab Content -->
-      @if (activeTab() === 'layouts') {
-        <div class="space-y-6">
-          <!-- Vertical Layout -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Vertical Layout (Default)</h2>
-              <p class="text-sm text-base-content/60 mb-4">Standard stacked form layout</p>
+      @if (pageTab() === 'examples') {
+        <!-- Variant Tabs -->
+        <div role="tablist" class="tabs tabs-boxed">
+          <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Layouts"
+            [checked]="activeTab() === 'layouts'" (change)="activeTab.set('layouts')" />
+          <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Field Types"
+            [checked]="activeTab() === 'fields'" (change)="activeTab.set('fields')" />
+          <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Conditional Logic"
+            [checked]="activeTab() === 'conditional'" (change)="activeTab.set('conditional')" />
+        </div>
 
+        @if (activeTab() === 'layouts') {
+          <div class="space-y-6">
+            <app-doc-section title="Vertical Layout (Default)" description="Standard stacked form layout" [codeExample]="verticalCode">
               <app-dynamic-form [config]="verticalForm.config()" />
-
               <div class="card-actions justify-end mt-4">
                 <button class="btn btn-ghost" (click)="verticalForm.reset()">Reset</button>
                 <button class="btn btn-primary" (click)="verticalForm.submit()">Submit</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Horizontal Layout -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Horizontal Layout</h2>
-              <p class="text-sm text-base-content/60 mb-4">Labels alongside inputs</p>
-
+            <app-doc-section title="Horizontal Layout" description="Labels alongside inputs" [codeExample]="horizontalCode">
               <app-dynamic-form [config]="horizontalForm.config()" />
-
               <div class="card-actions justify-end mt-4">
                 <button class="btn btn-ghost" (click)="horizontalForm.reset()">Reset</button>
                 <button class="btn btn-primary" (click)="horizontalForm.submit()">Submit</button>
               </div>
-            </div>
-          </div>
+            </app-doc-section>
 
-          <!-- Grid Layout -->
-          <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title">Grid Layout</h2>
-              <p class="text-sm text-base-content/60 mb-4">Responsive multi-column grid with colSpan control</p>
-
+            <app-doc-section title="Grid Layout" description="Responsive multi-column grid with colSpan control" [codeExample]="gridCode">
               <app-dynamic-form [config]="gridForm.config()" />
-
               <div class="card-actions justify-end mt-4">
                 <button class="btn btn-ghost" (click)="gridForm.reset()">Reset</button>
                 <button class="btn btn-primary" (click)="gridForm.submit()">Submit</button>
               </div>
-            </div>
+            </app-doc-section>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Field Types Tab Content -->
-      @if (activeTab() === 'fields') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">All Field Types</h2>
-            <p class="text-sm text-base-content/60 mb-4">Showcase of available field types</p>
-
+        @if (activeTab() === 'fields') {
+          <app-doc-section title="All Field Types" description="Showcase of available field types" [codeExample]="fieldTypesCode">
             <app-dynamic-form [config]="allFieldsForm.config()" />
-
             <div class="card-actions justify-end mt-4">
               <button class="btn btn-ghost" (click)="allFieldsForm.reset()">Reset</button>
               <button class="btn btn-primary" (click)="allFieldsForm.submit()">Submit</button>
             </div>
-          </div>
-        </div>
-      }
+          </app-doc-section>
+        }
 
-      <!-- Conditional Logic Tab Content -->
-      @if (activeTab() === 'logic') {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">Conditional Logic</h2>
-            <p class="text-sm text-base-content/60 mb-4">Fields that show/hide/require based on other values</p>
-
+        @if (activeTab() === 'conditional') {
+          <app-doc-section title="Conditional Logic" description="Fields that show/hide/require based on other values" [codeExample]="conditionalCode">
             <app-dynamic-form [config]="conditionalForm.config()" />
-
             <div class="card-actions justify-end mt-4">
               <button class="btn btn-ghost" (click)="conditionalForm.reset()">Reset</button>
               <button class="btn btn-primary" (click)="conditionalForm.submit()">Submit</button>
             </div>
+          </app-doc-section>
+        }
+
+        @if (lastSubmission()) {
+          <div class="card card-bordered bg-base-100">
+            <div class="card-body gap-3">
+              <h2 class="card-title">Last Submission</h2>
+              <pre class="bg-base-200 p-4 rounded-lg text-sm overflow-auto">{{ lastSubmission() | json }}</pre>
+            </div>
           </div>
-        </div>
+        }
       }
 
-      <!-- Form Output -->
-      @if (lastSubmission()) {
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title">Last Submission</h2>
-            <pre class="bg-base-200 p-4 rounded-lg text-sm overflow-auto">{{ lastSubmission() | json }}</pre>
+      @if (pageTab() === 'api') {
+        <div class="space-y-6">
+          <app-api-table title="Inputs" [entries]="inputDocs" />
+          <app-api-table title="Outputs" [entries]="outputDocs" />
+          <app-api-table title="Methods" [entries]="methodDocs" />
+
+          <div>
+            <h3 class="text-lg font-semibold mb-2">Builder: createForm() + field.*() helpers</h3>
+            <app-code-block [code]="builderCode" />
           </div>
         </div>
       }
@@ -140,10 +113,10 @@ type FormsTab = 'layouts' | 'fields' | 'logic';
 })
 export class FormsDemoComponent {
   private toast = inject(ToastService);
-  activeTab = signal<FormsTab>('layouts');
+  pageTab = signal<'examples' | 'api'>('examples');
+  activeTab = signal<FormTab>('layouts');
   lastSubmission = signal<FormSubmissionData | null>(null);
 
-  // Vertical layout form
   verticalForm = createForm({
     ...layout.vertical({ gap: 'md' }),
     fields: [
@@ -154,7 +127,6 @@ export class FormsDemoComponent {
     onSubmit: (data) => this.handleSubmit('Vertical Form', data),
   });
 
-  // Horizontal layout form
   horizontalForm = createForm({
     ...layout.horizontal({ labelWidth: 'md', gap: 'md' }),
     fields: [
@@ -165,7 +137,6 @@ export class FormsDemoComponent {
     onSubmit: (data) => this.handleSubmit('Horizontal Form', data),
   });
 
-  // Grid layout form
   gridForm = createForm({
     ...layout.grid(12, { gap: 'md' }),
     fields: [
@@ -181,7 +152,6 @@ export class FormsDemoComponent {
     onSubmit: (data) => this.handleSubmit('Grid Form', data),
   });
 
-  // All field types
   allFieldsForm = createForm({
     ...layout.grid(12, { gap: 'md' }),
     fields: [
@@ -193,6 +163,12 @@ export class FormsDemoComponent {
       field.text('website', 'Website URL', { colSpan: 6, placeholder: 'https://example.com' }),
       field.textarea('bio', 'Biography (Textarea)', { colSpan: 12 }),
       field.select('country', ['USA', 'Canada', 'UK', 'Germany', 'France'], 'Country', { colSpan: 6 }),
+      field.multiSelect(
+        'languages',
+        ['English', 'Spanish', 'French', 'German', 'Chinese'],
+        'Languages Spoken',
+        { colSpan: 6 }
+      ),
       field.radio('gender', ['Male', 'Female', 'Other', 'Prefer not to say'], 'Gender', { colSpan: 6 }),
       field.checkbox('newsletter', 'Subscribe to newsletter', { colSpan: 6 }),
       field.toggle('notifications', 'Enable notifications', { colSpan: 6 }),
@@ -202,7 +178,6 @@ export class FormsDemoComponent {
     onSubmit: (data) => this.handleSubmit('All Fields Form', data),
   });
 
-  // Conditional logic form
   conditionalForm = createForm({
     ...layout.vertical({ gap: 'md' }),
     fields: [
@@ -250,4 +225,108 @@ export class FormsDemoComponent {
     this.toast.success(`${formName} submitted!`, 'Check console for data');
     console.log(`[${formName}]`, data);
   }
+
+  // --- Code examples ---
+  verticalCode = `const form = createForm({
+  ...layout.vertical({ gap: 'md' }),
+  fields: [
+    field.text('name', 'Full Name', { required: true }),
+    field.email('email', 'Email Address', { required: true }),
+    field.password('password', 'Password', { validation: validation.password(8) }),
+  ],
+  onSubmit: (data) => console.log(data),
+});
+
+<app-dynamic-form [config]="form.config()" />
+<button (click)="form.submit()">Submit</button>
+<button (click)="form.reset()">Reset</button>`;
+
+  horizontalCode = `const form = createForm({
+  ...layout.horizontal({ labelWidth: 'md', gap: 'md' }),
+  fields: [
+    field.text('username', 'Username', { required: true }),
+    field.email('email', 'Email', { required: true }),
+  ],
+  onSubmit: (data) => console.log(data),
+});`;
+
+  gridCode = `const form = createForm({
+  ...layout.grid(12, { gap: 'md' }),
+  fields: [
+    field.text('firstName', 'First Name', { required: true, colSpan: 6 }),
+    field.text('lastName', 'Last Name', { required: true, colSpan: 6 }),
+    field.email('email', 'Email', { colSpan: { default: 12, md: 8 } }),
+    field.text('phone', 'Phone', { colSpan: { default: 12, md: 4 } }),
+    field.textarea('address', 'Address', { colSpan: 12 }),
+  ],
+  onSubmit: (data) => console.log(data),
+});`;
+
+  fieldTypesCode = `field.text('name', 'Text Input')
+field.email('email', 'Email')
+field.password('pw', 'Password', { validation: validation.password(8) })
+field.number('age', 'Age', { validation: validation.number(18, 120) })
+field.textarea('bio', 'Biography')
+field.select('country', ['USA', 'Canada'], 'Country')
+field.multiSelect('langs', ['English', 'Spanish'], 'Languages')
+field.radio('gender', ['Male', 'Female'], 'Gender')
+field.checkbox('agree', 'I agree')
+field.toggle('notify', 'Enable notifications')
+field.date('dob', 'Date of Birth')
+field.range('score', 1, 10, 'Score', { defaultValue: 5 })`;
+
+  conditionalCode = `field.select('type', ['personal', 'business'], 'Account Type'),
+field.text('company', 'Company Name', {
+  showWhen: ['type', 'business'],
+  requiredWhen: ['type', 'business'],
+}),
+field.checkbox('hasCode', 'I have a referral code'),
+field.text('code', 'Referral Code', {
+  showWhen: ['hasCode', true],
+  requiredWhen: ['hasCode', true],
+}),`;
+
+  builderCode = `import { createForm, field, layout, validation, step } from '@hakistack/ng-daisyui-v4';
+
+// Form controller returned by createForm()
+const form = createForm({
+  ...layout.grid(12),
+  fields: [
+    field.text('name', 'Name', { required: true, colSpan: 6 }),
+    field.email('email', 'Email', { colSpan: 6 }),
+  ],
+  onSubmit: (data) => console.log(data),
+});
+
+// External control
+form.config()    // Signal<FormConfig> - pass to [config]
+form.submit()    // Trigger submission
+form.reset()     // Reset form values`;
+
+  // --- API docs ---
+  inputDocs: ApiDocEntry[] = [
+    { name: 'config', type: 'FormConfig', description: 'Form configuration from createForm()' },
+    { name: 'initialValues', type: 'Record<string, unknown>', default: '{}', description: 'Initial form values' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable the entire form' },
+  ];
+
+  outputDocs: ApiDocEntry[] = [
+    { name: 'formSubmit', type: 'FormSubmissionData', description: 'Emitted when form is submitted' },
+    { name: 'formChange', type: 'Record<string, unknown>', description: 'Emitted when any form value changes' },
+    { name: 'formReset', type: 'void', description: 'Emitted when form is reset' },
+    { name: 'fieldChange', type: '{ field, value, formValues }', description: 'Emitted when a single field changes' },
+    { name: 'formRestored', type: 'Record<string, unknown>', description: 'Emitted when auto-saved form is restored' },
+    { name: 'stepChange', type: 'StepChangeEvent', description: 'Emitted when wizard step changes' },
+  ];
+
+  methodDocs: ApiDocEntry[] = [
+    { name: 'onSubmit()', type: 'void', description: 'Programmatically submit the form' },
+    { name: 'onReset()', type: 'void', description: 'Reset all form values' },
+    { name: 'nextStep()', type: 'void', description: 'Move to next wizard step' },
+    { name: 'previousStep()', type: 'void', description: 'Move to previous wizard step' },
+    { name: 'goToStep(index)', type: 'void', description: 'Navigate to a specific step' },
+    { name: 'isStepValid(index)', type: 'boolean', description: 'Check if a step is valid' },
+    { name: 'getFieldValue(key)', type: 'unknown', description: 'Get a field value by key' },
+    { name: 'getFieldErrors(key)', type: 'string[]', description: 'Get validation errors for a field' },
+  ];
 }

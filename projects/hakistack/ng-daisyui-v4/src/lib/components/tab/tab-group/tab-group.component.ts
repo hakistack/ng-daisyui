@@ -1,10 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ContentChildren,
+  contentChildren,
   input,
   model,
-  QueryList,
   AfterContentInit,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
@@ -20,7 +19,7 @@ import { LucideIconComponent } from '../../lucide-icon/lucide-icon.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TabGroupComponent implements AfterContentInit {
-  @ContentChildren(TabPanelComponent) panels!: QueryList<TabPanelComponent>;
+  readonly panels = contentChildren(TabPanelComponent);
 
   /** The index of the initially active tab */
   activeIndex = input(0);
@@ -40,7 +39,7 @@ export class TabGroupComponent implements AfterContentInit {
   ngAfterContentInit(): void {
     // Set initial selected tab based on activeIndex if selectedTab is not set
     if (this.selectedTab() === undefined) {
-      const panelsArray = this.panels.toArray();
+      const panelsArray = this.panels();
       if (panelsArray.length > 0) {
         const initialIndex = Math.min(this.activeIndex(), panelsArray.length - 1);
         this.selectedTab.set(panelsArray[initialIndex].value());
