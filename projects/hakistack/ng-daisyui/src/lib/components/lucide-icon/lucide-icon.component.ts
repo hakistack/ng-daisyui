@@ -2,8 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 
 import { icons, LucideAngularModule } from 'lucide-angular';
 
-export type IconName = keyof typeof icons;
-export type LowerCaseIconName = Lowercase<IconName>;
+/**
+ * Accepts any string so consumers aren't constrained to the exact
+ * lucide-angular version the library was compiled against.
+ * Known icon names still get autocomplete via the union with `keyof typeof icons`.
+ */
+export type IconName = keyof typeof icons | (string & {});
+export type LowerCaseIconName = Lowercase<string> & string;
 
 /**
  * Wrapper component for rendering Lucide icons.
@@ -30,5 +35,5 @@ export class LucideIconComponent {
   readonly absoluteStrokeWidth = input<boolean>(false);
   readonly class = input<string>('');
 
-  readonly icon = computed(() => icons[this.name()]);
+  readonly icon = computed(() => (icons as Record<string, (typeof icons)[keyof typeof icons]>)[this.name()]);
 }
