@@ -10,7 +10,7 @@ export interface FilterApplyEvent {
 }
 
 @Component({
-  selector: 'app-table-filter',
+  selector: 'hk-table-filter',
   imports: [FormsModule, LucideIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -18,7 +18,7 @@ export interface FilterApplyEvent {
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold">Filter {{ column().header }}</h3>
         <button type="button" class="btn btn-ghost btn-xs btn-circle" (click)="onCancel()" aria-label="Close filter">
-          <app-lucide-icon name="X" [size]="14"></app-lucide-icon>
+          <hk-lucide-icon name="X" [size]="14"></hk-lucide-icon>
         </button>
       </div>
 
@@ -145,7 +145,7 @@ export interface FilterApplyEvent {
       <!-- Action Buttons -->
       <div class="mt-1 flex gap-2">
         <button type="button" class="btn btn-primary btn-sm flex-1" (click)="onApply()">
-          <app-lucide-icon name="Check" [size]="14"></app-lucide-icon>
+          <hk-lucide-icon name="Check" [size]="14"></hk-lucide-icon>
           Apply
         </button>
         <button type="button" class="btn btn-ghost btn-sm" (click)="onClear()">

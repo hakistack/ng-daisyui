@@ -58,7 +58,7 @@ interface FieldOptions {
  * });
  *
  * // In template
- * <app-dynamic-form [config]="form.config()" />
+ * <hk-dynamic-form [config]="form.config()" />
  * <button (click)="form.submit()">Submit</button>
  * <button (click)="form.reset()">Reset</button>
  * ```

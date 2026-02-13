@@ -18,7 +18,7 @@ interface InternalWrapperData<T = unknown> {
  * its own injector so the inner component receives the correct `DIALOG_DATA`.
  */
 @Component({
-  selector: 'app-dialog-wrapper',
+  selector: 'hk-dialog-wrapper',
   imports: [PortalModule],
   templateUrl: './dialog-wrapper.component.html',
   styleUrl: './dialog-wrapper.component.css',

@@ -13,7 +13,7 @@ import { AutoSaveConfig, FormConfig, FormFieldConfig, FormSelectOption, FormStep
 import { FormUtils } from './dynamic-form.utils';
 
 @Component({
-  selector: 'app-dynamic-form',
+  selector: 'hk-dynamic-form',
   imports: [CommonModule, ReactiveFormsModule, CdkStepperModule, SelectComponent, DatepickerComponent, StepperComponent],
   templateUrl: './dynamic-form.component.html',
   styleUrl: './dynamic-form.component.css',

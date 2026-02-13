@@ -12,7 +12,7 @@ import { TabPanelComponent } from '../tab-panel/tab-panel.component';
 import { LucideIconComponent } from '../../lucide-icon/lucide-icon.component';
 
 @Component({
-  selector: 'app-tab-group',
+  selector: 'hk-tab-group',
   imports: [NgTemplateOutlet, LucideIconComponent, Tabs, TabList, Tab, TabPanel, TabContent],
   templateUrl: './tab-group.component.html',
   styleUrl: './tab-group.component.css',

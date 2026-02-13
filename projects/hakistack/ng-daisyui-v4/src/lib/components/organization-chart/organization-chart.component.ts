@@ -24,7 +24,7 @@ import {
 } from './organization-chart.types';
 
 @Component({
-  selector: 'app-organization-chart',
+  selector: 'hk-organization-chart',
   imports: [CommonModule, LucideIconComponent],
   templateUrl: './organization-chart.component.html',
   styleUrl: './organization-chart.component.css',

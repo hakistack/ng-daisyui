@@ -14,7 +14,7 @@
 
   @if (isStepperMode()) {
     <!-- STEPPER MODE - Using StepperComponent -->
-    <app-stepper
+    <hk-stepper
       #stepper
       [linear]="config().stepperConfig?.linear"
       [showCard]="false"
@@ -64,7 +64,7 @@
           }
         </cdk-step>
       }
-    </app-stepper>
+    </hk-stepper>
   } @else {
     <!-- REGULAR FORM MODE -->
     @if (groupedFields().size > 1) {
@@ -148,13 +148,13 @@
           ></textarea>
         }
         @case ('select') {
-          <app-select
+          <hk-select
             [id]="field.id"
             [options]="getFieldOptions(field)"
             [formControlName]="field.key"
             [placeholder]="field.placeholder"
             [enableSearch]="field.isSelectSearchable"
-          ></app-select>
+          ></hk-select>
         }
         @case ('checkbox') {
           <div class="form-control">
@@ -183,7 +183,7 @@
           </div>
         }
         @case ('date') {
-          <app-datepicker [id]="field.id" [range]="field.isRangeDate" [formControlName]="field.key"></app-datepicker>
+          <hk-datepicker [id]="field.id" [range]="field.isRangeDate" [formControlName]="field.key"></hk-datepicker>
         }
         @case ('range') {
           <div class="space-y-2">

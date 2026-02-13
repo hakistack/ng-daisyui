@@ -31,7 +31,7 @@ export type SelectSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type SelectColor = 'neutral' | 'primary' | 'secondary' | 'accent' | 'info' | 'success' | 'warning' | 'error';
 
 @Component({
-  selector: 'app-select',
+  selector: 'hk-select',
   imports: [ScrollingModule, ReactiveFormsModule, FormsModule],
   templateUrl: './select.component.html',
   styleUrl: './select.component.css',

@@ -41,7 +41,7 @@ type FormTab = 'layouts' | 'fields' | 'conditional';
         @if (activeTab() === 'layouts') {
           <div class="space-y-6">
             <app-doc-section title="Vertical Layout (Default)" description="Standard stacked form layout" [codeExample]="verticalCode">
-              <app-dynamic-form [config]="verticalForm.config()" />
+              <hk-dynamic-form [config]="verticalForm.config()" />
               <div class="card-actions justify-end mt-4">
                 <button class="btn btn-ghost" (click)="verticalForm.reset()">Reset</button>
                 <button class="btn btn-primary" (click)="verticalForm.submit()">Submit</button>
@@ -49,7 +49,7 @@ type FormTab = 'layouts' | 'fields' | 'conditional';
             </app-doc-section>
 
             <app-doc-section title="Horizontal Layout" description="Labels alongside inputs" [codeExample]="horizontalCode">
-              <app-dynamic-form [config]="horizontalForm.config()" />
+              <hk-dynamic-form [config]="horizontalForm.config()" />
               <div class="card-actions justify-end mt-4">
                 <button class="btn btn-ghost" (click)="horizontalForm.reset()">Reset</button>
                 <button class="btn btn-primary" (click)="horizontalForm.submit()">Submit</button>
@@ -57,7 +57,7 @@ type FormTab = 'layouts' | 'fields' | 'conditional';
             </app-doc-section>
 
             <app-doc-section title="Grid Layout" description="Responsive multi-column grid with colSpan control" [codeExample]="gridCode">
-              <app-dynamic-form [config]="gridForm.config()" />
+              <hk-dynamic-form [config]="gridForm.config()" />
               <div class="card-actions justify-end mt-4">
                 <button class="btn btn-ghost" (click)="gridForm.reset()">Reset</button>
                 <button class="btn btn-primary" (click)="gridForm.submit()">Submit</button>
@@ -68,7 +68,7 @@ type FormTab = 'layouts' | 'fields' | 'conditional';
 
         @if (activeTab() === 'fields') {
           <app-doc-section title="All Field Types" description="Showcase of available field types" [codeExample]="fieldTypesCode">
-            <app-dynamic-form [config]="allFieldsForm.config()" />
+            <hk-dynamic-form [config]="allFieldsForm.config()" />
             <div class="card-actions justify-end mt-4">
               <button class="btn btn-ghost" (click)="allFieldsForm.reset()">Reset</button>
               <button class="btn btn-primary" (click)="allFieldsForm.submit()">Submit</button>
@@ -78,7 +78,7 @@ type FormTab = 'layouts' | 'fields' | 'conditional';
 
         @if (activeTab() === 'conditional') {
           <app-doc-section title="Conditional Logic" description="Fields that show/hide/require based on other values" [codeExample]="conditionalCode">
-            <app-dynamic-form [config]="conditionalForm.config()" />
+            <hk-dynamic-form [config]="conditionalForm.config()" />
             <div class="card-actions justify-end mt-4">
               <button class="btn btn-ghost" (click)="conditionalForm.reset()">Reset</button>
               <button class="btn btn-primary" (click)="conditionalForm.submit()">Submit</button>
@@ -237,7 +237,7 @@ export class FormsDemoComponent {
   onSubmit: (data) => console.log(data),
 });
 
-<app-dynamic-form [config]="form.config()" />
+<hk-dynamic-form [config]="form.config()" />
 <button (click)="form.submit()">Submit</button>
 <button (click)="form.reset()">Reset</button>`;
 

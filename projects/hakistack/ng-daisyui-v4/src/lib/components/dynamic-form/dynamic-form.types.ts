@@ -294,7 +294,7 @@ export interface StepValidationResult {
  * });
  *
  * // In template
- * <app-dynamic-form [config]="form.config()" />
+ * <hk-dynamic-form [config]="form.config()" />
  * <button (click)="form.submit()">Custom Submit</button>
  * ```
  */

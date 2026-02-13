@@ -38,7 +38,7 @@ import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui';
 @Component({
   imports: [DynamicFormComponent],
   template: `
-    <app-dynamic-form [config]="form.config()" />
+    <hk-dynamic-form [config]="form.config()" />
     <button (click)="form.submit()" class="btn btn-primary">Submit</button>
     <button (click)="form.reset()" class="btn">Reset</button>
   `
@@ -107,7 +107,7 @@ import { TableComponent, createTable } from '@hakistack/ng-daisyui';
 
 @Component({
   imports: [TableComponent],
-  template: `<app-table [data]="users()" [config]="tableConfig" />`
+  template: `<hk-table [data]="users()" [config]="tableConfig" />`
 })
 export class MyComponent {
   readonly tableConfig = createTable<User>({
@@ -134,7 +134,7 @@ import { SelectComponent } from '@hakistack/ng-daisyui';
 @Component({
   imports: [SelectComponent],
   template: `
-    <app-select
+    <hk-select
       [options]="countries"
       [enableSearch]="true"
       placeholder="Select country"
@@ -154,7 +154,7 @@ import { DatepickerComponent } from '@hakistack/ng-daisyui';
 @Component({
   imports: [DatepickerComponent],
   template: `
-    <app-datepicker
+    <hk-datepicker
       [range]="true"
       placeholder="Select dates"
       (selectionChange)="onDateChange($event)"
@@ -177,14 +177,14 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 @Component({
   imports: [TabGroupComponent, TabPanelComponent],
   template: `
-    <app-tab-group [(selectedTab)]="activeTab">
-      <app-tab-panel value="details" label="Details" icon="FileText">
+    <hk-tab-group [(selectedTab)]="activeTab">
+      <hk-tab-panel value="details" label="Details" icon="FileText">
         <ng-template>Details content</ng-template>
-      </app-tab-panel>
-      <app-tab-panel value="settings" label="Settings" icon="Settings">
+      </hk-tab-panel>
+      <hk-tab-panel value="settings" label="Settings" icon="Settings">
         <ng-template>Settings content</ng-template>
-      </app-tab-panel>
-    </app-tab-group>
+      </hk-tab-panel>
+    </hk-tab-group>
   `
 })
 ```
@@ -281,8 +281,8 @@ export class MyDialogComponent {
 Icon wrapper for Lucide icons.
 
 ```html
-<app-lucide-icon name="User" [size]="24" />
-<app-lucide-icon name="Settings" color="red" />
+<hk-lucide-icon name="User" [size]="24" />
+<hk-lucide-icon name="Settings" color="red" />
 ```
 
 ## Services

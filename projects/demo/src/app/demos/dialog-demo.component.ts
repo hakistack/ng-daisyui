@@ -22,7 +22,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
         <div class="flex justify-between items-center">
           <h2 class="card-title">Simple Dialog</h2>
           <button class="btn btn-ghost btn-sm btn-circle" (click)="close()">
-            <app-lucide-icon name="X" [size]="18" />
+            <hk-lucide-icon name="X" [size]="18" />
           </button>
         </div>
         <p class="text-base-content/70">This is a simple dialog with minimal content.</p>
@@ -50,11 +50,11 @@ export class SimpleDialogComponent {
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title">
-            <app-lucide-icon name="User" [size]="24" />
+            <hk-lucide-icon name="User" [size]="24" />
             User Details
           </h2>
           <button class="btn btn-ghost btn-sm btn-circle" (click)="close()">
-            <app-lucide-icon name="X" [size]="18" />
+            <hk-lucide-icon name="X" [size]="18" />
           </button>
         </div>
 
@@ -103,11 +103,11 @@ export class DataDialogComponent {
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title">
-            <app-lucide-icon name="UserPlus" [size]="24" />
+            <hk-lucide-icon name="UserPlus" [size]="24" />
             {{ data?.mode === 'edit' ? 'Edit User' : 'Create User' }}
           </h2>
           <button class="btn btn-ghost btn-sm btn-circle" (click)="close()">
-            <app-lucide-icon name="X" [size]="18" />
+            <hk-lucide-icon name="X" [size]="18" />
           </button>
         </div>
 
@@ -144,7 +144,7 @@ export class DataDialogComponent {
             <label class="label">
               <span class="label-text">Role</span>
             </label>
-            <app-select
+            <hk-select
               [options]="roles"
               [(ngModel)]="formData.role"
               name="role"
@@ -156,7 +156,7 @@ export class DataDialogComponent {
             <label class="label">
               <span class="label-text">Country</span>
             </label>
-            <app-select
+            <hk-select
               [options]="countries"
               [(ngModel)]="formData.country"
               name="country"
@@ -169,7 +169,7 @@ export class DataDialogComponent {
         <div class="card-actions justify-end mt-4">
           <button class="btn btn-ghost" (click)="close()">Cancel</button>
           <button class="btn btn-primary" (click)="save()">
-            <app-lucide-icon name="Save" [size]="18" />
+            <hk-lucide-icon name="Save" [size]="18" />
             Save
           </button>
         </div>
@@ -231,11 +231,11 @@ export class FormDialogComponent {
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title">
-            <app-lucide-icon name="FileText" [size]="24" />
+            <hk-lucide-icon name="FileText" [size]="24" />
             Terms of Service
           </h2>
           <button class="btn btn-ghost btn-sm btn-circle" (click)="close()">
-            <app-lucide-icon name="X" [size]="18" />
+            <hk-lucide-icon name="X" [size]="18" />
           </button>
         </div>
 
@@ -270,7 +270,7 @@ export class FormDialogComponent {
         <div class="card-actions justify-end mt-4">
           <button class="btn btn-ghost" (click)="close()">Decline</button>
           <button class="btn btn-primary" (click)="close('accepted')">
-            <app-lucide-icon name="Check" [size]="18" />
+            <hk-lucide-icon name="Check" [size]="18" />
             Accept
           </button>
         </div>
@@ -327,14 +327,14 @@ type DialogTab = 'basic' | 'forms' | 'options';
             <app-doc-section title="Basic Dialog" description="Simple dialog with confirm/cancel buttons" [codeExample]="basicCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-primary" (click)="openSimpleDialog()">
-                  <app-lucide-icon name="Square" [size]="18" />
+                  <hk-lucide-icon name="Square" [size]="18" />
                   Open Simple Dialog
                 </button>
               </div>
 
               @if (simpleResult) {
                 <div class="alert alert-info mt-4">
-                  <app-lucide-icon name="Info" [size]="18" />
+                  <hk-lucide-icon name="Info" [size]="18" />
                   <span>Dialog result: {{ simpleResult }}</span>
                 </div>
               }
@@ -343,7 +343,7 @@ type DialogTab = 'basic' | 'forms' | 'options';
             <app-doc-section title="Dialog with Data" description="Pass data to dialog component via DIALOG_DATA" [codeExample]="dataCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openDataDialog()">
-                  <app-lucide-icon name="User" [size]="18" />
+                  <hk-lucide-icon name="User" [size]="18" />
                   View User Details
                 </button>
               </div>
@@ -352,14 +352,14 @@ type DialogTab = 'basic' | 'forms' | 'options';
             <app-doc-section title="Long Content Dialog" description="Dialog with scrollable content">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openLongContentDialog()">
-                  <app-lucide-icon name="FileText" [size]="18" />
+                  <hk-lucide-icon name="FileText" [size]="18" />
                   View Terms of Service
                 </button>
               </div>
 
               @if (termsResult) {
                 <div class="alert mt-4" [class.alert-success]="termsResult === 'accepted'" [class.alert-warning]="termsResult !== 'accepted'">
-                  <app-lucide-icon [name]="termsResult === 'accepted' ? 'Check' : 'X'" [size]="18" />
+                  <hk-lucide-icon [name]="termsResult === 'accepted' ? 'Check' : 'X'" [size]="18" />
                   <span>Terms {{ termsResult === 'accepted' ? 'accepted' : 'declined' }}</span>
                 </div>
               }
@@ -371,18 +371,18 @@ type DialogTab = 'basic' | 'forms' | 'options';
           <app-doc-section title="Form Dialog" description="Dialog with form inputs and selects (test responsiveness)" [codeExample]="formCode">
             <div class="flex flex-wrap gap-3">
               <button class="btn btn-outline btn-success" (click)="openFormDialog('create')">
-                <app-lucide-icon name="UserPlus" [size]="18" />
+                <hk-lucide-icon name="UserPlus" [size]="18" />
                 Create User
               </button>
               <button class="btn btn-outline" (click)="openFormDialog('edit')">
-                <app-lucide-icon name="Pencil" [size]="18" />
+                <hk-lucide-icon name="Pencil" [size]="18" />
                 Edit User
               </button>
             </div>
 
             @if (formResult) {
               <div class="alert alert-success mt-4">
-                <app-lucide-icon name="Check" [size]="18" />
+                <hk-lucide-icon name="Check" [size]="18" />
                 <span>Saved: {{ formResult | json }}</span>
               </div>
             }
@@ -394,7 +394,7 @@ type DialogTab = 'basic' | 'forms' | 'options';
             <app-doc-section title="Dialog Options" description="Control dialog behavior" [codeExample]="optionsCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openNonClosableDialog()">
-                  <app-lucide-icon name="Lock" [size]="18" />
+                  <hk-lucide-icon name="Lock" [size]="18" />
                   Non-closable (ESC/Backdrop disabled)
                 </button>
               </div>

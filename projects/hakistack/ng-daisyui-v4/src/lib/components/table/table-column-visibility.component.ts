@@ -4,13 +4,13 @@ import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 import { ColumnDefinition } from './table.types';
 
 @Component({
-  selector: 'app-table-column-visibility',
+  selector: 'hk-table-column-visibility',
   imports: [LucideIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="dropdown dropdown-end">
       <summary class="btn btn-sm btn-ghost gap-2">
-        <app-lucide-icon name="Columns3" [size]="16" aria-hidden="true" />
+        <hk-lucide-icon name="Columns3" [size]="16" aria-hidden="true" />
         <span>Columns</span>
         <span class="badge badge-sm badge-neutral">{{ visibleColumnsCount() }}/{{ columns().length }}</span>
       </summary>
@@ -34,7 +34,7 @@ import { ColumnDefinition } from './table.types';
                 />
                 <span class="flex-1 text-sm">{{ column.header }}</span>
                 @if (isAlwaysVisible) {
-                  <app-lucide-icon name="Lock" [size]="12" class="opacity-50" aria-hidden="true" />
+                  <hk-lucide-icon name="Lock" [size]="12" class="opacity-50" aria-hidden="true" />
                 }
               </label>
             }
@@ -52,7 +52,7 @@ import { ColumnDefinition } from './table.types';
               (click)="onShowAll()"
               aria-label="Show all columns"
             >
-              <app-lucide-icon name="Eye" [size]="14" aria-hidden="true" />
+              <hk-lucide-icon name="Eye" [size]="14" aria-hidden="true" />
               Show All
             </button>
 
@@ -63,7 +63,7 @@ import { ColumnDefinition } from './table.types';
               (click)="onHideAll()"
               aria-label="Hide optional columns"
             >
-              <app-lucide-icon name="EyeOff" [size]="14" aria-hidden="true" />
+              <hk-lucide-icon name="EyeOff" [size]="14" aria-hidden="true" />
               Hide All
             </button>
 
@@ -73,7 +73,7 @@ import { ColumnDefinition } from './table.types';
               (click)="onReset()"
               aria-label="Reset to default columns"
             >
-              <app-lucide-icon name="RotateCcw" [size]="14" aria-hidden="true" />
+              <hk-lucide-icon name="RotateCcw" [size]="14" aria-hidden="true" />
               Reset
             </button>
           </div>

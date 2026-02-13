@@ -44,19 +44,19 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
             <app-doc-section title="Severity Levels" description="Different severity levels for various contexts" [codeExample]="severityCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
-                  <app-lucide-icon name="CircleCheck" [size]="18" />
+                  <hk-lucide-icon name="CircleCheck" [size]="18" />
                   Success
                 </button>
                 <button class="btn btn-error" (click)="showError()">
-                  <app-lucide-icon name="CircleX" [size]="18" />
+                  <hk-lucide-icon name="CircleX" [size]="18" />
                   Error
                 </button>
                 <button class="btn btn-warning" (click)="showWarning()">
-                  <app-lucide-icon name="TriangleAlert" [size]="18" />
+                  <hk-lucide-icon name="TriangleAlert" [size]="18" />
                   Warning
                 </button>
                 <button class="btn btn-info" (click)="showInfo()">
-                  <app-lucide-icon name="Info" [size]="18" />
+                  <hk-lucide-icon name="Info" [size]="18" />
                   Info
                 </button>
               </div>
@@ -84,7 +84,7 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
             <app-doc-section title="Delete with Item Name" description="Show the item being deleted" [codeExample]="deleteCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-error" (click)="showDeleteWithItem()">
-                  <app-lucide-icon name="Trash2" [size]="18" />
+                  <hk-lucide-icon name="Trash2" [size]="18" />
                   Delete "Project Alpha"
                 </button>
               </div>
@@ -106,7 +106,7 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
             <app-doc-section title="Loading State" description="Show loading indicator during async operations" [codeExample]="loadingCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showLoading()">
-                  <app-lucide-icon name="Loader" [size]="18" />
+                  <hk-lucide-icon name="Loader" [size]="18" />
                   Show Loading (3s)
                 </button>
                 <button class="btn btn-outline" (click)="showLoadingWithUpdate()">Loading with Update</button>
@@ -123,7 +123,7 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
             <app-doc-section title="Live Countdown" description="Countdown with live seconds display (e.g., session timeout)" [codeExample]="countdownCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-warning" (click)="showCountdown()">
-                  <app-lucide-icon name="Clock" [size]="18" />
+                  <hk-lucide-icon name="Clock" [size]="18" />
                   Session Timeout Warning
                 </button>
                 <button class="btn btn-outline" (click)="showCountdownCustom()">Custom Countdown</button>

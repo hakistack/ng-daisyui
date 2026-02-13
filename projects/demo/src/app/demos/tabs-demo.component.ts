@@ -40,8 +40,8 @@ type TabsTab = 'basic' | 'features' | 'vertical';
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
             <app-doc-section title="Basic Tabs" description="Simple horizontal tabs" [codeExample]="basicCode">
-              <app-tab-group [(selectedTab)]="basicTab">
-                <app-tab-panel value="overview" label="Overview">
+              <hk-tab-group [(selectedTab)]="basicTab">
+                <hk-tab-panel value="overview" label="Overview">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Overview</h3>
@@ -50,9 +50,9 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                       </p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="features" label="Features">
+                <hk-tab-panel value="features" label="Features">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Features</h3>
@@ -63,17 +63,17 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                       </ul>
                     </div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="pricing" label="Pricing">
+                <hk-tab-panel value="pricing" label="Pricing">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Pricing</h3>
                       <p class="text-base-content/70">Check out our competitive pricing plans.</p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
-              </app-tab-group>
+                </hk-tab-panel>
+              </hk-tab-group>
 
               <div class="mt-4 text-sm">
                 Selected Tab: <code class="bg-base-200 px-2 py-1 rounded">{{ basicTab() }}</code>
@@ -81,43 +81,43 @@ type TabsTab = 'basic' | 'features' | 'vertical';
             </app-doc-section>
 
             <app-doc-section title="Tabs with Icons" description="Lucide icons in tab labels" [codeExample]="iconCode">
-              <app-tab-group>
-                <app-tab-panel value="home" label="Home" icon="House">
+              <hk-tab-group>
+                <hk-tab-panel value="home" label="Home" icon="House">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Welcome Home</h3>
                       <p class="text-base-content/70">This is the home dashboard.</p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="profile" label="Profile" icon="User">
+                <hk-tab-panel value="profile" label="Profile" icon="User">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">User Profile</h3>
                       <p class="text-base-content/70">Manage your profile settings.</p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="settings" label="Settings" icon="Settings">
+                <hk-tab-panel value="settings" label="Settings" icon="Settings">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Application Settings</h3>
                       <p class="text-base-content/70">Configure application preferences.</p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="notifications" label="Notifications" icon="Bell">
+                <hk-tab-panel value="notifications" label="Notifications" icon="Bell">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Notifications</h3>
                       <p class="text-base-content/70">Manage your notification preferences.</p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
-              </app-tab-group>
+                </hk-tab-panel>
+              </hk-tab-group>
             </app-doc-section>
           </div>
         }
@@ -125,31 +125,31 @@ type TabsTab = 'basic' | 'features' | 'vertical';
         @if (activeTab() === 'features') {
           <div class="space-y-6">
             <app-doc-section title="Disabled Tab" description="Some tabs can be disabled" [codeExample]="disabledCode">
-              <app-tab-group>
-                <app-tab-panel value="active" label="Active Tab">
+              <hk-tab-group>
+                <hk-tab-panel value="active" label="Active Tab">
                   <ng-template>
                     <div class="p-4">
                       <p class="text-base-content/70">This tab is active and clickable.</p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="disabled" label="Disabled Tab" [disabled]="true">
+                <hk-tab-panel value="disabled" label="Disabled Tab" [disabled]="true">
                   <ng-template>
                     <div class="p-4">
                       <p>You won't see this content.</p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="another" label="Another Tab">
+                <hk-tab-panel value="another" label="Another Tab">
                   <ng-template>
                     <div class="p-4">
                       <p class="text-base-content/70">This tab is also active.</p>
                     </div>
                   </ng-template>
-                </app-tab-panel>
-              </app-tab-group>
+                </hk-tab-panel>
+              </hk-tab-group>
             </app-doc-section>
 
             <app-doc-section title="Programmatic Control" description="Control tabs from outside the component" [codeExample]="programmaticCode">
@@ -159,68 +159,68 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                 <button class="btn btn-sm btn-outline" (click)="programmaticTab.set('third')">Go to Third</button>
               </div>
 
-              <app-tab-group [(selectedTab)]="programmaticTab">
-                <app-tab-panel value="first" label="First Tab">
+              <hk-tab-group [(selectedTab)]="programmaticTab">
+                <hk-tab-panel value="first" label="First Tab">
                   <ng-template>
                     <div class="p-4 bg-primary/10 rounded">First tab content</div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="second" label="Second Tab">
+                <hk-tab-panel value="second" label="Second Tab">
                   <ng-template>
                     <div class="p-4 bg-secondary/10 rounded">Second tab content</div>
                   </ng-template>
-                </app-tab-panel>
+                </hk-tab-panel>
 
-                <app-tab-panel value="third" label="Third Tab">
+                <hk-tab-panel value="third" label="Third Tab">
                   <ng-template>
                     <div class="p-4 bg-accent/10 rounded">Third tab content</div>
                   </ng-template>
-                </app-tab-panel>
-              </app-tab-group>
+                </hk-tab-panel>
+              </hk-tab-group>
             </app-doc-section>
           </div>
         }
 
         @if (activeTab() === 'vertical') {
           <app-doc-section title="Vertical Tabs" description="Tabs oriented vertically" [codeExample]="verticalCode">
-            <app-tab-group orientation="vertical">
-              <app-tab-panel value="general" label="General" icon="Settings">
+            <hk-tab-group orientation="vertical">
+              <hk-tab-panel value="general" label="General" icon="Settings">
                 <ng-template>
                   <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">General Settings</h3>
                     <p class="text-base-content/70">Configure general application settings here.</p>
                   </div>
                 </ng-template>
-              </app-tab-panel>
+              </hk-tab-panel>
 
-              <app-tab-panel value="security" label="Security" icon="Shield">
+              <hk-tab-panel value="security" label="Security" icon="Shield">
                 <ng-template>
                   <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">Security Settings</h3>
                     <p class="text-base-content/70">Manage security and privacy options.</p>
                   </div>
                 </ng-template>
-              </app-tab-panel>
+              </hk-tab-panel>
 
-              <app-tab-panel value="billing" label="Billing" icon="CreditCard">
+              <hk-tab-panel value="billing" label="Billing" icon="CreditCard">
                 <ng-template>
                   <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">Billing Information</h3>
                     <p class="text-base-content/70">View and manage billing details.</p>
                   </div>
                 </ng-template>
-              </app-tab-panel>
+              </hk-tab-panel>
 
-              <app-tab-panel value="integrations" label="Integrations" icon="Puzzle">
+              <hk-tab-panel value="integrations" label="Integrations" icon="Puzzle">
                 <ng-template>
                   <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">Integrations</h3>
                     <p class="text-base-content/70">Connect third-party services.</p>
                   </div>
                 </ng-template>
-              </app-tab-panel>
-            </app-tab-group>
+              </hk-tab-panel>
+            </hk-tab-group>
           </app-doc-section>
         }
       }
@@ -251,95 +251,95 @@ export class TabsDemoComponent {
 activeTab = signal('overview');
 
 // Template
-<app-tab-group [(selectedTab)]="activeTab">
-  <app-tab-panel value="overview" label="Overview">
+<hk-tab-group [(selectedTab)]="activeTab">
+  <hk-tab-panel value="overview" label="Overview">
     <ng-template>
       <p>Overview content</p>
     </ng-template>
-  </app-tab-panel>
-  <app-tab-panel value="features" label="Features">
+  </hk-tab-panel>
+  <hk-tab-panel value="features" label="Features">
     <ng-template>
       <p>Features content</p>
     </ng-template>
-  </app-tab-panel>
-</app-tab-group>`;
+  </hk-tab-panel>
+</hk-tab-group>`;
 
   iconCode = `// TypeScript
 import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 // Template
-<app-tab-group>
-  <app-tab-panel value="home" label="Home" icon="House">
+<hk-tab-group>
+  <hk-tab-panel value="home" label="Home" icon="House">
     <ng-template>
       <p>Home content</p>
     </ng-template>
-  </app-tab-panel>
-  <app-tab-panel value="settings" label="Settings" icon="Settings">
+  </hk-tab-panel>
+  <hk-tab-panel value="settings" label="Settings" icon="Settings">
     <ng-template>
       <p>Settings content</p>
     </ng-template>
-  </app-tab-panel>
-</app-tab-group>`;
+  </hk-tab-panel>
+</hk-tab-group>`;
 
   disabledCode = `// TypeScript
 import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 // Template
-<app-tab-group>
-  <app-tab-panel value="active" label="Active Tab">
+<hk-tab-group>
+  <hk-tab-panel value="active" label="Active Tab">
     <ng-template>
       <p>This tab is active and clickable.</p>
     </ng-template>
-  </app-tab-panel>
-  <app-tab-panel value="disabled" label="Disabled" [disabled]="true">
+  </hk-tab-panel>
+  <hk-tab-panel value="disabled" label="Disabled" [disabled]="true">
     <ng-template>
       <p>This content is inaccessible</p>
     </ng-template>
-  </app-tab-panel>
-</app-tab-group>`;
+  </hk-tab-panel>
+</hk-tab-group>`;
 
   programmaticCode = `// TypeScript
 selectedTab = signal('first');
 
 // Template
 <button (click)="selectedTab.set('second')">Go to Second</button>
-<app-tab-group [(selectedTab)]="selectedTab">
-  <app-tab-panel value="first" label="First Tab">
+<hk-tab-group [(selectedTab)]="selectedTab">
+  <hk-tab-panel value="first" label="First Tab">
     <ng-template>First tab content</ng-template>
-  </app-tab-panel>
-  <app-tab-panel value="second" label="Second Tab">
+  </hk-tab-panel>
+  <hk-tab-panel value="second" label="Second Tab">
     <ng-template>Second tab content</ng-template>
-  </app-tab-panel>
-</app-tab-group>`;
+  </hk-tab-panel>
+</hk-tab-group>`;
 
   verticalCode = `// TypeScript
 import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 // Template
-<app-tab-group orientation="vertical">
-  <app-tab-panel value="general" label="General" icon="Settings">
+<hk-tab-group orientation="vertical">
+  <hk-tab-panel value="general" label="General" icon="Settings">
     <ng-template>
       <p>General settings content</p>
     </ng-template>
-  </app-tab-panel>
-  <app-tab-panel value="security" label="Security" icon="Shield">
+  </hk-tab-panel>
+  <hk-tab-panel value="security" label="Security" icon="Shield">
     <ng-template>
       <p>Security settings content</p>
     </ng-template>
-  </app-tab-panel>
-</app-tab-group>`;
+  </hk-tab-panel>
+</hk-tab-group>`;
 
   usageCode = `import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 @Component({
   imports: [TabGroupComponent, TabPanelComponent],
   template: \`
-    <app-tab-group
+    <hk-tab-group
       [(selectedTab)]="activeTab"
       orientation="horizontal"
       (selectedTabChange)="onTabChange($event)">
 
-      <app-tab-panel
+      <hk-tab-panel
         value="tab1"
         label="Tab Label"
         icon="House"
@@ -348,9 +348,9 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
           <!-- Lazy-loaded content -->
           <p>Tab content here</p>
         </ng-template>
-      </app-tab-panel>
+      </hk-tab-panel>
 
-    </app-tab-group>
+    </hk-tab-group>
   \`,
 })`;
 

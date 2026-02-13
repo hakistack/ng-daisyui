@@ -5,7 +5,7 @@ import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.types';
 
 @Component({
-  selector: 'app-table-pagination',
+  selector: 'hk-table-pagination',
   imports: [CommonModule, LucideIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -64,7 +64,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
                 [attr.aria-label]="'Go to first page'"
                 title="First page"
               >
-                <app-lucide-icon name="ChevronsLeft" aria-hidden="true"></app-lucide-icon>
+                <hk-lucide-icon name="ChevronsLeft" aria-hidden="true"></hk-lucide-icon>
               </button>
             }
 
@@ -77,7 +77,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               [attr.aria-label]="'Go to previous page'"
               title="Previous page"
             >
-              <app-lucide-icon name="ChevronLeft" aria-hidden="true"></app-lucide-icon>
+              <hk-lucide-icon name="ChevronLeft" aria-hidden="true"></hk-lucide-icon>
             </button>
 
             <!-- Page Number Buttons -->
@@ -115,7 +115,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               [attr.aria-label]="'Go to next page'"
               title="Next page"
             >
-              <app-lucide-icon name="ChevronRight" aria-hidden="true"></app-lucide-icon>
+              <hk-lucide-icon name="ChevronRight" aria-hidden="true"></hk-lucide-icon>
             </button>
 
             <!-- Last Page Button -->
@@ -128,7 +128,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
                 [attr.aria-label]="'Go to last page'"
                 title="Last page"
               >
-                <app-lucide-icon name="ChevronsRight" aria-hidden="true"></app-lucide-icon>
+                <hk-lucide-icon name="ChevronsRight" aria-hidden="true"></hk-lucide-icon>
               </button>
             }
           </div>
@@ -143,7 +143,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               [attr.aria-label]="'Go to previous page'"
               title="Previous page"
             >
-              <app-lucide-icon name="ChevronLeft" aria-hidden="true"></app-lucide-icon>
+              <hk-lucide-icon name="ChevronLeft" aria-hidden="true"></hk-lucide-icon>
               Previous
             </button>
 
@@ -156,7 +156,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               title="Next page"
             >
               Next
-              <app-lucide-icon name="ChevronRight" aria-hidden="true"></app-lucide-icon>
+              <hk-lucide-icon name="ChevronRight" aria-hidden="true"></hk-lucide-icon>
             </button>
           </div>
         }

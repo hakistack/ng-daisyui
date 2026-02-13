@@ -17,7 +17,7 @@ function generateKey(): string {
 
 /**
  * All-in-one tree builder. Combines nodes + configuration into a `TreeSetup`
- * that can be passed directly to `<app-tree>`.
+ * that can be passed directly to `<hk-tree>`.
  *
  * ```ts
  * const tree = createTree({
@@ -27,7 +27,7 @@ function generateKey(): string {
  * });
  *
  * // Template
- * <app-tree [tree]="tree" />
+ * <hk-tree [tree]="tree" />
  * ```
  */
 export function createTree<T = unknown>(input: CreateTreeInput<T>): TreeSetup<T> {

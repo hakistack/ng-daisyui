@@ -38,13 +38,13 @@ type WizardTab = 'linear' | 'nonlinear';
 
         @if (activeTab() === 'linear') {
           <app-doc-section title="User Registration Wizard" description="Step-by-step registration with validation" [codeExample]="linearCode">
-            <app-dynamic-form [config]="registrationWizard.config()" (stepChange)="onStepChange($event)" />
+            <hk-dynamic-form [config]="registrationWizard.config()" (stepChange)="onStepChange($event)" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'nonlinear') {
           <app-doc-section title="Non-linear Wizard" description="Jump to any step without completing previous steps" [codeExample]="nonLinearCode">
-            <app-dynamic-form [config]="nonLinearWizard.config()" />
+            <hk-dynamic-form [config]="nonLinearWizard.config()" />
           </app-doc-section>
         }
 
@@ -219,7 +219,7 @@ export class WizardDemoComponent {
   onSubmit: (data) => console.log(data),
 });
 
-<app-dynamic-form [config]="wizard.config()" (stepChange)="onStepChange($event)" />`;
+<hk-dynamic-form [config]="wizard.config()" (stepChange)="onStepChange($event)" />`;
 
   nonLinearCode = `const wizard = createForm({
   steps: [

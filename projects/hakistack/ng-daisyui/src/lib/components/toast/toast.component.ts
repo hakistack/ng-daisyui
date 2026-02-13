@@ -9,7 +9,7 @@ type PositionVertical = 'top' | 'bottom';
 type PositionHorizontal = 'start' | 'center' | 'end';
 
 @Component({
-  selector: 'app-toast',
+  selector: 'hk-toast',
   imports: [LucideIconComponent],
   templateUrl: './toast.component.html',
   styleUrl: './toast.component.css',

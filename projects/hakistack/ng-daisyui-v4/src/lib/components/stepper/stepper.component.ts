@@ -3,7 +3,7 @@ import { CdkStep, CdkStepper, CdkStepperModule, StepState } from '@angular/cdk/s
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 
 @Component({
-  selector: 'app-stepper',
+  selector: 'hk-stepper',
   imports: [CommonModule, CdkStepperModule],
   templateUrl: './stepper.component.html',
   styleUrls: ['./stepper.component.css'],

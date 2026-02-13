@@ -33,7 +33,7 @@ import {
 } from './tree.types';
 
 @Component({
-  selector: 'app-tree',
+  selector: 'hk-tree',
   imports: [CommonModule, FormsModule, LucideIconComponent],
   templateUrl: './tree.component.html',
   styleUrl: './tree.component.css',

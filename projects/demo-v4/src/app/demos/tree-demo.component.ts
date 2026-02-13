@@ -81,7 +81,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
             </div>
 
             <div class="max-w-md">
-              <app-tree
+              <hk-tree
                 #basicTree
                 [tree]="fileSystem"
                 (nodeExpand)="onNodeExpand($event)"
@@ -100,7 +100,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
           >
             <div class="grid md:grid-cols-2 gap-4">
               <div class="max-w-md">
-                <app-tree
+                <hk-tree
                   [tree]="departments"
                   [selection]="singleSelection()"
                   (selectionChange)="onSingleSelectionChange($event)"
@@ -111,7 +111,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
               <div>
                 @if (singleSelection()) {
                   <div class="alert alert-info">
-                    <app-lucide-icon name="Info" [size]="20" />
+                    <hk-lucide-icon name="Info" [size]="20" />
                     <span>Selected: <strong>{{ singleSelection()?.label }}</strong></span>
                   </div>
                 } @else {
@@ -139,7 +139,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 
             <div class="grid md:grid-cols-2 gap-4">
               <div class="max-w-md">
-                <app-tree
+                <hk-tree
                   #checkboxTree
                   [tree]="checkboxDepts"
                   [selection]="checkboxSelection()"
@@ -150,7 +150,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
               <div>
                 @if (checkboxSelection().length > 0) {
                   <div class="alert alert-success">
-                    <app-lucide-icon name="CheckCheck" [size]="20" />
+                    <hk-lucide-icon name="CheckCheck" [size]="20" />
                     <div>
                       <strong>{{ checkboxSelection().length }} nodes selected:</strong>
                       <ul class="list-disc list-inside mt-1 text-sm">
@@ -177,7 +177,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
             description="Drag nodes to reorder them. Drop on a node to make it a child, or between nodes to reorder."
           >
             <div class="max-w-md">
-              <app-tree
+              <hk-tree
                 [tree]="dragDrop"
                 (nodeDrop)="onNodeDrop($event)"
                 (nodeDragStart)="onDragStart($event)"
@@ -187,7 +187,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 
             @if (lastDropEvent()) {
               <div class="alert alert-info mt-4">
-                <app-lucide-icon name="Move" [size]="20" />
+                <hk-lucide-icon name="Move" [size]="20" />
                 <span>
                   Dropped "<strong>{{ lastDropEvent()?.dragNode?.label }}</strong>"
                   {{ lastDropEvent()?.dropPosition }}
@@ -205,7 +205,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
             description="Children are loaded on demand when expanding a node. Click the arrow to load children."
           >
             <div class="max-w-md">
-              <app-tree
+              <hk-tree
                 #lazyTree
                 [nodes]="lazyNodes()"
                 [config]="lazySetup.config"
@@ -222,7 +222,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
             description="Type in the search box to filter nodes. Matching nodes and their ancestors are shown."
           >
             <div class="max-w-md">
-              <app-tree
+              <hk-tree
                 [tree]="filterableTree"
                 (filterChange)="onFilterChange($event)"
               />
@@ -401,7 +401,7 @@ const tree = createTree({
 });
 
 // Template
-<app-tree
+<hk-tree
   [tree]="tree"
   (nodeExpand)="onExpand($event)"
   (nodeCollapse)="onCollapse($event)"
@@ -427,7 +427,7 @@ onSelectionChange(node: TreeNode | TreeNode[] | null) {
 }
 
 // Template
-<app-tree
+<hk-tree
   [tree]="tree"
   [selection]="selectedNode()"
   (selectionChange)="onSelectionChange($event)"
@@ -456,7 +456,7 @@ onSelectionChange(nodes: TreeNode | TreeNode[] | null) {
 }
 
 // Template
-<app-tree
+<hk-tree
   [tree]="tree"
   [selection]="selectedNodes()"
   (selectionChange)="onSelectionChange($event)"

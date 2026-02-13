@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, contentChild, input, TemplateRef } 
 import { IconName } from '../../lucide-icon/lucide-icon.component';
 
 @Component({
-  selector: 'app-tab-panel',
+  selector: 'hk-tab-panel',
   imports: [],
   templateUrl: './tab-panel.component.html',
   styleUrl: './tab-panel.component.css',

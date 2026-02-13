@@ -96,7 +96,7 @@ interface SortState {
 }
 
 @Component({
-  selector: 'app-table',
+  selector: 'hk-table',
   imports: [CommonModule, CdkTableModule, ScrollingModule, LucideIconComponent, TableFilterComponent, TablePaginationComponent, TableGlobalSearchComponent, TableColumnVisibilityComponent, AutoFocusDirective, forwardRef(() => TableComponent)],
   templateUrl: './table.component.html',
   styleUrls: ['./table.component.css'],

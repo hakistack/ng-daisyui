@@ -6,7 +6,7 @@ import { DatepickerConfig, DatepickerEvent, DatepickerPosition, DayCell, MonthIn
 import { DatepickerUtilsService } from './datepicker-utils.service';
 
 @Component({
-  selector: 'app-datepicker',
+  selector: 'hk-datepicker',
   imports: [CommonModule],
   templateUrl: './datepicker.component.html',
   styleUrls: ['./datepicker.component.css'],

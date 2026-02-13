@@ -44,19 +44,19 @@ type ToastTab = 'basic' | 'features' | 'styles' | 'advanced';
             <app-doc-section title="Severity Levels" description="Different severity levels for various contexts" [codeExample]="severityCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
-                  <app-lucide-icon name="CircleCheck" [size]="18" />
+                  <hk-lucide-icon name="CircleCheck" [size]="18" />
                   Success
                 </button>
                 <button class="btn btn-error" (click)="showError()">
-                  <app-lucide-icon name="CircleX" [size]="18" />
+                  <hk-lucide-icon name="CircleX" [size]="18" />
                   Error
                 </button>
                 <button class="btn btn-warning" (click)="showWarning()">
-                  <app-lucide-icon name="TriangleAlert" [size]="18" />
+                  <hk-lucide-icon name="TriangleAlert" [size]="18" />
                   Warning
                 </button>
                 <button class="btn btn-info" (click)="showInfo()">
-                  <app-lucide-icon name="Info" [size]="18" />
+                  <hk-lucide-icon name="Info" [size]="18" />
                   Info
                 </button>
               </div>
@@ -129,11 +129,11 @@ type ToastTab = 'basic' | 'features' | 'styles' | 'advanced';
             <app-doc-section title="Network Status" description="Built-in online/offline notifications" [codeExample]="networkCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-success" (click)="showOnline()">
-                  <app-lucide-icon name="Wifi" [size]="18" />
+                  <hk-lucide-icon name="Wifi" [size]="18" />
                   Online
                 </button>
                 <button class="btn btn-outline btn-error" (click)="showOffline()">
-                  <app-lucide-icon name="WifiOff" [size]="18" />
+                  <hk-lucide-icon name="WifiOff" [size]="18" />
                   Offline
                 </button>
               </div>

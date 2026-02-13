@@ -99,7 +99,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [motionOptions]="{ trigger: 'click', duration: 0.5 }"
                   class="btn btn-accent"
                 >
-                  <app-lucide-icon name="RefreshCw" [size]="18" />
+                  <hk-lucide-icon name="RefreshCw" [size]="18" />
                   Spin
                 </button>
                 <button
@@ -125,7 +125,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                       [motionOptions]="{ trigger: 'immediate', duration: 0.4, delay: i * 0.1 }"
                       class="p-4 bg-base-200 rounded-lg flex items-center gap-3"
                     >
-                      <app-lucide-icon [name]="item.icon" [size]="20" class="text-primary" />
+                      <hk-lucide-icon [name]="item.icon" [size]="20" class="text-primary" />
                       <span>{{ item.label }}</span>
                     </div>
                   }
@@ -177,7 +177,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.3, ease: 'easeOut' }"
                   class="p-6 bg-base-200 rounded-xl shadow-md cursor-pointer"
                 >
-                  <app-lucide-icon name="Rocket" [size]="32" class="text-primary mb-3" />
+                  <hk-lucide-icon name="Rocket" [size]="32" class="text-primary mb-3" />
                   <h3 class="font-semibold">Card Lift</h3>
                   <p class="text-sm text-base-content/70 mt-1">Scales up with elevated shadow</p>
                 </div>
@@ -187,7 +187,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-xl cursor-pointer"
                 >
-                  <app-lucide-icon name="Sparkles" [size]="32" class="text-secondary mb-3" />
+                  <hk-lucide-icon name="Sparkles" [size]="32" class="text-secondary mb-3" />
                   <h3 class="font-semibold">Subtle Tilt</h3>
                   <p class="text-sm text-base-content/70 mt-1">Gentle scale with rotation</p>
                 </div>
@@ -197,7 +197,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-base-200 rounded-xl cursor-pointer border-l-4 border-accent"
                 >
-                  <app-lucide-icon name="ArrowRight" [size]="32" class="text-accent mb-3" />
+                  <hk-lucide-icon name="ArrowRight" [size]="32" class="text-accent mb-3" />
                   <h3 class="font-semibold">Slide Right</h3>
                   <p class="text-sm text-base-content/70 mt-1">Suggests forward navigation</p>
                 </div>

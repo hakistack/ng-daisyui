@@ -12,11 +12,11 @@ export type LowerCaseIconName = Lowercase<IconName>;
  * for size, color, and stroke width.
  *
  * ```html
- * <app-lucide-icon name="Search" [size]="24" />
+ * <hk-lucide-icon name="Search" [size]="24" />
  * ```
  */
 @Component({
-  selector: 'app-lucide-icon',
+  selector: 'hk-lucide-icon',
   imports: [LucideAngularModule],
   templateUrl: './lucide-icon.component.html',
   styleUrl: './lucide-icon.component.css',

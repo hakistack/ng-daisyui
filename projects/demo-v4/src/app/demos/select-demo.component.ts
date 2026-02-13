@@ -37,7 +37,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
         @if (activeTab() === 'basic') {
           <div class="grid gap-6 lg:grid-cols-2">
             <app-doc-section title="Basic Select" description="Simple dropdown selection" [codeExample]="basicCode">
-              <app-select
+              <hk-select
                 [options]="basicOptions"
                 placeholder="Select a fruit"
                 (selectionChange)="onBasicSelect($event)"
@@ -50,7 +50,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
             </app-doc-section>
 
             <app-doc-section title="Searchable Select" description="Filter options by typing" [codeExample]="searchableCode">
-              <app-select
+              <hk-select
                 [options]="countryOptions"
                 [enableSearch]="true"
                 placeholder="Select a country"
@@ -67,7 +67,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
 
             <app-doc-section title="Reactive Forms Integration" description="Works with Angular FormControl" [codeExample]="reactiveCode" class="lg:col-span-2">
               <div class="w-full sm:max-w-sm">
-                <app-select
+                <hk-select
                   [formControl]="formControl"
                   [options]="basicOptions"
                   [enableSearch]="true"
@@ -92,19 +92,19 @@ import { ApiDocEntry } from '../shared/api-table.types';
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label class="label"><span class="label-text">Extra Small</span></label>
-                  <app-select [options]="basicOptions" size="xs" placeholder="XS" />
+                  <hk-select [options]="basicOptions" size="xs" placeholder="XS" />
                 </div>
                 <div>
                   <label class="label"><span class="label-text">Small</span></label>
-                  <app-select [options]="basicOptions" size="sm" placeholder="SM" />
+                  <hk-select [options]="basicOptions" size="sm" placeholder="SM" />
                 </div>
                 <div>
                   <label class="label"><span class="label-text">Medium (default)</span></label>
-                  <app-select [options]="basicOptions" size="md" placeholder="MD" />
+                  <hk-select [options]="basicOptions" size="md" placeholder="MD" />
                 </div>
                 <div>
                   <label class="label"><span class="label-text">Large</span></label>
-                  <app-select [options]="basicOptions" size="lg" placeholder="LG" />
+                  <hk-select [options]="basicOptions" size="lg" placeholder="LG" />
                 </div>
               </div>
             </app-doc-section>
@@ -114,7 +114,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
                 @for (c of colors; track c) {
                   <div>
                     <label class="label"><span class="label-text capitalize">{{ c }}</span></label>
-                    <app-select [options]="basicOptions" [color]="c" [placeholder]="c" />
+                    <hk-select [options]="basicOptions" [color]="c" [placeholder]="c" />
                   </div>
                 }
               </div>
@@ -125,7 +125,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
         @if (activeTab() === 'features') {
           <div class="grid gap-6 lg:grid-cols-2">
             <app-doc-section title="Virtual Scrolling" description="Efficient rendering for large lists (1000+ items)" [codeExample]="virtualCode">
-              <app-select
+              <hk-select
                 [options]="largeOptions"
                 [enableSearch]="true"
                 [virtualScroll]="true"
@@ -140,7 +140,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
             </app-doc-section>
 
             <app-doc-section title="Disabled State" description="Non-interactive select">
-              <app-select [options]="basicOptions" [disabled]="true" placeholder="Disabled select" />
+              <hk-select [options]="basicOptions" [disabled]="true" placeholder="Disabled select" />
             </app-doc-section>
           </div>
         }
@@ -148,7 +148,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
         @if (activeTab() === 'multiselect') {
           <div class="grid gap-6 lg:grid-cols-2">
             <app-doc-section title="Basic Multiselect" description="Select multiple options with chip display" [codeExample]="multiCode">
-              <app-select
+              <hk-select
                 [options]="basicOptions"
                 [multiple]="true"
                 [enableSearch]="true"
@@ -163,7 +163,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
             </app-doc-section>
 
             <app-doc-section title="Without Chips" description="Shows comma-separated values with count badge">
-              <app-select
+              <hk-select
                 [options]="countryOptions"
                 [multiple]="true"
                 [chipDisplay]="false"
@@ -179,7 +179,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
             </app-doc-section>
 
             <app-doc-section title="Max Selection Limit" description="Limit selections to maximum 3 items">
-              <app-select
+              <hk-select
                 [options]="basicOptions"
                 [multiple]="true"
                 [maxSelectedItems]="3"
@@ -195,7 +195,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
             </app-doc-section>
 
             <app-doc-section title="Disabled Options" description="Some options can be disabled">
-              <app-select
+              <hk-select
                 [options]="optionsWithDisabled"
                 [multiple]="true"
                 [enableSearch]="true"
@@ -205,7 +205,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
 
             <app-doc-section title="Reactive Forms Integration" description="Works with Angular FormControl (array values)" class="lg:col-span-2">
               <div class="w-full sm:max-w-md">
-                <app-select
+                <hk-select
                   [formControl]="multiFormControl"
                   [options]="basicOptions"
                   [multiple]="true"
@@ -335,7 +335,7 @@ options: SelectOption[] = [
 ];
 
 // Template
-<app-select
+<hk-select
   [options]="options"
   placeholder="Select a fruit"
   (selectionChange)="onSelect($event)"
@@ -350,7 +350,7 @@ countryOptions: SelectOption[] = [
 ];
 
 // Template
-<app-select
+<hk-select
   [options]="countryOptions"
   [enableSearch]="true"
   [allowClear]="true"
@@ -367,7 +367,7 @@ options: SelectOption[] = [
 ];
 
 // Template
-<app-select
+<hk-select
   [formControl]="formControl"
   [options]="options"
   [enableSearch]="true"
@@ -381,7 +381,7 @@ largeOptions: SelectOption[] = Array.from(
 );
 
 // Template
-<app-select
+<hk-select
   [options]="largeOptions"
   [enableSearch]="true"
   [virtualScroll]="true"
@@ -396,7 +396,7 @@ options: SelectOption[] = [
 ];
 
 // Template
-<app-select
+<hk-select
   [options]="options"
   [multiple]="true"
   [enableSearch]="true"

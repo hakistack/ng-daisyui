@@ -82,13 +82,13 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
 
         @if (activeTab() === 'basic') {
           <app-doc-section title="Basic Table" description="Simple table with sorting" [codeExample]="basicCode">
-            <app-table [data]="users()" [config]="basicConfig" (sortChange)="onSort($event)" />
+            <hk-table [data]="users()" [config]="basicConfig" (sortChange)="onSort($event)" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'full') {
           <app-doc-section title="Full Featured Table" description="Selection, actions, filters, global search, pagination" [codeExample]="fullCode">
-            <app-table
+            <hk-table
               [data]="users()"
               [config]="fullConfig"
               [paginationOptions]="paginationOptions"
@@ -102,7 +102,7 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
 
           @if (selectedUsers().length > 0) {
             <div class="alert alert-info">
-              <app-lucide-icon name="Info" [size]="20" />
+              <hk-lucide-icon name="Info" [size]="20" />
               <span>{{ selectedUsers().length }} user(s) selected</span>
             </div>
           }
@@ -111,14 +111,14 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
         @if (activeTab() === 'sticky') {
           <app-doc-section title="Sticky Columns" description="Pin columns to start/end during horizontal scroll. Selection and actions columns auto-stick." [codeExample]="stickyCode">
             <div style="max-width: 600px;">
-              <app-table [data]="users()" [config]="stickyConfig" />
+              <hk-table [data]="users()" [config]="stickyConfig" />
             </div>
           </app-doc-section>
         }
 
         @if (activeTab() === 'resizable') {
           <app-doc-section title="Resizable Columns" description="Drag column borders to resize. Supports min/max width constraints." [codeExample]="resizableCode">
-            <app-table
+            <hk-table
               [data]="users()"
               [config]="resizableConfig"
               (columnResize)="onColumnResize($event)"
@@ -128,13 +128,13 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
 
         @if (activeTab() === 'virtualScroll') {
           <app-doc-section title="Virtual Scrolling" description="Efficiently render large datasets with CDK virtual scroll. Pagination is disabled." [codeExample]="virtualScrollCode">
-            <app-table [data]="virtualScrollUsers()" [config]="virtualScrollConfig" />
+            <hk-table [data]="virtualScrollUsers()" [config]="virtualScrollConfig" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'editable') {
           <app-doc-section title="Inline Cell Editing" description="Double-click a cell to edit. Supports text, number, select, and toggle editors." [codeExample]="editableCode">
-            <app-table
+            <hk-table
               [data]="editableUsers()"
               [config]="editableConfig"
               (cellEdit)="onCellEdit($event)"
@@ -144,13 +144,13 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
 
         @if (activeTab() === 'footer') {
           <app-doc-section title="Multi-Row Summary Footer" description="Display multiple footer rows with different aggregates per row (totals, averages, min/max)." [codeExample]="footerCode">
-            <app-table [data]="users()" [config]="footerConfig" />
+            <hk-table [data]="users()" [config]="footerConfig" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'expandable') {
           <app-doc-section title="Expandable Row Detail" description="Click the chevron to expand a row and reveal additional detail content." [codeExample]="expandableCode">
-            <app-table [data]="users()" [config]="expandableConfig" (detailExpansionChange)="onDetailExpand($event)">
+            <hk-table [data]="users()" [config]="expandableConfig" (detailExpansionChange)="onDetailExpand($event)">
               <ng-template #rowDetail let-row>
                 <div class="grid grid-cols-2 gap-4">
                   <div>
@@ -166,19 +166,19 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
                   </div>
                 </div>
               </ng-template>
-            </app-table>
+            </hk-table>
           </app-doc-section>
         }
 
         @if (activeTab() === 'grouped') {
           <app-doc-section title="Row Grouping" description="Group rows by a field with caption aggregates in headers and column-aligned multi-row group footers." [codeExample]="groupedCode">
-            <app-table [data]="users()" [config]="groupedConfig" (groupExpandChange)="onGroupExpand($event)" />
+            <hk-table [data]="users()" [config]="groupedConfig" (groupExpandChange)="onGroupExpand($event)" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'reorderable') {
           <app-doc-section title="Reorderable Columns & Rows" description="Drag column headers to reorder columns. Drag row handles to reorder rows." [codeExample]="reorderableCode">
-            <app-table
+            <hk-table
               [data]="reorderableUsers()"
               [config]="reorderableConfig"
               (columnReorder)="onColumnReorder($event)"
@@ -189,7 +189,7 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
 
         @if (activeTab() === 'keyboard') {
           <app-doc-section title="Keyboard Navigation" description="Use arrow keys to navigate cells. Enter to edit or expand. Space to toggle selection. Escape to clear focus." [codeExample]="keyboardCode">
-            <app-table
+            <hk-table
               [data]="editableUsers()"
               [config]="keyboardConfig"
               [paginationOptions]="keyboardPaginationOptions"
@@ -201,7 +201,7 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
 
         @if (activeTab() === 'hierarchy') {
           <app-doc-section title="Hierarchy Grid" description="Expanding a parent row reveals a fully-featured nested child table with its own sorting and pagination. Multi-level nesting is supported." [codeExample]="hierarchyCode">
-            <app-table [data]="employees()" [config]="hierarchyConfig" />
+            <hk-table [data]="employees()" [config]="hierarchyConfig" />
           </app-doc-section>
         }
       }
@@ -979,7 +979,7 @@ const config = createTable<User>({
 });
 
 // Template
-<app-table [data]="users()" [config]="config" />`;
+<hk-table [data]="users()" [config]="config" />`;
 
   fullCode = `// TypeScript
 const config = createTable<User>({
@@ -1000,7 +1000,7 @@ const config = createTable<User>({
 });
 
 // Template
-<app-table
+<hk-table
   [data]="users()"
   [config]="config"
   [paginationOptions]="{ mode: 'offset', pageSize: 10 }"
@@ -1044,7 +1044,7 @@ const config = createTable<User>({
 
 // Template — wrap in a constrained container to trigger horizontal scroll
 <div style="max-width: 600px;">
-  <app-table [data]="users()" [config]="config" />
+  <hk-table [data]="users()" [config]="config" />
 </div>`;
 
   resizableCode = `const config = createTable<User>({
@@ -1053,7 +1053,7 @@ const config = createTable<User>({
   resizeMode: 'expand',  // 'fit' adjusts neighbor
 });
 
-<app-table
+<hk-table
   [data]="users()"
   [config]="config"
   (columnResize)="onResize($event)"
@@ -1069,7 +1069,7 @@ const config = createTable<User>({
 });
 
 // Pagination is automatically hidden when virtual scroll is enabled
-<app-table [data]="thousandRows()" [config]="config" />`;
+<hk-table [data]="thousandRows()" [config]="config" />`;
 
   editableCode = `const config = createTable<User>({
   visible: ['id', 'name', 'email', 'role', 'salary'],
@@ -1093,7 +1093,7 @@ const config = createTable<User>({
 });
 
 // Double-click a cell to edit. Enter to confirm, Escape to cancel.
-<app-table
+<hk-table
   [data]="users()"
   [config]="config"
   (cellEdit)="onCellEdit($event)"
@@ -1130,7 +1130,7 @@ const config = createTable<User>({
 // showFooter: true,
 // footers: { salary: { fn: 'sum', label: 'Total' }, id: 'count' }
 
-<app-table [data]="users()" [config]="config" />`;
+<hk-table [data]="users()" [config]="config" />`;
 
   expandableCode = `const config = createTable<User>({
   visible: ['id', 'name', 'role', 'department', 'status'],
@@ -1139,14 +1139,14 @@ const config = createTable<User>({
 });
 
 // Template — provide a #rowDetail template
-<app-table [data]="users()" [config]="config" (detailExpansionChange)="onExpand($event)">
+<hk-table [data]="users()" [config]="config" (detailExpansionChange)="onExpand($event)">
   <ng-template #rowDetail let-row>
     <div>
       <p>Email: {{ row.email }}</p>
       <p>Salary: {{ row.salary | number }}</p>
     </div>
   </ng-template>
-</app-table>`;
+</hk-table>`;
 
   groupedCode = `const config = createTable<User>({
   visible: ['id', 'name', 'role', 'salary', 'status'],
@@ -1174,7 +1174,7 @@ const config = createTable<User>({
   },
 });
 
-<app-table [data]="users()" [config]="config"
+<hk-table [data]="users()" [config]="config"
   (groupExpandChange)="onGroupExpand($event)" />`;
 
   reorderableCode = `const config = createTable<User>({
@@ -1185,7 +1185,7 @@ const config = createTable<User>({
 });
 
 // Row reorder is auto-disabled when sort/filter/search is active
-<app-table [data]="users()" [config]="config"
+<hk-table [data]="users()" [config]="config"
   (columnReorder)="onColumnReorder($event)"
   (rowReorder)="onRowReorder($event)" />`;
 
@@ -1205,7 +1205,7 @@ const config = createTable<User>({
 // Space: toggle selection
 // Home/End: jump to first/last column (Ctrl for row)
 // Escape: clear focus
-<app-table [data]="users()" [config]="config"
+<hk-table [data]="users()" [config]="config"
   (cellEdit)="onCellEdit($event)"
   (selectionChange)="onSelection($event)" />`;
 
@@ -1238,7 +1238,7 @@ const config = createTable<Employee>({
 });
 
 // N-level deep: each childGrid.config can itself have a childGrid
-<app-table [data]="employees()" [config]="config" />`;
+<hk-table [data]="employees()" [config]="config" />`;
 
   // --- API docs ---
   inputDocs: ApiDocEntry[] = [

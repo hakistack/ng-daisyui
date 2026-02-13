@@ -13,7 +13,7 @@
       (keydown.enter)="onToastClick(toast)"
     >
       <!-- Icon -->
-      <app-lucide-icon [name]="getIcon(toast.severity)" [size]="20" class="toast-icon" />
+      <hk-lucide-icon [name]="getIcon(toast.severity)" [size]="20" class="toast-icon" />
 
       <!-- Content -->
       <div class="toast-content">
@@ -45,7 +45,7 @@
         aria-label="Dismiss notification"
         (click)="dismiss(toast.id); $event.stopPropagation()"
       >
-        <app-lucide-icon name="X" [size]="16" />
+        <hk-lucide-icon name="X" [size]="16" />
       </button>
 
       <!-- Progress bar -->

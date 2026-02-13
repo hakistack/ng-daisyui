@@ -54,19 +54,19 @@ interface Person {
           <div class="space-y-6">
             <app-doc-section title="Basic Organization Chart" description="Simple hierarchical data visualization" [codeExample]="basicCode">
               <div class="overflow-x-auto">
-                <app-organization-chart [value]="basicData" />
+                <hk-organization-chart [value]="basicData" />
               </div>
             </app-doc-section>
 
             <app-doc-section title="With Icons" description="Nodes can display Lucide icons">
               <div class="overflow-x-auto">
-                <app-organization-chart [value]="dataWithIcons" />
+                <hk-organization-chart [value]="dataWithIcons" />
               </div>
             </app-doc-section>
 
             <app-doc-section title="Collapsible Nodes" description="Click the toggle button to expand/collapse nodes">
               <div class="overflow-x-auto">
-                <app-organization-chart
+                <hk-organization-chart
                   [value]="collapsibleData"
                   (onNodeExpand)="onExpand($event)"
                   (onNodeCollapse)="onCollapse($event)"
@@ -85,7 +85,7 @@ interface Person {
           <div class="space-y-6">
             <app-doc-section title="Single Selection" description="Click on a node to select it" [codeExample]="singleSelectCode">
               <div class="overflow-x-auto">
-                <app-organization-chart
+                <hk-organization-chart
                   [value]="basicData"
                   selectionMode="single"
                   (onNodeSelect)="onSelect($event)"
@@ -100,7 +100,7 @@ interface Person {
 
             <app-doc-section title="Multiple Selection" description="Select multiple nodes">
               <div class="overflow-x-auto">
-                <app-organization-chart
+                <hk-organization-chart
                   [value]="basicData"
                   selectionMode="multiple"
                   (selectionChange)="onMultiSelect($event)"
@@ -118,7 +118,7 @@ interface Person {
         @if (activeTab() === 'templates') {
           <app-doc-section title="Custom Node Template" description="Use ng-template to customize node rendering" [codeExample]="templateCode">
             <div class="overflow-x-auto">
-              <app-organization-chart [value]="templateData" selectionMode="single">
+              <hk-organization-chart [value]="templateData" selectionMode="single">
                 <ng-template #nodeTemplate let-node let-selected="selected">
                   <div class="flex flex-col items-center gap-2 p-2">
                     <div class="avatar placeholder">
@@ -138,7 +138,7 @@ interface Person {
                     </div>
                   </div>
                 </ng-template>
-              </app-organization-chart>
+              </hk-organization-chart>
             </div>
           </app-doc-section>
         }
@@ -147,7 +147,7 @@ interface Person {
           <div class="space-y-6">
             <app-doc-section title="Node Colors" description="Use the type property to set node colors">
               <div class="overflow-x-auto">
-                <app-organization-chart [value]="colorData" />
+                <hk-organization-chart [value]="colorData" />
               </div>
               <div class="mt-4 text-sm text-base-content/60">
                 Available colors: <code class="bg-base-200 px-1">primary</code>,
@@ -175,7 +175,7 @@ interface Person {
                 }
               </div>
               <div class="overflow-x-auto">
-                <app-organization-chart [value]="basicData" [nodeColor]="defaultColor()" />
+                <hk-organization-chart [value]="basicData" [nodeColor]="defaultColor()" />
               </div>
             </app-doc-section>
           </div>
@@ -425,7 +425,7 @@ orgData: TreeNode[] = [
 ];
 
 // Template
-<app-organization-chart [value]="orgData" />`;
+<hk-organization-chart [value]="orgData" />`;
 
   singleSelectCode = `// TypeScript
 selectedNode = signal<TreeNode | null>(null);
@@ -435,7 +435,7 @@ onSelect(event: OrgChartNodeSelectEvent): void {
 }
 
 // Template
-<app-organization-chart
+<hk-organization-chart
   [value]="orgData"
   selectionMode="single"
   (onNodeSelect)="onSelect($event)"
@@ -460,7 +460,7 @@ templateData: TreeNode<Person>[] = [
 ];
 
 // Template
-<app-organization-chart [value]="templateData" selectionMode="single">
+<hk-organization-chart [value]="templateData" selectionMode="single">
   <ng-template #nodeTemplate let-node let-selected="selected">
     <div class="flex flex-col items-center gap-2 p-2">
       <div class="avatar placeholder">
@@ -472,7 +472,7 @@ templateData: TreeNode<Person>[] = [
       <div class="text-xs">{{ node.data?.title }}</div>
     </div>
   </ng-template>
-</app-organization-chart>`;
+</hk-organization-chart>`;
 
   // --- API docs ---
   inputDocs: ApiDocEntry[] = [

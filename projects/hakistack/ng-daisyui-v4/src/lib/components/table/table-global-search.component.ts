@@ -3,14 +3,14 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 
 @Component({
-  selector: 'app-table-global-search',
+  selector: 'hk-table-global-search',
   imports: [LucideIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative flex-1">
       <div class="input input-bordered w-full flex items-center gap-2">
         @if (showIcon()) {
-          <app-lucide-icon name="Search" class="h-[1em] opacity-50" aria-hidden="true"></app-lucide-icon>
+          <hk-lucide-icon name="Search" class="h-[1em] opacity-50" aria-hidden="true"></hk-lucide-icon>
         }
 
         <input
@@ -24,7 +24,7 @@ import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 
         @if (showClearButton() && hasSearchTerm()) {
           <button type="button" class="btn btn-ghost btn-sm btn-circle" (click)="onClear()" aria-label="Clear search">
-            <app-lucide-icon name="X" [size]="20" aria-hidden="true"></app-lucide-icon>
+            <hk-lucide-icon name="X" [size]="20" aria-hidden="true"></hk-lucide-icon>
           </button>
         }
       </div>

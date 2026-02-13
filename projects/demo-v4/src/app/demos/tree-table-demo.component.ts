@@ -82,16 +82,16 @@ type DemoTab = 'treenode' | 'custom' | 'features';
           >
             <div class="flex gap-2 mb-4">
               <button class="btn btn-sm btn-outline" (click)="expandAllDepts()">
-                <app-lucide-icon name="ChevronsDownUp" [size]="16" />
+                <hk-lucide-icon name="ChevronsDownUp" [size]="16" />
                 Expand All
               </button>
               <button class="btn btn-sm btn-outline" (click)="collapseAllDepts()">
-                <app-lucide-icon name="ChevronsUpDown" [size]="16" />
+                <hk-lucide-icon name="ChevronsUpDown" [size]="16" />
                 Collapse All
               </button>
             </div>
 
-            <app-table
+            <hk-table
               #deptTable
               [data]="departmentTree()"
               [config]="treeNodeConfig"
@@ -108,7 +108,7 @@ type DemoTab = 'treenode' | 'custom' | 'features';
             description="Using a custom 'items' property for children instead of the default 'children'"
             [codeExample]="customChildrenCode"
           >
-            <app-table
+            <hk-table
               [data]="fileSystem()"
               [config]="customChildrenConfig"
               [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
@@ -122,7 +122,7 @@ type DemoTab = 'treenode' | 'custom' | 'features';
             title="Tree Table with Selection, Sorting & Filtering"
             description="Full-featured tree table with selection, actions, sorting (root level only), and global search"
           >
-            <app-table
+            <hk-table
               [data]="departmentTree()"
               [config]="fullFeaturedConfig"
               [paginationOptions]="{ mode: 'offset', pageSize: 10 }"
@@ -132,7 +132,7 @@ type DemoTab = 'treenode' | 'custom' | 'features';
 
           @if (selectedItems().length > 0) {
             <div class="alert alert-info">
-              <app-lucide-icon name="Info" [size]="20" />
+              <hk-lucide-icon name="Info" [size]="20" />
               <span>{{ selectedItems().length }} item(s) selected</span>
             </div>
           }
@@ -528,7 +528,7 @@ export class TreeTableDemoComponent {
 });
 
 // Template
-<app-table
+<hk-table
   #deptTable
   [data]="departmentTree()"
   [config]="treeNodeConfig"
@@ -553,7 +553,7 @@ export class TreeTableDemoComponent {
 });
 
 // Template
-<app-table
+<hk-table
   [data]="fileSystem()"
   [config]="customChildrenConfig"
   [paginationOptions]="{ mode: 'offset', pageSize: 20 }"

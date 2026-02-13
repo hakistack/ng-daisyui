@@ -13,7 +13,7 @@ npm install @hakistack/ng-daisyui-v4
 ### Required Dependencies
 
 ```bash
-npm install tailwindcss@^3.4.0 daisyui@^4.12.0 @angular/cdk lucide-angular sweetalert2 fuse.js motion
+npm install tailwindcss@^3.4.0 daisyui@^4.12.0 @angular/cdk lucide-angular motion
 ```
 
 ### Configure Tailwind CSS
@@ -21,15 +21,21 @@ npm install tailwindcss@^3.4.0 daisyui@^4.12.0 @angular/cdk lucide-angular sweet
 **1. Create `tailwind.config.js`:**
 
 ```javascript
+const { safelist } = require('@hakistack/ng-daisyui-v4/safelist');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     "./src/**/*.{html,ts}",
   ],
+  safelist: safelist,
   theme: {
     extend: {},
   },
-  plugins: [require("daisyui")],
+  plugins: [
+    require("daisyui"),
+    require("@hakistack/ng-daisyui-v4/plugin"),
+  ],
   daisyui: {
     themes: ["light", "dark", "cupcake", /* ...other themes */],
     darkTheme: "dark",
@@ -41,40 +47,55 @@ module.exports = {
 };
 ```
 
+Or with ESM:
+
+```javascript
+// tailwind.config.mjs
+import { safelist } from '@hakistack/ng-daisyui-v4/safelist';
+import ngDaisyuiPlugin from '@hakistack/ng-daisyui-v4/plugin';
+import daisyui from 'daisyui';
+
+export default {
+  content: ["./src/**/*.{html,ts}"],
+  safelist: safelist,
+  plugins: [daisyui, ngDaisyuiPlugin],
+  daisyui: {
+    themes: ["light", "dark"],
+  }
+};
+```
+
+> **Why safelist?** Tailwind can't scan `node_modules`, so the safelist ensures all library component classes are included in the build.
+
+> **Why the plugin?** The library plugin registers custom CSS variables and keyframe animations used by components.
+
 **2. Configure `styles.css`:**
 
 ```css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import '@hakistack/ng-daisyui-v4/styles.css';
 ```
 
-**3. Add safelist for library classes:**
+The library stylesheet provides styles for toast notifications, dropdown transitions, stepper animations, disabled input fixes, and reduced-motion support that can't be expressed as Tailwind utility classes.
 
-Since Tailwind can't scan `node_modules`, import the safelist to ensure all library component classes are included:
+**Alternative:** Instead of importing in CSS, you can add it to the `styles` array in `angular.json`:
 
-```javascript
-// tailwind.config.js
-const { safelist } = require('@hakistack/ng-daisyui-v4/safelist');
-
-module.exports = {
-  content: ["./src/**/*.{html,ts}"],
-  safelist: safelist,
-  // ... rest of config
-};
-```
-
-Or with ESM:
-
-```javascript
-// tailwind.config.mjs
-import { safelist } from '@hakistack/ng-daisyui-v4/safelist';
-
-export default {
-  content: ["./src/**/*.{html,ts}"],
-  safelist: safelist,
-  // ... rest of config
-};
+```json
+{
+  "architect": {
+    "build": {
+      "options": {
+        "styles": [
+          "src/styles.css",
+          "node_modules/@hakistack/ng-daisyui-v4/styles.css"
+        ]
+      }
+    }
+  }
+}
 ```
 
 ## Components
@@ -89,7 +110,7 @@ import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui-v
 @Component({
   imports: [DynamicFormComponent],
   template: `
-    <app-dynamic-form [config]="form.config()" />
+    <hk-dynamic-form [config]="form.config()" />
     <button (click)="form.submit()" class="btn btn-primary">Submit</button>
     <button (click)="form.reset()" class="btn">Reset</button>
   `
@@ -158,7 +179,7 @@ import { TableComponent, createTable } from '@hakistack/ng-daisyui-v4';
 
 @Component({
   imports: [TableComponent],
-  template: `<app-table [data]="users()" [config]="tableConfig" />`
+  template: `<hk-table [data]="users()" [config]="tableConfig" />`
 })
 export class MyComponent {
   readonly tableConfig = createTable<User>({
@@ -185,7 +206,7 @@ import { SelectComponent } from '@hakistack/ng-daisyui-v4';
 @Component({
   imports: [SelectComponent],
   template: `
-    <app-select
+    <hk-select
       [options]="countries"
       [enableSearch]="true"
       placeholder="Select country"
@@ -205,7 +226,7 @@ import { DatepickerComponent } from '@hakistack/ng-daisyui-v4';
 @Component({
   imports: [DatepickerComponent],
   template: `
-    <app-datepicker
+    <hk-datepicker
       [range]="true"
       placeholder="Select dates"
       (selectionChange)="onDateChange($event)"
@@ -228,14 +249,14 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
 @Component({
   imports: [TabGroupComponent, TabPanelComponent],
   template: `
-    <app-tab-group [(selectedTab)]="activeTab">
-      <app-tab-panel value="details" label="Details" icon="FileText">
+    <hk-tab-group [(selectedTab)]="activeTab">
+      <hk-tab-panel value="details" label="Details" icon="FileText">
         <ng-template>Details content</ng-template>
-      </app-tab-panel>
-      <app-tab-panel value="settings" label="Settings" icon="Settings">
+      </hk-tab-panel>
+      <hk-tab-panel value="settings" label="Settings" icon="Settings">
         <ng-template>Settings content</ng-template>
-      </app-tab-panel>
-    </app-tab-group>
+      </hk-tab-panel>
+    </hk-tab-group>
   `
 })
 ```
@@ -351,8 +372,8 @@ export class MyComponent {
 Icon wrapper for Lucide icons.
 
 ```html
-<app-lucide-icon name="User" [size]="24" />
-<app-lucide-icon name="Settings" color="red" />
+<hk-lucide-icon name="User" [size]="24" />
+<hk-lucide-icon name="Settings" color="red" />
 ```
 
 ## Services

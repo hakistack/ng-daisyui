@@ -42,7 +42,7 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
           <div class="space-y-6">
             <app-doc-section title="Basic Datepicker" description="Simple single date selection" [codeExample]="basicCode">
               <div class="max-w-sm">
-                <app-datepicker
+                <hk-datepicker
                   [formControl]="basicControl"
                   placeholder="Select a date"
                   [showClearButton]="true"
@@ -56,7 +56,7 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
 
             <app-doc-section title="Date Range Picker" description="Select a start and end date" [codeExample]="rangeCode">
               <div class="max-w-md">
-                <app-datepicker
+                <hk-datepicker
                   [formControl]="rangeControl"
                   [range]="true"
                   placeholder="Select date range"
@@ -74,7 +74,7 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
           <div class="space-y-6">
             <app-doc-section title="Min/Max Constraints" description="Restrict selectable date range">
               <div class="max-w-sm">
-                <app-datepicker
+                <hk-datepicker
                   [formControl]="constrainedControl"
                   placeholder="Select within range"
                   [minDate]="minDate"
@@ -90,7 +90,7 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
 
             <app-doc-section title="Disabled Days of Week" description="Weekends disabled">
               <div class="max-w-sm">
-                <app-datepicker
+                <hk-datepicker
                   [formControl]="weekdaysControl"
                   placeholder="Select a weekday"
                   [disabledDaysOfWeek]="[0, 6]"
@@ -103,7 +103,7 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
 
             <app-doc-section title="Week Numbers" description="Show ISO week numbers">
               <div class="max-w-sm">
-                <app-datepicker
+                <hk-datepicker
                   [formControl]="weekNumbersControl"
                   placeholder="Select a date"
                   [showWeekNumbers]="true"
@@ -118,7 +118,7 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
           <div class="space-y-6">
             <app-doc-section title="Custom Formatting" description="Custom date display format" [codeExample]="customFormatCode">
               <div class="max-w-sm">
-                <app-datepicker
+                <hk-datepicker
                   [formControl]="customFormatControl"
                   placeholder="Select a date"
                   [customDateFormatter]="customFormatter"
@@ -133,26 +133,26 @@ type DatepickerTab = 'basic' | 'options' | 'advanced';
               <div class="grid grid-cols-2 gap-4 max-w-lg">
                 <div>
                   <label class="label"><span class="label-text">Bottom Left (default)</span></label>
-                  <app-datepicker placeholder="Bottom Left" dropdownPosition="bottom-left" />
+                  <hk-datepicker placeholder="Bottom Left" dropdownPosition="bottom-left" />
                 </div>
                 <div>
                   <label class="label"><span class="label-text">Bottom Right</span></label>
-                  <app-datepicker placeholder="Bottom Right" dropdownPosition="bottom-right" />
+                  <hk-datepicker placeholder="Bottom Right" dropdownPosition="bottom-right" />
                 </div>
                 <div>
                   <label class="label"><span class="label-text">Top Left</span></label>
-                  <app-datepicker placeholder="Top Left" dropdownPosition="top-left" />
+                  <hk-datepicker placeholder="Top Left" dropdownPosition="top-left" />
                 </div>
                 <div>
                   <label class="label"><span class="label-text">Top Right</span></label>
-                  <app-datepicker placeholder="Top Right" dropdownPosition="top-right" />
+                  <hk-datepicker placeholder="Top Right" dropdownPosition="top-right" />
                 </div>
               </div>
             </app-doc-section>
 
             <app-doc-section title="Disabled State" description="Non-interactive datepicker">
               <div class="max-w-sm">
-                <app-datepicker [disabled]="true" placeholder="Disabled datepicker" />
+                <hk-datepicker [disabled]="true" placeholder="Disabled datepicker" />
               </div>
             </app-doc-section>
           </div>
@@ -197,7 +197,7 @@ export class DatepickerDemoComponent {
 dateControl = new FormControl<Date | null>(null);
 
 // Template
-<app-datepicker
+<hk-datepicker
   [formControl]="dateControl"
   placeholder="Select a date"
   [showClearButton]="true"
@@ -208,7 +208,7 @@ dateControl = new FormControl<Date | null>(null);
 rangeControl = new FormControl<{ start: Date; end: Date } | null>(null);
 
 // Template
-<app-datepicker
+<hk-datepicker
   [formControl]="rangeControl"
   [range]="true"
   placeholder="Select date range"
@@ -225,7 +225,7 @@ customFormatter = (date: Date): string => {
 };
 
 // Template
-<app-datepicker
+<hk-datepicker
   [formControl]="customFormatControl"
   [customDateFormatter]="customFormatter"
   placeholder="Select a date"

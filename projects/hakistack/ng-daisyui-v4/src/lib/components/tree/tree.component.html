@@ -9,7 +9,7 @@
         [ngModel]="filterText()"
         (ngModelChange)="onFilterTextChange($event)"
       />
-      <app-lucide-icon
+      <hk-lucide-icon
         name="Search"
         class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50"
         [size]="16"
@@ -21,7 +21,7 @@
           (click)="onFilterTextChange('')"
           aria-label="Clear filter"
         >
-          <app-lucide-icon name="X" [size]="14" />
+          <hk-lucide-icon name="X" [size]="14" />
         </button>
       }
     </div>
@@ -95,7 +95,7 @@
                 (click)="onToggleClick($event, flatNode.node)"
                 [attr.aria-label]="isExpanded(flatNode.node) ? 'Collapse' : 'Expand'"
               >
-                <app-lucide-icon
+                <hk-lucide-icon
                   [name]="isExpanded(flatNode.node) ? 'ChevronDown' : 'ChevronRight'"
                   [size]="16"
                 />
@@ -146,7 +146,7 @@
           } @else {
             <!-- Default Template -->
             @if (flatNode.node.icon) {
-              <app-lucide-icon
+              <hk-lucide-icon
                 [name]="isExpanded(flatNode.node) && flatNode.node.expandedIcon ? flatNode.node.expandedIcon : (isExpanded(flatNode.node) ? flatNode.node.icon : (flatNode.node.collapsedIcon ?? flatNode.node.icon))"
                 [size]="18"
                 class="shrink-0"

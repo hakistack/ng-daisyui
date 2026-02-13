@@ -28,7 +28,7 @@
       <!-- Left: Global Search -->
       @if (hasGlobalSearchSignal()) {
         <div class="flex-1">
-          <app-table-global-search
+          <hk-table-global-search
             [searchTerm]="globalSearchTerm()"
             [placeholder]="globalSearchPlaceholderSignal()"
             [showIcon]="fieldConfig()?.globalSearch?.showIcon ?? true"
@@ -42,7 +42,7 @@
 
       <!-- Right: Column Visibility Dropdown -->
       @if (isColumnVisibilityEnabled()) {
-        <app-table-column-visibility
+        <hk-table-column-visibility
           [columns]="$any(columnDefsSignal())"
           [visibilityState]="columnVisibilityState()"
           [alwaysVisibleColumns]="alwaysVisibleColumns()"
@@ -65,7 +65,7 @@
     >
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-2">
-          <app-lucide-icon name="ListFilter" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+          <hk-lucide-icon name="ListFilter" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
           <span class="text-sm font-semibold">Active Filters ({{ activeFiltersCountSignal() }})</span>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -74,14 +74,14 @@
               <span class="font-medium">{{ filter.field }}:</span>
               <span>{{ filter.value }}</span>
               <button type="button" class="btn btn-ghost btn-xs p-0" (click)="removeFilter(filter.field)" [attr.aria-label]="'Remove filter for ' + filter.field">
-                <app-lucide-icon name="X" class="h-3 w-3" aria-hidden="true"></app-lucide-icon>
+                <hk-lucide-icon name="X" class="h-3 w-3" aria-hidden="true"></hk-lucide-icon>
               </button>
             </div>
           }
         </div>
       </div>
       <button type="button" class="btn btn-sm btn-ghost hover:bg-error/50 gap-2" (click)="clearAllFilters()" aria-label="Clear all filters">
-        <app-lucide-icon name="X" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+        <hk-lucide-icon name="X" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
         <span>Clear All</span>
       </button>
     </div>
@@ -97,7 +97,7 @@
     >
       <div class="flex items-center gap-3">
         <div class="bg-info/20 flex h-8 w-8 items-center justify-center rounded-lg">
-          <app-lucide-icon name="CheckCheck" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+          <hk-lucide-icon name="CheckCheck" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
         </div>
         <div class="flex flex-col gap-0.5">
           <span class="text-sm font-semibold"> {{ selectedSignal().size }} {{ selectedSignal().size === 1 ? 'item' : 'items' }} selected </span>
@@ -118,10 +118,10 @@
                 (click)="toggleBulkActionDropdown(bulkAction.key, $event)"
               >
                 @if (bulkAction.config.icon) {
-                  <app-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></app-lucide-icon>
+                  <hk-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></hk-lucide-icon>
                 }
                 {{ bulkAction.config.label }}
-                <app-lucide-icon name="ChevronDown" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+                <hk-lucide-icon name="ChevronDown" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
               </button>
               @if (isBulkActionDropdownOpen(bulkAction.key)) {
                 <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-52 p-2 shadow-lg">
@@ -134,7 +134,7 @@
                         (click)="onBulkActionOptionSelect(bulkAction, option)"
                       >
                         @if (option.icon) {
-                          <app-lucide-icon [name]="option.icon" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+                          <hk-lucide-icon [name]="option.icon" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
                         }
                         {{ option.label }}
                       </button>
@@ -153,7 +153,7 @@
               (click)="bulkAction.config.action(selectedArraySignal())"
             >
               @if (bulkAction.config.icon) {
-                <app-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></app-lucide-icon>
+                <hk-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></hk-lucide-icon>
               }
               {{ bulkAction.config.label }}
             </button>
@@ -166,7 +166,7 @@
         (click)="clearSelection()"
         aria-label="Clear selection"
       >
-        <app-lucide-icon name="X" class="h-4 w-4" aria-hidden="true"></app-lucide-icon>
+        <hk-lucide-icon name="X" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
         <span class="max-sm:hidden">{{ config()?.config?.clearSelectionText ?? 'Clear' }}</span>
       </button>
     </div>
@@ -217,12 +217,12 @@
                     <span class="text-sm opacity-70" aria-hidden="true">
                       @if (sortFieldSignal() === column.field) {
                         @if (sortDirectionSignal() === 'Ascending') {
-                          <app-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                          <hk-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
                         } @else {
-                          <app-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                          <hk-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
                         }
                       } @else {
-                        <app-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                        <hk-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
                       }
                     </span>
                   </div>
@@ -314,10 +314,10 @@
                     }
                     <div class="edit-cell-actions">
                       <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
-                        <app-lucide-icon name="Check" class="h-3 w-3" />
+                        <hk-lucide-icon name="Check" class="h-3 w-3" />
                       </button>
                       <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
-                        <app-lucide-icon name="X" class="h-3 w-3" />
+                        <hk-lucide-icon name="X" class="h-3 w-3" />
                       </button>
                     </div>
                   </div>
@@ -341,7 +341,7 @@
                         (click)="action.config.action(row)"
                       >
                         @if (action.config.icon) {
-                          <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                          <hk-lucide-icon [name]="action.config.icon" aria-hidden="true"></hk-lucide-icon>
                         }
                         <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
                       </button>
@@ -414,12 +414,12 @@
                     <span class="text-sm opacity-70" aria-hidden="true">
                       @if (sortFieldSignal() === column.field) {
                         @if (sortDirectionSignal() === 'Ascending') {
-                          <app-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                          <hk-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
                         } @else {
-                          <app-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                          <hk-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
                         }
                       } @else {
-                        <app-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                        <hk-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
                       }
                     </span>
                   </div>
@@ -437,7 +437,7 @@
               <tr class="bg-base-200/70 group-header-row cursor-pointer" (click)="toggleGroupExpand(displayRow.group.groupValue)">
                 <td [attr.colspan]="displayedColumnsSignal().length" class="py-2 px-4">
                   <div class="flex items-center gap-2 font-semibold">
-                    <app-lucide-icon
+                    <hk-lucide-icon
                       [name]="displayRow.group.expanded ? 'ChevronDown' : 'ChevronRight'"
                       class="h-4 w-4"
                       aria-hidden="true"
@@ -481,7 +481,7 @@
                         [attr.aria-expanded]="isDetailExpanded(displayRow.row)"
                         [attr.aria-label]="isDetailExpanded(displayRow.row) ? 'Collapse details' : 'Expand details'"
                       >
-                        <app-lucide-icon
+                        <hk-lucide-icon
                           [name]="isDetailExpanded(displayRow.row) ? 'ChevronDown' : 'ChevronRight'"
                           class="h-4 w-4"
                           aria-hidden="true"
@@ -503,7 +503,7 @@
                           <button type="button" [class]="classesFor(action)" [style]="action.config.buttonStyle"
                             [disabled]="action.config.disabled?.(displayRow.row)" (click)="action.config.action(displayRow.row)">
                             @if (action.config.icon) {
-                              <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                              <hk-lucide-icon [name]="action.config.icon" aria-hidden="true"></hk-lucide-icon>
                             }
                             <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
                           </button>
@@ -522,7 +522,7 @@
                         <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: displayRow.row }" />
                       } @else if (hasChildGridSignal()) {
                         <div [class]="getChildGridContainerClass()">
-                          <app-table
+                          <hk-table
                             [config]="$any(childGridConfigSignal()!.config)"
                             [data]="$any(getChildGridData(displayRow.row))"
                             [paginationOptions]="$any(childGridConfigSignal()!.pagination) ?? null"
@@ -610,7 +610,7 @@
         <ng-container cdkColumnDef="__drag_handle">
           <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2"></th>
           <td cdk-cell *cdkCellDef="let row" class="w-10 px-2 cursor-grab">
-            <app-lucide-icon name="GripVertical" class="h-4 w-4 opacity-40" aria-hidden="true" />
+            <hk-lucide-icon name="GripVertical" class="h-4 w-4 opacity-40" aria-hidden="true" />
           </td>
           @if (hasFooterSignal() && !hasFooterRowsSignal()) {
             <td cdk-footer-cell *cdkFooterCellDef></td>
@@ -664,7 +664,7 @@
                 [attr.aria-expanded]="isRowExpanded(row)"
                 [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
               >
-                <app-lucide-icon
+                <hk-lucide-icon
                   [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'"
                   class="h-4 w-4"
                   aria-hidden="true"
@@ -690,7 +690,7 @@
               [attr.aria-expanded]="isDetailExpanded(row)"
               [attr.aria-label]="isDetailExpanded(row) ? 'Collapse details' : 'Expand details'"
             >
-              <app-lucide-icon
+              <hk-lucide-icon
                 [name]="isDetailExpanded(row) ? 'ChevronDown' : 'ChevronRight'"
                 class="h-4 w-4"
                 aria-hidden="true"
@@ -718,7 +718,7 @@
                   <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: row }" />
                 } @else if (hasChildGridSignal()) {
                   <div [class]="getChildGridContainerClass()">
-                    <app-table
+                    <hk-table
                       [config]="$any(childGridConfigSignal()!.config)"
                       [data]="$any(getChildGridData(row))"
                       [paginationOptions]="$any(childGridConfigSignal()!.pagination) ?? null"
@@ -766,12 +766,12 @@
                 <span class="text-sm opacity-70" [attr.aria-hidden]="true">
                   @if (sortFieldSignal() === column.field) {
                     @if (sortDirectionSignal() === 'Ascending') {
-                      <app-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                      <hk-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
                     } @else {
-                      <app-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                      <hk-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
                     }
                   } @else {
-                    <app-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                    <hk-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
                   }
                 </span>
               </div>
@@ -787,14 +787,14 @@
                     (click)="$event.stopPropagation()"
                     [attr.aria-label]="'Filter ' + column.header"
                   >
-                    <app-lucide-icon name="ListFilter" class="h-3 w-3" aria-hidden="true"></app-lucide-icon>
+                    <hk-lucide-icon name="ListFilter" class="h-3 w-3" aria-hidden="true"></hk-lucide-icon>
                     @if (getActiveFilterForColumn(column.field)) {
                       <span class="badge badge-xs badge-primary">1</span>
                     }
                   </button>
                   <div tabindex="0" class="dropdown-content card card-compact bg-base-100 z-50 mt-2 w-72 shadow-xl">
                     <div class="card-body">
-                      <app-table-filter
+                      <hk-table-filter
                         [column]="column"
                         [filterConfig]="getFilterForColumn(column.field)!"
                         [activeFilter]="getActiveFilterForColumn(column.field)"
@@ -877,10 +877,10 @@
                 }
                 <div class="edit-cell-actions">
                   <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
-                    <app-lucide-icon name="Check" class="h-3 w-3" />
+                    <hk-lucide-icon name="Check" class="h-3 w-3" />
                   </button>
                   <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
-                    <app-lucide-icon name="X" class="h-3 w-3" />
+                    <hk-lucide-icon name="X" class="h-3 w-3" />
                   </button>
                 </div>
               </div>
@@ -919,7 +919,7 @@
                         (click)="action.config.action(row)"
                       >
                         @if (action.config.icon) {
-                          <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                          <hk-lucide-icon [name]="action.config.icon" aria-hidden="true"></hk-lucide-icon>
                         }
                         <span [class.sr-only]="!!action.config.icon">
                           {{ action.config.label }}
@@ -935,7 +935,7 @@
                       (click)="action.config.action(row)"
                     >
                       @if (action.config.icon) {
-                        <app-lucide-icon [name]="action.config.icon" aria-hidden="true"></app-lucide-icon>
+                        <hk-lucide-icon [name]="action.config.icon" aria-hidden="true"></hk-lucide-icon>
                       }
                       <span [class.sr-only]="!!action.config.icon">
                         {{ action.config.label }}
@@ -1005,7 +1005,7 @@
 
   <!-- Pagination Footer (hidden when virtual scroll is active) -->
   @if (!isVirtualScrollSignal()) {
-    <app-table-pagination
+    <hk-table-pagination
       [paginationOptions]="paginationOptions()"
       [totalItems]="totalItemsSignal()"
       [showFirstLastButtons]="showFirstLastButtons()"
