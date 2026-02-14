@@ -210,7 +210,7 @@ export type {
   FormState,
   FormStateMetadata,
 } from './lib/services/form-state.service';
-export { PipeRegistryService } from './lib/services/pipe-registry.service';
+export { PipeRegistryService, providePipes } from './lib/services/pipe-registry.service';
 
 // Dialog Service
 export { DialogService } from './lib/services/dialog/dialog.service';
