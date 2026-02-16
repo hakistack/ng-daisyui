@@ -1,10 +1,9 @@
 /**
  * @hakistack/ng-daisyui - Tailwind CSS v4 Plugin
  *
- * Usage (via styles.css entry point):
- *   @import "tailwindcss";
- *   @plugin "daisyui";
- *   @import "@hakistack/ng-daisyui";
+ * NOTE: This plugin is kept for backward compatibility.
+ * The recommended approach is: @import "@hakistack/ng-daisyui";
+ * which loads styles.css (safelists + component CSS) directly.
  */
 
 export default function () {

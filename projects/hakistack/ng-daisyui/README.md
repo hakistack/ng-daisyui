@@ -26,7 +26,7 @@ Add the library import to your `styles.css`:
 @import "@hakistack/ng-daisyui";
 ```
 
-This loads the library plugin (safelists for all utility classes) and component styles (toast, dropdown, stepper animations, keyframes).
+This single import provides all required CSS class safelists and component styles.
 
 ## Components
 
