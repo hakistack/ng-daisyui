@@ -1,7 +1,7 @@
 /**
  * @hakistack/ng-daisyui - Tailwind CSS v4 Plugin
  *
- * Usage:
+ * Usage (via styles.css entry point):
  *   @import "tailwindcss";
  *   @plugin "daisyui";
  *   @import "@hakistack/ng-daisyui";
@@ -140,7 +140,7 @@ export default function () {
 @source inline("swap swap-on swap-off swap-active swap-rotate swap-flip");
 
 /* Table */
-@source inline("table table-zebra table-pin-rows table-pin-cols table-xs table-sm table-md table-lg");
+@source inline("table table-zebra table-pin-rows table-pin-cols table-xs table-sm table-md table-lg table-xl");
 
 /* Tabs */
 @source inline("tabs tab tabs-bordered tabs-boxed tabs-lifted tabs-lift tabs-vertical tab-active tab-disabled tab-bordered tab-lifted tab-content tab-border-none");
@@ -188,10 +188,10 @@ export default function () {
 @source inline("max-h-48 max-h-64");
 
 /* Colors */
-@source inline("bg-base-100 bg-base-200 bg-base-200/50 bg-info/10 bg-info/20 bg-primary bg-secondary bg-yellow-200");
+@source inline("bg-base-100 bg-base-200 bg-base-200/30 bg-base-200/50 bg-base-200/70 bg-info/10 bg-info/20 bg-primary bg-secondary bg-yellow-200");
 @source inline("border-base-100 border-base-200 border-base-300 border-base-content/5 border-base-content/10");
 @source inline("text-base-content text-base-content/50 text-base-content/60 text-base-content/70 text-base-content/80 text-error text-primary-content text-white text-xs text-sm text-lg text-2xl");
-@source inline("hover:bg-base-50 hover:bg-base-200 hover:bg-error/50 hover:text-base-content hover:text-error hover:btn-primary hover:scale-105");
+@source inline("hover:bg-base-50 hover:bg-base-200 hover:bg-base-300 hover:bg-error/50 hover:border-primary hover:shadow-md hover:text-base-content hover:text-error hover:text-primary-content/70 hover:btn-primary hover:scale-105");
 
 /* Typography */
 @source inline("font-medium font-semibold font-bold");
@@ -204,7 +204,7 @@ export default function () {
 
 /* Effects/Positioning */
 @source inline("shadow shadow-lg shadow-xl");
-@source inline("opacity-30 opacity-50 opacity-60 opacity-70");
+@source inline("opacity-30 opacity-40 opacity-50 opacity-60 opacity-70");
 @source inline("z-10 z-20 z-50");
 @source inline("absolute relative inset-y-0 right-0 left-0 bottom-full");
 @source inline("overflow-auto overflow-hidden overflow-x-auto overflow-y-auto");
@@ -244,258 +244,6 @@ export default function () {
 
 /* Focus/Active states */
 @source inline("focus:outline-none focus:scale-105 active:scale-95");
-
-/* =====================================================
-   BASE STYLES & CSS VARIABLES
-   ===================================================== */
-@layer base {
-  :root {
-    --hk-transition-duration: 150ms;
-    --hk-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Keyframe Animations */
-  @keyframes hk-slide-in-bottom {
-    from { transform: translateY(100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  @keyframes hk-slide-out-bottom {
-    from { transform: translateY(0); opacity: 1; }
-    to { transform: translateY(100%); opacity: 0; }
-  }
-  @keyframes hk-slide-in-top {
-    from { transform: translateY(-100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  @keyframes hk-slide-out-top {
-    from { transform: translateY(0); opacity: 1; }
-    to { transform: translateY(-100%); opacity: 0; }
-  }
-  @keyframes hk-fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes hk-slide-in-right {
-    from { opacity: 0; transform: translateX(30px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes hk-slide-in-left {
-    from { opacity: 0; transform: translateX(-30px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  /* Disabled Input Text Color Fix - Override DaisyUI defaults for better readability */
-  .input:disabled,
-  .input[disabled] {
-    color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    -webkit-text-fill-color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    opacity: 1 !important;
-  }
-  .select:disabled,
-  .select[disabled] {
-    color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    -webkit-text-fill-color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    opacity: 1 !important;
-  }
-  .textarea:disabled,
-  .textarea[disabled] {
-    color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    -webkit-text-fill-color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    opacity: 1 !important;
-  }
-
-  /* Reduced Motion Support */
-  @media (prefers-reduced-motion: reduce) {
-    .toast-item,
-    .toast-item.cursor-pointer,
-    .dropdown-container,
-    .step-content-wrapper {
-      transition: none !important;
-      animation: none !important;
-    }
-    .toast-progress {
-      transition: none;
-      width: 100% !important;
-      opacity: 0.2;
-    }
-    .toast-enter-bottom,
-    .toast-enter-top,
-    .toast-leave-bottom,
-    .toast-leave-top {
-      animation: none;
-    }
-  }
-}
-
-/* =====================================================
-   TOAST COMPONENT
-   ===================================================== */
-@layer components {
-  /* Container positioning */
-  .toast-container {
-    position: fixed;
-    display: flex;
-    pointer-events: none;
-    z-index: 9999;
-    gap: 0.5rem;
-  }
-  .toast-container.toast-top {
-    top: 1rem;
-    flex-direction: column;
-  }
-  .toast-container.toast-bottom {
-    bottom: 1rem;
-    flex-direction: column-reverse;
-  }
-  .toast-container.toast-start {
-    left: 1rem;
-  }
-  .toast-container.toast-end {
-    right: 1rem;
-  }
-  .toast-container.toast-center {
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  /* Toast item */
-  .toast-item {
-    pointer-events: auto;
-    min-width: 320px;
-    max-width: 420px;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
-    position: relative;
-    overflow: hidden;
-    transition: transform 200ms ease-out;
-  }
-  .toast-item.cursor-pointer {
-    cursor: pointer;
-    transition: transform 150ms ease-out;
-  }
-  .toast-item.cursor-pointer:hover {
-    transform: scale(1.02);
-  }
-
-  /* Toast content */
-  .toast-content {
-    flex: 1 1 0%;
-    min-width: 0;
-  }
-  .toast-content .toast-summary {
-    font-weight: 500;
-  }
-  .toast-content .toast-detail {
-    font-size: 0.875rem;
-    opacity: 0.8;
-    margin-top: 0.125rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .toast-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-  }
-  .toast-icon {
-    flex-shrink: 0;
-  }
-  .toast-dismiss {
-    flex-shrink: 0;
-  }
-
-  /* Toast animations */
-  .toast-enter-bottom {
-    animation: hk-slide-in-bottom 300ms ease-out forwards;
-  }
-  .toast-leave-bottom {
-    animation: hk-slide-out-bottom 300ms ease-in forwards;
-  }
-  .toast-enter-top {
-    animation: hk-slide-in-top 300ms ease-out forwards;
-  }
-  .toast-leave-top {
-    animation: hk-slide-out-top 300ms ease-in forwards;
-  }
-
-  /* Toast progress bar */
-  .toast-progress {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 3px;
-    background: currentColor;
-    opacity: 0.3;
-    pointer-events: none;
-    border-radius: 0 0 0 var(--rounded-box, 1rem);
-    transition: width linear;
-    transition-duration: var(--progress-duration, 5000ms);
-  }
-  .toast-progress.paused {
-    transition-duration: 0ms;
-    opacity: 0.5;
-  }
-  .toast-item:hover .toast-progress {
-    opacity: 0.5;
-  }
-}
-
-/* =====================================================
-   DROPDOWN/SELECT COMPONENT
-   ===================================================== */
-@layer components {
-  .dropdown-container {
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
-    backdrop-filter: blur(8px);
-    transform-origin: top center;
-    will-change: opacity, transform, max-height;
-    contain: layout style paint;
-    opacity: 0;
-    transform: scaleY(0.95);
-    max-height: 0;
-    pointer-events: none;
-    overflow: hidden;
-    transition:
-      opacity var(--hk-transition-duration) var(--hk-transition-timing),
-      transform var(--hk-transition-duration) var(--hk-transition-timing),
-      max-height var(--hk-transition-duration) var(--hk-transition-timing);
-    z-index: 1000;
-    isolation: isolate;
-  }
-  .dropdown-container.dropdown-open {
-    opacity: 1;
-    transform: scaleY(1);
-    max-height: 25rem;
-    pointer-events: auto;
-  }
-  .dropdown-container.dropdown-closed {
-    opacity: 0;
-    transform: scaleY(0.95);
-    max-height: 0;
-    pointer-events: none;
-  }
-  .dropdown-container:focus-within {
-    outline: 2px solid oklch(var(--p));
-    outline-offset: 2px;
-  }
-}
-
-/* =====================================================
-   STEPPER COMPONENT
-   ===================================================== */
-@layer components {
-  .step-content-wrapper {
-    animation: hk-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .step-content-wrapper.animate-forward {
-    animation: hk-slide-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .step-content-wrapper.animate-backward {
-    animation: hk-slide-in-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-}
 `,
   };
 }

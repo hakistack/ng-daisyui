@@ -18,13 +18,15 @@ npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk lucide-angular sweeta
 
 ### Configure Tailwind CSS
 
-Add the library to your Tailwind source in `styles.css`:
+Add the library import to your `styles.css`:
 
 ```css
 @import 'tailwindcss';
-@source "@hakistack/ng-daisyui";
 @plugin 'daisyui';
+@import "@hakistack/ng-daisyui";
 ```
+
+This loads the library plugin (safelists for all utility classes) and component styles (toast, dropdown, stepper animations, keyframes).
 
 ## Components
 
