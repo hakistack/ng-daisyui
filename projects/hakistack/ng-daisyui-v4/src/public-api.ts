@@ -130,6 +130,8 @@ export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } f
 // Lucide Icon
 export { LucideIconComponent } from './lib/components/lucide-icon/lucide-icon.component';
 export type { IconName, LowerCaseIconName } from './lib/components/lucide-icon/lucide-icon.component';
+export { ICON_REGISTRY, provideIcons } from './lib/components/lucide-icon/icon-registry';
+export type { IconRegistry } from './lib/components/lucide-icon/icon-registry';
 
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
