@@ -161,6 +161,8 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly columnReorder = output<ColumnReorderEvent>();
   readonly rowReorder = output<RowReorderEvent<T>>();
   readonly groupExpandChange = output<GroupExpandEvent>();
+  readonly rowClick = output<T>();
+  readonly masterDetailRowChange = output<T>();
 
   // Internal signals
   private readonly sortState = signal<SortState>({ field: '', direction: '' });
@@ -279,6 +281,29 @@ export class TableComponent<T extends object> implements OnDestroy {
   // ============================================================================
   readonly childGridConfigSignal = computed(() => this.config()?.childGrid);
   readonly hasChildGridSignal = computed(() => !!this.childGridConfigSignal());
+
+  // ============================================================================
+  // Master-Detail Grid
+  // ============================================================================
+  readonly masterDetailConfigSignal = computed(() => this.config()?.masterDetail);
+  readonly hasMasterDetailSignal = computed(() => !!this.masterDetailConfigSignal());
+  readonly masterDetailSelectedRow = signal<T | null>(null);
+
+  readonly masterDetailDataSignal = computed<readonly unknown[]>(() => {
+    const row = this.masterDetailSelectedRow();
+    const cfg = this.masterDetailConfigSignal();
+    if (!row || !cfg) return [];
+    if (cfg.detailDataFn) return cfg.detailDataFn(row);
+    if (cfg.detailDataProperty) return (row as Record<string, unknown>)[cfg.detailDataProperty] as unknown[] ?? [];
+    return [];
+  });
+
+  readonly masterDetailHeaderTextSignal = computed<string | null>(() => {
+    const row = this.masterDetailSelectedRow();
+    const cfg = this.masterDetailConfigSignal();
+    if (!row || !cfg?.headerText) return null;
+    return typeof cfg.headerText === 'function' ? cfg.headerText(row) : cfg.headerText;
+  });
 
   // ============================================================================
   // Keyboard Navigation
@@ -1516,6 +1541,22 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   // ============================================================================
+  // Master-Detail Grid Methods
+  // ============================================================================
+
+  onRowClick(row: T): void {
+    this.rowClick.emit(row);
+    if (this.hasMasterDetailSignal()) {
+      this.masterDetailSelectedRow.set(row);
+      this.masterDetailRowChange.emit(row);
+    }
+  }
+
+  isMasterDetailSelected(row: T): boolean {
+    return this.masterDetailSelectedRow() === row;
+  }
+
+  // ============================================================================
   // Keyboard Navigation Methods
   // ============================================================================
 
@@ -1959,6 +2000,29 @@ export class TableComponent<T extends object> implements OnDestroy {
           this.firstPage();
         }
       }, debounceTime);
+    });
+
+    // Master-Detail: auto-select first row when data changes
+    effect(() => {
+      const data = this.currentDataSignal();
+      const cfg = this.masterDetailConfigSignal();
+      if (!cfg) return;
+
+      const autoSelect = cfg.autoSelectFirst !== false;
+      const currentSelection = untracked(() => this.masterDetailSelectedRow());
+
+      if (data.length === 0) {
+        if (currentSelection !== null) {
+          this.masterDetailSelectedRow.set(null);
+        }
+        return;
+      }
+
+      // Re-select if current selection is no longer in data, or auto-select first
+      if (autoSelect && (currentSelection === null || !data.includes(currentSelection))) {
+        this.masterDetailSelectedRow.set(data[0]);
+        this.masterDetailRowChange.emit(data[0]);
+      }
     });
   }
 

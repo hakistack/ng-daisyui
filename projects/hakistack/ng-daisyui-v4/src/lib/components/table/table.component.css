@@ -263,3 +263,19 @@ cdk-virtual-scroll-viewport {
 :host ::ng-deep .child-grid-wrapper thead {
   background-color: hsl(var(--b2));
 }
+
+/* ============================================================================
+   Master-Detail Grid
+   ============================================================================ */
+
+:host ::ng-deep tr.master-detail-selected td {
+  background-color: hsl(var(--p) / 0.12);
+}
+
+:host ::ng-deep tr.master-detail-selected:hover td {
+  background-color: hsl(var(--p) / 0.18);
+}
+
+.master-detail-container {
+  animation: fadeIn 0.2s ease-out;
+}

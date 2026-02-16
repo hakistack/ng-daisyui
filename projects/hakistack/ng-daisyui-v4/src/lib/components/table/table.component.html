@@ -249,6 +249,9 @@
             [style.height.px]="virtualScrollItemHeightSignal()"
             class="hover:bg-base-50 transition-colors duration-200"
             [class]="isSelectedBgClass(row)"
+            [class.master-detail-selected]="isMasterDetailSelected(row)"
+            [class.cursor-pointer]="hasMasterDetailSignal()"
+            (click)="onRowClick(row)"
           >
             @if (hasSelectionSignal()) {
               <td class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
@@ -458,7 +461,10 @@
                 </td>
               </tr>
             } @else if (displayRow.type === 'data') {
-              <tr class="hover:bg-base-50 transition-colors duration-200" [class]="isSelectedBgClass(displayRow.row)">
+              <tr class="hover:bg-base-50 transition-colors duration-200" [class]="isSelectedBgClass(displayRow.row)"
+                [class.master-detail-selected]="isMasterDetailSelected(displayRow.row)"
+                [class.cursor-pointer]="hasMasterDetailSignal()"
+                (click)="onRowClick(displayRow.row)">
                 @if (showDragHandleColumnSignal()) {
                   <td class="w-10 px-2"></td>
                 }
@@ -960,6 +966,9 @@
       <tr cdk-row *cdkRowDef="let row; columns: displayedColumnsSignal()"
         class="hover:bg-base-50 transition-colors duration-200"
         [class]="isSelectedBgClass(row)"
+        [class.master-detail-selected]="isMasterDetailSelected(row)"
+        [class.cursor-pointer]="hasMasterDetailSignal()"
+        (click)="onRowClick(row)"
         [attr.draggable]="enableRowReorderSignal()"
         (dragstart)="onRowDragStart(row, $event)"
         (dragover)="onRowDragOver(row, $event)"
@@ -1017,5 +1026,22 @@
       (pageChange)="handlePaginationPageChange($event)"
       (cursorChange)="handleCursorChange($event)"
     />
+  }
+
+  <!-- Master-Detail Grid -->
+  @if (hasMasterDetailSignal() && masterDetailSelectedRow()) {
+    <div class="master-detail-container border-t border-base-content/10"
+         [class]="masterDetailConfigSignal()?.containerClass ?? ''">
+      @if (masterDetailHeaderTextSignal()) {
+        <div class="master-detail-header bg-base-200/50 px-4 py-3 text-sm font-semibold border-b border-base-content/10">
+          {{ masterDetailHeaderTextSignal() }}
+        </div>
+      }
+      <hk-table
+        [config]="$any(masterDetailConfigSignal()!.config)"
+        [data]="$any(masterDetailDataSignal())"
+        [paginationOptions]="$any(masterDetailConfigSignal()!.pagination) ?? null"
+      />
+    </div>
   }
 </div>

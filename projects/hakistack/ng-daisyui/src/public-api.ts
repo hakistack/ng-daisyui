@@ -41,6 +41,7 @@ export { createTable, projectFields, clearHeaderFormatCache, flattenTreeData, ge
 export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
 export type {
   ChildGridConfig,
+  MasterDetailConfig,
   FieldConfig,
   FieldConfiguration,
   ColumnDefinition,

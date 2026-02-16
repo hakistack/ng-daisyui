@@ -22,6 +22,7 @@ export interface FieldConfiguration<T> {
   readonly resolvedFooterRows?: ResolvedFooterRow<T>[];
   readonly resolvedGroupAggregates?: ResolvedGroupAggregates<T>;
   readonly childGrid?: ChildGridConfig<T>;
+  readonly masterDetail?: MasterDetailConfig<T>;
 }
 
 // Hierarchy Grid (Child Grid) configuration
@@ -40,6 +41,25 @@ export interface ChildGridConfig<TParent = unknown> {
   /** Show a left border to indicate hierarchy (default: true) */
   bordered?: boolean;
   /** Additional CSS class for the child grid container */
+  containerClass?: string;
+}
+
+// Master-Detail Grid configuration
+export interface MasterDetailConfig<TParent = unknown> {
+  /** Column configuration for the detail table (from createTable) */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: FieldConfiguration<any>;
+  /** Property name on the master row that holds the detail array */
+  detailDataProperty?: string;
+  /** Function to resolve detail data from the master row */
+  detailDataFn?: (masterRow: TParent) => readonly unknown[];
+  /** Pagination options for the detail table */
+  pagination?: PaginationOptions;
+  /** Header text for the detail section (static string or function of selected row) */
+  headerText?: string | ((masterRow: TParent) => string);
+  /** Auto-select the first row when data changes. Default: true */
+  autoSelectFirst?: boolean;
+  /** Additional CSS class for the detail container */
   containerClass?: string;
 }
 
@@ -225,6 +245,10 @@ export interface FieldConfig<T> {
   // Hierarchy Grid (Child Grid)
   /** Child grid configuration for nested table rendering */
   childGrid?: ChildGridConfig<T>;
+
+  // Master-Detail Grid
+  /** Master-detail grid configuration for stacked master/detail tables */
+  masterDetail?: MasterDetailConfig<T>;
 }
 
 // Enhanced column definition with better type safety

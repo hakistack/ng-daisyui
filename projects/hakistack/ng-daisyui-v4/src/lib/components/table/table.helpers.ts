@@ -23,7 +23,7 @@ export function createTable<T>(config: FieldConfig<T>): FieldConfiguration<T> {
   // Resolve group-level aggregates (caption + group footer rows)
   const resolvedGroupAggregates = resolveGroupAggregates(normalizedConfig.grouping, schema);
 
-  return { config: normalizedConfig, columns: schema, resolvedFooterRows, resolvedGroupAggregates, childGrid: normalizedConfig.childGrid };
+  return { config: normalizedConfig, columns: schema, resolvedFooterRows, resolvedGroupAggregates, childGrid: normalizedConfig.childGrid, masterDetail: normalizedConfig.masterDetail };
 }
 
 /**
@@ -69,6 +69,7 @@ function createFieldConfig<T>(config: FieldConfig<T>): FieldConfig<T> {
     showDragHandle: config.showDragHandle ?? true,
     grouping: config.grouping,
     childGrid: config.childGrid,
+    masterDetail: config.masterDetail,
   } as FieldConfig<T>;
 }
 

@@ -42,7 +42,25 @@ interface Employee {
   orders: Order[];
 }
 
-type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'editable' | 'footer' | 'expandable' | 'grouped' | 'reorderable' | 'keyboard' | 'hierarchy';
+interface Customer {
+  customerId: number;
+  customerName: string;
+  companyName: string;
+  contactTitle: string;
+  country: string;
+  orders: CustomerOrder[];
+}
+
+interface CustomerOrder {
+  orderId: number;
+  freight: number;
+  shipName: string;
+  shipCountry: string;
+  shipAddress: string;
+  orderDate: string;
+}
+
+type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'editable' | 'footer' | 'expandable' | 'grouped' | 'reorderable' | 'keyboard' | 'hierarchy' | 'masterDetail' | 'nestedMasterDetail';
 
 @Component({
   selector: 'app-table-demo',
@@ -78,6 +96,8 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'reorderable'" (click)="activeTab.set('reorderable')">Reorderable</button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'keyboard'" (click)="activeTab.set('keyboard')">Keyboard</button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'hierarchy'" (click)="activeTab.set('hierarchy')">Hierarchy</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'masterDetail'" (click)="activeTab.set('masterDetail')">Master-Detail</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'nestedMasterDetail'" (click)="activeTab.set('nestedMasterDetail')">Nested Master-Detail</button>
         </div>
 
         @if (activeTab() === 'basic') {
@@ -202,6 +222,18 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
         @if (activeTab() === 'hierarchy') {
           <app-doc-section title="Hierarchy Grid" description="Expanding a parent row reveals a fully-featured nested child table with its own sorting and pagination. Multi-level nesting is supported." [codeExample]="hierarchyCode">
             <hk-table [data]="employees()" [config]="hierarchyConfig" />
+          </app-doc-section>
+        }
+
+        @if (activeTab() === 'masterDetail') {
+          <app-doc-section title="Master-Detail Grid" description="Click a row in the master table to display its related detail data in a separate table below. The first row is auto-selected on load." [codeExample]="masterDetailCode">
+            <hk-table [data]="customers()" [config]="masterDetailConfig" />
+          </app-doc-section>
+        }
+
+        @if (activeTab() === 'nestedMasterDetail') {
+          <app-doc-section title="Nested Master-Detail" description="The detail table can itself be a master with its own detail below it, enabling multi-level drill-down. Click an employee to see their orders, then click an order to see its line items." [codeExample]="nestedMasterDetailCode">
+            <hk-table [data]="employees()" [config]="nestedMasterDetailConfig" />
           </app-doc-section>
         }
       }
@@ -886,6 +918,108 @@ export class TableDemoComponent {
     },
   ]);
 
+  // --- Nested Master-Detail Grid Config (3-level: Employee → Order → OrderItem) ---
+  nestedMasterDetailItemConfig = createTable<OrderItem>({
+    visible: ['itemId', 'sku', 'description', 'qty', 'price'],
+    headers: { itemId: 'Item ID', sku: 'SKU', description: 'Description', qty: 'Qty', price: 'Price' },
+    formatters: { price: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)) },
+  });
+
+  nestedMasterDetailOrderConfig = createTable<Order>({
+    visible: ['orderId', 'product', 'quantity', 'unitPrice', 'orderDate'],
+    headers: { orderId: 'Order ID', product: 'Product', quantity: 'Qty', unitPrice: 'Price', orderDate: 'Date' },
+    formatters: { unitPrice: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)) },
+    masterDetail: {
+      config: this.nestedMasterDetailItemConfig,
+      detailDataProperty: 'items',
+      headerText: (row) => `Line items for Order #${row.orderId} — ${row.product}`,
+    },
+  });
+
+  nestedMasterDetailConfig = createTable<Employee>({
+    visible: ['id', 'name', 'title', 'hireDate'],
+    headers: { id: 'ID', name: 'Name', title: 'Title', hireDate: 'Hire Date' },
+    masterDetail: {
+      config: this.nestedMasterDetailOrderConfig,
+      detailDataProperty: 'orders',
+      headerText: (row) => `Orders for ${row.name} — ${row.title}`,
+      pagination: { mode: 'offset', pageSize: 5, pageSizeOptions: [3, 5, 10] },
+    },
+  });
+
+  // --- Master-Detail Grid Config ---
+  masterDetailOrderConfig = createTable<CustomerOrder>({
+    visible: ['orderId', 'freight', 'shipName', 'shipCountry', 'shipAddress', 'orderDate'],
+    headers: { orderId: 'Order ID', freight: 'Freight', shipName: 'Ship Name', shipCountry: 'Ship Country', shipAddress: 'Ship Address', orderDate: 'Order Date' },
+    formatters: {
+      freight: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+    },
+  });
+
+  masterDetailConfig = createTable<Customer>({
+    visible: ['customerId', 'customerName', 'companyName', 'contactTitle', 'country'],
+    headers: { customerId: 'ID', customerName: 'Customer Name', companyName: 'Company', contactTitle: 'Title', country: 'Country' },
+    masterDetail: {
+      config: this.masterDetailOrderConfig,
+      detailDataProperty: 'orders',
+      headerText: (row) => `Orders for ${row.customerName} — ${row.companyName}`,
+      pagination: { mode: 'offset', pageSize: 5, pageSizeOptions: [3, 5, 10] },
+    },
+  });
+
+  customers = signal<Customer[]>([
+    {
+      customerId: 1, customerName: 'Maria Anders', companyName: 'Alfreds Futterkiste', contactTitle: 'Sales Rep', country: 'Germany',
+      orders: [
+        { orderId: 10643, freight: 29.46, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-01-15' },
+        { orderId: 10692, freight: 61.02, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-02-20' },
+        { orderId: 10702, freight: 23.94, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-03-10' },
+        { orderId: 10835, freight: 69.53, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-04-05' },
+        { orderId: 10952, freight: 40.42, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-05-18' },
+        { orderId: 11011, freight: 1.21, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-06-22' },
+      ],
+    },
+    {
+      customerId: 2, customerName: 'Ana Trujillo', companyName: 'Emparedados y helados', contactTitle: 'Owner', country: 'Mexico',
+      orders: [
+        { orderId: 10308, freight: 1.61, shipName: 'Ana Trujillo', shipCountry: 'Mexico', shipAddress: 'Avda. de la Constitución 2222', orderDate: '2024-01-22' },
+        { orderId: 10625, freight: 43.90, shipName: 'Ana Trujillo', shipCountry: 'Mexico', shipAddress: 'Avda. de la Constitución 2222', orderDate: '2024-03-01' },
+        { orderId: 10759, freight: 11.99, shipName: 'Ana Trujillo', shipCountry: 'Mexico', shipAddress: 'Avda. de la Constitución 2222', orderDate: '2024-04-15' },
+        { orderId: 10926, freight: 39.92, shipName: 'Ana Trujillo', shipCountry: 'Mexico', shipAddress: 'Avda. de la Constitución 2222', orderDate: '2024-05-20' },
+      ],
+    },
+    {
+      customerId: 3, customerName: 'Antonio Moreno', companyName: 'Antonio Moreno Taquería', contactTitle: 'Owner', country: 'Mexico',
+      orders: [
+        { orderId: 10365, freight: 22.00, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-02-10' },
+        { orderId: 10507, freight: 47.45, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-03-25' },
+        { orderId: 10535, freight: 15.64, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-05-05' },
+        { orderId: 10573, freight: 84.84, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-06-10' },
+        { orderId: 10677, freight: 4.03, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-07-18' },
+      ],
+    },
+    {
+      customerId: 4, customerName: 'Thomas Hardy', companyName: 'Around the Horn', contactTitle: 'Sales Rep', country: 'UK',
+      orders: [
+        { orderId: 10355, freight: 41.95, shipName: 'Around the Horn', shipCountry: 'UK', shipAddress: '120 Hanover Sq.', orderDate: '2024-01-08' },
+        { orderId: 10383, freight: 34.24, shipName: 'Around the Horn', shipCountry: 'UK', shipAddress: '120 Hanover Sq.', orderDate: '2024-02-28' },
+        { orderId: 10453, freight: 25.36, shipName: 'Around the Horn', shipCountry: 'UK', shipAddress: '120 Hanover Sq.', orderDate: '2024-04-12' },
+      ],
+    },
+    {
+      customerId: 5, customerName: 'Christina Berglund', companyName: 'Berglunds snabbköp', contactTitle: 'Order Admin', country: 'Sweden',
+      orders: [
+        { orderId: 10278, freight: 92.69, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-01-30' },
+        { orderId: 10280, freight: 8.98, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-03-05' },
+        { orderId: 10384, freight: 168.64, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-04-22' },
+        { orderId: 10444, freight: 3.50, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-05-15' },
+        { orderId: 10524, freight: 244.79, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-06-28' },
+        { orderId: 10572, freight: 116.43, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-07-20' },
+        { orderId: 10626, freight: 138.69, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-08-10' },
+      ],
+    },
+  ]);
+
   private generateVirtualScrollData(count: number): User[] {
     const roles: ('admin' | 'editor' | 'viewer')[] = ['admin', 'editor', 'viewer'];
     const statuses: ('active' | 'inactive' | 'pending')[] = ['active', 'inactive', 'pending'];
@@ -1240,6 +1374,63 @@ const config = createTable<Employee>({
 // N-level deep: each childGrid.config can itself have a childGrid
 <hk-table [data]="employees()" [config]="config" />`;
 
+  masterDetailCode = `// Detail table config
+const detailConfig = createTable<Order>({
+  visible: ['orderId', 'freight', 'shipName', 'shipCountry', 'orderDate'],
+  formatters: { freight: ['currency', 'USD'] },
+});
+
+// Master table config with masterDetail
+const config = createTable<Customer>({
+  visible: ['customerId', 'customerName', 'companyName', 'country'],
+  masterDetail: {
+    config: detailConfig,
+    detailDataProperty: 'orders',
+    headerText: (row) => \`Orders for \${row.customerName}\`,
+    pagination: { mode: 'offset', pageSize: 5 },
+    autoSelectFirst: true,    // default: true
+  },
+});
+
+// Template — single component, detail rendered automatically
+<hk-table [data]="customers()" [config]="config" />
+
+// You can also listen to row clicks:
+<hk-table [data]="customers()" [config]="config"
+  (rowClick)="onRowClick($event)"
+  (masterDetailRowChange)="onMasterRowChange($event)" />`;
+
+  nestedMasterDetailCode = `// Level 3: Line Items (deepest detail)
+const itemConfig = createTable<OrderItem>({
+  visible: ['itemId', 'sku', 'description', 'qty', 'price'],
+  formatters: { price: ['currency', 'USD'] },
+});
+
+// Level 2: Orders — itself a master with line items as detail
+const orderConfig = createTable<Order>({
+  visible: ['orderId', 'product', 'quantity', 'unitPrice', 'orderDate'],
+  formatters: { unitPrice: ['currency', 'USD'] },
+  masterDetail: {
+    config: itemConfig,
+    detailDataProperty: 'items',
+    headerText: (row) => \`Items for Order #\${row.orderId}\`,
+  },
+});
+
+// Level 1: Employees — top-level master
+const config = createTable<Employee>({
+  visible: ['id', 'name', 'title', 'hireDate'],
+  masterDetail: {
+    config: orderConfig,
+    detailDataProperty: 'orders',
+    headerText: (row) => \`Orders for \${row.name}\`,
+    pagination: { mode: 'offset', pageSize: 5 },
+  },
+});
+
+// Each detail table is itself a master — drill down N levels deep
+<hk-table [data]="employees()" [config]="config" />`;
+
   // --- API docs ---
   inputDocs: ApiDocEntry[] = [
     { name: 'data', type: 'readonly T[] | null', default: 'null', description: 'Array of data rows to display' },
@@ -1267,6 +1458,8 @@ const config = createTable<Employee>({
     { name: 'columnReorder', type: 'ColumnReorderEvent', description: 'Emitted when columns are reordered via drag' },
     { name: 'rowReorder', type: 'RowReorderEvent<T>', description: 'Emitted when rows are reordered via drag' },
     { name: 'groupExpandChange', type: 'GroupExpandEvent', description: 'Emitted when a row group is expanded/collapsed' },
+    { name: 'rowClick', type: 'T', description: 'Emitted when any data row is clicked' },
+    { name: 'masterDetailRowChange', type: 'T', description: 'Emitted when the master-detail selected row changes' },
   ];
 
   methodDocs: ApiDocEntry[] = [
