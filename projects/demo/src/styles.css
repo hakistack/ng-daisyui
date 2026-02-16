@@ -1,4 +1,4 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: fantasy, light, dark, emerald, silk, forest, halloween, retro, cyberpunk, valentine, winter, dracula, cmyk, autumn, business, acid, lemonade;
+  themes: all;
 }

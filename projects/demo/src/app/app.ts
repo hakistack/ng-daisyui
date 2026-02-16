@@ -1,6 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, signal, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideIconComponent } from '@hakistack/ng-daisyui';
+
+const THEMES = [
+  'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate',
+  'synthwave', 'retro', 'cyberpunk', 'valentine', 'halloween', 'garden',
+  'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe', 'black',
+  'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade',
+  'night', 'coffee', 'winter', 'dim', 'nord', 'sunset', 'caramellatte',
+  'abyss', 'silk',
+] as const;
 
 @Component({
   selector: 'app-root',
@@ -13,10 +22,34 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
       <div class="drawer-content">
         <!-- Navbar for mobile -->
         <div class="navbar bg-base-100 lg:hidden sticky top-0 z-30 shadow-sm">
-          <label for="sidebar" class="btn btn-ghost btn-square">
-            <hk-lucide-icon name="Menu" [size]="24" />
-          </label>
-          <span class="text-xl font-bold">ng-daisyui</span>
+          <div class="flex-1 flex items-center gap-2">
+            <label for="sidebar" class="btn btn-ghost btn-square">
+              <hk-lucide-icon name="Menu" [size]="24" />
+            </label>
+            <span class="text-xl font-bold">ng-daisyui</span>
+          </div>
+          <div class="flex-none">
+            <div class="dropdown dropdown-end">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-sm gap-1">
+                <hk-lucide-icon name="Palette" [size]="16" />
+                <span class="hidden sm:inline">Theme</span>
+              </div>
+              <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-80 overflow-y-auto p-2 shadow-2xl">
+                @for (theme of themes; track theme) {
+                  <li>
+                    <input
+                      type="radio"
+                      name="theme-mobile"
+                      class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start"
+                      [attr.aria-label]="theme"
+                      [value]="theme"
+                      [checked]="currentTheme() === theme"
+                      (change)="setTheme(theme)" />
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
         </div>
 
         <!-- Page content -->
@@ -28,7 +61,7 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
       <!-- Sidebar -->
       <div class="drawer-side z-40">
         <label for="sidebar" class="drawer-overlay"></label>
-        <aside class="bg-base-100 w-72 min-h-full border-r border-base-300">
+        <aside class="bg-base-100 w-72 min-h-full border-r border-base-300 flex flex-col">
           <!-- Logo -->
           <div class="p-4 border-b border-base-300">
             <h1 class="text-2xl font-bold text-primary">ng-daisyui</h1>
@@ -36,7 +69,7 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
           </div>
 
           <!-- Navigation -->
-          <ul class="menu p-4 gap-1">
+          <ul class="menu p-4 gap-1 flex-1 overflow-y-auto">
             <li class="menu-title">Forms</li>
             <li>
               <a routerLink="/forms" routerLinkActive="active">
@@ -133,10 +166,54 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
               </a>
             </li>
           </ul>
+
+          <!-- Theme Picker -->
+          <div class="p-4 border-t border-base-300">
+            <label class="text-xs font-semibold text-base-content/60 mb-2 flex items-center gap-1.5">
+              <hk-lucide-icon name="Palette" [size]="14" />
+              Theme
+            </label>
+            <div class="dropdown dropdown-top w-full">
+              <div tabindex="0" role="button" class="btn btn-sm btn-block btn-ghost justify-between border border-base-300">
+                <span class="capitalize">{{ currentTheme() }}</span>
+                <hk-lucide-icon name="ChevronsUpDown" [size]="14" />
+              </div>
+              <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-full max-h-64 overflow-y-auto p-2 shadow-2xl mb-2">
+                @for (theme of themes; track theme) {
+                  <li>
+                    <input
+                      type="radio"
+                      name="theme-sidebar"
+                      class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start capitalize"
+                      [attr.aria-label]="theme"
+                      [value]="theme"
+                      [checked]="currentTheme() === theme"
+                      (change)="setTheme(theme)" />
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
         </aside>
       </div>
     </div>
   `,
   styleUrl: '../styles.css',
 })
-export class App {}
+export class App implements OnInit {
+  readonly themes = THEMES;
+  readonly currentTheme = signal('dark');
+
+  ngOnInit(): void {
+    const saved = localStorage.getItem('hk-demo-theme');
+    if (saved) {
+      this.setTheme(saved);
+    }
+  }
+
+  setTheme(theme: string): void {
+    this.currentTheme.set(theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('hk-demo-theme', theme);
+  }
+}

@@ -16,31 +16,34 @@ export default function () {
    ===================================================== */
 
 /* Alert */
-@source inline("alert alert-primary alert-secondary alert-accent alert-neutral alert-info alert-success alert-warning alert-error alert-outline alert-soft");
+@source inline("alert alert-primary alert-secondary alert-accent alert-neutral alert-info alert-success alert-warning alert-error alert-outline alert-soft alert-dash alert-vertical alert-horizontal");
 
 /* Avatar */
 @source inline("avatar avatar-group avatar-online avatar-offline placeholder");
 
 /* Badge */
-@source inline("badge badge-primary badge-secondary badge-accent badge-neutral badge-info badge-success badge-warning badge-error badge-outline badge-soft badge-ghost badge-xs badge-sm badge-md badge-lg badge-xl");
+@source inline("badge badge-primary badge-secondary badge-accent badge-neutral badge-info badge-success badge-warning badge-error badge-outline badge-soft badge-dash badge-ghost badge-xs badge-sm badge-md badge-lg badge-xl");
 
 /* Breadcrumbs */
 @source inline("breadcrumbs");
 
 /* Button */
-@source inline("btn btn-primary btn-secondary btn-accent btn-neutral btn-info btn-success btn-warning btn-error btn-ghost btn-link btn-outline btn-soft btn-active btn-disabled btn-xs btn-sm btn-md btn-lg btn-xl btn-block btn-wide btn-circle btn-square");
+@source inline("btn btn-primary btn-secondary btn-accent btn-neutral btn-info btn-success btn-warning btn-error btn-ghost btn-link btn-outline btn-soft btn-dash btn-active btn-disabled btn-xs btn-sm btn-md btn-lg btn-xl btn-block btn-wide btn-circle btn-square");
+
+/* Calendar */
+@source inline("calendar");
 
 /* Card */
-@source inline("card card-body card-title card-actions card-bordered card-compact card-normal card-side card-sm");
+@source inline("card card-body card-title card-actions card-border card-dash card-bordered card-compact card-normal card-side image-full card-xs card-sm card-md card-lg card-xl");
 
 /* Carousel */
-@source inline("carousel carousel-item carousel-start carousel-center carousel-end carousel-vertical");
+@source inline("carousel carousel-item carousel-start carousel-center carousel-end carousel-vertical carousel-horizontal");
 
 /* Chat */
-@source inline("chat chat-bubble chat-start chat-end chat-image chat-header chat-footer chat-bubble-primary chat-bubble-secondary chat-bubble-accent chat-bubble-info chat-bubble-success chat-bubble-warning chat-bubble-error");
+@source inline("chat chat-bubble chat-start chat-end chat-image chat-header chat-footer chat-bubble-primary chat-bubble-secondary chat-bubble-accent chat-bubble-neutral chat-bubble-info chat-bubble-success chat-bubble-warning chat-bubble-error");
 
 /* Checkbox */
-@source inline("checkbox checkbox-primary checkbox-secondary checkbox-accent checkbox-neutral checkbox-info checkbox-success checkbox-warning checkbox-error checkbox-xs checkbox-sm checkbox-md checkbox-lg");
+@source inline("checkbox checkbox-primary checkbox-secondary checkbox-accent checkbox-neutral checkbox-info checkbox-success checkbox-warning checkbox-error checkbox-xs checkbox-sm checkbox-md checkbox-lg checkbox-xl");
 
 /* Collapse */
 @source inline("collapse collapse-title collapse-content collapse-arrow collapse-plus collapse-open collapse-close");
@@ -54,20 +57,35 @@ export default function () {
 /* Divider */
 @source inline("divider divider-horizontal divider-vertical divider-neutral divider-primary divider-secondary divider-accent divider-info divider-success divider-warning divider-error divider-start divider-end");
 
+/* Dock */
+@source inline("dock dock-label dock-active dock-xs dock-sm dock-md dock-lg dock-xl");
+
 /* Drawer */
 @source inline("drawer drawer-toggle drawer-content drawer-side drawer-overlay drawer-open drawer-end");
 
 /* Dropdown */
 @source inline("dropdown dropdown-content dropdown-end dropdown-top dropdown-bottom dropdown-left dropdown-right dropdown-hover dropdown-open");
 
+/* Fab */
+@source inline("fab fab-close fab-main-action fab-flower");
+
+/* Fieldset */
+@source inline("fieldset fieldset-legend");
+
 /* File Input */
-@source inline("file-input file-input-bordered file-input-ghost file-input-primary file-input-secondary file-input-accent file-input-info file-input-success file-input-warning file-input-error file-input-xs file-input-sm file-input-md file-input-lg");
+@source inline("file-input file-input-bordered file-input-ghost file-input-primary file-input-secondary file-input-accent file-input-neutral file-input-info file-input-success file-input-warning file-input-error file-input-xs file-input-sm file-input-md file-input-lg file-input-xl");
+
+/* Filter */
+@source inline("filter filter-reset");
 
 /* Footer */
-@source inline("footer footer-title footer-center");
+@source inline("footer footer-title footer-center footer-horizontal footer-vertical");
 
-/* Form Control */
+/* Form Control (v4 compat) */
 @source inline("form-control label label-text label-text-alt");
+
+/* Floating Label */
+@source inline("floating-label");
 
 /* Hero */
 @source inline("hero hero-content hero-overlay");
@@ -87,6 +105,9 @@ export default function () {
 /* Link */
 @source inline("link link-hover link-primary link-secondary link-accent link-neutral link-info link-success link-warning link-error");
 
+/* List */
+@source inline("list list-row list-col-wrap list-col-grow");
+
 /* Loading */
 @source inline("loading loading-spinner loading-dots loading-ring loading-ball loading-bars loading-infinity loading-xs loading-sm loading-md loading-lg");
 
@@ -97,7 +118,7 @@ export default function () {
 @source inline("menu menu-title menu-item menu-horizontal menu-vertical menu-compact menu-xs menu-sm menu-md menu-lg menu-active menu-disabled");
 
 /* Modal */
-@source inline("modal modal-box modal-action modal-backdrop modal-toggle modal-open modal-close modal-top modal-bottom modal-middle");
+@source inline("modal modal-box modal-action modal-backdrop modal-toggle modal-open modal-close modal-top modal-bottom modal-middle modal-start modal-end");
 
 /* Navbar */
 @source inline("navbar navbar-start navbar-center navbar-end");
@@ -112,40 +133,43 @@ export default function () {
 @source inline("radial-progress");
 
 /* Radio */
-@source inline("radio radio-primary radio-secondary radio-accent radio-neutral radio-info radio-success radio-warning radio-error radio-xs radio-sm radio-md radio-lg");
+@source inline("radio radio-primary radio-secondary radio-accent radio-neutral radio-info radio-success radio-warning radio-error radio-xs radio-sm radio-md radio-lg radio-xl");
 
 /* Range */
-@source inline("range range-primary range-secondary range-accent range-neutral range-info range-success range-warning range-error range-xs range-sm range-md range-lg");
+@source inline("range range-primary range-secondary range-accent range-neutral range-info range-success range-warning range-error range-xs range-sm range-md range-lg range-xl");
 
 /* Rating */
-@source inline("rating rating-half rating-hidden rating-xs rating-sm rating-md rating-lg");
+@source inline("rating rating-half rating-hidden rating-xs rating-sm rating-md rating-lg rating-xl");
 
 /* Select */
-@source inline("select select-bordered select-ghost select-primary select-secondary select-accent select-neutral select-info select-success select-warning select-error select-xs select-sm select-md select-lg");
+@source inline("select select-bordered select-ghost select-primary select-secondary select-accent select-neutral select-info select-success select-warning select-error select-xs select-sm select-md select-lg select-xl");
 
 /* Skeleton */
-@source inline("skeleton");
+@source inline("skeleton skeleton-text");
 
 /* Stack */
-@source inline("stack");
+@source inline("stack stack-top stack-bottom stack-start stack-end");
 
 /* Stat */
 @source inline("stats stat stat-title stat-value stat-desc stat-figure stat-actions stats-vertical stats-horizontal");
 
+/* Status */
+@source inline("status status-primary status-secondary status-accent status-neutral status-info status-success status-warning status-error status-xs status-sm status-md status-lg status-xl");
+
 /* Steps */
-@source inline("steps step step-primary step-secondary step-accent step-neutral step-info step-success step-warning step-error");
+@source inline("steps step step-primary step-secondary step-accent step-neutral step-info step-success step-warning step-error step-icon steps-vertical steps-horizontal");
 
 /* Swap */
-@source inline("swap swap-on swap-off swap-active swap-rotate swap-flip");
+@source inline("swap swap-on swap-off swap-active swap-rotate swap-flip swap-indeterminate");
 
 /* Table */
 @source inline("table table-zebra table-pin-rows table-pin-cols table-xs table-sm table-md table-lg table-xl");
 
 /* Tabs */
-@source inline("tabs tab tabs-bordered tabs-boxed tabs-lifted tabs-lift tabs-vertical tab-active tab-disabled tab-bordered tab-lifted tab-content tab-border-none");
+@source inline("tabs tab tabs-box tabs-border tabs-lift tabs-bordered tabs-boxed tabs-lifted tabs-vertical tabs-top tabs-bottom tab-active tab-disabled tab-bordered tab-lifted tab-content tab-border-none");
 
 /* Textarea */
-@source inline("textarea textarea-bordered textarea-ghost textarea-primary textarea-secondary textarea-accent textarea-neutral textarea-info textarea-success textarea-warning textarea-error textarea-xs textarea-sm textarea-md textarea-lg");
+@source inline("textarea textarea-bordered textarea-ghost textarea-primary textarea-secondary textarea-accent textarea-neutral textarea-info textarea-success textarea-warning textarea-error textarea-xs textarea-sm textarea-md textarea-lg textarea-xl");
 
 /* Theme Controller */
 @source inline("theme-controller");
@@ -157,10 +181,13 @@ export default function () {
 @source inline("toast toast-start toast-center toast-end toast-top toast-middle toast-bottom");
 
 /* Toggle */
-@source inline("toggle toggle-primary toggle-secondary toggle-accent toggle-neutral toggle-info toggle-success toggle-warning toggle-error toggle-xs toggle-sm toggle-md toggle-lg");
+@source inline("toggle toggle-primary toggle-secondary toggle-accent toggle-neutral toggle-info toggle-success toggle-warning toggle-error toggle-xs toggle-sm toggle-md toggle-lg toggle-xl");
 
 /* Tooltip */
 @source inline("tooltip tooltip-open tooltip-top tooltip-bottom tooltip-left tooltip-right tooltip-primary tooltip-secondary tooltip-accent tooltip-neutral tooltip-info tooltip-success tooltip-warning tooltip-error");
+
+/* Validator */
+@source inline("validator validator-hint");
 
 /* Layout */
 @source inline("flex flex-1 flex-col flex-wrap flex-none flex-shrink-0 shrink-0 grow");

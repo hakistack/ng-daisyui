@@ -1,11 +1,17 @@
 <!doctype html>
-<html lang="en" data-theme="sirat">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <title>Demo V3 - DaisyUI v4 + Tailwind v3</title>
+  <title>Demo V4 - DaisyUI v4 + Tailwind v3</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script>
+    try {
+      const theme = localStorage.getItem('hk-demo-v4-theme');
+      if (theme) document.documentElement.setAttribute('data-theme', theme);
+    } catch(e) {}
+  </script>
 </head>
 <body>
   <app-root></app-root>
