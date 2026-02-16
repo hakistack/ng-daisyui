@@ -279,3 +279,69 @@ cdk-virtual-scroll-viewport {
 .master-detail-container {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* ============================================================================
+   Tree Table
+   ============================================================================ */
+
+/* Tree cell wrapper: inline toggle + content */
+.tree-cell-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tree-toggle-btn {
+  flex-shrink: 0;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+}
+
+.tree-toggle-spacer {
+  display: inline-block;
+  width: 1.5rem;
+  flex-shrink: 0;
+}
+
+.tree-cell-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Level-specific background tinting */
+:host ::ng-deep tr[data-tree-level="1"] td {
+  background-color: hsl(var(--b2) / 0.2);
+}
+
+:host ::ng-deep tr[data-tree-level="2"] td {
+  background-color: hsl(var(--b2) / 0.35);
+}
+
+:host ::ng-deep tr[data-tree-level="3"] td {
+  background-color: hsl(var(--b2) / 0.5);
+}
+
+:host ::ng-deep tr[data-tree-level="4"] td {
+  background-color: hsl(var(--b2) / 0.6);
+}
+
+/* Parent rows: slightly bolder text */
+:host ::ng-deep tr.tree-parent td {
+  font-weight: 500;
+}
+
+/* Expand/collapse animation */
+@keyframes treeRowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+:host ::ng-deep tr.tree-row-entering {
+  animation: treeRowSlideIn 0.2s ease-out forwards;
+}

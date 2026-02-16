@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, viewChild } from '@angular/core';
 import { TableComponent, createTable, ToastService, LucideIconComponent, TreeNode } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -23,7 +23,7 @@ interface FileSystemItem {
   items?: FileSystemItem[]; // Custom children property
 }
 
-type DemoTab = 'treenode' | 'custom' | 'features';
+type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'large';
 
 @Component({
   selector: 'app-tree-table-demo',
@@ -32,7 +32,7 @@ type DemoTab = 'treenode' | 'custom' | 'features';
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Tree Table</h1>
-        <p class="text-base-content/70 mt-2">Hierarchical data display with expand/collapse, unlimited nesting depth</p>
+        <p class="text-base-content/70 mt-2">Enterprise-grade hierarchical data display with inline toggles, indent guides, hierarchy-aware filtering/sorting, cascade selection, and expand animations</p>
         <div class="mt-2">
           <code class="badge badge-outline text-xs">import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
         </div>
@@ -46,30 +46,24 @@ type DemoTab = 'treenode' | 'custom' | 'features';
 
       @if (pageTab() === 'examples') {
         <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box w-fit">
-          <button
-            role="tab"
-            class="tab"
-            [class.tab-active]="activeTab() === 'treenode'"
-            (click)="activeTab.set('treenode')"
-          >
+        <div role="tablist" class="tabs tabs-box w-fit flex-wrap">
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'treenode'" (click)="activeTab.set('treenode')">
             TreeNode Data
           </button>
-          <button
-            role="tab"
-            class="tab"
-            [class.tab-active]="activeTab() === 'custom'"
-            (click)="activeTab.set('custom')"
-          >
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'custom'" (click)="activeTab.set('custom')">
             Custom Children
           </button>
-          <button
-            role="tab"
-            class="tab"
-            [class.tab-active]="activeTab() === 'features'"
-            (click)="activeTab.set('features')"
-          >
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'features'" (click)="activeTab.set('features')">
             Full Features
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'cascade'" (click)="activeTab.set('cascade')">
+            Cascade Selection
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'filtering'" (click)="activeTab.set('filtering')">
+            Hierarchy Filtering
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'large'" (click)="activeTab.set('large')">
+            Large Dataset
           </button>
         </div>
 
@@ -77,22 +71,28 @@ type DemoTab = 'treenode' | 'custom' | 'features';
         @if (activeTab() === 'treenode') {
           <app-doc-section
             title="Organization Structure (TreeNode)"
-            description="Using the standard TreeNode interface with 'children' property"
+            description="Using the standard TreeNode interface with 'children' property. Toggle is inline in the first data column."
             [codeExample]="treeNodeCode"
           >
-            <div class="flex gap-2 mb-4">
-              <button class="btn btn-sm btn-outline" (click)="expandAllDepts()">
+            <div class="flex gap-2 mb-4 flex-wrap">
+              <button class="btn btn-sm btn-outline" (click)="expandAllDept()">
                 <hk-lucide-icon name="ChevronsDownUp" [size]="16" />
                 Expand All
               </button>
-              <button class="btn btn-sm btn-outline" (click)="collapseAllDepts()">
+              <button class="btn btn-sm btn-outline" (click)="collapseAllDept()">
                 <hk-lucide-icon name="ChevronsUpDown" [size]="16" />
                 Collapse All
+              </button>
+              <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(1)">
+                Level 1
+              </button>
+              <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(2)">
+                Level 2
               </button>
             </div>
 
             <hk-table
-              #deptTable
+              #deptTableRef
               [data]="departmentTree()"
               [config]="treeNodeConfig"
               [paginationOptions]="paginationOptions"
@@ -120,12 +120,12 @@ type DemoTab = 'treenode' | 'custom' | 'features';
         @if (activeTab() === 'features') {
           <app-doc-section
             title="Tree Table with Selection, Sorting & Filtering"
-            description="Full-featured tree table with selection, actions, sorting (root level only), and global search"
+            description="Full-featured tree table with selection, actions, hierarchy-aware sorting at every level, and global search that keeps ancestors of matching children visible"
           >
             <hk-table
               [data]="departmentTree()"
               [config]="fullFeaturedConfig"
-              [paginationOptions]="{ mode: 'offset', pageSize: 10 }"
+              [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
               (selectionChange)="onSelection($event)"
             />
           </app-doc-section>
@@ -136,6 +136,72 @@ type DemoTab = 'treenode' | 'custom' | 'features';
               <span>{{ selectedItems().length }} item(s) selected</span>
             </div>
           }
+        }
+
+        <!-- Cascade Selection Tab -->
+        @if (activeTab() === 'cascade') {
+          <app-doc-section
+            title="Cascade Selection"
+            description="Checking a parent auto-checks all children. When all children are checked, parent is auto-checked. Shows indeterminate state when partially selected."
+          >
+            <hk-table
+              [data]="departmentTree()"
+              [config]="cascadeConfig"
+              [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
+              (selectionChange)="onCascadeSelection($event)"
+            />
+          </app-doc-section>
+
+          @if (cascadeSelectedItems().length > 0) {
+            <div class="alert alert-info">
+              <hk-lucide-icon name="Info" [size]="20" />
+              <span>{{ cascadeSelectedItems().length }} item(s) selected via cascade</span>
+            </div>
+          }
+        }
+
+        <!-- Hierarchy Filtering Tab -->
+        @if (activeTab() === 'filtering') {
+          <app-doc-section
+            title="Hierarchy-Aware Filtering"
+            description="When a child matches a filter/search, its ancestors stay visible. Try searching for 'React' or 'API' to see ancestors preserved."
+          >
+            <hk-table
+              [data]="departmentTree()"
+              [config]="filteringConfig"
+              [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
+            />
+          </app-doc-section>
+        }
+
+        <!-- Large Dataset Tab -->
+        @if (activeTab() === 'large') {
+          <app-doc-section
+            title="Large Dataset ({{ largeDatasetCount }} rows)"
+            description="100 roots x 10 children x 5 grandchildren = 6,600 rows. Performance test with hierarchy-aware sorting."
+          >
+            <div class="flex gap-2 mb-4 flex-wrap">
+              <button class="btn btn-sm btn-outline" (click)="expandLargeToLevel(1)">
+                Expand Level 1
+              </button>
+              <button class="btn btn-sm btn-outline" (click)="expandLargeToLevel(2)">
+                Expand Level 2
+              </button>
+              <button class="btn btn-sm btn-outline" (click)="expandAllLarge()">
+                Expand All
+              </button>
+              <button class="btn btn-sm btn-outline" (click)="collapseAllLarge()">
+                Collapse All
+              </button>
+            </div>
+
+            <hk-table
+              #largeTableRef
+              [data]="largeDataset()"
+              [config]="largeDatasetConfig"
+              [paginationOptions]="{ mode: 'offset', pageSize: 50 }"
+            />
+          </app-doc-section>
         }
       }
 
@@ -164,6 +230,11 @@ export class TreeTableDemoComponent {
   pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<DemoTab>('treenode');
   selectedItems = signal<TreeNode<Department>[]>([]);
+  cascadeSelectedItems = signal<TreeNode<Department>[]>([]);
+
+  // ViewChild refs for calling methods
+  readonly deptTable = viewChild<TableComponent<TreeNode<Department>>>('deptTableRef');
+  readonly largeTable = viewChild<TableComponent<{ id: string; name: string; category: string; value: number; children?: unknown[] }>>('largeTableRef');
 
   // TreeNode-based department data
   departmentTree = signal<TreeNode<Department>[]>([
@@ -269,27 +340,9 @@ export class TreeTableDemoComponent {
           type: 'folder',
           modified: new Date('2024-01-15'),
           items: [
-            {
-              id: 'app-component',
-              name: 'app.component.ts',
-              type: 'file',
-              size: 2048,
-              modified: new Date('2024-01-14'),
-            },
-            {
-              id: 'app-module',
-              name: 'app.module.ts',
-              type: 'file',
-              size: 1024,
-              modified: new Date('2024-01-10'),
-            },
-            {
-              id: 'app-routes',
-              name: 'app.routes.ts',
-              type: 'file',
-              size: 512,
-              modified: new Date('2024-01-12'),
-            },
+            { id: 'app-component', name: 'app.component.ts', type: 'file', size: 2048, modified: new Date('2024-01-14') },
+            { id: 'app-module', name: 'app.module.ts', type: 'file', size: 1024, modified: new Date('2024-01-10') },
+            { id: 'app-routes', name: 'app.routes.ts', type: 'file', size: 512, modified: new Date('2024-01-12') },
           ],
         },
         {
@@ -311,44 +364,18 @@ export class TreeTableDemoComponent {
             { id: 'assets-styles', name: 'styles.css', type: 'file', size: 4096, modified: new Date('2024-01-08') },
           ],
         },
-        {
-          id: 'src-main',
-          name: 'main.ts',
-          type: 'file',
-          size: 256,
-          modified: new Date('2024-01-01'),
-        },
-        {
-          id: 'src-index',
-          name: 'index.html',
-          type: 'file',
-          size: 512,
-          modified: new Date('2024-01-01'),
-        },
+        { id: 'src-main', name: 'main.ts', type: 'file', size: 256, modified: new Date('2024-01-01') },
+        { id: 'src-index', name: 'index.html', type: 'file', size: 512, modified: new Date('2024-01-01') },
       ],
     },
-    {
-      id: 'root-package',
-      name: 'package.json',
-      type: 'file',
-      size: 1536,
-      modified: new Date('2024-01-15'),
-    },
-    {
-      id: 'root-tsconfig',
-      name: 'tsconfig.json',
-      type: 'file',
-      size: 768,
-      modified: new Date('2024-01-01'),
-    },
-    {
-      id: 'root-readme',
-      name: 'README.md',
-      type: 'file',
-      size: 2048,
-      modified: new Date('2024-01-10'),
-    },
+    { id: 'root-package', name: 'package.json', type: 'file', size: 1536, modified: new Date('2024-01-15') },
+    { id: 'root-tsconfig', name: 'tsconfig.json', type: 'file', size: 768, modified: new Date('2024-01-01') },
+    { id: 'root-readme', name: 'README.md', type: 'file', size: 2048, modified: new Date('2024-01-10') },
   ]);
+
+  // Generate large dataset
+  readonly largeDatasetCount = 6600;
+  largeDataset = signal(this.generateLargeDataset());
 
   // TreeNode config - uses default 'children' property
   treeNodeConfig = createTable<TreeNode<Department>>({
@@ -387,7 +414,6 @@ export class TreeTableDemoComponent {
     formatters: {
       name: (value, row) => {
         const item = row as FileSystemItem;
-        const icon = item.type === 'folder' ? 'Folder' : 'File';
         const iconClass = item.type === 'folder' ? 'text-warning' : 'text-info';
         return `<div class="flex items-center gap-2">
           <span class="${iconClass}">${value}</span>
@@ -413,7 +439,7 @@ export class TreeTableDemoComponent {
     },
     treeTable: {
       enabled: true,
-      childrenProperty: 'items', // Custom property name
+      childrenProperty: 'items',
       expandAll: true,
       getRowKey: (row) => row.id,
       indentSize: 20,
@@ -471,6 +497,80 @@ export class TreeTableDemoComponent {
       expandAll: false,
       initialExpandedKeys: ['eng', 'sales'],
       indentSize: 24,
+      filterHierarchyMode: 'ancestors',
+    },
+  });
+
+  // Cascade selection config
+  cascadeConfig = createTable<TreeNode<Department>>({
+    visible: ['label', 'data'],
+    headers: {
+      label: 'Department',
+      data: 'Details',
+    },
+    formatters: {
+      data: (value) => {
+        const dept = value as Department;
+        return `<div class="text-sm">
+          <div><strong>Head:</strong> ${dept.head}</div>
+          <div><strong>Employees:</strong> ${dept.employees}</div>
+        </div>`;
+      },
+    },
+    hasSelection: true,
+    treeTable: {
+      enabled: true,
+      expandAll: true,
+      indentSize: 24,
+      checkboxCascade: 'both',
+    },
+  });
+
+  // Hierarchy filtering config
+  filteringConfig = createTable<TreeNode<Department>>({
+    visible: ['label', 'data'],
+    headers: {
+      label: 'Department',
+      data: 'Details',
+    },
+    formatters: {
+      data: (value) => {
+        const dept = value as Department;
+        return `<div class="text-sm">
+          <div><strong>Head:</strong> ${dept.head}</div>
+          <div><strong>Budget:</strong> ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dept.budget)}</div>
+        </div>`;
+      },
+    },
+    globalSearch: {
+      enabled: true,
+      mode: 'contains',
+      placeholder: 'Search (try "React" or "API")...',
+    },
+    treeTable: {
+      enabled: true,
+      expandAll: true,
+      indentSize: 24,
+      filterHierarchyMode: 'ancestors',
+    },
+  });
+
+  // Large dataset config
+  largeDatasetConfig = createTable<{ id: string; name: string; category: string; value: number }>({
+    visible: ['name', 'category', 'value'],
+    headers: {
+      name: 'Name',
+      category: 'Category',
+      value: 'Value',
+    },
+    formatters: {
+      value: (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(v)),
+    },
+    treeTable: {
+      enabled: true,
+      initialExpandLevel: 1,
+      indentSize: 20,
+      getRowKey: (row) => row.id,
     },
   });
 
@@ -486,16 +586,24 @@ export class TreeTableDemoComponent {
     { name: 'treeTable.childrenProperty', type: 'string', default: "'children'", description: 'Property name for children array' },
     { name: 'treeTable.expandAll', type: 'boolean', default: 'false', description: 'Expand all rows initially' },
     { name: 'treeTable.initialExpandedKeys', type: 'string[]', default: '[]', description: 'Keys of initially expanded rows' },
+    { name: 'treeTable.initialExpandLevel', type: 'number', default: '-', description: 'Expand all nodes up to this depth on init. 1 = roots expanded.' },
     { name: 'treeTable.indentSize', type: 'number', default: '24', description: 'Indent size per level in pixels' },
     { name: 'treeTable.getRowKey', type: '(row) => string', default: '-', description: 'Function to get unique key from row' },
+    { name: 'treeTable.treeColumnIndex', type: 'number', default: '0', description: 'Index into visible[] that renders the tree toggle inline' },
+    { name: 'treeTable.showIndentGuides', type: 'boolean', default: 'true', description: 'Show visual indent guide lines' },
+    { name: 'treeTable.filterHierarchyMode', type: "'ancestors' | 'descendants' | 'both' | 'none'", default: "'ancestors'", description: 'How filters interact with tree hierarchy' },
+    { name: 'treeTable.checkboxCascade', type: "'none' | 'downward' | 'upward' | 'both'", default: "'none'", description: 'Checkbox cascade behavior' },
   ];
 
   treeMethodDocs: ApiDocEntry[] = [
     { name: 'expandAllRows()', type: 'void', description: 'Expand all tree rows' },
     { name: 'collapseAllRows()', type: 'void', description: 'Collapse all tree rows' },
+    { name: 'expandToLevel(n)', type: 'void', description: 'Expand all nodes up to depth n' },
+    { name: 'collapseToLevel(n)', type: 'void', description: 'Collapse nodes deeper than depth n' },
     { name: 'toggleRowExpand(row)', type: 'void', description: 'Toggle row expansion' },
     { name: 'isRowExpanded(row)', type: 'boolean', description: 'Check if row is expanded' },
     { name: 'getRowLevel(row)', type: 'number', description: 'Get row indentation level' },
+    { name: 'isIndeterminate(row)', type: 'boolean', description: 'Check if row has partial selection (cascade mode)' },
   ];
 
   treeOutputDocs: ApiDocEntry[] = [
@@ -506,58 +614,40 @@ export class TreeTableDemoComponent {
 
   treeNodeCode = `const treeNodeConfig = createTable<TreeNode<Department>>({
   visible: ['label', 'data'],
-  headers: {
-    label: 'Department',
-    data: 'Details',
-  },
-  formatters: {
-    data: (value) => {
-      const dept = value as Department;
-      return \`<div class="text-sm">
-        <div><strong>Head:</strong> \${dept.head}</div>
-        <div><strong>Budget:</strong> \${dept.budget}</div>
-      </div>\`;
-    },
-  },
+  headers: { label: 'Department', data: 'Details' },
   treeTable: {
     enabled: true,
-    expandAll: false,
     initialExpandedKeys: ['eng'],
     indentSize: 24,
+    // Toggle is now inline in the first visible column (no separate expand column)
   },
 });
 
-// Template
-<hk-table
-  #deptTable
-  [data]="departmentTree()"
-  [config]="treeNodeConfig"
-  (expansionChange)="onExpansionChange($event)"
-/>`;
+// Template — use viewChild to call expandToLevel/collapseAllRows
+<hk-table #deptTable [data]="data()" [config]="config" />
+<button (click)="deptTable()?.expandToLevel(2)">Expand to Level 2</button>`;
 
   customChildrenCode = `const customChildrenConfig = createTable<FileSystemItem>({
   visible: ['name', 'type', 'size', 'modified'],
-  headers: {
-    name: 'Name',
-    type: 'Type',
-    size: 'Size',
-    modified: 'Modified',
-  },
   treeTable: {
     enabled: true,
     childrenProperty: 'items', // Custom property name
     expandAll: true,
     getRowKey: (row) => row.id,
-    indentSize: 20,
+    checkboxCascade: 'both', // Cascade selection
+    filterHierarchyMode: 'ancestors', // Keep ancestors of matching children
   },
-});
+});`;
 
-// Template
-<hk-table
-  [data]="fileSystem()"
-  [config]="customChildrenConfig"
-  [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
-/>`;
+  // Dept table actions
+  expandAllDept() { this.deptTable()?.expandAllRows(); }
+  collapseAllDept() { this.deptTable()?.collapseAllRows(); }
+  expandDeptToLevel(level: number) { this.deptTable()?.expandToLevel(level); }
+
+  // Large table actions
+  expandAllLarge() { this.largeTable()?.expandAllRows(); }
+  collapseAllLarge() { this.largeTable()?.collapseAllRows(); }
+  expandLargeToLevel(level: number) { this.largeTable()?.expandToLevel(level); }
 
   onExpansionChange(event: { row: TreeNode<Department>; expanded: boolean }) {
     console.log('Expansion changed:', event.row.label, 'expanded:', event.expanded);
@@ -567,13 +657,43 @@ export class TreeTableDemoComponent {
     this.selectedItems.set([...items]);
   }
 
-  // These methods would need ViewChild to access the table component
-  // For demo purposes, we'll just log
-  expandAllDepts() {
-    this.toast.info('Use table.expandAllRows() method');
+  onCascadeSelection(items: readonly TreeNode<Department>[]) {
+    this.cascadeSelectedItems.set([...items]);
   }
 
-  collapseAllDepts() {
-    this.toast.info('Use table.collapseAllRows() method');
+  private generateLargeDataset(): { id: string; name: string; category: string; value: number; children?: unknown[] }[] {
+    const categories = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'];
+    const roots: { id: string; name: string; category: string; value: number; children?: unknown[] }[] = [];
+
+    for (let i = 0; i < 100; i++) {
+      const children: { id: string; name: string; category: string; value: number; children?: unknown[] }[] = [];
+      for (let j = 0; j < 10; j++) {
+        const grandchildren: { id: string; name: string; category: string; value: number }[] = [];
+        for (let k = 0; k < 5; k++) {
+          grandchildren.push({
+            id: `${i}-${j}-${k}`,
+            name: `Item ${i}.${j}.${k}`,
+            category: categories[(i + j + k) % categories.length],
+            value: Math.round(Math.random() * 10000),
+          });
+        }
+        children.push({
+          id: `${i}-${j}`,
+          name: `Group ${i}.${j}`,
+          category: categories[(i + j) % categories.length],
+          value: Math.round(Math.random() * 50000),
+          children: grandchildren,
+        });
+      }
+      roots.push({
+        id: `${i}`,
+        name: `Root ${i}`,
+        category: categories[i % categories.length],
+        value: Math.round(Math.random() * 100000),
+        children,
+      });
+    }
+
+    return roots;
   }
 }

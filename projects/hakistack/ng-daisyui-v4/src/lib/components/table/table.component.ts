@@ -49,7 +49,7 @@ import {
   TreeTableConfig,
   VirtualScrollConfig,
 } from './table.types';
-import { flattenTreeData, generateRowKey, getRowChildren, groupData, rowHasChildren, resolveGroupAggregates } from './table.helpers';
+import { collectAncestorKeys, filterTreeData, flattenTreeData, generateRowKey, getRowChildren, groupData, rowHasChildren, resolveGroupAggregates, sortTreeData } from './table.helpers';
 import { computeAggregate } from './table-aggregates';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { generateUniqueId } from '../../utils/generate-uuid';
@@ -177,6 +177,13 @@ export class TableComponent<T extends object> implements OnDestroy {
   private treeRowLevelMap = new Map<T, number>(); // Cache row levels for template access
   private treeRowKeyMap = new Map<T, string>(); // Cache row keys for template access
   private treeRowHasChildrenMap = new Map<T, boolean>(); // Cache hasChildren for template access
+  private treeRowIsLastChildMap = new Map<T, boolean>(); // Cache isLastChild for indent guides
+  private treeRowAncestorFlagsMap = new Map<T, boolean[]>(); // Cache ancestor flags for indent guides
+  private treeRowParentKeyMap = new Map<string, string | null>(); // key → parentKey for cascade
+  private treeKeyToDataMap = new Map<string, T>(); // key → row for cascade
+
+  // Animation signal for tree row expand
+  readonly treeAnimatingKeys = signal<Set<string>>(new Set());
 
   // ============================================================================
   // Sticky Columns
@@ -401,6 +408,20 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly treeIndentSizeSignal = computed(() => this.treeTableConfigSignal()?.indentSize ?? 24);
   private readonly childrenPropertySignal = computed(() => this.treeTableConfigSignal()?.childrenProperty ?? 'children');
 
+  // Tree column integration: which data column renders the toggle
+  readonly treeColumnFieldSignal = computed(() => {
+    const config = this.treeTableConfigSignal();
+    if (!config?.enabled) return null;
+    const visible = this.fieldConfig()?.visible ?? [];
+    const index = config.treeColumnIndex ?? 0;
+    const safeIndex = index >= 0 && index < visible.length ? index : 0;
+    return visible[safeIndex] ?? null;
+  });
+
+  readonly showIndentGuidesSignal = computed(() => this.treeTableConfigSignal()?.showIndentGuides ?? true);
+  readonly checkboxCascadeSignal = computed(() => this.treeTableConfigSignal()?.checkboxCascade ?? 'none');
+  readonly filterHierarchyModeSignal = computed(() => this.treeTableConfigSignal()?.filterHierarchyMode ?? 'ancestors');
+
   // Filter computed signals
   readonly enableFilteringSignal = computed(() => this.fieldConfig()?.enableFiltering ?? false);
   readonly activeFiltersSignal = computed(() => this.filterState());
@@ -444,76 +465,137 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Skip client-side filtering for cursor pagination (server handles it)
     if (mode === 'cursor' || filters.length === 0) return data;
 
-    return data.filter(row => {
-      // All filters must pass (AND logic)
-      return filters.every(filter => this.applyFilter(row, filter));
-    });
+    const predicate = (row: T) => filters.every(filter => this.applyFilter(row, filter));
+
+    // Use hierarchy-aware filtering for tree tables
+    if (this.isTreeTableSignal()) {
+      const hierarchyMode = this.filterHierarchyModeSignal();
+      const childrenProp = this.childrenPropertySignal();
+      const filtered = filterTreeData(data as T[], predicate, childrenProp, hierarchyMode);
+
+      // Auto-expand ancestors of matching nodes
+      if (filtered.length > 0 && hierarchyMode !== 'none') {
+        const treeConfig = this.treeTableConfigSignal();
+        const customGetKey = treeConfig?.getRowKey;
+        const ancestorKeys = collectAncestorKeys(
+          filtered,
+          (row, index) => generateRowKey(row, customGetKey, index),
+          childrenProp,
+        );
+        if (ancestorKeys.size > 0) {
+          const current = this.expandedRowKeys();
+          const merged = new Set([...current, ...ancestorKeys]);
+          if (merged.size !== current.size) {
+            this.expandedRowKeys.set(merged);
+          }
+        }
+      }
+
+      return filtered;
+    }
+
+    return data.filter(predicate);
   });
 
   // Apply global search to filtered data (CLIENT-SIDE ONLY)
-  // For tree tables: search only applies to root-level items
   private readonly globalSearchedDataSignal = computed(() => {
-    const data = this.filteredDataSignal(); // Works after column filters
+    const data = this.filteredDataSignal();
     const searchTerm = this.debouncedSearchTerm();
     const config = this.fieldConfig()?.globalSearch;
     const mode = this.modeSignal();
 
-    // Skip client-side search for cursor/server-side pagination
     if (mode === 'cursor' || !config?.enabled || !searchTerm) return data;
 
     const searchMode = config.mode ?? 'contains';
 
-    // If custom search function provided, use it
+    let searchPredicate: (row: T) => boolean;
+
     if (config.customSearch) {
-      return data.filter(row => config.customSearch!(row, searchTerm));
-    }
-
-    // FUZZY SEARCH MODE - Use Fuse.js
-    if (searchMode === 'fuzzy') {
+      searchPredicate = (row: T) => config.customSearch!(row, searchTerm);
+    } else if (searchMode === 'fuzzy') {
+      // Fuzzy search doesn't work well with tree filtering, fall through to flat
       return this.performFuzzySearch(data, searchTerm, config);
+    } else {
+      const caseSensitive = config.caseSensitive ?? false;
+      const excludeFields = new Set(config.excludeFields ?? []);
+      const searchableFields =
+        this.columns()
+          ?.map(col => col.field)
+          .filter(f => !excludeFields.has(f)) ?? [];
+      const normalizedSearch = caseSensitive ? searchTerm : searchTerm.toLowerCase();
+
+      searchPredicate = (row: T) => {
+        return searchableFields.some(field => {
+          const value = row[field];
+          if (value == null) return false;
+
+          const stringValue = String(value);
+          const normalizedValue = caseSensitive ? stringValue : stringValue.toLowerCase();
+
+          switch (searchMode) {
+            case 'contains':
+              return normalizedValue.includes(normalizedSearch);
+            case 'startsWith':
+              return normalizedValue.startsWith(normalizedSearch);
+            case 'exact':
+              return normalizedValue === normalizedSearch;
+            default:
+              return false;
+          }
+        });
+      };
     }
 
-    // STANDARD SEARCH MODES - Native string matching
-    const caseSensitive = config.caseSensitive ?? false;
-    const excludeFields = new Set(config.excludeFields ?? []);
-    const searchableFields =
-      this.columns()
-        ?.map(col => col.field)
-        .filter(f => !excludeFields.has(f)) ?? [];
-    const normalizedSearch = caseSensitive ? searchTerm : searchTerm.toLowerCase();
+    // Use hierarchy-aware search for tree tables
+    if (this.isTreeTableSignal()) {
+      const hierarchyMode = this.filterHierarchyModeSignal();
+      const childrenProp = this.childrenPropertySignal();
+      const filtered = filterTreeData(data as T[], searchPredicate, childrenProp, hierarchyMode);
 
-    return data.filter(row => {
-      return searchableFields.some(field => {
-        const value = row[field];
-        if (value == null) return false;
-
-        const stringValue = String(value);
-        const normalizedValue = caseSensitive ? stringValue : stringValue.toLowerCase();
-
-        switch (searchMode) {
-          case 'contains':
-            return normalizedValue.includes(normalizedSearch);
-          case 'startsWith':
-            return normalizedValue.startsWith(normalizedSearch);
-          case 'exact':
-            return normalizedValue === normalizedSearch;
-          default:
-            return false;
+      // Auto-expand ancestors of matching nodes
+      if (filtered.length > 0 && hierarchyMode !== 'none') {
+        const treeConfig = this.treeTableConfigSignal();
+        const customGetKey = treeConfig?.getRowKey;
+        const ancestorKeys = collectAncestorKeys(
+          filtered,
+          (row, index) => generateRowKey(row, customGetKey, index),
+          childrenProp,
+        );
+        if (ancestorKeys.size > 0) {
+          const current = this.expandedRowKeys();
+          const merged = new Set([...current, ...ancestorKeys]);
+          if (merged.size !== current.size) {
+            this.expandedRowKeys.set(merged);
+          }
         }
-      });
-    });
+      }
+
+      return filtered;
+    }
+
+    return data.filter(searchPredicate);
   });
 
-  // Sort root-level items
+  // Sort data (hierarchy-aware for tree tables)
   private readonly sortedDataSignal = computed(() => {
-    const data = this.globalSearchedDataSignal(); // Use global searched data
+    const data = this.globalSearchedDataSignal();
     const { field, direction } = this.sortState();
 
-    // Skip sorting if no sort field or direction
     if (!field || !direction) return data;
 
-    // Use spread to avoid mutating original array
-    return [...data].sort((a, b) => this.compareValues((a as Record<string, unknown>)[field], (b as Record<string, unknown>)[field], direction));
+    const compareFn = (a: T, b: T) => this.compareValues(
+      (a as Record<string, unknown>)[field],
+      (b as Record<string, unknown>)[field],
+      direction,
+    );
+
+    // Use recursive sort for tree tables
+    if (this.isTreeTableSignal()) {
+      const childrenProp = this.childrenPropertySignal();
+      return sortTreeData(data as T[], compareFn, childrenProp);
+    }
+
+    return [...data].sort(compareFn);
   });
 
   // Flatten tree data after sorting (for tree tables only)
@@ -535,6 +617,10 @@ export class TableComponent<T extends object> implements OnDestroy {
     this.treeRowLevelMap.clear();
     this.treeRowKeyMap.clear();
     this.treeRowHasChildrenMap.clear();
+    this.treeRowIsLastChildMap.clear();
+    this.treeRowAncestorFlagsMap.clear();
+    this.treeRowParentKeyMap.clear();
+    this.treeKeyToDataMap.clear();
 
     const flattened = flattenTreeData(
       data,
@@ -548,6 +634,10 @@ export class TableComponent<T extends object> implements OnDestroy {
       this.treeRowLevelMap.set(item.data, item.level);
       this.treeRowKeyMap.set(item.data, item.key);
       this.treeRowHasChildrenMap.set(item.data, item.hasChildren);
+      this.treeRowIsLastChildMap.set(item.data, item.isLastChild);
+      this.treeRowAncestorFlagsMap.set(item.data, item.ancestorLastFlags);
+      this.treeRowParentKeyMap.set(item.key, item.parentKey);
+      this.treeKeyToDataMap.set(item.key, item.data);
     }
 
     return flattened;
@@ -751,9 +841,8 @@ export class TableComponent<T extends object> implements OnDestroy {
 
     const visibleColumns: string[] = [...dataColumns];
 
-    // Add special columns in order: drag_handle, select, tree_expand, detail_expand, data, actions
+    // Add special columns in order: drag_handle, select, detail_expand, data, actions
     if (this.showExpandColumnSignal()) visibleColumns.unshift('__detail_expand');
-    if (this.isTreeTableSignal()) visibleColumns.unshift('__tree_expand');
     if (this.hasSelectionSignal()) visibleColumns.unshift('select');
     if (this.showDragHandleColumnSignal()) visibleColumns.unshift('__drag_handle');
     if (this.hasActionsSignal()) visibleColumns.push('actions');
@@ -955,6 +1044,8 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   toggleRow(row: T, checked: boolean): void {
+    const cascade = this.checkboxCascadeSignal();
+
     this.selectedSignal.update(selectedSet => {
       const newSet = new Set(selectedSet);
       if (checked) {
@@ -962,6 +1053,22 @@ export class TableComponent<T extends object> implements OnDestroy {
       } else {
         newSet.delete(row);
       }
+
+      // Cascade selection in tree mode
+      if (cascade !== 'none' && this.isTreeTableSignal()) {
+        const childrenProp = this.childrenPropertySignal();
+
+        // Downward cascade: select/deselect all descendants
+        if (cascade === 'downward' || cascade === 'both') {
+          this.cascadeDown(row, checked, newSet, childrenProp);
+        }
+
+        // Upward cascade: auto-check parent if all siblings are checked
+        if (cascade === 'upward' || cascade === 'both') {
+          this.cascadeUp(row, newSet, childrenProp);
+        }
+      }
+
       return newSet;
     });
 
@@ -1268,6 +1375,22 @@ export class TableComponent<T extends object> implements OnDestroy {
     const currentExpanded = this.expandedRowKeys();
     const isCurrentlyExpanded = currentExpanded.has(key);
 
+    // Animation: when expanding, collect child keys for animation
+    if (!isCurrentlyExpanded) {
+      const childrenProp = this.childrenPropertySignal();
+      const children = getRowChildren(row, childrenProp);
+      if (children && children.length > 0) {
+        const treeConfig = this.treeTableConfigSignal();
+        const customGetKey = treeConfig?.getRowKey;
+        const childKeys = new Set<string>();
+        children.forEach((child, idx) => {
+          childKeys.add(generateRowKey(child, customGetKey, idx));
+        });
+        this.treeAnimatingKeys.set(childKeys);
+        setTimeout(() => this.treeAnimatingKeys.set(new Set()), 250);
+      }
+    }
+
     this.expandedRowKeys.update(keys => {
       const newKeys = new Set(keys);
       if (isCurrentlyExpanded) {
@@ -1291,6 +1414,68 @@ export class TableComponent<T extends object> implements OnDestroy {
     this.expandedRowKeys.set(new Set());
   }
 
+  expandToLevel(level: number): void {
+    const allKeys = new Set<string>();
+    this.collectKeysToLevel(this.originalDataSignal(), allKeys, 0, level);
+    this.expandedRowKeys.set(allKeys);
+  }
+
+  collapseToLevel(level: number): void {
+    const keysToKeep = new Set<string>();
+    this.collectKeysToLevel(this.originalDataSignal(), keysToKeep, 0, level);
+    this.expandedRowKeys.set(keysToKeep);
+  }
+
+  isTreeColumn(field: string): boolean {
+    return this.treeColumnFieldSignal() === field;
+  }
+
+  getAncestorFlags(row: T): boolean[] {
+    return this.treeRowAncestorFlagsMap.get(row) ?? [];
+  }
+
+  isLastChild(row: T): boolean {
+    return this.treeRowIsLastChildMap.get(row) ?? false;
+  }
+
+  isTreeRowAnimating(row: T): boolean {
+    const key = this.treeRowKeyMap.get(row);
+    if (!key) return false;
+    return this.treeAnimatingKeys().has(key);
+  }
+
+  isIndeterminate(row: T): boolean {
+    const cascade = this.checkboxCascadeSignal();
+    if (cascade === 'none') return false;
+    if (!this.hasChildren(row)) return false;
+
+    const childrenProp = this.childrenPropertySignal();
+    const children = getRowChildren(row, childrenProp);
+    if (!children || children.length === 0) return false;
+
+    const selected = this.selectedSignal();
+    let someSelected = false;
+    let allSelected = true;
+
+    for (const child of children) {
+      if (selected.has(child)) {
+        someSelected = true;
+      } else {
+        allSelected = false;
+      }
+    }
+
+    return someSelected && !allSelected;
+  }
+
+  getCellDisplay(row: T, column: ColumnDefinition<T>): string {
+    const sync = this.getCellDisplaySync(row, column);
+    if (sync) {
+      return sync.isHtml ? (sync.safeHtml as string) : sync.value;
+    }
+    return '';
+  }
+
   /**
    * Recursively collects all row keys from the tree.
    */
@@ -1308,6 +1493,58 @@ export class TableComponent<T extends object> implements OnDestroy {
         this.collectAllRowKeys(children, keys, 0);
       }
     });
+  }
+
+  private collectKeysToLevel(data: readonly T[], keys: Set<string>, currentLevel: number, targetLevel: number): void {
+    if (currentLevel >= targetLevel) return;
+    const treeConfig = this.treeTableConfigSignal();
+    const childrenProp = treeConfig?.childrenProperty ?? 'children';
+    const customGetKey = treeConfig?.getRowKey;
+
+    data.forEach((row, index) => {
+      const key = generateRowKey(row, customGetKey, index);
+      const children = getRowChildren(row, childrenProp);
+
+      if (children && children.length > 0) {
+        keys.add(key);
+        this.collectKeysToLevel(children, keys, currentLevel + 1, targetLevel);
+      }
+    });
+  }
+
+  private cascadeDown(row: T, checked: boolean, set: Set<T>, childrenProp: string): void {
+    const children = getRowChildren(row, childrenProp);
+    if (!children) return;
+    for (const child of children) {
+      if (checked) {
+        set.add(child);
+      } else {
+        set.delete(child);
+      }
+      this.cascadeDown(child, checked, set, childrenProp);
+    }
+  }
+
+  private cascadeUp(row: T, set: Set<T>, childrenProp: string): void {
+    const key = this.treeRowKeyMap.get(row);
+    if (!key) return;
+    const parentKey = this.treeRowParentKeyMap.get(key);
+    if (!parentKey) return;
+    const parentRow = this.treeKeyToDataMap.get(parentKey);
+    if (!parentRow) return;
+
+    const siblings = getRowChildren(parentRow, childrenProp);
+    if (!siblings) return;
+
+    const allSiblingsSelected = siblings.every(s => set.has(s));
+    if (allSiblingsSelected) {
+      set.add(parentRow);
+    } else {
+      set.delete(parentRow);
+    }
+
+    // Continue cascading up
+    this.cascadeUp(parentRow, set, childrenProp);
   }
 
   // ============================================================================
@@ -1697,7 +1934,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     if (!fromField || fromField === field) return;
 
     const cols = [...this.displayedColumnsSignal()];
-    const specialCols = new Set(['select', '__tree_expand', '__detail_expand', '__drag_handle', 'actions']);
+    const specialCols = new Set(['select', '__detail_expand', '__drag_handle', 'actions']);
     const dataCols = cols.filter(c => !specialCols.has(c));
 
     const fromIdx = dataCols.indexOf(fromField);
@@ -1923,9 +2160,12 @@ export class TableComponent<T extends object> implements OnDestroy {
       const treeConfig = this.treeTableConfigSignal();
       if (treeConfig?.enabled) {
         // Set initial expanded keys
+        // Precedence: expandAll > initialExpandLevel > initialExpandedKeys
         if (treeConfig.expandAll) {
           // Expand all on next tick to allow data to be loaded first
           setTimeout(() => this.expandAllRows(), 0);
+        } else if (treeConfig.initialExpandLevel != null && treeConfig.initialExpandLevel > 0) {
+          setTimeout(() => this.expandToLevel(treeConfig.initialExpandLevel!), 0);
         } else if (treeConfig.initialExpandedKeys && treeConfig.initialExpandedKeys.length > 0) {
           this.expandedRowKeys.set(new Set(treeConfig.initialExpandedKeys));
         }

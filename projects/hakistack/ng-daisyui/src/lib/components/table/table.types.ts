@@ -398,6 +398,21 @@ export interface TreeTableConfig<T> {
 
   /** Indentation size in pixels per level. Default: 24 */
   indentSize?: number;
+
+  /** Index into visible[] that renders the tree toggle. Default: 0 */
+  treeColumnIndex?: number;
+
+  /** Show visual indent guide lines. Default: true */
+  showIndentGuides?: boolean;
+
+  /** How filters interact with tree hierarchy. Default: 'ancestors' */
+  filterHierarchyMode?: 'ancestors' | 'descendants' | 'both' | 'none';
+
+  /** Expand all nodes up to this depth on init. 1 = roots expanded. */
+  initialExpandLevel?: number;
+
+  /** Checkbox cascade behavior. Default: 'none' */
+  checkboxCascade?: 'none' | 'downward' | 'upward' | 'both';
 }
 
 // Internal type for flattened tree rows
@@ -416,6 +431,12 @@ export interface FlattenedRow<T> {
 
   /** Parent row key (null for root items) */
   parentKey: string | null;
+
+  /** Whether this is the last child of its parent */
+  isLastChild: boolean;
+
+  /** Per-ancestor-level: true if that ancestor is the last child (no continuing vertical line) */
+  ancestorLastFlags: boolean[];
 }
 
 // Table configuration that combines all options

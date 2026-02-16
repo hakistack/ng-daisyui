@@ -84,6 +84,11 @@ function normalizeTreeTableConfig<T>(config: TreeTableConfig<T>): TreeTableConfi
     expandAll: config.expandAll ?? false,
     getRowKey: config.getRowKey,
     indentSize: config.indentSize ?? 24,
+    treeColumnIndex: config.treeColumnIndex ?? 0,
+    showIndentGuides: config.showIndentGuides ?? true,
+    filterHierarchyMode: config.filterHierarchyMode ?? 'ancestors',
+    initialExpandLevel: config.initialExpandLevel,
+    checkboxCascade: config.checkboxCascade ?? 'none',
   };
 }
 
@@ -502,6 +507,7 @@ export function flattenTreeData<T>(
   childrenProperty: string,
   level = 0,
   parentKey: string | null = null,
+  ancestorLastFlags: boolean[] = [],
 ): FlattenedRow<T>[] {
   const result: FlattenedRow<T>[] = [];
 
@@ -509,6 +515,7 @@ export function flattenTreeData<T>(
     const key = getKey(row, index);
     const children = getRowChildren(row, childrenProperty);
     const hasChildren = !!children && children.length > 0;
+    const isLastChild = index === data.length - 1;
 
     // Add current row to result
     result.push({
@@ -517,6 +524,8 @@ export function flattenTreeData<T>(
       hasChildren,
       key,
       parentKey,
+      isLastChild,
+      ancestorLastFlags,
     });
 
     // If expanded and has children, recursively add children
@@ -528,10 +537,97 @@ export function flattenTreeData<T>(
         childrenProperty,
         level + 1,
         key,
+        [...ancestorLastFlags, isLastChild],
       );
       result.push(...childRows);
     }
   });
 
   return result;
+}
+
+/**
+ * Filters tree data while preserving hierarchy.
+ * When a child matches, its ancestors are kept visible.
+ */
+export function filterTreeData<T>(
+  data: readonly T[],
+  predicate: (row: T) => boolean,
+  childrenProperty: string,
+  mode: 'ancestors' | 'descendants' | 'both' | 'none',
+): T[] {
+  if (mode === 'none') {
+    return data.filter(row => predicate(row)) as T[];
+  }
+
+  return data.reduce<T[]>((result, row) => {
+    const children = getRowChildren(row, childrenProperty);
+    const selfMatches = predicate(row);
+
+    if (mode === 'descendants' || mode === 'both') {
+      if (selfMatches) {
+        // Include this node with all its original children
+        result.push(row);
+        return result;
+      }
+    }
+
+    if (children && children.length > 0) {
+      const filteredChildren = filterTreeData(children, predicate, childrenProperty, mode);
+      if (filteredChildren.length > 0) {
+        // Clone the node with filtered children (ancestor kept because child matched)
+        const cloned = { ...row } as Record<string, unknown>;
+        cloned[childrenProperty] = filteredChildren;
+        result.push(cloned as T);
+        return result;
+      }
+    }
+
+    if (selfMatches) {
+      result.push(row);
+    }
+
+    return result;
+  }, []);
+}
+
+/**
+ * Sorts tree data recursively at each level.
+ */
+export function sortTreeData<T>(
+  data: readonly T[],
+  compareFn: (a: T, b: T) => number,
+  childrenProperty: string,
+): T[] {
+  const sorted = [...data].sort(compareFn);
+
+  return sorted.map(row => {
+    const children = getRowChildren(row, childrenProperty);
+    if (children && children.length > 0) {
+      const sortedChildren = sortTreeData(children, compareFn, childrenProperty);
+      const cloned = { ...row } as Record<string, unknown>;
+      cloned[childrenProperty] = sortedChildren;
+      return cloned as T;
+    }
+    return row;
+  });
+}
+
+/**
+ * Collects all ancestor keys from a filtered tree for auto-expanding.
+ */
+export function collectAncestorKeys<T>(
+  data: readonly T[],
+  getKey: (row: T, index: number) => string,
+  childrenProperty: string,
+  keys: Set<string> = new Set(),
+): Set<string> {
+  data.forEach((row, index) => {
+    const children = getRowChildren(row, childrenProperty);
+    if (children && children.length > 0) {
+      keys.add(getKey(row, index));
+      collectAncestorKeys(children, getKey, childrenProperty, keys);
+    }
+  });
+  return keys;
 }

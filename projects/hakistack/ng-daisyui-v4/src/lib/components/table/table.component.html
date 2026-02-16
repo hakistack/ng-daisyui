@@ -249,6 +249,11 @@
             [style.height.px]="virtualScrollItemHeightSignal()"
             class="hover:bg-base-50 transition-colors duration-200"
             [class]="isSelectedBgClass(row)"
+            [class.tree-row]="isTreeTableSignal()"
+            [class.tree-leaf]="isTreeTableSignal() && !hasChildren(row)"
+            [class.tree-parent]="isTreeTableSignal() && hasChildren(row)"
+            [class.tree-row-entering]="isTreeRowAnimating(row)"
+            [attr.data-tree-level]="isTreeTableSignal() ? getRowLevel(row) : null"
             [class.master-detail-selected]="isMasterDetailSelected(row)"
             [class.cursor-pointer]="hasMasterDetailSignal()"
             (click)="onRowClick(row)"
@@ -274,7 +279,7 @@
                 [style.width.px]="getColumnWidth(column.field)"
                 [style.min-width.px]="column.minWidth"
                 [style.max-width.px]="column.maxWidth"
-                [style.padding-left.px]="isTreeTableSignal() && isFirst ? getRowIndentPadding(row) : null"
+                [style.padding-left.px]="isTreeTableSignal() && isTreeColumn(column.field) ? getRowIndentPadding(row) : null"
               >
                 @if (enableEditingSignal() && isEditing(row, column.field)) {
                   <div class="edit-cell" (keydown)="onEditKeydown($event)">
@@ -323,6 +328,23 @@
                         <hk-lucide-icon name="X" class="h-3 w-3" />
                       </button>
                     </div>
+                  </div>
+                } @else if (isTreeTableSignal() && isTreeColumn(column.field)) {
+                  <!-- Tree Column: inline toggle + cell content -->
+                  <div class="tree-cell-wrapper">
+                    @if (hasChildren(row)) {
+                      <button type="button" class="tree-toggle-btn btn btn-ghost btn-xs btn-square"
+                        (click)="toggleRowExpand(row, $event)"
+                        [attr.aria-expanded]="isRowExpanded(row)"
+                        [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'">
+                        <hk-lucide-icon [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'" class="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    } @else {
+                      <span class="tree-toggle-spacer"></span>
+                    }
+                    <span class="tree-cell-content">
+                      <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
+                    </span>
                   </div>
                 } @else {
                   <div (dblclick)="startEdit(row, column.field)" [class.cursor-pointer]="column.editable">
@@ -644,39 +666,11 @@
                 type="checkbox"
                 class="checkbox"
                 [checked]="isSelected(row)"
+                [indeterminate]="isIndeterminate(row)"
                 (change)="toggleRow(row, $any($event.target).checked)"
                 [attr.aria-label]="isSelected(row) ? 'Deselect row' : 'Select row'"
               />
             </label>
-          </td>
-          @if (hasFooterSignal() && !hasFooterRowsSignal()) {
-            <td cdk-footer-cell *cdkFooterCellDef></td>
-          }
-        </ng-container>
-      }
-
-      <!-- Tree Table Expand Column (only for tree tables) -->
-      @if (isTreeTableSignal()) {
-        <ng-container cdkColumnDef="__tree_expand">
-          <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2">
-            <!-- Empty header for expand column -->
-          </th>
-          <td cdk-cell *cdkCellDef="let row" class="w-10 px-2">
-            @if (hasChildren(row)) {
-              <button
-                type="button"
-                class="btn btn-ghost btn-xs btn-square"
-                (click)="toggleRowExpand(row, $event)"
-                [attr.aria-expanded]="isRowExpanded(row)"
-                [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
-              >
-                <hk-lucide-icon
-                  [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'"
-                  class="h-4 w-4"
-                  aria-hidden="true"
-                />
-              </button>
-            }
           </td>
           @if (hasFooterSignal() && !hasFooterRowsSignal()) {
             <td cdk-footer-cell *cdkFooterCellDef></td>
@@ -838,7 +832,7 @@
             [style.width.px]="getColumnWidth(column.field)"
             [style.min-width.px]="column.minWidth"
             [style.max-width.px]="column.maxWidth"
-            [style.padding-left.px]="isTreeTableSignal() && isFirst ? getRowIndentPadding(row) : null"
+            [style.padding-left.px]="isTreeTableSignal() && isTreeColumn(column.field) ? getRowIndentPadding(row) : null"
             (click)="onCellClick(rowIdx, colIdx)"
           >
             @if (enableEditingSignal() && isEditing(row, column.field)) {
@@ -889,6 +883,23 @@
                     <hk-lucide-icon name="X" class="h-3 w-3" />
                   </button>
                 </div>
+              </div>
+            } @else if (isTreeTableSignal() && isTreeColumn(column.field)) {
+              <!-- Tree Column: inline toggle + cell content -->
+              <div class="tree-cell-wrapper">
+                @if (hasChildren(row)) {
+                  <button type="button" class="tree-toggle-btn btn btn-ghost btn-xs btn-square"
+                    (click)="toggleRowExpand(row, $event)"
+                    [attr.aria-expanded]="isRowExpanded(row)"
+                    [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'">
+                    <hk-lucide-icon [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'" class="h-4 w-4" aria-hidden="true" />
+                  </button>
+                } @else {
+                  <span class="tree-toggle-spacer"></span>
+                }
+                <span class="tree-cell-content">
+                  <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
+                </span>
               </div>
             } @else {
               <!-- Display Mode -->
@@ -966,6 +977,11 @@
       <tr cdk-row *cdkRowDef="let row; columns: displayedColumnsSignal()"
         class="hover:bg-base-50 transition-colors duration-200"
         [class]="isSelectedBgClass(row)"
+        [class.tree-row]="isTreeTableSignal()"
+        [class.tree-leaf]="isTreeTableSignal() && !hasChildren(row)"
+        [class.tree-parent]="isTreeTableSignal() && hasChildren(row)"
+        [class.tree-row-entering]="isTreeRowAnimating(row)"
+        [attr.data-tree-level]="isTreeTableSignal() ? getRowLevel(row) : null"
         [class.master-detail-selected]="isMasterDetailSelected(row)"
         [class.cursor-pointer]="hasMasterDetailSignal()"
         (click)="onRowClick(row)"
