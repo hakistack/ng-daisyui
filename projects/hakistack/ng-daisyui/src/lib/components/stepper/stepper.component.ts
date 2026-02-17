@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { CdkStep, CdkStepper, CdkStepperModule, StepState } from '@angular/cdk/stepper';
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { HK_THEME } from '../../theme/theme.config';
 
 @Component({
   selector: 'hk-stepper',
@@ -11,6 +12,8 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
   providers: [{ provide: CdkStepper, useExisting: StepperComponent }],
 })
 export class StepperComponent extends CdkStepper {
+  private readonly theme = inject(HK_THEME);
+  readonly cardClasses = computed(() => `card bg-base-100 shadow-lg ${this.theme.classes.cardBorder}`);
   readonly showStepIndicator = input<boolean>(true);
   readonly showCard = input<boolean>(true);
   readonly animateContent = input<boolean>(true);

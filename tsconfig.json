@@ -36,6 +36,9 @@
     },
     {
       "path": "./projects/demo/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/demo-v4/tsconfig.app.json"
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
+import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -265,7 +265,7 @@ activeTab = signal('overview');
 </hk-tab-group>`;
 
   iconCode = `// TypeScript
-import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
+import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 // Template
 <hk-tab-group>
@@ -282,7 +282,7 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
 </hk-tab-group>`;
 
   disabledCode = `// TypeScript
-import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
+import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 // Template
 <hk-tab-group>
@@ -313,7 +313,7 @@ selectedTab = signal('first');
 </hk-tab-group>`;
 
   verticalCode = `// TypeScript
-import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
+import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 // Template
 <hk-tab-group orientation="vertical">
@@ -329,7 +329,7 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
   </hk-tab-panel>
 </hk-tab-group>`;
 
-  usageCode = `import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui-v4';
+  usageCode = `import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 @Component({
   imports: [TabGroupComponent, TabPanelComponent],

@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { ToastService, LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+import { ToastService, LucideIconComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -391,7 +391,7 @@ this.toast.info('New updates available');`;
   networkCode = `this.toast.networkStatus('online');
 this.toast.networkStatus('offline');`;
 
-  usageCode = `import { ToastService } from '@hakistack/ng-daisyui-v4';
+  usageCode = `import { ToastService } from '@hakistack/ng-daisyui';
 
 // Inject the service
 private toast = inject(ToastService);

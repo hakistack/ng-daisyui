@@ -7,7 +7,7 @@
     [orientation]="orientation()"
     [wrap]="wrap()"
     role="tablist"
-    class="tabs tabs-lift"
+    [class]="tabsStyleClass()"
   >
     @for (panel of panels(); track panel.value()) {
       <button

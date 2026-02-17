@@ -1,7 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   contentChildren,
+  inject,
   input,
   model,
   AfterContentInit,
@@ -10,6 +12,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Tab, TabContent, TabList, TabPanel, Tabs } from '@angular/aria/tabs';
 import { TabPanelComponent } from '../tab-panel/tab-panel.component';
 import { LucideIconComponent } from '../../lucide-icon/lucide-icon.component';
+import { HK_THEME } from '../../../theme/theme.config';
 
 @Component({
   selector: 'hk-tab-group',
@@ -19,7 +22,10 @@ import { LucideIconComponent } from '../../lucide-icon/lucide-icon.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TabGroupComponent implements AfterContentInit {
+  private readonly theme = inject(HK_THEME);
   readonly panels = contentChildren(TabPanelComponent);
+
+  readonly tabsStyleClass = computed(() => `tabs ${this.theme.classes.tabsLift}`);
 
   /** The index of the initially active tab */
   activeIndex = input(0);

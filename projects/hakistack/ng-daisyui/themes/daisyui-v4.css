@@ -1,0 +1,45 @@
+/**
+ * @hakistack/ng-daisyui - DaisyUI v4 Theme Adapter
+ *
+ * Maps --hk-* CSS custom properties to DaisyUI v4 (Tailwind v3) hsl color functions.
+ *
+ * Usage:
+ *   @import "@hakistack/ng-daisyui/themes/daisyui-v4";
+ *
+ * Also add in tailwind.config.js:
+ *   const { safelist } = require('@hakistack/ng-daisyui/themes/daisyui-v4-safelist');
+ *   const plugin = require('@hakistack/ng-daisyui/themes/daisyui-v4-plugin');
+ *
+ *   module.exports = {
+ *     safelist,
+ *     plugins: [require('daisyui'), plugin],
+ *   }
+ */
+
+/* =====================================================
+   --hk-* VARIABLE MAPPINGS (DaisyUI v4 / hsl)
+   ===================================================== */
+
+:root {
+  --hk-color-base-100: hsl(var(--b1));
+  --hk-color-base-200: hsl(var(--b2));
+  --hk-color-base-content: hsl(var(--bc));
+  --hk-color-primary: hsl(var(--p));
+  --hk-color-error: hsl(var(--er));
+  --hk-color-base-content-85: hsl(var(--bc) / 0.85);
+  --hk-color-base-content-20: hsl(var(--bc) / 0.2);
+  --hk-color-base-content-15: hsl(var(--bc) / 0.15);
+  --hk-color-base-content-10: hsl(var(--bc) / 0.1);
+  --hk-color-base-content-5: hsl(var(--bc) / 0.05);
+  --hk-color-primary-30: hsl(var(--p) / 0.3);
+  --hk-color-primary-20: hsl(var(--p) / 0.2);
+  --hk-color-primary-15: hsl(var(--p) / 0.15);
+  --hk-color-primary-12: hsl(var(--p) / 0.12);
+  --hk-color-primary-18: hsl(var(--p) / 0.18);
+  --hk-color-error-20: hsl(var(--er) / 0.2);
+  --hk-color-base-200-20: hsl(var(--b2) / 0.2);
+  --hk-color-base-200-35: hsl(var(--b2) / 0.35);
+  --hk-color-base-200-50: hsl(var(--b2) / 0.5);
+  --hk-color-base-200-60: hsl(var(--b2) / 0.6);
+  --hk-color-base-200-90: hsl(var(--b2) / 0.9);
+}

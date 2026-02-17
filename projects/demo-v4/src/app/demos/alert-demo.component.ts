@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { AlertService, LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+import { AlertService, LucideIconComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -460,7 +460,7 @@ this.alert.success('Done!');`;
 // result.isDismissed  - dismissed by backdrop/esc
 // result.dismissReason - 'backdrop' | 'esc' | 'timer'`;
 
-  usageCode = `import { AlertService } from '@hakistack/ng-daisyui-v4';
+  usageCode = `import { AlertService } from '@hakistack/ng-daisyui';
 
 private alert = inject(AlertService);
 

@@ -4,7 +4,7 @@ const path = require('path');
 module.exports = {
   content: [
     path.join(__dirname, 'src/**/*.{html,ts}'),
-    path.join(__dirname, '../../projects/hakistack/ng-daisyui-v4/src/**/*.{html,ts}'),
+    path.join(__dirname, '../../projects/hakistack/ng-daisyui/src/**/*.{html,ts}'),
   ],
   theme: {
     extend: {},

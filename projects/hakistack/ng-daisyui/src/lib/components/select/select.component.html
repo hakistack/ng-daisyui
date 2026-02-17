@@ -92,13 +92,14 @@
     <!-- Search Input -->
     @if (enableSearch()) {
       <div class="border-base-300 flex-none border-b p-3">
-        <label class="input input-bordered w-full">
+        <label class="input input-bordered w-full flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
             #searchInput
             type="text"
+            class="grow"
             [placeholder]="searchPlaceholder()"
             [value]="searchTerm()"
             (input)="onSearchInput($event)"
@@ -153,9 +154,8 @@
             <button
               type="button"
               class="flex w-full cursor-pointer items-center justify-between px-3"
-              [class]="menuItemClasses()"
+              [class]="getOptionClasses(i)"
               (click)="selectOption(option)"
-              [class.menu-active]="isHighlighted(i)"
               [class.bg-primary]="isSelected(option) && !multiple()"
               [class.text-primary-content]="isSelected(option) && !multiple()"
               [class.opacity-50]="isOptionDisabled(option)"
@@ -197,7 +197,7 @@
                 class="flex w-full cursor-pointer items-center justify-between px-3"
                 [class]="menuItemClasses()"
                 (click)="selectOption(option)"
-                [class.menu-active]="isHighlighted(i)"
+                [class]="isHighlighted(i) ? menuActiveClass : ''"
                 [class.bg-primary]="isSelected(option) && !multiple()"
                 [class.text-primary-content]="isSelected(option) && !multiple()"
                 [class.opacity-50]="isOptionDisabled(option)"

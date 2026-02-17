@@ -2,7 +2,7 @@
 
 .app-tree {
   /* CSS custom properties for theming */
-  --tree-line-color: oklch(var(--bc) / 0.2);
+  --tree-line-color: var(--hk-color-base-content-20);
   --tree-line-width: 1px;
   --tree-node-height: 32px;
 }
@@ -31,7 +31,7 @@
 }
 
 .app-tree-node-drop-target > .app-tree-node-content {
-  outline: 2px dashed oklch(var(--p));
+  outline: 2px dashed var(--hk-color-primary);
   outline-offset: 2px;
 }
 
@@ -79,7 +79,7 @@
 }
 
 .app-tree-drop-zone:hover {
-  background-color: oklch(var(--p) / 0.3);
+  background-color: var(--hk-color-primary-30);
   border-radius: 2px;
 }
 
@@ -96,7 +96,7 @@
 }
 
 .app-tree-drop-zone:hover::after {
-  background-color: oklch(var(--p));
+  background-color: var(--hk-color-primary);
 }
 
 /* Checkbox alignment */

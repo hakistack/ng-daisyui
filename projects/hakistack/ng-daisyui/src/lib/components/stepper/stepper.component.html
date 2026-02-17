@@ -1,5 +1,5 @@
 @if (showCard()) {
-  <div class="card card-border bg-base-100 shadow-lg">
+  <div [class]="cardClasses()">
     <div class="card-body">
       <ng-container *ngTemplateOutlet="stepperContent"></ng-container>
     </div>

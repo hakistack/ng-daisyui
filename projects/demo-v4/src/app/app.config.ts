@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideToast, provideAlert, provideIcons } from '@hakistack/ng-daisyui-v4';
+import { provideToast, provideAlert, provideIcons, provideHkTheme } from '@hakistack/ng-daisyui';
 
 import {
   Archive,
@@ -72,11 +72,12 @@ import {
 } from 'lucide-angular';
 
 import { routes } from './app.routes';
-import { providePipes } from '../../../hakistack/ng-daisyui-v4/src/lib/services/pipe-registry.service';
+import { providePipes } from '../../../hakistack/ng-daisyui/src/lib/services/pipe-registry.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    provideHkTheme('daisyui-v4'),
     providePipes(),
     provideRouter(routes),
     provideToast(),

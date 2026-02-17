@@ -17,27 +17,27 @@
 
 /* Enhanced primary step styling */
 .step.step-primary::after {
-  box-shadow: 0 0 0 3px rgba(var(--p) / 0.2);
+  box-shadow: 0 0 0 3px var(--hk-color-primary-20);
 }
 
 /* Error step styling */
 .step.step-error::after {
-  background-color: oklch(var(--er));
-  box-shadow: 0 0 0 3px rgba(var(--er) / 0.2);
+  background-color: var(--hk-color-error);
+  box-shadow: 0 0 0 3px var(--hk-color-error-20);
 }
 
 .step.step-error::before {
-  background-color: oklch(var(--er));
+  background-color: var(--hk-color-error);
 }
 
 .step.cursor-pointer:hover::after {
   box-shadow:
-    0 2px 8px rgba(var(--p) / 0.3),
-    0 0 0 3px rgba(var(--p) / 0.2);
+    0 2px 8px var(--hk-color-primary-30),
+    0 0 0 3px var(--hk-color-primary-20);
 }
 
 .step:focus-visible {
-  outline: 2px solid rgba(var(--p) / 0.6);
+  outline: 2px solid var(--hk-color-primary);
   outline-offset: 3px;
 }
 

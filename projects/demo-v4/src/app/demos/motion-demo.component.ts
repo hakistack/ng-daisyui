@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { MotionAnimateDirective, MotionHoverDirective, LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+import { MotionAnimateDirective, MotionHoverDirective, LucideIconComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -416,7 +416,7 @@ customOptions: MotionDirectiveOptions = {
 'slideInUp'   'slideInDown'
 'bounceIn'    'rotateIn'`;
 
-  usageCode = `import { MotionAnimateDirective, MotionHoverDirective } from '@hakistack/ng-daisyui-v4';
+  usageCode = `import { MotionAnimateDirective, MotionHoverDirective } from '@hakistack/ng-daisyui';
 
 @Component({
   imports: [MotionAnimateDirective, MotionHoverDirective],

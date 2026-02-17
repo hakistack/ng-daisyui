@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
-import { DynamicFormComponent, createForm, field, step, ToastService, FormSubmissionData } from '@hakistack/ng-daisyui-v4';
+import { DynamicFormComponent, createForm, field, step, ToastService, FormSubmissionData } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -237,7 +237,7 @@ export class WizardDemoComponent {
   onSubmit: (data) => console.log(data),
 });`;
 
-  builderCode = `import { createForm, field, step } from '@hakistack/ng-daisyui-v4';
+  builderCode = `import { createForm, field, step } from '@hakistack/ng-daisyui';
 
 // step.create(key, label, fields, options?)
 step.create('info', 'Information', [

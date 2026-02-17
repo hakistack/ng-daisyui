@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
-import { SelectComponent, SelectOption } from '@hakistack/ng-daisyui-v4';
+import { SelectComponent, SelectOption } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { ApiDocEntry } from '../shared/api-table.types';

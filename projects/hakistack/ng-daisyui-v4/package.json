@@ -1,7 +1,7 @@
 {
   "name": "@hakistack/ng-daisyui-v4",
   "version": "0.1.7",
-  "description": "Angular UI components built with DaisyUI v4 and Tailwind CSS v3",
+  "description": "DEPRECATED: Use @hakistack/ng-daisyui with provideHkTheme('daisyui-v4') instead.",
   "author": "Hakistack",
   "license": "UNLICENSED",
   "repository": {
@@ -58,6 +58,7 @@
     }
   },
   "dependencies": {
+    "@hakistack/ng-daisyui": ">=0.1.40",
     "tslib": "^2.3.0",
     "uuid": "^11.0.0",
     "fuse.js": "^7.0.0",

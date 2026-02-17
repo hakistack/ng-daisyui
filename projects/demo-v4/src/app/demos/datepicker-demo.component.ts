@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { JsonPipe, DatePipe } from '@angular/common';
-import { DatepickerComponent } from '@hakistack/ng-daisyui-v4';
+import { DatepickerComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { ApiDocEntry } from '../shared/api-table.types';

@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, input, output, signal, viewChild, WritableSignal, forwardRef, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, output, signal, viewChild, WritableSignal, forwardRef, OnDestroy } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import Fuse, { IFuseOptions } from 'fuse.js';
 import { generateUniqueId } from '../../utils/generate-uuid';
+import { HK_THEME } from '../../theme/theme.config';
 
 export interface SelectOption {
   readonly value: string;
@@ -46,9 +47,13 @@ export type SelectColor = 'neutral' | 'primary' | 'secondary' | 'accent' | 'info
 })
 export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
+  private readonly theme = inject(HK_THEME);
+
   private readonly dropdownRoot = viewChild.required<ElementRef<HTMLElement>>('dropdownRoot');
   private readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
   private readonly viewport = viewChild<CdkVirtualScrollViewport>('viewport');
+
+  readonly menuActiveClass = this.theme.classes.menuActive;
 
   // Bound event handlers for proper cleanup
   private boundDocumentClick = this.onDocumentClick.bind(this);
@@ -472,6 +477,14 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   isHighlighted(index: number): boolean {
     return this.highlightedIndex() === index;
+  }
+
+  getOptionClasses(index: number): string {
+    const classes = [this.menuItemClasses()];
+    if (this.isHighlighted(index)) {
+      classes.push(this.menuActiveClass);
+    }
+    return classes.join(' ');
   }
 
   getOptionId(index: number): string {

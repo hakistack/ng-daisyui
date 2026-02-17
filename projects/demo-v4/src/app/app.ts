@@ -1,6 +1,6 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+import { LucideIconComponent } from '@hakistack/ng-daisyui';
 
 const THEMES = [
   'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate',
@@ -25,7 +25,7 @@ const THEMES = [
             <label for="sidebar" class="btn btn-ghost btn-square">
               <hk-lucide-icon name="Menu" [size]="24" />
             </label>
-            <span class="text-xl font-bold">ng-daisyui-v4</span>
+            <span class="text-xl font-bold">ng-daisyui (v4 theme)</span>
           </div>
           <div class="flex-none">
             <select
@@ -51,7 +51,7 @@ const THEMES = [
         <aside class="bg-base-100 w-72 min-h-full border-r border-base-300 flex flex-col">
           <!-- Logo -->
           <div class="p-4 border-b border-base-300">
-            <h1 class="text-2xl font-bold text-primary">ng-daisyui-v4</h1>
+            <h1 class="text-2xl font-bold text-primary">ng-daisyui (v4 theme)</h1>
             <p class="text-sm text-base-content/60">DaisyUI v4 + Tailwind v3</p>
           </div>
 

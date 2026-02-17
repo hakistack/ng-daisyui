@@ -3,7 +3,7 @@ import { JsonPipe } from '@angular/common';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormsModule } from '@angular/forms';
 import { delay } from 'rxjs';
-import { DialogService, LucideIconComponent, SelectComponent } from '@hakistack/ng-daisyui-v4';
+import { DialogService, LucideIconComponent, SelectComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -504,7 +504,7 @@ ref.closed.subscribe(result => {
   disableClose: true,  // Disable ESC and backdrop close
 });`;
 
-  usageCode = `import { DialogService } from '@hakistack/ng-daisyui-v4';
+  usageCode = `import { DialogService } from '@hakistack/ng-daisyui';
 
 private dialogService = inject(DialogService);
 

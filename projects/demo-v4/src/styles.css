@@ -1,8 +1,7 @@
-/* Import library styles */
-@import "../../hakistack/ng-daisyui-v4/styles.css";
+/* Import library theme adapter and styles */
+@import "../../hakistack/ng-daisyui/themes/daisyui-v4.css";
+@import "../../hakistack/ng-daisyui/styles.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-

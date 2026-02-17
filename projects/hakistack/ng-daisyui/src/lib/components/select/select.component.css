@@ -36,7 +36,7 @@ cdk-virtual-scroll-viewport {
   z-index: 1000;
   isolation: isolate;
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--bc) / 0.2) transparent;
+  scrollbar-color: var(--hk-color-base-content-20) transparent;
   transition:
     opacity var(--transition-duration) var(--transition-timing),
     transform var(--transition-duration) var(--transition-timing),
@@ -74,8 +74,8 @@ cdk-virtual-scroll-viewport {
 }
 
 .dropdown-container .input:focus-within {
-  border-color: hsl(var(--p));
-  box-shadow: 0 0 0 2px hsl(var(--p) / 0.2);
+  border-color: var(--hk-color-primary);
+  box-shadow: 0 0 0 2px var(--hk-color-primary-20);
 }
 
 @keyframes fadeInUp {
@@ -102,12 +102,12 @@ cdk-virtual-scroll-viewport {
 }
 
 .dropdown-container ::-webkit-scrollbar-thumb {
-  background: hsl(var(--bc) / 0.2);
+  background: var(--hk-color-base-content-20);
   border-radius: 3px;
 }
 
 .dropdown-container ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--bc) / 0.3);
+  background: var(--hk-color-base-content-30, var(--hk-color-base-content-20));
 }
 
 .dropdown-container .overflow-auto {
@@ -156,7 +156,8 @@ cdk-virtual-scroll-viewport {
     --dropdown-shadow: none;
   }
 
-  .menu li > a.menu-active {
+  .menu li > a.menu-active,
+  .menu li > a.active {
     outline: 2px solid currentColor;
     outline-offset: -2px;
   }
@@ -169,6 +170,6 @@ cdk-virtual-scroll-viewport {
 }
 
 .dropdown-container:focus-within {
-  outline: 2px solid hsl(var(--p));
+  outline: 2px solid var(--hk-color-primary);
   outline-offset: 2px;
 }

@@ -1,5 +1,5 @@
 import { Component, inject, signal, viewChild } from '@angular/core';
-import { TableComponent, createTable, ToastService, LucideIconComponent, TreeNode } from '@hakistack/ng-daisyui-v4';
+import { TableComponent, createTable, ToastService, LucideIconComponent, TreeNode } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -34,7 +34,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
         <h1 class="text-3xl font-bold">Tree Table</h1>
         <p class="text-base-content/70 mt-2">Enterprise-grade hierarchical data display with inline toggles, indent guides, hierarchy-aware filtering/sorting, cascade selection, and expand animations</p>
         <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui-v4'</code>
+          <code class="badge badge-outline text-xs">import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
         </div>
       </div>
 

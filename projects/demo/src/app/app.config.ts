@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideToast, provideAlert, provideIcons } from '@hakistack/ng-daisyui';
+import { provideToast, provideAlert, provideIcons, provideHkTheme } from '@hakistack/ng-daisyui';
 
 import {
   Archive,
@@ -77,6 +77,7 @@ import { providePipes } from '../../../hakistack/ng-daisyui/src/lib/services/pip
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    provideHkTheme('daisyui-v5'),
     providePipes(),
     provideRouter(routes),
     provideToast(),

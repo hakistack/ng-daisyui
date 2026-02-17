@@ -6,6 +6,7 @@
     "cssUrl": "inline"
   },
   "assets": [
+    "themes/**/*",
     "plugin.mjs",
     "plugin.cjs",
     "styles.css"

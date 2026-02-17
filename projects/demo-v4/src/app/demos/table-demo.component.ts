@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TableComponent, createTable, ToastService, LucideIconComponent, CellEditEvent, RowReorderEvent, ColumnReorderEvent } from '@hakistack/ng-daisyui-v4';
+import { TableComponent, createTable, ToastService, LucideIconComponent, CellEditEvent, RowReorderEvent, ColumnReorderEvent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -1142,7 +1142,7 @@ const config = createTable<User>({
   (sortChange)="onSort($event)"
 />`;
 
-  builderCode = `import { createTable } from '@hakistack/ng-daisyui-v4';
+  builderCode = `import { createTable } from '@hakistack/ng-daisyui';
 
 const config = createTable<User>({
   visible: ['id', 'name', 'email', 'status'],
@@ -1233,7 +1233,7 @@ const config = createTable<User>({
   (cellEdit)="onCellEdit($event)"
 />`;
 
-  footerCode = `import { createTable } from '@hakistack/ng-daisyui-v4';
+  footerCode = `import { createTable } from '@hakistack/ng-daisyui';
 
 const config = createTable<User>({
   visible: ['id', 'name', 'department', 'salary', 'status'],

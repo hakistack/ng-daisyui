@@ -6,7 +6,7 @@ import {
   ToastService,
   createTree,
   node,
-} from '@hakistack/ng-daisyui-v4';
+} from '@hakistack/ng-daisyui';
 import { inject } from '@angular/core';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -386,7 +386,7 @@ export class TreeDemoComponent {
   });
 
   // Code examples
-  basicCode = `import { createTree, node } from '@hakistack/ng-daisyui-v4';
+  basicCode = `import { createTree, node } from '@hakistack/ng-daisyui';
 
 const tree = createTree({
   nodes: [
@@ -407,7 +407,7 @@ const tree = createTree({
   (nodeCollapse)="onCollapse($event)"
 />`;
 
-  selectionCode = `import { createTree, node } from '@hakistack/ng-daisyui-v4';
+  selectionCode = `import { createTree, node } from '@hakistack/ng-daisyui';
 
 const tree = createTree({
   nodes: [
@@ -433,7 +433,7 @@ onSelectionChange(node: TreeNode | TreeNode[] | null) {
   (selectionChange)="onSelectionChange($event)"
 />`;
 
-  checkboxCode = `import { createTree, node } from '@hakistack/ng-daisyui-v4';
+  checkboxCode = `import { createTree, node } from '@hakistack/ng-daisyui';
 
 const tree = createTree({
   nodes: [

@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideIconComponent, IconName } from '@hakistack/ng-daisyui-v4';
+import { LucideIconComponent, IconName } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -301,7 +301,7 @@ export class IconsDemoComponent {
 
   // --- Code examples ---
   basicCode = `// TypeScript
-import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+import { LucideIconComponent } from '@hakistack/ng-daisyui';
 
 @Component({
   imports: [LucideIconComponent],
@@ -319,7 +319,7 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
 <hk-lucide-icon name="Star" [size]="48" />`;
 
   colorCode = `// TypeScript
-import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+import { LucideIconComponent } from '@hakistack/ng-daisyui';
 
 // Template
 <!-- Using color prop -->
@@ -338,7 +338,7 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
 <hk-lucide-icon name="Circle" [strokeWidth]="2.5" />
 <hk-lucide-icon name="Circle" [strokeWidth]="3" />`;
 
-  usageCode = `import { LucideIconComponent } from '@hakistack/ng-daisyui-v4';
+  usageCode = `import { LucideIconComponent } from '@hakistack/ng-daisyui';
 
 @Component({
   imports: [LucideIconComponent],

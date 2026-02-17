@@ -5,7 +5,7 @@ import {
   OrgChartNodeSelectEvent,
   OrgChartNodeExpandEvent,
   OrgChartNodeCollapseEvent,
-} from '@hakistack/ng-daisyui-v4';
+} from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { ApiDocEntry } from '../shared/api-table.types';
