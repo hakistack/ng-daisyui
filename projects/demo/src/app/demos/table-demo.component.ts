@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableComponent, createTable, ToastService, LucideIconComponent, CellEditEvent, RowReorderEvent, ColumnReorderEvent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
@@ -60,7 +60,7 @@ interface CustomerOrder {
   orderDate: string;
 }
 
-type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'editable' | 'footer' | 'expandable' | 'grouped' | 'reorderable' | 'keyboard' | 'hierarchy' | 'masterDetail' | 'nestedMasterDetail';
+type TableTab = 'basic' | 'full' | 'selectableRow' | 'sticky' | 'resizable' | 'virtualScroll' | 'editable' | 'footer' | 'expandable' | 'grouped' | 'reorderable' | 'keyboard' | 'hierarchy' | 'masterDetail' | 'nestedMasterDetail';
 
 @Component({
   selector: 'app-table-demo',
@@ -86,6 +86,7 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
         <div role="tablist" class="tabs tabs-box w-fit flex-wrap">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'full'" (click)="activeTab.set('full')">Full Featured</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'selectableRow'" (click)="activeTab.set('selectableRow')">Selectable Row</button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'sticky'" (click)="activeTab.set('sticky')">Sticky</button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'resizable'" (click)="activeTab.set('resizable')">Resizable</button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'virtualScroll'" (click)="activeTab.set('virtualScroll')">Virtual Scroll</button>
@@ -124,6 +125,38 @@ type TableTab = 'basic' | 'full' | 'sticky' | 'resizable' | 'virtualScroll' | 'e
             <div class="alert alert-info">
               <hk-lucide-icon name="Info" [size]="20" />
               <span>{{ selectedUsers().length }} user(s) selected</span>
+            </div>
+          }
+        }
+
+        @if (activeTab() === 'selectableRow') {
+          <app-doc-section title="Single Selectable Row" description="Click any row to highlight it. Click again to deselect. Useful for visual guidance — the active row gets a primary tint. Supports conditional rowClass for per-row styling." [codeExample]="selectableRowCode">
+            <hk-table
+              [data]="users()"
+              [config]="selectableRowConfig"
+              (activeRowChange)="onActiveRowChange($event)"
+            />
+          </app-doc-section>
+
+          @if (activeUser()) {
+            <div class="alert alert-info">
+              <hk-lucide-icon name="MousePointerClick" [size]="20" />
+              <span>Active row: <strong>{{ activeUser()!.name }}</strong> ({{ activeUser()!.role }})</span>
+            </div>
+          }
+
+          <app-doc-section title="Multi Selectable Rows" description="Click multiple rows to highlight them. Click a highlighted row to deselect it. Great for batch visual guidance without checkbox columns." [codeExample]="multiSelectableRowCode">
+            <hk-table
+              [data]="users()"
+              [config]="multiSelectableRowConfig"
+              (activeRowsChange)="onActiveRowsChange($event)"
+            />
+          </app-doc-section>
+
+          @if (activeUsers().length > 0) {
+            <div class="alert alert-info">
+              <hk-lucide-icon name="MousePointerClick" [size]="20" />
+              <span>{{ activeUsers().length }} row(s) selected: <strong>{{ activeUserNames() }}</strong></span>
             </div>
           }
         }
@@ -343,6 +376,9 @@ export class TableDemoComponent {
   ]);
 
   selectedUsers = signal<User[]>([]);
+  activeUser = signal<User | null>(null);
+  activeUsers = signal<readonly User[]>([]);
+  activeUserNames = computed(() => this.activeUsers().map(u => u.name).join(', '));
 
   basicConfig = createTable<User>({
     visible: ['id', 'name', 'email', 'role', 'status'],
@@ -362,6 +398,59 @@ export class TableDemoComponent {
           pending: 'badge-warning',
         };
         return `<span class="badge ${colors[String(value)] || ''}">${value}</span>`;
+      },
+    },
+  });
+
+  selectableRowConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'department', 'status'],
+    headers: {
+      id: 'ID',
+      name: 'Full Name',
+      email: 'Email',
+      role: 'Role',
+      department: 'Department',
+      status: 'Status',
+    },
+    selectableRows: true,
+    formatters: {
+      role: (value) => `<span class="capitalize">${value}</span>`,
+      status: (value) => {
+        const colors: Record<string, string> = {
+          active: 'badge-success',
+          inactive: 'badge-error',
+          pending: 'badge-warning',
+        };
+        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+      },
+    },
+    rowClass: (row) => ({
+      'bg-error/10': row.status === 'inactive',
+      'bg-warning/10': row.status === 'pending',
+    }),
+  });
+
+  multiSelectableRowConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'department', 'status'],
+    headers: {
+      id: 'ID',
+      name: 'Full Name',
+      email: 'Email',
+      role: 'Role',
+      department: 'Department',
+      status: 'Status',
+    },
+    selectableRows: 'multi',
+    selectedRowClass: 'bg-accent/20',
+    formatters: {
+      role: (value) => `<span class="capitalize">${value}</span>`,
+      status: (value) => {
+        const colors: Record<string, string> = {
+          active: 'badge-success',
+          inactive: 'badge-error',
+          pending: 'badge-warning',
+        };
+        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
       },
     },
   });
@@ -1043,6 +1132,14 @@ export class TableDemoComponent {
     this.selectedUsers.set([...users]);
   }
 
+  onActiveRowChange(user: User | null) {
+    this.activeUser.set(user);
+  }
+
+  onActiveRowsChange(users: readonly User[]) {
+    this.activeUsers.set(users);
+  }
+
   onSort(event: unknown) {
     console.log('Sort:', event);
   }
@@ -1114,6 +1211,46 @@ const config = createTable<User>({
 
 // Template
 <hk-table [data]="users()" [config]="config" />`;
+
+  selectableRowCode = `// TypeScript
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'department', 'status'],
+  selectableRows: true,              // click-to-highlight
+  // selectedRowClass: 'bg-accent/20', // custom highlight (default: 'bg-primary/10')
+  rowClass: (row) => ({              // conditional per-row styling
+    'bg-error/10': row.status === 'inactive',
+    'bg-warning/10': row.status === 'pending',
+  }),
+});
+
+// Template
+<hk-table
+  [data]="users()"
+  [config]="config"
+  (activeRowChange)="onActiveRowChange($event)" />
+
+// Handler
+onActiveRowChange(user: User | null) {
+  console.log('Active row:', user);
+}`;
+
+  multiSelectableRowCode = `// TypeScript
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'department', 'status'],
+  selectableRows: 'multi',            // click to toggle multiple rows
+  selectedRowClass: 'bg-accent/20',   // custom highlight color
+});
+
+// Template
+<hk-table
+  [data]="users()"
+  [config]="config"
+  (activeRowsChange)="onActiveRowsChange($event)" />
+
+// Handler
+onActiveRowsChange(users: readonly User[]) {
+  console.log('Selected rows:', users);
+}`;
 
   fullCode = `// TypeScript
 const config = createTable<User>({

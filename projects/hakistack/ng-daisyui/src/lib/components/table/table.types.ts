@@ -173,6 +173,12 @@ export interface FieldConfig<T> {
   fallbacks?: Partial<Record<StringKey<T>, string>>;
   hasSelection?: boolean;
   hasActions?: boolean;
+  /** Enable click-to-select row highlighting. 'single' (or true) = one row at a time, 'multi' = toggle multiple rows */
+  selectableRows?: boolean | 'single' | 'multi';
+  /** CSS class applied to the active/selected row. Default: 'bg-primary/10' */
+  selectedRowClass?: string;
+  /** Callback to apply conditional CSS classes per row */
+  rowClass?: (row: T) => Record<string, boolean>;
   clearSelectionText?: string;
   selectionHintText?: string;
   actions?: TableAction<T>[];

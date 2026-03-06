@@ -127,7 +127,7 @@ export const safelist = [
 
   // Colors - Background
   'bg-base-100', 'bg-base-200', 'bg-base-200/50', 'bg-info/10', 'bg-info/20',
-  'bg-primary', 'bg-secondary', 'bg-yellow-200',
+  'bg-primary', 'bg-primary/10', 'bg-secondary', 'bg-accent/20', 'bg-success/10', 'bg-warning/10', 'bg-error/10', 'bg-yellow-200',
 
   // Colors - Border
   'border-base-100', 'border-base-200', 'border-base-300',

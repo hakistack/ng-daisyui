@@ -253,7 +253,7 @@
             class="hover:bg-base-50 transition-colors duration-200"
             [class]="isSelectedBgClass(row)"
             [class.master-detail-selected]="isMasterDetailSelected(row)"
-            [class.cursor-pointer]="hasMasterDetailSignal()"
+            [class.cursor-pointer]="hasMasterDetailSignal() || selectableRowsSignal()"
             (click)="onRowClick(row)"
           >
             @if (hasSelectionSignal()) {
@@ -483,7 +483,7 @@
             } @else if (displayRow.type === 'data') {
               <tr class="hover:bg-base-50 transition-colors duration-200" [class]="isSelectedBgClass(displayRow.row)"
                 [class.master-detail-selected]="isMasterDetailSelected(displayRow.row)"
-                [class.cursor-pointer]="hasMasterDetailSignal()"
+                [class.cursor-pointer]="hasMasterDetailSignal() || selectableRowsSignal()"
                 (click)="onRowClick(displayRow.row)">
                 @if (showDragHandleColumnSignal()) {
                   <td class="w-10 px-2"></td>
@@ -981,7 +981,7 @@
         [class.tree-row-entering]="isTreeRowAnimating(row)"
         [attr.data-tree-level]="isTreeTableSignal() ? getRowLevel(row) : null"
         [class.master-detail-selected]="isMasterDetailSelected(row)"
-        [class.cursor-pointer]="hasMasterDetailSignal()"
+        [class.cursor-pointer]="hasMasterDetailSignal() || selectableRowsSignal()"
         (click)="onRowClick(row)"
         [attr.draggable]="enableRowReorderSignal()"
         (dragstart)="onRowDragStart(row, $event)"

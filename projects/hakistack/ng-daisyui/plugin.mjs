@@ -214,7 +214,7 @@ export default function () {
 @source inline("max-h-48 max-h-64");
 
 /* Colors */
-@source inline("bg-base-100 bg-base-200 bg-base-200/30 bg-base-200/50 bg-base-200/70 bg-info/10 bg-info/20 bg-primary bg-secondary bg-yellow-200");
+@source inline("bg-base-100 bg-base-200 bg-base-200/30 bg-base-200/50 bg-base-200/70 bg-info/10 bg-info/20 bg-primary bg-primary/10 bg-secondary bg-accent/20 bg-success/10 bg-warning/10 bg-error/10 bg-yellow-200");
 @source inline("border-base-100 border-base-200 border-base-300 border-base-content/5 border-base-content/10");
 @source inline("text-base-content text-base-content/50 text-base-content/60 text-base-content/70 text-base-content/80 text-error text-primary-content text-white text-xs text-sm text-lg text-2xl");
 @source inline("hover:bg-base-50 hover:bg-base-200 hover:bg-base-300 hover:bg-error/50 hover:border-primary hover:shadow-md hover:text-base-content hover:text-error hover:text-primary-content/70 hover:btn-primary hover:scale-105");

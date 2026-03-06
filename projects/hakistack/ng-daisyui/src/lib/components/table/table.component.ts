@@ -163,11 +163,15 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly groupExpandChange = output<GroupExpandEvent>();
   readonly rowClick = output<T>();
   readonly masterDetailRowChange = output<T>();
+  readonly activeRowChange = output<T | null>();
+  readonly activeRowsChange = output<readonly T[]>();
 
   // Internal signals
   private readonly sortState = signal<SortState>({ field: '', direction: '' });
   private readonly filterState = signal<FilterConfig<T>[]>([]);
   readonly selectedSignal = signal(new Set<T>());
+  readonly activeRow = signal<T | null>(null);
+  readonly activeRows = signal<Set<T>>(new Set());
   readonly openFilterField = signal<string | null>(null); // Track which filter dropdown is open
   readonly columnVisibilityState = signal<Map<string, boolean>>(new Map()); // Track column visibility
   readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
@@ -397,6 +401,12 @@ export class TableComponent<T extends object> implements OnDestroy {
   private readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));
 
   readonly hasSelectionSignal = computed(() => this.fieldConfig()?.hasSelection ?? false);
+  readonly selectableRowsSignal = computed(() => !!this.fieldConfig()?.selectableRows);
+  readonly selectableRowsModeSignal = computed(() => {
+    const val = this.fieldConfig()?.selectableRows;
+    if (val === 'multi') return 'multi';
+    return val ? 'single' : false;
+  });
   readonly hasActionsSignal = computed(() => {
     const actions = this.fieldConfig()?.actions ?? [];
     return actions.length > 0;
@@ -1106,8 +1116,14 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   isSelectedBgClass(row: T): Record<string, boolean> {
+    const config = this.fieldConfig();
+    const rowClassFn = config?.rowClass;
+    const isActive = this.activeRow() === row || this.activeRows().has(row);
+    const activeClass = config?.selectedRowClass ?? 'bg-primary/10';
     return {
       'bg-base-200': this.isSelected(row),
+      [activeClass]: isActive,
+      ...(rowClassFn ? rowClassFn(row) : {}),
     };
   }
 
@@ -1790,6 +1806,24 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   onRowClick(row: T): void {
     this.rowClick.emit(row);
+    const mode = this.selectableRowsModeSignal();
+    if (mode === 'single') {
+      const current = this.activeRow();
+      this.activeRow.set(current === row ? null : row);
+      this.activeRowChange.emit(this.activeRow());
+    } else if (mode === 'multi') {
+      this.activeRows.update(set => {
+        const next = new Set(set);
+        if (next.has(row)) {
+          next.delete(row);
+        } else {
+          next.add(row);
+        }
+        return next;
+      });
+      this.activeRowChange.emit(row);
+      this.activeRowsChange.emit([...this.activeRows()]);
+    }
     if (this.hasMasterDetailSignal()) {
       this.masterDetailSelectedRow.set(row);
       this.masterDetailRowChange.emit(row);
