@@ -25,7 +25,7 @@ export interface FilterApplyEvent {
       <!-- Text Filter -->
       @if (filterConfig().type === 'text') {
         <div class="flex flex-col gap-2">
-          <select class="select select-bordered select-sm" [(ngModel)]="selectedOperator">
+          <select class="select select-sm" [(ngModel)]="selectedOperator">
             <option value="contains">Contains</option>
             <option value="equals">Equals</option>
             <option value="notEquals">Not Equals</option>
@@ -38,7 +38,7 @@ export interface FilterApplyEvent {
           @if (selectedOperator() !== 'isEmpty' && selectedOperator() !== 'isNotEmpty') {
             <input
               type="text"
-              class="input input-bordered input-sm"
+              class="input input-sm"
               [(ngModel)]="textValue"
               [placeholder]="filterConfig().placeholder ?? 'Enter value...'"
               (keydown.enter)="onApply()"
@@ -50,7 +50,7 @@ export interface FilterApplyEvent {
       <!-- Number Filter -->
       @if (filterConfig().type === 'number') {
         <div class="flex flex-col gap-2">
-          <select class="select select-bordered select-sm" [(ngModel)]="selectedOperator">
+          <select class="select select-sm" [(ngModel)]="selectedOperator">
             <option value="equals">Equals</option>
             <option value="notEquals">Not Equals</option>
             <option value="gt">Greater Than</option>
@@ -64,7 +64,7 @@ export interface FilterApplyEvent {
           @if (selectedOperator() !== 'isEmpty' && selectedOperator() !== 'isNotEmpty') {
             <input
               type="number"
-              class="input input-bordered input-sm"
+              class="input input-sm"
               [(ngModel)]="numberValue"
               [placeholder]="filterConfig().placeholder ?? 'Enter number...'"
               (keydown.enter)="onApply()"
@@ -76,7 +76,7 @@ export interface FilterApplyEvent {
       <!-- Select Filter -->
       @if (filterConfig().type === 'select') {
         <div class="flex flex-col gap-2">
-          <select class="select select-bordered select-sm" [(ngModel)]="selectValue">
+          <select class="select select-sm" [(ngModel)]="selectValue">
             <option value="">-- Select --</option>
             @for (option of filterConfig().options ?? []; track option.value) {
               <option [ngValue]="option.value">{{ option.label }}</option>
@@ -88,7 +88,7 @@ export interface FilterApplyEvent {
       <!-- Boolean Filter -->
       @if (filterConfig().type === 'boolean') {
         <div class="flex flex-col gap-2">
-          <select class="select select-bordered select-sm" [ngModel]="booleanValueString()" (ngModelChange)="onBooleanChange($event)">
+          <select class="select select-sm" [ngModel]="booleanValueString()" (ngModelChange)="onBooleanChange($event)">
             <option value="">-- Select --</option>
             <option value="true">Yes</option>
             <option value="false">No</option>
@@ -100,9 +100,9 @@ export interface FilterApplyEvent {
       @if (filterConfig().type === 'multiselect') {
         <div class="flex max-h-48 flex-col gap-2 overflow-y-auto">
           @for (option of filterConfig().options ?? []; track option.value) {
-            <label class="label cursor-pointer justify-start gap-2 py-1">
+            <label class="flex cursor-pointer items-center gap-2 py-1">
               <input type="checkbox" class="checkbox checkbox-sm" [checked]="isOptionSelected(option.value)" (change)="toggleMultiSelectOption(option.value)" />
-              <span class="label-text">{{ option.label }}</span>
+              <span class="text-sm">{{ option.label }}</span>
             </label>
           }
         </div>
@@ -111,7 +111,7 @@ export interface FilterApplyEvent {
       <!-- Date Filter -->
       @if (filterConfig().type === 'date') {
         <div class="flex flex-col gap-2">
-          <select class="select select-bordered select-sm" [(ngModel)]="selectedOperator">
+          <select class="select select-sm" [(ngModel)]="selectedOperator">
             <option value="equals">On</option>
             <option value="gt">After</option>
             <option value="lt">Before</option>
@@ -119,7 +119,7 @@ export interface FilterApplyEvent {
             <option value="lte">On or Before</option>
           </select>
 
-          <input type="date" class="input input-bordered input-sm" [(ngModel)]="dateValue" />
+          <input type="date" class="input input-sm" [(ngModel)]="dateValue" />
         </div>
       }
 
@@ -127,9 +127,9 @@ export interface FilterApplyEvent {
       @if (filterConfig().type === 'numberRange') {
         <div class="flex flex-col gap-2">
           <div class="flex gap-2">
-            <input type="number" class="input input-bordered input-sm flex-1" [(ngModel)]="rangeMin" placeholder="Min" />
+            <input type="number" class="input input-sm flex-1" [(ngModel)]="rangeMin" placeholder="Min" />
             <span class="self-center text-sm">to</span>
-            <input type="number" class="input input-bordered input-sm flex-1" [(ngModel)]="rangeMax" placeholder="Max" />
+            <input type="number" class="input input-sm flex-1" [(ngModel)]="rangeMax" placeholder="Max" />
           </div>
         </div>
       }
@@ -137,8 +137,8 @@ export interface FilterApplyEvent {
       <!-- Date Range Filter -->
       @if (filterConfig().type === 'dateRange') {
         <div class="flex flex-col gap-2">
-          <input type="date" class="input input-bordered input-sm" [(ngModel)]="dateRangeStart" placeholder="From" />
-          <input type="date" class="input input-bordered input-sm" [(ngModel)]="dateRangeEnd" placeholder="To" />
+          <input type="date" class="input input-sm" [(ngModel)]="dateRangeStart" placeholder="From" />
+          <input type="date" class="input input-sm" [(ngModel)]="dateRangeEnd" placeholder="To" />
         </div>
       }
 

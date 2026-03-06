@@ -104,9 +104,9 @@
     @if (field.type !== 'hidden') {
       <label
         [for]="field.id"
-        [class]="isHorizontalLayout() ? 'label pt-2 flex-shrink-0 ' + labelWidthClass() : 'label mb-1'"
+        [class]="isHorizontalLayout() ? 'flex items-center pt-2 flex-shrink-0 ' + labelWidthClass() : 'mb-1 block'"
       >
-        <span class="label-text">
+        <span class="text-sm">
           {{ field.label }}
           @if (isFieldRequired(field)) {
             <span class="text-error ml-1">*</span>
@@ -157,30 +157,26 @@
           ></hk-select>
         }
         @case ('checkbox') {
-          <div class="form-control">
-            <label class="label cursor-pointer justify-start gap-2">
-              <input [id]="field.id" [formControlName]="field.key" type="checkbox" class="checkbox" />
-              <span class="label-text">{{ field.label }}</span>
-            </label>
-          </div>
+          <label class="flex cursor-pointer items-center gap-2">
+            <input [id]="field.id" [formControlName]="field.key" type="checkbox" class="checkbox" />
+            <span class="text-sm">{{ field.label }}</span>
+          </label>
         }
         @case ('radio') {
           <div [class]="field.orientation === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col gap-2'">
             @for (option of getFieldOptions(field); track option.value) {
-              <label class="label cursor-pointer justify-start gap-2 p-0">
+              <label class="flex cursor-pointer items-center gap-2">
                 <input [id]="field.id + '_' + option.value" [formControlName]="field.key" type="radio" [value]="option.value" class="radio" />
-                <span class="label-text">{{ option.label }}</span>
+                <span class="text-sm">{{ option.label }}</span>
               </label>
             }
           </div>
         }
         @case ('toggle') {
-          <div class="form-control">
-            <label class="label cursor-pointer justify-start gap-2">
-              <input [id]="field.id" [formControlName]="field.key" type="checkbox" class="toggle" />
-              <span class="label-text">{{ field.label }}</span>
-            </label>
-          </div>
+          <label class="flex cursor-pointer items-center gap-2">
+            <input [id]="field.id" [formControlName]="field.key" type="checkbox" class="toggle" />
+            <span class="text-sm">{{ field.label }}</span>
+          </label>
         }
         @case ('date') {
           <hk-datepicker [id]="field.id" [range]="field.isRangeDate" [formControlName]="field.key"></hk-datepicker>
@@ -225,15 +221,13 @@
     </div>
 
     @if (field.helpText) {
-      <div class="label mt-1">
-        <span class="label-text-alt text-base-content/70">{{ field.helpText }}</span>
-      </div>
+      <p class="mt-1 px-1 text-xs text-base-content/70">{{ field.helpText }}</p>
     }
 
     @if (getFieldErrors(field.key).length > 0) {
       <div class="flex flex-col">
         @for (error of getFieldErrors(field.key); track error) {
-          <span class="label-text-alt text-error">{{ error }}</span>
+          <span class="px-1 text-xs text-error">{{ error }}</span>
         }
       </div>
     }

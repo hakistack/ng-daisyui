@@ -169,7 +169,3 @@ cdk-virtual-scroll-viewport {
   }
 }
 
-.dropdown-container:focus-within {
-  outline: 2px solid var(--hk-color-primary);
-  outline-offset: 2px;
-}

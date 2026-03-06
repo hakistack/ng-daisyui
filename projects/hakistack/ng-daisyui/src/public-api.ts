@@ -10,6 +10,7 @@
 // Dynamic Form
 export { DynamicFormComponent } from './lib/components/dynamic-form/dynamic-form.component';
 export { createForm, field, step, validation, layout } from './lib/components/dynamic-form/dynamic-form.helpers';
+export { FormUtils } from './lib/components/dynamic-form/dynamic-form.utils';
 export type {
   FormConfig,
   FormFieldConfig,

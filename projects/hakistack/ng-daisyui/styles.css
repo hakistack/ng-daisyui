@@ -239,11 +239,6 @@
   max-height: 0;
   pointer-events: none;
 }
-.dropdown-container:focus-within {
-  outline: 2px solid var(--hk-color-primary);
-  outline-offset: 2px;
-}
-
 /* =====================================================
    STEPPER COMPONENT
    ===================================================== */

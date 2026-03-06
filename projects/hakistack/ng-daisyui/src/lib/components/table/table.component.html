@@ -174,13 +174,9 @@
 
   <!-- Table Scroll Container -->
   @if (isVirtualScrollSignal()) {
-    <!-- Virtual Scroll Mode -->
-    <cdk-virtual-scroll-viewport
-      [itemSize]="virtualScrollItemHeightSignal()"
-      [style.height]="virtualScrollViewportHeightSignal()"
-      class="overflow-auto"
-    >
-      <table class="table virtual-scroll-table w-full">
+    <!-- Virtual Scroll Mode — Header outside viewport for sticky behavior -->
+    <div class="virtual-scroll-container">
+      <table class="table virtual-scroll-table virtual-scroll-header-table w-full">
         <thead>
           <tr>
             @if (hasSelectionSignal()) {
@@ -243,7 +239,14 @@
             }
           </tr>
         </thead>
-        <tbody>
+      </table>
+      <cdk-virtual-scroll-viewport
+        [itemSize]="virtualScrollItemHeightSignal()"
+        [style.height]="virtualScrollViewportHeightSignal()"
+        class="overflow-auto"
+      >
+        <table class="table virtual-scroll-table virtual-scroll-body-table w-full">
+          <tbody>
           <tr
             *cdkVirtualFor="let row of displayDataSignal()"
             [style.height.px]="virtualScrollItemHeightSignal()"
@@ -285,7 +288,7 @@
                           (change)="editingValue.set($any($event.target).checked)" />
                       }
                       @case ('select') {
-                        <select class="select select-sm select-bordered w-full"
+                        <select class="select select-sm w-full"
                           [value]="editingValue()"
                           (change)="editingValue.set($any($event.target).value)">
                           @for (opt of column.editOptions; track opt.value) {
@@ -294,19 +297,19 @@
                         </select>
                       }
                       @case ('number') {
-                        <input type="number" class="input input-sm input-bordered w-full"
+                        <input type="number" class="input input-sm w-full"
                           [value]="editingValue()"
                           (input)="editingValue.set(+$any($event.target).value)"
                           appAutoFocus />
                       }
                       @case ('date') {
-                        <input type="date" class="input input-sm input-bordered w-full"
+                        <input type="date" class="input input-sm w-full"
                           [value]="editingValue()"
                           (input)="editingValue.set($any($event.target).value)"
                           appAutoFocus />
                       }
                       @default {
-                        <input type="text" class="input input-sm input-bordered w-full"
+                        <input type="text" class="input input-sm w-full"
                           [value]="editingValue()"
                           (input)="editingValue.set($any($event.target).value)"
                           appAutoFocus />
@@ -399,8 +402,9 @@
             }
           </tfoot>
         }
-      </table>
-    </cdk-virtual-scroll-viewport>
+        </table>
+      </cdk-virtual-scroll-viewport>
+    </div>
   } @else if (isGroupedSignal() && !isTreeTableSignal()) {
     <!-- Grouped Table Mode -->
     <div class="overflow-x-auto">
@@ -839,7 +843,7 @@
                       (change)="editingValue.set($any($event.target).checked)" />
                   }
                   @case ('select') {
-                    <select class="select select-sm select-bordered w-full"
+                    <select class="select select-sm w-full"
                       [value]="editingValue()"
                       (change)="editingValue.set($any($event.target).value)">
                       @for (opt of column.editOptions; track opt.value) {
@@ -848,19 +852,19 @@
                     </select>
                   }
                   @case ('number') {
-                    <input type="number" class="input input-sm input-bordered w-full"
+                    <input type="number" class="input input-sm w-full"
                       [value]="editingValue()"
                       (input)="editingValue.set(+$any($event.target).value)"
                       appAutoFocus />
                   }
                   @case ('date') {
-                    <input type="date" class="input input-sm input-bordered w-full"
+                    <input type="date" class="input input-sm w-full"
                       [value]="editingValue()"
                       (input)="editingValue.set($any($event.target).value)"
                       appAutoFocus />
                   }
                   @default {
-                    <input type="text" class="input input-sm input-bordered w-full"
+                    <input type="text" class="input input-sm w-full"
                       [value]="editingValue()"
                       (input)="editingValue.set($any($event.target).value)"
                       appAutoFocus />

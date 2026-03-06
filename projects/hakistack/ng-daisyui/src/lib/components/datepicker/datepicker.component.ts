@@ -209,7 +209,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   });
 
   readonly inputClasses = computed(() => {
-    const baseClasses = 'input input-bordered w-full pr-20';
+    const baseClasses = 'input w-full pr-20';
     const classes = [baseClasses];
 
     if (this.isDisabled()) {

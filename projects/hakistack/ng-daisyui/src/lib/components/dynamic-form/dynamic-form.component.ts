@@ -574,7 +574,7 @@ export class DynamicFormComponent {
 
   getFieldContainerClasses(field: FormFieldConfig): string {
     const layout = this.config().layout || 'vertical';
-    const classes: string[] = ['form-control'];
+    const classes: string[] = [];
 
     if (layout === 'grid') {
       // Grid layout: use colSpan
@@ -642,9 +642,9 @@ export class DynamicFormComponent {
   // Static input type classes for better performance
   private static readonly INPUT_TYPE_CLASSES = new Map<string, string>([
     ['range', 'range range-primary w-full'],
-    ['file', 'file-input file-input-bordered file-input-primary w-full'],
-    ['select', 'select select-bordered w-full'],
-    ['textarea', 'textarea textarea-bordered w-full'],
+    ['file', 'file-input file-input-primary w-full'],
+    ['select', 'select w-full'],
+    ['textarea', 'textarea w-full'],
   ]);
 
   // Static colSpan classes for Tailwind JIT compatibility
@@ -779,7 +779,7 @@ export class DynamicFormComponent {
   ]);
 
   getBaseInputClasses(inputType?: string): string {
-    return inputType ? DynamicFormComponent.INPUT_TYPE_CLASSES.get(inputType) || 'input input-bordered w-full' : 'input input-bordered w-full';
+    return inputType ? DynamicFormComponent.INPUT_TYPE_CLASSES.get(inputType) || 'input w-full' : 'input w-full';
   }
 
   // Static grid classes cache for better performance

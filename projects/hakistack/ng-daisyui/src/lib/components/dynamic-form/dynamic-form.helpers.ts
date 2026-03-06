@@ -128,7 +128,7 @@ function createField(key: string, type: FieldType, label?: string, options: Fiel
     order: 1,
     colSpan: options.colSpan,
     width: options.width,
-    cssClass: options.cssClass || 'form-control',
+    cssClass: options.cssClass || '',
     containerClass: options.containerClass,
     hidden: options.hidden || false,
     disabled: options.disabled || false,

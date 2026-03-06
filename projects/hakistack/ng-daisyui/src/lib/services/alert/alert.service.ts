@@ -360,7 +360,18 @@ export class AlertService {
       return this.config.theme();
     }
 
-    // Use system preference if enabled
+    // Detect from the active DaisyUI theme's color-scheme on <html>
+    if (typeof document !== 'undefined') {
+      const colorScheme = getComputedStyle(document.documentElement).colorScheme;
+      if (colorScheme?.includes('dark')) {
+        return 'dark';
+      }
+      if (colorScheme?.includes('light')) {
+        return 'light';
+      }
+    }
+
+    // Fallback: use system preference if enabled
     if (this.config?.useSystemTheme && typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }

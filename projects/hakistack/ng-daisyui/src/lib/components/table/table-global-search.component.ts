@@ -8,7 +8,7 @@ import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative flex-1">
-      <label class="input input-bordered w-full flex items-center gap-2">
+      <label class="input w-full flex items-center gap-2">
         @if (showIcon()) {
           <hk-lucide-icon name="Search" class="h-[1em] opacity-50" aria-hidden="true"></hk-lucide-icon>
         }

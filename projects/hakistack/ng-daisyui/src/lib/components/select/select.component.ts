@@ -190,7 +190,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   // Computed CSS classes for daisyUI styling
   readonly inputClasses = computed(() => {
-    const classes = ['input', 'input-bordered', 'w-full'];
+    const classes = ['input', 'w-full', 'flex', 'items-center'];
 
     // Size variant
     const sizeClass = `input-${this.size()}`;

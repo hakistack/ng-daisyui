@@ -43,3 +43,28 @@
   --hk-color-base-200-60: hsl(var(--b2) / 0.6);
   --hk-color-base-200-90: hsl(var(--b2) / 0.9);
 }
+
+/* =====================================================
+   FORM ELEMENT BORDERS (v4 compatibility)
+   In DaisyUI v5, form elements have borders by default.
+   In v4, the *-bordered modifier was required.
+   These rules auto-apply borders so the library code
+   can omit *-bordered and work on both versions.
+   ===================================================== */
+
+.input:not(.input-ghost),
+.select:not(.select-ghost),
+.textarea:not(.textarea-ghost),
+.file-input:not(.file-input-ghost) {
+  border-width: 1px;
+  border-color: hsl(var(--bc) / 0.2);
+}
+
+/* =====================================================
+   LABEL / FORM-CONTROL COMPAT
+   In v5, label-text / label-text-alt / form-control
+   were removed. The library now uses Tailwind utilities
+   directly. These rules restore v4 visual parity.
+   ===================================================== */
+
+/* form-control provided flex-col in v4; not needed now but harmless */

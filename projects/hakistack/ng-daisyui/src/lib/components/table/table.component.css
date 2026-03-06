@@ -107,16 +107,31 @@
    Virtual Scrolling
    ============================================================================ */
 
-cdk-virtual-scroll-viewport {
-  contain: strict;
+/* Container holds the fixed header table + the scrolling viewport */
+.virtual-scroll-container {
+  position: relative;
+  overflow: hidden;
 }
 
-/* Keep thead sticky in virtual scroll mode */
-:host ::ng-deep .virtual-scroll-table thead {
-  position: sticky;
-  top: 0;
+/* Header table sits above the viewport, always visible */
+:host ::ng-deep .virtual-scroll-header-table {
+  position: relative;
   z-index: 4;
   background-color: var(--hk-color-base-100);
+}
+
+/* Hide the header in the body table (it's rendered separately above) */
+:host ::ng-deep .virtual-scroll-body-table thead {
+  display: none;
+}
+
+/* Ensure body table columns match header table widths */
+:host ::ng-deep .virtual-scroll-body-table {
+  table-layout: fixed;
+}
+
+:host ::ng-deep .virtual-scroll-header-table {
+  table-layout: fixed;
 }
 
 /* ============================================================================

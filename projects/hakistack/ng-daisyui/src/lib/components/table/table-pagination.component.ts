@@ -18,7 +18,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
             <label for="page-size-select" class="text-sm font-medium whitespace-nowrap"> Items per page: </label>
             <select
               id="page-size-select"
-              class="select select-bordered select-sm w-auto min-w-16"
+              class="select select-sm w-auto min-w-16"
               [value]="pageSizeSignal()"
               (change)="onPageSizeChange(+$any($event.target).value)"
               [disabled]="disabled()"
