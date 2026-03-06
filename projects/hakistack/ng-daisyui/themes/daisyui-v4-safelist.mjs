@@ -1,11 +1,11 @@
 /**
- * @hakistack/ng-daisyui-v4 - Tailwind CSS Safelist
+ * @hakistack/ng-daisyui - Tailwind CSS Safelist (DaisyUI v4 compat)
  *
  * This safelist ensures all Tailwind utility classes used in library components
  * are included in the final CSS build, even though Tailwind can't scan node_modules.
  *
  * Usage in tailwind.config.js:
- *   import { safelist } from '@hakistack/ng-daisyui-v4/safelist';
+ *   import { safelist } from '@hakistack/ng-daisyui/themes/daisyui-v4-safelist';
  *
  *   export default {
  *     safelist: safelist,

@@ -1,5 +1,5 @@
 /**
- * @hakistack/ng-daisyui-v4 - Tailwind CSS v3 Plugin
+ * @hakistack/ng-daisyui - Tailwind CSS v3 Plugin (DaisyUI v4 compat)
  *
  * This plugin provides:
  * - Custom CSS variables for transitions
@@ -13,7 +13,7 @@
  *   module.exports = {
  *     plugins: [
  *       require('daisyui'),
- *       require('@hakistack/ng-daisyui-v4/plugin'),
+ *       require('@hakistack/ng-daisyui/themes/daisyui-v4-plugin'),
  *     ],
  *   }
  */
