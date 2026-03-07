@@ -31,6 +31,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
           <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Basic" [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
           <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Variants" [checked]="activeTab() === 'variants'" (change)="activeTab.set('variants')" />
           <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Features" [checked]="activeTab() === 'features'" (change)="activeTab.set('features')" />
+          <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Grouped" [checked]="activeTab() === 'grouped'" (change)="activeTab.set('grouped')" />
           <input type="radio" name="select_tabs" role="tab" class="tab" aria-label="Multiselect" [checked]="activeTab() === 'multiselect'" (change)="activeTab.set('multiselect')" />
         </div>
 
@@ -145,6 +146,40 @@ import { ApiDocEntry } from '../shared/api-table.types';
           </div>
         }
 
+        @if (activeTab() === 'grouped') {
+          <div class="grid gap-6 lg:grid-cols-2">
+            <app-doc-section title="Grouped Options" description="Options organized under group headers using the group property" [codeExample]="groupedCode">
+              <hk-select
+                [options]="groupedOptions"
+                [enableSearch]="true"
+                placeholder="Select a vehicle"
+                (selectionChange)="onGroupedSelect($event)"
+              />
+              @if (groupedSelection()) {
+                <div class="mt-4 text-sm">
+                  Selected: <span class="font-semibold">{{ groupedSelection()!.label }}</span>
+                  <span class="text-base-content/60 ml-1">({{ groupedSelection()!.group }})</span>
+                </div>
+              }
+            </app-doc-section>
+
+            <app-doc-section title="Grouped Multiselect" description="Group headers with multi-select mode" [codeExample]="groupedMultiCode">
+              <hk-select
+                [options]="groupedOptions"
+                [multiple]="true"
+                [enableSearch]="true"
+                placeholder="Select vehicles"
+                (selectionChange)="onGroupedMultiSelect($event)"
+              />
+              @if (groupedMultiSelection().length > 0) {
+                <div class="mt-4 text-sm">
+                  Selected {{ groupedMultiSelection().length }}: <span class="font-semibold">{{ getLabels(groupedMultiSelection()) }}</span>
+                </div>
+              }
+            </app-doc-section>
+          </div>
+        }
+
         @if (activeTab() === 'multiselect') {
           <div class="grid gap-6 lg:grid-cols-2">
             <app-doc-section title="Basic Multiselect" description="Select multiple options with chip display" [codeExample]="multiCode">
@@ -238,12 +273,14 @@ import { ApiDocEntry } from '../shared/api-table.types';
 })
 export class SelectDemoComponent {
   pageTab = signal<'examples' | 'api'>('examples');
-  activeTab = signal<'basic' | 'variants' | 'features' | 'multiselect'>('basic');
+  activeTab = signal<'basic' | 'variants' | 'features' | 'grouped' | 'multiselect'>('basic');
 
   basicSelection = signal<SelectOption | null>(null);
   countrySelection = signal<SelectOption | null>(null);
   largeSelection = signal<SelectOption | null>(null);
 
+  groupedSelection = signal<SelectOption | null>(null);
+  groupedMultiSelection = signal<SelectOption[]>([]);
   multiSelection = signal<SelectOption[]>([]);
   countryMultiSelection = signal<SelectOption[]>([]);
   limitedMultiSelection = signal<SelectOption[]>([]);
@@ -292,6 +329,19 @@ export class SelectDemoComponent {
     { value: 'opt5', label: 'Option 5' },
   ];
 
+  groupedOptions: SelectOption[] = [
+    { value: 'sedan', label: 'Sedan', group: 'Cars' },
+    { value: 'suv', label: 'SUV', group: 'Cars' },
+    { value: 'coupe', label: 'Coupe', group: 'Cars' },
+    { value: 'hatchback', label: 'Hatchback', group: 'Cars' },
+    { value: 'sportbike', label: 'Sport Bike', group: 'Motorcycles' },
+    { value: 'cruiser', label: 'Cruiser', group: 'Motorcycles' },
+    { value: 'scooter', label: 'Scooter', group: 'Motorcycles' },
+    { value: 'pickup', label: 'Pickup', group: 'Trucks' },
+    { value: 'semi', label: 'Semi Truck', group: 'Trucks' },
+    { value: 'van', label: 'Van', group: 'Trucks' },
+  ];
+
   private randomName(): string {
     const adjectives = ['Amazing', 'Brilliant', 'Creative', 'Dynamic', 'Elegant'];
     const nouns = ['Product', 'Service', 'Solution', 'Package', 'Bundle'];
@@ -308,6 +358,14 @@ export class SelectDemoComponent {
 
   onLargeSelect(option: SelectOption | SelectOption[] | null) {
     this.largeSelection.set(Array.isArray(option) ? null : option);
+  }
+
+  onGroupedSelect(option: SelectOption | SelectOption[] | null) {
+    this.groupedSelection.set(Array.isArray(option) ? null : option);
+  }
+
+  onGroupedMultiSelect(options: SelectOption | SelectOption[] | null) {
+    this.groupedMultiSelection.set(Array.isArray(options) ? options : []);
   }
 
   onMultiSelect(options: SelectOption | SelectOption[] | null) {
@@ -386,6 +444,31 @@ largeOptions: SelectOption[] = Array.from(
   [enableSearch]="true"
   [virtualScroll]="true"
   placeholder="Select from 1000 items"
+/>`;
+
+  groupedCode = `// TypeScript
+options: SelectOption[] = [
+  { value: 'sedan', label: 'Sedan', group: 'Cars' },
+  { value: 'suv', label: 'SUV', group: 'Cars' },
+  { value: 'coupe', label: 'Coupe', group: 'Cars' },
+  { value: 'sportbike', label: 'Sport Bike', group: 'Motorcycles' },
+  { value: 'cruiser', label: 'Cruiser', group: 'Motorcycles' },
+  { value: 'pickup', label: 'Pickup', group: 'Trucks' },
+];
+
+// Template
+<hk-select
+  [options]="options"
+  [enableSearch]="true"
+  placeholder="Select a vehicle"
+/>`;
+
+  groupedMultiCode = `// Grouped options work with multi-select too
+<hk-select
+  [options]="groupedOptions"
+  [multiple]="true"
+  [enableSearch]="true"
+  placeholder="Select vehicles"
 />`;
 
   multiCode = `// TypeScript

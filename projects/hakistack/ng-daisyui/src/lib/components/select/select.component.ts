@@ -10,6 +10,12 @@ export interface SelectOption {
   readonly label: string;
   readonly id?: string;
   readonly disabled?: boolean;
+  readonly group?: string;
+}
+
+export interface SelectOptionGroup {
+  readonly label: string;
+  readonly options: SelectOption[];
 }
 
 /** Value type that can be either single or multiple selection */
@@ -154,6 +160,23 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   readonly hasSearchTerm = computed(() => this.searchTerm().trim().length > 0);
   readonly shouldUseVirtualScroll = computed(() => this.virtualScroll() && this.filteredOptions().length > this.config.virtualScrollThreshold);
+
+  readonly hasGroups = computed(() => this.filteredOptions().some(o => !!o.group));
+  readonly groupedOptions = computed<SelectOptionGroup[]>(() => {
+    const options = this.filteredOptions();
+    if (!this.hasGroups()) return [];
+    const groupMap = new Map<string, SelectOption[]>();
+    for (const option of options) {
+      const key = option.group || '';
+      const group = groupMap.get(key);
+      if (group) {
+        group.push(option);
+      } else {
+        groupMap.set(key, [option]);
+      }
+    }
+    return Array.from(groupMap, ([label, opts]) => ({ label, options: opts }));
+  });
   readonly highlightedOptionId = computed(() => {
     const index = this.highlightedIndex();
     return index >= 0 ? this.getOptionId(index) : null;
@@ -457,6 +480,10 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   // Utility methods
   trackByOption = (_: number, option: SelectOption): string => option.id || option.value;
+
+  getFlatIndex(option: SelectOption): number {
+    return this.filteredOptions().indexOf(option);
+  }
 
   isSelected(option: SelectOption): boolean {
     if (this.multiple()) {

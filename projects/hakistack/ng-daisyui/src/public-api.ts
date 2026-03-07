@@ -96,7 +96,7 @@ export type { AggregateFunction } from './lib/components/table/table-aggregates'
 // Select
 export { SelectComponent } from './lib/components/select/select.component';
 export type { SelectOption } from './lib/components/select/select.types';
-export type { SelectSize, SelectColor, SelectValue } from './lib/components/select/select.component';
+export type { SelectSize, SelectColor, SelectValue, SelectOptionGroup } from './lib/components/select/select.component';
 
 // Datepicker
 export { DatepickerComponent } from './lib/components/datepicker/datepicker.component';

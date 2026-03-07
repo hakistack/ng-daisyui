@@ -185,43 +185,87 @@
     } @else {
       <div class="max-h-64 flex-1 overflow-auto">
         <ul id="options-list" role="listbox" [attr.aria-multiselectable]="multiple()" class="menu w-full p-1">
-          @for (option of filteredOptions(); let i = $index; track trackByOption(i, option)) {
-            <li
-              role="option"
-              [attr.id]="getOptionId(i)"
-              [attr.aria-selected]="isSelected(option)"
-              [attr.aria-disabled]="isOptionDisabled(option)"
-            >
-              <button
-                type="button"
-                class="flex w-full cursor-pointer items-center justify-between px-3"
-                [class]="menuItemClasses()"
-                (click)="selectOption(option)"
-                [class]="isHighlighted(i) ? menuActiveClass : ''"
-                [class.bg-primary]="isSelected(option) && !multiple()"
-                [class.text-primary-content]="isSelected(option) && !multiple()"
-                [class.opacity-50]="isOptionDisabled(option)"
-                [class.cursor-not-allowed]="isOptionDisabled(option)"
-                [disabled]="isOptionDisabled(option)"
-              >
-                <!-- Checkbox for multi-select -->
-                @if (multiple()) {
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-sm checkbox-primary mr-2"
-                    [checked]="isSelected(option)"
-                    tabindex="-1"
+          @if (hasGroups()) {
+            @for (group of groupedOptions(); track group.label) {
+              @if (group.label) {
+                <li class="menu-title text-xs text-base-content/60 px-3 pt-3 pb-1">{{ group.label }}</li>
+              }
+              @for (option of group.options; track trackByOption($index, option)) {
+                <li
+                  role="option"
+                  [attr.id]="getOptionId(getFlatIndex(option))"
+                  [attr.aria-selected]="isSelected(option)"
+                  [attr.aria-disabled]="isOptionDisabled(option)"
+                >
+                  <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center justify-between px-3"
+                    [class]="menuItemClasses()"
+                    (click)="selectOption(option)"
+                    [class]="isHighlighted(getFlatIndex(option)) ? menuActiveClass : ''"
+                    [class.bg-primary]="isSelected(option) && !multiple()"
+                    [class.text-primary-content]="isSelected(option) && !multiple()"
+                    [class.opacity-50]="isOptionDisabled(option)"
+                    [class.cursor-not-allowed]="isOptionDisabled(option)"
                     [disabled]="isOptionDisabled(option)"
-                  />
-                }
-                <span class="flex-1 truncate text-left" [innerHTML]="highlightMatch(option.label, searchTerm())"></span>
-                @if (isSelected(option) && !multiple()) {
-                  <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                }
-              </button>
-            </li>
+                  >
+                    @if (multiple()) {
+                      <input
+                        type="checkbox"
+                        class="checkbox checkbox-sm checkbox-primary mr-2"
+                        [checked]="isSelected(option)"
+                        tabindex="-1"
+                        [disabled]="isOptionDisabled(option)"
+                      />
+                    }
+                    <span class="flex-1 truncate text-left" [innerHTML]="highlightMatch(option.label, searchTerm())"></span>
+                    @if (isSelected(option) && !multiple()) {
+                      <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    }
+                  </button>
+                </li>
+              }
+            }
+          } @else {
+            @for (option of filteredOptions(); let i = $index; track trackByOption(i, option)) {
+              <li
+                role="option"
+                [attr.id]="getOptionId(i)"
+                [attr.aria-selected]="isSelected(option)"
+                [attr.aria-disabled]="isOptionDisabled(option)"
+              >
+                <button
+                  type="button"
+                  class="flex w-full cursor-pointer items-center justify-between px-3"
+                  [class]="menuItemClasses()"
+                  (click)="selectOption(option)"
+                  [class]="isHighlighted(i) ? menuActiveClass : ''"
+                  [class.bg-primary]="isSelected(option) && !multiple()"
+                  [class.text-primary-content]="isSelected(option) && !multiple()"
+                  [class.opacity-50]="isOptionDisabled(option)"
+                  [class.cursor-not-allowed]="isOptionDisabled(option)"
+                  [disabled]="isOptionDisabled(option)"
+                >
+                  @if (multiple()) {
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-sm checkbox-primary mr-2"
+                      [checked]="isSelected(option)"
+                      tabindex="-1"
+                      [disabled]="isOptionDisabled(option)"
+                    />
+                  }
+                  <span class="flex-1 truncate text-left" [innerHTML]="highlightMatch(option.label, searchTerm())"></span>
+                  @if (isSelected(option) && !multiple()) {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  }
+                </button>
+              </li>
+            }
           }
         </ul>
       </div>
