@@ -1,0 +1,262 @@
+<div class="relative" #tpRoot>
+  <!-- Main Input -->
+  <div class="flex items-center">
+    <div class="relative flex-1">
+      <input
+        #timeInput
+        type="text"
+        [class]="inputClasses()"
+        [placeholder]="placeholder()"
+        [disabled]="isDisabled()"
+        [id]="inputId()"
+        [name]="name()"
+        [attr.aria-required]="required()"
+        [attr.aria-invalid]="isTouched() && isInvalid()"
+        [attr.aria-describedby]="validationErrors() ? inputId() + '-error' : null"
+        (focus)="onInputFocus()"
+        (blur)="onInputBlur()"
+        (input)="onInputChange()"
+        (keydown.enter)="onInputEnter($event)"
+        (keydown.escape)="onInputEscape()"
+        (keydown.arrowDown)="$event.preventDefault(); openPicker()"
+        autocomplete="off"
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="isOpen()"
+        aria-label="Time picker input"
+      />
+
+      <!-- Right-side icons -->
+      <div class="absolute inset-y-0 right-0 flex items-center space-x-1 pr-3">
+        <!-- Clear Button -->
+        @if (showClearButton() && hasSelection() && !isDisabled()) {
+          <button
+            type="button"
+            class="hover:bg-base-200 rounded p-1 transition-colors"
+            (click)="$event.stopPropagation(); clearSelection()"
+            aria-label="Clear selection"
+            tabindex="-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="text-base-content/60 hover:text-base-content h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        }
+
+        <!-- Clock Icon -->
+        <button
+          type="button"
+          class="hover:bg-base-200 rounded p-1 transition-colors"
+          [class.opacity-50]="isDisabled()"
+          (click)="!isDisabled() && togglePicker()"
+          aria-label="Open time picker"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="text-base-content/60 hover:text-base-content h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input Hint (live parse preview) -->
+  @if (inputHint()) {
+    <div class="text-base-content/60 mt-1 flex items-center gap-1 text-xs" aria-live="polite">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
+      <span class="font-mono">{{ inputHint() }}</span>
+    </div>
+  }
+
+  <!-- Validation Error Message -->
+  @if (isTouched() && validationErrors()) {
+    <div class="text-error mt-1 text-xs" [id]="inputId() + '-error'" role="alert" aria-live="polite">
+      @if (validationErrors()!['required']) {
+        <span>This field is required.</span>
+      }
+      @if (validationErrors()!['minTime']) {
+        <span>Time must be after {{ validationErrors()!['minTime'].min }}</span>
+      }
+      @if (validationErrors()!['maxTime']) {
+        <span>Time must be before {{ validationErrors()!['maxTime'].max }}</span>
+      }
+    </div>
+  }
+
+  <!-- Timepicker Dropdown -->
+  @if (isOpen()) {
+    <div [class]="dropdownClasses()" [style.min-width]="minWidth()" role="dialog" aria-label="Time picker" aria-modal="true">
+      <!-- Time Display Header -->
+      <div class="mb-4 flex items-center justify-center gap-1">
+        <button
+          type="button"
+          class="btn btn-sm font-mono text-lg"
+          [class.btn-primary]="currentView() === 'hours'"
+          [class.btn-ghost]="currentView() !== 'hours'"
+          (click)="setView('hours')"
+          aria-label="Select hour"
+        >
+          {{ displayHour() }}
+        </button>
+        <span class="text-base-content/50 text-lg font-mono">:</span>
+        <button
+          type="button"
+          class="btn btn-sm font-mono text-lg"
+          [class.btn-primary]="currentView() === 'minutes'"
+          [class.btn-ghost]="currentView() !== 'minutes'"
+          (click)="setView('minutes')"
+          aria-label="Select minute"
+        >
+          {{ displayMinute() }}
+        </button>
+        @if (showSeconds()) {
+          <span class="text-base-content/50 text-lg font-mono">:</span>
+          <button
+            type="button"
+            class="btn btn-sm font-mono text-lg"
+            [class.btn-primary]="currentView() === 'seconds'"
+            [class.btn-ghost]="currentView() !== 'seconds'"
+            (click)="setView('seconds')"
+            aria-label="Select second"
+          >
+            {{ displaySecond() }}
+          </button>
+        }
+        @if (!use24Hour()) {
+          <button
+            type="button"
+            class="btn btn-sm btn-outline ml-2"
+            (click)="togglePeriod()"
+            [disabled]="isDisabled()"
+            aria-label="Toggle AM/PM"
+          >
+            {{ period() }}
+          </button>
+        }
+      </div>
+
+      <!-- Views -->
+      <div class="timepicker-content">
+        @if (clockFace()) {
+          <!-- Clock Face -->
+          <div
+            class="relative mx-auto cursor-pointer"
+            style="width: 256px; height: 256px"
+            (click)="onClockDialClick($event)"
+            role="group"
+            [attr.aria-label]="currentView() === 'hours' ? 'Hour selector' : currentView() === 'minutes' ? 'Minute selector' : 'Second selector'"
+          >
+            <!-- Background circle -->
+            <div class="bg-base-200 absolute inset-0 rounded-full"></div>
+
+            <!-- SVG Hand -->
+            <svg class="absolute inset-0 pointer-events-none" width="256" height="256" aria-hidden="true">
+              <circle cx="128" cy="128" r="3" style="fill: var(--color-primary)" />
+              @if (showClockHand()) {
+                <g
+                  class="clock-hand"
+                  [style.transform]="'rotate(' + clockHandAngle() + 'deg)'"
+                  style="transform-origin: 128px 128px"
+                >
+                  <line x1="128" y1="128" x2="128" [attr.y2]="128 - handRadius()" style="stroke: var(--color-primary)" stroke-width="2" />
+                  <circle cx="128" [attr.cy]="128 - handRadius()" r="18" style="fill: var(--color-primary); opacity: 0.15" />
+                </g>
+              }
+            </svg>
+
+            <!-- Number buttons -->
+            @for (pos of clockPositions(); track pos.value) {
+              <button
+                type="button"
+                [class]="getClockNumberClasses(pos)"
+                [style.left.px]="pos.x - getClockNumberOffset(pos)"
+                [style.top.px]="pos.y - getClockNumberOffset(pos)"
+                (click)="$event.stopPropagation(); onClockNumberClick(pos)"
+                [attr.aria-pressed]="isClockValueSelected(pos.value)"
+              >
+                {{ pos.display }}
+              </button>
+            }
+          </div>
+        } @else {
+          <!-- Grid Views -->
+          @switch (currentView()) {
+            @case ('hours') {
+              <div class="grid grid-cols-4 gap-1">
+                @for (hour of hourOptions(); track hour) {
+                  <button
+                    type="button"
+                    class="btn btn-sm font-mono transition-all duration-200"
+                    [class.btn-primary]="isHourSelected(hour)"
+                    [class.btn-ghost]="!isHourSelected(hour)"
+                    [class.hover:btn-primary]="!isHourSelected(hour)"
+                    [disabled]="isHourDisabled(hour)"
+                    (click)="selectHour(hour)"
+                    [attr.aria-pressed]="isHourSelected(hour)"
+                  >
+                    {{ formatNumber(hour) }}
+                  </button>
+                }
+              </div>
+            }
+
+            @case ('minutes') {
+              <div class="max-h-52 overflow-auto">
+                <div class="grid gap-1" [class]="minuteGridCols()">
+                  @for (minute of minuteOptions(); track minute) {
+                    <button
+                      type="button"
+                      class="btn btn-sm font-mono transition-all duration-200"
+                      [class.btn-primary]="isMinuteSelected(minute)"
+                      [class.btn-ghost]="!isMinuteSelected(minute)"
+                      [class.hover:btn-primary]="!isMinuteSelected(minute)"
+                      [disabled]="isMinuteDisabled(minute)"
+                      (click)="selectMinute(minute)"
+                      [attr.aria-pressed]="isMinuteSelected(minute)"
+                    >
+                      {{ formatNumber(minute) }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
+            @case ('seconds') {
+              <div class="max-h-52 overflow-auto">
+                <div class="grid gap-1" [class]="secondGridCols()">
+                  @for (second of secondOptions(); track second) {
+                    <button
+                      type="button"
+                      class="btn btn-sm font-mono transition-all duration-200"
+                      [class.btn-primary]="isSecondSelected(second)"
+                      [class.btn-ghost]="!isSecondSelected(second)"
+                      [class.hover:btn-primary]="!isSecondSelected(second)"
+                      [disabled]="isSecondDisabled(second)"
+                      (click)="selectSecond(second)"
+                      [attr.aria-pressed]="isSecondSelected(second)"
+                    >
+                      {{ formatNumber(second) }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          }
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="border-base-300 mt-4 flex items-center justify-between border-t pt-3">
+        <div class="flex items-center space-x-2">
+          @if (showNowButton()) {
+            <button type="button" class="btn btn-ghost btn-sm" (click)="selectNow()">Now</button>
+          }
+          @if (showClearButton()) {
+            <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()" [disabled]="!hasSelection()">Clear</button>
+          }
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="closePicker()">Close</button>
+      </div>
+    </div>
+  }
+</div>

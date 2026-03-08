@@ -10,6 +10,7 @@ export const routes: Routes = [
   { path: 'org-chart', loadComponent: () => import('./demos/org-chart-demo.component').then((m) => m.OrgChartDemoComponent) },
   { path: 'select', loadComponent: () => import('./demos/select-demo.component').then((m) => m.SelectDemoComponent) },
   { path: 'datepicker', loadComponent: () => import('./demos/datepicker-demo.component').then((m) => m.DatepickerDemoComponent) },
+  { path: 'timepicker', loadComponent: () => import('./demos/timepicker-demo.component').then((m) => m.TimepickerDemoComponent) },
   { path: 'tabs', loadComponent: () => import('./demos/tabs-demo.component').then((m) => m.TabsDemoComponent) },
   { path: 'toast', loadComponent: () => import('./demos/toast-demo.component').then((m) => m.ToastDemoComponent) },
   { path: 'alert', loadComponent: () => import('./demos/alert-demo.component').then((m) => m.AlertDemoComponent) },

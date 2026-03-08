@@ -115,6 +115,15 @@ export type {
   ViewMode,
 } from './lib/components/datepicker/datepicker.types';
 
+// Timepicker
+export { TimepickerComponent } from './lib/components/timepicker/timepicker.component';
+export type {
+  TimepickerEvent,
+  TimepickerPosition,
+  TimepickerView,
+  ClockPosition,
+} from './lib/components/timepicker/timepicker.types';
+
 // Stepper
 export { StepperComponent } from './lib/components/stepper/stepper.component';
 

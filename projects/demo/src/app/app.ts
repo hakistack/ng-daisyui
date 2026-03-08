@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideIconComponent } from '@hakistack/ng-daisyui';
 
 const THEMES = [
+  'reportforge',
   'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate',
   'synthwave', 'retro', 'cyberpunk', 'valentine', 'halloween', 'garden',
   'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe', 'black',
@@ -121,6 +122,12 @@ const THEMES = [
               <a routerLink="/datepicker" routerLinkActive="active">
                 <hk-lucide-icon name="Calendar" [size]="18" />
                 Datepicker
+              </a>
+            </li>
+            <li>
+              <a routerLink="/timepicker" routerLinkActive="active">
+                <hk-lucide-icon name="Clock" [size]="18" />
+                Timepicker
               </a>
             </li>
 

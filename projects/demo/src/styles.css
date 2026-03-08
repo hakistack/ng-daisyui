@@ -4,3 +4,51 @@
 }
 @import "../../../projects/hakistack/ng-daisyui/themes/daisyui-v5.css";
 @import "../../../projects/hakistack/ng-daisyui/styles.css";
+
+
+/* ReportForge Studio — Dark */
+@plugin "daisyui/theme" {
+  name: "reportforge";
+  default: false;
+  prefersdark: false;
+  color-scheme: dark;
+  /* Indigo accent (#6366f1) */
+  --color-primary: oklch(0.585 0.204 277);
+  --color-primary-content: oklch(1 0 0);
+  /* Muted blue-gray (#8b8fa3) */
+  --color-secondary: oklch(0.653 0.030 277);
+  --color-secondary-content: oklch(1 0 0);
+  /* Lighter indigo (#818cf8) */
+  --color-accent: oklch(0.680 0.158 277);
+  --color-accent-content: oklch(0.178 0.013 271);
+  /* Border tone (#2e3348) */
+  --color-neutral: oklch(0.326 0.038 274);
+  --color-neutral-content: oklch(0.920 0.004 286);
+  /* bg (#0f1117) → surface (#1a1d27) → elevated (#242837) */
+  --color-base-100: oklch(0.178 0.013 271);
+  --color-base-200: oklch(0.232 0.020 272);
+  --color-base-300: oklch(0.280 0.028 273);
+  --color-base-content: oklch(0.920 0.004 286);
+  /* Info = indigo accent */
+  --color-info: oklch(0.585 0.204 277);
+  --color-info-content: oklch(1 0 0);
+  /* Success (#22c55e) */
+  --color-success: oklch(0.723 0.192 150);
+  --color-success-content: oklch(1 0 0);
+  /* Warning (#f59e0b) — dark text for contrast */
+  --color-warning: oklch(0.769 0.165 70);
+  --color-warning-content: oklch(0.178 0.013 271);
+  /* Error/Danger (#ef4444) */
+  --color-error: oklch(0.637 0.208 25);
+  --color-error-content: oklch(1 0 0);
+  /* 8px radius everywhere — clean studio look */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  /* Visible borders, subtle depth, no noise */
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
