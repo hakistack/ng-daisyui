@@ -1,9 +1,12 @@
 const path = require('path');
+const ngDaisyuiPreset = require('../hakistack/ng-daisyui/themes/daisyui-v4-preset');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  presets: [ngDaisyuiPreset],
   content: [
     path.join(__dirname, 'src/**/*.{html,ts}'),
+    // Dev: scan library source directly (in prod, the preset scans the FESM bundle)
     path.join(__dirname, '../../projects/hakistack/ng-daisyui/src/**/*.{html,ts}'),
   ],
   theme: {

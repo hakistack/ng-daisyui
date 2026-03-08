@@ -290,7 +290,7 @@ export class TreeDemoComponent {
       node.file('package.json', { icon: 'Braces', data: { name: 'package.json', type: 'file', size: 1536 } }),
       node.file('README.md', { icon: 'FileText', data: { name: 'README.md', type: 'file', size: 2048 } }),
     ],
-    showLines: true,
+    showLines: false,
     keyboardNavigation: true,
     indentSize: 24,
   });
@@ -314,7 +314,7 @@ export class TreeDemoComponent {
       ], { icon: 'Building2', expanded: true, data: { name: 'Acme Corporation', type: 'folder' } }),
     ],
     selectionMode: 'single',
-    showLines: true,
+    showLines: false,
     keyboardNavigation: true,
   });
 
@@ -337,7 +337,7 @@ export class TreeDemoComponent {
       ], { icon: 'Building2', expanded: true, data: { name: 'Acme Corporation', type: 'folder' } }),
     ],
     selectionMode: 'checkbox',
-    showLines: true,
+    showLines: false,
     propagateSelectionDown: true,
     propagateSelectionUp: true,
     keyboardNavigation: true,
@@ -357,7 +357,7 @@ export class TreeDemoComponent {
       ], { icon: 'CircleCheck', expanded: true, data: { name: 'Completed', type: 'folder' } }),
     ],
     dragDrop: true,
-    showLines: true,
+    showLines: false,
     selectionMode: 'single',
     keyboardNavigation: true,
   });
@@ -368,7 +368,7 @@ export class TreeDemoComponent {
       node.lazy<FileNode>('Pictures', { data: { name: 'Pictures', type: 'folder' } }),
       node.lazy<FileNode>('Music', { data: { name: 'Music', type: 'folder' } }),
     ],
-    showLines: true,
+    showLines: false,
     keyboardNavigation: true,
   });
 
@@ -380,7 +380,7 @@ export class TreeDemoComponent {
     filterable: true,
     filterMode: 'lenient',
     filterPlaceholder: 'Search files...',
-    showLines: true,
+    showLines: false,
     expandAll: true,
     keyboardNavigation: true,
   });
@@ -396,7 +396,7 @@ const tree = createTree({
     ], { expanded: true }),
     node.file('package.json', { icon: 'Braces' }),
   ],
-  showLines: true,
+  showLines: false,
   keyboardNavigation: true,
 });
 
@@ -417,7 +417,7 @@ const tree = createTree({
     ], { icon: 'Building2', expanded: true }),
   ],
   selectionMode: 'single',
-  showLines: true,
+  showLines: false,
 });
 
 selectedNode = signal<TreeNode | null>(null);
@@ -444,7 +444,7 @@ const tree = createTree({
     ], { icon: 'Code', expanded: true }),
   ],
   selectionMode: 'checkbox',
-  showLines: true,
+  showLines: false,
   propagateSelectionDown: true,
   propagateSelectionUp: true,
 });

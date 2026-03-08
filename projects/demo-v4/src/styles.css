@@ -1,6 +1,6 @@
-/* Import library theme adapter and styles */
+/* Library theme adapter: variable mappings + v4 compat borders */
+/* Component styles (toast, dropdown, stepper) come from the preset plugin in tailwind.config.js */
 @import "../../hakistack/ng-daisyui/themes/daisyui-v4.css";
-@import "../../hakistack/ng-daisyui/styles.css";
 
 @tailwind base;
 @tailwind components;

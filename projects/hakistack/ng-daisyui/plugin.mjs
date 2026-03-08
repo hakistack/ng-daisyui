@@ -94,7 +94,7 @@ export default function () {
 @source inline("indicator indicator-item indicator-start indicator-center indicator-end indicator-top indicator-middle indicator-bottom");
 
 /* Input */
-@source inline("input input-bordered input-ghost input-primary input-secondary input-accent input-neutral input-info input-success input-warning input-error input-xs input-sm input-md input-lg input-xl");
+@source inline("input input-bordered input-ghost input-primary input-secondary input-accent input-neutral input-info input-success input-warning input-error input-xs input-sm input-md input-lg input-xl input-disabled");
 
 /* Join */
 @source inline("join join-item join-vertical join-horizontal");
@@ -192,63 +192,67 @@ export default function () {
 /* Layout */
 @source inline("flex flex-1 flex-col flex-wrap flex-none flex-shrink-0 shrink-0 grow");
 @source inline("gap-0.5 gap-1 gap-2 gap-3 gap-4 gap-6 gap-x-4 gap-y-2");
-@source inline("grid grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-7");
+@source inline("grid grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-6 grid-cols-7");
 @source inline("items-center items-start");
 @source inline("justify-start justify-center justify-between justify-end");
 @source inline("self-center");
 
 /* Spacing */
 @source inline("p-0 p-1 p-2 p-3 p-4");
-@source inline("px-1 px-2 px-3 px-4");
-@source inline("py-1 py-1.5 py-2 py-3");
-@source inline("pl-10 pr-3 pr-10 pr-20");
-@source inline("m-0 mt-0 mt-1 mt-2 mt-4 mt-6 mb-1 mb-2 mb-3 mb-4 mb-6 mb-8 ml-1 ml-2 mr-1 mr-1.5");
-@source inline("mx-auto my-0 pb-2 pt-2 pt-3 pt-6");
+@source inline("px-1 px-2 px-3 px-4 px-5");
+@source inline("py-1 py-0.5 py-1.5 py-2 py-3 py-8");
+@source inline("pl-9 pl-10 pr-3 pr-10 pr-20");
+@source inline("m-0 mt-0 mt-1 mt-2 mt-4 mt-6 mb-1 mb-2 mb-3 mb-4 mb-6 mb-8 ml-1 ml-2 mr-1 mr-1.5 mr-2");
+@source inline("mx-auto my-0 pb-1 pb-2 pt-2 pt-3 pt-6");
 @source inline("-mx-1 -my-2");
 @source inline("space-x-1 space-x-2 space-y-1 space-y-2 space-y-4 space-y-6");
 
 /* Sizing */
-@source inline("w-3 w-4 w-5 w-8 w-16 w-full w-auto w-72 w-1/4 w-1/3 w-1/6 w-2/5");
-@source inline("h-3 h-4 h-5 h-6 h-8 h-10 h-12 h-14 h-[1em]");
-@source inline("min-w-16");
-@source inline("max-h-48 max-h-64");
+@source inline("w-0.5 w-3 w-4 w-5 w-6 w-7 w-8 w-9 w-10 w-16 w-52 w-full w-auto w-72 w-1/4 w-1/3 w-1/6 w-2/5 w-[95vw]");
+@source inline("h-0.5 h-3 h-4 h-5 h-6 h-7 h-8 h-9 h-10 h-12 h-14 h-[1em]");
+@source inline("min-w-16 min-w-35");
+@source inline("max-h-48 max-h-52 max-h-64");
+@source inline("max-w-24 max-w-lg");
 
 /* Colors */
-@source inline("bg-base-100 bg-base-200 bg-base-200/30 bg-base-200/50 bg-base-200/70 bg-info/10 bg-info/20 bg-primary bg-primary/10 bg-secondary bg-accent/20 bg-success/10 bg-warning/10 bg-error/10 bg-yellow-200");
+@source inline("bg-base-100 bg-base-200 bg-base-200/30 bg-base-200/50 bg-base-200/70 bg-base-300 bg-transparent bg-info/10 bg-info/20 bg-primary bg-primary/10 bg-secondary bg-accent/20 bg-success/10 bg-warning/10 bg-error/10 bg-yellow-200");
 @source inline("border-base-100 border-base-200 border-base-300 border-base-content/5 border-base-content/10");
+@source inline("border-t-primary border-t-secondary border-t-accent border-t-neutral border-t-info border-t-success border-t-warning border-t-error");
 @source inline("text-base-content text-base-content/50 text-base-content/60 text-base-content/70 text-base-content/80 text-error text-primary-content text-white text-xs text-sm text-lg text-2xl");
 @source inline("hover:bg-base-50 hover:bg-base-200 hover:bg-base-300 hover:bg-error/50 hover:border-primary hover:shadow-md hover:text-base-content hover:text-error hover:text-primary-content/70 hover:btn-primary hover:scale-105");
 
 /* Typography */
-@source inline("font-medium font-semibold font-bold");
+@source inline("font-mono font-normal font-medium font-semibold font-bold");
 @source inline("text-center text-left text-right");
 @source inline("truncate whitespace-nowrap");
 
 /* Borders/Rounded */
-@source inline("border border-t border-t-0 border-b");
+@source inline("border border-t border-t-0 border-t-4 border-b");
 @source inline("rounded rounded-lg rounded-box rounded-b-box rounded-2xl rounded-full");
+@source inline("ring-2 ring-primary");
 
 /* Effects/Positioning */
-@source inline("shadow shadow-lg shadow-xl");
+@source inline("shadow-sm shadow shadow-lg shadow-xl");
 @source inline("opacity-30 opacity-40 opacity-50 opacity-60 opacity-70");
 @source inline("z-10 z-20 z-50");
-@source inline("absolute relative inset-y-0 right-0 left-0 bottom-full");
+@source inline("absolute relative inset-0 inset-x-0 inset-y-0 right-0 right-2 left-0 left-3 left-1/2 top-1/2 bottom-full");
 @source inline("overflow-auto overflow-hidden overflow-x-auto overflow-y-auto");
+@source inline("-translate-x-1/2 -translate-y-1/2");
 
 /* Transitions */
 @source inline("transition-all transition-colors transition-transform duration-200 ease-out");
 
 /* Interactive */
-@source inline("cursor-pointer cursor-default cursor-not-allowed select-none hidden invisible rotate-180 sr-only");
+@source inline("cursor-pointer cursor-grab cursor-default cursor-not-allowed select-none pointer-events-none pointer-events-auto hidden invisible rotate-180 sr-only");
 
 /* Responsive - sm breakpoint */
-@source inline("sm:flex-row sm:items-center sm:justify-between sm:justify-end");
+@source inline("sm:flex-row sm:items-center sm:justify-between sm:justify-end sm:w-auto sm:min-w-[24rem]");
 @source inline("sm:col-span-1 sm:col-span-2 sm:col-span-3 sm:col-span-4 sm:col-span-5 sm:col-span-6 sm:col-span-7 sm:col-span-8 sm:col-span-9 sm:col-span-10 sm:col-span-11 sm:col-span-12");
 
 /* Responsive - md breakpoint */
 @source inline("md:grid-cols-2 md:grid-cols-3 md:w-[calc(50%-0.75rem)] md:w-[calc(33.333%-0.75rem)] md:w-[calc(25%-0.75rem)] md:w-[calc(66.666%-0.75rem)] md:w-[calc(75%-0.75rem)]");
 @source inline("md:col-span-1 md:col-span-2 md:col-span-3 md:col-span-4 md:col-span-5 md:col-span-6 md:col-span-7 md:col-span-8 md:col-span-9 md:col-span-10 md:col-span-11 md:col-span-12");
-@source inline("md:gap-2");
+@source inline("md:gap-2 md:min-w-md");
 
 /* Responsive - lg breakpoint */
 @source inline("lg:grid-cols-3 lg:grid-cols-4");

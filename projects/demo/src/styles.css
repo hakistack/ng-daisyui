@@ -2,7 +2,8 @@
 @plugin "daisyui" {
   themes: all;
 }
-@import "../../../projects/hakistack/ng-daisyui/themes/daisyui-v5.css";
+@source "../../../projects/hakistack/ng-daisyui/src/**/*.ts";
+@source "../../../projects/hakistack/ng-daisyui/src/**/*.html";
 @import "../../../projects/hakistack/ng-daisyui/styles.css";
 
 

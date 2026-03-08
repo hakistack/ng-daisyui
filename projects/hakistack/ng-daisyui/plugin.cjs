@@ -1,10 +1,9 @@
 /**
  * @hakistack/ng-daisyui - Tailwind CSS v4 Plugin (CommonJS)
  *
- * Usage:
- *   @import "tailwindcss";
- *   @plugin "daisyui";
- *   @import "@hakistack/ng-daisyui";
+ * NOTE: This plugin is kept for backward compatibility.
+ * The recommended approach is: @import "@hakistack/ng-daisyui";
+ * which loads styles.css (safelists + component CSS) directly.
  */
 
 module.exports = function () {
@@ -17,31 +16,34 @@ module.exports = function () {
    ===================================================== */
 
 /* Alert */
-@source inline("alert alert-primary alert-secondary alert-accent alert-neutral alert-info alert-success alert-warning alert-error alert-outline alert-soft");
+@source inline("alert alert-primary alert-secondary alert-accent alert-neutral alert-info alert-success alert-warning alert-error alert-outline alert-soft alert-dash alert-vertical alert-horizontal");
 
 /* Avatar */
 @source inline("avatar avatar-group avatar-online avatar-offline placeholder");
 
 /* Badge */
-@source inline("badge badge-primary badge-secondary badge-accent badge-neutral badge-info badge-success badge-warning badge-error badge-outline badge-soft badge-ghost badge-xs badge-sm badge-md badge-lg badge-xl");
+@source inline("badge badge-primary badge-secondary badge-accent badge-neutral badge-info badge-success badge-warning badge-error badge-outline badge-soft badge-dash badge-ghost badge-xs badge-sm badge-md badge-lg badge-xl");
 
 /* Breadcrumbs */
 @source inline("breadcrumbs");
 
 /* Button */
-@source inline("btn btn-primary btn-secondary btn-accent btn-neutral btn-info btn-success btn-warning btn-error btn-ghost btn-link btn-outline btn-soft btn-active btn-disabled btn-xs btn-sm btn-md btn-lg btn-xl btn-block btn-wide btn-circle btn-square");
+@source inline("btn btn-primary btn-secondary btn-accent btn-neutral btn-info btn-success btn-warning btn-error btn-ghost btn-link btn-outline btn-soft btn-dash btn-active btn-disabled btn-xs btn-sm btn-md btn-lg btn-xl btn-block btn-wide btn-circle btn-square");
+
+/* Calendar */
+@source inline("calendar");
 
 /* Card */
-@source inline("card card-body card-title card-actions card-bordered card-compact card-normal card-side card-sm");
+@source inline("card card-body card-title card-actions card-border card-dash card-bordered card-compact card-normal card-side image-full card-xs card-sm card-md card-lg card-xl");
 
 /* Carousel */
-@source inline("carousel carousel-item carousel-start carousel-center carousel-end carousel-vertical");
+@source inline("carousel carousel-item carousel-start carousel-center carousel-end carousel-vertical carousel-horizontal");
 
 /* Chat */
-@source inline("chat chat-bubble chat-start chat-end chat-image chat-header chat-footer chat-bubble-primary chat-bubble-secondary chat-bubble-accent chat-bubble-info chat-bubble-success chat-bubble-warning chat-bubble-error");
+@source inline("chat chat-bubble chat-start chat-end chat-image chat-header chat-footer chat-bubble-primary chat-bubble-secondary chat-bubble-accent chat-bubble-neutral chat-bubble-info chat-bubble-success chat-bubble-warning chat-bubble-error");
 
 /* Checkbox */
-@source inline("checkbox checkbox-primary checkbox-secondary checkbox-accent checkbox-neutral checkbox-info checkbox-success checkbox-warning checkbox-error checkbox-xs checkbox-sm checkbox-md checkbox-lg");
+@source inline("checkbox checkbox-primary checkbox-secondary checkbox-accent checkbox-neutral checkbox-info checkbox-success checkbox-warning checkbox-error checkbox-xs checkbox-sm checkbox-md checkbox-lg checkbox-xl");
 
 /* Collapse */
 @source inline("collapse collapse-title collapse-content collapse-arrow collapse-plus collapse-open collapse-close");
@@ -55,20 +57,35 @@ module.exports = function () {
 /* Divider */
 @source inline("divider divider-horizontal divider-vertical divider-neutral divider-primary divider-secondary divider-accent divider-info divider-success divider-warning divider-error divider-start divider-end");
 
+/* Dock */
+@source inline("dock dock-label dock-active dock-xs dock-sm dock-md dock-lg dock-xl");
+
 /* Drawer */
 @source inline("drawer drawer-toggle drawer-content drawer-side drawer-overlay drawer-open drawer-end");
 
 /* Dropdown */
 @source inline("dropdown dropdown-content dropdown-end dropdown-top dropdown-bottom dropdown-left dropdown-right dropdown-hover dropdown-open");
 
+/* Fab */
+@source inline("fab fab-close fab-main-action fab-flower");
+
+/* Fieldset */
+@source inline("fieldset fieldset-legend");
+
 /* File Input */
-@source inline("file-input file-input-bordered file-input-ghost file-input-primary file-input-secondary file-input-accent file-input-info file-input-success file-input-warning file-input-error file-input-xs file-input-sm file-input-md file-input-lg");
+@source inline("file-input file-input-bordered file-input-ghost file-input-primary file-input-secondary file-input-accent file-input-neutral file-input-info file-input-success file-input-warning file-input-error file-input-xs file-input-sm file-input-md file-input-lg file-input-xl");
+
+/* Filter */
+@source inline("filter filter-reset");
 
 /* Footer */
-@source inline("footer footer-title footer-center");
+@source inline("footer footer-title footer-center footer-horizontal footer-vertical");
 
-/* Form Control */
+/* Form Control (v4 compat) */
 @source inline("form-control label label-text label-text-alt");
+
+/* Floating Label */
+@source inline("floating-label");
 
 /* Hero */
 @source inline("hero hero-content hero-overlay");
@@ -77,7 +94,7 @@ module.exports = function () {
 @source inline("indicator indicator-item indicator-start indicator-center indicator-end indicator-top indicator-middle indicator-bottom");
 
 /* Input */
-@source inline("input input-bordered input-ghost input-primary input-secondary input-accent input-neutral input-info input-success input-warning input-error input-xs input-sm input-md input-lg input-xl");
+@source inline("input input-bordered input-ghost input-primary input-secondary input-accent input-neutral input-info input-success input-warning input-error input-xs input-sm input-md input-lg input-xl input-disabled");
 
 /* Join */
 @source inline("join join-item join-vertical join-horizontal");
@@ -87,6 +104,9 @@ module.exports = function () {
 
 /* Link */
 @source inline("link link-hover link-primary link-secondary link-accent link-neutral link-info link-success link-warning link-error");
+
+/* List */
+@source inline("list list-row list-col-wrap list-col-grow");
 
 /* Loading */
 @source inline("loading loading-spinner loading-dots loading-ring loading-ball loading-bars loading-infinity loading-xs loading-sm loading-md loading-lg");
@@ -98,7 +118,7 @@ module.exports = function () {
 @source inline("menu menu-title menu-item menu-horizontal menu-vertical menu-compact menu-xs menu-sm menu-md menu-lg menu-active menu-disabled");
 
 /* Modal */
-@source inline("modal modal-box modal-action modal-backdrop modal-toggle modal-open modal-close modal-top modal-bottom modal-middle");
+@source inline("modal modal-box modal-action modal-backdrop modal-toggle modal-open modal-close modal-top modal-bottom modal-middle modal-start modal-end");
 
 /* Navbar */
 @source inline("navbar navbar-start navbar-center navbar-end");
@@ -113,40 +133,43 @@ module.exports = function () {
 @source inline("radial-progress");
 
 /* Radio */
-@source inline("radio radio-primary radio-secondary radio-accent radio-neutral radio-info radio-success radio-warning radio-error radio-xs radio-sm radio-md radio-lg");
+@source inline("radio radio-primary radio-secondary radio-accent radio-neutral radio-info radio-success radio-warning radio-error radio-xs radio-sm radio-md radio-lg radio-xl");
 
 /* Range */
-@source inline("range range-primary range-secondary range-accent range-neutral range-info range-success range-warning range-error range-xs range-sm range-md range-lg");
+@source inline("range range-primary range-secondary range-accent range-neutral range-info range-success range-warning range-error range-xs range-sm range-md range-lg range-xl");
 
 /* Rating */
-@source inline("rating rating-half rating-hidden rating-xs rating-sm rating-md rating-lg");
+@source inline("rating rating-half rating-hidden rating-xs rating-sm rating-md rating-lg rating-xl");
 
 /* Select */
-@source inline("select select-bordered select-ghost select-primary select-secondary select-accent select-neutral select-info select-success select-warning select-error select-xs select-sm select-md select-lg");
+@source inline("select select-bordered select-ghost select-primary select-secondary select-accent select-neutral select-info select-success select-warning select-error select-xs select-sm select-md select-lg select-xl");
 
 /* Skeleton */
-@source inline("skeleton");
+@source inline("skeleton skeleton-text");
 
 /* Stack */
-@source inline("stack");
+@source inline("stack stack-top stack-bottom stack-start stack-end");
 
 /* Stat */
 @source inline("stats stat stat-title stat-value stat-desc stat-figure stat-actions stats-vertical stats-horizontal");
 
+/* Status */
+@source inline("status status-primary status-secondary status-accent status-neutral status-info status-success status-warning status-error status-xs status-sm status-md status-lg status-xl");
+
 /* Steps */
-@source inline("steps step step-primary step-secondary step-accent step-neutral step-info step-success step-warning step-error");
+@source inline("steps step step-primary step-secondary step-accent step-neutral step-info step-success step-warning step-error step-icon steps-vertical steps-horizontal");
 
 /* Swap */
-@source inline("swap swap-on swap-off swap-active swap-rotate swap-flip");
+@source inline("swap swap-on swap-off swap-active swap-rotate swap-flip swap-indeterminate");
 
 /* Table */
-@source inline("table table-zebra table-pin-rows table-pin-cols table-xs table-sm table-md table-lg");
+@source inline("table table-zebra table-pin-rows table-pin-cols table-xs table-sm table-md table-lg table-xl");
 
 /* Tabs */
-@source inline("tabs tab tabs-bordered tabs-boxed tabs-lifted tabs-lift tabs-vertical tab-active tab-disabled tab-bordered tab-lifted tab-content tab-border-none");
+@source inline("tabs tab tabs-box tabs-border tabs-lift tabs-bordered tabs-boxed tabs-lifted tabs-vertical tabs-top tabs-bottom tab-active tab-disabled tab-bordered tab-lifted tab-content tab-border-none");
 
 /* Textarea */
-@source inline("textarea textarea-bordered textarea-ghost textarea-primary textarea-secondary textarea-accent textarea-neutral textarea-info textarea-success textarea-warning textarea-error textarea-xs textarea-sm textarea-md textarea-lg");
+@source inline("textarea textarea-bordered textarea-ghost textarea-primary textarea-secondary textarea-accent textarea-neutral textarea-info textarea-success textarea-warning textarea-error textarea-xs textarea-sm textarea-md textarea-lg textarea-xl");
 
 /* Theme Controller */
 @source inline("theme-controller");
@@ -158,71 +181,78 @@ module.exports = function () {
 @source inline("toast toast-start toast-center toast-end toast-top toast-middle toast-bottom");
 
 /* Toggle */
-@source inline("toggle toggle-primary toggle-secondary toggle-accent toggle-neutral toggle-info toggle-success toggle-warning toggle-error toggle-xs toggle-sm toggle-md toggle-lg");
+@source inline("toggle toggle-primary toggle-secondary toggle-accent toggle-neutral toggle-info toggle-success toggle-warning toggle-error toggle-xs toggle-sm toggle-md toggle-lg toggle-xl");
 
 /* Tooltip */
 @source inline("tooltip tooltip-open tooltip-top tooltip-bottom tooltip-left tooltip-right tooltip-primary tooltip-secondary tooltip-accent tooltip-neutral tooltip-info tooltip-success tooltip-warning tooltip-error");
 
+/* Validator */
+@source inline("validator validator-hint");
+
 /* Layout */
-@source inline("flex flex-1 flex-col flex-wrap flex-none flex-shrink-0 shrink-0 grow");
+@source inline("block inline-block flex flex-1 flex-col flex-wrap flex-none flex-shrink-0 shrink-0 grow");
 @source inline("gap-0.5 gap-1 gap-2 gap-3 gap-4 gap-6 gap-x-4 gap-y-2");
-@source inline("grid grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-7");
+@source inline("grid grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-6 grid-cols-7");
 @source inline("items-center items-start");
 @source inline("justify-start justify-center justify-between justify-end");
 @source inline("self-center");
 
 /* Spacing */
 @source inline("p-0 p-1 p-2 p-3 p-4");
-@source inline("px-1 px-2 px-3 px-4");
-@source inline("py-1 py-1.5 py-2 py-3");
-@source inline("pl-10 pr-3 pr-10 pr-20");
-@source inline("m-0 mt-0 mt-1 mt-2 mt-4 mt-6 mb-1 mb-2 mb-3 mb-4 mb-6 mb-8 ml-1 ml-2 mr-1 mr-1.5");
-@source inline("mx-auto my-0 pb-2 pt-2 pt-3 pt-6");
+@source inline("px-1 px-2 px-3 px-4 px-5");
+@source inline("py-1 py-0.5 py-1.5 py-2 py-3 py-8");
+@source inline("pl-9 pl-10 pr-3 pr-10 pr-20");
+@source inline("m-0 mt-0 mt-1 mt-2 mt-4 mt-6 mb-1 mb-2 mb-3 mb-4 mb-6 mb-8 ml-1 ml-2 mr-1 mr-1.5 mr-2");
+@source inline("mx-auto my-0 pb-1 pb-2 pt-2 pt-3 pt-6");
 @source inline("-mx-1 -my-2");
 @source inline("space-x-1 space-x-2 space-y-1 space-y-2 space-y-4 space-y-6");
 
 /* Sizing */
-@source inline("w-3 w-4 w-5 w-8 w-16 w-full w-auto w-72 w-1/4 w-1/3 w-1/6 w-2/5");
-@source inline("h-3 h-4 h-5 h-6 h-8 h-10 h-12 h-14 h-[1em]");
-@source inline("min-w-16");
-@source inline("max-h-48 max-h-64");
+@source inline("w-0.5 w-3 w-4 w-5 w-6 w-7 w-8 w-9 w-10 w-16 w-52 w-full w-auto w-72 w-1/4 w-1/3 w-1/6 w-2/5 w-[95vw]");
+@source inline("h-0.5 h-3 h-4 h-5 h-6 h-7 h-8 h-9 h-10 h-12 h-14 h-[1em]");
+@source inline("min-w-16 min-w-35");
+@source inline("max-h-48 max-h-52 max-h-64");
+@source inline("max-w-24 max-w-lg");
 
 /* Colors */
-@source inline("bg-base-100 bg-base-200 bg-base-200/50 bg-info/10 bg-info/20 bg-primary bg-secondary bg-yellow-200");
+@source inline("bg-base-100 bg-base-200 bg-base-200/30 bg-base-200/50 bg-base-200/70 bg-base-300 bg-transparent bg-info/10 bg-info/20 bg-primary bg-primary/10 bg-secondary bg-accent/20 bg-success/10 bg-warning/10 bg-error/10 bg-yellow-200");
 @source inline("border-base-100 border-base-200 border-base-300 border-base-content/5 border-base-content/10");
+@source inline("border-t-primary border-t-secondary border-t-accent border-t-neutral border-t-info border-t-success border-t-warning border-t-error");
 @source inline("text-base-content text-base-content/50 text-base-content/60 text-base-content/70 text-base-content/80 text-error text-primary-content text-white text-xs text-sm text-lg text-2xl");
-@source inline("hover:bg-base-50 hover:bg-base-200 hover:bg-error/50 hover:text-base-content hover:text-error hover:btn-primary hover:scale-105");
+@source inline("hover:bg-base-50 hover:bg-base-200 hover:bg-base-300 hover:bg-error/50 hover:border-primary hover:shadow-md hover:text-base-content hover:text-error hover:text-primary-content/70 hover:btn-primary hover:scale-105");
 
 /* Typography */
-@source inline("font-medium font-semibold font-bold");
+@source inline("font-mono font-normal font-medium font-semibold font-bold");
 @source inline("text-center text-left text-right");
 @source inline("truncate whitespace-nowrap");
 
 /* Borders/Rounded */
-@source inline("border border-t border-t-0 border-b");
+@source inline("border border-t border-t-0 border-t-4 border-b");
 @source inline("rounded rounded-lg rounded-box rounded-b-box rounded-2xl rounded-full");
+@source inline("ring-2 ring-primary");
 
 /* Effects/Positioning */
-@source inline("shadow shadow-lg shadow-xl");
-@source inline("opacity-30 opacity-50 opacity-60 opacity-70");
+@source inline("shadow-sm shadow shadow-lg shadow-xl");
+@source inline("opacity-30 opacity-40 opacity-50 opacity-60 opacity-70");
 @source inline("z-10 z-20 z-50");
-@source inline("absolute relative inset-y-0 right-0 left-0 bottom-full");
+@source inline("absolute relative inset-0 inset-x-0 inset-y-0 right-0 right-2 left-0 left-3 left-1/2 top-1/2 bottom-full");
 @source inline("overflow-auto overflow-hidden overflow-x-auto overflow-y-auto");
+@source inline("-translate-x-1/2 -translate-y-1/2");
 
 /* Transitions */
 @source inline("transition-all transition-colors transition-transform duration-200 ease-out");
 
 /* Interactive */
-@source inline("cursor-pointer cursor-default cursor-not-allowed select-none hidden invisible rotate-180 sr-only");
+@source inline("cursor-pointer cursor-grab cursor-default cursor-not-allowed select-none pointer-events-none pointer-events-auto hidden invisible rotate-180 sr-only");
 
 /* Responsive - sm breakpoint */
-@source inline("sm:flex-row sm:items-center sm:justify-between sm:justify-end");
+@source inline("sm:flex-row sm:items-center sm:justify-between sm:justify-end sm:w-auto sm:min-w-[24rem]");
 @source inline("sm:col-span-1 sm:col-span-2 sm:col-span-3 sm:col-span-4 sm:col-span-5 sm:col-span-6 sm:col-span-7 sm:col-span-8 sm:col-span-9 sm:col-span-10 sm:col-span-11 sm:col-span-12");
 
 /* Responsive - md breakpoint */
 @source inline("md:grid-cols-2 md:grid-cols-3 md:w-[calc(50%-0.75rem)] md:w-[calc(33.333%-0.75rem)] md:w-[calc(25%-0.75rem)] md:w-[calc(66.666%-0.75rem)] md:w-[calc(75%-0.75rem)]");
 @source inline("md:col-span-1 md:col-span-2 md:col-span-3 md:col-span-4 md:col-span-5 md:col-span-6 md:col-span-7 md:col-span-8 md:col-span-9 md:col-span-10 md:col-span-11 md:col-span-12");
-@source inline("md:gap-2");
+@source inline("md:gap-2 md:min-w-md");
 
 /* Responsive - lg breakpoint */
 @source inline("lg:grid-cols-3 lg:grid-cols-4");
@@ -244,258 +274,6 @@ module.exports = function () {
 
 /* Focus/Active states */
 @source inline("focus:outline-none focus:scale-105 active:scale-95");
-
-/* =====================================================
-   BASE STYLES & CSS VARIABLES
-   ===================================================== */
-@layer base {
-  :root {
-    --hk-transition-duration: 150ms;
-    --hk-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Keyframe Animations */
-  @keyframes hk-slide-in-bottom {
-    from { transform: translateY(100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  @keyframes hk-slide-out-bottom {
-    from { transform: translateY(0); opacity: 1; }
-    to { transform: translateY(100%); opacity: 0; }
-  }
-  @keyframes hk-slide-in-top {
-    from { transform: translateY(-100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  @keyframes hk-slide-out-top {
-    from { transform: translateY(0); opacity: 1; }
-    to { transform: translateY(-100%); opacity: 0; }
-  }
-  @keyframes hk-fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes hk-slide-in-right {
-    from { opacity: 0; transform: translateX(30px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes hk-slide-in-left {
-    from { opacity: 0; transform: translateX(-30px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  /* Disabled Input Text Color Fix - Override DaisyUI defaults for better readability */
-  .input:disabled,
-  .input[disabled] {
-    color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    -webkit-text-fill-color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    opacity: 1 !important;
-  }
-  .select:disabled,
-  .select[disabled] {
-    color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    -webkit-text-fill-color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    opacity: 1 !important;
-  }
-  .textarea:disabled,
-  .textarea[disabled] {
-    color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    -webkit-text-fill-color: oklch(from var(--color-base-content) l c h / 0.85) !important;
-    opacity: 1 !important;
-  }
-
-  /* Reduced Motion Support */
-  @media (prefers-reduced-motion: reduce) {
-    .toast-item,
-    .toast-item.cursor-pointer,
-    .dropdown-container,
-    .step-content-wrapper {
-      transition: none !important;
-      animation: none !important;
-    }
-    .toast-progress {
-      transition: none;
-      width: 100% !important;
-      opacity: 0.2;
-    }
-    .toast-enter-bottom,
-    .toast-enter-top,
-    .toast-leave-bottom,
-    .toast-leave-top {
-      animation: none;
-    }
-  }
-}
-
-/* =====================================================
-   TOAST COMPONENT
-   ===================================================== */
-@layer components {
-  /* Container positioning */
-  .toast-container {
-    position: fixed;
-    display: flex;
-    pointer-events: none;
-    z-index: 9999;
-    gap: 0.5rem;
-  }
-  .toast-container.toast-top {
-    top: 1rem;
-    flex-direction: column;
-  }
-  .toast-container.toast-bottom {
-    bottom: 1rem;
-    flex-direction: column-reverse;
-  }
-  .toast-container.toast-start {
-    left: 1rem;
-  }
-  .toast-container.toast-end {
-    right: 1rem;
-  }
-  .toast-container.toast-center {
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  /* Toast item */
-  .toast-item {
-    pointer-events: auto;
-    min-width: 320px;
-    max-width: 420px;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
-    position: relative;
-    overflow: hidden;
-    transition: transform 200ms ease-out;
-  }
-  .toast-item.cursor-pointer {
-    cursor: pointer;
-    transition: transform 150ms ease-out;
-  }
-  .toast-item.cursor-pointer:hover {
-    transform: scale(1.02);
-  }
-
-  /* Toast content */
-  .toast-content {
-    flex: 1 1 0%;
-    min-width: 0;
-  }
-  .toast-content .toast-summary {
-    font-weight: 500;
-  }
-  .toast-content .toast-detail {
-    font-size: 0.875rem;
-    opacity: 0.8;
-    margin-top: 0.125rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .toast-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-  }
-  .toast-icon {
-    flex-shrink: 0;
-  }
-  .toast-dismiss {
-    flex-shrink: 0;
-  }
-
-  /* Toast animations */
-  .toast-enter-bottom {
-    animation: hk-slide-in-bottom 300ms ease-out forwards;
-  }
-  .toast-leave-bottom {
-    animation: hk-slide-out-bottom 300ms ease-in forwards;
-  }
-  .toast-enter-top {
-    animation: hk-slide-in-top 300ms ease-out forwards;
-  }
-  .toast-leave-top {
-    animation: hk-slide-out-top 300ms ease-in forwards;
-  }
-
-  /* Toast progress bar */
-  .toast-progress {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 3px;
-    background: currentColor;
-    opacity: 0.3;
-    pointer-events: none;
-    border-radius: 0 0 0 var(--rounded-box, 1rem);
-    transition: width linear;
-    transition-duration: var(--progress-duration, 5000ms);
-  }
-  .toast-progress.paused {
-    transition-duration: 0ms;
-    opacity: 0.5;
-  }
-  .toast-item:hover .toast-progress {
-    opacity: 0.5;
-  }
-}
-
-/* =====================================================
-   DROPDOWN/SELECT COMPONENT
-   ===================================================== */
-@layer components {
-  .dropdown-container {
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
-    backdrop-filter: blur(8px);
-    transform-origin: top center;
-    will-change: opacity, transform, max-height;
-    contain: layout style paint;
-    opacity: 0;
-    transform: scaleY(0.95);
-    max-height: 0;
-    pointer-events: none;
-    overflow: hidden;
-    transition:
-      opacity var(--hk-transition-duration) var(--hk-transition-timing),
-      transform var(--hk-transition-duration) var(--hk-transition-timing),
-      max-height var(--hk-transition-duration) var(--hk-transition-timing);
-    z-index: 1000;
-    isolation: isolate;
-  }
-  .dropdown-container.dropdown-open {
-    opacity: 1;
-    transform: scaleY(1);
-    max-height: 25rem;
-    pointer-events: auto;
-  }
-  .dropdown-container.dropdown-closed {
-    opacity: 0;
-    transform: scaleY(0.95);
-    max-height: 0;
-    pointer-events: none;
-  }
-  .dropdown-container:focus-within {
-    outline: 2px solid oklch(var(--p));
-    outline-offset: 2px;
-  }
-}
-
-/* =====================================================
-   STEPPER COMPONENT
-   ===================================================== */
-@layer components {
-  .step-content-wrapper {
-    animation: hk-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .step-content-wrapper.animate-forward {
-    animation: hk-slide-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .step-content-wrapper.animate-backward {
-    animation: hk-slide-in-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-}
 `,
   };
 };
