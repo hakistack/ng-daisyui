@@ -148,13 +148,20 @@
           ></textarea>
         }
         @case ('select') {
-          <hk-select
-            [id]="field.id"
-            [options]="getFieldOptions(field)"
-            [formControlName]="field.key"
-            [placeholder]="field.placeholder"
-            [enableSearch]="field.isSelectSearchable"
-          ></hk-select>
+          <div class="relative">
+            <hk-select
+              [id]="field.id"
+              [options]="getFieldOptions(field)"
+              [formControlName]="field.key"
+              [placeholder]="isFieldOptionsLoading(field) ? (field.optionsFrom?.loadingPlaceholder || 'Loading options...') : field.placeholder"
+              [enableSearch]="field.isSelectSearchable"
+              [class.pointer-events-none]="isFieldOptionsLoading(field)"
+              [class.opacity-60]="isFieldOptionsLoading(field)"
+            ></hk-select>
+            @if (isFieldOptionsLoading(field)) {
+              <span class="loading loading-spinner loading-xs absolute right-10 top-1/2 -translate-y-1/2"></span>
+            }
+          </div>
         }
         @case ('checkbox') {
           <label class="flex cursor-pointer items-center gap-2">
@@ -163,14 +170,21 @@
           </label>
         }
         @case ('radio') {
-          <div [class]="field.orientation === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col gap-2'">
-            @for (option of getFieldOptions(field); track option.value) {
-              <label class="flex cursor-pointer items-center gap-2">
-                <input [id]="field.id + '_' + option.value" [formControlName]="field.key" type="radio" [value]="option.value" class="radio" />
-                <span class="text-sm">{{ option.label }}</span>
-              </label>
-            }
-          </div>
+          @if (isFieldOptionsLoading(field)) {
+            <div class="flex items-center gap-2">
+              <span class="loading loading-spinner loading-xs"></span>
+              <span class="text-sm text-base-content/50">{{ field.optionsFrom?.loadingPlaceholder || 'Loading options...' }}</span>
+            </div>
+          } @else {
+            <div [class]="field.orientation === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col gap-2'">
+              @for (option of getFieldOptions(field); track option.value) {
+                <label class="flex cursor-pointer items-center gap-2">
+                  <input [id]="field.id + '_' + option.value" [formControlName]="field.key" type="radio" [value]="option.value" class="radio" />
+                  <span class="text-sm">{{ option.label }}</span>
+                </label>
+              }
+            </div>
+          }
         }
         @case ('toggle') {
           <label class="flex cursor-pointer items-center gap-2">

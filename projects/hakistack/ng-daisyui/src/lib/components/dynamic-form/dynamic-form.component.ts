@@ -1,15 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { CdkStepperModule } from '@angular/cdk/stepper';
-import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, Injector, input, output, signal, viewChild } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, Injector, input, output, signal, untracked, viewChild } from '@angular/core';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormGroup, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
-import { catchError, debounceTime, distinctUntilChanged, Observable, of, startWith, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, from, isObservable, Observable, of, startWith, switchMap } from 'rxjs';
 
 import { FormStateMetadata, FormStateService } from '../../services/form-state.service';
 import { DatepickerComponent } from '../datepicker/datepicker.component';
 import { SelectComponent } from '../select/select.component';
 import { StepperComponent } from '../stepper/stepper.component';
-import { AutoSaveConfig, FormConfig, FormFieldConfig, FormSelectOption, FormStep, FormSubmissionData, ResponsiveColSpan, StepChangeEvent } from './dynamic-form.types';
+import { AutoSaveConfig, FormConfig, FormFieldConfig, FormSelectOption, FormStep, FormSubmissionData, OptionsFromConfig, ResponsiveColSpan, StepChangeEvent } from './dynamic-form.types';
 import { FormUtils } from './dynamic-form.utils';
 
 @Component({
@@ -133,6 +133,8 @@ export class DynamicFormComponent {
   readonly formGroup = signal<FormGroup>(new FormGroup({}));
   readonly formValues = signal<Record<string, unknown>>({});
   readonly fieldOptions = signal<Map<string, FormSelectOption[]>>(new Map());
+  /** Tracks which fields are currently loading dependent options */
+  readonly fieldOptionsLoading = signal<Set<string>>(new Set());
 
   // Auto-save signals
   private readonly autoSaveFormId = signal<string | null>(null);
@@ -301,19 +303,29 @@ export class DynamicFormComponent {
 
   /** Watch for external submit/reset triggers from FormController */
   private setupExternalTriggers(): void {
-    // Watch submit trigger
+    let lastSubmitTrigger = 0;
+    let lastResetTrigger = 0;
+
+    // Watch submit trigger — use untracked to prevent onSubmit's signal reads
+    // from becoming dependencies of this effect
     effect(() => {
-      const trigger = this.config()._submitTrigger?.();
-      if (trigger && trigger > 0) {
-        this.onSubmit();
+      const trigger = this.config()._submitTrigger?.() ?? 0;
+      if (trigger > lastSubmitTrigger) {
+        lastSubmitTrigger = trigger;
+        untracked(() => this.onSubmit());
+      } else {
+        lastSubmitTrigger = trigger;
       }
     }, { injector: this.injector });
 
     // Watch reset trigger
     effect(() => {
-      const trigger = this.config()._resetTrigger?.();
-      if (trigger && trigger > 0) {
-        this.onReset();
+      const trigger = this.config()._resetTrigger?.() ?? 0;
+      if (trigger > lastResetTrigger) {
+        lastResetTrigger = trigger;
+        untracked(() => this.onReset());
+      } else {
+        lastResetTrigger = trigger;
       }
     }, { injector: this.injector });
   }
@@ -565,11 +577,22 @@ export class DynamicFormComponent {
   }
 
   getFieldOptions(field: FormFieldConfig): FormSelectOption[] {
+    // Dynamic options from optionsFrom take precedence
+    const dynamicOptions = this.fieldOptions().get(field.key);
+    if (field.optionsFrom) {
+      return dynamicOptions || [];
+    }
+
     if (Array.isArray(field.options)) {
       return field.options;
     }
 
-    return this.fieldOptions().get(field.key) || [];
+    return dynamicOptions || [];
+  }
+
+  /** Whether a field's dependent options are currently loading */
+  isFieldOptionsLoading(field: FormFieldConfig): boolean {
+    return this.fieldOptionsLoading().has(field.key);
   }
 
   getFieldContainerClasses(field: FormFieldConfig): string {
@@ -1025,6 +1048,9 @@ export class DynamicFormComponent {
 
     // Load async options
     this.loadAsyncOptions(allFields);
+
+    // Setup dependent options (optionsFrom)
+    this.setupDependentOptions(allFields, form);
   }
 
   private setupFieldChangeSubscriptions(fields: readonly FormFieldConfig[], form: FormGroup): void {
@@ -1105,6 +1131,80 @@ export class DynamicFormComponent {
       control.setValidators(validators);
       control.updateValueAndValidity({ emitEvent: false });
     });
+  }
+
+  private setupDependentOptions(fields: readonly FormFieldConfig[], form: FormGroup): void {
+    const dependentFields = fields.filter(f => f.optionsFrom);
+    if (dependentFields.length === 0) return;
+
+    for (const fieldConfig of dependentFields) {
+      const config = fieldConfig.optionsFrom!;
+      const watchedControl = form.get(config.field);
+      const targetControl = form.get(fieldConfig.key);
+      if (!watchedControl) continue;
+
+      const clearOnChange = config.clearOnChange !== false;
+
+      watchedControl.valueChanges
+        .pipe(
+          startWith(watchedControl.value),
+          distinctUntilChanged(),
+          switchMap(watchedValue => {
+            // Skip loading when watched value is empty/null
+            if (watchedValue === null || watchedValue === undefined || watchedValue === '') {
+              // Clear options and value
+              this.fieldOptions.update(map => {
+                const newMap = new Map(map);
+                newMap.set(fieldConfig.key, []);
+                return newMap;
+              });
+              if (clearOnChange && targetControl) {
+                targetControl.setValue(null, { emitEvent: false });
+              }
+              return of([]);
+            }
+
+            // Set loading state
+            this.fieldOptionsLoading.update(set => new Set([...set, fieldConfig.key]));
+
+            // Clear current value when parent changes
+            if (clearOnChange && targetControl) {
+              targetControl.setValue(null, { emitEvent: false });
+            }
+
+            const result = config.loadFn(watchedValue, form.value);
+
+            // Normalize to Observable
+            let result$: Observable<FormSelectOption[]>;
+            if (Array.isArray(result)) {
+              result$ = of(result);
+            } else if (isObservable(result)) {
+              result$ = result;
+            } else {
+              // Promise
+              result$ = from(result);
+            }
+
+            return result$.pipe(
+              catchError(() => of([] as FormSelectOption[])),
+            );
+          }),
+          takeUntilDestroyed(this.destroyRef),
+        )
+        .subscribe(options => {
+          this.fieldOptions.update(map => {
+            const newMap = new Map(map);
+            newMap.set(fieldConfig.key, options);
+            return newMap;
+          });
+          // Clear loading state
+          this.fieldOptionsLoading.update(set => {
+            const newSet = new Set(set);
+            newSet.delete(fieldConfig.key);
+            return newSet;
+          });
+        });
+    }
   }
 
   private loadAsyncOptions(fields: readonly FormFieldConfig[]): void {

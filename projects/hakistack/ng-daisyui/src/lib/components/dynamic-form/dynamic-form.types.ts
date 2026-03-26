@@ -39,6 +39,22 @@ export interface ConditionalLogic {
   readonly value: any | ((fieldValue: any, formValues: Record<string, any>, formGroup?: any) => boolean);
 }
 
+/**
+ * Configuration for loading options dynamically based on another field's value.
+ * When the watched field changes, loadFn is called to produce new options.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface OptionsFromConfig<T = any> {
+  /** The key of the field to watch */
+  readonly field: string;
+  /** Function called with the watched field's value. Returns options synchronously, as a Promise, or as an Observable. */
+  readonly loadFn: (value: T, formValues: Record<string, any>) => FormSelectOption[] | Promise<FormSelectOption[]> | Observable<FormSelectOption[]>;
+  /** Placeholder text shown while options are loading */
+  readonly loadingPlaceholder?: string;
+  /** Whether to clear the field's value when the watched field changes (default: true) */
+  readonly clearOnChange?: boolean;
+}
+
 // Grab all the static validator keys, e.g. "required" | "minLength" | "max" | …
 type ValidatorKeys = keyof typeof Validators;
 
@@ -71,6 +87,8 @@ export interface FormFieldConfig {
   readonly defaultValue?: any;
   readonly validation?: FieldValidation;
   readonly options?: readonly FormSelectOption[] | Observable<readonly FormSelectOption[]>;
+  /** Load options dynamically based on another field's value */
+  readonly optionsFrom?: OptionsFromConfig;
   readonly multiple?: boolean;
   readonly rows?: number; // for textarea
   readonly cols?: number; // for textarea

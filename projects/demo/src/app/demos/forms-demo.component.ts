@@ -1,12 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
-import { DynamicFormComponent, createForm, field, layout, validation, ToastService, FormSubmissionData } from '@hakistack/ng-daisyui';
+import { DynamicFormComponent, createForm, field, layout, validation, ToastService, FormSubmissionData, FormSelectOption } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
-type FormTab = 'layouts' | 'fields' | 'conditional';
+type FormTab = 'layouts' | 'fields' | 'conditional' | 'dependent';
 
 @Component({
   selector: 'app-forms-demo',
@@ -36,6 +36,8 @@ type FormTab = 'layouts' | 'fields' | 'conditional';
             [checked]="activeTab() === 'fields'" (change)="activeTab.set('fields')" />
           <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Conditional Logic"
             [checked]="activeTab() === 'conditional'" (change)="activeTab.set('conditional')" />
+          <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Dependent Fields"
+            [checked]="activeTab() === 'dependent'" (change)="activeTab.set('dependent')" />
         </div>
 
         @if (activeTab() === 'layouts') {
@@ -82,6 +84,16 @@ type FormTab = 'layouts' | 'fields' | 'conditional';
             <div class="card-actions justify-end mt-4">
               <button class="btn btn-ghost" (click)="conditionalForm.reset()">Reset</button>
               <button class="btn btn-primary" (click)="conditionalForm.submit()">Submit</button>
+            </div>
+          </app-doc-section>
+        }
+
+        @if (activeTab() === 'dependent') {
+          <app-doc-section title="Dependent Field Options" description="Select fields that load options based on another field's value" [codeExample]="dependentCode">
+            <hk-dynamic-form [config]="dependentForm.config()" />
+            <div class="card-actions justify-end mt-4">
+              <button class="btn btn-ghost" (click)="dependentForm.reset()">Reset</button>
+              <button class="btn btn-primary" (click)="dependentForm.submit()">Submit</button>
             </div>
           </app-doc-section>
         }
@@ -176,6 +188,80 @@ export class FormsDemoComponent {
       field.range('satisfaction', 1, 10, 'Satisfaction (1-10)', { colSpan: 6, defaultValue: 5 }),
     ],
     onSubmit: (data) => this.handleSubmit('All Fields Form', data),
+  });
+
+  // Fake data for dependent fields demo
+  private readonly statesByCountry: Record<string, FormSelectOption[]> = {
+    US: [
+      { value: 'CA', label: 'California' },
+      { value: 'NY', label: 'New York' },
+      { value: 'TX', label: 'Texas' },
+      { value: 'FL', label: 'Florida' },
+    ],
+    CA: [
+      { value: 'ON', label: 'Ontario' },
+      { value: 'QC', label: 'Quebec' },
+      { value: 'BC', label: 'British Columbia' },
+    ],
+    MX: [
+      { value: 'CDMX', label: 'Ciudad de México' },
+      { value: 'JAL', label: 'Jalisco' },
+      { value: 'NL', label: 'Nuevo León' },
+    ],
+  };
+
+  private readonly citiesByState: Record<string, FormSelectOption[]> = {
+    CA: [{ value: 'la', label: 'Los Angeles' }, { value: 'sf', label: 'San Francisco' }, { value: 'sd', label: 'San Diego' }],
+    NY: [{ value: 'nyc', label: 'New York City' }, { value: 'buf', label: 'Buffalo' }],
+    TX: [{ value: 'hou', label: 'Houston' }, { value: 'dal', label: 'Dallas' }, { value: 'aus', label: 'Austin' }],
+    FL: [{ value: 'mia', label: 'Miami' }, { value: 'orl', label: 'Orlando' }],
+    ON: [{ value: 'tor', label: 'Toronto' }, { value: 'ott', label: 'Ottawa' }],
+    QC: [{ value: 'mtl', label: 'Montreal' }, { value: 'qc', label: 'Quebec City' }],
+    BC: [{ value: 'van', label: 'Vancouver' }, { value: 'vic', label: 'Victoria' }],
+    CDMX: [{ value: 'cdmx', label: 'Mexico City' }],
+    JAL: [{ value: 'gdl', label: 'Guadalajara' }],
+    NL: [{ value: 'mty', label: 'Monterrey' }],
+  };
+
+  dependentForm = createForm({
+    ...layout.vertical({ gap: 'md' }),
+    fields: [
+      field.select(
+        'country',
+        [
+          { value: 'US', label: 'United States' },
+          { value: 'CA', label: 'Canada' },
+          { value: 'MX', label: 'Mexico' },
+        ],
+        'Country',
+        { required: true },
+      ),
+      field.select('state', [], 'State / Province', {
+        required: true,
+        optionsFrom: {
+          field: 'country',
+          loadFn: (country: string) => {
+            // Simulate API call with delay
+            return new Promise<FormSelectOption[]>(resolve => {
+              setTimeout(() => resolve(this.statesByCountry[country] || []), 600);
+            });
+          },
+          loadingPlaceholder: 'Loading states...',
+        },
+      }),
+      field.select('city', [], 'City', {
+        optionsFrom: {
+          field: 'state',
+          loadFn: (state: string) => {
+            return new Promise<FormSelectOption[]>(resolve => {
+              setTimeout(() => resolve(this.citiesByState[state] || []), 400);
+            });
+          },
+          loadingPlaceholder: 'Loading cities...',
+        },
+      }),
+    ],
+    onSubmit: (data) => this.handleSubmit('Dependent Form', data),
   });
 
   conditionalForm = createForm({
@@ -274,6 +360,28 @@ field.checkbox('agree', 'I agree')
 field.toggle('notify', 'Enable notifications')
 field.date('dob', 'Date of Birth')
 field.range('score', 1, 10, 'Score', { defaultValue: 5 })`;
+
+  dependentCode = `// Country → State → City cascading selects
+field.select('country', [
+  { value: 'US', label: 'United States' },
+  { value: 'CA', label: 'Canada' },
+], 'Country'),
+
+field.select('state', [], 'State', {
+  optionsFrom: {
+    field: 'country',
+    loadFn: (country) => this.api.getStates(country),
+    loadingPlaceholder: 'Loading states...',
+    clearOnChange: true,  // default: clears value when parent changes
+  },
+}),
+
+field.select('city', [], 'City', {
+  optionsFrom: {
+    field: 'state',
+    loadFn: (state) => this.api.getCities(state),
+  },
+}),`;
 
   conditionalCode = `field.select('type', ['personal', 'business'], 'Account Type'),
 field.text('company', 'Company Name', {

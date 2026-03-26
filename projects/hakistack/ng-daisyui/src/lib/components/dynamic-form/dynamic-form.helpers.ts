@@ -3,7 +3,7 @@ import { ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
 
 import { generateUniqueId } from '../../utils/generate-uuid';
-import { ConditionalLogic, CreateFormInput, FieldType, FieldValidation, FieldWidth, FormConfig, FormController, FormFieldConfig, FormSelectOption, FormStep, ResponsiveColSpan } from './dynamic-form.types';
+import { ConditionalLogic, CreateFormInput, FieldType, FieldValidation, FieldWidth, FormConfig, FormController, FormFieldConfig, FormSelectOption, FormStep, OptionsFromConfig, ResponsiveColSpan } from './dynamic-form.types';
 
 // Simplified field options interface
 interface FieldOptions {
@@ -29,6 +29,8 @@ interface FieldOptions {
   multiple?: boolean;
   orientation?: 'horizontal' | 'vertical';
   enableSearch?: boolean;
+  /** Load options dynamically based on another field's value */
+  optionsFrom?: OptionsFromConfig;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   showWhen?: string | [string, any] | [string, (value: any, formValues?: Record<string, any>) => boolean];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,6 +139,7 @@ function createField(key: string, type: FieldType, label?: string, options: Fiel
     requiredWhen: parseCondition(options.requiredWhen),
     disabledWhen: parseCondition(options.disabledWhen),
     options: options.options,
+    optionsFrom: options.optionsFrom,
     rows: options.rows,
     accept: options.accept,
     prefix: options.prefix,

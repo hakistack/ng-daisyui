@@ -30,6 +30,7 @@ export type {
   FormController,
   ResponsiveColSpan,
   FieldWidth,
+  OptionsFromConfig,
 } from './lib/components/dynamic-form/dynamic-form.types';
 
 // Table
