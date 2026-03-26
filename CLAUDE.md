@@ -57,8 +57,9 @@ Forms do not include built-in buttons. Use FormController for external control:
 ```typescript
 const form = createForm({
   fields: [
-    field.text('name', 'Name', { required: true }),
+    field.text('name', 'Name', { required: true, minLength: 2 }),
     field.email('email', 'Email'),
+    field.select('role', 'Role', { choices: ['Admin', 'User'] }),
   ],
   onSubmit: (data) => console.log(data),
 });

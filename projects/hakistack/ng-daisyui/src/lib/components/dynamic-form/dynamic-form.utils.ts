@@ -1,12 +1,13 @@
 import { FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 
-import { ConditionalLogic, FieldValidation, FormFieldConfig } from './dynamic-form.types';
+import { ConditionalLogic, FormFieldConfig } from './dynamic-form.types';
 
 export class FormUtils {
   private static readonly validatorCache = new Map<string, ValidatorFn[]>();
   private static readonly groupCache = new Map<string, Map<string, readonly FormFieldConfig[]>>();
 
   private static readonly EMPTY_VALIDATORS: ValidatorFn[] = Object.freeze([]) as unknown as ValidatorFn[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static readonly EMPTY_ARRAY: readonly any[] = Object.freeze([]);
 
   private static readonly MAX_VALIDATOR_CACHE_SIZE = 500;
@@ -23,15 +24,17 @@ export class FormUtils {
     time: null,
   };
 
-  private static readonly REQUIRES_OPTIONS = new Set(['select', 'multiselect', 'radio']);
+  private static readonly REQUIRES_CHOICES = new Set(['select', 'multiselect', 'radio']);
 
   /**
-   * Creates Angular validators from field validation config with caching
+   * Creates Angular validators from a field config's flattened validation properties
    */
-  static createValidators(validation?: FieldValidation): ValidatorFn[] {
-    if (!validation) return this.EMPTY_VALIDATORS;
+  static createValidators(field: FormFieldConfig): ValidatorFn[] {
+    if (!field.required && !field.minLength && !field.maxLength && !field.min && field.max == null && !field.email && !field.pattern && !field.customValidators?.length) {
+      return this.EMPTY_VALIDATORS;
+    }
 
-    const cacheKey = this.getValidationCacheKey(validation);
+    const cacheKey = this.getValidationCacheKey(field);
 
     const cached = this.validatorCache.get(cacheKey);
     if (cached) return cached;
@@ -40,7 +43,7 @@ export class FormUtils {
       this.validatorCache.clear();
     }
 
-    const validators = this.buildValidators(validation, true);
+    const validators = this.buildValidators(field, true);
     this.validatorCache.set(cacheKey, validators);
     return validators;
   }
@@ -48,10 +51,12 @@ export class FormUtils {
   /**
    * Creates validators with conditional required logic
    */
-  static createValidatorsWithConditionalRequired(baseValidation: FieldValidation | undefined, isRequired: boolean): ValidatorFn[] {
-    if (!baseValidation && !isRequired) return this.EMPTY_VALIDATORS;
+  static createValidatorsWithConditionalRequired(field: FormFieldConfig, isRequired: boolean): ValidatorFn[] {
+    const hasBase = field.minLength || field.maxLength || field.min != null || field.max != null || field.email || field.pattern || field.customValidators?.length;
 
-    if (!baseValidation) {
+    if (!hasBase && !isRequired) return this.EMPTY_VALIDATORS;
+
+    if (!hasBase) {
       return isRequired ? [Validators.required] : this.EMPTY_VALIDATORS;
     }
 
@@ -61,8 +66,7 @@ export class FormUtils {
       validators.push(Validators.required);
     }
 
-    // Build without required to avoid duplication
-    const baseValidators = this.buildValidators(baseValidation, false);
+    const baseValidators = this.buildValidators(field, false);
     if (baseValidators.length > 0) {
       validators.push(...baseValidators);
     }
@@ -83,7 +87,7 @@ export class FormUtils {
           value: field.defaultValue ?? this.getDefaultValueForType(field.type),
           disabled: field.disabled ?? false,
         },
-        this.createValidators(field.validation),
+        this.createValidators(field),
       );
     }
 
@@ -97,7 +101,6 @@ export class FormUtils {
     const fieldValue = formValues[condition.field];
     const conditionValue = condition.value;
 
-    // Handle function-based conditions
     if (condition.operator === 'function') {
       if (typeof conditionValue !== 'function') return false;
       try {
@@ -172,7 +175,6 @@ export class FormUtils {
       }
     }
 
-    // Sort and freeze
     const sortedGroups = new Map<string, readonly FormFieldConfig[]>();
     for (const [groupName, groupFields] of groups) {
       groupFields.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -189,7 +191,6 @@ export class FormUtils {
   static getErrorMessage(fieldConfig: FormFieldConfig, errors: Record<string, unknown> | null): string {
     if (!errors) return '';
 
-    const { validation } = fieldConfig;
     const label = fieldConfig.label || fieldConfig.key;
     const firstErrorKey = Object.keys(errors)[0];
 
@@ -198,19 +199,19 @@ export class FormUtils {
         return `${label} is required`;
       case 'minlength': {
         const err = errors['minlength'] as { requiredLength?: number };
-        return `${label} must be at least ${validation?.minLength ?? err?.requiredLength} characters`;
+        return `${label} must be at least ${fieldConfig.minLength ?? err?.requiredLength} characters`;
       }
       case 'maxlength': {
         const err = errors['maxlength'] as { requiredLength?: number };
-        return `${label} cannot exceed ${validation?.maxLength ?? err?.requiredLength} characters`;
+        return `${label} cannot exceed ${fieldConfig.maxLength ?? err?.requiredLength} characters`;
       }
       case 'min': {
         const err = errors['min'] as { min?: number };
-        return `${label} must be at least ${validation?.min ?? err?.min}`;
+        return `${label} must be at least ${fieldConfig.min ?? err?.min}`;
       }
       case 'max': {
         const err = errors['max'] as { max?: number };
-        return `${label} cannot exceed ${validation?.max ?? err?.max}`;
+        return `${label} cannot exceed ${fieldConfig.max ?? err?.max}`;
       }
       case 'email':
         return `${label} must be a valid email address`;
@@ -241,8 +242,8 @@ export class FormUtils {
         errors.push(`Field ${field.key} is missing type`);
       }
 
-      if (this.REQUIRES_OPTIONS.has(field.type) && !field.options) {
-        errors.push(`Field ${field.key} of type ${field.type} requires options`);
+      if (this.REQUIRES_CHOICES.has(field.type) && !field.choices && !field.optionsFrom) {
+        errors.push(`Field ${field.key} of type ${field.type} requires choices or optionsFrom`);
       }
 
       this.validateConditionalReferences(field, keys, errors);
@@ -261,46 +262,46 @@ export class FormUtils {
 
   // Private methods
 
-  private static buildValidators(validation: FieldValidation, includeRequired: boolean): ValidatorFn[] {
+  private static buildValidators(field: FormFieldConfig, includeRequired: boolean): ValidatorFn[] {
     const validators: ValidatorFn[] = [];
 
-    if (includeRequired && validation.required) {
+    if (includeRequired && field.required) {
       validators.push(Validators.required);
     }
-    if (validation.minLength != null) {
-      validators.push(Validators.minLength(validation.minLength));
+    if (field.minLength != null) {
+      validators.push(Validators.minLength(field.minLength));
     }
-    if (validation.maxLength != null) {
-      validators.push(Validators.maxLength(validation.maxLength));
+    if (field.maxLength != null) {
+      validators.push(Validators.maxLength(field.maxLength));
     }
-    if (validation.min != null) {
-      validators.push(Validators.min(validation.min));
+    if (field.min != null) {
+      validators.push(Validators.min(field.min));
     }
-    if (validation.max != null) {
-      validators.push(Validators.max(validation.max));
+    if (field.max != null) {
+      validators.push(Validators.max(field.max));
     }
-    if (validation.email) {
+    if (field.email) {
       validators.push(Validators.email);
     }
-    if (validation.pattern) {
-      validators.push(Validators.pattern(validation.pattern));
+    if (field.pattern) {
+      validators.push(Validators.pattern(field.pattern));
     }
-    if (validation.custom && validation.custom.length > 0) {
-      validators.push(...validation.custom);
+    if (field.customValidators && field.customValidators.length > 0) {
+      validators.push(...field.customValidators);
     }
 
     return validators;
   }
 
-  private static getValidationCacheKey(validation: FieldValidation): string {
+  private static getValidationCacheKey(field: FormFieldConfig): string {
     let flags = 0;
-    if (validation.required) flags |= 1;
-    if (validation.email) flags |= 2;
+    if (field.required) flags |= 1;
+    if (field.email) flags |= 2;
 
-    const customLen = validation.custom?.length ?? 0;
-    const pattern = validation.pattern?.toString() ?? '';
+    const customLen = field.customValidators?.length ?? 0;
+    const pattern = field.pattern?.toString() ?? '';
 
-    return `${flags}|${validation.minLength ?? ''}|${validation.maxLength ?? ''}|${validation.min ?? ''}|${validation.max ?? ''}|${pattern}|${customLen}`;
+    return `${flags}|${field.minLength ?? ''}|${field.maxLength ?? ''}|${field.min ?? ''}|${field.max ?? ''}|${pattern}|${customLen}`;
   }
 
   private static getFieldsCacheKey(fields: readonly FormFieldConfig[]): string {

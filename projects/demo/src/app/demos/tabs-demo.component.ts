@@ -226,16 +226,76 @@ type TabsTab = 'basic' | 'features' | 'vertical';
       }
 
       @if (pageTab() === 'api') {
-        <div class="space-y-6">
-          <app-api-table title="TabGroup Inputs" [entries]="groupInputDocs" />
-          <app-api-table title="TabGroup Outputs" [entries]="groupOutputDocs" />
-          <app-api-table title="TabPanel Inputs" [entries]="panelInputDocs" />
-
-          <div>
-            <h3 class="text-lg font-semibold mb-2">Usage</h3>
-            <app-code-block [code]="usageCode" />
-          </div>
+        <!-- API Sub-tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="tabs_api_tabs" role="tab" class="tab" aria-label="TabGroup"
+            [checked]="apiTab() === 'tab-group'" (change)="apiTab.set('tab-group')" />
+          <input type="radio" name="tabs_api_tabs" role="tab" class="tab" aria-label="TabPanel"
+            [checked]="apiTab() === 'tab-panel'" (change)="apiTab.set('tab-panel')" />
+          <input type="radio" name="tabs_api_tabs" role="tab" class="tab" aria-label="Types"
+            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
         </div>
+
+        <!-- TabGroup sub-tab -->
+        @if (apiTab() === 'tab-group') {
+          <div class="space-y-6">
+            <app-api-table title="TabGroup Inputs" [entries]="groupInputDocs" />
+            <app-api-table title="TabGroup Outputs" [entries]="groupOutputDocs" />
+            <app-api-table title="TabGroup Methods" [entries]="groupMethodDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Usage</h3>
+                <p class="text-sm text-base-content/70">
+                  The <code>hk-tab-group</code> component manages a set of <code>hk-tab-panel</code> children. It handles keyboard navigation (arrow keys, Home, End), ARIA roles, and two-way binding of the active tab.
+                </p>
+                <app-code-block [code]="usageCode" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- TabPanel sub-tab -->
+        @if (apiTab() === 'tab-panel') {
+          <div class="space-y-6">
+            <app-api-table title="TabPanel Inputs" [entries]="panelInputDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Lazy Content Loading</h3>
+                <p class="text-sm text-base-content/70">
+                  Tab panel content is wrapped in an <code>ng-template</code> for lazy rendering. Only the active panel's template is instantiated in the DOM, improving performance for tabs with heavy content.
+                </p>
+                <app-code-block [code]="lazyContentCode" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Types sub-tab -->
+        @if (apiTab() === 'types') {
+          <div class="space-y-6">
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">TabSelectionMode</h3>
+                <p class="text-sm text-base-content/70">
+                  Controls how keyboard navigation interacts with tab selection. In <code>'follow'</code> mode, moving focus with arrow keys immediately selects the tab. In <code>'explicit'</code> mode, the user must press Enter or click to confirm selection.
+                </p>
+                <app-code-block [code]="typeSelectionMode" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">TabOrientation</h3>
+                <p class="text-sm text-base-content/70">
+                  Determines the layout direction of the tab list. Horizontal tabs render in a row; vertical tabs render in a column alongside their content panel.
+                </p>
+                <app-code-block [code]="typeOrientation" />
+              </div>
+            </div>
+          </div>
+        }
       }
     </div>
   `,
@@ -243,6 +303,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
 export class TabsDemoComponent {
   pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<TabsTab>('basic');
+  apiTab = signal<'tab-group' | 'tab-panel' | 'types'>('tab-group');
   basicTab = signal('overview');
   programmaticTab = signal('first');
 
@@ -356,18 +417,40 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
   // --- API docs ---
   groupInputDocs: ApiDocEntry[] = [
-    { name: 'selectedTab', type: 'model<string>', description: 'Two-way binding for the active tab value' },
-    { name: 'orientation', type: "'horizontal' | 'vertical'", default: "'horizontal'", description: 'Tab orientation' },
+    { name: 'selectedTab', type: 'model<string | undefined>', default: 'undefined', description: 'Two-way binding for the currently active tab value. Use [(selectedTab)] for two-way binding.' },
+    { name: 'activeIndex', type: 'number', default: '0', description: 'The index of the initially active tab. Used only when selectedTab is not provided.' },
+    { name: 'selectionMode', type: "'follow' | 'explicit'", default: "'explicit'", description: "Selection mode. 'follow' activates a tab on keyboard focus, 'explicit' requires a click or Enter key." },
+    { name: 'orientation', type: "'horizontal' | 'vertical'", default: "'horizontal'", description: 'Layout orientation of the tab list' },
+    { name: 'wrap', type: 'boolean', default: 'true', description: 'Whether keyboard navigation wraps from the last tab back to the first (and vice versa)' },
   ];
 
   groupOutputDocs: ApiDocEntry[] = [
-    { name: 'selectedTabChange', type: 'string', description: 'Emitted when the selected tab changes' },
+    { name: 'selectedTabChange', type: 'string | undefined', description: 'Emitted when the selected tab changes. This is the output side of the selectedTab model for two-way binding.' },
+  ];
+
+  groupMethodDocs: ApiDocEntry[] = [
+    { name: 'ngAfterContentInit()', type: 'void', description: 'Lifecycle hook that sets the initial selected tab based on activeIndex if selectedTab was not explicitly provided.' },
   ];
 
   panelInputDocs: ApiDocEntry[] = [
-    { name: 'value', type: 'string', description: 'Unique identifier for this tab panel (required)' },
-    { name: 'label', type: 'string', description: 'Display text for the tab button (required)' },
-    { name: 'icon', type: 'IconName', default: '-', description: 'Lucide icon name shown before the label' },
-    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable this tab' },
+    { name: 'value', type: 'string', description: 'Unique identifier for this tab panel (required). Must be unique within the tab group. Used for two-way binding with selectedTab.' },
+    { name: 'label', type: 'string', default: "''", description: 'Display text shown on the tab button in the tab list. Rendered alongside the optional icon.' },
+    { name: 'icon', type: 'IconName | undefined', default: 'undefined', description: 'Optional Lucide icon name displayed before the label text on the tab button. Accepts any valid Lucide icon string.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Whether this tab is disabled. Disabled tabs cannot be selected via click or keyboard navigation and are visually dimmed.' },
   ];
+
+  lazyContentCode = `<hk-tab-panel value="details" label="Details">
+  <!-- Content inside ng-template is only rendered when this tab is active -->
+  <ng-template>
+    <app-expensive-component />
+  </ng-template>
+</hk-tab-panel>`;
+
+  typeSelectionMode = `type TabSelectionMode = 'follow' | 'explicit';
+// 'follow'   - Tab is selected immediately when focused via keyboard
+// 'explicit'  - Tab is focused but not selected until Enter/click`;
+
+  typeOrientation = `type TabOrientation = 'horizontal' | 'vertical';
+// 'horizontal' - Tabs rendered in a row above the content
+// 'vertical'   - Tabs rendered in a column beside the content`;
 }

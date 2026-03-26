@@ -54,6 +54,12 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
   // Selection mode
   readonly range = input<boolean>(false);
+  /** Show time selection panel alongside the calendar */
+  readonly showTime = input<boolean>(false);
+  /** Use 24-hour format for time display (default: false = 12-hour with AM/PM) */
+  readonly use24Hour = input<boolean>(false);
+  /** Minute step interval (default: 1) */
+  readonly minuteStep = input<number>(1);
 
   // Display configuration
   readonly placeholder = input<string>('Select Date');
@@ -104,6 +110,29 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   readonly yearWindowStart = signal(this.getYearWindowStart());
   readonly hoveredDate = signal<Date | null>(null);
 
+  // Time signals
+  readonly selectedHour = signal<number>(12);
+  readonly selectedMinute = signal<number>(0);
+  readonly selectedPeriod = signal<'AM' | 'PM'>('AM');
+
+  readonly hourOptions = computed(() => {
+    if (this.use24Hour()) {
+      return Array.from({ length: 24 }, (_, i) => i);
+    }
+    return Array.from({ length: 12 }, (_, i) => i === 0 ? 12 : i);
+  });
+
+  readonly minuteOptions = computed(() => {
+    const step = this.minuteStep() || 5;
+    return Array.from({ length: Math.ceil(60 / step) }, (_, i) => i * step);
+  });
+
+  readonly displayHour = computed(() => {
+    const h = this.selectedHour();
+    if (this.use24Hour()) return h;
+    return h === 0 ? 12 : h > 12 ? h - 12 : h;
+  });
+
   // Form state signals
   readonly isTouched = signal(false);
   readonly validationErrors = computed(() => this.validateInternal());
@@ -125,7 +154,14 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
       const end = this.rangeEnd();
       return start && end ? { start, end } : null;
     }
-    return this.selectedDate();
+    const date = this.selectedDate();
+    if (!date) return null;
+    if (!this.showTime()) return date;
+
+    // Combine date + time
+    const combined = new Date(date);
+    combined.setHours(this.selectedHour(), this.selectedMinute(), 0, 0);
+    return combined;
   });
 
   readonly weekdays = computed((): WeekdayInfo[] => {
@@ -151,7 +187,12 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     if (!this.range()) {
       const date = this.selectedDate();
       if (!date) return '';
-      return customFormatter ? customFormatter(date) : this.formatDate(date);
+      if (customFormatter) return customFormatter(date);
+
+      if (this.showTime()) {
+        return this.formatDateTime(date);
+      }
+      return this.formatDate(date);
     }
 
     const start = this.rangeStart();
@@ -309,6 +350,13 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
       this.rangeEnd.set(value.end);
     } else if (!this.range() && value instanceof Date) {
       this.selectedDate.set(value);
+      if (this.showTime()) {
+        this.selectedHour.set(value.getHours());
+        this.selectedMinute.set(value.getMinutes());
+        if (!this.use24Hour()) {
+          this.selectedPeriod.set(value.getHours() >= 12 ? 'PM' : 'AM');
+        }
+      }
     }
   }
 
@@ -483,6 +531,11 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     this.rangeStart.set(null);
     this.rangeEnd.set(null);
     this.hoveredDate.set(null);
+    if (this.showTime()) {
+      this.selectedHour.set(12);
+      this.selectedMinute.set(0);
+      this.selectedPeriod.set('AM');
+    }
     this.onChange(null);
     this.markAsTouched();
   }
@@ -521,6 +574,74 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     return classes.join(' ');
   }
 
+  // ── Time selection methods ──────────────────────────────────────────────
+
+  selectHour(hour: number): void {
+    if (this.use24Hour()) {
+      this.selectedHour.set(hour);
+    } else {
+      // Convert 12-hour display to 24-hour internal
+      const period = this.selectedPeriod();
+      if (period === 'AM') {
+        this.selectedHour.set(hour === 12 ? 0 : hour);
+      } else {
+        this.selectedHour.set(hour === 12 ? 12 : hour + 12);
+      }
+    }
+    this.emitTimeChange();
+  }
+
+  selectMinute(minute: number): void {
+    this.selectedMinute.set(minute);
+    this.emitTimeChange();
+  }
+
+  togglePeriod(): void {
+    const current = this.selectedPeriod();
+    const newPeriod = current === 'AM' ? 'PM' : 'AM';
+    this.selectedPeriod.set(newPeriod);
+
+    // Adjust hour for the new period
+    const h = this.selectedHour();
+    if (newPeriod === 'PM' && h < 12) {
+      this.selectedHour.set(h + 12);
+    } else if (newPeriod === 'AM' && h >= 12) {
+      this.selectedHour.set(h - 12);
+    }
+    this.emitTimeChange();
+  }
+
+  isHourSelected(hour: number): boolean {
+    if (this.use24Hour()) return this.selectedHour() === hour;
+    const h = this.selectedHour();
+    const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return displayH === hour;
+  }
+
+  isMinuteSelected(minute: number): boolean {
+    return this.selectedMinute() === minute;
+  }
+
+  private emitTimeChange(): void {
+    if (this.selectedDate()) {
+      this.onChange(this.currentValue());
+    }
+  }
+
+  private formatDateTime(date: Date): string {
+    const datePart = this.formatDate(date);
+    const h = this.selectedHour();
+    const m = this.selectedMinute();
+
+    if (this.use24Hour()) {
+      return `${datePart}, ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    const period = this.selectedPeriod();
+    return `${datePart}, ${displayH}:${String(m).padStart(2, '0')} ${period}`;
+  }
+
   private handleSingleDateSelection(date: Date): void {
     this.selectedDate.set(date);
     this.onChange(this.currentValue());
@@ -530,7 +651,8 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
       value: { date },
     });
 
-    if (this.closeOnSelect()) {
+    // Don't auto-close in showTime mode — user needs to also pick time
+    if (this.closeOnSelect() && !this.showTime()) {
       this.closePicker();
     } else {
       this.markAsTouched();

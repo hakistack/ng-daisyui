@@ -232,14 +232,83 @@ type IconsTab = 'basic' | 'categories' | 'playground';
       }
 
       @if (pageTab() === 'api') {
-        <div class="space-y-6">
-          <app-api-table title="LucideIcon Inputs" [entries]="inputDocs" />
-
-          <div>
-            <h3 class="text-lg font-semibold mb-2">Usage</h3>
-            <app-code-block [code]="usageCode" />
-          </div>
+        <!-- API Sub-tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="icons_api_tabs" role="tab" class="tab" aria-label="Component"
+            [checked]="apiTab() === 'component'" (change)="apiTab.set('component')" />
+          <input type="radio" name="icons_api_tabs" role="tab" class="tab" aria-label="Usage"
+            [checked]="apiTab() === 'usage'" (change)="apiTab.set('usage')" />
+          <input type="radio" name="icons_api_tabs" role="tab" class="tab" aria-label="Types"
+            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
         </div>
+
+        <!-- Component sub-tab -->
+        @if (apiTab() === 'component') {
+          <div class="space-y-6">
+            <app-api-table title="LucideIcon Inputs" [entries]="inputDocs" />
+            <app-api-table title="LucideIcon Outputs" [entries]="outputDocs" />
+          </div>
+        }
+
+        <!-- Usage sub-tab -->
+        @if (apiTab() === 'usage') {
+          <div class="space-y-6">
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Basic Setup</h3>
+                <p class="text-sm text-base-content/70">
+                  Import <code>LucideIconComponent</code> and use it in your template with any valid Lucide icon name. The icon name is case-sensitive and follows PascalCase naming (e.g., <code>ArrowRight</code>, <code>CircleCheck</code>).
+                </p>
+                <app-code-block [code]="usageCode" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Color Strategies</h3>
+                <p class="text-sm text-base-content/70">
+                  You can set icon color using the <code>color</code> input prop (accepts any CSS color value), or by applying Tailwind text color utility classes directly on the host element. The component defaults to <code>currentColor</code>.
+                </p>
+                <app-code-block [code]="colorStrategyCode" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Pre-resolved Icon Data</h3>
+                <p class="text-sm text-base-content/70">
+                  For advanced use cases, you can pass pre-resolved icon data directly via the <code>iconData</code> input, bypassing the internal icon registry lookup entirely. This is useful when working with dynamically loaded icon sets.
+                </p>
+                <app-code-block [code]="iconDataCode" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Types sub-tab -->
+        @if (apiTab() === 'types') {
+          <div class="space-y-6">
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">IconName</h3>
+                <p class="text-sm text-base-content/70">
+                  Type alias for icon names accepted by the component. It is typed as <code>string</code> to allow flexibility across different Lucide versions. Browse <a href="https://lucide.dev/icons" target="_blank" class="link link-primary">lucide.dev/icons</a> for the full icon list.
+                </p>
+                <app-code-block [code]="typeIconName" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">LucideIconData</h3>
+                <p class="text-sm text-base-content/70">
+                  The raw icon data object from the <code>lucide-angular</code> library. When passed via the <code>iconData</code> input, the component renders this directly without looking up the icon by name.
+                </p>
+                <app-code-block [code]="typeLucideIconData" />
+              </div>
+            </div>
+          </div>
+        }
       }
     </div>
   `,
@@ -247,6 +316,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
 export class IconsDemoComponent {
   pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<IconsTab>('basic');
+  apiTab = signal<'component' | 'usage' | 'types'>('component');
 
   // Playground state
   playgroundIcon: IconName = 'Heart';
@@ -355,8 +425,38 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
   // --- API docs ---
   inputDocs: ApiDocEntry[] = [
     { name: 'name', type: 'IconName', description: 'Lucide icon name (required). See lucide.dev/icons for the full list.' },
-    { name: 'size', type: 'number', default: '24', description: 'Icon size in pixels' },
-    { name: 'strokeWidth', type: 'number', default: '2', description: 'Stroke line width' },
-    { name: 'color', type: 'string', default: "'currentColor'", description: 'CSS color value. Alternatively use Tailwind text-* classes.' },
+    { name: 'iconData', type: 'LucideIconData', default: '-', description: 'Pre-resolved icon data object. When provided, bypasses the icon registry lookup for the name input.' },
+    { name: 'size', type: 'number', default: '20', description: 'Icon size in pixels (width and height)' },
+    { name: 'color', type: 'string', default: "'currentColor'", description: 'CSS color value for the icon stroke. Alternatively use Tailwind text-* utility classes on the host element.' },
+    { name: 'strokeWidth', type: 'number', default: '2', description: 'Stroke line width of the icon paths' },
+    { name: 'absoluteStrokeWidth', type: 'boolean', default: 'false', description: 'When true, the stroke width remains constant regardless of icon size (not scaled proportionally)' },
+    { name: 'class', type: 'string', default: "''", description: 'Additional CSS class(es) applied to the underlying SVG element' },
   ];
+
+  outputDocs: ApiDocEntry[] = [
+    { name: '-', type: '-', description: 'This component does not emit any outputs. It is a pure display component that renders an SVG icon.' },
+  ];
+
+  colorStrategyCode = `<!-- Using the color input prop -->
+<hk-lucide-icon name="Heart" color="red" />
+<hk-lucide-icon name="Heart" color="#9333ea" />
+<hk-lucide-icon name="Heart" color="oklch(0.7 0.25 330)" />
+
+<!-- Using Tailwind utility classes on the host -->
+<hk-lucide-icon name="Heart" class="text-primary" />
+<hk-lucide-icon name="Heart" class="text-error" />`;
+
+  iconDataCode = `import { type LucideIconData } from 'lucide-angular';
+
+// Pass pre-resolved data to bypass registry lookup
+const myIcon: LucideIconData = /* loaded dynamically */;
+
+<hk-lucide-icon [iconData]="myIcon" [size]="24" />`;
+
+  typeIconName = `// Accepts any string for forward-compatibility with new Lucide icon names
+export type IconName = string;`;
+
+  typeLucideIconData = `// Re-exported from lucide-angular
+// Represents the raw SVG path data for an icon
+export type LucideIconData = /* lucide-angular internal type */;`;
 }

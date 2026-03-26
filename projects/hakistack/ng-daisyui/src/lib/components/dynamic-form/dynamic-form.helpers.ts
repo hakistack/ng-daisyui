@@ -3,45 +3,39 @@ import { ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
 
 import { generateUniqueId } from '../../utils/generate-uuid';
-import { ConditionalLogic, CreateFormInput, FieldType, FieldValidation, FieldWidth, FormConfig, FormController, FormFieldConfig, FormSelectOption, FormStep, OptionsFromConfig, ResponsiveColSpan } from './dynamic-form.types';
+import {
+  BaseFieldOptions,
+  CheckboxFieldOptions,
+  ColorFieldOptions,
+  ConditionalLogic,
+  CreateFormInput,
+  DateFieldOptions,
+  DatetimeFieldOptions,
+  EmailFieldOptions,
+  FieldType,
+  FileFieldOptions,
+  FormConfig,
+  FormController,
+  FormFieldConfig,
+  FormSelectOption,
+  FormStep,
+  HiddenFieldOptions,
+  MultiSelectFieldOptions,
+  NumberFieldOptions,
+  OptionsFromConfig,
+  PasswordFieldOptions,
+  RadioFieldOptions,
+  RangeFieldOptions,
+  SelectFieldOptions,
+  TelFieldOptions,
+  TextareaFieldOptions,
+  TextFieldOptions,
+  TimeFieldOptions,
+  ToggleFieldOptions,
+  UrlFieldOptions,
+} from './dynamic-form.types';
 
-// Simplified field options interface
-interface FieldOptions {
-  placeholder?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultValue?: any;
-  helpText?: string;
-  /** Grid column span (1-12). Can be responsive: { default: 12, md: 6, lg: 4 } */
-  colSpan?: number | ResponsiveColSpan;
-  /** Field width for non-grid layouts: 'full', '1/2', '1/3', '1/4', '2/3', '3/4', 'auto' */
-  width?: FieldWidth;
-  cssClass?: string;
-  containerClass?: string;
-  hidden?: boolean;
-  disabled?: boolean;
-  required?: boolean;
-  validation?: Partial<FieldValidation>;
-  options?: FormSelectOption[] | Observable<FormSelectOption[]>;
-  rows?: number;
-  accept?: string;
-  prefix?: string;
-  suffix?: string;
-  multiple?: boolean;
-  orientation?: 'horizontal' | 'vertical';
-  enableSearch?: boolean;
-  /** Load options dynamically based on another field's value */
-  optionsFrom?: OptionsFromConfig;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  showWhen?: string | [string, any] | [string, (value: any, formValues?: Record<string, any>) => boolean];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  hideWhen?: string | [string, any] | [string, (value: any, formValues?: Record<string, any>) => boolean];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  requiredWhen?: string | [string, any] | [string, (value: any, formValues?: Record<string, any>) => boolean];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  disabledWhen?: string | [string, any] | [string, (value: any, formValues?: Record<string, any>) => boolean];
-  /** Focus this field when the form loads */
-  focusOnLoad?: boolean;
-}
+// ── createForm ──────────────────────────────────────────────────────────────
 
 /**
  * Create a form configuration with external control capabilities.
@@ -66,7 +60,6 @@ interface FieldOptions {
  * ```
  */
 export function createForm(input: CreateFormInput): FormController {
-  // Trigger signals - increment to trigger action in component
   const submitTrigger = signal(0);
   const resetTrigger = signal(0);
 
@@ -78,9 +71,7 @@ export function createForm(input: CreateFormInput): FormController {
     gap: input.gap,
     labelWidth: input.labelWidth,
     autoSave: input.autoSave,
-    // Regular form
     fields: input.fields,
-    // Wizard/stepper
     steps: input.steps,
     stepperConfig: input.steps
       ? {
@@ -90,11 +81,9 @@ export function createForm(input: CreateFormInput): FormController {
           ...input.stepperConfig,
         }
       : undefined,
-    // Callbacks
     onSubmit: input.onSubmit,
     onReset: input.onReset,
     onChange: input.onChange,
-    // Internal triggers for external control
     _submitTrigger: submitTrigger.asReadonly(),
     _resetTrigger: resetTrigger.asReadonly(),
   }));
@@ -106,224 +95,271 @@ export function createForm(input: CreateFormInput): FormController {
   };
 }
 
-// Base field creation with smart defaults
-function createField(key: string, type: FieldType, label?: string, options: FieldOptions = {}): FormFieldConfig {
-  const autoLabel =
-    label ||
-    key
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
-      .trim();
+// ── Internal helpers ────────────────────────────────────────────────────────
 
-  return {
-    id: generateUniqueId(),
-    key,
-    type,
-    label: autoLabel,
-    placeholder: options.placeholder || `Enter ${autoLabel.toLowerCase()}`,
-    validation: {
-      required: options.required || false,
-      ...options.validation,
-    },
-    defaultValue: options.defaultValue,
-    helpText: options.helpText,
-    order: 1,
-    colSpan: options.colSpan,
-    width: options.width,
-    cssClass: options.cssClass || '',
-    containerClass: options.containerClass,
-    hidden: options.hidden || false,
-    disabled: options.disabled || false,
-    showWhen: parseCondition(options.showWhen),
-    hideWhen: parseCondition(options.hideWhen),
-    requiredWhen: parseCondition(options.requiredWhen),
-    disabledWhen: parseCondition(options.disabledWhen),
-    options: options.options,
-    optionsFrom: options.optionsFrom,
-    rows: options.rows,
-    accept: options.accept,
-    prefix: options.prefix,
-    suffix: options.suffix,
-    multiple: options.multiple,
-    orientation: options.orientation,
-    isSelectSearchable: options.enableSearch,
-    focusOnLoad: options.focusOnLoad,
-  };
-}
-
-// Helper to parse conditions
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseCondition(condition?: string | [string, any]): ConditionalLogic[] {
   if (!condition) return [];
 
   if (typeof condition === 'string') {
-    // Simple boolean check: showWhen: 'isAdmin'
     return [{ field: condition, operator: 'equals', value: true }];
   }
 
-  // Tuple format: showWhen: ['role', 'admin'] or ['firstName', (val) => val.length > 0]
-  const [field, value] = condition;
+  const [fieldKey, value] = condition;
 
-  // Check if value is a function
   if (typeof value === 'function') {
-    return [{ field, operator: 'function', value }];
+    return [{ field: fieldKey, operator: 'function', value }];
   }
 
-  // Standard value comparison
-  return [{ field, operator: 'equals', value }];
+  return [{ field: fieldKey, operator: 'equals', value }];
 }
 
-// Simplified field creators with smart defaults
-export const field = {
-  // Text fields
-  text: (key: string, label?: string, options?: FieldOptions) => createField(key, 'text', label, options),
+function normalizeChoices(
+  choices?: string[] | FormSelectOption[] | Observable<FormSelectOption[]>,
+): FormSelectOption[] | Observable<FormSelectOption[]> | undefined {
+  if (!choices) return undefined;
+  if (!Array.isArray(choices)) return choices; // Observable
+  if (choices.length === 0) return [];
+  if (typeof choices[0] === 'string') {
+    return (choices as string[]).map(opt => ({ label: opt, value: opt }));
+  }
+  return choices as FormSelectOption[];
+}
 
-  email: (key: string, label?: string, options?: FieldOptions) =>
-    createField(key, 'email', label, {
-      validation: { email: true },
+function autoLabel(key: string, label?: string): string {
+  return (
+    label ||
+    key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim()
+  );
+}
+
+interface InternalFieldInput extends BaseFieldOptions {
+  // Validation (flattened)
+  minLength?: number;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  email?: boolean;
+  pattern?: string | RegExp;
+  // Selection
+  choices?: string[] | FormSelectOption[] | Observable<FormSelectOption[]>;
+  optionsFrom?: OptionsFromConfig;
+  enableSearch?: boolean;
+  orientation?: 'horizontal' | 'vertical';
+  // Field-specific
+  rows?: number;
+  cols?: number;
+  accept?: string;
+  multiple?: boolean;
+  step?: number;
+  isRangeDate?: boolean;
+}
+
+function createField(key: string, type: FieldType, label: string, input: InternalFieldInput = {}): FormFieldConfig {
+  return {
+    id: generateUniqueId(),
+    key,
+    type,
+    label,
+    placeholder: input.placeholder || `Enter ${label.toLowerCase()}`,
+    defaultValue: input.defaultValue,
+    // Flattened validation
+    required: input.required || false,
+    minLength: input.minLength,
+    maxLength: input.maxLength,
+    min: input.min,
+    max: input.max,
+    email: input.email,
+    pattern: input.pattern,
+    customValidators: input.customValidators,
+    // Selection
+    choices: normalizeChoices(input.choices),
+    optionsFrom: input.optionsFrom,
+    enableSearch: input.enableSearch,
+    // Layout
+    colSpan: input.colSpan,
+    width: input.width,
+    cssClass: input.cssClass || '',
+    containerClass: input.containerClass,
+    order: input.order ?? 1,
+    group: input.group,
+    // Behavior
+    hidden: input.hidden || false,
+    disabled: input.disabled || false,
+    helpText: input.helpText,
+    prefix: input.prefix,
+    suffix: input.suffix,
+    focusOnLoad: input.focusOnLoad,
+    // Conditions
+    showWhen: parseCondition(input.showWhen),
+    hideWhen: parseCondition(input.hideWhen),
+    requiredWhen: parseCondition(input.requiredWhen),
+    disabledWhen: parseCondition(input.disabledWhen),
+    // Field-specific
+    rows: input.rows,
+    cols: input.cols,
+    accept: input.accept,
+    multiple: input.multiple,
+    step: input.step,
+    orientation: input.orientation,
+    isRangeDate: input.isRangeDate,
+  };
+}
+
+// ── field builders ──────────────────────────────────────────────────────────
+// Every builder: field.*(key, label?, options?)
+
+export const field = {
+  // Text-like fields
+  text: (key: string, label?: string, options?: TextFieldOptions) =>
+    createField(key, 'text', autoLabel(key, label), options),
+
+  email: (key: string, label?: string, options?: EmailFieldOptions) =>
+    createField(key, 'email', autoLabel(key, label), {
+      email: true,
       placeholder: `Enter ${(label || 'email').toLowerCase()}`,
       ...options,
     }),
 
-  password: (key: string, label?: string, options?: FieldOptions) =>
-    createField(key, 'password', label, {
+  password: (key: string, label?: string, options?: PasswordFieldOptions) =>
+    createField(key, 'password', autoLabel(key, label), {
       placeholder: `Enter ${(label || 'password').toLowerCase()}`,
       ...options,
     }),
 
-  textarea: (key: string, label?: string, options?: FieldOptions) =>
-    createField(key, 'textarea', label, {
+  tel: (key: string, label?: string, options?: TelFieldOptions) =>
+    createField(key, 'tel', autoLabel(key, label), options),
+
+  url: (key: string, label?: string, options?: UrlFieldOptions) =>
+    createField(key, 'url', autoLabel(key, label), options),
+
+  textarea: (key: string, label?: string, options?: TextareaFieldOptions) =>
+    createField(key, 'textarea', autoLabel(key, label), {
       rows: 3,
       placeholder: `Enter ${(label || key).toLowerCase()}...`,
       ...options,
     }),
 
   // Number fields
-  number: (key: string, label?: string, options?: FieldOptions) => createField(key, 'number', label, options),
+  number: (key: string, label?: string, options?: NumberFieldOptions) =>
+    createField(key, 'number', autoLabel(key, label), options),
 
-  range: (key: string, min = 0, max = 100, label?: string, options?: FieldOptions) =>
-    createField(key, 'range', label, {
-      validation: { min, max },
-      defaultValue: min,
+  range: (key: string, label?: string, options?: RangeFieldOptions) =>
+    createField(key, 'range', autoLabel(key, label), {
+      min: 0,
+      max: 100,
+      defaultValue: options?.min ?? 0,
       ...options,
     }),
 
-  // Selection fields
-  select: (key: string, optionsArray: string[] | FormSelectOption[], label?: string, options?: FieldOptions) => {
-    const selectOptions =
-      Array.isArray(optionsArray) && typeof optionsArray[0] === 'string'
-        ? (optionsArray as string[]).map(opt => ({ label: opt, value: opt }))
-        : (optionsArray as FormSelectOption[]);
-
-    return createField(key, 'select', label, {
-      options: selectOptions,
+  // Selection fields — choices go in options bag
+  select: (key: string, label?: string, options?: SelectFieldOptions) =>
+    createField(key, 'select', autoLabel(key, label), {
       placeholder: `Select ${(label || key).toLowerCase()}`,
       ...options,
-    });
-  },
+    }),
 
-  multiSelect: (key: string, optionsArray: string[] | FormSelectOption[], label?: string, options?: FieldOptions) => {
-    const selectOptions =
-      Array.isArray(optionsArray) && typeof optionsArray[0] === 'string'
-        ? (optionsArray as string[]).map(opt => ({ label: opt, value: opt }))
-        : (optionsArray as FormSelectOption[]);
-
-    return createField(key, 'multiselect', label, {
-      options: selectOptions,
+  multiSelect: (key: string, label?: string, options?: MultiSelectFieldOptions) =>
+    createField(key, 'multiselect', autoLabel(key, label), {
       defaultValue: [],
       placeholder: `Select ${(label || key).toLowerCase()}`,
       ...options,
-    });
-  },
+    }),
 
-  radio: (key: string, optionsArray: string[] | FormSelectOption[], label?: string, options?: FieldOptions) => {
-    const radioOptions =
-      Array.isArray(optionsArray) && typeof optionsArray[0] === 'string'
-        ? (optionsArray as string[]).map(opt => ({ label: opt, value: opt }))
-        : (optionsArray as FormSelectOption[]);
-
-    return createField(key, 'radio', label, {
-      options: radioOptions,
-      ...options,
-    });
-  },
+  radio: (key: string, label?: string, options?: RadioFieldOptions) =>
+    createField(key, 'radio', autoLabel(key, label), options),
 
   // Boolean fields
-  checkbox: (key: string, label?: string, options?: FieldOptions) =>
-    createField(key, 'checkbox', label, {
+  checkbox: (key: string, label?: string, options?: CheckboxFieldOptions) =>
+    createField(key, 'checkbox', autoLabel(key, label), {
       defaultValue: false,
       ...options,
     }),
 
-  toggle: (key: string, label?: string, options?: FieldOptions) =>
-    createField(key, 'toggle', label, {
+  toggle: (key: string, label?: string, options?: ToggleFieldOptions) =>
+    createField(key, 'toggle', autoLabel(key, label), {
       defaultValue: false,
       ...options,
     }),
 
-  date: (key: string, label?: string, options?: FieldOptions) => createField(key, 'date', label, options),
+  // Date/time fields
+  date: (key: string, label?: string, options?: DateFieldOptions) =>
+    createField(key, 'date', autoLabel(key, label), {
+      isRangeDate: options?.isRange,
+      ...options,
+    }),
 
-  // File field
-  file: (key: string, label?: string, options?: FieldOptions) =>
-    createField(key, 'file', label, {
+  time: (key: string, label?: string, options?: TimeFieldOptions) =>
+    createField(key, 'time', autoLabel(key, label), options),
+
+  datetime: (key: string, label?: string, options?: DatetimeFieldOptions) =>
+    createField(key, 'datetime-local', autoLabel(key, label), options),
+
+  // Other fields
+  color: (key: string, label?: string, options?: ColorFieldOptions) =>
+    createField(key, 'color', autoLabel(key, label), options),
+
+  file: (key: string, label?: string, options?: FileFieldOptions) =>
+    createField(key, 'file', autoLabel(key, label), {
       accept: '*/*',
       ...options,
     }),
 
-  // Hidden field
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  hidden: (key: string, value: any, options?: FieldOptions) =>
+  hidden: (key: string, options?: HiddenFieldOptions) =>
     createField(key, 'hidden', '', {
       hidden: true,
-      defaultValue: value,
-      ...options,
+      defaultValue: options?.defaultValue,
     }),
 };
 
-// Validation helpers
+// ── Validation helpers ──────────────────────────────────────────────────────
+// Return flat objects that spread into field options
+
 export const validation = {
-  required: (min?: number, max?: number): FieldValidation => ({
-    required: true,
+  required: (min?: number, max?: number) => ({
+    required: true as const,
     minLength: min,
     maxLength: max,
   }),
 
-  email: (required = true): FieldValidation => ({
+  email: (required = true) => ({
     required,
-    email: true,
+    email: true as const,
   }),
 
-  password: (minLength = 8, strongPassword = false): FieldValidation => ({
-    required: true,
+  password: (minLength = 8, strongPassword = false) => ({
+    required: true as const,
     minLength,
     pattern: strongPassword ? /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/ : undefined,
   }),
 
-  number: (min?: number, max?: number, required = true): FieldValidation => ({
+  number: (min?: number, max?: number, required = true) => ({
     required,
     min,
     max,
   }),
 
-  custom: (...validators: ValidatorFn[]): FieldValidation => ({
-    custom: validators,
+  custom: (...validators: ValidatorFn[]) => ({
+    customValidators: validators,
   }),
 };
 
-// Layout helpers
+// ── Layout helpers ──────────────────────────────────────────────────────────
+
 export const layout = {
-  /** Vertical layout (default) - fields stacked in a column */
   vertical: (options?: { gap?: 'sm' | 'md' | 'lg' }) => ({
     layout: 'vertical' as const,
     gap: options?.gap,
   }),
-  /** Horizontal layout - label beside input */
   horizontal: (options?: { gap?: 'sm' | 'md' | 'lg'; labelWidth?: 'sm' | 'md' | 'lg' | 'xl' }) => ({
     layout: 'horizontal' as const,
     gap: options?.gap,
     labelWidth: options?.labelWidth,
   }),
-  /** Grid layout - fields in responsive grid */
   grid: (columns = 2, options?: { gap?: 'sm' | 'md' | 'lg' }) => ({
     layout: 'grid' as const,
     gridColumns: columns,
@@ -331,11 +367,9 @@ export const layout = {
   }),
 };
 
-// Step helpers for wizard/stepper forms
+// ── Step helpers ────────────────────────────────────────────────────────────
+
 export const step = {
-  /**
-   * Create a form step with fields
-   */
   create: (
     name: string,
     label: string,
@@ -343,8 +377,8 @@ export const step = {
     options?: {
       description?: string;
       optional?: boolean;
-      nextText?: string; // Override next button text for this step
-      previousText?: string; // Override previous button text for this step
+      nextText?: string;
+      previousText?: string;
     },
   ): FormStep => ({
     name,
@@ -356,9 +390,6 @@ export const step = {
     fields,
   }),
 
-  /**
-   * Create a review step (empty fields, shows summary)
-   */
   review: (name: string, label: string, description?: string): FormStep => ({
     name,
     label,
@@ -367,7 +398,5 @@ export const step = {
   }),
 };
 
-/**
- * @deprecated Use createForm with steps instead
- */
+/** @deprecated Use createForm with steps instead */
 export const createWizard = createForm;

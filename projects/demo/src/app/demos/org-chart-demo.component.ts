@@ -8,6 +8,7 @@ import {
 } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
 type OrgChartTab = 'basic' | 'selection' | 'templates' | 'colors';
@@ -20,7 +21,7 @@ interface Person {
 
 @Component({
   selector: 'app-org-chart-demo',
-  imports: [OrganizationChartComponent, DocSectionComponent, ApiTableComponent],
+  imports: [OrganizationChartComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
   template: `
     <div class="space-y-6">
       <div>
@@ -183,11 +184,75 @@ interface Person {
       }
 
       @if (pageTab() === 'api') {
-        <div class="space-y-6">
-          <app-api-table title="Inputs" [entries]="inputDocs" />
-          <app-api-table title="Outputs" [entries]="outputDocs" />
-          <app-api-table title="Methods" [entries]="methodDocs" />
+        <!-- API Sub-tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="orgchart_api_tabs" role="tab" class="tab" aria-label="Component"
+            [checked]="apiTab() === 'component'" (change)="apiTab.set('component')" />
+          <input type="radio" name="orgchart_api_tabs" role="tab" class="tab" aria-label="Node Configuration"
+            [checked]="apiTab() === 'node-config'" (change)="apiTab.set('node-config')" />
+          <input type="radio" name="orgchart_api_tabs" role="tab" class="tab" aria-label="Methods"
+            [checked]="apiTab() === 'methods'" (change)="apiTab.set('methods')" />
+          <input type="radio" name="orgchart_api_tabs" role="tab" class="tab" aria-label="Types"
+            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
         </div>
+
+        <!-- Component sub-tab -->
+        @if (apiTab() === 'component') {
+          <div class="space-y-6">
+            <app-api-table title="Inputs" [entries]="inputDocs" />
+            <app-api-table title="Outputs" [entries]="outputDocs" />
+          </div>
+        }
+
+        <!-- Node Configuration sub-tab -->
+        @if (apiTab() === 'node-config') {
+          <div class="space-y-6">
+            <app-api-table title="TreeNode Properties" [entries]="treeNodeDocs" />
+            <app-api-table title="Custom Node Template" [entries]="nodeTemplateDocs" />
+          </div>
+        }
+
+        <!-- Methods sub-tab -->
+        @if (apiTab() === 'methods') {
+          <div class="space-y-6">
+            <app-api-table title="Public Methods" [entries]="methodDocs" />
+          </div>
+        }
+
+        <!-- Types sub-tab -->
+        @if (apiTab() === 'types') {
+          <div class="space-y-6">
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">TreeNode&lt;T&gt;</h3>
+                <p class="text-sm text-base-content/70">
+                  The data structure used to define each node in the chart. Supports generic typing for custom data payloads via the <code>data</code> property.
+                </p>
+                <app-code-block [code]="typeTreeNode" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">OrgChartNodeColor</h3>
+                <p class="text-sm text-base-content/70">
+                  Union type of DaisyUI color names that can be applied to nodes via the <code>type</code> property on a TreeNode or the <code>nodeColor</code> input on the component.
+                </p>
+                <app-code-block [code]="typeOrgChartNodeColor" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Event Types</h3>
+                <p class="text-sm text-base-content/70">
+                  All event payloads include the original DOM event and the affected node. Use these types to properly handle output events.
+                </p>
+                <app-code-block [code]="typeEvents" />
+              </div>
+            </div>
+          </div>
+        }
       }
     </div>
   `,
@@ -195,6 +260,7 @@ interface Person {
 export class OrgChartDemoComponent {
   pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<OrgChartTab>('basic');
+  apiTab = signal<'component' | 'node-config' | 'methods' | 'types'>('component');
   selectedNode = signal<TreeNode | null>(null);
   selectedNodes = signal<TreeNode[]>([]);
   lastEvent = signal<string>('');
@@ -476,31 +542,108 @@ templateData: TreeNode<Person>[] = [
 
   // --- API docs ---
   inputDocs: ApiDocEntry[] = [
-    { name: 'value', type: 'TreeNode<T>[]', default: '[]', description: 'Hierarchical data to display' },
-    { name: 'selectionMode', type: "'single' | 'multiple' | 'checkbox' | null", default: 'null', description: 'Node selection mode' },
-    { name: 'selection', type: 'TreeNode<T> | TreeNode<T>[] | null', default: 'null', description: 'Currently selected node(s)' },
-    { name: 'preserveSpace', type: 'boolean', default: 'true', description: 'Preserve space for collapsed nodes' },
-    { name: 'orientation', type: "'vertical' | 'horizontal'", default: "'vertical'", description: 'Chart orientation' },
-    { name: 'nodeColor', type: 'OrgChartNodeColor', default: "'primary'", description: 'Default node color' },
-    { name: 'collapsible', type: 'boolean', default: 'true', description: 'Whether nodes can be collapsed' },
-    { name: 'showLines', type: 'boolean', default: 'true', description: 'Show connecting lines' },
-    { name: 'lineColor', type: 'string', default: "''", description: 'Custom line color' },
+    { name: 'value', type: 'TreeNode<T>[]', default: '[]', description: 'The hierarchical data to display' },
+    { name: 'selectionMode', type: "'single' | 'multiple' | 'checkbox' | null", default: 'null', description: 'Node selection mode. Null disables selection.' },
+    { name: 'selection', type: 'TreeNode<T> | TreeNode<T>[] | null', default: 'null', description: 'Currently selected node(s). Use with selectionChange for two-way binding.' },
+    { name: 'preserveSpace', type: 'boolean', default: 'true', description: 'Whether to preserve space for collapsed nodes in the layout' },
+    { name: 'orientation', type: "'vertical' | 'horizontal'", default: "'vertical'", description: 'Chart orientation (vertical draws top-to-bottom, horizontal draws left-to-right)' },
+    { name: 'nodeColor', type: 'OrgChartNodeColor', default: "'primary'", description: 'Default node color applied when a node has no type set' },
+    { name: 'collapsible', type: 'boolean', default: 'true', description: 'Whether nodes with children can be collapsed/expanded' },
+    { name: 'styleClass', type: 'string', default: "''", description: 'Custom CSS class applied to the chart container element' },
+    { name: 'showLines', type: 'boolean', default: 'true', description: 'Whether to show connecting lines between nodes' },
+    { name: 'lineColor', type: 'string', default: "''", description: 'Custom CSS color for the connecting lines (overrides default)' },
   ];
 
   outputDocs: ApiDocEntry[] = [
-    { name: 'onNodeSelect', type: 'OrgChartNodeSelectEvent<T>', description: 'Emitted when a node is selected' },
-    { name: 'onNodeUnselect', type: 'OrgChartNodeUnselectEvent<T>', description: 'Emitted when a node is unselected' },
-    { name: 'onNodeExpand', type: 'OrgChartNodeExpandEvent<T>', description: 'Emitted when a node is expanded' },
-    { name: 'onNodeCollapse', type: 'OrgChartNodeCollapseEvent<T>', description: 'Emitted when a node is collapsed' },
-    { name: 'selectionChange', type: 'TreeNode<T> | TreeNode<T>[] | null', description: 'Emitted when selection changes' },
+    { name: 'onNodeSelect', type: 'OrgChartNodeSelectEvent<T>', description: 'Emitted when a node is selected. Payload includes the original DOM event and the selected node.' },
+    { name: 'onNodeUnselect', type: 'OrgChartNodeUnselectEvent<T>', description: 'Emitted when a node is unselected. Payload includes the original DOM event and the unselected node.' },
+    { name: 'onNodeExpand', type: 'OrgChartNodeExpandEvent<T>', description: 'Emitted when a collapsed node is expanded. Payload includes the original DOM event and the expanded node.' },
+    { name: 'onNodeCollapse', type: 'OrgChartNodeCollapseEvent<T>', description: 'Emitted when an expanded node is collapsed. Payload includes the original DOM event and the collapsed node.' },
+    { name: 'selectionChange', type: 'TreeNode<T> | TreeNode<T>[] | null', description: 'Emitted when the selection changes. Use for two-way binding with [selection]. Returns null when nothing is selected.' },
   ];
 
   methodDocs: ApiDocEntry[] = [
-    { name: 'isNodeSelected(node)', type: 'boolean', description: 'Check if a node is selected' },
-    { name: 'hasChildren(node)', type: 'boolean', description: 'Check if a node has children' },
-    { name: 'isExpanded(node)', type: 'boolean', description: 'Check if a node is expanded' },
-    { name: 'toggleNode(event, node)', type: 'void', description: 'Toggle node expand/collapse' },
-    { name: 'selectNode(event, node)', type: 'void', description: 'Select a node' },
-    { name: 'getNodeColor(node)', type: 'OrgChartNodeColor', description: 'Get the computed color of a node' },
+    { name: 'isNodeSelected(node)', type: 'boolean', description: 'Returns whether the given node is currently in the selected set. Works for both single and multiple selection modes.' },
+    { name: 'hasChildren(node)', type: 'boolean', description: 'Returns whether the node has child nodes. Respects the leaf property -- nodes marked as leaf return false even if they have a children array.' },
+    { name: 'isExpanded(node)', type: 'boolean', description: 'Returns whether the node is currently expanded, showing its children in the chart layout.' },
+    { name: 'getNodeIcon(node)', type: 'IconName | undefined', description: 'Returns the resolved Lucide icon name for a node. If the node has expandedIcon/collapsedIcon overrides, uses the appropriate one based on expansion state.' },
+    { name: 'toggleNode(event, node)', type: 'void', description: 'Programmatically toggle a node between expanded and collapsed states. Emits onNodeExpand or onNodeCollapse accordingly.' },
+    { name: 'selectNode(event, node)', type: 'void', description: 'Programmatically select or unselect a node based on the current selection mode. In single mode, replaces the selection; in multiple mode, toggles the node.' },
+    { name: 'getNodeColor(node)', type: 'OrgChartNodeColor', description: 'Returns the effective color for a node. Uses the node type property if set, otherwise falls back to the component-level nodeColor input default.' },
+    { name: 'getNodeClasses(node, level)', type: 'string', description: 'Returns the computed CSS class string for a node based on its color, selection state, nesting level, and loading state.' },
+    { name: 'getNodeStyle(node)', type: 'Record<string, string>', description: 'Returns the inline style object from the node configuration. Used internally to apply custom per-node styles.' },
+    { name: 'getTemplateContext(node, level)', type: 'OrgChartNodeTemplateContext<T>', description: 'Returns the context object passed to custom node templates. Includes the node, whether it is selected, expanded, its nesting level, and toggle/select callback functions.' },
+    { name: 'trackByNode(index, node)', type: 'string', description: 'Track-by function used for rendering optimization. Resolves the identity by key, then label, then serialized data.' },
   ];
+
+  treeNodeDocs: ApiDocEntry[] = [
+    { name: 'key', type: 'string', description: 'Unique identifier for the node. Used for tracking, selection state, and expansion state management.' },
+    { name: 'label', type: 'string', description: 'Display text rendered inside the node card in the chart.' },
+    { name: 'icon', type: 'IconName', default: '-', description: 'Lucide icon name displayed alongside the label inside the node card.' },
+    { name: 'expandedIcon', type: 'IconName', default: '-', description: 'Lucide icon to show when the node is expanded. Overrides the default icon only in the expanded state.' },
+    { name: 'collapsedIcon', type: 'IconName', default: '-', description: 'Lucide icon to show when the node is collapsed. Overrides the default icon only in the collapsed state.' },
+    { name: 'type', type: 'OrgChartNodeColor', default: '-', description: 'DaisyUI color applied to this specific node, overriding the component-level nodeColor default.' },
+    { name: 'expanded', type: 'boolean', default: 'true', description: 'Whether the node children are initially visible. Set to false to collapse a branch on render.' },
+    { name: 'children', type: 'TreeNode<T>[]', default: '-', description: 'Array of child nodes rendered below this node with connecting lines.' },
+    { name: 'data', type: 'T', default: '-', description: 'Arbitrary data payload attached to the node. Accessible in custom node templates via the template context.' },
+    { name: 'leaf', type: 'boolean', default: '-', description: 'When true, marks the node as a leaf with no expand/collapse toggle, even if children are present.' },
+    { name: 'style', type: 'Record<string, string>', default: '-', description: 'Inline styles applied directly to the node element.' },
+    { name: 'styleClass', type: 'string', default: '-', description: 'CSS class(es) added to the node element for custom styling.' },
+  ];
+
+  nodeTemplateDocs: ApiDocEntry[] = [
+    { name: '#nodeTemplate', type: 'TemplateRef', description: 'Content-projected ng-template for fully custom node rendering. When provided, replaces the default node card layout entirely.' },
+    { name: 'let-node', type: 'TreeNode<T>', description: 'Implicit template context variable providing the current node data, including label, icon, data, and children.' },
+    { name: 'let-selected="selected"', type: 'boolean', description: 'Template context variable indicating whether the current node is selected. Use this to conditionally style selected nodes.' },
+    { name: 'let-expanded="expanded"', type: 'boolean', description: 'Template context variable indicating whether the current node is expanded.' },
+    { name: 'let-level="level"', type: 'number', description: 'Template context variable providing the nesting depth of the current node (0 for root).' },
+  ];
+
+  typeTreeNode = `interface TreeNode<T = unknown> {
+  key?: string;
+  label?: string;
+  icon?: IconName;
+  expandedIcon?: IconName;
+  collapsedIcon?: IconName;
+  type?: string;
+  expanded?: boolean;
+  children?: TreeNode<T>[];
+  data?: T;
+  leaf?: boolean;
+  style?: Record<string, string>;
+  styleClass?: string;
+  selectable?: boolean;
+  draggable?: boolean;
+  droppable?: boolean;
+}`;
+
+  typeOrgChartNodeColor = `type OrgChartNodeColor =
+  | 'primary'
+  | 'secondary'
+  | 'accent'
+  | 'neutral'
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error';`;
+
+  typeEvents = `interface OrgChartNodeSelectEvent<T> {
+  originalEvent: Event;
+  node: TreeNode<T>;
+}
+
+interface OrgChartNodeUnselectEvent<T> {
+  originalEvent: Event;
+  node: TreeNode<T>;
+}
+
+interface OrgChartNodeExpandEvent<T> {
+  originalEvent: Event;
+  node: TreeNode<T>;
+}
+
+interface OrgChartNodeCollapseEvent<T> {
+  originalEvent: Event;
+  node: TreeNode<T>;
+}`;
 }

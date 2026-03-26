@@ -9,12 +9,13 @@ import { FormStateMetadata, FormStateService } from '../../services/form-state.s
 import { DatepickerComponent } from '../datepicker/datepicker.component';
 import { SelectComponent } from '../select/select.component';
 import { StepperComponent } from '../stepper/stepper.component';
-import { AutoSaveConfig, FormConfig, FormFieldConfig, FormSelectOption, FormStep, FormSubmissionData, OptionsFromConfig, ResponsiveColSpan, StepChangeEvent } from './dynamic-form.types';
+import { AutoSaveConfig, FormConfig, FormFieldConfig, FormSelectOption, FormStep, FormSubmissionData, ResponsiveColSpan, StepChangeEvent } from './dynamic-form.types';
 import { FormUtils } from './dynamic-form.utils';
+import { TimepickerComponent } from '../timepicker/timepicker.component';
 
 @Component({
   selector: 'hk-dynamic-form',
-  imports: [CommonModule, ReactiveFormsModule, CdkStepperModule, SelectComponent, DatepickerComponent, StepperComponent],
+  imports: [CommonModule, ReactiveFormsModule, CdkStepperModule, SelectComponent, DatepickerComponent, StepperComponent, TimepickerComponent],
   templateUrl: './dynamic-form.component.html',
   styleUrl: './dynamic-form.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -503,8 +504,8 @@ export class DynamicFormComponent {
     if (value === null || value === undefined || value === '') return '—';
 
     // For select fields, show label instead of value
-    if ((field.type === 'select' || field.type === 'radio') && Array.isArray(field.options)) {
-      const option = field.options.find(o => o.value === value);
+    if ((field.type === 'select' || field.type === 'radio') && Array.isArray(field.choices)) {
+      const option = (field.choices as FormSelectOption[]).find(o => o.value === value);
       return option?.label ?? String(value);
     }
 
@@ -553,7 +554,7 @@ export class DynamicFormComponent {
     const form = this.formGroup();
 
     // Check base validation first
-    if (field.validation?.required) return true;
+    if (field.required) return true;
 
     // Check conditional requirements
     return field.requiredWhen?.length ? FormUtils.evaluateConditions(field.requiredWhen, values, form) : false;
@@ -583,8 +584,8 @@ export class DynamicFormComponent {
       return dynamicOptions || [];
     }
 
-    if (Array.isArray(field.options)) {
-      return field.options;
+    if (Array.isArray(field.choices)) {
+      return field.choices as FormSelectOption[];
     }
 
     return dynamicOptions || [];
@@ -1104,7 +1105,7 @@ export class DynamicFormComponent {
       // Handle conditional required validation
       if (field.requiredWhen?.length) {
         const shouldBeRequired = FormUtils.evaluateConditions(field.requiredWhen, valuesWithContext, form);
-        const newValidators = FormUtils.createValidatorsWithConditionalRequired(field.validation, shouldBeRequired);
+        const newValidators = FormUtils.createValidatorsWithConditionalRequired(field, shouldBeRequired);
         validationUpdates.push({ control, validators: newValidators });
       }
 
@@ -1208,10 +1209,10 @@ export class DynamicFormComponent {
   }
 
   private loadAsyncOptions(fields: readonly FormFieldConfig[]): void {
-    const asyncFields = fields.filter(field => field.options && !Array.isArray(field.options));
+    const asyncFields = fields.filter(field => field.choices && !Array.isArray(field.choices));
 
     for (const field of asyncFields) {
-      const options$ = field.options as Observable<readonly FormSelectOption[]>;
+      const options$ = field.choices as Observable<readonly FormSelectOption[]>;
 
       options$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(options => {
         this.fieldOptions.update(map => {

@@ -6,6 +6,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
 type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
+type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
 @Component({
   selector: 'app-alert-demo',
@@ -163,17 +164,122 @@ type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
       }
 
       @if (pageTab() === 'api') {
-        <div class="space-y-6">
-          <app-api-table title="AlertService Methods" [entries]="methodDocs" />
-          <app-api-table title="ConfirmOptions" [entries]="confirmOptionDocs" />
-          <app-api-table title="CountdownOptions" [entries]="countdownOptionDocs" />
-          <app-api-table title="AlertResult" [entries]="resultDocs" />
-
-          <div>
-            <h3 class="text-lg font-semibold mb-2">Usage</h3>
-            <app-code-block [code]="usageCode" />
-          </div>
+        <!-- API Sub-tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="alert_api_tabs" role="tab" class="tab" aria-label="Service Methods"
+            [checked]="apiTab() === 'methods'" (change)="apiTab.set('methods')" />
+          <input type="radio" name="alert_api_tabs" role="tab" class="tab" aria-label="Configuration"
+            [checked]="apiTab() === 'configuration'" (change)="apiTab.set('configuration')" />
+          <input type="radio" name="alert_api_tabs" role="tab" class="tab" aria-label="Provider Setup"
+            [checked]="apiTab() === 'provider'" (change)="apiTab.set('provider')" />
+          <input type="radio" name="alert_api_tabs" role="tab" class="tab" aria-label="Types"
+            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
         </div>
+
+        <!-- Service Methods sub-tab -->
+        @if (apiTab() === 'methods') {
+          <div class="space-y-6">
+            <app-api-table title="AlertService Methods" [entries]="methodDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Usage</h3>
+                <p class="text-sm text-base-content/70">
+                  Inject <code>AlertService</code> and call methods directly. All methods return a <code>Promise&lt;AlertResult&gt;</code> except <code>showLoading()</code>, <code>updateLoading()</code>, and <code>hideLoading()</code> which are synchronous.
+                </p>
+                <app-code-block [code]="usageCode" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Configuration sub-tab -->
+        @if (apiTab() === 'configuration') {
+          <div class="space-y-6">
+            <app-api-table title="AlertOptions" [entries]="alertOptionDocs" />
+            <app-api-table title="ConfirmOptions" [entries]="confirmOptionDocs" />
+            <app-api-table title="DeleteConfirmOptions" [entries]="deleteConfirmOptionDocs" />
+            <app-api-table title="CountdownOptions" [entries]="countdownOptionDocs" />
+            <app-api-table title="LoadingOptions" [entries]="loadingOptionDocs" />
+          </div>
+        }
+
+        <!-- Provider Setup sub-tab -->
+        @if (apiTab() === 'provider') {
+          <div class="space-y-6">
+            <app-api-table title="AlertConfig (provideAlert)" [entries]="alertConfigDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Provider Setup</h3>
+                <p class="text-sm text-base-content/70">
+                  Use <code>provideAlert()</code> in your application config to customize button translations, language change handling, and theme detection. Without configuration, the service uses English fallbacks and auto-detects the DaisyUI theme.
+                </p>
+                <app-code-block [code]="providerCode" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Types sub-tab -->
+        @if (apiTab() === 'types') {
+          <div class="space-y-6">
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">AlertResult</h3>
+                <p class="text-sm text-base-content/70">
+                  Returned by all dialog methods. Use <code>isConfirmed</code>, <code>isCancelled</code>, and <code>dismissReason</code> to determine how the user interacted with the alert.
+                </p>
+                <app-code-block [code]="typeAlertResult" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">AlertOptions</h3>
+                <app-code-block [code]="typeAlertOptions" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">ConfirmOptions</h3>
+                <app-code-block [code]="typeConfirmOptions" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">DeleteConfirmOptions</h3>
+                <app-code-block [code]="typeDeleteConfirmOptions" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">CountdownOptions</h3>
+                <app-code-block [code]="typeCountdownOptions" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">LoadingOptions</h3>
+                <app-code-block [code]="typeLoadingOptions" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">AlertConfig</h3>
+                <p class="text-sm text-base-content/70">
+                  Configuration object passed to <code>provideAlert()</code> for global service customization.
+                </p>
+                <app-code-block [code]="typeAlertConfig" />
+              </div>
+            </div>
+          </div>
+        }
       }
     </div>
   `,
@@ -182,6 +288,7 @@ export class AlertDemoComponent {
   private alert = inject(AlertService);
   pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<AlertTab>('basic');
+  apiTab = signal<AlertApiTab>('methods');
   lastResult: { isConfirmed: boolean; isDismissed: boolean; isCancelled: boolean; dismissReason?: string } | null = null;
 
   // Basic Alerts
@@ -504,45 +611,179 @@ await this.alert.show({ ...swalOptions });`;
 
   // --- API docs ---
   methodDocs: ApiDocEntry[] = [
-    { name: 'success(title, text?)', type: 'Promise<AlertResult>', description: 'Show a success alert' },
-    { name: 'error(title, text?)', type: 'Promise<AlertResult>', description: 'Show an error alert' },
-    { name: 'warning(title, text?)', type: 'Promise<AlertResult>', description: 'Show a warning alert' },
-    { name: 'info(title, text?)', type: 'Promise<AlertResult>', description: 'Show an info alert' },
-    { name: 'confirm(options)', type: 'Promise<AlertResult>', description: 'Show a confirmation dialog' },
-    { name: 'question(title, text?)', type: 'Promise<AlertResult>', description: 'Show a yes/no question dialog' },
-    { name: 'confirmDelete(options?)', type: 'Promise<AlertResult>', description: 'Show a delete confirmation dialog' },
-    { name: 'showLoading(options)', type: 'void', description: 'Show a loading dialog' },
-    { name: 'updateLoading(text)', type: 'void', description: 'Update the loading dialog text' },
+    { name: 'show(options)', type: 'Promise<AlertResult>', description: 'Show a basic alert dialog with full AlertOptions' },
+    { name: 'success(title, text?)', type: 'Promise<AlertResult>', description: 'Show a success alert with optional description' },
+    { name: 'error(title, text?)', type: 'Promise<AlertResult>', description: 'Show an error alert (outside click disabled by default)' },
+    { name: 'warning(title, text?)', type: 'Promise<AlertResult>', description: 'Show a warning alert with optional description' },
+    { name: 'info(title, text?)', type: 'Promise<AlertResult>', description: 'Show an info alert with optional description' },
+    { name: 'confirm(options)', type: 'Promise<AlertResult>', description: 'Show a confirmation dialog with confirm/cancel buttons' },
+    { name: 'question(title, text?)', type: 'Promise<AlertResult>', description: 'Show a yes/no question dialog (uses confirm internally)' },
+    { name: 'confirmDelete(options?)', type: 'Promise<AlertResult>', description: 'Show a delete confirmation with error-styled confirm button' },
+    { name: 'countdown(options)', type: 'Promise<AlertResult>', description: 'Show a timed alert with live countdown seconds display' },
+    { name: 'showLoading(options?)', type: 'void', description: 'Show a loading dialog with spinner (non-closable by default)' },
+    { name: 'updateLoading(text)', type: 'void', description: 'Update the loading dialog body text' },
     { name: 'hideLoading()', type: 'void', description: 'Close the loading dialog' },
-    { name: 'countdown(options)', type: 'Promise<AlertResult>', description: 'Show an alert with live countdown' },
-    { name: 'fire(options)', type: 'Promise<SweetAlertResult>', description: 'Direct SweetAlert2 fire with DaisyUI theming' },
-    { name: 'show(options)', type: 'Promise<SweetAlertResult>', description: 'Alias for fire()' },
+    { name: 'fire(options)', type: 'Promise<SweetAlertResult>', description: 'Direct SweetAlert2 fire with DaisyUI theming and custom classes' },
+  ];
+
+  alertOptionDocs: ApiDocEntry[] = [
+    { name: 'title', type: 'string', description: 'Alert title (required)' },
+    { name: 'text', type: 'string', default: '-', description: 'Alert message body text' },
+    { name: 'html', type: 'string', default: '-', description: 'HTML content (alternative to text)' },
+    { name: 'icon', type: "'success' | 'error' | 'warning' | 'info' | 'question'", default: '-', description: 'Alert icon type' },
+    { name: 'confirmButtonText', type: 'string', default: "'OK'", description: 'Confirm button text' },
+    { name: 'showCancelButton', type: 'boolean', default: 'false', description: 'Show cancel button' },
+    { name: 'cancelButtonText', type: 'string', default: "'Cancel'", description: 'Cancel button text' },
+    { name: 'focusCancel', type: 'boolean', default: 'false', description: 'Focus cancel button by default' },
+    { name: 'allowOutsideClick', type: 'boolean', default: 'true', description: 'Allow clicking outside to close' },
+    { name: 'timer', type: 'number', default: '-', description: 'Auto-close after milliseconds (0 = disabled)' },
+    { name: 'timerProgressBar', type: 'boolean', default: 'false', description: 'Show timer progress bar' },
   ];
 
   confirmOptionDocs: ApiDocEntry[] = [
-    { name: 'title', type: 'string', description: 'Dialog title' },
+    { name: 'title', type: 'string', description: 'Dialog title (required)' },
     { name: 'text', type: 'string', default: '-', description: 'Dialog body text' },
-    { name: 'icon', type: "'success' | 'error' | 'warning' | 'info' | 'question'", default: "'warning'", description: 'Alert icon' },
+    { name: 'icon', type: "'success' | 'error' | 'warning' | 'info' | 'question'", default: "'warning'", description: 'Alert icon type' },
     { name: 'confirmText', type: 'string', default: "'Confirm'", description: 'Confirm button text' },
     { name: 'cancelText', type: 'string', default: "'Cancel'", description: 'Cancel button text' },
-    { name: 'confirmStyle', type: "'primary' | 'success' | 'warning' | 'error'", default: "'primary'", description: 'Confirm button color style' },
+    { name: 'focusCancel', type: 'boolean', default: 'false', description: 'Focus the cancel button by default' },
+    { name: 'confirmStyle', type: "'primary' | 'success' | 'error' | 'warning'", default: "'success'", description: 'Confirm button DaisyUI color style' },
+  ];
+
+  deleteConfirmOptionDocs: ApiDocEntry[] = [
+    { name: 'itemName', type: 'string', default: '-', description: 'Item name to display in the confirmation message' },
+    { name: 'title', type: 'string', default: "'Delete Confirmation'", description: 'Custom dialog title' },
+    { name: 'text', type: 'string', default: '-', description: 'Custom message (overrides itemName message)' },
+    { name: 'confirmText', type: 'string', default: "'Delete'", description: 'Confirm button text' },
+    { name: 'cancelText', type: 'string', default: "'Cancel'", description: 'Cancel button text' },
   ];
 
   countdownOptionDocs: ApiDocEntry[] = [
-    { name: 'title', type: 'string', description: 'Dialog title' },
-    { name: 'html', type: 'string', description: 'HTML content with {seconds} placeholder' },
-    { name: 'timer', type: 'number', description: 'Countdown duration in milliseconds' },
-    { name: 'icon', type: 'SweetAlertIcon', default: '-', description: 'Alert icon' },
-    { name: 'countdownSelector', type: 'string', default: '-', description: 'CSS selector for countdown element' },
+    { name: 'title', type: 'string', description: 'Dialog title (required)' },
+    { name: 'html', type: 'string', description: 'HTML content with {seconds} placeholder for initial value (required)' },
+    { name: 'timer', type: 'number', description: 'Countdown duration in milliseconds (required)' },
+    { name: 'icon', type: "'success' | 'error' | 'warning' | 'info' | 'question'", default: "'warning'", description: 'Alert icon type' },
+    { name: 'timerProgressBar', type: 'boolean', default: 'true', description: 'Show timer progress bar' },
+    { name: 'countdownSelector', type: 'string', default: "'.countdown, kbd'", description: 'CSS selector for the element whose textContent is updated with remaining seconds' },
+    { name: 'confirmButtonText', type: 'string', default: "'OK'", description: 'Confirm button text' },
     { name: 'showCancelButton', type: 'boolean', default: 'false', description: 'Show cancel button' },
-    { name: 'confirmButtonText', type: 'string', default: '-', description: 'Confirm button text' },
-    { name: 'cancelButtonText', type: 'string', default: '-', description: 'Cancel button text' },
+    { name: 'cancelButtonText', type: 'string', default: "'Cancel'", description: 'Cancel button text' },
+    { name: 'allowOutsideClick', type: 'boolean', default: 'false', description: 'Allow clicking outside to close' },
+  ];
+
+  loadingOptionDocs: ApiDocEntry[] = [
+    { name: 'title', type: 'string', default: "'Loading...'", description: 'Loading dialog title' },
+    { name: 'text', type: 'string', default: '-', description: 'Loading dialog message' },
+    { name: 'allowClose', type: 'boolean', default: 'false', description: 'Allow closing via ESC or backdrop click' },
   ];
 
   resultDocs: ApiDocEntry[] = [
-    { name: 'isConfirmed', type: 'boolean', description: 'User clicked the confirm button' },
-    { name: 'isCancelled', type: 'boolean', description: 'User clicked the cancel button' },
-    { name: 'isDismissed', type: 'boolean', description: 'Dialog was dismissed (backdrop, ESC, timer)' },
-    { name: 'dismissReason', type: "'backdrop' | 'esc' | 'timer'", default: '-', description: 'How the dialog was dismissed' },
+    { name: 'isConfirmed', type: 'boolean', description: 'True when user clicked the confirm button' },
+    { name: 'isDismissed', type: 'boolean', description: 'True when dialog was cancelled or dismissed' },
+    { name: 'isCancelled', type: 'boolean', description: 'True when user clicked the cancel button specifically' },
+    { name: 'dismissReason', type: "'cancel' | 'backdrop' | 'close' | 'esc' | 'timer'", default: '-', description: 'How the dialog was dismissed' },
   ];
+
+  alertConfigDocs: ApiDocEntry[] = [
+    { name: 'translate', type: '(key, fallback, params?) => string', default: '-', description: 'Custom translation function for button labels (e.g. Transloco integration)' },
+    { name: 'langChange$', type: 'Observable<unknown>', default: '-', description: 'Observable that emits on language change to invalidate cached button translations' },
+    { name: 'useSystemTheme', type: 'boolean', default: 'false', description: 'Use prefers-color-scheme for dark/light theme detection' },
+    { name: 'theme', type: "() => 'light' | 'dark'", default: '-', description: 'Custom theme function (overrides useSystemTheme)' },
+  ];
+
+  providerCode = `import { provideAlert } from '@hakistack/ng-daisyui';
+
+// Basic usage (English fallbacks, auto-detects DaisyUI theme)
+provideAlert()
+
+// With system theme detection
+provideAlert({ useSystemTheme: true })
+
+// With Transloco and custom theme
+provideAlert({
+  translate: (key, fallback, params) =>
+    transloco.translate(key, params) || fallback,
+  langChange$: transloco.langChanges$,
+  theme: () => themeService.isDarkMode() ? 'dark' : 'light',
+})`;
+
+  // --- Type code blocks ---
+  typeAlertResult = `interface AlertResult {
+  /** True when user clicked the confirm button */
+  isConfirmed: boolean;
+
+  /** True when dialog was cancelled or dismissed */
+  isDismissed: boolean;
+
+  /** True when user clicked the cancel button specifically */
+  isCancelled: boolean;
+
+  /** How the dialog was dismissed */
+  dismissReason?: 'cancel' | 'backdrop' | 'close' | 'esc' | 'timer';
+}`;
+
+  typeAlertOptions = `interface AlertOptions {
+  title: string;              // Alert title (required)
+  text?: string;              // Alert message body text
+  html?: string;              // HTML content (alternative to text)
+  icon?: AlertIcon;           // 'success' | 'error' | 'warning' | 'info' | 'question'
+  confirmButtonText?: string; // Confirm button text (default: 'OK')
+  showCancelButton?: boolean; // Show cancel button (default: false)
+  cancelButtonText?: string;  // Cancel button text (default: 'Cancel')
+  focusCancel?: boolean;      // Focus cancel button by default
+  allowOutsideClick?: boolean;// Allow clicking outside to close (default: true)
+  timer?: number;             // Auto-close after ms (0 = disabled)
+  timerProgressBar?: boolean; // Show timer progress bar
+}`;
+
+  typeConfirmOptions = `interface ConfirmOptions {
+  title: string;                                        // Dialog title (required)
+  text?: string;                                        // Dialog body text
+  icon?: AlertIcon;                                     // Icon type (default: 'warning')
+  confirmText?: string;                                 // Confirm button text (default: 'Confirm')
+  cancelText?: string;                                  // Cancel button text (default: 'Cancel')
+  focusCancel?: boolean;                                // Focus cancel button (default: false)
+  confirmStyle?: 'primary' | 'success' | 'error' | 'warning'; // Confirm button style
+}`;
+
+  typeDeleteConfirmOptions = `interface DeleteConfirmOptions {
+  itemName?: string;    // Item name to display in confirmation message
+  title?: string;       // Custom dialog title (default: 'Delete Confirmation')
+  text?: string;        // Custom message (overrides itemName message)
+  confirmText?: string; // Confirm button text (default: 'Delete')
+  cancelText?: string;  // Cancel button text (default: 'Cancel')
+}`;
+
+  typeCountdownOptions = `interface CountdownOptions {
+  title: string;                // Alert title (required)
+  html: string;                 // HTML with {seconds} placeholder (required)
+  timer: number;                // Countdown duration in ms (required)
+  icon?: AlertIcon;             // Icon type (default: 'warning')
+  timerProgressBar?: boolean;   // Show progress bar (default: true)
+  countdownSelector?: string;   // CSS selector for countdown element (default: '.countdown, kbd')
+  confirmButtonText?: string;   // Confirm button text
+  showCancelButton?: boolean;   // Show cancel button
+  cancelButtonText?: string;    // Cancel button text
+  allowOutsideClick?: boolean;  // Allow outside click (default: false)
+}`;
+
+  typeLoadingOptions = `interface LoadingOptions {
+  title?: string;    // Loading dialog title (default: 'Loading...')
+  text?: string;     // Loading dialog message
+  allowClose?: boolean; // Allow closing via ESC or backdrop (default: false)
+}`;
+
+  typeAlertConfig = `interface AlertConfig {
+  /** Custom translation function for button labels */
+  translate?: (key: string, fallback: string, params?: Record<string, unknown>) => string;
+
+  /** Observable that emits on language change to invalidate cached translations */
+  langChange$?: Observable<unknown>;
+
+  /** Use prefers-color-scheme for theme detection (default: false) */
+  useSystemTheme?: boolean;
+
+  /** Custom theme function (overrides useSystemTheme) */
+  theme?: () => 'light' | 'dark';
+}`;
 }

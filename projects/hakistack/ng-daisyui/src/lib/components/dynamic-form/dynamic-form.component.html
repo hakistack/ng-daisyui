@@ -104,7 +104,7 @@
     @if (field.type !== 'hidden') {
       <label
         [for]="field.id"
-        [class]="isHorizontalLayout() ? 'flex items-center pt-2 flex-shrink-0 ' + labelWidthClass() : 'mb-1 block'"
+        [class]="isHorizontalLayout() ? 'flex items-center pt-2 shrink-0 ' + labelWidthClass() : 'mb-1 block'"
       >
         <span class="text-sm">
           {{ field.label }}
@@ -132,8 +132,8 @@
             [formControlName]="field.key"
             type="number"
             [placeholder]="field.placeholder || ''"
-            [min]="field.validation?.min"
-            [max]="field.validation?.max"
+            [min]="field.min"
+            [max]="field.max"
             [step]="field.step || 1"
             [class]="getBaseInputClasses()"
           />
@@ -154,7 +154,7 @@
               [options]="getFieldOptions(field)"
               [formControlName]="field.key"
               [placeholder]="isFieldOptionsLoading(field) ? (field.optionsFrom?.loadingPlaceholder || 'Loading options...') : field.placeholder"
-              [enableSearch]="field.isSelectSearchable"
+              [enableSearch]="field.enableSearch"
               [class.pointer-events-none]="isFieldOptionsLoading(field)"
               [class.opacity-60]="isFieldOptionsLoading(field)"
             ></hk-select>
@@ -195,21 +195,27 @@
         @case ('date') {
           <hk-datepicker [id]="field.id" [range]="field.isRangeDate" [formControlName]="field.key"></hk-datepicker>
         }
+        @case ('time') {
+          <hk-timepicker [id]="field.id" [clockFace]="true" [formControlName]="field.key"></hk-timepicker>
+        }
+        @case ('datetime-local') {
+          <hk-datepicker [id]="field.id" [showTime]="true" [formControlName]="field.key"></hk-datepicker>
+        }
         @case ('range') {
           <div class="space-y-2">
             <input
               [id]="field.id"
               [formControlName]="field.key"
               type="range"
-              [min]="field.validation?.min || 0"
-              [max]="field.validation?.max || 100"
+              [min]="field.min ?? 0"
+              [max]="field.max ?? 100"
               [step]="field.step || 1"
               class="range range-primary w-full"
             />
             <div class="flex justify-between px-2 text-xs">
-              <span>{{ field.validation?.min || 0 }}</span>
-              <span class="badge badge-primary badge-sm">{{ formGroup.get(field.key)?.value || field.validation?.min || 0 }}</span>
-              <span>{{ field.validation?.max || 100 }}</span>
+              <span>{{ field.min ?? 0 }}</span>
+              <span class="badge badge-primary badge-sm">{{ formGroup.get(field.key)?.value || field.min || 0 }}</span>
+              <span>{{ field.max ?? 100 }}</span>
             </div>
           </div>
         }

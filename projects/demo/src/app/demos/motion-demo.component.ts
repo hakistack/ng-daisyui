@@ -246,21 +246,102 @@ type MotionTab = 'animate' | 'hover' | 'presets';
       }
 
       @if (pageTab() === 'api') {
-        <div class="space-y-6">
-          <app-api-table title="motionAnimate Directive" [entries]="animateDocs" />
-          <app-api-table title="motionHover Directive" [entries]="hoverDocs" />
-          <app-api-table title="MotionOptions" [entries]="optionDocs" />
-
-          <div>
-            <h3 class="text-lg font-semibold mb-2">Available Presets</h3>
-            <app-code-block [code]="presetsListCode" />
-          </div>
-
-          <div>
-            <h3 class="text-lg font-semibold mb-2">Usage</h3>
-            <app-code-block [code]="usageCode" />
-          </div>
+        <!-- API Sub-tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="motion_api_tabs" role="tab" class="tab" aria-label="Animate Directive"
+            [checked]="apiTab() === 'animate-directive'" (change)="apiTab.set('animate-directive')" />
+          <input type="radio" name="motion_api_tabs" role="tab" class="tab" aria-label="Hover Directive"
+            [checked]="apiTab() === 'hover-directive'" (change)="apiTab.set('hover-directive')" />
+          <input type="radio" name="motion_api_tabs" role="tab" class="tab" aria-label="Scroll Directive"
+            [checked]="apiTab() === 'scroll-directive'" (change)="apiTab.set('scroll-directive')" />
+          <input type="radio" name="motion_api_tabs" role="tab" class="tab" aria-label="Options & Types"
+            [checked]="apiTab() === 'options-types'" (change)="apiTab.set('options-types')" />
         </div>
+
+        <!-- Animate Directive sub-tab -->
+        @if (apiTab() === 'animate-directive') {
+          <div class="space-y-6">
+            <app-api-table title="MotionAnimateDirective Inputs" [entries]="animateDocs" />
+            <app-api-table title="Public Methods" [entries]="animateMethodDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Available Presets</h3>
+                <p class="text-sm text-base-content/70">
+                  Built-in animation presets that can be passed as a string to the <code>[motionAnimate]</code> input. Each preset defines a complete set of keyframes for common animation patterns.
+                </p>
+                <app-code-block [code]="presetsListCode" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Usage</h3>
+                <p class="text-sm text-base-content/70">
+                  Import <code>MotionAnimateDirective</code> and apply it to any element. You can use a preset name or supply custom keyframe objects for full control over the animation.
+                </p>
+                <app-code-block [code]="usageCode" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Hover Directive sub-tab -->
+        @if (apiTab() === 'hover-directive') {
+          <div class="space-y-6">
+            <app-api-table title="MotionHoverDirective Inputs" [entries]="hoverDocs" />
+            <app-api-table title="Outputs" [entries]="hoverOutputDocs" />
+            <app-api-table title="Public Methods" [entries]="hoverMethodDocs" />
+            <app-api-table title="HoverOptions" [entries]="hoverOptionsDocs" />
+          </div>
+        }
+
+        <!-- Scroll Directive sub-tab -->
+        @if (apiTab() === 'scroll-directive') {
+          <div class="space-y-6">
+            <app-api-table title="MotionScrollDirective Inputs" [entries]="scrollDocs" />
+            <app-api-table title="Outputs" [entries]="scrollOutputDocs" />
+            <app-api-table title="Public Methods" [entries]="scrollMethodDocs" />
+            <app-api-table title="ScrollInfo Properties" [entries]="scrollInfoDocs" />
+          </div>
+        }
+
+        <!-- Options & Types sub-tab -->
+        @if (apiTab() === 'options-types') {
+          <div class="space-y-6">
+            <app-api-table title="MotionDirectiveOptions (shared across all directives)" [entries]="optionDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">AnimationPreset</h3>
+                <p class="text-sm text-base-content/70">
+                  Union type of all built-in preset animation names. Pass one of these strings to the <code>[motionAnimate]</code> input to use a pre-defined animation.
+                </p>
+                <app-code-block [code]="typeAnimationPreset" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">HoverKeyframes</h3>
+                <p class="text-sm text-base-content/70">
+                  A record of CSS property names to keyframe value arrays. Each property maps to a two-element array representing the start and end values for the hover transition.
+                </p>
+                <app-code-block [code]="typeHoverKeyframes" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Easing</h3>
+                <p class="text-sm text-base-content/70">
+                  Accepts a named easing string (e.g., <code>'easeOut'</code>, <code>'easeInOut'</code>), a CSS cubic-bezier array <code>[n, n, n, n]</code>, or a custom easing function.
+                </p>
+                <app-code-block [code]="typeEasing" />
+              </div>
+            </div>
+          </div>
+        }
       }
     </div>
   `,
@@ -268,6 +349,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
 export class MotionDemoComponent {
   pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<MotionTab>('animate');
+  apiTab = signal<'animate-directive' | 'hover-directive' | 'scroll-directive' | 'options-types'>('animate-directive');
   showLoadDemo = signal(true);
   showStaggerDemo = signal(false);
 
@@ -444,19 +526,104 @@ customOptions: MotionDirectiveOptions = {
 
   // --- API docs ---
   animateDocs: ApiDocEntry[] = [
-    { name: '[motionAnimate]', type: "string | Record<string, number[]>", description: 'Preset name or custom keyframes object' },
-    { name: '[motionOptions]', type: 'MotionOptions', default: '{}', description: 'Animation configuration options' },
+    { name: '[motionAnimate]', type: "AnimationPreset | Record<string, unknown>", default: "'fadeIn'", description: 'Preset name (e.g. \'fadeIn\', \'bounceIn\') or custom keyframes object' },
+    { name: '[motionOptions]', type: 'MotionDirectiveOptions', default: '{}', description: 'Animation and trigger configuration options' },
+  ];
+
+  animateMethodDocs: ApiDocEntry[] = [
+    { name: 'play()', type: 'void', description: 'Programmatically trigger the animation' },
+    { name: 'stop()', type: 'void', description: 'Stop the currently running animation' },
+    { name: 'reset()', type: 'void', description: 'Reset the hasAnimated flag so the animation can play again' },
   ];
 
   hoverDocs: ApiDocEntry[] = [
-    { name: '[motionHover]', type: 'Record<string, number[]>', description: 'Keyframes to animate on hover (from/to values)' },
-    { name: '[animationOptions]', type: 'AnimationOptions', default: '{}', description: 'Hover animation configuration' },
+    { name: '[motionHover]', type: 'HoverKeyframes', description: 'Required. Keyframes to animate on hover (e.g. { scale: [1, 1.1] })' },
+    { name: '[hoverOptions]', type: 'HoverOptions', default: '-', description: 'Hover listener options (passive, once)' },
+    { name: '[animationOptions]', type: 'HoverAnimationOptions', default: '{ duration: 0.3, ease: \'easeOut\' }', description: 'Animation timing and easing configuration' },
+    { name: '[restoreOnLeave]', type: 'boolean', default: 'true', description: 'Whether to animate back to initial values on hover end' },
+    { name: '[customRestoreKeyframes]', type: 'HoverKeyframes', default: '-', description: 'Custom keyframes for the restore animation instead of auto-captured values' },
+  ];
+
+  hoverOutputDocs: ApiDocEntry[] = [
+    { name: '(hoverStart)', type: 'PointerEvent', description: 'Emits the PointerEvent when hover begins' },
+    { name: '(hoverEnd)', type: 'PointerEvent', description: 'Emits the PointerEvent when hover ends' },
+  ];
+
+  hoverMethodDocs: ApiDocEntry[] = [
+    { name: 'triggerHover()', type: 'void', description: 'Programmatically trigger the hover-in animation' },
+    { name: 'triggerRestore()', type: 'void', description: 'Programmatically trigger the restore animation' },
+    { name: 'stop()', type: 'void', description: 'Stop all running hover/restore animations' },
+  ];
+
+  scrollDocs: ApiDocEntry[] = [
+    { name: '[motionScroll]', type: 'ScrollAnimationKeyframes | boolean', default: '-', description: 'Scroll-linked keyframes object, or true for progress tracking only' },
+    { name: '[scrollOptions]', type: 'ScrollOptions', default: '{}', description: 'Combined scroll configuration (container, target, axis, offset)' },
+    { name: '[scrollContainer]', type: 'HTMLElement', default: '-', description: 'Scroll container element (shorthand for scrollOptions.container)' },
+    { name: '[scrollTarget]', type: 'HTMLElement', default: 'host element', description: 'Target element to track (shorthand for scrollOptions.target)' },
+    { name: '[scrollAxis]', type: "'x' | 'y'", default: "'y'", description: 'Scroll axis to track' },
+    { name: '[scrollOffset]', type: 'ScrollOffset', default: '-', description: 'Scroll offset range, e.g. [\'start\', \'end\']' },
+    { name: '[animationOptions]', type: 'ScrollAnimationOptions', default: '{ ease: \'linear\' }', description: 'Animation options for scroll-linked animations' },
+  ];
+
+  scrollOutputDocs: ApiDocEntry[] = [
+    { name: '(scrollProgress)', type: 'number', description: 'Emits scroll progress from 0 to 1 (progress tracking mode)' },
+    { name: '(scrollInfo)', type: 'ScrollInfo', description: 'Emits detailed scroll info with x/y current position, scrollLength, and velocity' },
+  ];
+
+  scrollMethodDocs: ApiDocEntry[] = [
+    { name: 'stop()', type: 'void', description: 'Stop the scroll animation and cleanup listeners' },
+    { name: 'restart()', type: 'void', description: 'Cleanup and re-initialize the scroll animation' },
   ];
 
   optionDocs: ApiDocEntry[] = [
     { name: 'trigger', type: "'immediate' | 'click' | 'scroll'", default: "'immediate'", description: 'What triggers the animation' },
-    { name: 'duration', type: 'number', default: '0.5', description: 'Animation duration in seconds' },
+    { name: 'duration', type: 'number', default: '0.6', description: 'Animation duration in seconds' },
     { name: 'delay', type: 'number', default: '0', description: 'Delay before animation starts (seconds)' },
-    { name: 'ease', type: 'string', default: "'easeOut'", description: 'Easing function (easeIn, easeOut, easeInOut, linear)' },
+    { name: 'ease', type: 'Easing | Easing[]', default: "'easeOut'", description: 'Easing function: string name, cubic-bezier [n,n,n,n], or custom function' },
+    { name: 'repeat', type: 'number', default: '0', description: 'Number of times to repeat the animation' },
+    { name: 'direction', type: "'normal' | 'reverse' | 'alternate' | 'alternate-reverse'", default: "'normal'", description: 'Animation playback direction' },
+    { name: 'endDelay', type: 'number', default: '0', description: 'Delay after animation completes (seconds)' },
+    { name: 'type', type: "'tween' | 'spring' | 'inertia'", default: "'tween'", description: 'Animation type' },
+    { name: 'stiffness', type: 'number', default: '-', description: 'Spring stiffness (spring type only)' },
+    { name: 'damping', type: 'number', default: '-', description: 'Spring damping (spring type only)' },
+    { name: 'mass', type: 'number', default: '-', description: 'Spring mass (spring type only)' },
+    { name: 'bounce', type: 'number', default: '-', description: 'Duration-based spring bounce (spring type only)' },
+    { name: 'once', type: 'boolean', default: 'false', description: 'Only animate once when using scroll trigger' },
+    { name: 'margin', type: 'string', default: '-', description: 'IntersectionObserver rootMargin for scroll trigger' },
+    { name: 'amount', type: "number | 'some' | 'all'", default: '-', description: 'How much of the element must be visible to trigger (scroll)' },
   ];
+
+  hoverOptionsDocs: ApiDocEntry[] = [
+    { name: 'passive', type: 'boolean', default: '-', description: 'Use passive event listener for hover events' },
+    { name: 'once', type: 'boolean', default: '-', description: 'Only trigger hover animation once' },
+  ];
+
+  scrollInfoDocs: ApiDocEntry[] = [
+    { name: 'x.current', type: 'number', description: 'Current horizontal scroll position in pixels from the left edge of the scrollable container.' },
+    { name: 'x.scrollLength', type: 'number', description: 'Total horizontal scrollable distance in pixels (scrollWidth minus clientWidth).' },
+    { name: 'x.velocity', type: 'number', description: 'Current horizontal scroll velocity in pixels per second. Positive values indicate rightward scrolling.' },
+    { name: 'y.current', type: 'number', description: 'Current vertical scroll position in pixels from the top of the scrollable container.' },
+    { name: 'y.scrollLength', type: 'number', description: 'Total vertical scrollable distance in pixels (scrollHeight minus clientHeight).' },
+    { name: 'y.velocity', type: 'number', description: 'Current vertical scroll velocity in pixels per second. Positive values indicate downward scrolling.' },
+  ];
+
+  typeAnimationPreset = `type AnimationPreset =
+  | 'fadeIn'     | 'fadeOut'
+  | 'fadeInUp'   | 'fadeInDown'
+  | 'fadeInLeft' | 'fadeInRight'
+  | 'zoomIn'     | 'zoomOut'
+  | 'slideInUp'  | 'slideInDown'
+  | 'bounceIn'   | 'rotateIn';`;
+
+  typeHoverKeyframes = `type HoverKeyframes = Record<string, [start: number | string, end: number | string]>;
+
+// Example:
+// { scale: [1, 1.1], y: [0, -4], boxShadow: ['0 4px 6px rgba(0,0,0,0.1)', '0 20px 25px rgba(0,0,0,0.15)'] }`;
+
+  typeEasing = `type Easing =
+  | 'linear' | 'easeIn' | 'easeOut' | 'easeInOut'
+  | 'circIn' | 'circOut' | 'circInOut'
+  | 'backIn' | 'backOut' | 'backInOut'
+  | [number, number, number, number]   // cubic-bezier
+  | ((t: number) => number);            // custom function`;
 }

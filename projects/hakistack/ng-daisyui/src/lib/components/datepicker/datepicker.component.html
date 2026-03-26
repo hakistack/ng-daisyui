@@ -74,7 +74,10 @@
 
   <!-- Datepicker Dropdown -->
   @if (isOpen()) {
-    <div [class]="dropdownClasses()" [style.min-width]="minWidth()" role="dialog" aria-label="Date picker" aria-modal="true">
+    <div [class]="dropdownClasses()" [style.min-width]="showTime() ? '26rem' : minWidth()" role="dialog" aria-label="Date picker" aria-modal="true">
+      <div [class]="showTime() ? 'flex gap-4' : ''">
+      <!-- Calendar Section -->
+      <div [class]="showTime() ? 'flex-1' : ''">
       <!-- Header Navigation -->
       <div class="datepicker-header mb-4 flex items-center justify-between">
         <!-- Navigation arrows - only show for days view -->
@@ -253,6 +256,74 @@
           }
         }
       </div>
+
+      </div><!-- /calendar section -->
+
+      <!-- Time Panel (shown beside calendar when showTime is true) -->
+      @if (showTime()) {
+        <div class="border-base-300 flex flex-col border-l pl-3">
+          <div class="text-base-content/70 mb-2 text-center text-xs font-medium">Time</div>
+
+          <div class="flex gap-1">
+            <!-- Hours column -->
+            <div class="flex flex-col items-center">
+              <span class="text-base-content/50 mb-1 text-xs">Hr</span>
+              <div class="max-h-52 w-10 overflow-auto rounded">
+                @for (hour of hourOptions(); track hour) {
+                  <button
+                    type="button"
+                    class="btn btn-xs mb-0.5 w-full font-mono"
+                    [class.btn-primary]="isHourSelected(hour)"
+                    [class.btn-ghost]="!isHourSelected(hour)"
+                    (click)="selectHour(hour)"
+                  >
+                    {{ hour < 10 ? '0' + hour : hour }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Minutes column -->
+            <div class="flex flex-col items-center">
+              <span class="text-base-content/50 mb-1 text-xs">Min</span>
+              <div class="max-h-52 w-10 overflow-auto rounded">
+                @for (minute of minuteOptions(); track minute) {
+                  <button
+                    type="button"
+                    class="btn btn-xs mb-0.5 w-full font-mono"
+                    [class.btn-primary]="isMinuteSelected(minute)"
+                    [class.btn-ghost]="!isMinuteSelected(minute)"
+                    (click)="selectMinute(minute)"
+                  >
+                    {{ minute < 10 ? '0' + minute : minute }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- AM/PM toggle -->
+          @if (!use24Hour()) {
+            <div class="mt-2 flex justify-center gap-1">
+              <button
+                type="button"
+                class="btn btn-xs"
+                [class.btn-primary]="selectedPeriod() === 'AM'"
+                [class.btn-ghost]="selectedPeriod() !== 'AM'"
+                (click)="selectedPeriod() !== 'AM' && togglePeriod()"
+              >AM</button>
+              <button
+                type="button"
+                class="btn btn-xs"
+                [class.btn-primary]="selectedPeriod() === 'PM'"
+                [class.btn-ghost]="selectedPeriod() !== 'PM'"
+                (click)="selectedPeriod() !== 'PM' && togglePeriod()"
+              >PM</button>
+            </div>
+          }
+        </div>
+      }
+      </div><!-- /flex container -->
 
       <!-- Footer Actions -->
       <div class="datepicker-footer border-base-300 mt-4 flex items-center justify-between border-t pt-3">

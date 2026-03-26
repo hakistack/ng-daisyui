@@ -127,7 +127,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should render radio buttons', () => {
-      const f = field.radio('color', ['Red', 'Blue', 'Green'], 'Favorite Color');
+      const f = field.radio('color', 'Favorite Color', { choices: ['Red', 'Blue', 'Green'] });
       fixture.componentRef.setInput('config', simpleConfig([f]));
       fixture.detectChanges();
 
@@ -146,7 +146,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should render a range input', () => {
-      const f = field.range('volume', 0, 100, 'Volume');
+      const f = field.range('volume', 'Volume', { min: 0, max: 100 });
       fixture.componentRef.setInput('config', simpleConfig([f]));
       fixture.detectChanges();
 
@@ -155,7 +155,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should create a form control for hidden fields even though they may not render visibly', () => {
-      const f = field.hidden('token', 'abc123');
+      const f = field.hidden('token', { defaultValue: 'abc123' });
       fixture.componentRef.setInput('config', simpleConfig([f]));
       fixture.detectChanges();
 
@@ -166,7 +166,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should render a select component (hk-select)', () => {
-      const f = field.select('role', ['Admin', 'User'], 'Role');
+      const f = field.select('role', 'Role', { choices: ['Admin', 'User'] });
       fixture.componentRef.setInput('config', simpleConfig([f]));
       fixture.detectChanges();
 
@@ -184,7 +184,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should not render a label for hidden fields', () => {
-      const f = field.hidden('secret', 'xyz');
+      const f = field.hidden('secret', { defaultValue: 'xyz' });
       fixture.componentRef.setInput('config', simpleConfig([f]));
       fixture.detectChanges();
 
@@ -335,7 +335,7 @@ describe('DynamicFormComponent', () => {
 
     it('should validate minLength', () => {
       fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { validation: { minLength: 3 } }),
+        field.text('name', 'Name', { minLength: 3 }),
       ]));
       fixture.detectChanges();
 
@@ -350,7 +350,7 @@ describe('DynamicFormComponent', () => {
 
     it('should validate maxLength', () => {
       fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { validation: { maxLength: 5 } }),
+        field.text('name', 'Name', { maxLength: 5 }),
       ]));
       fixture.detectChanges();
 
@@ -365,7 +365,7 @@ describe('DynamicFormComponent', () => {
 
     it('should validate pattern', () => {
       fixture.componentRef.setInput('config', simpleConfig([
-        field.text('code', 'Code', { validation: { pattern: '^[A-Z]{3}$' } }),
+        field.text('code', 'Code', { pattern: '^[A-Z]{3}$' }),
       ]));
       fixture.detectChanges();
 
@@ -393,7 +393,7 @@ describe('DynamicFormComponent', () => {
 
     it('should validate min/max on number fields', () => {
       fixture.componentRef.setInput('config', simpleConfig([
-        field.number('age', 'Age', { validation: { min: 18, max: 99 } }),
+        field.number('age', 'Age', { min: 18, max: 99 }),
       ]));
       fixture.detectChanges();
 
@@ -416,7 +416,7 @@ describe('DynamicFormComponent', () => {
       };
 
       fixture.componentRef.setInput('config', simpleConfig([
-        field.text('word', 'Word', { validation: { custom: [noBadWord] } }),
+        field.text('word', 'Word', { customValidators: [noBadWord] }),
       ]));
       fixture.detectChanges();
 
@@ -471,7 +471,8 @@ describe('DynamicFormComponent', () => {
       fixture.componentRef.setInput('config', simpleConfig([
         field.text('username', 'Username', {
           required: true,
-          validation: { minLength: 3, maxLength: 20 },
+          minLength: 3,
+          maxLength: 20,
         }),
       ]));
       fixture.detectChanges();
@@ -1562,7 +1563,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should return false for hidden fields', () => {
-      const f = field.hidden('token', 'abc');
+      const f = field.hidden('token', { defaultValue: 'abc' });
       fixture.componentRef.setInput('config', simpleConfig([f]));
       fixture.detectChanges();
 
@@ -1570,7 +1571,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should return true for select fields', () => {
-      const f = field.select('role', ['Admin'], 'Role');
+      const f = field.select('role', 'Role', { choices: ['Admin'] });
       fixture.componentRef.setInput('config', simpleConfig([f]));
       fixture.detectChanges();
 
@@ -1578,7 +1579,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should return true for radio fields', () => {
-      const f = field.radio('size', ['S', 'M'], 'Size');
+      const f = field.radio('size', 'Size', { choices: ['S', 'M'] });
       fixture.componentRef.setInput('config', simpleConfig([f]));
       fixture.detectChanges();
 
@@ -1656,7 +1657,7 @@ describe('field helpers', () => {
   it('should create an email field with email validation', () => {
     const f = field.email('userEmail', 'Email');
     expect(f.type).toBe('email');
-    expect(f.validation?.email).toBe(true);
+    expect(f.email).toBe(true);
   });
 
   it('should create a password field', () => {
@@ -1681,18 +1682,18 @@ describe('field helpers', () => {
   });
 
   it('should create a range field with min/max validation', () => {
-    const f = field.range('volume', 10, 50, 'Volume');
+    const f = field.range('volume', 'Volume', { min: 10, max: 50 });
     expect(f.type).toBe('range');
-    expect(f.validation?.min).toBe(10);
-    expect(f.validation?.max).toBe(50);
+    expect(f.min).toBe(10);
+    expect(f.max).toBe(50);
     expect(f.defaultValue).toBe(10);
   });
 
   it('should create a select field from string array', () => {
-    const f = field.select('role', ['Admin', 'User'], 'Role');
+    const f = field.select('role', 'Role', { choices: ['Admin', 'User'] });
     expect(f.type).toBe('select');
-    expect(Array.isArray(f.options)).toBe(true);
-    const opts = f.options as { value: string; label: string }[];
+    expect(Array.isArray(f.choices)).toBe(true);
+    const opts = f.choices as { value: string; label: string }[];
     expect(opts.length).toBe(2);
     expect(opts[0]).toEqual({ label: 'Admin', value: 'Admin' });
   });
@@ -1702,16 +1703,16 @@ describe('field helpers', () => {
       { value: 'a', label: 'Admin' },
       { value: 'u', label: 'User' },
     ];
-    const f = field.select('role', opts, 'Role');
-    const fOpts = f.options as typeof opts;
+    const f = field.select('role', 'Role', { choices: opts });
+    const fOpts = f.choices as typeof opts;
     expect(fOpts.length).toBe(2);
     expect(fOpts[0].value).toBe('a');
   });
 
   it('should create a radio field', () => {
-    const f = field.radio('size', ['S', 'M', 'L'], 'Size');
+    const f = field.radio('size', 'Size', { choices: ['S', 'M', 'L'] });
     expect(f.type).toBe('radio');
-    const opts = f.options as unknown as { value: string }[];
+    const opts = f.choices as unknown as { value: string }[];
     expect(opts.length).toBe(3);
   });
 
@@ -1739,7 +1740,7 @@ describe('field helpers', () => {
   });
 
   it('should create a hidden field with value', () => {
-    const f = field.hidden('token', 'abc');
+    const f = field.hidden('token', { defaultValue: 'abc' });
     expect(f.type).toBe('hidden');
     expect(f.defaultValue).toBe('abc');
     expect(f.hidden).toBe(true);
@@ -1747,7 +1748,7 @@ describe('field helpers', () => {
 
   it('should set required validation via options', () => {
     const f = field.text('name', 'Name', { required: true });
-    expect(f.validation?.required).toBe(true);
+    expect(f.required).toBe(true);
   });
 
   it('should set colSpan via options', () => {
@@ -1812,7 +1813,7 @@ describe('field helpers', () => {
   });
 
   it('should create multiSelect field', () => {
-    const f = field.multiSelect('tags', ['A', 'B', 'C'], 'Tags');
+    const f = field.multiSelect('tags', 'Tags', { choices: ['A', 'B', 'C'] });
     expect(f.type).toBe('multiselect');
     expect(f.defaultValue).toEqual([]);
   });
@@ -1830,13 +1831,13 @@ describe('field helpers', () => {
   });
 
   it('should set orientation for radio', () => {
-    const f = field.radio('size', ['S', 'M'], 'Size', { orientation: 'horizontal' });
+    const f = field.radio('size', 'Size', { choices: ['S', 'M'], orientation: 'horizontal' });
     expect(f.orientation).toBe('horizontal');
   });
 
   it('should set enableSearch for select', () => {
-    const f = field.select('role', ['Admin', 'User'], 'Role', { enableSearch: true });
-    expect(f.isSelectSearchable).toBe(true);
+    const f = field.select('role', 'Role', { choices: ['Admin', 'User'], enableSearch: true });
+    expect(f.enableSearch).toBe(true);
   });
 });
 
@@ -1896,15 +1897,15 @@ describe('validation helpers', () => {
   it('should create custom validation', () => {
     const customFn: ValidatorFn = () => null;
     const v = validation.custom(customFn);
-    expect(v.custom?.length).toBe(1);
-    expect(v.custom![0]).toBe(customFn);
+    expect(v.customValidators?.length).toBe(1);
+    expect(v.customValidators![0]).toBe(customFn);
   });
 
   it('should create custom validation with multiple validators', () => {
     const fn1: ValidatorFn = () => null;
     const fn2: ValidatorFn = () => null;
     const v = validation.custom(fn1, fn2);
-    expect(v.custom?.length).toBe(2);
+    expect(v.customValidators?.length).toBe(2);
   });
 });
 
@@ -2193,43 +2194,43 @@ describe('FormUtils', () => {
   });
 
   describe('createValidators', () => {
-    it('should return empty array for undefined validation', () => {
-      const validators = FormUtils.createValidators(undefined);
+    it('should return empty array for field with no validation', () => {
+      const validators = FormUtils.createValidators({} as FormFieldConfig);
       expect(validators).toEqual([]);
     });
 
     it('should create required validator', () => {
-      const validators = FormUtils.createValidators({ required: true });
+      const validators = FormUtils.createValidators({ required: true } as FormFieldConfig);
       expect(validators.length).toBe(1);
     });
 
     it('should create minLength validator', () => {
-      const validators = FormUtils.createValidators({ minLength: 3 });
+      const validators = FormUtils.createValidators({ minLength: 3 } as FormFieldConfig);
       expect(validators.length).toBe(1);
     });
 
     it('should create maxLength validator', () => {
-      const validators = FormUtils.createValidators({ maxLength: 10 });
+      const validators = FormUtils.createValidators({ maxLength: 10 } as FormFieldConfig);
       expect(validators.length).toBe(1);
     });
 
     it('should create min validator', () => {
-      const validators = FormUtils.createValidators({ min: 5 });
+      const validators = FormUtils.createValidators({ min: 5 } as FormFieldConfig);
       expect(validators.length).toBe(1);
     });
 
     it('should create max validator', () => {
-      const validators = FormUtils.createValidators({ max: 100 });
+      const validators = FormUtils.createValidators({ max: 100 } as FormFieldConfig);
       expect(validators.length).toBe(1);
     });
 
     it('should create email validator', () => {
-      const validators = FormUtils.createValidators({ email: true });
+      const validators = FormUtils.createValidators({ email: true } as FormFieldConfig);
       expect(validators.length).toBe(1);
     });
 
     it('should create pattern validator', () => {
-      const validators = FormUtils.createValidators({ pattern: '^[A-Z]+$' });
+      const validators = FormUtils.createValidators({ pattern: '^[A-Z]+$' } as FormFieldConfig);
       expect(validators.length).toBe(1);
     });
 
@@ -2238,38 +2239,38 @@ describe('FormUtils', () => {
         required: true,
         minLength: 2,
         maxLength: 50,
-      });
+      } as FormFieldConfig);
       expect(validators.length).toBe(3);
     });
 
     it('should include custom validators', () => {
       const customFn: ValidatorFn = () => null;
-      const validators = FormUtils.createValidators({ custom: [customFn] });
+      const validators = FormUtils.createValidators({ customValidators: [customFn] } as FormFieldConfig);
       expect(validators.length).toBe(1);
       expect(validators[0]).toBe(customFn);
     });
 
     it('should cache validators for same config', () => {
-      const v1 = FormUtils.createValidators({ required: true, minLength: 3 });
-      const v2 = FormUtils.createValidators({ required: true, minLength: 3 });
+      const v1 = FormUtils.createValidators({ required: true, minLength: 3 } as FormFieldConfig);
+      const v2 = FormUtils.createValidators({ required: true, minLength: 3 } as FormFieldConfig);
       expect(v1).toBe(v2);
     });
   });
 
   describe('createValidatorsWithConditionalRequired', () => {
     it('should return empty for no validation and not required', () => {
-      const validators = FormUtils.createValidatorsWithConditionalRequired(undefined, false);
+      const validators = FormUtils.createValidatorsWithConditionalRequired({} as FormFieldConfig, false);
       expect(validators).toEqual([]);
     });
 
     it('should return required validator when isRequired is true and no base validation', () => {
-      const validators = FormUtils.createValidatorsWithConditionalRequired(undefined, true);
+      const validators = FormUtils.createValidatorsWithConditionalRequired({} as FormFieldConfig, true);
       expect(validators.length).toBe(1);
     });
 
     it('should combine conditional required with base validators', () => {
       const validators = FormUtils.createValidatorsWithConditionalRequired(
-        { minLength: 3, maxLength: 10 },
+        { minLength: 3, maxLength: 10 } as FormFieldConfig,
         true,
       );
       // required + minLength + maxLength
@@ -2278,7 +2279,7 @@ describe('FormUtils', () => {
 
     it('should not include required when isRequired is false', () => {
       const validators = FormUtils.createValidatorsWithConditionalRequired(
-        { minLength: 3 },
+        { minLength: 3 } as FormFieldConfig,
         false,
       );
       expect(validators.length).toBe(1);
@@ -2483,7 +2484,7 @@ describe('FormUtils', () => {
   });
 
   describe('getErrorMessage', () => {
-    const f = field.text('name', 'Name', { validation: { minLength: 3, maxLength: 10, min: 1, max: 100 } });
+    const f = makeField({ key: 'name', type: 'text', label: 'Name', minLength: 3, maxLength: 10, min: 1, max: 100 });
 
     it('should return required message', () => {
       const msg = FormUtils.getErrorMessage(f, { required: true });
@@ -2548,29 +2549,29 @@ describe('FormUtils', () => {
       expect(errors.some(e => e.includes('Duplicate field key: name'))).toBe(true);
     });
 
-    it('should report select field without options', () => {
+    it('should report select field without choices', () => {
       const f = makeField({ key: 'role', type: 'select', label: 'Role' });
       const errors = FormUtils.validateFormConfig([f]);
-      expect(errors.some(e => e.includes('requires options'))).toBe(true);
+      expect(errors.some(e => e.includes('requires choices'))).toBe(true);
     });
 
-    it('should report radio field without options', () => {
+    it('should report radio field without choices', () => {
       const f = makeField({ key: 'size', type: 'radio', label: 'Size' });
       const errors = FormUtils.validateFormConfig([f]);
-      expect(errors.some(e => e.includes('requires options'))).toBe(true);
+      expect(errors.some(e => e.includes('requires choices'))).toBe(true);
     });
 
-    it('should report multiselect field without options', () => {
+    it('should report multiselect field without choices', () => {
       const f = makeField({ key: 'tags', type: 'multiselect', label: 'Tags' });
       const errors = FormUtils.validateFormConfig([f]);
-      expect(errors.some(e => e.includes('requires options'))).toBe(true);
+      expect(errors.some(e => e.includes('requires choices'))).toBe(true);
     });
 
     it('should pass for valid configuration', () => {
       const fields = [
         field.text('name', 'Name'),
         field.email('email', 'Email'),
-        field.select('role', ['Admin', 'User'], 'Role'),
+        field.select('role', 'Role', { choices: ['Admin', 'User'] }),
       ];
       const errors = FormUtils.validateFormConfig(fields);
       expect(errors.length).toBe(0);
@@ -2580,14 +2581,14 @@ describe('FormUtils', () => {
   describe('clearCaches', () => {
     it('should clear caches without error', () => {
       // Populate caches
-      FormUtils.createValidators({ required: true });
+      FormUtils.createValidators({ required: true } as FormFieldConfig);
       FormUtils.groupFields([field.text('a', 'A')]);
 
       // Clear should not throw
       expect(() => FormUtils.clearCaches()).not.toThrow();
 
       // After clearing, new calls should still work
-      const validators = FormUtils.createValidators({ required: true });
+      const validators = FormUtils.createValidators({ required: true } as FormFieldConfig);
       expect(validators.length).toBe(1);
     });
   });

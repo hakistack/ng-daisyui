@@ -291,6 +291,7 @@ export class LongContentDialogComponent {
 // ============================================================================
 
 type DialogTab = 'basic' | 'forms' | 'options';
+type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
 
 @Component({
   selector: 'app-dialog-demo',
@@ -404,21 +405,113 @@ type DialogTab = 'basic' | 'forms' | 'options';
       }
 
       @if (pageTab() === 'api') {
-        <div class="space-y-6">
-          <app-api-table title="DialogService Methods" [entries]="methodDocs" />
-          <app-api-table title="DialogConfig Options" [entries]="configDocs" />
-          <app-api-table title="DialogRef Methods" [entries]="refDocs" />
-
-          <div>
-            <h3 class="text-lg font-semibold mb-2">Usage</h3>
-            <app-code-block [code]="usageCode" />
-          </div>
-
-          <div>
-            <h3 class="text-lg font-semibold mb-2">Dialog Component Pattern</h3>
-            <app-code-block [code]="componentCode" />
-          </div>
+        <!-- API Sub-tabs -->
+        <div role="tablist" class="tabs tabs-box">
+          <input type="radio" name="dialog_api_tabs" role="tab" class="tab" aria-label="Service"
+            [checked]="apiTab() === 'service'" (change)="apiTab.set('service')" />
+          <input type="radio" name="dialog_api_tabs" role="tab" class="tab" aria-label="DialogConfig"
+            [checked]="apiTab() === 'config'" (change)="apiTab.set('config')" />
+          <input type="radio" name="dialog_api_tabs" role="tab" class="tab" aria-label="DialogRef"
+            [checked]="apiTab() === 'ref'" (change)="apiTab.set('ref')" />
+          <input type="radio" name="dialog_api_tabs" role="tab" class="tab" aria-label="Types"
+            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
         </div>
+
+        <!-- Service sub-tab -->
+        @if (apiTab() === 'service') {
+          <div class="space-y-6">
+            <app-api-table title="DialogService Methods" [entries]="methodDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Usage</h3>
+                <p class="text-sm text-base-content/70">
+                  Inject <code>DialogService</code> and use <code>open()</code> to launch a modal dialog wrapped in a styled container, or <code>openRaw()</code> for a plain CDK dialog without the wrapper. Both return a <code>DialogRef</code> for controlling the dialog.
+                </p>
+                <app-code-block [code]="usageCode" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Behavior</h3>
+                <p class="text-sm text-base-content/70">
+                  Important behavior details about dialog lifecycle, auto-close on navigation, and the wrapper component.
+                </p>
+                <app-code-block [code]="behaviorNotes" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- DialogConfig sub-tab -->
+        @if (apiTab() === 'config') {
+          <div class="space-y-6">
+            <app-api-table title="DialogConfig Options (CDK)" [entries]="configDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Dialog Component Pattern</h3>
+                <p class="text-sm text-base-content/70">
+                  Dialog components receive data via the <code>DIALOG_DATA</code> injection token and control closing via <code>DialogRef</code>. Both are imported from <code>&#64;angular/cdk/dialog</code>.
+                </p>
+                <app-code-block [code]="componentCode" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- DialogRef sub-tab -->
+        @if (apiTab() === 'ref') {
+          <div class="space-y-6">
+            <app-api-table title="DialogRef Properties & Methods" [entries]="refDocs" />
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Handling Dialog Results</h3>
+                <p class="text-sm text-base-content/70">
+                  Subscribe to <code>closed</code> to receive the result value passed to <code>close(result)</code>. Use <code>outsideClicked</code> and <code>keydownEvents</code> for additional interaction handling.
+                </p>
+                <app-code-block [code]="refUsageCode" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Types sub-tab -->
+        @if (apiTab() === 'types') {
+          <div class="space-y-6">
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">DialogConfig</h3>
+                <p class="text-sm text-base-content/70">
+                  Configuration object passed as the second argument to <code>open()</code> or <code>openRaw()</code>. Extends CDK <code>DialogConfig</code> with a typed <code>data</code> property.
+                </p>
+                <app-code-block [code]="typeDialogConfig" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">DialogRef</h3>
+                <p class="text-sm text-base-content/70">
+                  Reference to an open dialog, returned by <code>open()</code> and <code>openRaw()</code>. Provides methods for closing and observables for monitoring dialog events.
+                </p>
+                <app-code-block [code]="typeDialogRef" />
+              </div>
+            </div>
+
+            <div class="card card-border bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">DIALOG_DATA</h3>
+                <p class="text-sm text-base-content/70">
+                  CDK injection token used inside dialog components to access the data payload.
+                </p>
+                <app-code-block [code]="typeDialogData" />
+              </div>
+            </div>
+          </div>
+        }
       }
     </div>
   `,
@@ -427,6 +520,7 @@ export class DialogDemoComponent {
   private dialogService = inject(DialogService);
   pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<DialogTab>('basic');
+  apiTab = signal<DialogApiTab>('service');
 
   simpleResult: string | null = null;
   formResult: any = null;
@@ -544,22 +638,168 @@ export class MyDialogComponent {
   }
 }`;
 
+  behaviorNotes = `// Auto-close on navigation
+// All open dialogs are automatically closed when the
+// Angular router navigates to a new route.
+
+// DialogWrapper
+// The open() method wraps your component inside a
+// DialogWrapperComponent that provides consistent modal
+// styling (modal-box, responsive sizing, backdrop).
+// Your inner component receives DIALOG_DATA and DialogRef
+// via standard CDK injection.
+
+// Raw dialogs
+// Use openRaw() to render your component directly
+// without the wrapper (for custom styling).`;
+
   // --- API docs ---
   methodDocs: ApiDocEntry[] = [
-    { name: 'open(component, config?)', type: 'DialogRef', description: 'Open a dialog with a component and optional config' },
+    { name: 'open(component, options?)', type: 'DialogRef<DialogWrapperComponent>', description: 'Open a wrapped dialog that hosts your component inside a styled modal-box' },
+    { name: 'openRaw(component, options?)', type: 'DialogRef<T>', description: 'Open a plain CDK dialog without the modal wrapper (for custom layouts)' },
   ];
 
   configDocs: ApiDocEntry[] = [
-    { name: 'data', type: 'any', default: '-', description: 'Data passed to dialog via DIALOG_DATA injection token' },
+    { name: 'data', type: 'D', default: '-', description: 'Payload injected into the dialog component via DIALOG_DATA token' },
     { name: 'disableClose', type: 'boolean', default: 'false', description: 'Disable closing via ESC key and backdrop click' },
-    { name: 'width', type: 'string', default: '-', description: 'Dialog width (CSS value)' },
-    { name: 'height', type: 'string', default: '-', description: 'Dialog height (CSS value)' },
-    { name: 'panelClass', type: 'string | string[]', default: '-', description: 'CSS class(es) for the overlay panel' },
-    { name: 'hasBackdrop', type: 'boolean', default: 'true', description: 'Show backdrop behind dialog' },
+    { name: 'width', type: 'string', default: '-', description: 'Dialog width (CSS value, e.g. \'500px\', \'80vw\')' },
+    { name: 'height', type: 'string', default: '-', description: 'Dialog height (CSS value, e.g. \'90vh\')' },
+    { name: 'minWidth', type: 'string | number', default: '-', description: 'Minimum dialog width' },
+    { name: 'minHeight', type: 'string | number', default: '-', description: 'Minimum dialog height' },
+    { name: 'maxWidth', type: 'string | number', default: '-', description: 'Maximum dialog width' },
+    { name: 'maxHeight', type: 'string | number', default: '-', description: 'Maximum dialog height' },
+    { name: 'panelClass', type: 'string | string[]', default: '-', description: 'CSS class(es) applied to the overlay panel element' },
+    { name: 'hasBackdrop', type: 'boolean', default: 'true', description: 'Whether to show a backdrop behind the dialog' },
+    { name: 'backdropClass', type: 'string | string[]', default: '-', description: 'CSS class(es) applied to the backdrop element' },
+    { name: 'ariaLabel', type: 'string', default: '-', description: 'Aria label for the dialog element' },
+    { name: 'ariaLabelledBy', type: 'string', default: '-', description: 'ID of element that labels the dialog' },
+    { name: 'ariaDescribedBy', type: 'string', default: '-', description: 'ID of element that describes the dialog' },
+    { name: 'autoFocus', type: "boolean | string | 'first-tabbable' | 'first-heading'", default: "'first-tabbable'", description: 'Where to focus on open' },
+    { name: 'restoreFocus', type: 'boolean', default: 'true', description: 'Whether to restore focus to the trigger element on close' },
   ];
 
   refDocs: ApiDocEntry[] = [
-    { name: 'close(result?)', type: 'void', description: 'Close the dialog with an optional result value' },
-    { name: 'closed', type: 'Observable<R>', description: 'Observable that emits when dialog closes with the result' },
+    { name: 'close(result?)', type: 'void', description: 'Close the dialog, optionally passing a result value' },
+    { name: 'closed', type: 'Observable<R | undefined>', description: 'Observable that emits the result when the dialog closes' },
+    { name: 'outsideClicked', type: 'Observable<MouseEvent>', description: 'Observable that emits when clicking outside the dialog' },
+    { name: 'keydownEvents', type: 'Observable<KeyboardEvent>', description: 'Observable of all keydown events on the overlay' },
+    { name: 'componentInstance', type: 'T | null', description: 'Reference to the component instance rendered inside the dialog' },
+    { name: 'disableClose', type: 'boolean', description: 'Whether the dialog cannot be closed by user interaction (readable/writable)' },
   ];
+
+  // --- Additional code blocks for sub-tabs ---
+  refUsageCode = `const ref = this.dialogService.open(MyDialogComponent, {
+  data: { id: 42 },
+});
+
+// Handle result when dialog closes
+ref.closed.subscribe(result => {
+  if (result) {
+    console.log('Dialog returned:', result);
+  }
+});
+
+// Listen for outside clicks (when disableClose is false)
+ref.outsideClicked.subscribe(() => {
+  console.log('User clicked outside the dialog');
+});
+
+// Listen for keydown events on the overlay
+ref.keydownEvents.subscribe(event => {
+  if (event.key === 'Escape') {
+    console.log('Escape pressed');
+  }
+});
+
+// Access the component instance
+const instance = ref.componentInstance;
+
+// Programmatically prevent close
+ref.disableClose = true;`;
+
+  // --- Type code blocks ---
+  typeDialogConfig = `interface DialogConfig<D = unknown> {
+  /** Payload injected via DIALOG_DATA token */
+  data?: D;
+
+  /** Disable closing via ESC key and backdrop click (default: false) */
+  disableClose?: boolean;
+
+  /** Dialog width (CSS value, e.g. '500px', '80vw') */
+  width?: string;
+
+  /** Dialog height (CSS value, e.g. '90vh') */
+  height?: string;
+
+  /** Minimum dialog width */
+  minWidth?: string | number;
+
+  /** Minimum dialog height */
+  minHeight?: string | number;
+
+  /** Maximum dialog width */
+  maxWidth?: string | number;
+
+  /** Maximum dialog height */
+  maxHeight?: string | number;
+
+  /** CSS class(es) for the overlay panel */
+  panelClass?: string | string[];
+
+  /** Show backdrop behind dialog (default: true) */
+  hasBackdrop?: boolean;
+
+  /** CSS class(es) for the backdrop */
+  backdropClass?: string | string[];
+
+  /** ARIA label for the dialog */
+  ariaLabel?: string;
+
+  /** ID of element that labels the dialog */
+  ariaLabelledBy?: string;
+
+  /** ID of element that describes the dialog */
+  ariaDescribedBy?: string;
+
+  /** Where to focus on open (default: 'first-tabbable') */
+  autoFocus?: boolean | string | 'first-tabbable' | 'first-heading';
+
+  /** Restore focus to trigger element on close (default: true) */
+  restoreFocus?: boolean;
+}`;
+
+  typeDialogRef = `interface DialogRef<T = unknown, R = unknown> {
+  /** Close the dialog with an optional result value */
+  close(result?: R): void;
+
+  /** Observable that emits the result when dialog closes */
+  closed: Observable<R | undefined>;
+
+  /** Observable for clicks outside the dialog */
+  outsideClicked: Observable<MouseEvent>;
+
+  /** Observable for keydown events on the overlay */
+  keydownEvents: Observable<KeyboardEvent>;
+
+  /** Reference to the rendered component instance */
+  componentInstance: T | null;
+
+  /** Whether user interaction can close the dialog */
+  disableClose: boolean;
+}`;
+
+  typeDialogData = `import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
+
+@Component({ ... })
+export class MyDialogComponent {
+  // Inject the data payload passed via config.data
+  data = inject(DIALOG_DATA) as { id: number; name: string };
+
+  // Inject DialogRef to close the dialog
+  private dialogRef = inject(DialogRef);
+
+  close(result?: string) {
+    this.dialogRef.close(result);
+  }
+}`;
 }
