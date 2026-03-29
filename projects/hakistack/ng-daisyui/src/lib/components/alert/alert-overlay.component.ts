@@ -15,7 +15,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
-import type { AlertIcon, AlertInternalConfig, AlertResult, AlertSize } from '../../services/alert/alert.types';
+import type { AlertIcon, AlertInternalConfig, AlertResult, AlertSize } from './alert.types';
 
 const SIZE_CLASS_MAP: Record<AlertSize, string> = {
   sm: 'max-w-sm',

@@ -1,7 +1,7 @@
 export { FormStateService, provideFormState } from './form-state.service';
 export { PipeRegistryService } from './pipe-registry.service';
-export { AlertService, provideAlert } from './alert/alert.service';
-export type { AlertConfig } from './alert/alert.service';
+export { AlertService, provideAlert } from '../components/alert/alert.service';
+export type { AlertConfig } from '../components/alert/alert.service';
 export type {
   AlertOptions,
   AlertResult,
@@ -10,4 +10,4 @@ export type {
   LoadingOptions,
   AlertIcon,
   AlertPosition,
-} from './alert/alert.types';
+} from '../components/alert/alert.types';

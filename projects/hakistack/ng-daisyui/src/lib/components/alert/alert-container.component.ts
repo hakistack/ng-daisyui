@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal, ViewEncapsulation } from '@angular/core';
 
 import { AlertOverlayComponent } from './alert-overlay.component';
-import type { AlertInternalConfig } from '../../services/alert/alert.types';
+import { AlertInternalConfig } from './alert.types';
 
 @Component({
   selector: 'hk-alert-container',

@@ -16,7 +16,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 
 import { generateUniqueId } from '../../utils/generate-uuid';
-import { AlertContainerComponent } from '../../components/alert/alert-container.component';
+import { AlertContainerComponent } from './alert-container.component';
 import {
   AlertInternalConfig,
   AlertOptions,

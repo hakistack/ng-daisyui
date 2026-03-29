@@ -256,8 +256,8 @@ export { PipeRegistryService, providePipes } from './lib/services/pipe-registry.
 export { DialogService } from './lib/services/dialog/dialog.service';
 
 // Alert Service
-export { AlertService, provideAlert } from './lib/services/alert/alert.service';
-export type { AlertConfig } from './lib/services/alert/alert.service';
+export { AlertService, provideAlert } from './lib/components/alert/alert.service';
+export type { AlertConfig } from './lib/components/alert/alert.service';
 export type {
   AlertOptions,
   AlertResult,
@@ -268,7 +268,7 @@ export type {
   AlertIcon,
   AlertPosition,
   AlertSize,
-} from './lib/services/alert/alert.types';
+} from './lib/components/alert/alert.types';
 
 // ============================================================================
 // DIRECTIVES
