@@ -1,6 +1,21 @@
 import { CommonModule } from '@angular/common';
 import { CdkStepperModule } from '@angular/cdk/stepper';
-import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, Injector, input, output, signal, untracked, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  output,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormGroup, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { catchError, debounceTime, distinctUntilChanged, from, isObservable, Observable, of, startWith, switchMap } from 'rxjs';
@@ -9,13 +24,30 @@ import { FormStateMetadata, FormStateService } from '../../services/form-state.s
 import { DatepickerComponent } from '../datepicker/datepicker.component';
 import { SelectComponent } from '../select/select.component';
 import { StepperComponent } from '../stepper/stepper.component';
-import { AutoSaveConfig, FormConfig, FormFieldConfig, FormSelectOption, FormStep, FormSubmissionData, ResponsiveColSpan, StepChangeEvent } from './dynamic-form.types';
+import {
+  AutoSaveConfig,
+  FormConfig,
+  FormFieldConfig,
+  FormSelectOption,
+  FormStep,
+  FormSubmissionData,
+  ResponsiveColSpan,
+  StepChangeEvent,
+} from './dynamic-form.types';
 import { FormUtils } from './dynamic-form.utils';
 import { TimepickerComponent } from '../timepicker/timepicker.component';
 
 @Component({
   selector: 'hk-dynamic-form',
-  imports: [CommonModule, ReactiveFormsModule, CdkStepperModule, SelectComponent, DatepickerComponent, StepperComponent, TimepickerComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    CdkStepperModule,
+    SelectComponent,
+    DatepickerComponent,
+    StepperComponent,
+    TimepickerComponent,
+  ],
   templateUrl: './dynamic-form.component.html',
   styleUrl: './dynamic-form.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,7 +92,7 @@ export class DynamicFormComponent {
     const form = this.formGroup();
     // Depend on formValues to trigger re-computation when form changes
     this.formValues();
-    return stepFields.every(field => {
+    return stepFields.every((field) => {
       const control = form.get(field.key);
       return !control || control.valid;
     });
@@ -77,7 +109,7 @@ export class DynamicFormComponent {
     // Empty steps (like review) are always valid
     if (stepFields.length === 0) return true;
 
-    return stepFields.every(field => {
+    return stepFields.every((field) => {
       const control = form.get(field.key);
       return !control || control.valid;
     });
@@ -118,10 +150,10 @@ export class DynamicFormComponent {
     const steps = this.config().steps;
     if (!steps) return [];
 
-    return steps.map(step => ({
+    return steps.map((step) => ({
       stepName: step.name,
       stepLabel: step.label,
-      fields: step.fields.map(field => ({
+      fields: step.fields.map((field) => ({
         key: field.key,
         label: field.label,
         value: this.formGroup().get(field.key)?.value,
@@ -171,7 +203,7 @@ export class DynamicFormComponent {
       return of(pending).pipe(
         debounceTime(autoSaveConfig?.debounceMs ?? 1000),
         switchMap(({ formId, values, metadata }) => this.formStateService.save(formId, values, metadata, storageMode)),
-        catchError(error => {
+        catchError((error) => {
           console.error('Auto-save failed:', error);
           return of(null);
         }),
@@ -281,10 +313,8 @@ export class DynamicFormComponent {
     afterNextRender(
       () => {
         const config = this.config();
-        const allFields = config.steps
-          ? config.steps.flatMap(step => [...step.fields])
-          : (config.fields ?? []);
-        const focusField = allFields.find(f => f.focusOnLoad);
+        const allFields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
+        const focusField = allFields.find((f) => f.focusOnLoad);
 
         if (focusField) {
           this.focusField(focusField.id);
@@ -309,26 +339,32 @@ export class DynamicFormComponent {
 
     // Watch submit trigger — use untracked to prevent onSubmit's signal reads
     // from becoming dependencies of this effect
-    effect(() => {
-      const trigger = this.config()._submitTrigger?.() ?? 0;
-      if (trigger > lastSubmitTrigger) {
-        lastSubmitTrigger = trigger;
-        untracked(() => this.onSubmit());
-      } else {
-        lastSubmitTrigger = trigger;
-      }
-    }, { injector: this.injector });
+    effect(
+      () => {
+        const trigger = this.config()._submitTrigger?.() ?? 0;
+        if (trigger > lastSubmitTrigger) {
+          lastSubmitTrigger = trigger;
+          untracked(() => this.onSubmit());
+        } else {
+          lastSubmitTrigger = trigger;
+        }
+      },
+      { injector: this.injector },
+    );
 
     // Watch reset trigger
-    effect(() => {
-      const trigger = this.config()._resetTrigger?.() ?? 0;
-      if (trigger > lastResetTrigger) {
-        lastResetTrigger = trigger;
-        untracked(() => this.onReset());
-      } else {
-        lastResetTrigger = trigger;
-      }
-    }, { injector: this.injector });
+    effect(
+      () => {
+        const trigger = this.config()._resetTrigger?.() ?? 0;
+        if (trigger > lastResetTrigger) {
+          lastResetTrigger = trigger;
+          untracked(() => this.onReset());
+        } else {
+          lastResetTrigger = trigger;
+        }
+      },
+      { injector: this.injector },
+    );
   }
 
   // Public methods
@@ -392,7 +428,7 @@ export class DynamicFormComponent {
     // Mark current step as completed
     const currentStep = this.currentStep();
     if (currentStep) {
-      this.completedSteps.update(set => new Set([...set, currentStep.name]));
+      this.completedSteps.update((set) => new Set([...set, currentStep.name]));
     }
 
     // Move to next step
@@ -460,7 +496,7 @@ export class DynamicFormComponent {
   private validateCurrentStep(): void {
     const stepFields = this.currentStepFields();
     const form = this.formGroup();
-    stepFields.forEach(field => {
+    stepFields.forEach((field) => {
       form.get(field.key)?.markAsTouched();
     });
   }
@@ -486,7 +522,7 @@ export class DynamicFormComponent {
     if (event.currentIndex > event.previousIndex) {
       const prevStepName = steps[event.previousIndex]?.name;
       if (prevStepName) {
-        this.completedSteps.update(set => new Set([...set, prevStepName]));
+        this.completedSteps.update((set) => new Set([...set, prevStepName]));
       }
     }
 
@@ -505,7 +541,7 @@ export class DynamicFormComponent {
 
     // For select fields, show label instead of value
     if ((field.type === 'select' || field.type === 'radio') && Array.isArray(field.choices)) {
-      const option = (field.choices as FormSelectOption[]).find(o => o.value === value);
+      const option = (field.choices as FormSelectOption[]).find((o) => o.value === value);
       return option?.label ?? String(value);
     }
 
@@ -567,8 +603,8 @@ export class DynamicFormComponent {
   getFieldErrors(fieldKey: string): string[] {
     const control = this.formGroup().get(fieldKey);
     const config = this.config();
-    const allFields = config.steps ? config.steps.flatMap(step => [...step.fields]) : (config.fields ?? []);
-    const field = allFields.find(f => f.key === fieldKey);
+    const allFields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
+    const field = allFields.find((f) => f.key === fieldKey);
 
     if (!control?.errors || !control.touched || !field) {
       return [];
@@ -605,9 +641,7 @@ export class DynamicFormComponent {
       classes.push(this.getColSpanClasses(field.colSpan));
     } else if (layout === 'horizontal' || layout === 'vertical') {
       // Flex layouts: use width property
-      const widthClass = field.width
-        ? DynamicFormComponent.FIELD_WIDTH_CLASSES.get(field.width) || 'w-full'
-        : 'w-full';
+      const widthClass = field.width ? DynamicFormComponent.FIELD_WIDTH_CLASSES.get(field.width) || 'w-full' : 'w-full';
       classes.push(widthClass);
     }
 
@@ -658,7 +692,12 @@ export class DynamicFormComponent {
     const control = this.formGroup().get(field.key);
     const hasError = control?.errors && control?.touched;
 
-    const classes = [this.getBaseInputClasses(inputType), hasError ? 'input-error' : '', field.prefix ? 'pl-10' : '', field.suffix ? 'pr-10' : ''];
+    const classes = [
+      this.getBaseInputClasses(inputType),
+      hasError ? 'input-error' : '',
+      field.prefix ? 'pl-10' : '',
+      field.suffix ? 'pr-10' : '',
+    ];
 
     return classes.filter(Boolean).join(' ');
   }
@@ -846,18 +885,14 @@ export class DynamicFormComponent {
       const hasFields = (config?.fields?.length ?? 0) > 0;
       const hasSteps = (config?.steps?.length ?? 0) > 0;
       if (hasFields || hasSteps) {
-        this.initializeForm(config);
+        untracked(() => this.initializeForm(config));
       }
     });
 
-    // Initialize auto-save when config has autoSave enabled
+    // Initialize auto-save form ID as a derived value
     effect(() => {
       const autoSaveConfig = this.getAutoSaveConfig();
-      if (autoSaveConfig?.enabled && autoSaveConfig.formId) {
-        this.autoSaveFormId.set(autoSaveConfig.formId);
-      } else {
-        this.autoSaveFormId.set(null);
-      }
+      this.autoSaveFormId.set(autoSaveConfig?.enabled && autoSaveConfig.formId ? autoSaveConfig.formId : null);
     });
 
     // Restore form when saved state is loaded
@@ -868,27 +903,29 @@ export class DynamicFormComponent {
       }
 
       const savedState = this.savedStateResource.value();
-      if (savedState?.values && Object.keys(savedState.values).length > 0) {
-        this.formGroup().patchValue(savedState.values, { emitEvent: false });
+      untracked(() => {
+        if (savedState?.values && Object.keys(savedState.values).length > 0) {
+          this.formGroup().patchValue(savedState.values, { emitEvent: false });
 
-        // Restore stepper state from metadata if in stepper mode
-        const metadata = savedState.metadata;
-        if (metadata && this.isStepperMode()) {
-          if (typeof metadata.currentStep === 'number' && metadata.currentStep > 0) {
-            this.currentStepIndex.set(metadata.currentStep);
-            // Store pending step to restore after stepper renders
-            this.pendingStepRestore.set(metadata.currentStep);
+          // Restore stepper state from metadata if in stepper mode
+          const metadata = savedState.metadata;
+          if (metadata && this.isStepperMode()) {
+            if (typeof metadata.currentStep === 'number' && metadata.currentStep > 0) {
+              this.currentStepIndex.set(metadata.currentStep);
+              // Store pending step to restore after stepper renders
+              this.pendingStepRestore.set(metadata.currentStep);
+            }
+            if (Array.isArray(metadata.completedSteps)) {
+              this.completedSteps.set(new Set(metadata.completedSteps));
+            }
           }
-          if (Array.isArray(metadata.completedSteps)) {
-            this.completedSteps.set(new Set(metadata.completedSteps));
-          }
+
+          this.formRestored.emit(savedState.values);
         }
 
-        this.formRestored.emit(savedState.values);
-      }
-
-      // Mark restoration as complete (even if no saved state found)
-      this.restorationComplete.set(true);
+        // Mark restoration as complete (even if no saved state found)
+        this.restorationComplete.set(true);
+      });
     });
 
     // Apply pending step restore after stepper is rendered
@@ -909,18 +946,15 @@ export class DynamicFormComponent {
       );
     });
 
-    // Update form values when initial values change
-    effect(() => {
-      const initialValues = this.initialValues();
-      if (Object.keys(initialValues).length > 0) {
-        this.formGroup().patchValue(initialValues);
-      }
-    });
-
-    // Handle disabled state
+    // Update form values and disabled state when inputs change
     effect(() => {
       const form = this.formGroup();
+      const initialValues = this.initialValues();
       const isDisabled = this.disabled();
+
+      if (Object.keys(initialValues).length > 0) {
+        form.patchValue(initialValues);
+      }
 
       if (isDisabled && form.enabled) {
         form.disable();
@@ -971,7 +1005,7 @@ export class DynamicFormComponent {
 
   private initializeForm(config: FormConfig): void {
     // Collect all fields (from steps or direct fields)
-    const allFields = config.steps ? config.steps.flatMap(step => [...step.fields]) : (config.fields ?? []);
+    const allFields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
 
     const form = FormUtils.createFormGroup(allFields);
     this.formGroup.set(form);
@@ -1012,7 +1046,7 @@ export class DynamicFormComponent {
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(values => {
+      .subscribe((values) => {
         this.formValues.set(values);
 
         // Emit output event
@@ -1042,7 +1076,7 @@ export class DynamicFormComponent {
       });
 
     // Get all fields (from steps or direct)
-    const allFields = config.steps ? config.steps.flatMap(step => [...step.fields]) : (config.fields ?? []);
+    const allFields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
 
     // Setup subscriptions for fields with conditions only
     this.setupFieldChangeSubscriptions(allFields, form);
@@ -1055,14 +1089,16 @@ export class DynamicFormComponent {
   }
 
   private setupFieldChangeSubscriptions(fields: readonly FormFieldConfig[], form: FormGroup): void {
-    const fieldsWithConditions = fields.filter(field => field.requiredWhen?.length || field.disabledWhen?.length || field.showWhen?.length || field.hideWhen?.length);
+    const fieldsWithConditions = fields.filter(
+      (field) => field.requiredWhen?.length || field.disabledWhen?.length || field.showWhen?.length || field.hideWhen?.length,
+    );
 
     if (fieldsWithConditions.length === 0) return;
 
     for (const fieldConfig of fieldsWithConditions) {
       const control = form.get(fieldConfig.key);
       if (control) {
-        control.valueChanges.pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(value => {
+        control.valueChanges.pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
           this.fieldChange.emit({
             field: fieldConfig.key,
             value,
@@ -1076,10 +1112,10 @@ export class DynamicFormComponent {
   private updateConditionalValidation(formValues: Record<string, unknown>): void {
     const form = this.formGroup();
     const config = this.config();
-    const fields = config.steps ? config.steps.flatMap(step => [...step.fields]) : (config.fields ?? []);
+    const fields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
 
     // Pre-filter fields that need conditional validation
-    const fieldsWithConditionalValidation = fields.filter(field => field.requiredWhen?.length || field.disabledWhen?.length);
+    const fieldsWithConditionalValidation = fields.filter((field) => field.requiredWhen?.length || field.disabledWhen?.length);
     if (fieldsWithConditionalValidation.length === 0) return;
 
     // Enrich form values with step context for conditional logic
@@ -1135,7 +1171,7 @@ export class DynamicFormComponent {
   }
 
   private setupDependentOptions(fields: readonly FormFieldConfig[], form: FormGroup): void {
-    const dependentFields = fields.filter(f => f.optionsFrom);
+    const dependentFields = fields.filter((f) => f.optionsFrom);
     if (dependentFields.length === 0) return;
 
     for (const fieldConfig of dependentFields) {
@@ -1150,11 +1186,11 @@ export class DynamicFormComponent {
         .pipe(
           startWith(watchedControl.value),
           distinctUntilChanged(),
-          switchMap(watchedValue => {
+          switchMap((watchedValue) => {
             // Skip loading when watched value is empty/null
             if (watchedValue === null || watchedValue === undefined || watchedValue === '') {
               // Clear options and value
-              this.fieldOptions.update(map => {
+              this.fieldOptions.update((map) => {
                 const newMap = new Map(map);
                 newMap.set(fieldConfig.key, []);
                 return newMap;
@@ -1166,7 +1202,7 @@ export class DynamicFormComponent {
             }
 
             // Set loading state
-            this.fieldOptionsLoading.update(set => new Set([...set, fieldConfig.key]));
+            this.fieldOptionsLoading.update((set) => new Set([...set, fieldConfig.key]));
 
             // Clear current value when parent changes
             if (clearOnChange && targetControl) {
@@ -1186,20 +1222,18 @@ export class DynamicFormComponent {
               result$ = from(result);
             }
 
-            return result$.pipe(
-              catchError(() => of([] as FormSelectOption[])),
-            );
+            return result$.pipe(catchError(() => of([] as FormSelectOption[])));
           }),
           takeUntilDestroyed(this.destroyRef),
         )
-        .subscribe(options => {
-          this.fieldOptions.update(map => {
+        .subscribe((options) => {
+          this.fieldOptions.update((map) => {
             const newMap = new Map(map);
             newMap.set(fieldConfig.key, options);
             return newMap;
           });
           // Clear loading state
-          this.fieldOptionsLoading.update(set => {
+          this.fieldOptionsLoading.update((set) => {
             const newSet = new Set(set);
             newSet.delete(fieldConfig.key);
             return newSet;
@@ -1209,13 +1243,13 @@ export class DynamicFormComponent {
   }
 
   private loadAsyncOptions(fields: readonly FormFieldConfig[]): void {
-    const asyncFields = fields.filter(field => field.choices && !Array.isArray(field.choices));
+    const asyncFields = fields.filter((field) => field.choices && !Array.isArray(field.choices));
 
     for (const field of asyncFields) {
       const options$ = field.choices as Observable<readonly FormSelectOption[]>;
 
-      options$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(options => {
-        this.fieldOptions.update(map => {
+      options$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((options) => {
+        this.fieldOptions.update((map) => {
           const newMap = new Map(map);
           newMap.set(field.key, [...options]);
           return newMap;
@@ -1228,7 +1262,7 @@ export class DynamicFormComponent {
     const form = this.formGroup();
     const errors: Record<string, string[]> = {};
     const config = this.config();
-    const fields = config.steps ? config.steps.flatMap(step => [...step.fields]) : (config.fields ?? []);
+    const fields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
 
     for (const field of fields) {
       const control = form.get(field.key);

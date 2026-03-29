@@ -17,11 +17,12 @@
         (click)="togglePicker()"
         (keydown.enter)="togglePicker()"
         (keydown.space)="$event.preventDefault(); togglePicker()"
+        (keydown.arrowDown)="$event.preventDefault(); openPicker()"
         (blur)="markAsTouched()"
-        aria-controls="combobox"
+        [attr.aria-controls]="isOpen() ? inputId() + '-dialog' : null"
         aria-haspopup="dialog"
         [attr.aria-expanded]="isOpen()"
-        aria-label="Date picker input"
+        [attr.aria-label]="placeholder()"
       />
 
       <!-- Right-side icons container -->
@@ -35,7 +36,13 @@
             aria-label="Clear selection"
             tabindex="-1"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="text-base-content/60 hover:text-base-content h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="text-base-content/60 hover:text-base-content h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -49,8 +56,19 @@
           (click)="!isDisabled() && togglePicker()"
           aria-label="Open calendar"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="text-base-content/60 hover:text-base-content h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="text-base-content/60 hover:text-base-content h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
         </button>
       </div>
@@ -74,256 +92,287 @@
 
   <!-- Datepicker Dropdown -->
   @if (isOpen()) {
-    <div [class]="dropdownClasses()" [style.min-width]="showTime() ? '26rem' : minWidth()" role="dialog" aria-label="Date picker" aria-modal="true">
+    <div
+      [id]="inputId() + '-dialog'"
+      [class]="dropdownClasses()"
+      [style.min-width]="showTime() ? '26rem' : minWidth()"
+      role="dialog"
+      [attr.aria-label]="placeholder()"
+      aria-modal="true"
+    >
       <div [class]="showTime() ? 'flex gap-4' : ''">
-      <!-- Calendar Section -->
-      <div [class]="showTime() ? 'flex-1' : ''">
-      <!-- Header Navigation -->
-      <div class="datepicker-header mb-4 flex items-center justify-between">
-        <!-- Navigation arrows - only show for days view -->
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm btn-square"
-          (click)="navigateMonth('prev')"
-          [disabled]="currentView() !== 'days'"
-          [class.invisible]="currentView() !== 'days'"
-          aria-label="Previous month"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
+        <!-- Calendar Section -->
+        <div [class]="showTime() ? 'flex-1' : ''">
+          <!-- Header Navigation -->
+          <div class="datepicker-header mb-4 flex items-center justify-between">
+            <!-- Navigation arrows - only show for days view -->
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square"
+              (click)="navigateMonth('prev')"
+              [disabled]="currentView() !== 'days'"
+              [class.invisible]="currentView() !== 'days'"
+              aria-label="Previous month"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
 
-        <!-- Progressive Navigation Breadcrumb -->
-        <div class="flex items-center space-x-1">
-          @switch (currentView()) {
-            @case ('days') {
-              <!-- Month/Year buttons for days view -->
-              <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToMonthView()" aria-label="Select month">
-                {{ monthLabel() }}
-              </button>
-              <span class="text-base-content/50">/</span>
-              <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToYearView()" aria-label="Select year">
-                {{ yearLabel() }}
-              </button>
-            }
-            @case ('months') {
-              <!-- Year button and current month indicator -->
-              <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToYearView()" aria-label="Select year">
-                {{ yearLabel() }}
-              </button>
-              <span class="text-base-content/70 ml-2 text-sm font-medium">Select Month</span>
-            }
-            @case ('years') {
-              <!-- Years range display -->
-              <span class="text-base-content/70 text-sm font-medium">Select Year</span>
-            }
-          }
-        </div>
-
-        <!-- Navigation arrows - only show for days view -->
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm btn-square"
-          (click)="navigateMonth('next')"
-          [disabled]="currentView() !== 'days'"
-          [class.invisible]="currentView() !== 'days'"
-          aria-label="Next month"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Calendar Views -->
-      <div class="datepicker-content">
-        @switch (currentView()) {
-          @case ('days') {
-            <div class="calendar-grid">
-              <!-- Weekday Headers -->
-              <div class="mb-2 grid grid-cols-7 gap-1">
-                @for (weekday of weekdays(); track weekday.id) {
-                  <div class="text-base-content/70 flex items-center justify-center p-2 text-center text-xs font-medium">
-                    {{ weekday.label }}
-                  </div>
+            <!-- Progressive Navigation Breadcrumb -->
+            <div class="flex items-center space-x-1">
+              @switch (currentView()) {
+                @case ('days') {
+                  <!-- Month/Year buttons for days view -->
+                  <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToMonthView()" aria-label="Select month">
+                    {{ monthLabel() }}
+                  </button>
+                  <span class="text-base-content/50">/</span>
+                  <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToYearView()" aria-label="Select year">
+                    {{ yearLabel() }}
+                  </button>
                 }
-              </div>
+                @case ('months') {
+                  <!-- Year button and current month indicator -->
+                  <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToYearView()" aria-label="Select year">
+                    {{ yearLabel() }}
+                  </button>
+                  <span class="text-base-content/70 ml-2 text-sm font-medium">Select Month</span>
+                }
+                @case ('years') {
+                  <!-- Years range display -->
+                  <span class="text-base-content/70 text-sm font-medium">Select Year</span>
+                }
+              }
+            </div>
 
-              <!-- Calendar Days -->
-              <div class="space-y-1">
-                @for (week of calendarWeeks(); track week.id) {
-                  <div class="grid grid-cols-7 gap-1">
-                    @for (cell of week.cells; track cell.id) {
-                      <div class="flex items-center justify-center">
-                        <button
-                          type="button"
-                          class="flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors"
-                          [class]="getDayClasses(cell)"
-                          [disabled]="cell.isDisabled"
-                          (click)="cell.date && selectDate(cell.date)"
-                          (mouseenter)="onDateHover(cell.date)"
-                          (mouseleave)="onDateHover(null)"
-                          [attr.aria-label]="cell.date?.toLocaleDateString(locale())"
-                          [attr.aria-selected]="cell.isSelected || cell.isInRange"
-                        >
-                          {{ cell.date?.getDate() }}
-                        </button>
+            <!-- Navigation arrows - only show for days view -->
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square"
+              (click)="navigateMonth('next')"
+              [disabled]="currentView() !== 'days'"
+              [class.invisible]="currentView() !== 'days'"
+              aria-label="Next month"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Calendar Views -->
+          <div class="datepicker-content">
+            @switch (currentView()) {
+              @case ('days') {
+                <div class="calendar-grid">
+                  <!-- Weekday Headers -->
+                  <div class="mb-2 grid grid-cols-7 gap-1">
+                    @for (weekday of weekdays(); track weekday.id) {
+                      <div class="text-base-content/70 flex items-center justify-center p-2 text-center text-xs font-medium">
+                        {{ weekday.label }}
                       </div>
                     }
                   </div>
-                }
+
+                  <!-- Calendar Days -->
+                  <div class="space-y-1">
+                    @for (week of calendarWeeks(); track week.id) {
+                      <div class="grid grid-cols-7 gap-1">
+                        @for (cell of week.cells; track cell.id) {
+                          <div class="flex items-center justify-center">
+                            <button
+                              type="button"
+                              class="flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors"
+                              [class]="getDayClasses(cell)"
+                              [disabled]="cell.isDisabled"
+                              (click)="cell.date && selectDate(cell.date)"
+                              (mouseenter)="onDateHover(cell.date)"
+                              (mouseleave)="onDateHover(null)"
+                              [attr.aria-label]="cell.date?.toLocaleDateString(locale())"
+                              [attr.aria-selected]="cell.isSelected || cell.isInRange"
+                            >
+                              {{ cell.date?.getDate() }}
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @case ('months') {
+                <div class="months-view">
+                  <!-- Back to days button -->
+                  <div class="mb-3 flex items-center">
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="goToDayView()" aria-label="Back to calendar">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Back to Calendar
+                    </button>
+                  </div>
+
+                  <div class="grid grid-cols-3 gap-2">
+                    @for (month of months(); track month.id) {
+                      <button
+                        type="button"
+                        class="btn btn-sm transition-all duration-200"
+                        [class.btn-primary]="month.isSelected"
+                        [class.btn-ghost]="!month.isSelected"
+                        [class.hover:btn-primary]="!month.isSelected"
+                        (click)="selectMonth(month.index)"
+                        [attr.aria-pressed]="month.isSelected"
+                      >
+                        {{ month.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @case ('years') {
+                <div class="years-view">
+                  <!-- Back to months button -->
+                  <div class="mb-3 flex items-center">
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="goToMonthView()" aria-label="Back to months">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Back to Months
+                    </button>
+                  </div>
+
+                  <!-- Years Navigation -->
+                  <div class="mb-4 flex items-center justify-between">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm btn-square"
+                      (click)="navigateYears('prev')"
+                      aria-label="Previous years"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+
+                    <span class="text-sm font-medium">{{ yearsRange() }}</span>
+
+                    <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="navigateYears('next')" aria-label="Next years">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Years Grid -->
+                  <div class="grid grid-cols-4 gap-2">
+                    @for (year of years(); track year.id) {
+                      <button
+                        type="button"
+                        class="btn btn-sm transition-all duration-200"
+                        [class.btn-primary]="year.isSelected"
+                        [class.btn-ghost]="!year.isSelected"
+                        [class.hover:btn-primary]="!year.isSelected"
+                        (click)="selectYear(year.year)"
+                        [attr.aria-pressed]="year.isSelected"
+                      >
+                        {{ year.year }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+        <!-- /calendar section -->
+
+        <!-- Time Panel (shown beside calendar when showTime is true) -->
+        @if (showTime()) {
+          <div class="border-base-300 flex flex-col border-l pl-3">
+            <div class="text-base-content/70 mb-2 text-center text-xs font-medium">Time</div>
+
+            <div class="flex gap-1">
+              <!-- Hours column -->
+              <div class="flex flex-col items-center">
+                <span class="text-base-content/50 mb-1 text-xs">Hr</span>
+                <div class="max-h-52 w-10 overflow-auto rounded">
+                  @for (hour of hourOptions(); track hour) {
+                    <button
+                      type="button"
+                      class="btn btn-xs mb-0.5 w-full font-mono"
+                      [class.btn-primary]="isHourSelected(hour)"
+                      [class.btn-ghost]="!isHourSelected(hour)"
+                      (click)="selectHour(hour)"
+                    >
+                      {{ hour < 10 ? '0' + hour : hour }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- Minutes column -->
+              <div class="flex flex-col items-center">
+                <span class="text-base-content/50 mb-1 text-xs">Min</span>
+                <div class="max-h-52 w-10 overflow-auto rounded">
+                  @for (minute of minuteOptions(); track minute) {
+                    <button
+                      type="button"
+                      class="btn btn-xs mb-0.5 w-full font-mono"
+                      [class.btn-primary]="isMinuteSelected(minute)"
+                      [class.btn-ghost]="!isMinuteSelected(minute)"
+                      (click)="selectMinute(minute)"
+                    >
+                      {{ minute < 10 ? '0' + minute : minute }}
+                    </button>
+                  }
+                </div>
               </div>
             </div>
-          }
 
-          @case ('months') {
-            <div class="months-view">
-              <!-- Back to days button -->
-              <div class="mb-3 flex items-center">
-                <button type="button" class="btn btn-ghost btn-sm" (click)="goToDayView()" aria-label="Back to calendar">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Back to Calendar
+            <!-- AM/PM toggle -->
+            @if (!use24Hour()) {
+              <div class="mt-2 flex justify-center gap-1">
+                <button
+                  type="button"
+                  class="btn btn-xs"
+                  [class.btn-primary]="selectedPeriod() === 'AM'"
+                  [class.btn-ghost]="selectedPeriod() !== 'AM'"
+                  (click)="selectedPeriod() !== 'AM' && togglePeriod()"
+                >
+                  AM
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-xs"
+                  [class.btn-primary]="selectedPeriod() === 'PM'"
+                  [class.btn-ghost]="selectedPeriod() !== 'PM'"
+                  (click)="selectedPeriod() !== 'PM' && togglePeriod()"
+                >
+                  PM
                 </button>
               </div>
-
-              <div class="grid grid-cols-3 gap-2">
-                @for (month of months(); track month.id) {
-                  <button
-                    type="button"
-                    class="btn btn-sm transition-all duration-200"
-                    [class.btn-primary]="month.isSelected"
-                    [class.btn-ghost]="!month.isSelected"
-                    [class.hover:btn-primary]="!month.isSelected"
-                    (click)="selectMonth(month.index)"
-                    [attr.aria-pressed]="month.isSelected"
-                  >
-                    {{ month.label }}
-                  </button>
-                }
-              </div>
-            </div>
-          }
-
-          @case ('years') {
-            <div class="years-view">
-              <!-- Back to months button -->
-              <div class="mb-3 flex items-center">
-                <button type="button" class="btn btn-ghost btn-sm" (click)="goToMonthView()" aria-label="Back to months">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Back to Months
-                </button>
-              </div>
-
-              <!-- Years Navigation -->
-              <div class="mb-4 flex items-center justify-between">
-                <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="navigateYears('prev')" aria-label="Previous years">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-
-                <span class="text-sm font-medium">{{ yearsRange() }}</span>
-
-                <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="navigateYears('next')" aria-label="Next years">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Years Grid -->
-              <div class="grid grid-cols-4 gap-2">
-                @for (year of years(); track year.id) {
-                  <button
-                    type="button"
-                    class="btn btn-sm transition-all duration-200"
-                    [class.btn-primary]="year.isSelected"
-                    [class.btn-ghost]="!year.isSelected"
-                    [class.hover:btn-primary]="!year.isSelected"
-                    (click)="selectYear(year.year)"
-                    [attr.aria-pressed]="year.isSelected"
-                  >
-                    {{ year.year }}
-                  </button>
-                }
-              </div>
-            </div>
-          }
+            }
+          </div>
         }
       </div>
-
-      </div><!-- /calendar section -->
-
-      <!-- Time Panel (shown beside calendar when showTime is true) -->
-      @if (showTime()) {
-        <div class="border-base-300 flex flex-col border-l pl-3">
-          <div class="text-base-content/70 mb-2 text-center text-xs font-medium">Time</div>
-
-          <div class="flex gap-1">
-            <!-- Hours column -->
-            <div class="flex flex-col items-center">
-              <span class="text-base-content/50 mb-1 text-xs">Hr</span>
-              <div class="max-h-52 w-10 overflow-auto rounded">
-                @for (hour of hourOptions(); track hour) {
-                  <button
-                    type="button"
-                    class="btn btn-xs mb-0.5 w-full font-mono"
-                    [class.btn-primary]="isHourSelected(hour)"
-                    [class.btn-ghost]="!isHourSelected(hour)"
-                    (click)="selectHour(hour)"
-                  >
-                    {{ hour < 10 ? '0' + hour : hour }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            <!-- Minutes column -->
-            <div class="flex flex-col items-center">
-              <span class="text-base-content/50 mb-1 text-xs">Min</span>
-              <div class="max-h-52 w-10 overflow-auto rounded">
-                @for (minute of minuteOptions(); track minute) {
-                  <button
-                    type="button"
-                    class="btn btn-xs mb-0.5 w-full font-mono"
-                    [class.btn-primary]="isMinuteSelected(minute)"
-                    [class.btn-ghost]="!isMinuteSelected(minute)"
-                    (click)="selectMinute(minute)"
-                  >
-                    {{ minute < 10 ? '0' + minute : minute }}
-                  </button>
-                }
-              </div>
-            </div>
-          </div>
-
-          <!-- AM/PM toggle -->
-          @if (!use24Hour()) {
-            <div class="mt-2 flex justify-center gap-1">
-              <button
-                type="button"
-                class="btn btn-xs"
-                [class.btn-primary]="selectedPeriod() === 'AM'"
-                [class.btn-ghost]="selectedPeriod() !== 'AM'"
-                (click)="selectedPeriod() !== 'AM' && togglePeriod()"
-              >AM</button>
-              <button
-                type="button"
-                class="btn btn-xs"
-                [class.btn-primary]="selectedPeriod() === 'PM'"
-                [class.btn-ghost]="selectedPeriod() !== 'PM'"
-                (click)="selectedPeriod() !== 'PM' && togglePeriod()"
-              >PM</button>
-            </div>
-          }
-        </div>
-      }
-      </div><!-- /flex container -->
+      <!-- /flex container -->
 
       <!-- Footer Actions -->
       <div class="datepicker-footer border-base-300 mt-4 flex items-center justify-between border-t pt-3">

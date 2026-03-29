@@ -3,11 +3,20 @@
   <div
     [class]="inputClasses()"
     [class.cursor-pointer]="!isDisabled()"
+    [attr.role]="multiple() && chipDisplay() && hasSelection() ? 'combobox' : null"
+    [attr.aria-haspopup]="multiple() && chipDisplay() && hasSelection() ? 'listbox' : null"
+    [attr.aria-expanded]="multiple() && chipDisplay() && hasSelection() ? dropdownOpen() : null"
+    [attr.aria-controls]="multiple() && chipDisplay() && hasSelection() ? 'options-list' : null"
+    [attr.aria-activedescendant]="multiple() && chipDisplay() && hasSelection() ? highlightedOptionId() : null"
+    [attr.tabindex]="multiple() && chipDisplay() && hasSelection() ? 0 : null"
+    [attr.aria-label]="multiple() && chipDisplay() && hasSelection() ? placeholder() : null"
     (click)="toggleDropdown()"
+    (keydown.enter)="$event.preventDefault(); toggleDropdown()"
+    (keydown.space)="$event.preventDefault(); toggleDropdown()"
   >
     <!-- Chips Display (Multi-select with chipDisplay enabled) -->
     @if (multiple() && chipDisplay() && hasSelection()) {
-      <div class="flex flex-1 flex-wrap items-center gap-1 py-0.5">
+      <div class="flex flex-1 flex-wrap items-center gap-1 py-0.5" role="group" aria-label="Selected options">
         @for (chip of visibleChips(); track chip.value) {
           <span class="badge badge-primary badge-sm gap-1">
             <span class="max-w-24 truncate">{{ chip.label }}</span>
@@ -18,14 +27,21 @@
               [disabled]="isDisabled()"
               aria-label="Remove {{ chip.label }}"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-3 w-3 pointer-events-none"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </span>
         }
         @if (hiddenChipsCount() > 0) {
-          <span class="badge badge-neutral badge-sm">+{{ hiddenChipsCount() }}</span>
+          <span class="badge badge-neutral badge-sm" aria-label="{{ hiddenChipsCount() }} more selected">+{{ hiddenChipsCount() }}</span>
         }
       </div>
     } @else {
@@ -43,6 +59,7 @@
         [attr.aria-expanded]="dropdownOpen()"
         aria-controls="options-list"
         [attr.aria-activedescendant]="highlightedOptionId()"
+        [attr.aria-label]="placeholder()"
         (keydown.enter)="$event.preventDefault(); toggleDropdown()"
         (keydown.space)="$event.preventDefault(); toggleDropdown()"
       />
@@ -62,7 +79,7 @@
         aria-label="Clear selection"
         [disabled]="isDisabled()"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
@@ -77,6 +94,7 @@
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
+        aria-hidden="true"
       >
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
@@ -88,6 +106,8 @@
     class="dropdown-container bg-base-100 border-base-300 rounded-box absolute inset-x-0 z-20 mt-1 flex flex-col border shadow transition-all duration-200 ease-out"
     [class.dropdown-open]="dropdownOpen()"
     [class.dropdown-closed]="!dropdownOpen()"
+    role="dialog"
+    aria-label="Options"
   >
     <!-- Search Input -->
     @if (enableSearch()) {
@@ -104,9 +124,18 @@
             [value]="searchTerm()"
             (input)="onSearchInput($event)"
             (keydown.escape)="clearSearch($event)"
+            role="searchbox"
+            aria-label="Search options"
+            aria-autocomplete="list"
+            aria-controls="options-list"
           />
           @if (hasSearchTerm()) {
-            <button type="button" (click)="clearSearch($event)" class="hover:text-error ml-2 cursor-pointer transition-colors focus:outline-none" aria-label="Clear search">
+            <button
+              type="button"
+              (click)="clearSearch($event)"
+              class="hover:text-error ml-2 cursor-pointer transition-colors focus:outline-none"
+              aria-label="Clear search"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -119,12 +148,7 @@
     <!-- Select All / Clear All (Multi-select only) -->
     @if (multiple() && showSelectAll() && filteredOptions().length > 0) {
       <div class="border-base-300 flex items-center justify-between border-b px-3 py-2">
-        <button
-          type="button"
-          class="btn btn-ghost btn-xs gap-1"
-          (click)="toggleSelectAll()"
-          [disabled]="isDisabled()"
-        >
+        <button type="button" class="btn btn-ghost btn-xs gap-1" (click)="toggleSelectAll()" [disabled]="isDisabled()">
           <input
             type="checkbox"
             class="checkbox checkbox-xs checkbox-primary"
@@ -174,7 +198,14 @@
               }
               <span class="flex-1 truncate text-left" [innerHTML]="highlightMatch(option.label, searchTerm())"></span>
               @if (isSelected(option) && !multiple()) {
-                <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="ml-2 h-4 w-4 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               }
@@ -220,7 +251,14 @@
                     }
                     <span class="flex-1 truncate text-left" [innerHTML]="highlightMatch(option.label, searchTerm())"></span>
                     @if (isSelected(option) && !multiple()) {
-                      <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="ml-2 h-4 w-4 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     }
@@ -259,7 +297,14 @@
                   }
                   <span class="flex-1 truncate text-left" [innerHTML]="highlightMatch(option.label, searchTerm())"></span>
                   @if (isSelected(option) && !multiple()) {
-                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="ml-2 h-4 w-4 shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
                       <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   }
@@ -273,8 +318,15 @@
 
     <!-- No Results -->
     @if (filteredOptions().length === 0 && hasSearchTerm() && enableSearch()) {
-      <div class="text-base-content/60 p-4 text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-2 h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="text-base-content/60 p-4 text-center" role="status" aria-live="polite">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="mx-auto mb-2 h-8 w-8 opacity-50"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -289,8 +341,15 @@
 
     <!-- No Options Available -->
     @if (filteredOptions().length === 0 && (!hasSearchTerm() || !enableSearch())) {
-      <div class="text-base-content/60 p-4 text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-2 h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="text-base-content/60 p-4 text-center" role="status">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="mx-auto mb-2 h-8 w-8 opacity-50"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
         </svg>
         <p>No options available</p>

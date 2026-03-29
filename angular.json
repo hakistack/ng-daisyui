@@ -29,6 +29,26 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "tsConfig": "projects/hakistack/ng-daisyui/tsconfig.spec.json"
+          },
+          "configurations": {
+            "coverage": {
+              "codeCoverage": true,
+              "codeCoverageExclude": [
+                "**/*.spec.ts",
+                "**/*.types.ts",
+                "**/index.ts",
+                "**/public-api.ts"
+              ]
+            }
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/hakistack/ng-daisyui/**/*.ts",
+              "projects/hakistack/ng-daisyui/**/*.html"
+            ]
           }
         }
       }

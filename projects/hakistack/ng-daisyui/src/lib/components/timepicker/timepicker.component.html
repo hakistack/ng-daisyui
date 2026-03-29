@@ -22,7 +22,8 @@
         autocomplete="off"
         aria-haspopup="dialog"
         [attr.aria-expanded]="isOpen()"
-        aria-label="Time picker input"
+        [attr.aria-controls]="isOpen() ? inputId() + '-dialog' : null"
+        [attr.aria-label]="placeholder()"
       />
 
       <!-- Right-side icons -->
@@ -36,7 +37,13 @@
             aria-label="Clear selection"
             tabindex="-1"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="text-base-content/60 hover:text-base-content h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="text-base-content/60 hover:text-base-content h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -50,7 +57,13 @@
           (click)="!isDisabled() && togglePicker()"
           aria-label="Open time picker"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="text-base-content/60 hover:text-base-content h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="text-base-content/60 hover:text-base-content h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </button>
@@ -85,7 +98,14 @@
 
   <!-- Timepicker Dropdown -->
   @if (isOpen()) {
-    <div [class]="dropdownClasses()" [style.min-width]="minWidth()" role="dialog" aria-label="Time picker" aria-modal="true">
+    <div
+      [id]="inputId() + '-dialog'"
+      [class]="dropdownClasses()"
+      [style.min-width]="minWidth()"
+      role="dialog"
+      [attr.aria-label]="placeholder()"
+      aria-modal="true"
+    >
       <!-- Time Display Header -->
       <div class="mb-4 flex items-center justify-center gap-1">
         <button
@@ -144,7 +164,9 @@
             style="width: 256px; height: 256px"
             (click)="onClockDialClick($event)"
             role="group"
-            [attr.aria-label]="currentView() === 'hours' ? 'Hour selector' : currentView() === 'minutes' ? 'Minute selector' : 'Second selector'"
+            [attr.aria-label]="
+              currentView() === 'hours' ? 'Hour selector' : currentView() === 'minutes' ? 'Minute selector' : 'Second selector'
+            "
           >
             <!-- Background circle -->
             <div class="bg-base-200 absolute inset-0 rounded-full"></div>
@@ -153,11 +175,7 @@
             <svg class="absolute inset-0 pointer-events-none" width="256" height="256" aria-hidden="true">
               <circle cx="128" cy="128" r="3" style="fill: var(--color-primary)" />
               @if (showClockHand()) {
-                <g
-                  class="clock-hand"
-                  [style.transform]="'rotate(' + clockHandAngle() + 'deg)'"
-                  style="transform-origin: 128px 128px"
-                >
+                <g class="clock-hand" [style.transform]="'rotate(' + clockHandAngle() + 'deg)'" style="transform-origin: 128px 128px">
                   <line x1="128" y1="128" x2="128" [attr.y2]="128 - handRadius()" style="stroke: var(--color-primary)" stroke-width="2" />
                   <circle cx="128" [attr.cy]="128 - handRadius()" r="18" style="fill: var(--color-primary); opacity: 0.15" />
                 </g>

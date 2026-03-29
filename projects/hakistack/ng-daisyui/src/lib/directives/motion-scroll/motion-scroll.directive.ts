@@ -1,7 +1,7 @@
 import { Directive, ElementRef, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, inject, PLATFORM_ID } from '@angular/core';
 import { scroll, animate } from 'motion';
-import type { AnimationControls } from '../motion.types';
-import { prefersReducedMotion, safeStopAnimation } from '../motion.utils';
+import type { AnimationPlaybackControls } from 'motion-dom';
+import { prefersReducedMotion } from '../motion.utils';
 
 export type ScrollAxis = 'x' | 'y';
 export type OffsetValue = number | string;
@@ -58,8 +58,8 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
   readonly scrollInfo = output<ScrollInfo>();
 
   private element: HTMLElement;
-  private cleanupFunction?: () => void;
-  private animationControls: AnimationControls | null = null;
+  private cleanupFunction?: VoidFunction;
+  private animationControls: AnimationPlaybackControls | null = null;
 
   constructor() {
     this.element = this.elementRef.nativeElement;
@@ -121,24 +121,22 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
         ...this.animationOptions(),
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.animationControls = animate(this.element, keyframes, animationOpts) as any;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.cleanupFunction = scroll(this.animationControls as any, this.filterScrollOptions(options) as any);
+      this.animationControls = animate(this.element, keyframes as Record<string, string | number | (string | number)[]>, animationOpts);
+      this.cleanupFunction = scroll(this.animationControls, this.filterScrollOptions(options) as Parameters<typeof scroll>[1]);
     } catch {
-      // Scroll-linked animation failed — fall back to progress tracking
       this.setupScrollProgressTracking(options);
     }
   }
 
   private setupScrollProgressTracking(options: ScrollOptions): void {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.cleanupFunction = scroll((progress: number, info: ScrollInfo) => {
-        this.scrollProgress.emit(progress);
-        this.scrollInfo.emit(info);
-      }, this.filterScrollOptions(options) as any);
+      this.cleanupFunction = scroll(
+        (progress: number, info: ScrollInfo) => {
+          this.scrollProgress.emit(progress);
+          this.scrollInfo.emit(info);
+        },
+        this.filterScrollOptions(options) as Parameters<typeof scroll>[1],
+      );
     } catch {
       // Scroll tracking failed — element may not be scrollable
     }
@@ -167,7 +165,13 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private cleanup(): void {
-    safeStopAnimation(this.animationControls);
+    if (this.animationControls) {
+      try {
+        this.animationControls.stop();
+      } catch {
+        // Animation may already be stopped
+      }
+    }
 
     if (this.cleanupFunction) {
       try {

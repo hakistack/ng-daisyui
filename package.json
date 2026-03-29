@@ -9,15 +9,29 @@
     "demo:v4": "cd projects/demo-v4 && ng serve --open --port 58791",
     "install:v4": "cd projects/demo-v4 && npm install",
     "build": "ng build @hakistack/ng-daisyui && node scripts/fix-exports.mjs",
+    "lint": "ng lint",
     "build:watch": "ng build @hakistack/ng-daisyui --watch",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:coverage": "ng test --configuration=coverage",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
     "publish:local": "cd dist/hakistack/ng-daisyui && npm link",
     "publish:registry": "cp .npmrc dist/hakistack/ng-daisyui/.npmrc && cd dist/hakistack/ng-daisyui && npm publish",
     "release:patch": "cd projects/hakistack/ng-daisyui && npm version patch && cd ../../.. && npm run build",
     "release:minor": "cd projects/hakistack/ng-daisyui && npm version minor && cd ../../.. && npm run build",
-    "release:major": "cd projects/hakistack/ng-daisyui && npm version major && cd ../../.. && npm run build"
+    "release:major": "cd projects/hakistack/ng-daisyui && npm version major && cd ../../.. && npm run build",
+    "size": "size-limit",
+    "size:check": "size-limit --json",
+    "prepare": "husky"
   },
+  "size-limit": [
+    {
+      "path": "dist/hakistack/ng-daisyui/fesm2022/hakistack-ng-daisyui.mjs",
+      "limit": "150 kB",
+      "name": "Library bundle"
+    }
+  ],
   "prettier": {
     "printWidth": 140,
     "singleQuote": true,
@@ -28,6 +42,11 @@
           "parser": "angular"
         }
       }
+    ]
+  },
+  "lint-staged": {
+    "*.{ts,html}": [
+      "prettier --write"
     ]
   },
   "private": true,
@@ -51,21 +70,37 @@
     "postcss": "^8.5.6",
     "rxjs": "~7.8.0",
     "shiki": "^3.22.0",
-    "sweetalert2": "^11.26.15",
     "tslib": "^2.3.0",
     "ulid": "^3.0.2",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@angular-eslint/builder": "^21.3.1",
+    "@angular-eslint/eslint-plugin": "^21.3.1",
+    "@angular-eslint/eslint-plugin-template": "^21.3.1",
+    "@angular-eslint/template-parser": "^21.3.1",
     "@angular/build": "^21.1.2",
     "@angular/cli": "^21.0.0",
     "@angular/compiler-cli": "^21.0.0",
+    "@playwright/test": "^1.58.2",
+    "@size-limit/file": "^12.0.1",
     "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^25.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
+    "@vitest/coverage-istanbul": "^4.1.2",
+    "angular-eslint": "^21.3.1",
     "daisyui": "^5.5.16",
+    "eslint": "^10.1.0",
+    "husky": "^9.1.7",
     "jsdom": "^27.1.0",
+    "lint-staged": "^16.4.0",
     "ng-packagr": "^21.1.0",
+    "prettier": "^3.8.1",
+    "size-limit": "^12.0.1",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.2",
+    "typescript-eslint": "^8.57.2",
     "vitest": "^4.0.8"
   }
 }
