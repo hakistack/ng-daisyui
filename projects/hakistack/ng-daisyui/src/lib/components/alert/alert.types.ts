@@ -45,6 +45,13 @@ export interface AlertOptions {
   /** HTML content (alternative to text) */
   html?: string;
 
+  /**
+   * URL to load HTML content from (alternative to `html`).
+   * Fetched at runtime via `fetch()`. The response body is used as HTML content.
+   * @example '/assets/alerts/terms.html', 'https://api.example.com/notice'
+   */
+  htmlUrl?: string;
+
   /** Alert icon type */
   icon?: AlertIcon;
 

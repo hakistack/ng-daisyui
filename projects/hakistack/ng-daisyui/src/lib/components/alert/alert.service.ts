@@ -128,11 +128,17 @@ export class AlertService {
   async show(options: AlertOptions): Promise<AlertResult> {
     const buttons = this.getButtons();
 
+    // Resolve htmlUrl → html if provided
+    let html = options.html;
+    if (!html && options.htmlUrl) {
+      html = await this.fetchHtml(options.htmlUrl);
+    }
+
     return this.showInternal({
       id: generateUniqueId(),
       title: options.title,
       text: options.text,
-      html: options.html,
+      html,
       footer: options.footer,
       icon: options.icon,
       showConfirmButton: true,
@@ -436,5 +442,19 @@ export class AlertService {
       return this.alertConfig.translate(key, fallback, params);
     }
     return fallback;
+  }
+
+  private async fetchHtml(url: string): Promise<string> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`AlertService: Failed to fetch HTML from ${url} (${response.status})`);
+        return `<p class="text-error">Failed to load content.</p>`;
+      }
+      return response.text();
+    } catch (error) {
+      console.error(`AlertService: Failed to fetch HTML from ${url}`, error);
+      return `<p class="text-error">Failed to load content.</p>`;
+    }
   }
 }

@@ -96,10 +96,10 @@ export class AlertOverlayComponent {
     const cfg = this.config();
     // If custom width/maxWidth are set, don't apply preset size classes
     if (cfg.customWidth || cfg.customMaxWidth) {
-      return 'modal-box relative overflow-hidden';
+      return 'modal-box relative';
     }
     const sizeClass = SIZE_CLASS_MAP[cfg.size] ?? SIZE_CLASS_MAP['md'];
-    return `modal-box relative overflow-hidden ${sizeClass}`;
+    return `modal-box relative ${sizeClass}`;
   });
 
   readonly modalBoxStyles = computed(() => {

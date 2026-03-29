@@ -186,6 +186,31 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
               </div>
             </app-doc-section>
 
+            <app-doc-section
+              title="HTML from URL"
+              description="Load alert body from an external HTML file instead of inline strings"
+              [codeExample]="htmlUrlCode"
+            >
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-outline" (click)="showHtmlUrlTerms()">
+                  <hk-lucide-icon name="FileText" [size]="18" />
+                  Terms (from file)
+                </button>
+                <button class="btn btn-outline" (click)="showHtmlUrlReleaseNotes()">
+                  <hk-lucide-icon name="FileText" [size]="18" />
+                  Release Notes (from file)
+                </button>
+                <button class="btn btn-outline" (click)="showHtmlUrlRemote()">
+                  <hk-lucide-icon name="Globe" [size]="18" />
+                  Remote URL (httpbin)
+                </button>
+                <button class="btn btn-outline" (click)="showHtmlUrlNotFound()">
+                  <hk-lucide-icon name="TriangleAlert" [size]="18" />
+                  Bad URL (error fallback)
+                </button>
+              </div>
+            </app-doc-section>
+
             <app-doc-section title="Preset Sizes" description="Modal width presets from sm to full-screen" [codeExample]="sizeCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-sm btn-outline" (click)="showSize('sm')">Small</button>
@@ -614,6 +639,45 @@ export class AlertDemoComponent {
     }
   }
 
+  // HTML URL demos
+  async showHtmlUrlTerms() {
+    await this.alert.show({
+      title: 'Terms of Service',
+      htmlUrl: '/alerts/terms.html',
+      icon: 'info',
+      size: 'lg',
+      showCancelButton: true,
+      confirmButtonText: 'Accept',
+      cancelButtonText: 'Decline',
+    });
+  }
+
+  async showHtmlUrlReleaseNotes() {
+    await this.alert.show({
+      title: 'Release Notes',
+      htmlUrl: '/alerts/release-notes.html',
+      icon: 'success',
+      size: 'lg',
+    });
+  }
+
+  async showHtmlUrlRemote() {
+    await this.alert.show({
+      title: 'Remote HTML Content',
+      htmlUrl: 'https://httpbin.org/html',
+      icon: 'info',
+      size: 'xl',
+    });
+  }
+
+  async showHtmlUrlNotFound() {
+    await this.alert.show({
+      title: 'Error Demo',
+      htmlUrl: '/alerts/does-not-exist.html',
+      icon: 'error',
+    });
+  }
+
   // Size demos
   async showSize(size: AlertSize) {
     await this.alert.show({
@@ -708,6 +772,23 @@ this.alert.success('Done!');`;
   footer: '<a href="#">Link</a>',
   confirmButtonText: 'Got it!',
 });`;
+
+  htmlUrlCode = `// Load from a local asset file
+await this.alert.show({
+  title: 'Terms of Service',
+  htmlUrl: '/assets/alerts/terms.html',
+  size: 'lg',
+  showCancelButton: true,
+  confirmButtonText: 'Accept',
+});
+
+// Load from an API endpoint
+await this.alert.show({
+  title: 'Release Notes',
+  htmlUrl: 'https://api.example.com/release-notes',
+});
+
+// If the fetch fails, a fallback error message is shown automatically`;
 
   sizeCode = `// Preset sizes: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | 'full'
 await this.alert.show({
@@ -824,6 +905,12 @@ await this.alert.show({ title: 'Custom', html: '<p>HTML content</p>', footer: '<
     { name: 'title', type: 'string', description: 'Alert title (required)' },
     { name: 'text', type: 'string', default: '-', description: 'Alert message body text' },
     { name: 'html', type: 'string', default: '-', description: 'HTML content (alternative to text)' },
+    {
+      name: 'htmlUrl',
+      type: 'string',
+      default: '-',
+      description: 'URL to fetch HTML content from (alternative to html). Loaded via fetch() at runtime',
+    },
     { name: 'icon', type: "'success' | 'error' | 'warning' | 'info' | 'question'", default: '-', description: 'Alert icon type' },
     { name: 'confirmButtonText', type: 'string', default: "'OK'", description: 'Confirm button text' },
     { name: 'showCancelButton', type: 'boolean', default: 'false', description: 'Show cancel button' },
