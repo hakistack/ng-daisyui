@@ -95,7 +95,7 @@ const form = createForm({
 
 ### Dependencies
 
-**Required peer dependencies**: Tailwind CSS v4+, DaisyUI v5+, @angular/cdk, lucide-angular, sweetalert2, fuse.js, motion
+**Required peer dependencies**: Tailwind CSS v4+, DaisyUI v5+, @angular/cdk, lucide-angular, fuse.js, motion
 
 ## Code Style
 

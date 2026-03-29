@@ -1,0 +1,96 @@
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events,@angular-eslint/template/interactive-supports-focus -->
+<!-- Alert modal — uses DaisyUI v5 modal component classes -->
+<div
+  class="modal modal-open modal-middle"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="titleId"
+  [attr.aria-describedby]="bodyId"
+  [attr.aria-busy]="config().loading"
+  tabindex="-1"
+  (keydown)="onKeydown($event)"
+>
+  <!-- Modal box (DaisyUI modal-box) -->
+  <div
+    [class]="modalBoxClasses()"
+    [class.alert-modal-enter]="!dismissing()"
+    [class.alert-modal-exit]="dismissing()"
+    [style]="modalBoxStyles()"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    #modalBox
+  >
+    <!-- Close button (DaisyUI standard pattern) -->
+    @if (!config().loading && config().allowEscapeKey) {
+      <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Close" (click)="dismiss('close')">
+        <hk-lucide-icon name="X" [size]="16" />
+      </button>
+    }
+
+    <!-- Icon -->
+    @if (config().icon && !config().loading) {
+      <div class="mb-4 flex justify-center">
+        <div [class]="iconContainerClasses()" class="alert-icon-enter">
+          <hk-lucide-icon [name]="iconName()" [size]="48" />
+        </div>
+      </div>
+    }
+
+    <!-- Loading spinner (DaisyUI loading component) -->
+    @if (config().loading) {
+      <div class="mb-4 flex justify-center" role="status">
+        <span class="loading loading-spinner loading-lg text-primary" aria-label="Loading"></span>
+      </div>
+    }
+
+    <!-- Title -->
+    <h3 [id]="titleId" class="text-center text-lg font-bold">
+      {{ config().title }}
+    </h3>
+
+    <!-- Text body -->
+    @if (config().text) {
+      <p [id]="bodyId" class="py-4 text-center text-base-content/70">
+        {{ config().text }}
+      </p>
+    }
+
+    <!-- HTML body -->
+    @if (config().html) {
+      <div [id]="bodyId" class="py-4 text-center text-base-content/70" [innerHTML]="trustedHtml()"></div>
+    }
+
+    <!-- Footer -->
+    @if (config().footer) {
+      <div class="border-base-200 mt-2 w-full border-t pt-4 text-center text-sm text-base-content/50" [innerHTML]="config().footer"></div>
+    }
+
+    <!-- Action buttons (DaisyUI modal-action) -->
+    @if (!config().loading) {
+      <div class="modal-action justify-center">
+        @if (config().showCancelButton) {
+          <button type="button" class="btn btn-ghost" (click)="dismiss('cancel')" #cancelBtn>
+            {{ config().cancelButtonText }}
+          </button>
+        }
+        @if (config().showConfirmButton) {
+          <button type="button" [class]="confirmButtonClasses()" (click)="onConfirm()" #confirmBtn>
+            {{ config().confirmButtonText }}
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Timer progress bar -->
+    @if (config().timerProgressBar && config().timer && !config().loading) {
+      <div class="alert-timer-progress" [style.--alert-timer-duration.ms]="config().timer"></div>
+    }
+  </div>
+
+  <!-- Backdrop (DaisyUI modal-backdrop) -->
+  @if (config().allowOutsideClick) {
+    <div class="modal-backdrop" (click)="dismiss('backdrop')"><button type="button" aria-label="Close">close</button></div>
+  } @else {
+    <div class="modal-backdrop"></div>
+  }
+</div>

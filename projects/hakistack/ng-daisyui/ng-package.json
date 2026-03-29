@@ -13,7 +13,6 @@
   ],
   "allowedNonPeerDependencies": [
     "lucide-angular",
-    "sweetalert2",
     "fuse.js",
     "motion",
     "tslib",

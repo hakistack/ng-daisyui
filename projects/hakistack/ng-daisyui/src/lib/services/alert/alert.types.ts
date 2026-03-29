@@ -1,7 +1,36 @@
-import { SweetAlertIcon, SweetAlertPosition } from 'sweetalert2';
+/**
+ * Alert icon types matching DaisyUI severity levels
+ */
+export type AlertIcon = 'success' | 'error' | 'warning' | 'info' | 'question';
 
-export type AlertIcon = SweetAlertIcon;
-export type AlertPosition = SweetAlertPosition;
+/**
+ * Alert position options
+ */
+/**
+ * Preset modal sizes mapping to Tailwind max-width classes.
+ * - `sm`: max-w-sm (24rem)
+ * - `md`: max-w-md (28rem) — default
+ * - `lg`: max-w-lg (32rem)
+ * - `xl`: max-w-xl (36rem)
+ * - `2xl`: max-w-2xl (42rem)
+ * - `4xl`: max-w-4xl (56rem)
+ * - `full`: w-11/12 max-w-5xl (near full-screen)
+ */
+export type AlertSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | 'full';
+
+/**
+ * Alert position options
+ */
+export type AlertPosition =
+  | 'top'
+  | 'top-start'
+  | 'top-end'
+  | 'center'
+  | 'center-start'
+  | 'center-end'
+  | 'bottom'
+  | 'bottom-start'
+  | 'bottom-end';
 
 /**
  * Basic alert options for simple notifications
@@ -39,6 +68,39 @@ export interface AlertOptions {
 
   /** Show timer progress bar */
   timerProgressBar?: boolean;
+
+  /** Optional footer HTML */
+  footer?: string;
+
+  /**
+   * Preset modal size. Default: 'md'.
+   * Use 'full' for a near full-screen modal (w-11/12 max-w-5xl).
+   */
+  size?: AlertSize;
+
+  /**
+   * Custom width CSS value (overrides `size`).
+   * @example '600px', '80vw', '40rem'
+   */
+  width?: string;
+
+  /**
+   * Custom max-width CSS value (overrides `size`).
+   * @example '900px', '60rem'
+   */
+  maxWidth?: string;
+
+  /**
+   * Custom height CSS value.
+   * @example '400px', '50vh'
+   */
+  height?: string;
+
+  /**
+   * Custom max-height CSS value.
+   * @example '80vh', '600px'
+   */
+  maxHeight?: string;
 }
 
 /**
@@ -159,4 +221,36 @@ export interface AlertResult {
 
   /** Dismiss reason */
   dismissReason?: 'cancel' | 'backdrop' | 'close' | 'esc' | 'timer';
+}
+
+export type ButtonStyle = 'primary' | 'success' | 'error' | 'warning' | 'secondary' | 'ghost';
+
+/**
+ * Internal configuration for alert overlays. Not exported from the library.
+ */
+export interface AlertInternalConfig {
+  id: string;
+  title: string;
+  text?: string;
+  html?: string;
+  footer?: string;
+  icon?: AlertIcon;
+  showConfirmButton: boolean;
+  confirmButtonText: string;
+  confirmButtonStyle: ButtonStyle;
+  showCancelButton: boolean;
+  cancelButtonText: string;
+  focusCancel: boolean;
+  allowOutsideClick: boolean;
+  allowEscapeKey: boolean;
+  timer?: number;
+  timerProgressBar: boolean;
+  loading: boolean;
+  countdownSelector?: string;
+  size: AlertSize;
+  customWidth?: string;
+  customMaxWidth?: string;
+  customHeight?: string;
+  customMaxHeight?: string;
+  resolve: (result: AlertResult) => void;
 }

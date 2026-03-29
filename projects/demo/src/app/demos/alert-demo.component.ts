@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { AlertService, LucideIconComponent } from '@hakistack/ng-daisyui';
+import { AlertService, LucideIconComponent, type AlertSize } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -30,19 +30,51 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
       @if (pageTab() === 'examples') {
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="alert_tabs" role="tab" class="tab" aria-label="Basic"
-            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
-          <input type="radio" name="alert_tabs" role="tab" class="tab" aria-label="Confirmations"
-            [checked]="activeTab() === 'confirm'" (change)="activeTab.set('confirm')" />
-          <input type="radio" name="alert_tabs" role="tab" class="tab" aria-label="Loading"
-            [checked]="activeTab() === 'loading'" (change)="activeTab.set('loading')" />
-          <input type="radio" name="alert_tabs" role="tab" class="tab" aria-label="Advanced"
-            [checked]="activeTab() === 'advanced'" (change)="activeTab.set('advanced')" />
+          <input
+            type="radio"
+            name="alert_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Basic"
+            [checked]="activeTab() === 'basic'"
+            (change)="activeTab.set('basic')"
+          />
+          <input
+            type="radio"
+            name="alert_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Confirmations"
+            [checked]="activeTab() === 'confirm'"
+            (change)="activeTab.set('confirm')"
+          />
+          <input
+            type="radio"
+            name="alert_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Loading"
+            [checked]="activeTab() === 'loading'"
+            (change)="activeTab.set('loading')"
+          />
+          <input
+            type="radio"
+            name="alert_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Advanced"
+            [checked]="activeTab() === 'advanced'"
+            (change)="activeTab.set('advanced')"
+          />
         </div>
 
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
-            <app-doc-section title="Severity Levels" description="Different severity levels for various contexts" [codeExample]="severityCode">
+            <app-doc-section
+              title="Severity Levels"
+              description="Different severity levels for various contexts"
+              [codeExample]="severityCode"
+            >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
                   <hk-lucide-icon name="CircleCheck" [size]="18" />
@@ -74,7 +106,11 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
         @if (activeTab() === 'confirm') {
           <div class="space-y-6">
-            <app-doc-section title="Confirmation Dialogs" description="Ask user for confirmation before actions" [codeExample]="confirmCode">
+            <app-doc-section
+              title="Confirmation Dialogs"
+              description="Ask user for confirmation before actions"
+              [codeExample]="confirmCode"
+            >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showConfirm()">Basic Confirm</button>
                 <button class="btn btn-outline" (click)="showQuestion()">Yes/No Question</button>
@@ -121,7 +157,11 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
               </div>
             </app-doc-section>
 
-            <app-doc-section title="Live Countdown" description="Countdown with live seconds display (e.g., session timeout)" [codeExample]="countdownCode">
+            <app-doc-section
+              title="Live Countdown"
+              description="Countdown with live seconds display (e.g., session timeout)"
+              [codeExample]="countdownCode"
+            >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-warning" (click)="showCountdown()">
                   <hk-lucide-icon name="Clock" [size]="18" />
@@ -135,10 +175,38 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
         @if (activeTab() === 'advanced') {
           <div class="space-y-6">
-            <app-doc-section title="Custom Alert (Advanced)" description="Using fire() for advanced customization" [codeExample]="fireCode">
+            <app-doc-section
+              title="Custom Alert (Advanced)"
+              description="Using show() with HTML content and footer"
+              [codeExample]="fireCode"
+            >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showCustomAlert()">Custom HTML Content</button>
                 <button class="btn btn-outline" (click)="showWithFooter()">With Footer</button>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section title="Preset Sizes" description="Modal width presets from sm to full-screen" [codeExample]="sizeCode">
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-sm btn-outline" (click)="showSize('sm')">Small</button>
+                <button class="btn btn-sm btn-outline" (click)="showSize('md')">Medium (default)</button>
+                <button class="btn btn-sm btn-outline" (click)="showSize('lg')">Large</button>
+                <button class="btn btn-sm btn-outline" (click)="showSize('xl')">XL</button>
+                <button class="btn btn-sm btn-outline" (click)="showSize('2xl')">2XL</button>
+                <button class="btn btn-sm btn-outline" (click)="showSize('4xl')">4XL</button>
+                <button class="btn btn-sm btn-outline" (click)="showSize('full')">Full</button>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section
+              title="Custom Dimensions"
+              description="Set exact width and max-width via CSS values"
+              [codeExample]="customSizeCode"
+            >
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-sm btn-outline" (click)="showCustomWidth()">width: 600px</button>
+                <button class="btn btn-sm btn-outline" (click)="showViewportWidth()">width: 80vw, max: 900px</button>
+                <button class="btn btn-sm btn-outline" (click)="showCustomHeight()">height: 400px</button>
               </div>
             </app-doc-section>
 
@@ -166,14 +234,42 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
       @if (pageTab() === 'api') {
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="alert_api_tabs" role="tab" class="tab" aria-label="Service Methods"
-            [checked]="apiTab() === 'methods'" (change)="apiTab.set('methods')" />
-          <input type="radio" name="alert_api_tabs" role="tab" class="tab" aria-label="Configuration"
-            [checked]="apiTab() === 'configuration'" (change)="apiTab.set('configuration')" />
-          <input type="radio" name="alert_api_tabs" role="tab" class="tab" aria-label="Provider Setup"
-            [checked]="apiTab() === 'provider'" (change)="apiTab.set('provider')" />
-          <input type="radio" name="alert_api_tabs" role="tab" class="tab" aria-label="Types"
-            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
+          <input
+            type="radio"
+            name="alert_api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Service Methods"
+            [checked]="apiTab() === 'methods'"
+            (change)="apiTab.set('methods')"
+          />
+          <input
+            type="radio"
+            name="alert_api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Configuration"
+            [checked]="apiTab() === 'configuration'"
+            (change)="apiTab.set('configuration')"
+          />
+          <input
+            type="radio"
+            name="alert_api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Provider Setup"
+            [checked]="apiTab() === 'provider'"
+            (change)="apiTab.set('provider')"
+          />
+          <input
+            type="radio"
+            name="alert_api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Types"
+            [checked]="apiTab() === 'types'"
+            (change)="apiTab.set('types')"
+          />
         </div>
 
         <!-- Service Methods sub-tab -->
@@ -185,7 +281,9 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Usage</h3>
                 <p class="text-sm text-base-content/70">
-                  Inject <code>AlertService</code> and call methods directly. All methods return a <code>Promise&lt;AlertResult&gt;</code> except <code>showLoading()</code>, <code>updateLoading()</code>, and <code>hideLoading()</code> which are synchronous.
+                  Inject <code>AlertService</code> and call methods directly. All methods return a
+                  <code>Promise&lt;AlertResult&gt;</code> except <code>showLoading()</code>, <code>updateLoading()</code>, and
+                  <code>hideLoading()</code> which are synchronous.
                 </p>
                 <app-code-block [code]="usageCode" />
               </div>
@@ -213,7 +311,8 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Provider Setup</h3>
                 <p class="text-sm text-base-content/70">
-                  Use <code>provideAlert()</code> in your application config to customize button translations, language change handling, and theme detection. Without configuration, the service uses English fallbacks and auto-detects the DaisyUI theme.
+                  Use <code>provideAlert()</code> in your application config to customize button translations, language change handling, and
+                  theme detection. Without configuration, the service uses English fallbacks and auto-detects the DaisyUI theme.
                 </p>
                 <app-code-block [code]="providerCode" />
               </div>
@@ -228,7 +327,8 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">AlertResult</h3>
                 <p class="text-sm text-base-content/70">
-                  Returned by all dialog methods. Use <code>isConfirmed</code>, <code>isCancelled</code>, and <code>dismissReason</code> to determine how the user interacted with the alert.
+                  Returned by all dialog methods. Use <code>isConfirmed</code>, <code>isCancelled</code>, and <code>dismissReason</code> to
+                  determine how the user interacted with the alert.
                 </p>
                 <app-code-block [code]="typeAlertResult" />
               </div>
@@ -462,7 +562,7 @@ export class AlertDemoComponent {
 
   // Custom Alert
   async showCustomAlert() {
-    await this.alert.fire({
+    await this.alert.show({
       title: 'Custom Content',
       html: `
         <div class="text-left">
@@ -480,7 +580,7 @@ export class AlertDemoComponent {
   }
 
   async showWithFooter() {
-    await this.alert.fire({
+    await this.alert.show({
       title: 'Terms of Service',
       text: 'Please accept the terms of service to continue.',
       icon: 'info',
@@ -512,6 +612,58 @@ export class AlertDemoComponent {
     } else if (result.dismissReason === 'backdrop') {
       this.alert.info('Dismissed', 'You clicked outside the dialog.');
     }
+  }
+
+  // Size demos
+  async showSize(size: AlertSize) {
+    await this.alert.show({
+      title: `Size: ${size}`,
+      text: `This alert uses the "${size}" preset size.`,
+      icon: 'info',
+      size,
+    });
+  }
+
+  async showCustomWidth() {
+    await this.alert.show({
+      title: 'Custom Width',
+      text: 'This alert has a fixed width of 600px.',
+      icon: 'info',
+      width: '600px',
+    });
+  }
+
+  async showCustomHeight() {
+    await this.alert.show({
+      title: 'Custom Height',
+      html: `
+        <div class="text-left">
+          <p>This alert has a fixed height of 400px.</p>
+          <p class="mt-2 text-sm text-base-content/50">The content area will scroll if needed.</p>
+        </div>
+      `,
+      icon: 'info',
+      height: '400px',
+    });
+  }
+
+  async showViewportWidth() {
+    await this.alert.show({
+      title: 'Viewport-Relative Width',
+      html: `
+        <div class="text-left">
+          <p class="mb-2">This alert uses viewport-relative sizing:</p>
+          <ul class="list-disc list-inside text-sm">
+            <li><code>width: 80vw</code></li>
+            <li><code>maxWidth: 900px</code></li>
+          </ul>
+          <p class="mt-2 text-sm">Resize your browser to see it adapt.</p>
+        </div>
+      `,
+      icon: 'info',
+      width: '80vw',
+      maxWidth: '900px',
+    });
   }
 
   // --- Code examples ---
@@ -549,12 +701,48 @@ this.alert.success('Done!');`;
   confirmButtonText: 'Stay Logged In',
 });`;
 
-  fireCode = `await this.alert.fire({
+  fireCode = `await this.alert.show({
   title: 'Custom Content',
   html: '<p>Rich <strong>HTML</strong> content</p>',
   icon: 'info',
   footer: '<a href="#">Link</a>',
   confirmButtonText: 'Got it!',
+});`;
+
+  sizeCode = `// Preset sizes: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | 'full'
+await this.alert.show({
+  title: 'Large Alert',
+  text: 'This uses the lg preset.',
+  size: 'lg',
+});
+
+// Near full-screen (w-11/12 max-w-5xl)
+await this.alert.show({
+  title: 'Full Width',
+  text: 'Takes most of the screen.',
+  size: 'full',
+});`;
+
+  customSizeCode = `// Fixed pixel width
+await this.alert.show({
+  title: 'Custom Width',
+  text: 'Exactly 600px wide.',
+  width: '600px',
+});
+
+// Viewport-relative with cap
+await this.alert.show({
+  title: 'Responsive',
+  text: '80% of viewport, max 900px.',
+  width: '80vw',
+  maxWidth: '900px',
+});
+
+// Custom height
+await this.alert.show({
+  title: 'Tall Alert',
+  text: 'Fixed height of 400px.',
+  height: '400px',
 });`;
 
   resultCode = `const result = await this.alert.confirm({
@@ -605,9 +793,8 @@ await this.alert.countdown({
   timer: 5000,
 });
 
-// Advanced (direct SweetAlert2)
-await this.alert.fire({ ...swalOptions });
-await this.alert.show({ ...swalOptions });`;
+// Advanced (HTML content + footer)
+await this.alert.show({ title: 'Custom', html: '<p>HTML content</p>', footer: '<a href="#">Link</a>' });`;
 
   // --- API docs ---
   methodDocs: ApiDocEntry[] = [
@@ -617,13 +804,20 @@ await this.alert.show({ ...swalOptions });`;
     { name: 'warning(title, text?)', type: 'Promise<AlertResult>', description: 'Show a warning alert with optional description' },
     { name: 'info(title, text?)', type: 'Promise<AlertResult>', description: 'Show an info alert with optional description' },
     { name: 'confirm(options)', type: 'Promise<AlertResult>', description: 'Show a confirmation dialog with confirm/cancel buttons' },
-    { name: 'question(title, text?)', type: 'Promise<AlertResult>', description: 'Show a yes/no question dialog (uses confirm internally)' },
-    { name: 'confirmDelete(options?)', type: 'Promise<AlertResult>', description: 'Show a delete confirmation with error-styled confirm button' },
+    {
+      name: 'question(title, text?)',
+      type: 'Promise<AlertResult>',
+      description: 'Show a yes/no question dialog (uses confirm internally)',
+    },
+    {
+      name: 'confirmDelete(options?)',
+      type: 'Promise<AlertResult>',
+      description: 'Show a delete confirmation with error-styled confirm button',
+    },
     { name: 'countdown(options)', type: 'Promise<AlertResult>', description: 'Show a timed alert with live countdown seconds display' },
     { name: 'showLoading(options?)', type: 'void', description: 'Show a loading dialog with spinner (non-closable by default)' },
     { name: 'updateLoading(text)', type: 'void', description: 'Update the loading dialog body text' },
     { name: 'hideLoading()', type: 'void', description: 'Close the loading dialog' },
-    { name: 'fire(options)', type: 'Promise<SweetAlertResult>', description: 'Direct SweetAlert2 fire with DaisyUI theming and custom classes' },
   ];
 
   alertOptionDocs: ApiDocEntry[] = [
@@ -638,6 +832,17 @@ await this.alert.show({ ...swalOptions });`;
     { name: 'allowOutsideClick', type: 'boolean', default: 'true', description: 'Allow clicking outside to close' },
     { name: 'timer', type: 'number', default: '-', description: 'Auto-close after milliseconds (0 = disabled)' },
     { name: 'timerProgressBar', type: 'boolean', default: 'false', description: 'Show timer progress bar' },
+    { name: 'footer', type: 'string', default: '-', description: 'Optional footer HTML content' },
+    {
+      name: 'size',
+      type: "'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | 'full'",
+      default: "'md'",
+      description: 'Preset modal width (maps to DaisyUI max-w-* classes)',
+    },
+    { name: 'width', type: 'string', default: '-', description: 'Custom CSS width value (overrides size preset)' },
+    { name: 'maxWidth', type: 'string', default: '-', description: 'Custom CSS max-width value (overrides size preset)' },
+    { name: 'height', type: 'string', default: '-', description: 'Custom CSS height value' },
+    { name: 'maxHeight', type: 'string', default: '-', description: 'Custom CSS max-height value' },
   ];
 
   confirmOptionDocs: ApiDocEntry[] = [
@@ -647,7 +852,12 @@ await this.alert.show({ ...swalOptions });`;
     { name: 'confirmText', type: 'string', default: "'Confirm'", description: 'Confirm button text' },
     { name: 'cancelText', type: 'string', default: "'Cancel'", description: 'Cancel button text' },
     { name: 'focusCancel', type: 'boolean', default: 'false', description: 'Focus the cancel button by default' },
-    { name: 'confirmStyle', type: "'primary' | 'success' | 'error' | 'warning'", default: "'success'", description: 'Confirm button DaisyUI color style' },
+    {
+      name: 'confirmStyle',
+      type: "'primary' | 'success' | 'error' | 'warning'",
+      default: "'success'",
+      description: 'Confirm button DaisyUI color style',
+    },
   ];
 
   deleteConfirmOptionDocs: ApiDocEntry[] = [
@@ -664,7 +874,12 @@ await this.alert.show({ ...swalOptions });`;
     { name: 'timer', type: 'number', description: 'Countdown duration in milliseconds (required)' },
     { name: 'icon', type: "'success' | 'error' | 'warning' | 'info' | 'question'", default: "'warning'", description: 'Alert icon type' },
     { name: 'timerProgressBar', type: 'boolean', default: 'true', description: 'Show timer progress bar' },
-    { name: 'countdownSelector', type: 'string', default: "'.countdown, kbd'", description: 'CSS selector for the element whose textContent is updated with remaining seconds' },
+    {
+      name: 'countdownSelector',
+      type: 'string',
+      default: "'.countdown, kbd'",
+      description: 'CSS selector for the element whose textContent is updated with remaining seconds',
+    },
     { name: 'confirmButtonText', type: 'string', default: "'OK'", description: 'Confirm button text' },
     { name: 'showCancelButton', type: 'boolean', default: 'false', description: 'Show cancel button' },
     { name: 'cancelButtonText', type: 'string', default: "'Cancel'", description: 'Cancel button text' },
@@ -681,12 +896,27 @@ await this.alert.show({ ...swalOptions });`;
     { name: 'isConfirmed', type: 'boolean', description: 'True when user clicked the confirm button' },
     { name: 'isDismissed', type: 'boolean', description: 'True when dialog was cancelled or dismissed' },
     { name: 'isCancelled', type: 'boolean', description: 'True when user clicked the cancel button specifically' },
-    { name: 'dismissReason', type: "'cancel' | 'backdrop' | 'close' | 'esc' | 'timer'", default: '-', description: 'How the dialog was dismissed' },
+    {
+      name: 'dismissReason',
+      type: "'cancel' | 'backdrop' | 'close' | 'esc' | 'timer'",
+      default: '-',
+      description: 'How the dialog was dismissed',
+    },
   ];
 
   alertConfigDocs: ApiDocEntry[] = [
-    { name: 'translate', type: '(key, fallback, params?) => string', default: '-', description: 'Custom translation function for button labels (e.g. Transloco integration)' },
-    { name: 'langChange$', type: 'Observable<unknown>', default: '-', description: 'Observable that emits on language change to invalidate cached button translations' },
+    {
+      name: 'translate',
+      type: '(key, fallback, params?) => string',
+      default: '-',
+      description: 'Custom translation function for button labels (e.g. Transloco integration)',
+    },
+    {
+      name: 'langChange$',
+      type: 'Observable<unknown>',
+      default: '-',
+      description: 'Observable that emits on language change to invalidate cached button translations',
+    },
     { name: 'useSystemTheme', type: 'boolean', default: 'false', description: 'Use prefers-color-scheme for dark/light theme detection' },
     { name: 'theme', type: "() => 'light' | 'dark'", default: '-', description: 'Custom theme function (overrides useSystemTheme)' },
   ];

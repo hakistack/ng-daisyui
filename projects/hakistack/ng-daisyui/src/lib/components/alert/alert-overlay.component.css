@@ -1,0 +1,94 @@
+/*
+ * Alert overlay styles
+ * DaisyUI's .modal class handles: backdrop, centering, z-index, transitions
+ * We only need custom styles for: icon animation, timer progress, exit animation
+ */
+
+/* Modal box enter — DaisyUI modal already animates on open, this adds a subtle scale */
+.alert-modal-enter {
+  animation: alert-modal-in 200ms ease-out forwards;
+}
+
+.alert-modal-exit {
+  animation: alert-modal-out 150ms ease-in forwards;
+}
+
+@keyframes alert-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes alert-modal-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Icon pop animation */
+.alert-icon-enter {
+  animation: alert-icon-pop 400ms ease-out;
+}
+
+@keyframes alert-icon-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Timer progress bar */
+.alert-timer-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--color-primary, oklch(0.65 0.2 250));
+  opacity: 0.5;
+  transform-origin: left;
+  animation: alert-timer-shrink var(--alert-timer-duration, 5000ms) linear forwards;
+}
+
+@keyframes alert-timer-shrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .alert-modal-enter,
+  .alert-modal-exit {
+    animation: none;
+  }
+
+  .alert-icon-enter {
+    animation: none;
+  }
+
+  .alert-timer-progress {
+    animation: none;
+    opacity: 0.2;
+  }
+}

@@ -59,7 +59,18 @@ export { TablePaginationComponent } from './lib/components/table/table-paginatio
 export { TableFilterComponent } from './lib/components/table/table-filter.component';
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
-export { createTable, projectFields, clearHeaderFormatCache, flattenTreeData, generateRowKey, getRowChildren, rowHasChildren, groupData, resolveFooterRows, resolveGroupAggregates } from './lib/components/table/table.helpers';
+export {
+  createTable,
+  projectFields,
+  clearHeaderFormatCache,
+  flattenTreeData,
+  generateRowKey,
+  getRowChildren,
+  rowHasChildren,
+  groupData,
+  resolveFooterRows,
+  resolveGroupAggregates,
+} from './lib/components/table/table.helpers';
 export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
 export type {
   ChildGridConfig,
@@ -138,12 +149,7 @@ export type {
 
 // Timepicker
 export { TimepickerComponent } from './lib/components/timepicker/timepicker.component';
-export type {
-  TimepickerEvent,
-  TimepickerPosition,
-  TimepickerView,
-  ClockPosition,
-} from './lib/components/timepicker/timepicker.types';
+export type { TimepickerEvent, TimepickerPosition, TimepickerView, ClockPosition } from './lib/components/timepicker/timepicker.types';
 
 // Stepper
 export { StepperComponent } from './lib/components/stepper/stepper.component';
@@ -256,10 +262,12 @@ export type {
   AlertOptions,
   AlertResult,
   ConfirmOptions,
+  CountdownOptions,
   DeleteConfirmOptions,
   LoadingOptions,
   AlertIcon,
   AlertPosition,
+  AlertSize,
 } from './lib/services/alert/alert.types';
 
 // ============================================================================
@@ -280,17 +288,13 @@ export type {
   MotionAnimationOptions,
   MotionDirectiveOptions,
 } from './lib/directives/motion.types';
-export type {
-  HoverKeyframes,
-  HoverOptions,
-} from './lib/directives/motion-hover/motion-hover.directive';
+export type { HoverKeyframes, HoverOptions } from './lib/directives/motion-hover/motion-hover.directive';
 export type {
   ScrollAnimationKeyframes,
   ScrollOptions,
   ScrollAxis,
   ScrollOffset,
 } from './lib/directives/motion-scroll/motion-scroll.directive';
-
 
 // ============================================================================
 // THEME
