@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, TrackByFunction } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal, TrackByFunction } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
@@ -13,7 +13,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
       <!-- Top section: Page size selector and info -->
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <!-- Page Size Selector -->
-        @if (!hidePageSize() && showPageSizeOptions()) {
+        @if (!hidePageSizeComputed() && showPageSizeOptions()) {
           <div class="flex items-center gap-2">
             <label for="page-size-select" class="text-sm font-medium whitespace-nowrap"> Items per page: </label>
             <select
@@ -41,7 +41,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               @if (totalItemsSignal() === 0) {
                 <span>0 of 0</span>
               } @else {
-                <span> {{ startIndexSignal() }}–{{ endIndexSignal() }} of {{ totalItemsSignal() }} </span>
+                <span>{{ totalDisplayText() }}</span>
               }
             } @else {
               <span>Cursor-based pagination</span>
@@ -160,6 +160,28 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
             </button>
           </div>
         }
+
+        <!-- Quick Jumper -->
+        @if (showQuickJumperSignal() && modeSignal() === 'offset') {
+          <div class="divider divider-horizontal"></div>
+          <form class="flex items-center gap-1" (submit)="onQuickJump($event)" aria-label="Go to page">
+            <label for="quick-jumper-input" class="text-sm whitespace-nowrap">Go to</label>
+            <input
+              id="quick-jumper-input"
+              type="number"
+              class="input input-sm w-16 text-center"
+              [min]="1"
+              [max]="totalPagesSignal()"
+              [value]="quickJumperValue()"
+              (input)="quickJumperValue.set(+$any($event.target).value)"
+              [disabled]="disabled()"
+              [attr.aria-label]="'Enter page number between 1 and ' + totalPagesSignal()"
+            />
+            <button type="submit" class="btn btn-sm" [disabled]="disabled() || !isValidQuickJumperValue()" aria-label="Go to entered page">
+              Go
+            </button>
+          </form>
+        }
       </nav>
     </footer>
   `,
@@ -179,6 +201,9 @@ export class TablePaginationComponent {
   readonly pageChange = output<PageSizeChange>();
   readonly cursorChange = output<CursorPageChange>();
 
+  // Quick jumper state
+  readonly quickJumperValue = signal<number>(1);
+
   // Computed signals
   readonly modeSignal = computed(() => this.paginationOptions()?.mode ?? 'offset');
   readonly pageSizeSignal = computed(() => this.paginationOptions()?.pageSize ?? this.pageSize());
@@ -187,11 +212,32 @@ export class TablePaginationComponent {
   readonly prevCursorSignal = computed(() => this.paginationOptions()?.prevCursor ?? null);
   readonly totalItemsSignal = computed(() => this.paginationOptions()?.totalItems ?? this.totalItems());
 
+  // showSizeChanger: hide page size selector when explicitly set to false
+  readonly hidePageSizeComputed = computed(() => this.hidePageSize() || this.paginationOptions()?.showSizeChanger === false);
+
+  // showQuickJumper: display a "Go to page" input
+  readonly showQuickJumperSignal = computed(() => this.paginationOptions()?.showQuickJumper === true);
+
   // Pagination calculations
   readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));
   readonly currentPageSignal = computed(() => this.pageIndex() + 1);
   readonly startIndexSignal = computed(() => this.pageIndex() * this.pageSizeSignal() + 1);
   readonly endIndexSignal = computed(() => Math.min((this.pageIndex() + 1) * this.pageSizeSignal(), this.totalItemsSignal()));
+
+  // showTotal: custom or default total display text
+  readonly totalDisplayText = computed(() => {
+    const showTotal = this.paginationOptions()?.showTotal;
+    const total = this.totalItemsSignal();
+    const start = this.startIndexSignal();
+    const end = this.endIndexSignal();
+
+    if (typeof showTotal === 'function') {
+      return showTotal(total, [start, end]);
+    }
+
+    // Default format for true, false, or undefined
+    return `${start}\u2013${end} of ${total}`;
+  });
 
   // Navigation state
   readonly hasPreviousPageSignal = computed(() => {
@@ -293,6 +339,20 @@ export class TablePaginationComponent {
     const prevCursor = this.prevCursorSignal();
     if (prevCursor && !this.disabled()) {
       this.cursorChange.emit({ cursor: prevCursor, direction: 'prev' });
+    }
+  }
+
+  // Quick jumper
+  isValidQuickJumperValue(): boolean {
+    const value = this.quickJumperValue();
+    return Number.isInteger(value) && value >= 1 && value <= this.totalPagesSignal();
+  }
+
+  onQuickJump(event: Event): void {
+    event.preventDefault();
+    const page = this.quickJumperValue();
+    if (this.isValidQuickJumperValue()) {
+      this.onGotoPage(page);
     }
   }
 }

@@ -578,11 +578,20 @@ export interface GroupExpandEvent {
 // Multi-Row Footer Types
 // ============================================================================
 
-/** A single footer row definition — maps columns to aggregates */
-export interface FooterRowDef<T> {
+/** A column-aligned footer row — maps columns to aggregates (1:1 with data columns) */
+export interface ColumnAlignedFooterRowDef<T> {
   columns: Partial<Record<StringKey<T>, AggregateFunction | FooterCellDef<T>>>;
   class?: string;
 }
+
+/** A colspan-based footer row — cells span across multiple columns freely */
+export interface ColspanFooterRowDef<T> {
+  cells: FooterColspanCellDef<T>[];
+  class?: string;
+}
+
+/** A single footer row definition — either column-aligned or colspan-based */
+export type FooterRowDef<T> = ColumnAlignedFooterRowDef<T> | ColspanFooterRowDef<T>;
 
 /** Full footer cell definition with formatting and custom overrides */
 export interface FooterCellDef<T = unknown> {
@@ -599,10 +608,37 @@ export interface FooterCellDef<T = unknown> {
   custom?: (data: readonly T[]) => string | number;
 }
 
+/** A cell in a colspan-based footer row */
+export interface FooterColspanCellDef<T = unknown> {
+  /** Number of data columns this cell spans. Defaults to 1. */
+  colspan?: number;
+  /** Aggregate function to apply. Omit for an empty spacer cell. */
+  fn?: AggregateFunction;
+  /** Label prefix (e.g. "Total"). Defaults to AGGREGATE_LABELS[fn]. Set to '' to hide. */
+  label?: string;
+  /** Which field to aggregate (defaults to first visible field if fn is set) */
+  field?: StringKey<T>;
+  /** Format the computed value (e.g. currency formatting) */
+  format?: (value: number) => string;
+  /** Per-cell CSS class */
+  class?: string;
+  /** Full override — ignores fn, computes value from raw data */
+  custom?: (data: readonly T[]) => string | number;
+}
+
+/** Internal: a resolved colspan cell with a pre-built value function */
+export interface ResolvedColspanCell {
+  colspan: number;
+  valueFn: (data: readonly unknown[]) => string;
+  class?: string;
+}
+
 /** Internal: pre-built footer row with value functions per column */
 export interface ResolvedFooterRow<T> {
   cells: Partial<Record<StringKey<T>, (data: readonly T[]) => string>>;
   class?: string;
+  /** When present, this row uses colspan rendering instead of column-aligned */
+  colspanCells?: ResolvedColspanCell[];
 }
 
 /** Pre-resolved group aggregate functions (caption + group footer rows) */

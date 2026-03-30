@@ -3,12 +3,33 @@ import { CdkTableModule, DataSource } from '@angular/cdk/table';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, contentChild, effect, ElementRef, forwardRef, inject, input, OnDestroy, output, PLATFORM_ID, Signal, signal, TemplateRef, TrackByFunction, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  contentChild,
+  contentChildren,
+  effect,
+  ElementRef,
+  forwardRef,
+  inject,
+  input,
+  OnDestroy,
+  output,
+  PLATFORM_ID,
+  Signal,
+  signal,
+  TemplateRef,
+  TrackByFunction,
+  untracked,
+} from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
 import Fuse, { IFuseOptions } from 'fuse.js';
 
-import { AutoFocusDirective } from '../../directives/auto-focus/auto-focus.directive';
+import { AutoFocusDirective } from '../../directives';
+import { HkCellTemplateDirective } from './table-cell-template.directive';
+import { HkFooterDirective } from './table-footer-template.directive';
 
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 import { TableColumnVisibilityComponent } from './table-column-visibility.component';
@@ -21,7 +42,6 @@ import {
   CellDisplay,
   CellEditErrorEvent,
   CellEditEvent,
-  ChildGridConfig,
   ColumnDefinition,
   ColumnFilter,
   ColumnReorderEvent,
@@ -31,13 +51,12 @@ import {
   FilterChange,
   FilterConfig,
   FilterOperator,
-  FlattenedRow,
   GlobalSearchChange,
   GlobalSearchConfig,
-  GroupConfig,
   GroupExpandEvent,
   PageSizeChange,
   PaginationOptions,
+  ResolvedColspanCell,
   ResolvedFooterRow,
   RowExpandEvent,
   RowGroup,
@@ -46,13 +65,19 @@ import {
   StringKey,
   TableAction,
   TableBulkAction,
-  TreeTableConfig,
-  VirtualScrollConfig,
 } from './table.types';
-import { collectAncestorKeys, filterTreeData, flattenTreeData, generateRowKey, getRowChildren, groupData, rowHasChildren, resolveGroupAggregates, sortTreeData } from './table.helpers';
-import { computeAggregate } from './table-aggregates';
+import {
+  collectAncestorKeys,
+  exportToCsv,
+  exportToJson,
+  filterTreeData,
+  flattenTreeData,
+  generateRowKey,
+  getRowChildren,
+  groupData,
+  sortTreeData,
+} from './table.helpers';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { generateUniqueId } from '../../utils/generate-uuid';
 
 // Optimized DataSource with proper typing
 class SignalDataSource<T> extends DataSource<T> {
@@ -97,7 +122,18 @@ interface SortState {
 
 @Component({
   selector: 'hk-table',
-  imports: [CommonModule, CdkTableModule, ScrollingModule, LucideIconComponent, TableFilterComponent, TablePaginationComponent, TableGlobalSearchComponent, TableColumnVisibilityComponent, AutoFocusDirective, forwardRef(() => TableComponent)],
+  imports: [
+    CommonModule,
+    CdkTableModule,
+    ScrollingModule,
+    LucideIconComponent,
+    TableFilterComponent,
+    TablePaginationComponent,
+    TableGlobalSearchComponent,
+    TableColumnVisibilityComponent,
+    AutoFocusDirective,
+    forwardRef(() => TableComponent),
+  ],
   templateUrl: './table.component.html',
   styleUrls: ['./table.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -126,9 +162,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
   }
 
-  private readonly htmlParser = this.isBrowser && typeof DOMParser !== 'undefined'
-    ? new DOMParser()
-    : null;
+  private readonly htmlParser = this.isBrowser && typeof DOMParser !== 'undefined' ? new DOMParser() : null;
   private readonly htmlCache = new Map<string, boolean>();
 
   // Inputs as signals
@@ -139,6 +173,12 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly hidePageSize = input<boolean>(false);
   readonly showPageSizeOptions = input<boolean>(true);
   readonly disabled = input<boolean>(false);
+  /** Show loading skeleton overlay */
+  readonly loading = input<boolean>(false);
+  /** Error message to display instead of table data */
+  readonly error = input<string | null>(null);
+  /** Custom empty state message (default: 'No data available') */
+  readonly emptyMessage = input<string>('No data available');
 
   private readonly columns = computed(() => this.config()?.columns);
   readonly fieldConfig = computed(() => this.config()?.config);
@@ -236,7 +276,6 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly enableResizingSignal = computed(() => this.fieldConfig()?.enableColumnResizing ?? false);
   private resizeState: { field: string; startX: number; startWidth: number } | null = null;
 
-
   // ============================================================================
   // Virtual Scrolling
   // ============================================================================
@@ -257,17 +296,40 @@ export class TableComponent<T extends object> implements OnDestroy {
   // Summary Footer Row
   // ============================================================================
   readonly showFooterSignal = computed(() => this.fieldConfig()?.showFooter ?? false);
-  readonly hasAggregateFooterSignal = computed(() => this.showFooterSignal() && this.columnDefsSignal().some(col => !!col.footer));
+  readonly hasAggregateFooterSignal = computed(() => this.showFooterSignal() && this.columnDefsSignal().some((col) => !!col.footer));
   /** Custom footer template — rendered between table and pagination for full flexibility. */
   readonly footerTemplate = contentChild<TemplateRef<{ $implicit: readonly T[]; columns: readonly ColumnDefinition<T>[] }>>('tableFooter');
+  /** Custom empty state template — shown when no data and not loading. */
+  readonly emptyTemplate = contentChild<TemplateRef<unknown>>('emptyState');
+  /** Custom loading state template — overrides default skeleton. */
+  readonly loadingTemplate = contentChild<TemplateRef<unknown>>('loadingState');
+  /** Custom error state template. Context: { $implicit: errorMessage } */
+  readonly errorTemplate = contentChild<TemplateRef<{ $implicit: string }>>('errorState');
+  /** Custom cell templates per column via hkCellTemplate directive */
+  private readonly cellTemplates = contentChildren(HkCellTemplateDirective);
+  /** Lookup map: field name → TemplateRef */
+  readonly cellTemplateMap = computed(() => {
+    const map = new Map<string, TemplateRef<unknown>>();
+    for (const tpl of this.cellTemplates()) {
+      map.set(tpl.hkCellTemplate(), tpl.templateRef);
+    }
+    return map;
+  });
+
+  /** Custom footer row templates via hkFooterTemplate directive — rendered inside <tfoot> */
+  readonly footerTemplateDirectives = contentChildren(HkFooterDirective);
+  readonly hasFooterTemplateDirectives = computed(() => this.footerTemplateDirectives().length > 0);
 
   // Multi-row footer signals
   readonly resolvedFooterRowsSignal = computed(() => this.config()?.resolvedFooterRows ?? []);
   readonly hasFooterRowsSignal = computed(() => this.resolvedFooterRowsSignal().length > 0);
 
-  /** True when either multi-row footerRows OR legacy column.footer exists. */
-  readonly hasFooterSignal = computed(() =>
-    this.hasFooterRowsSignal() || this.hasAggregateFooterSignal(),
+  /** Total column count including utility columns (selection, actions, etc.) */
+  readonly totalColumnsCountSignal = computed(() => this.displayedColumnsSignal().length);
+
+  /** True when multi-row footerRows, legacy column.footer, or footer template directives exist. */
+  readonly hasFooterSignal = computed(
+    () => this.hasFooterRowsSignal() || this.hasAggregateFooterSignal() || this.hasFooterTemplateDirectives(),
   );
 
   // ============================================================================
@@ -285,7 +347,9 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly expandedDetailRows = signal<Set<T>>(new Set());
   readonly isExpandableDetailSignal = computed(() => this.fieldConfig()?.expandableDetail ?? false);
   readonly expandModeSignal = computed(() => this.fieldConfig()?.expandMode ?? 'multi');
-  readonly showExpandColumnSignal = computed(() => this.isExpandableDetailSignal() && (!!this.rowDetailTemplate() || !!this.childGridConfigSignal()));
+  readonly showExpandColumnSignal = computed(
+    () => this.isExpandableDetailSignal() && (!!this.rowDetailTemplate() || !!this.childGridConfigSignal()),
+  );
 
   // ============================================================================
   // Hierarchy Grid (Child Grid)
@@ -305,7 +369,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const cfg = this.masterDetailConfigSignal();
     if (!row || !cfg) return [];
     if (cfg.detailDataFn) return cfg.detailDataFn(row);
-    if (cfg.detailDataProperty) return (row as Record<string, unknown>)[cfg.detailDataProperty] as unknown[] ?? [];
+    if (cfg.detailDataProperty) return ((row as Record<string, unknown>)[cfg.detailDataProperty] as unknown[]) ?? [];
     return [];
   });
 
@@ -341,6 +405,11 @@ export class TableComponent<T extends object> implements OnDestroy {
     return true;
   });
   readonly showDragHandleColumnSignal = computed(() => this.enableRowReorderSignal() && (this.fieldConfig()?.showDragHandle ?? true));
+
+  /** True when the table has no data to display and is not loading */
+  readonly isEmptySignal = computed(() => !this.loading() && !this.error() && this.displayDataSignal().length === 0);
+  /** True when showing error state */
+  readonly hasErrorSignal = computed(() => !!this.error());
 
   // ============================================================================
   // Row Grouping
@@ -447,12 +516,12 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly columnFiltersMapSignal = computed(() => {
     const filters = this.fieldConfig()?.filters ?? [];
     const map = new Map<string, ColumnFilter<T>>();
-    filters.forEach(filter => map.set(filter.field, filter));
+    filters.forEach((filter) => map.set(filter.field, filter));
 
     // Also check column definitions for inline filters
     const cols = this.columns();
     if (cols) {
-      cols.forEach(col => {
+      cols.forEach((col) => {
         if (col.filter && !map.has(col.field)) {
           map.set(col.field, col.filter);
         }
@@ -475,7 +544,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Skip client-side filtering for cursor pagination (server handles it)
     if (mode === 'cursor' || filters.length === 0) return data;
 
-    const predicate = (row: T) => filters.every(filter => this.applyFilter(row, filter));
+    const predicate = (row: T) => filters.every((filter) => this.applyFilter(row, filter));
 
     // Use hierarchy-aware filtering for tree tables
     if (this.isTreeTableSignal()) {
@@ -487,11 +556,7 @@ export class TableComponent<T extends object> implements OnDestroy {
       if (filtered.length > 0 && hierarchyMode !== 'none') {
         const treeConfig = this.treeTableConfigSignal();
         const customGetKey = treeConfig?.getRowKey;
-        const ancestorKeys = collectAncestorKeys(
-          filtered,
-          (row, index) => generateRowKey(row, customGetKey, index),
-          childrenProp,
-        );
+        const ancestorKeys = collectAncestorKeys(filtered, (row, index) => generateRowKey(row, customGetKey, index), childrenProp);
         if (ancestorKeys.size > 0) {
           // Merge with existing expanded keys
           const current = this.expandedRowKeys();
@@ -534,12 +599,12 @@ export class TableComponent<T extends object> implements OnDestroy {
       const excludeFields = new Set(config.excludeFields ?? []);
       const searchableFields =
         this.columns()
-          ?.map(col => col.field)
-          .filter(f => !excludeFields.has(f)) ?? [];
+          ?.map((col) => col.field)
+          .filter((f) => !excludeFields.has(f)) ?? [];
       const normalizedSearch = caseSensitive ? searchTerm : searchTerm.toLowerCase();
 
       searchPredicate = (row: T) => {
-        return searchableFields.some(field => {
+        return searchableFields.some((field) => {
           const value = row[field];
           if (value == null) return false;
 
@@ -570,11 +635,7 @@ export class TableComponent<T extends object> implements OnDestroy {
       if (filtered.length > 0 && hierarchyMode !== 'none') {
         const treeConfig = this.treeTableConfigSignal();
         const customGetKey = treeConfig?.getRowKey;
-        const ancestorKeys = collectAncestorKeys(
-          filtered,
-          (row, index) => generateRowKey(row, customGetKey, index),
-          childrenProp,
-        );
+        const ancestorKeys = collectAncestorKeys(filtered, (row, index) => generateRowKey(row, customGetKey, index), childrenProp);
         if (ancestorKeys.size > 0) {
           const current = this.expandedRowKeys();
           const merged = new Set([...current, ...ancestorKeys]);
@@ -598,11 +659,8 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Skip sorting if no sort field or direction
     if (!field || !direction) return data;
 
-    const compareFn = (a: T, b: T) => this.compareValues(
-      (a as Record<string, unknown>)[field],
-      (b as Record<string, unknown>)[field],
-      direction,
-    );
+    const compareFn = (a: T, b: T) =>
+      this.compareValues((a as Record<string, unknown>)[field], (b as Record<string, unknown>)[field], direction);
 
     // Use recursive sort for tree tables
     if (this.isTreeTableSignal()) {
@@ -638,12 +696,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     this.treeRowParentKeyMap.clear();
     this.treeKeyToDataMap.clear();
 
-    const flattened = flattenTreeData(
-      data,
-      expandedKeys,
-      (row, index) => generateRowKey(row, customGetKey, index),
-      childrenProp,
-    );
+    const flattened = flattenTreeData(data, expandedKeys, (row, index) => generateRowKey(row, customGetKey, index), childrenProp);
 
     // Populate caches for template access
     for (const item of flattened) {
@@ -663,7 +716,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly displayDataSignal = computed(() => {
     const flattened = this.flattenedTreeDataSignal();
     if (flattened) {
-      return flattened.map(f => f.data);
+      return flattened.map((f) => f.data);
     }
     return this.sortedDataSignal();
   });
@@ -691,20 +744,20 @@ export class TableComponent<T extends object> implements OnDestroy {
 
     // Apply expansion state: null = not yet initialized (use defaults), Set = explicit user state
     for (const group of groups) {
-      group.expanded = expandedGroups === null
-        ? (config.initiallyExpanded ?? true)
-        : expandedGroups.has(group.groupValue);
+      group.expanded = expandedGroups === null ? (config.initiallyExpanded ?? true) : expandedGroups.has(group.groupValue);
     }
 
     return groups;
   });
 
   /** Flattened display rows for grouped mode: group-header, data, group-footer sentinel rows */
-  readonly groupedDisplaySignal = computed<Array<
-    | { type: 'group-header'; group: RowGroup<T> }
-    | { type: 'group-footer'; group: RowGroup<T>; footerRowIndex?: number }
-    | { type: 'data'; row: T }
-  >>(() => {
+  readonly groupedDisplaySignal = computed<
+    Array<
+      | { type: 'group-header'; group: RowGroup<T> }
+      | { type: 'group-footer'; group: RowGroup<T>; footerRowIndex?: number }
+      | { type: 'data'; row: T }
+    >
+  >(() => {
     const groups = this.groupedDataSignal();
     if (groups.length === 0) return [];
 
@@ -772,7 +825,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const data = this.originalDataSignal();
     if (data.length === 0) return [];
 
-    return Object.keys(data[0]).map(key => ({
+    return Object.keys(data[0]).map((key) => ({
       field: key as Extract<keyof T, string>,
       header: this.formatHeader(key),
     }));
@@ -784,7 +837,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Sort actions based on ACTION_ORDER, putting known types first
     const actionOrder: readonly string[] = TableComponent.ACTION_ORDER;
     return actions
-      .map(config => ({
+      .map((config) => ({
         key: config.type,
         config,
       }))
@@ -809,7 +862,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Sort bulk actions based on ACTION_ORDER, putting known types first
     const actionOrder: readonly string[] = TableComponent.ACTION_ORDER;
     return bulkActions
-      .map(config => ({
+      .map((config) => ({
         key: config.type,
         config,
       }))
@@ -831,11 +884,11 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly selectedArraySignal = computed(() => [...this.selectedSignal()]);
 
   readonly displayedColumnsSignal = computed(() => {
-    let dataColumns = this.columnDefsSignal().map(c => c.field);
+    let dataColumns = this.columnDefsSignal().map((c) => c.field);
     const visibilityState = this.columnVisibilityState();
 
     // Filter columns based on visibility
-    dataColumns = dataColumns.filter(field => {
+    dataColumns = dataColumns.filter((field) => {
       if (!this.isColumnVisibilityEnabled()) return true;
       const isVisible = visibilityState.get(field);
       return isVisible !== false;
@@ -872,7 +925,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const orderOverride = this.columnOrderOverride();
     if (!orderOverride) return cols;
 
-    const colMap = new Map(cols.map(c => [c.field, c]));
+    const colMap = new Map(cols.map((c) => [c.field, c]));
     const ordered: ColumnDefinition<T>[] = [];
     for (const field of orderOverride) {
       const col = colMap.get(field as StringKey<T>);
@@ -888,7 +941,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly isAllSelected = computed(() => {
     const data = this.currentDataSignal(); // Use current page data for "select all"
     const selected = this.selectedSignal();
-    return data.length > 0 && data.every(row => selected.has(row));
+    return data.length > 0 && data.every((row) => selected.has(row));
   });
 
   // DataSource
@@ -975,7 +1028,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   private updatePagination(options: { pageIndex: number; pageSize: number }): void {
-    this.paginationState.update(state => ({
+    this.paginationState.update((state) => ({
       ...state,
       pageIndex: options.pageIndex,
       pageSize: options.pageSize,
@@ -1056,13 +1109,26 @@ export class TableComponent<T extends object> implements OnDestroy {
   /** Handle dropdown option selection */
   onBulkActionOptionSelect(bulkAction: BulkActionItem<T>, option: BulkActionDropdownOption): void {
     this.openBulkActionDropdown.set(null); // Close the dropdown
+
+    // Built-in CSV/JSON export when using default export options
+    if (bulkAction.key === 'export' && bulkAction.config.useDefaultExportOptions !== false) {
+      if (option.value === 'csv') {
+        exportToCsv(this.displayDataSignal() as readonly (T & object)[], this.orderedColumnDefsSignal());
+        return;
+      }
+      if (option.value === 'json') {
+        exportToJson(this.displayDataSignal() as readonly (T & object)[], this.orderedColumnDefsSignal());
+        return;
+      }
+    }
+
     bulkAction.config.action(this.selectedArraySignal(), option);
   }
 
   toggleRow(row: T, checked: boolean): void {
     const cascade = this.checkboxCascadeSignal();
 
-    this.selectedSignal.update(selectedSet => {
+    this.selectedSignal.update((selectedSet) => {
       const newSet = new Set(selectedSet);
       if (checked) {
         newSet.add(row);
@@ -1094,7 +1160,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   toggleSelectAll(checked: boolean): void {
     const data = this.currentDataSignal(); // Only select/deselect current page
 
-    this.selectedSignal.update(selectedSet => {
+    this.selectedSignal.update((selectedSet) => {
       const newSet = new Set(selectedSet);
 
       for (const row of data) {
@@ -1129,7 +1195,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   // Handler methods for pagination component
   handlePaginationPageChange(event: PageSizeChange): void {
-    this.paginationState.update(state => ({
+    this.paginationState.update((state) => ({
       ...state,
       pageIndex: event.pageIndex,
       pageSize: event.pageSize,
@@ -1176,7 +1242,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   getActiveFilterForColumn(field: string): FilterConfig<T> | undefined {
-    return this.filterState().find(f => f.field === field);
+    return this.filterState().find((f) => f.field === field);
   }
 
   hasFilterForColumn(field: string): boolean {
@@ -1188,7 +1254,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     if (!filterConfig) return;
 
     // Remove existing filter for this field
-    const filters = this.filterState().filter(f => f.field !== field);
+    const filters = this.filterState().filter((f) => f.field !== field);
 
     // Add new filter if value is not empty
     if (value != null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
@@ -1216,7 +1282,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   removeFilter(field: string): void {
-    const filters = this.filterState().filter(f => f.field !== field);
+    const filters = this.filterState().filter((f) => f.field !== field);
     this.filterState.set(filters);
 
     // Reset to first page
@@ -1291,13 +1357,13 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
 
     // Don't allow hiding if it's the last visible column
-    const allColumns = this.columnDefsSignal().map(c => c.field);
-    const visibleCount = allColumns.filter(f => this.isColumnVisible(f)).length;
+    const allColumns = this.columnDefsSignal().map((c) => c.field);
+    const visibleCount = allColumns.filter((f) => this.isColumnVisible(f)).length;
     if (visibleCount === 1 && currentState) {
       return; // Keep at least one column visible
     }
 
-    this.columnVisibilityState.update(state => {
+    this.columnVisibilityState.update((state) => {
       const newState = new Map(state);
       newState.set(field, !currentState);
       return newState;
@@ -1308,25 +1374,25 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   showAllColumns(): void {
-    const allColumns = this.columnDefsSignal().map(c => c.field);
-    this.columnVisibilityState.update(state => {
+    const allColumns = this.columnDefsSignal().map((c) => c.field);
+    this.columnVisibilityState.update((state) => {
       const newState = new Map(state);
-      allColumns.forEach(field => newState.set(field, true));
+      allColumns.forEach((field) => newState.set(field, true));
       return newState;
     });
     this.saveColumnVisibilityToStorage();
   }
 
   hideAllColumns(): void {
-    const allColumns = this.columnDefsSignal().map(c => c.field);
+    const allColumns = this.columnDefsSignal().map((c) => c.field);
     const alwaysVisible = this.alwaysVisibleColumns();
 
     // Keep at least one column visible (first non-always-visible column or first column)
-    const firstColumn = allColumns.find(f => !alwaysVisible.has(f)) || allColumns[0];
+    const firstColumn = allColumns.find((f) => !alwaysVisible.has(f)) || allColumns[0];
 
-    this.columnVisibilityState.update(state => {
+    this.columnVisibilityState.update((state) => {
       const newState = new Map(state);
-      allColumns.forEach(field => {
+      allColumns.forEach((field) => {
         if (alwaysVisible.has(field) || field === firstColumn) {
           newState.set(field, true);
         } else {
@@ -1344,10 +1410,10 @@ export class TableComponent<T extends object> implements OnDestroy {
 
     if (defaultVisible && defaultVisible.length > 0) {
       // Reset to default visible columns
-      const allColumns = this.columnDefsSignal().map(c => c.field);
-      this.columnVisibilityState.update(state => {
+      const allColumns = this.columnDefsSignal().map((c) => c.field);
+      this.columnVisibilityState.update((state) => {
         const newState = new Map(state);
-        allColumns.forEach(field => {
+        allColumns.forEach((field) => {
           newState.set(field, defaultVisible.includes(field));
         });
         return newState;
@@ -1383,7 +1449,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const level = this.getRowLevel(row);
     const indentSize = this.treeIndentSizeSignal();
     // Add base padding (8px) + level-based indent
-    return 8 + (level * indentSize);
+    return 8 + level * indentSize;
   }
 
   toggleRowExpand(row: T, event?: MouseEvent): void {
@@ -1413,7 +1479,7 @@ export class TableComponent<T extends object> implements OnDestroy {
       }
     }
 
-    this.expandedRowKeys.update(keys => {
+    this.expandedRowKeys.update((keys) => {
       const newKeys = new Set(keys);
       if (isCurrentlyExpanded) {
         newKeys.delete(key);
@@ -1540,7 +1606,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const siblings = getRowChildren(parentRow, childrenProp);
     if (!siblings) return;
 
-    const allSiblingsSelected = siblings.every(s => set.has(s));
+    const allSiblingsSelected = siblings.every((s) => set.has(s));
     if (allSiblingsSelected) {
       set.add(parentRow);
     } else {
@@ -1612,11 +1678,11 @@ export class TableComponent<T extends object> implements OnDestroy {
     let newWidth = Math.max(startWidth + diff, 50); // minimum 50px
 
     // Enforce column min/max from column definition
-    const col = this.columnDefsSignal().find(c => c.field === field);
+    const col = this.columnDefsSignal().find((c) => c.field === field);
     if (col?.minWidth) newWidth = Math.max(newWidth, col.minWidth);
     if (col?.maxWidth) newWidth = Math.min(newWidth, col.maxWidth);
 
-    this.columnWidthsSignal.update(m => {
+    this.columnWidthsSignal.update((m) => {
       const newMap = new Map(m);
       newMap.set(field, newWidth);
       return newMap;
@@ -1640,7 +1706,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   startEdit(row: T, field: string): void {
     if (!this.enableEditingSignal()) return;
-    const col = this.columnDefsSignal().find(c => c.field === field);
+    const col = this.columnDefsSignal().find((c) => c.field === field);
     if (!col?.editable) return;
 
     this.editingCell.set({ row, field });
@@ -1654,7 +1720,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
     const { row, field } = cell;
     const newValue = this.editingValue();
-    const col = this.columnDefsSignal().find(c => c.field === field);
+    const col = this.columnDefsSignal().find((c) => c.field === field);
 
     // Run validator if present
     if (col?.editValidator) {
@@ -1730,16 +1796,31 @@ export class TableComponent<T extends object> implements OnDestroy {
     const rows = this.resolvedFooterRowsSignal();
     if (!rows.length) return [];
     const baseCols = this.displayedColumnsSignal();
-    return rows.map((_, i) => baseCols.map(col => `__fr${i}_${col}`));
+    return rows.map((row, i) => {
+      // Colspan rows use a single synthetic column spanning full width
+      if (row.colspanCells) return [`__cfr${i}`];
+      // Column-aligned rows use prefixed columns
+      return baseCols.map((col) => `__fr${i}_${col}`);
+    });
   });
 
   /** Look up the footer aggregate value for a given footer row + base column name. */
   getFooterCellValueForCol(rowIdx: number, baseCol: string): string {
     const footerRow = this.resolvedFooterRowsSignal()[rowIdx];
-    if (!footerRow) return '';
-    const column = this.orderedColumnDefsSignal().find(c => c.field === baseCol);
+    if (!footerRow || footerRow.colspanCells) return ''; // colspan rows handled differently
+    const column = this.orderedColumnDefsSignal().find((c) => c.field === baseCol);
     if (!column) return ''; // Special column (select, actions, etc.) — empty cell
     return this.getFooterRowCellValue(footerRow, column);
+  }
+
+  /** Get the display value for a colspan footer cell. */
+  getColspanCellValue(cell: ResolvedColspanCell): string {
+    return cell.valueFn(this.displayDataSignal());
+  }
+
+  /** Get the display value for a colspan footer cell within a group. */
+  getGroupColspanCellValue(cell: ResolvedColspanCell, group: RowGroup<T>): string {
+    return cell.valueFn(group.rows);
   }
 
   // ============================================================================
@@ -1756,7 +1837,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     const mode = this.expandModeSignal();
     const isExpanded = this.expandedDetailRows().has(row);
 
-    this.expandedDetailRows.update(set => {
+    this.expandedDetailRows.update((set) => {
       const newSet = mode === 'single' ? new Set<T>() : new Set(set);
       if (isExpanded) {
         newSet.delete(row);
@@ -1786,18 +1867,14 @@ export class TableComponent<T extends object> implements OnDestroy {
     const cfg = this.childGridConfigSignal();
     if (!cfg) return [];
     if (cfg.childDataFn) return cfg.childDataFn(row);
-    if (cfg.childDataProperty) return (row as Record<string, unknown>)[cfg.childDataProperty] as unknown[] ?? [];
+    if (cfg.childDataProperty) return ((row as Record<string, unknown>)[cfg.childDataProperty] as unknown[]) ?? [];
     return [];
   }
 
   getChildGridContainerClass(): string {
     const cfg = this.childGridConfigSignal();
     const bordered = cfg?.bordered !== false;
-    return [
-      'child-grid-wrapper',
-      bordered ? 'child-grid-bordered' : '',
-      cfg?.containerClass ?? '',
-    ].filter(Boolean).join(' ');
+    return ['child-grid-wrapper', bordered ? 'child-grid-bordered' : '', cfg?.containerClass ?? ''].filter(Boolean).join(' ');
   }
 
   // ============================================================================
@@ -1812,7 +1889,7 @@ export class TableComponent<T extends object> implements OnDestroy {
       this.activeRow.set(current === row ? null : row);
       this.activeRowChange.emit(this.activeRow());
     } else if (mode === 'multi') {
-      this.activeRows.update(set => {
+      this.activeRows.update((set) => {
         const next = new Set(set);
         if (next.has(row)) {
           next.delete(row);
@@ -1976,7 +2053,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
     const cols = [...this.displayedColumnsSignal()];
     const specialCols = new Set(['select', '__detail_expand', '__drag_handle', 'actions']);
-    const dataCols = cols.filter(c => !specialCols.has(c));
+    const dataCols = cols.filter((c) => !specialCols.has(c));
 
     const fromIdx = dataCols.indexOf(fromField);
     const toIdx = dataCols.indexOf(field);
@@ -2052,17 +2129,17 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   toggleGroupExpand(groupValue: unknown): void {
     const groups = this.groupedDataSignal();
-    const group = groups.find(g => g.groupValue === groupValue);
+    const group = groups.find((g) => g.groupValue === groupValue);
     if (!group) return;
 
     const wasExpanded = group.expanded;
 
-    this.expandedGroups.update(set => {
+    this.expandedGroups.update((set) => {
       // Lazy-initialize: if null (never interacted), populate from current state
       let newSet: Set<unknown>;
       if (set === null) {
         // First interaction: populate set based on current expanded state of all groups
-        newSet = new Set(groups.filter(g => g.expanded).map(g => g.groupValue));
+        newSet = new Set(groups.filter((g) => g.expanded).map((g) => g.groupValue));
       } else {
         newSet = new Set(set);
       }
@@ -2080,7 +2157,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   expandAllGroups(): void {
     const groups = this.groupedDataSignal();
-    this.expandedGroups.set(new Set(groups.map(g => g.groupValue)));
+    this.expandedGroups.set(new Set(groups.map((g) => g.groupValue)));
   }
 
   collapseAllGroups(): void {
@@ -2141,7 +2218,7 @@ export class TableComponent<T extends object> implements OnDestroy {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const visibilityObj: Record<string, boolean> = JSON.parse(stored);
-        this.columnVisibilityState.update(state => {
+        this.columnVisibilityState.update((state) => {
           const newState = new Map(state);
           Object.entries(visibilityObj).forEach(([field, visible]) => {
             newState.set(field, visible);
@@ -2161,7 +2238,9 @@ export class TableComponent<T extends object> implements OnDestroy {
     effect(() => {
       const config = this.fieldConfig();
       if (config?.expandableDetail && config?.virtualScroll?.enabled) {
-        console.warn('[TableComponent] Expandable detail rows and virtual scroll are mutually exclusive. Virtual scroll requires uniform row heights. Expandable detail will be disabled.');
+        console.warn(
+          '[TableComponent] Expandable detail rows and virtual scroll are mutually exclusive. Virtual scroll requires uniform row heights. Expandable detail will be disabled.',
+        );
       }
       if (config?.grouping?.groupBy && config?.treeTable?.enabled) {
         console.warn('[TableComponent] Row grouping and tree table are mutually exclusive. Tree table takes precedence.');
@@ -2184,10 +2263,10 @@ export class TableComponent<T extends object> implements OnDestroy {
         // If nothing was loaded and there are default visible columns, set them
         const visibilityState = untracked(() => this.columnVisibilityState());
         if (visibilityState.size === 0 && config.defaultVisible && config.defaultVisible.length > 0) {
-          const allColumns = untracked(() => this.columnDefsSignal()).map(c => c.field);
-          this.columnVisibilityState.update(state => {
+          const allColumns = untracked(() => this.columnDefsSignal()).map((c) => c.field);
+          this.columnVisibilityState.update((state) => {
             const newState = new Map(state);
-            allColumns.forEach(field => {
+            allColumns.forEach((field) => {
               newState.set(field, config.defaultVisible!.includes(field));
             });
             return newState;
@@ -2216,7 +2295,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     effect(() => {
       const options = this.paginationOptions();
       if (options) {
-        this.paginationState.update(state => ({
+        this.paginationState.update((state) => ({
           ...state,
           pageSize: options.pageSize ?? 10, // Use explicit default of 10
           showFirstLastButtons: this.showFirstLastButtons(),
@@ -2229,7 +2308,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     effect(() => {
       this.data(); // Subscribe to data changes
       this.htmlCache.clear();
-      this.paginationState.update(state => ({
+      this.paginationState.update((state) => ({
         ...state,
         pageIndex: 0,
         totalItems: this.totalItemsSignal(),
@@ -2240,7 +2319,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Update total items when it changes
     effect(() => {
       const totalItems = this.totalItemsSignal();
-      this.paginationState.update(state => ({
+      this.paginationState.update((state) => ({
         ...state,
         totalItems,
       }));
@@ -2342,7 +2421,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     }
 
     return formatted$.pipe(
-      map(v => {
+      map((v) => {
         const html = this.isHtml(v);
         return { value: v, isHtml: html, safeHtml: html ? this.sanitizeHtml(v) : null };
       }),
@@ -2370,7 +2449,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   private formatHeader(field: string): string {
     return field
       .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, char => char.toUpperCase())
+      .replace(/^./, (char) => char.toUpperCase())
       .trim();
   }
 
@@ -2461,8 +2540,8 @@ export class TableComponent<T extends object> implements OnDestroy {
     const excludeFields = new Set(config.excludeFields ?? []);
     const searchableFields =
       this.columns()
-        ?.map(col => col.field)
-        .filter(f => !excludeFields.has(f)) ?? [];
+        ?.map((col) => col.field)
+        .filter((f) => !excludeFields.has(f)) ?? [];
 
     // If no searchable fields, return empty
     if (searchableFields.length === 0) return [];
@@ -2470,7 +2549,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Build Fuse.js configuration
     const fuseOptions: IFuseOptions<T> = {
       ...this.defaultFuseConfig,
-      keys: searchableFields.map(field => String(field)),
+      keys: searchableFields.map((field) => String(field)),
       threshold: config.fuseOptions?.threshold ?? this.defaultFuseConfig.threshold,
       ignoreLocation: config.fuseOptions?.ignoreLocation ?? this.defaultFuseConfig.ignoreLocation,
       minMatchCharLength: config.fuseOptions?.minMatchCharLength ?? this.defaultFuseConfig.minMatchCharLength,
@@ -2485,7 +2564,7 @@ export class TableComponent<T extends object> implements OnDestroy {
 
     // Perform search and return matched items
     const results = this._fuseInstance.search(searchTerm);
-    return results.map(result => result.item);
+    return results.map((result) => result.item);
   }
 
   // Apply a single filter to a row

@@ -55,6 +55,8 @@ export type {
 
 // Table
 export { TableComponent } from './lib/components/table/table.component';
+export { HkCellTemplateDirective } from './lib/components/table/table-cell-template.directive';
+export { HkFooterDirective } from './lib/components/table/table-footer-template.directive';
 export { TablePaginationComponent } from './lib/components/table/table-pagination.component';
 export { TableFilterComponent } from './lib/components/table/table-filter.component';
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
@@ -70,6 +72,9 @@ export {
   groupData,
   resolveFooterRows,
   resolveGroupAggregates,
+  isColspanFooterRow,
+  exportToCsv,
+  exportToJson,
 } from './lib/components/table/table.helpers';
 export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
 export type {
@@ -113,8 +118,12 @@ export type {
   ColumnResizeEvent,
   FooterConfig,
   FooterRowDef,
+  ColumnAlignedFooterRowDef,
+  ColspanFooterRowDef,
   FooterCellDef,
+  FooterColspanCellDef,
   ResolvedFooterRow,
+  ResolvedColspanCell,
   RowExpandEvent,
   ColumnReorderEvent,
   RowReorderEvent,

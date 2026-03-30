@@ -2,7 +2,86 @@ import { inject } from '@angular/core';
 
 import { PipeRegistryService } from '../../services';
 import { AGGREGATE_LABELS, AggregateFunction, computeAggregate } from './table-aggregates';
-import { CellEditorConfig, ChildGridConfig, ColumnDefinition, FieldConfig, FieldConfiguration, FlattenedRow, FooterCellDef, FooterConfig, FooterRowDef, Formatter, GroupConfig, ResolvedFooterRow, ResolvedGroupAggregates, RowGroup, StringKey, TreeTableConfig } from './table.types';
+import {
+  CellEditorConfig,
+  ColspanFooterRowDef,
+  ColumnDefinition,
+  FieldConfig,
+  FieldConfiguration,
+  FlattenedRow,
+  FooterCellDef,
+  FooterColspanCellDef,
+  FooterConfig,
+  FooterRowDef,
+  Formatter,
+  GroupConfig,
+  ResolvedColspanCell,
+  ResolvedFooterRow,
+  ResolvedGroupAggregates,
+  RowGroup,
+  StringKey,
+  TreeTableConfig,
+} from './table.types';
+
+// ============================================================================
+// Export Utilities (CSV & JSON)
+// ============================================================================
+
+/**
+ * Exports table data to a CSV file and triggers a browser download.
+ *
+ * @param data - The rows to export.
+ * @param columns - Column definitions used to determine headers and fields.
+ * @param filename - Optional filename for the downloaded file. Defaults to 'export.csv'.
+ */
+export function exportToCsv<T extends object>(data: readonly T[], columns: readonly ColumnDefinition<T>[], filename?: string): void {
+  const headers = columns.map((c) => c.header);
+  const rows = data.map((row) =>
+    columns
+      .map((col) => {
+        const value = row[col.field as keyof T];
+        const str = value == null ? '' : String(value);
+        return str.includes(',') || str.includes('\n') || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str;
+      })
+      .join(','),
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  downloadFile(csv, filename ?? 'export.csv', 'text/csv;charset=utf-8;');
+}
+
+/**
+ * Exports table data to a JSON file and triggers a browser download.
+ *
+ * @param data - The rows to export.
+ * @param columns - Column definitions used to determine which fields to include.
+ * @param filename - Optional filename for the downloaded file. Defaults to 'export.json'.
+ */
+export function exportToJson<T extends object>(data: readonly T[], columns: readonly ColumnDefinition<T>[], filename?: string): void {
+  const filtered = data.map((row) => {
+    const obj: Record<string, unknown> = {};
+    for (const col of columns) {
+      obj[col.field] = row[col.field as keyof T];
+    }
+    return obj;
+  });
+  const json = JSON.stringify(filtered, null, 2);
+  downloadFile(json, filename ?? 'export.json', 'application/json;charset=utf-8;');
+}
+
+/**
+ * Creates a Blob from content and triggers a browser file download.
+ */
+function downloadFile(content: string, filename: string, mimeType: string): void {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 // Cache for formatted headers to avoid repeated string processing
 const headerFormatCache = new Map<string, string>();
@@ -23,7 +102,14 @@ export function createTable<T>(config: FieldConfig<T>): FieldConfiguration<T> {
   // Resolve group-level aggregates (caption + group footer rows)
   const resolvedGroupAggregates = resolveGroupAggregates(normalizedConfig.grouping, schema);
 
-  return { config: normalizedConfig, columns: schema, resolvedFooterRows, resolvedGroupAggregates, childGrid: normalizedConfig.childGrid, masterDetail: normalizedConfig.masterDetail };
+  return {
+    config: normalizedConfig,
+    columns: schema,
+    resolvedFooterRows,
+    resolvedGroupAggregates,
+    childGrid: normalizedConfig.childGrid,
+    masterDetail: normalizedConfig.masterDetail,
+  };
 }
 
 /**
@@ -105,7 +191,7 @@ function normalizeTreeTableConfig<T>(config: TreeTableConfig<T>): TreeTableConfi
 function buildColumnSchema<T>(fields: FieldConfig<T>): ColumnDefinition<T>[] {
   const pipeRegistry = inject(PipeRegistryService);
 
-  return fields.visible.map(key => {
+  return fields.visible.map((key) => {
     const keyStr = String(key);
     const formatter = fields.formatters?.[key];
     const header = fields.headers?.[key] ?? getFormattedHeader(keyStr);
@@ -157,7 +243,8 @@ function createFormatFunction<T>(formatter: Formatter<T> | undefined, pipeRegist
   if (Array.isArray(formatter)) {
     // Pass the formatter tuple directly to apply - it handles [pipeName, options?] format
     // Return early for null/undefined values to avoid pipe errors
-    return value => (value === null || value === undefined ? '' : pipeRegistry.apply(value, formatter as readonly [string, ...unknown[]]));
+    return (value) =>
+      value === null || value === undefined ? '' : pipeRegistry.apply(value, formatter as readonly [string, ...unknown[]]);
   }
 
   return undefined;
@@ -197,6 +284,13 @@ function createFooterFunction<T>(
  * Resolves footerRows config into pre-built value-computing functions per cell.
  * Returns undefined when no footerRows are configured.
  */
+/**
+ * Type guard to distinguish colspan-based footer rows from column-aligned ones.
+ */
+export function isColspanFooterRow<T>(row: FooterRowDef<T>): row is ColspanFooterRowDef<T> {
+  return 'cells' in row && Array.isArray((row as ColspanFooterRowDef<T>).cells);
+}
+
 export function resolveFooterRows<T>(
   footerRows: FooterRowDef<T>[] | undefined,
   columns: ColumnDefinition<T>[],
@@ -209,7 +303,13 @@ export function resolveFooterRows<T>(
     if (col.format) columnFormatMap.set(col.field, col.format);
   }
 
-  return footerRows.map(rowDef => {
+  return footerRows.map((rowDef) => {
+    // Colspan-based footer row
+    if (isColspanFooterRow(rowDef)) {
+      return resolveColspanFooterRow<T>(rowDef, columnFormatMap);
+    }
+
+    // Column-aligned footer row (existing logic)
     const cells: Partial<Record<StringKey<T>, (data: readonly T[]) => string>> = {};
 
     for (const [colField, entry] of Object.entries(rowDef.columns) as [StringKey<T>, AggregateFunction | FooterCellDef<T>][]) {
@@ -248,6 +348,65 @@ export function resolveFooterRows<T>(
 
     return { cells, class: rowDef.class };
   });
+}
+
+/**
+ * Resolves a colspan-based footer row into pre-built ResolvedColspanCell values.
+ */
+function resolveColspanFooterRow<T>(
+  rowDef: ColspanFooterRowDef<T>,
+  columnFormatMap: Map<string, ColumnDefinition<T>['format']>,
+): ResolvedFooterRow<T> {
+  const colspanCells: ResolvedColspanCell[] = rowDef.cells.map((cellDef) => {
+    const colspan = cellDef.colspan ?? 1;
+    const valueFn = buildColspanValueFn<T>(cellDef, columnFormatMap);
+    return { colspan, valueFn, class: cellDef.class };
+  });
+
+  return { cells: {}, class: rowDef.class, colspanCells };
+}
+
+/**
+ * Builds a value function for a single colspan cell definition.
+ */
+function buildColspanValueFn<T>(
+  cellDef: FooterColspanCellDef<T>,
+  columnFormatMap: Map<string, ColumnDefinition<T>['format']>,
+): (data: readonly unknown[]) => string {
+  const { fn, label, field, format: cellFormat, custom: customFn } = cellDef;
+
+  // Spacer cell: no fn and no custom → empty or label-only
+  if (!fn && !customFn) {
+    return () => label ?? '';
+  }
+
+  return (data: readonly unknown[]): string => {
+    // Full custom override
+    if (customFn) {
+      const raw = customFn(data as readonly T[]);
+      if (cellFormat) return label ? `${label}: ${cellFormat(Number(raw))}` : cellFormat(Number(raw));
+      return label ? `${label}: ${raw}` : String(raw);
+    }
+
+    // Aggregate with fn
+    const aggregateField = (field ?? '') as Extract<keyof T, string>;
+    const value = computeAggregate(data as readonly T[], aggregateField, fn!);
+    const resolvedLabel = label ?? AGGREGATE_LABELS[fn!];
+
+    // Format: cell-level format > column format fallback > plain number
+    let formatted: string;
+    if (cellFormat) {
+      formatted = cellFormat(value);
+    } else if (field && columnFormatMap.has(field)) {
+      const colFmt = columnFormatMap.get(field)!;
+      const result = colFmt(value, {} as T);
+      formatted = typeof result === 'string' ? result : String(value);
+    } else {
+      formatted = String(value);
+    }
+
+    return resolvedLabel ? `${resolvedLabel}: ${formatted}` : formatted;
+  };
 }
 
 /**
@@ -294,7 +453,7 @@ export function projectFields<T extends object>(data: T[], config: FieldConfig<T
 
   const fields = new Set([...config.visible, ...(config.hidden ?? [])]);
 
-  return data.map(item => {
+  return data.map((item) => {
     const projected = {} as T;
     for (const field of fields) {
       if (field in item) {
@@ -330,7 +489,7 @@ function formatHeader(field: string): string {
     .replace(/([a-z])([A-Z])/g, '$1 $2') // Split camelCase
     .replace(/[-_]/g, ' ') // Replace hyphens/underscores
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 }
 
@@ -349,11 +508,7 @@ export function clearHeaderFormatCache(): void {
  * Generates a unique key for a row based on available properties.
  * Priority: getRowKey function > TreeNode.key > row.id > JSON hash
  */
-export function generateRowKey<T>(
-  row: T,
-  getRowKey?: (row: T) => string,
-  index?: number,
-): string {
+export function generateRowKey<T>(row: T, getRowKey?: (row: T) => string, index?: number): string {
   // 1. Use custom getRowKey function if provided
   if (getRowKey) {
     return getRowKey(row);
@@ -391,7 +546,7 @@ function hashCode(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);
@@ -460,9 +615,7 @@ export function groupData<T>(
       }
     }
 
-    const groupLabel = groupHeaderLabel
-      ? groupHeaderLabel(groupValue, rows)
-      : String(groupValue ?? 'Unknown');
+    const groupLabel = groupHeaderLabel ? groupHeaderLabel(groupValue, rows) : String(groupValue ?? 'Unknown');
 
     const group: RowGroup<T> = {
       groupValue,
@@ -533,15 +686,10 @@ export function flattenTreeData<T>(
 
     // If expanded and has children, recursively add children
     if (hasChildren && expandedKeys.has(key)) {
-      const childRows = flattenTreeData(
-        children!,
-        expandedKeys,
-        getKey,
-        childrenProperty,
-        level + 1,
-        key,
-        [...ancestorLastFlags, isLastChild],
-      );
+      const childRows = flattenTreeData(children!, expandedKeys, getKey, childrenProperty, level + 1, key, [
+        ...ancestorLastFlags,
+        isLastChild,
+      ]);
       result.push(...childRows);
     }
   });
@@ -560,7 +708,7 @@ export function filterTreeData<T>(
   mode: 'ancestors' | 'descendants' | 'both' | 'none',
 ): T[] {
   if (mode === 'none') {
-    return data.filter(row => predicate(row)) as T[];
+    return data.filter((row) => predicate(row)) as T[];
   }
 
   return data.reduce<T[]>((result, row) => {
@@ -597,14 +745,10 @@ export function filterTreeData<T>(
 /**
  * Sorts tree data recursively at each level.
  */
-export function sortTreeData<T>(
-  data: readonly T[],
-  compareFn: (a: T, b: T) => number,
-  childrenProperty: string,
-): T[] {
+export function sortTreeData<T>(data: readonly T[], compareFn: (a: T, b: T) => number, childrenProperty: string): T[] {
   const sorted = [...data].sort(compareFn);
 
-  return sorted.map(row => {
+  return sorted.map((row) => {
     const children = getRowChildren(row, childrenProperty);
     if (children && children.length > 0) {
       const sortedChildren = sortTreeData(children, compareFn, childrenProperty);

@@ -1,6 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TableComponent, createTable, ToastService, LucideIconComponent, CellEditEvent, RowReorderEvent, ColumnReorderEvent } from '@hakistack/ng-daisyui';
+import {
+  TableComponent,
+  createTable,
+  ToastService,
+  LucideIconComponent,
+  HkFooterDirective,
+  CellEditEvent,
+  RowReorderEvent,
+  ColumnReorderEvent,
+} from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -60,19 +69,44 @@ interface CustomerOrder {
   orderDate: string;
 }
 
-type TableTab = 'basic' | 'full' | 'selectableRow' | 'sticky' | 'resizable' | 'virtualScroll' | 'editable' | 'footer' | 'expandable' | 'grouped' | 'reorderable' | 'keyboard' | 'hierarchy' | 'masterDetail' | 'nestedMasterDetail';
+type TableTab =
+  | 'basic'
+  | 'full'
+  | 'selectableRow'
+  | 'sticky'
+  | 'resizable'
+  | 'virtualScroll'
+  | 'editable'
+  | 'footer'
+  | 'expandable'
+  | 'grouped'
+  | 'reorderable'
+  | 'keyboard'
+  | 'hierarchy'
+  | 'masterDetail'
+  | 'nestedMasterDetail';
 type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'types';
 
 @Component({
   selector: 'app-table-demo',
-  imports: [CommonModule, TableComponent, LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [
+    CommonModule,
+    TableComponent,
+    LucideIconComponent,
+    HkFooterDirective,
+    DocSectionComponent,
+    ApiTableComponent,
+    CodeBlockComponent,
+  ],
   template: `
     <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold">Data Table</h1>
         <p class="text-base-content/70 mt-2">Feature-rich data table with sorting, filtering, and pagination</p>
         <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+          <code class="badge badge-outline text-xs"
+            >import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui'</code
+          >
         </div>
       </div>
 
@@ -87,19 +121,44 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
         <div role="tablist" class="tabs tabs-box w-fit flex-wrap">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'full'" (click)="activeTab.set('full')">Full Featured</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'selectableRow'" (click)="activeTab.set('selectableRow')">Selectable Row</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'selectableRow'" (click)="activeTab.set('selectableRow')">
+            Selectable Row
+          </button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'sticky'" (click)="activeTab.set('sticky')">Sticky</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'resizable'" (click)="activeTab.set('resizable')">Resizable</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'virtualScroll'" (click)="activeTab.set('virtualScroll')">Virtual Scroll</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'editable'" (click)="activeTab.set('editable')">Editable</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'resizable'" (click)="activeTab.set('resizable')">
+            Resizable
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'virtualScroll'" (click)="activeTab.set('virtualScroll')">
+            Virtual Scroll
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'editable'" (click)="activeTab.set('editable')">
+            Editable
+          </button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'footer'" (click)="activeTab.set('footer')">Footer</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'expandable'" (click)="activeTab.set('expandable')">Expandable</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'expandable'" (click)="activeTab.set('expandable')">
+            Expandable
+          </button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'grouped'" (click)="activeTab.set('grouped')">Grouped</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'reorderable'" (click)="activeTab.set('reorderable')">Reorderable</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'keyboard'" (click)="activeTab.set('keyboard')">Keyboard</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'hierarchy'" (click)="activeTab.set('hierarchy')">Hierarchy</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'masterDetail'" (click)="activeTab.set('masterDetail')">Master-Detail</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'nestedMasterDetail'" (click)="activeTab.set('nestedMasterDetail')">Nested Master-Detail</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'reorderable'" (click)="activeTab.set('reorderable')">
+            Reorderable
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'keyboard'" (click)="activeTab.set('keyboard')">
+            Keyboard
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'hierarchy'" (click)="activeTab.set('hierarchy')">
+            Hierarchy
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'masterDetail'" (click)="activeTab.set('masterDetail')">
+            Master-Detail
+          </button>
+          <button
+            role="tab"
+            class="tab"
+            [class.tab-active]="activeTab() === 'nestedMasterDetail'"
+            (click)="activeTab.set('nestedMasterDetail')"
+          >
+            Nested Master-Detail
+          </button>
         </div>
 
         @if (activeTab() === 'basic') {
@@ -109,7 +168,11 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
         }
 
         @if (activeTab() === 'full') {
-          <app-doc-section title="Full Featured Table" description="Selection, actions, filters, global search, pagination" [codeExample]="fullCode">
+          <app-doc-section
+            title="Full Featured Table"
+            description="Selection, actions, filters, global search, pagination"
+            [codeExample]="fullCode"
+          >
             <hk-table
               [data]="users()"
               [config]="fullConfig"
@@ -131,39 +194,47 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
         }
 
         @if (activeTab() === 'selectableRow') {
-          <app-doc-section title="Single Selectable Row" description="Click any row to highlight it. Click again to deselect. Useful for visual guidance — the active row gets a primary tint. Supports conditional rowClass for per-row styling." [codeExample]="selectableRowCode">
-            <hk-table
-              [data]="users()"
-              [config]="selectableRowConfig"
-              (activeRowChange)="onActiveRowChange($event)"
-            />
+          <app-doc-section
+            title="Single Selectable Row"
+            description="Click any row to highlight it. Click again to deselect. Useful for visual guidance — the active row gets a primary tint. Supports conditional rowClass for per-row styling."
+            [codeExample]="selectableRowCode"
+          >
+            <hk-table [data]="users()" [config]="selectableRowConfig" (activeRowChange)="onActiveRowChange($event)" />
           </app-doc-section>
 
           @if (activeUser()) {
             <div class="alert alert-info">
               <hk-lucide-icon name="MousePointerClick" [size]="20" />
-              <span>Active row: <strong>{{ activeUser()!.name }}</strong> ({{ activeUser()!.role }})</span>
+              <span
+                >Active row: <strong>{{ activeUser()!.name }}</strong> ({{ activeUser()!.role }})</span
+              >
             </div>
           }
 
-          <app-doc-section title="Multi Selectable Rows" description="Click multiple rows to highlight them. Click a highlighted row to deselect it. Great for batch visual guidance without checkbox columns." [codeExample]="multiSelectableRowCode">
-            <hk-table
-              [data]="users()"
-              [config]="multiSelectableRowConfig"
-              (activeRowsChange)="onActiveRowsChange($event)"
-            />
+          <app-doc-section
+            title="Multi Selectable Rows"
+            description="Click multiple rows to highlight them. Click a highlighted row to deselect it. Great for batch visual guidance without checkbox columns."
+            [codeExample]="multiSelectableRowCode"
+          >
+            <hk-table [data]="users()" [config]="multiSelectableRowConfig" (activeRowsChange)="onActiveRowsChange($event)" />
           </app-doc-section>
 
           @if (activeUsers().length > 0) {
             <div class="alert alert-info">
               <hk-lucide-icon name="MousePointerClick" [size]="20" />
-              <span>{{ activeUsers().length }} row(s) selected: <strong>{{ activeUserNames() }}</strong></span>
+              <span
+                >{{ activeUsers().length }} row(s) selected: <strong>{{ activeUserNames() }}</strong></span
+              >
             </div>
           }
         }
 
         @if (activeTab() === 'sticky') {
-          <app-doc-section title="Sticky Columns" description="Pin columns to start/end during horizontal scroll. Selection and actions columns auto-stick." [codeExample]="stickyCode">
+          <app-doc-section
+            title="Sticky Columns"
+            description="Pin columns to start/end during horizontal scroll. Selection and actions columns auto-stick."
+            [codeExample]="stickyCode"
+          >
             <div style="max-width: 600px;">
               <hk-table [data]="users()" [config]="stickyConfig" />
             </div>
@@ -171,39 +242,80 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
         }
 
         @if (activeTab() === 'resizable') {
-          <app-doc-section title="Resizable Columns" description="Drag column borders to resize. Supports min/max width constraints." [codeExample]="resizableCode">
-            <hk-table
-              [data]="users()"
-              [config]="resizableConfig"
-              (columnResize)="onColumnResize($event)"
-            />
+          <app-doc-section
+            title="Resizable Columns"
+            description="Drag column borders to resize. Supports min/max width constraints."
+            [codeExample]="resizableCode"
+          >
+            <hk-table [data]="users()" [config]="resizableConfig" (columnResize)="onColumnResize($event)" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'virtualScroll') {
-          <app-doc-section title="Virtual Scrolling" description="Efficiently render large datasets with CDK virtual scroll. Pagination is disabled." [codeExample]="virtualScrollCode">
+          <app-doc-section
+            title="Virtual Scrolling"
+            description="Efficiently render large datasets with CDK virtual scroll. Pagination is disabled."
+            [codeExample]="virtualScrollCode"
+          >
             <hk-table [data]="virtualScrollUsers()" [config]="virtualScrollConfig" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'editable') {
-          <app-doc-section title="Inline Cell Editing" description="Double-click a cell to edit. Supports text, number, select, and toggle editors." [codeExample]="editableCode">
-            <hk-table
-              [data]="editableUsers()"
-              [config]="editableConfig"
-              (cellEdit)="onCellEdit($event)"
-            />
+          <app-doc-section
+            title="Inline Cell Editing"
+            description="Double-click a cell to edit. Supports text, number, select, and toggle editors."
+            [codeExample]="editableCode"
+          >
+            <hk-table [data]="editableUsers()" [config]="editableConfig" (cellEdit)="onCellEdit($event)" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'footer') {
-          <app-doc-section title="Multi-Row Summary Footer" description="Display multiple footer rows with different aggregates per row (totals, averages, min/max)." [codeExample]="footerCode">
+          <app-doc-section
+            title="Multi-Row Summary Footer"
+            description="Display multiple footer rows with different aggregates per row (totals, averages, min/max)."
+            [codeExample]="footerCode"
+          >
             <hk-table [data]="users()" [config]="footerConfig" />
+          </app-doc-section>
+
+          <app-doc-section
+            title="Colspan Footer Rows"
+            description="Footer cells that span multiple columns. Use the cells array instead of columns to freely control layout."
+            [codeExample]="colspanFooterCode"
+          >
+            <hk-table [data]="users()" [config]="colspanFooterConfig" />
+          </app-doc-section>
+
+          <app-doc-section
+            title="Custom Footer Template (hkFooter)"
+            description="Full layout freedom inside the footer using an Angular template. The component wraps your content in a full-width row automatically."
+            [codeExample]="customFooterCode"
+          >
+            <hk-table [data]="users()" [config]="customFooterConfig">
+              <ng-template hkFooter let-data let-columns="columns">
+                <div class="flex items-center justify-between px-2 py-1">
+                  <div class="flex items-center gap-2 text-sm text-base-content/70">
+                    <hk-lucide-icon name="Users" class="h-4 w-4" />
+                    <span>{{ data.length }} employees across {{ uniqueDepartments(data).length }} departments</span>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <span class="badge badge-success badge-sm">Total: {{ salaryTotal() | currency: 'USD' : 'symbol' : '1.0-0' }}</span>
+                    <span class="badge badge-info badge-sm">Avg: {{ salaryAvg() | currency: 'USD' : 'symbol' : '1.0-0' }}</span>
+                  </div>
+                </div>
+              </ng-template>
+            </hk-table>
           </app-doc-section>
         }
 
         @if (activeTab() === 'expandable') {
-          <app-doc-section title="Expandable Row Detail" description="Click the chevron to expand a row and reveal additional detail content." [codeExample]="expandableCode">
+          <app-doc-section
+            title="Expandable Row Detail"
+            description="Click the chevron to expand a row and reveal additional detail content."
+            [codeExample]="expandableCode"
+          >
             <hk-table [data]="users()" [config]="expandableConfig" (detailExpansionChange)="onDetailExpand($event)">
               <ng-template #rowDetail let-row>
                 <div class="grid grid-cols-2 gap-4">
@@ -216,7 +328,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
                     <h4 class="font-semibold mb-2">Employment Details</h4>
                     <p class="text-sm">Role: {{ row.role }}</p>
                     <p class="text-sm">Status: {{ row.status }}</p>
-                    <p class="text-sm">Salary: {{ row.salary | number:'1.0-0' }}</p>
+                    <p class="text-sm">Salary: {{ row.salary | number: '1.0-0' }}</p>
                   </div>
                 </div>
               </ng-template>
@@ -225,13 +337,21 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
         }
 
         @if (activeTab() === 'grouped') {
-          <app-doc-section title="Row Grouping" description="Group rows by a field with caption aggregates in headers and column-aligned multi-row group footers." [codeExample]="groupedCode">
+          <app-doc-section
+            title="Row Grouping"
+            description="Group rows by a field with caption aggregates in headers and column-aligned multi-row group footers."
+            [codeExample]="groupedCode"
+          >
             <hk-table [data]="users()" [config]="groupedConfig" (groupExpandChange)="onGroupExpand($event)" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'reorderable') {
-          <app-doc-section title="Reorderable Columns & Rows" description="Drag column headers to reorder columns. Drag row handles to reorder rows." [codeExample]="reorderableCode">
+          <app-doc-section
+            title="Reorderable Columns & Rows"
+            description="Drag column headers to reorder columns. Drag row handles to reorder rows."
+            [codeExample]="reorderableCode"
+          >
             <hk-table
               [data]="reorderableUsers()"
               [config]="reorderableConfig"
@@ -242,7 +362,11 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
         }
 
         @if (activeTab() === 'keyboard') {
-          <app-doc-section title="Keyboard Navigation" description="Use arrow keys to navigate cells. Enter to edit or expand. Space to toggle selection. Escape to clear focus." [codeExample]="keyboardCode">
+          <app-doc-section
+            title="Keyboard Navigation"
+            description="Use arrow keys to navigate cells. Enter to edit or expand. Space to toggle selection. Escape to clear focus."
+            [codeExample]="keyboardCode"
+          >
             <hk-table
               [data]="editableUsers()"
               [config]="keyboardConfig"
@@ -254,19 +378,31 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
         }
 
         @if (activeTab() === 'hierarchy') {
-          <app-doc-section title="Hierarchy Grid" description="Expanding a parent row reveals a fully-featured nested child table with its own sorting and pagination. Multi-level nesting is supported." [codeExample]="hierarchyCode">
+          <app-doc-section
+            title="Hierarchy Grid"
+            description="Expanding a parent row reveals a fully-featured nested child table with its own sorting and pagination. Multi-level nesting is supported."
+            [codeExample]="hierarchyCode"
+          >
             <hk-table [data]="employees()" [config]="hierarchyConfig" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'masterDetail') {
-          <app-doc-section title="Master-Detail Grid" description="Click a row in the master table to display its related detail data in a separate table below. The first row is auto-selected on load." [codeExample]="masterDetailCode">
+          <app-doc-section
+            title="Master-Detail Grid"
+            description="Click a row in the master table to display its related detail data in a separate table below. The first row is auto-selected on load."
+            [codeExample]="masterDetailCode"
+          >
             <hk-table [data]="customers()" [config]="masterDetailConfig" />
           </app-doc-section>
         }
 
         @if (activeTab() === 'nestedMasterDetail') {
-          <app-doc-section title="Nested Master-Detail" description="The detail table can itself be a master with its own detail below it, enabling multi-level drill-down. Click an employee to see their orders, then click an order to see its line items." [codeExample]="nestedMasterDetailCode">
+          <app-doc-section
+            title="Nested Master-Detail"
+            description="The detail table can itself be a master with its own detail below it, enabling multi-level drill-down. Click an employee to see their orders, then click an order to see its line items."
+            [codeExample]="nestedMasterDetailCode"
+          >
             <hk-table [data]="employees()" [config]="nestedMasterDetailConfig" />
           </app-doc-section>
         }
@@ -275,16 +411,51 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
       @if (pageTab() === 'api') {
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="hk-table"
-            [checked]="apiTab() === 'hk-table'" (change)="apiTab.set('hk-table')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Sub-Components"
-            [checked]="apiTab() === 'sub-components'" (change)="apiTab.set('sub-components')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Builder"
-            [checked]="apiTab() === 'builder'" (change)="apiTab.set('builder')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Filtering"
-            [checked]="apiTab() === 'filtering'" (change)="apiTab.set('filtering')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Types"
-            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="hk-table"
+            [checked]="apiTab() === 'hk-table'"
+            (change)="apiTab.set('hk-table')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Sub-Components"
+            [checked]="apiTab() === 'sub-components'"
+            (change)="apiTab.set('sub-components')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Builder"
+            [checked]="apiTab() === 'builder'"
+            (change)="apiTab.set('builder')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Filtering"
+            [checked]="apiTab() === 'filtering'"
+            (change)="apiTab.set('filtering')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Types"
+            [checked]="apiTab() === 'types'"
+            (change)="apiTab.set('types')"
+          />
         </div>
 
         <!-- hk-table sub-tab -->
@@ -302,7 +473,11 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
           <div class="space-y-6">
             <div>
               <h2 class="text-2xl font-bold mb-1">TablePaginationComponent</h2>
-              <p class="text-base-content/70 text-sm mb-4">Selector: <code class="text-xs">hk-table-pagination</code> — Rendered automatically by <code class="text-xs">hk-table</code> when <code class="text-xs">paginationOptions</code> is provided. Can also be used standalone.</p>
+              <p class="text-base-content/70 text-sm mb-4">
+                Selector: <code class="text-xs">hk-table-pagination</code> — Rendered automatically by
+                <code class="text-xs">hk-table</code> when <code class="text-xs">paginationOptions</code> is provided. Can also be used
+                standalone.
+              </p>
             </div>
             <app-api-table title="TablePaginationComponent — Inputs" [entries]="paginationInputDocs" />
             <app-api-table title="TablePaginationComponent — Outputs" [entries]="paginationOutputDocs" />
@@ -310,7 +485,10 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             <div class="divider"></div>
             <div>
               <h2 class="text-2xl font-bold mb-1">TableFilterComponent</h2>
-              <p class="text-base-content/70 text-sm mb-4">Selector: <code class="text-xs">hk-table-filter</code> — Rendered inside column header dropdowns by <code class="text-xs">hk-table</code> when filtering is enabled.</p>
+              <p class="text-base-content/70 text-sm mb-4">
+                Selector: <code class="text-xs">hk-table-filter</code> — Rendered inside column header dropdowns by
+                <code class="text-xs">hk-table</code> when filtering is enabled.
+              </p>
             </div>
             <app-api-table title="TableFilterComponent — Inputs" [entries]="filterInputDocs" />
             <app-api-table title="TableFilterComponent — Outputs" [entries]="filterOutputDocs" />
@@ -318,7 +496,10 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             <div class="divider"></div>
             <div>
               <h2 class="text-2xl font-bold mb-1">TableGlobalSearchComponent</h2>
-              <p class="text-base-content/70 text-sm mb-4">Selector: <code class="text-xs">hk-table-global-search</code> — Rendered above the table by <code class="text-xs">hk-table</code> when <code class="text-xs">globalSearch.enabled</code> is true.</p>
+              <p class="text-base-content/70 text-sm mb-4">
+                Selector: <code class="text-xs">hk-table-global-search</code> — Rendered above the table by
+                <code class="text-xs">hk-table</code> when <code class="text-xs">globalSearch.enabled</code> is true.
+              </p>
             </div>
             <app-api-table title="TableGlobalSearchComponent — Inputs" [entries]="globalSearchInputDocs" />
             <app-api-table title="TableGlobalSearchComponent — Outputs" [entries]="globalSearchOutputDocs" />
@@ -326,7 +507,10 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             <div class="divider"></div>
             <div>
               <h2 class="text-2xl font-bold mb-1">TableColumnVisibilityComponent</h2>
-              <p class="text-base-content/70 text-sm mb-4">Selector: <code class="text-xs">hk-table-column-visibility</code> — Rendered in the toolbar by <code class="text-xs">hk-table</code> when <code class="text-xs">columnVisibility.enabled</code> is true.</p>
+              <p class="text-base-content/70 text-sm mb-4">
+                Selector: <code class="text-xs">hk-table-column-visibility</code> — Rendered in the toolbar by
+                <code class="text-xs">hk-table</code> when <code class="text-xs">columnVisibility.enabled</code> is true.
+              </p>
             </div>
             <app-api-table title="TableColumnVisibilityComponent — Inputs" [entries]="colVisInputDocs" />
             <app-api-table title="TableColumnVisibilityComponent — Outputs" [entries]="colVisOutputDocs" />
@@ -340,7 +524,8 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">createTable() Usage</h3>
                 <p class="text-sm text-base-content/70">
-                  The <code>createTable()</code> factory function converts a flat <code>FieldConfig&lt;T&gt;</code> into a resolved <code>FieldConfiguration&lt;T&gt;</code> used by the table input.
+                  The <code>createTable()</code> factory function converts a flat <code>FieldConfig&lt;T&gt;</code> into a resolved
+                  <code>FieldConfiguration&lt;T&gt;</code> used by the table input.
                 </p>
                 <app-code-block [code]="builderCode" />
               </div>
@@ -574,7 +759,11 @@ export class TableDemoComponent {
   selectedUsers = signal<User[]>([]);
   activeUser = signal<User | null>(null);
   activeUsers = signal<readonly User[]>([]);
-  activeUserNames = computed(() => this.activeUsers().map(u => u.name).join(', '));
+  activeUserNames = computed(() =>
+    this.activeUsers()
+      .map((u) => u.name)
+      .join(', '),
+  );
 
   basicConfig = createTable<User>({
     visible: ['id', 'name', 'email', 'role', 'status'],
@@ -912,6 +1101,66 @@ export class TableDemoComponent {
     ],
   });
 
+  // --- Colspan Footer Config ---
+  colspanFooterConfig = createTable<User>({
+    visible: ['id', 'name', 'department', 'salary', 'status'],
+    headers: {
+      id: 'ID',
+      name: 'Name',
+      department: 'Department',
+      salary: 'Salary',
+      status: 'Status',
+    },
+    formatters: {
+      salary: ['currency', 'USD'],
+    },
+    footerRows: [
+      {
+        cells: [
+          { colspan: 3 },
+          { colspan: 1, fn: 'sum', field: 'salary', label: 'Total', format: (v) => `$${v.toLocaleString()}` },
+          { colspan: 1, fn: 'count', field: 'id', label: 'Rows' },
+        ],
+      },
+      {
+        cells: [
+          { colspan: 3, label: 'Statistics', class: 'text-right font-bold' },
+          { colspan: 1, fn: 'avg', field: 'salary', label: 'Avg', format: (v) => `$${Math.round(v).toLocaleString()}` },
+          { colspan: 1, fn: 'distinctCount', field: 'department', label: 'Depts' },
+        ],
+      },
+    ],
+  });
+
+  // --- Custom Footer Template Config (hkFooter) ---
+  customFooterConfig = createTable<User>({
+    visible: ['id', 'name', 'department', 'salary', 'status'],
+    headers: {
+      id: 'ID',
+      name: 'Name',
+      department: 'Department',
+      salary: 'Salary',
+      status: 'Status',
+    },
+    formatters: {
+      salary: ['currency', 'USD'],
+    },
+  });
+
+  /** Get unique departments from data */
+  uniqueDepartments(data: User[]): string[] {
+    return [...new Set(data.map((u) => u.department))];
+  }
+
+  /** Compute salary total for custom footer template */
+  salaryTotal = computed(() => this.users().reduce((sum, u) => sum + u.salary, 0));
+
+  /** Compute salary average for custom footer template */
+  salaryAvg = computed(() => {
+    const data = this.users();
+    return data.length ? Math.round(this.salaryTotal() / data.length) : 0;
+  });
+
   // --- Expandable Config ---
   expandableConfig = createTable<User>({
     visible: ['id', 'name', 'role', 'department', 'status'],
@@ -1072,133 +1321,323 @@ export class TableDemoComponent {
 
   employees = signal<Employee[]>([
     {
-      id: 1, name: 'Alice Martin', title: 'Senior Engineer', hireDate: '2020-03-15',
+      id: 1,
+      name: 'Alice Martin',
+      title: 'Senior Engineer',
+      hireDate: '2020-03-15',
       orders: [
-        { orderId: 101, product: 'Laptop Pro 16"', quantity: 1, unitPrice: 2499, orderDate: '2024-01-10', items: [
-          { itemId: 1, sku: 'LP16-SLV', description: 'Laptop Pro 16" Silver', qty: 1, price: 2499 },
-        ]},
-        { orderId: 102, product: 'Mechanical Keyboard', quantity: 2, unitPrice: 159, orderDate: '2024-02-05', items: [
-          { itemId: 1, sku: 'KB-RED', description: 'Cherry MX Red Switch', qty: 1, price: 159 },
-          { itemId: 2, sku: 'KB-BLU', description: 'Cherry MX Blue Switch', qty: 1, price: 159 },
-        ]},
-        { orderId: 103, product: 'USB-C Hub', quantity: 1, unitPrice: 79, orderDate: '2024-03-12', items: [
-          { itemId: 1, sku: 'HUB-7P', description: 'USB-C Hub 7-Port', qty: 1, price: 79 },
-        ]},
-        { orderId: 104, product: '4K Monitor', quantity: 1, unitPrice: 599, orderDate: '2024-04-20', items: [
-          { itemId: 1, sku: 'MON-27', description: '27" 4K IPS Monitor', qty: 1, price: 599 },
-        ]},
-        { orderId: 105, product: 'Webcam HD', quantity: 1, unitPrice: 129, orderDate: '2024-05-15', items: [
-          { itemId: 1, sku: 'WC-1080', description: '1080p Webcam', qty: 1, price: 129 },
-        ]},
-        { orderId: 106, product: 'Desk Lamp', quantity: 1, unitPrice: 45, orderDate: '2024-06-01', items: [
-          { itemId: 1, sku: 'LAMP-LED', description: 'LED Desk Lamp', qty: 1, price: 45 },
-        ]},
+        {
+          orderId: 101,
+          product: 'Laptop Pro 16"',
+          quantity: 1,
+          unitPrice: 2499,
+          orderDate: '2024-01-10',
+          items: [{ itemId: 1, sku: 'LP16-SLV', description: 'Laptop Pro 16" Silver', qty: 1, price: 2499 }],
+        },
+        {
+          orderId: 102,
+          product: 'Mechanical Keyboard',
+          quantity: 2,
+          unitPrice: 159,
+          orderDate: '2024-02-05',
+          items: [
+            { itemId: 1, sku: 'KB-RED', description: 'Cherry MX Red Switch', qty: 1, price: 159 },
+            { itemId: 2, sku: 'KB-BLU', description: 'Cherry MX Blue Switch', qty: 1, price: 159 },
+          ],
+        },
+        {
+          orderId: 103,
+          product: 'USB-C Hub',
+          quantity: 1,
+          unitPrice: 79,
+          orderDate: '2024-03-12',
+          items: [{ itemId: 1, sku: 'HUB-7P', description: 'USB-C Hub 7-Port', qty: 1, price: 79 }],
+        },
+        {
+          orderId: 104,
+          product: '4K Monitor',
+          quantity: 1,
+          unitPrice: 599,
+          orderDate: '2024-04-20',
+          items: [{ itemId: 1, sku: 'MON-27', description: '27" 4K IPS Monitor', qty: 1, price: 599 }],
+        },
+        {
+          orderId: 105,
+          product: 'Webcam HD',
+          quantity: 1,
+          unitPrice: 129,
+          orderDate: '2024-05-15',
+          items: [{ itemId: 1, sku: 'WC-1080', description: '1080p Webcam', qty: 1, price: 129 }],
+        },
+        {
+          orderId: 106,
+          product: 'Desk Lamp',
+          quantity: 1,
+          unitPrice: 45,
+          orderDate: '2024-06-01',
+          items: [{ itemId: 1, sku: 'LAMP-LED', description: 'LED Desk Lamp', qty: 1, price: 45 }],
+        },
       ],
     },
     {
-      id: 2, name: 'Bob Chen', title: 'Product Manager', hireDate: '2019-07-01',
+      id: 2,
+      name: 'Bob Chen',
+      title: 'Product Manager',
+      hireDate: '2019-07-01',
       orders: [
-        { orderId: 201, product: 'Whiteboard Markers', quantity: 12, unitPrice: 3, orderDate: '2024-01-20', items: [
-          { itemId: 1, sku: 'WBM-BLK', description: 'Black Marker', qty: 4, price: 3 },
-          { itemId: 2, sku: 'WBM-RED', description: 'Red Marker', qty: 4, price: 3 },
-          { itemId: 3, sku: 'WBM-BLU', description: 'Blue Marker', qty: 4, price: 3 },
-        ]},
-        { orderId: 202, product: 'Notebook Set', quantity: 5, unitPrice: 12, orderDate: '2024-02-18', items: [
-          { itemId: 1, sku: 'NB-A4', description: 'A4 Lined Notebook', qty: 3, price: 12 },
-          { itemId: 2, sku: 'NB-A5', description: 'A5 Grid Notebook', qty: 2, price: 12 },
-        ]},
-        { orderId: 203, product: 'Standing Desk', quantity: 1, unitPrice: 899, orderDate: '2024-03-05', items: [
-          { itemId: 1, sku: 'DSK-EL', description: 'Electric Standing Desk 60"', qty: 1, price: 899 },
-        ]},
-        { orderId: 204, product: 'Ergonomic Chair', quantity: 1, unitPrice: 749, orderDate: '2024-04-10', items: [
-          { itemId: 1, sku: 'CHR-ERG', description: 'Ergonomic Mesh Chair', qty: 1, price: 749 },
-        ]},
-        { orderId: 205, product: 'Presentation Remote', quantity: 1, unitPrice: 49, orderDate: '2024-05-22', items: [
-          { itemId: 1, sku: 'RMT-LS', description: 'Laser Presentation Remote', qty: 1, price: 49 },
-        ]},
+        {
+          orderId: 201,
+          product: 'Whiteboard Markers',
+          quantity: 12,
+          unitPrice: 3,
+          orderDate: '2024-01-20',
+          items: [
+            { itemId: 1, sku: 'WBM-BLK', description: 'Black Marker', qty: 4, price: 3 },
+            { itemId: 2, sku: 'WBM-RED', description: 'Red Marker', qty: 4, price: 3 },
+            { itemId: 3, sku: 'WBM-BLU', description: 'Blue Marker', qty: 4, price: 3 },
+          ],
+        },
+        {
+          orderId: 202,
+          product: 'Notebook Set',
+          quantity: 5,
+          unitPrice: 12,
+          orderDate: '2024-02-18',
+          items: [
+            { itemId: 1, sku: 'NB-A4', description: 'A4 Lined Notebook', qty: 3, price: 12 },
+            { itemId: 2, sku: 'NB-A5', description: 'A5 Grid Notebook', qty: 2, price: 12 },
+          ],
+        },
+        {
+          orderId: 203,
+          product: 'Standing Desk',
+          quantity: 1,
+          unitPrice: 899,
+          orderDate: '2024-03-05',
+          items: [{ itemId: 1, sku: 'DSK-EL', description: 'Electric Standing Desk 60"', qty: 1, price: 899 }],
+        },
+        {
+          orderId: 204,
+          product: 'Ergonomic Chair',
+          quantity: 1,
+          unitPrice: 749,
+          orderDate: '2024-04-10',
+          items: [{ itemId: 1, sku: 'CHR-ERG', description: 'Ergonomic Mesh Chair', qty: 1, price: 749 }],
+        },
+        {
+          orderId: 205,
+          product: 'Presentation Remote',
+          quantity: 1,
+          unitPrice: 49,
+          orderDate: '2024-05-22',
+          items: [{ itemId: 1, sku: 'RMT-LS', description: 'Laser Presentation Remote', qty: 1, price: 49 }],
+        },
       ],
     },
     {
-      id: 3, name: 'Carol Davis', title: 'UX Designer', hireDate: '2021-11-10',
+      id: 3,
+      name: 'Carol Davis',
+      title: 'UX Designer',
+      hireDate: '2021-11-10',
       orders: [
-        { orderId: 301, product: 'Drawing Tablet', quantity: 1, unitPrice: 349, orderDate: '2024-01-15', items: [
-          { itemId: 1, sku: 'TAB-MED', description: 'Drawing Tablet Medium', qty: 1, price: 349 },
-        ]},
-        { orderId: 302, product: 'Color Calibrator', quantity: 1, unitPrice: 199, orderDate: '2024-02-28', items: [
-          { itemId: 1, sku: 'CAL-PRO', description: 'Display Calibrator Pro', qty: 1, price: 199 },
-        ]},
-        { orderId: 303, product: 'Design Book Bundle', quantity: 3, unitPrice: 45, orderDate: '2024-03-20', items: [
-          { itemId: 1, sku: 'BK-UX', description: 'UX Design Handbook', qty: 1, price: 45 },
-          { itemId: 2, sku: 'BK-TYP', description: 'Typography Essentials', qty: 1, price: 45 },
-          { itemId: 3, sku: 'BK-CLR', description: 'Color Theory Guide', qty: 1, price: 45 },
-        ]},
-        { orderId: 304, product: 'Stylus Pen Set', quantity: 2, unitPrice: 29, orderDate: '2024-04-05', items: [
-          { itemId: 1, sku: 'PEN-FN', description: 'Fine Tip Stylus', qty: 1, price: 29 },
-          { itemId: 2, sku: 'PEN-BRD', description: 'Broad Tip Stylus', qty: 1, price: 29 },
-        ]},
-        { orderId: 305, product: 'Monitor Arm', quantity: 1, unitPrice: 119, orderDate: '2024-05-10', items: [
-          { itemId: 1, sku: 'ARM-DL', description: 'Dual Monitor Arm', qty: 1, price: 119 },
-        ]},
-        { orderId: 306, product: 'Headphones Pro', quantity: 1, unitPrice: 299, orderDate: '2024-06-15', items: [
-          { itemId: 1, sku: 'HP-ANC', description: 'ANC Headphones', qty: 1, price: 299 },
-        ]},
-        { orderId: 307, product: 'Mouse Pad XL', quantity: 1, unitPrice: 25, orderDate: '2024-07-01', items: [
-          { itemId: 1, sku: 'MP-XL', description: 'Extended Mouse Pad', qty: 1, price: 25 },
-        ]},
+        {
+          orderId: 301,
+          product: 'Drawing Tablet',
+          quantity: 1,
+          unitPrice: 349,
+          orderDate: '2024-01-15',
+          items: [{ itemId: 1, sku: 'TAB-MED', description: 'Drawing Tablet Medium', qty: 1, price: 349 }],
+        },
+        {
+          orderId: 302,
+          product: 'Color Calibrator',
+          quantity: 1,
+          unitPrice: 199,
+          orderDate: '2024-02-28',
+          items: [{ itemId: 1, sku: 'CAL-PRO', description: 'Display Calibrator Pro', qty: 1, price: 199 }],
+        },
+        {
+          orderId: 303,
+          product: 'Design Book Bundle',
+          quantity: 3,
+          unitPrice: 45,
+          orderDate: '2024-03-20',
+          items: [
+            { itemId: 1, sku: 'BK-UX', description: 'UX Design Handbook', qty: 1, price: 45 },
+            { itemId: 2, sku: 'BK-TYP', description: 'Typography Essentials', qty: 1, price: 45 },
+            { itemId: 3, sku: 'BK-CLR', description: 'Color Theory Guide', qty: 1, price: 45 },
+          ],
+        },
+        {
+          orderId: 304,
+          product: 'Stylus Pen Set',
+          quantity: 2,
+          unitPrice: 29,
+          orderDate: '2024-04-05',
+          items: [
+            { itemId: 1, sku: 'PEN-FN', description: 'Fine Tip Stylus', qty: 1, price: 29 },
+            { itemId: 2, sku: 'PEN-BRD', description: 'Broad Tip Stylus', qty: 1, price: 29 },
+          ],
+        },
+        {
+          orderId: 305,
+          product: 'Monitor Arm',
+          quantity: 1,
+          unitPrice: 119,
+          orderDate: '2024-05-10',
+          items: [{ itemId: 1, sku: 'ARM-DL', description: 'Dual Monitor Arm', qty: 1, price: 119 }],
+        },
+        {
+          orderId: 306,
+          product: 'Headphones Pro',
+          quantity: 1,
+          unitPrice: 299,
+          orderDate: '2024-06-15',
+          items: [{ itemId: 1, sku: 'HP-ANC', description: 'ANC Headphones', qty: 1, price: 299 }],
+        },
+        {
+          orderId: 307,
+          product: 'Mouse Pad XL',
+          quantity: 1,
+          unitPrice: 25,
+          orderDate: '2024-07-01',
+          items: [{ itemId: 1, sku: 'MP-XL', description: 'Extended Mouse Pad', qty: 1, price: 25 }],
+        },
       ],
     },
     {
-      id: 4, name: 'David Kim', title: 'DevOps Lead', hireDate: '2018-05-20',
+      id: 4,
+      name: 'David Kim',
+      title: 'DevOps Lead',
+      hireDate: '2018-05-20',
       orders: [
-        { orderId: 401, product: 'Server Rack Mount', quantity: 2, unitPrice: 189, orderDate: '2024-01-08', items: [
-          { itemId: 1, sku: 'RCK-2U', description: '2U Rack Mount', qty: 1, price: 189 },
-          { itemId: 2, sku: 'RCK-4U', description: '4U Rack Mount', qty: 1, price: 189 },
-        ]},
-        { orderId: 402, product: 'Network Switch', quantity: 1, unitPrice: 459, orderDate: '2024-02-14', items: [
-          { itemId: 1, sku: 'SW-48', description: '48-Port Managed Switch', qty: 1, price: 459 },
-        ]},
-        { orderId: 403, product: 'SSD 2TB', quantity: 4, unitPrice: 149, orderDate: '2024-03-25', items: [
-          { itemId: 1, sku: 'SSD-NVM', description: 'NVMe SSD 2TB', qty: 4, price: 149 },
-        ]},
-        { orderId: 404, product: 'KVM Switch', quantity: 1, unitPrice: 89, orderDate: '2024-04-18', items: [
-          { itemId: 1, sku: 'KVM-4P', description: '4-Port KVM Switch', qty: 1, price: 89 },
-        ]},
-        { orderId: 405, product: 'Cable Management Kit', quantity: 3, unitPrice: 35, orderDate: '2024-05-30', items: [
-          { itemId: 1, sku: 'CBL-VLC', description: 'Velcro Cable Ties', qty: 2, price: 15 },
-          { itemId: 2, sku: 'CBL-TRY', description: 'Cable Tray', qty: 1, price: 35 },
-        ]},
+        {
+          orderId: 401,
+          product: 'Server Rack Mount',
+          quantity: 2,
+          unitPrice: 189,
+          orderDate: '2024-01-08',
+          items: [
+            { itemId: 1, sku: 'RCK-2U', description: '2U Rack Mount', qty: 1, price: 189 },
+            { itemId: 2, sku: 'RCK-4U', description: '4U Rack Mount', qty: 1, price: 189 },
+          ],
+        },
+        {
+          orderId: 402,
+          product: 'Network Switch',
+          quantity: 1,
+          unitPrice: 459,
+          orderDate: '2024-02-14',
+          items: [{ itemId: 1, sku: 'SW-48', description: '48-Port Managed Switch', qty: 1, price: 459 }],
+        },
+        {
+          orderId: 403,
+          product: 'SSD 2TB',
+          quantity: 4,
+          unitPrice: 149,
+          orderDate: '2024-03-25',
+          items: [{ itemId: 1, sku: 'SSD-NVM', description: 'NVMe SSD 2TB', qty: 4, price: 149 }],
+        },
+        {
+          orderId: 404,
+          product: 'KVM Switch',
+          quantity: 1,
+          unitPrice: 89,
+          orderDate: '2024-04-18',
+          items: [{ itemId: 1, sku: 'KVM-4P', description: '4-Port KVM Switch', qty: 1, price: 89 }],
+        },
+        {
+          orderId: 405,
+          product: 'Cable Management Kit',
+          quantity: 3,
+          unitPrice: 35,
+          orderDate: '2024-05-30',
+          items: [
+            { itemId: 1, sku: 'CBL-VLC', description: 'Velcro Cable Ties', qty: 2, price: 15 },
+            { itemId: 2, sku: 'CBL-TRY', description: 'Cable Tray', qty: 1, price: 35 },
+          ],
+        },
       ],
     },
     {
-      id: 5, name: 'Eva Lopez', title: 'QA Engineer', hireDate: '2022-01-05',
+      id: 5,
+      name: 'Eva Lopez',
+      title: 'QA Engineer',
+      hireDate: '2022-01-05',
       orders: [
-        { orderId: 501, product: 'Testing Device Pack', quantity: 1, unitPrice: 799, orderDate: '2024-02-01', items: [
-          { itemId: 1, sku: 'DEV-AND', description: 'Android Test Device', qty: 1, price: 399 },
-          { itemId: 2, sku: 'DEV-IOS', description: 'iOS Test Device', qty: 1, price: 400 },
-        ]},
-        { orderId: 502, product: 'Dual Monitor Stand', quantity: 1, unitPrice: 139, orderDate: '2024-03-15', items: [
-          { itemId: 1, sku: 'STD-DL', description: 'Dual Monitor Stand', qty: 1, price: 139 },
-        ]},
-        { orderId: 503, product: 'USB Hub 7-Port', quantity: 2, unitPrice: 45, orderDate: '2024-04-22', items: [
-          { itemId: 1, sku: 'HUB-7U', description: 'USB 3.0 Hub 7-Port', qty: 2, price: 45 },
-        ]},
-        { orderId: 504, product: 'Noise-Cancelling Earbuds', quantity: 1, unitPrice: 179, orderDate: '2024-05-08', items: [
-          { itemId: 1, sku: 'EB-ANC', description: 'ANC Wireless Earbuds', qty: 1, price: 179 },
-        ]},
-        { orderId: 505, product: 'Laptop Stand', quantity: 1, unitPrice: 59, orderDate: '2024-06-20', items: [
-          { itemId: 1, sku: 'STD-AL', description: 'Aluminum Laptop Stand', qty: 1, price: 59 },
-        ]},
-        { orderId: 506, product: 'Portable Charger', quantity: 2, unitPrice: 39, orderDate: '2024-07-10', items: [
-          { itemId: 1, sku: 'CHG-10K', description: '10000mAh Charger', qty: 1, price: 29 },
-          { itemId: 2, sku: 'CHG-20K', description: '20000mAh Charger', qty: 1, price: 49 },
-        ]},
-        { orderId: 507, product: 'Screen Protector', quantity: 3, unitPrice: 15, orderDate: '2024-08-01', items: [
-          { itemId: 1, sku: 'SP-13', description: '13" Screen Protector', qty: 2, price: 15 },
-          { itemId: 2, sku: 'SP-16', description: '16" Screen Protector', qty: 1, price: 15 },
-        ]},
-        { orderId: 508, product: 'Cleaning Kit', quantity: 1, unitPrice: 22, orderDate: '2024-09-05', items: [
-          { itemId: 1, sku: 'CLN-KIT', description: 'Electronics Cleaning Kit', qty: 1, price: 22 },
-        ]},
+        {
+          orderId: 501,
+          product: 'Testing Device Pack',
+          quantity: 1,
+          unitPrice: 799,
+          orderDate: '2024-02-01',
+          items: [
+            { itemId: 1, sku: 'DEV-AND', description: 'Android Test Device', qty: 1, price: 399 },
+            { itemId: 2, sku: 'DEV-IOS', description: 'iOS Test Device', qty: 1, price: 400 },
+          ],
+        },
+        {
+          orderId: 502,
+          product: 'Dual Monitor Stand',
+          quantity: 1,
+          unitPrice: 139,
+          orderDate: '2024-03-15',
+          items: [{ itemId: 1, sku: 'STD-DL', description: 'Dual Monitor Stand', qty: 1, price: 139 }],
+        },
+        {
+          orderId: 503,
+          product: 'USB Hub 7-Port',
+          quantity: 2,
+          unitPrice: 45,
+          orderDate: '2024-04-22',
+          items: [{ itemId: 1, sku: 'HUB-7U', description: 'USB 3.0 Hub 7-Port', qty: 2, price: 45 }],
+        },
+        {
+          orderId: 504,
+          product: 'Noise-Cancelling Earbuds',
+          quantity: 1,
+          unitPrice: 179,
+          orderDate: '2024-05-08',
+          items: [{ itemId: 1, sku: 'EB-ANC', description: 'ANC Wireless Earbuds', qty: 1, price: 179 }],
+        },
+        {
+          orderId: 505,
+          product: 'Laptop Stand',
+          quantity: 1,
+          unitPrice: 59,
+          orderDate: '2024-06-20',
+          items: [{ itemId: 1, sku: 'STD-AL', description: 'Aluminum Laptop Stand', qty: 1, price: 59 }],
+        },
+        {
+          orderId: 506,
+          product: 'Portable Charger',
+          quantity: 2,
+          unitPrice: 39,
+          orderDate: '2024-07-10',
+          items: [
+            { itemId: 1, sku: 'CHG-10K', description: '10000mAh Charger', qty: 1, price: 29 },
+            { itemId: 2, sku: 'CHG-20K', description: '20000mAh Charger', qty: 1, price: 49 },
+          ],
+        },
+        {
+          orderId: 507,
+          product: 'Screen Protector',
+          quantity: 3,
+          unitPrice: 15,
+          orderDate: '2024-08-01',
+          items: [
+            { itemId: 1, sku: 'SP-13', description: '13" Screen Protector', qty: 2, price: 15 },
+            { itemId: 2, sku: 'SP-16', description: '16" Screen Protector', qty: 1, price: 15 },
+          ],
+        },
+        {
+          orderId: 508,
+          product: 'Cleaning Kit',
+          quantity: 1,
+          unitPrice: 22,
+          orderDate: '2024-09-05',
+          items: [{ itemId: 1, sku: 'CLN-KIT', description: 'Electronics Cleaning Kit', qty: 1, price: 22 }],
+        },
       ],
     },
   ]);
@@ -1235,7 +1674,14 @@ export class TableDemoComponent {
   // --- Master-Detail Grid Config ---
   masterDetailOrderConfig = createTable<CustomerOrder>({
     visible: ['orderId', 'freight', 'shipName', 'shipCountry', 'shipAddress', 'orderDate'],
-    headers: { orderId: 'Order ID', freight: 'Freight', shipName: 'Ship Name', shipCountry: 'Ship Country', shipAddress: 'Ship Address', orderDate: 'Order Date' },
+    headers: {
+      orderId: 'Order ID',
+      freight: 'Freight',
+      shipName: 'Ship Name',
+      shipCountry: 'Ship Country',
+      shipAddress: 'Ship Address',
+      orderDate: 'Order Date',
+    },
     formatters: {
       freight: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
     },
@@ -1254,53 +1700,248 @@ export class TableDemoComponent {
 
   customers = signal<Customer[]>([
     {
-      customerId: 1, customerName: 'Maria Anders', companyName: 'Alfreds Futterkiste', contactTitle: 'Sales Rep', country: 'Germany',
+      customerId: 1,
+      customerName: 'Maria Anders',
+      companyName: 'Alfreds Futterkiste',
+      contactTitle: 'Sales Rep',
+      country: 'Germany',
       orders: [
-        { orderId: 10643, freight: 29.46, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-01-15' },
-        { orderId: 10692, freight: 61.02, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-02-20' },
-        { orderId: 10702, freight: 23.94, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-03-10' },
-        { orderId: 10835, freight: 69.53, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-04-05' },
-        { orderId: 10952, freight: 40.42, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-05-18' },
-        { orderId: 11011, freight: 1.21, shipName: 'Alfreds Futterkiste', shipCountry: 'Germany', shipAddress: 'Obere Str. 57', orderDate: '2024-06-22' },
+        {
+          orderId: 10643,
+          freight: 29.46,
+          shipName: 'Alfreds Futterkiste',
+          shipCountry: 'Germany',
+          shipAddress: 'Obere Str. 57',
+          orderDate: '2024-01-15',
+        },
+        {
+          orderId: 10692,
+          freight: 61.02,
+          shipName: 'Alfreds Futterkiste',
+          shipCountry: 'Germany',
+          shipAddress: 'Obere Str. 57',
+          orderDate: '2024-02-20',
+        },
+        {
+          orderId: 10702,
+          freight: 23.94,
+          shipName: 'Alfreds Futterkiste',
+          shipCountry: 'Germany',
+          shipAddress: 'Obere Str. 57',
+          orderDate: '2024-03-10',
+        },
+        {
+          orderId: 10835,
+          freight: 69.53,
+          shipName: 'Alfreds Futterkiste',
+          shipCountry: 'Germany',
+          shipAddress: 'Obere Str. 57',
+          orderDate: '2024-04-05',
+        },
+        {
+          orderId: 10952,
+          freight: 40.42,
+          shipName: 'Alfreds Futterkiste',
+          shipCountry: 'Germany',
+          shipAddress: 'Obere Str. 57',
+          orderDate: '2024-05-18',
+        },
+        {
+          orderId: 11011,
+          freight: 1.21,
+          shipName: 'Alfreds Futterkiste',
+          shipCountry: 'Germany',
+          shipAddress: 'Obere Str. 57',
+          orderDate: '2024-06-22',
+        },
       ],
     },
     {
-      customerId: 2, customerName: 'Ana Trujillo', companyName: 'Emparedados y helados', contactTitle: 'Owner', country: 'Mexico',
+      customerId: 2,
+      customerName: 'Ana Trujillo',
+      companyName: 'Emparedados y helados',
+      contactTitle: 'Owner',
+      country: 'Mexico',
       orders: [
-        { orderId: 10308, freight: 1.61, shipName: 'Ana Trujillo', shipCountry: 'Mexico', shipAddress: 'Avda. de la Constitución 2222', orderDate: '2024-01-22' },
-        { orderId: 10625, freight: 43.90, shipName: 'Ana Trujillo', shipCountry: 'Mexico', shipAddress: 'Avda. de la Constitución 2222', orderDate: '2024-03-01' },
-        { orderId: 10759, freight: 11.99, shipName: 'Ana Trujillo', shipCountry: 'Mexico', shipAddress: 'Avda. de la Constitución 2222', orderDate: '2024-04-15' },
-        { orderId: 10926, freight: 39.92, shipName: 'Ana Trujillo', shipCountry: 'Mexico', shipAddress: 'Avda. de la Constitución 2222', orderDate: '2024-05-20' },
+        {
+          orderId: 10308,
+          freight: 1.61,
+          shipName: 'Ana Trujillo',
+          shipCountry: 'Mexico',
+          shipAddress: 'Avda. de la Constitución 2222',
+          orderDate: '2024-01-22',
+        },
+        {
+          orderId: 10625,
+          freight: 43.9,
+          shipName: 'Ana Trujillo',
+          shipCountry: 'Mexico',
+          shipAddress: 'Avda. de la Constitución 2222',
+          orderDate: '2024-03-01',
+        },
+        {
+          orderId: 10759,
+          freight: 11.99,
+          shipName: 'Ana Trujillo',
+          shipCountry: 'Mexico',
+          shipAddress: 'Avda. de la Constitución 2222',
+          orderDate: '2024-04-15',
+        },
+        {
+          orderId: 10926,
+          freight: 39.92,
+          shipName: 'Ana Trujillo',
+          shipCountry: 'Mexico',
+          shipAddress: 'Avda. de la Constitución 2222',
+          orderDate: '2024-05-20',
+        },
       ],
     },
     {
-      customerId: 3, customerName: 'Antonio Moreno', companyName: 'Antonio Moreno Taquería', contactTitle: 'Owner', country: 'Mexico',
+      customerId: 3,
+      customerName: 'Antonio Moreno',
+      companyName: 'Antonio Moreno Taquería',
+      contactTitle: 'Owner',
+      country: 'Mexico',
       orders: [
-        { orderId: 10365, freight: 22.00, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-02-10' },
-        { orderId: 10507, freight: 47.45, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-03-25' },
-        { orderId: 10535, freight: 15.64, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-05-05' },
-        { orderId: 10573, freight: 84.84, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-06-10' },
-        { orderId: 10677, freight: 4.03, shipName: 'Antonio Moreno', shipCountry: 'Mexico', shipAddress: 'Mataderos 2312', orderDate: '2024-07-18' },
+        {
+          orderId: 10365,
+          freight: 22.0,
+          shipName: 'Antonio Moreno',
+          shipCountry: 'Mexico',
+          shipAddress: 'Mataderos 2312',
+          orderDate: '2024-02-10',
+        },
+        {
+          orderId: 10507,
+          freight: 47.45,
+          shipName: 'Antonio Moreno',
+          shipCountry: 'Mexico',
+          shipAddress: 'Mataderos 2312',
+          orderDate: '2024-03-25',
+        },
+        {
+          orderId: 10535,
+          freight: 15.64,
+          shipName: 'Antonio Moreno',
+          shipCountry: 'Mexico',
+          shipAddress: 'Mataderos 2312',
+          orderDate: '2024-05-05',
+        },
+        {
+          orderId: 10573,
+          freight: 84.84,
+          shipName: 'Antonio Moreno',
+          shipCountry: 'Mexico',
+          shipAddress: 'Mataderos 2312',
+          orderDate: '2024-06-10',
+        },
+        {
+          orderId: 10677,
+          freight: 4.03,
+          shipName: 'Antonio Moreno',
+          shipCountry: 'Mexico',
+          shipAddress: 'Mataderos 2312',
+          orderDate: '2024-07-18',
+        },
       ],
     },
     {
-      customerId: 4, customerName: 'Thomas Hardy', companyName: 'Around the Horn', contactTitle: 'Sales Rep', country: 'UK',
+      customerId: 4,
+      customerName: 'Thomas Hardy',
+      companyName: 'Around the Horn',
+      contactTitle: 'Sales Rep',
+      country: 'UK',
       orders: [
-        { orderId: 10355, freight: 41.95, shipName: 'Around the Horn', shipCountry: 'UK', shipAddress: '120 Hanover Sq.', orderDate: '2024-01-08' },
-        { orderId: 10383, freight: 34.24, shipName: 'Around the Horn', shipCountry: 'UK', shipAddress: '120 Hanover Sq.', orderDate: '2024-02-28' },
-        { orderId: 10453, freight: 25.36, shipName: 'Around the Horn', shipCountry: 'UK', shipAddress: '120 Hanover Sq.', orderDate: '2024-04-12' },
+        {
+          orderId: 10355,
+          freight: 41.95,
+          shipName: 'Around the Horn',
+          shipCountry: 'UK',
+          shipAddress: '120 Hanover Sq.',
+          orderDate: '2024-01-08',
+        },
+        {
+          orderId: 10383,
+          freight: 34.24,
+          shipName: 'Around the Horn',
+          shipCountry: 'UK',
+          shipAddress: '120 Hanover Sq.',
+          orderDate: '2024-02-28',
+        },
+        {
+          orderId: 10453,
+          freight: 25.36,
+          shipName: 'Around the Horn',
+          shipCountry: 'UK',
+          shipAddress: '120 Hanover Sq.',
+          orderDate: '2024-04-12',
+        },
       ],
     },
     {
-      customerId: 5, customerName: 'Christina Berglund', companyName: 'Berglunds snabbköp', contactTitle: 'Order Admin', country: 'Sweden',
+      customerId: 5,
+      customerName: 'Christina Berglund',
+      companyName: 'Berglunds snabbköp',
+      contactTitle: 'Order Admin',
+      country: 'Sweden',
       orders: [
-        { orderId: 10278, freight: 92.69, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-01-30' },
-        { orderId: 10280, freight: 8.98, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-03-05' },
-        { orderId: 10384, freight: 168.64, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-04-22' },
-        { orderId: 10444, freight: 3.50, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-05-15' },
-        { orderId: 10524, freight: 244.79, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-06-28' },
-        { orderId: 10572, freight: 116.43, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-07-20' },
-        { orderId: 10626, freight: 138.69, shipName: 'Berglunds snabbköp', shipCountry: 'Sweden', shipAddress: 'Berguvsvägen 8', orderDate: '2024-08-10' },
+        {
+          orderId: 10278,
+          freight: 92.69,
+          shipName: 'Berglunds snabbköp',
+          shipCountry: 'Sweden',
+          shipAddress: 'Berguvsvägen 8',
+          orderDate: '2024-01-30',
+        },
+        {
+          orderId: 10280,
+          freight: 8.98,
+          shipName: 'Berglunds snabbköp',
+          shipCountry: 'Sweden',
+          shipAddress: 'Berguvsvägen 8',
+          orderDate: '2024-03-05',
+        },
+        {
+          orderId: 10384,
+          freight: 168.64,
+          shipName: 'Berglunds snabbköp',
+          shipCountry: 'Sweden',
+          shipAddress: 'Berguvsvägen 8',
+          orderDate: '2024-04-22',
+        },
+        {
+          orderId: 10444,
+          freight: 3.5,
+          shipName: 'Berglunds snabbköp',
+          shipCountry: 'Sweden',
+          shipAddress: 'Berguvsvägen 8',
+          orderDate: '2024-05-15',
+        },
+        {
+          orderId: 10524,
+          freight: 244.79,
+          shipName: 'Berglunds snabbköp',
+          shipCountry: 'Sweden',
+          shipAddress: 'Berguvsvägen 8',
+          orderDate: '2024-06-28',
+        },
+        {
+          orderId: 10572,
+          freight: 116.43,
+          shipName: 'Berglunds snabbköp',
+          shipCountry: 'Sweden',
+          shipAddress: 'Berguvsvägen 8',
+          orderDate: '2024-07-20',
+        },
+        {
+          orderId: 10626,
+          freight: 138.69,
+          shipName: 'Berglunds snabbköp',
+          shipCountry: 'Sweden',
+          shipAddress: 'Berguvsvägen 8',
+          orderDate: '2024-08-10',
+        },
       ],
     },
   ]);
@@ -1359,8 +2000,8 @@ export class TableDemoComponent {
   onCellEdit(event: CellEditEvent<User>) {
     console.log('Cell edit:', event);
     // Apply the edit to the data
-    this.editableUsers.update(users =>
-      users.map(u => {
+    this.editableUsers.update((users) =>
+      users.map((u) => {
         if (u === event.row) {
           return { ...u, [event.field]: event.newValue };
         }
@@ -1386,7 +2027,7 @@ export class TableDemoComponent {
   onRowReorder(event: RowReorderEvent<User>) {
     console.log('Row reorder:', event);
     // Apply the reorder to the data
-    this.reorderableUsers.update(users => {
+    this.reorderableUsers.update((users) => {
       const arr = [...users];
       const [moved] = arr.splice(event.previousIndex, 1);
       arr.splice(event.currentIndex, 0, moved);
@@ -1599,6 +2240,55 @@ const config = createTable<User>({
 
 <hk-table [data]="users()" [config]="config" />`;
 
+  colspanFooterCode = `import { createTable } from '@hakistack/ng-daisyui';
+
+const config = createTable<User>({
+  visible: ['id', 'name', 'department', 'salary', 'status'],
+  formatters: { salary: ['currency', 'USD'] },
+  footerRows: [
+    {
+      // Use 'cells' array instead of 'columns' for colspan layout
+      cells: [
+        { colspan: 3 },  // empty spacer spanning 3 columns
+        { colspan: 1, fn: 'sum', field: 'salary', label: 'Total',
+          format: (v) => \`$\${v.toLocaleString()}\` },
+        { colspan: 1, fn: 'count', field: 'id', label: 'Rows' },
+      ],
+    },
+    {
+      cells: [
+        { colspan: 3, label: 'Statistics', class: 'text-right font-bold' },
+        { colspan: 1, fn: 'avg', field: 'salary', label: 'Avg',
+          format: (v) => \`$\${Math.round(v).toLocaleString()}\` },
+        { colspan: 1, fn: 'distinctCount', field: 'department', label: 'Depts' },
+      ],
+    },
+  ],
+});
+
+<hk-table [data]="users()" [config]="config" />`;
+
+  customFooterCode = `import { HkFooterDirective } from '@hakistack/ng-daisyui';
+
+// No footer config needed — the template handles everything
+const config = createTable<User>({
+  visible: ['id', 'name', 'department', 'salary', 'status'],
+  formatters: { salary: ['currency', 'USD'] },
+});
+
+// Template — use hkFooter for full layout freedom inside <tfoot>
+<hk-table [data]="users()" [config]="config">
+  <ng-template hkFooter let-data let-columns="columns">
+    <div class="flex items-center justify-between px-2 py-1">
+      <span>{{ data.length }} employees</span>
+      <div class="flex gap-4">
+        <span class="badge badge-success">Total: {{ salaryTotal() }}</span>
+        <span class="badge badge-info">Avg: {{ salaryAvg() }}</span>
+      </div>
+    </div>
+  </ng-template>
+</hk-table>`;
+
   expandableCode = `const config = createTable<User>({
   visible: ['id', 'name', 'role', 'department', 'status'],
   expandableDetail: true,
@@ -1770,112 +2460,358 @@ const config = createTable<Employee>({
 
   // --- TableComponent ---
   tableInputDocs: ApiDocEntry[] = [
-    { name: 'data', type: 'readonly T[] | null', default: 'null', description: 'Array of data rows to render in the table. Accepts flat arrays or hierarchical data for tree tables.' },
-    { name: 'config', type: 'FieldConfiguration<T> | null', default: 'null', description: 'Table configuration object produced by the createTable() builder. Controls columns, formatters, actions, filters, grouping, and all feature flags.' },
-    { name: 'paginationOptions', type: 'PaginationOptions | null', default: 'null', description: 'Pagination configuration. Supports offset (page number) and cursor (opaque token) modes. When null, pagination is hidden.' },
-    { name: 'showFirstLastButtons', type: 'boolean', default: 'true', description: 'Show the "jump to first page" and "jump to last page" buttons in the pagination bar.' },
-    { name: 'hidePageSize', type: 'boolean', default: 'false', description: 'When true, hides the page-size selector in the pagination footer.' },
-    { name: 'showPageSizeOptions', type: 'boolean', default: 'true', description: 'When true, renders the page-size dropdown with the configured pageSizeOptions.' },
-    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables all interactive elements: sorting, filtering, pagination, selection, editing, and drag operations.' },
+    {
+      name: 'data',
+      type: 'readonly T[] | null',
+      default: 'null',
+      description: 'Array of data rows to render in the table. Accepts flat arrays or hierarchical data for tree tables.',
+    },
+    {
+      name: 'config',
+      type: 'FieldConfiguration<T> | null',
+      default: 'null',
+      description:
+        'Table configuration object produced by the createTable() builder. Controls columns, formatters, actions, filters, grouping, and all feature flags.',
+    },
+    {
+      name: 'paginationOptions',
+      type: 'PaginationOptions | null',
+      default: 'null',
+      description:
+        'Pagination configuration. Supports offset (page number) and cursor (opaque token) modes. When null, pagination is hidden.',
+    },
+    {
+      name: 'showFirstLastButtons',
+      type: 'boolean',
+      default: 'true',
+      description: 'Show the "jump to first page" and "jump to last page" buttons in the pagination bar.',
+    },
+    {
+      name: 'hidePageSize',
+      type: 'boolean',
+      default: 'false',
+      description: 'When true, hides the page-size selector in the pagination footer.',
+    },
+    {
+      name: 'showPageSizeOptions',
+      type: 'boolean',
+      default: 'true',
+      description: 'When true, renders the page-size dropdown with the configured pageSizeOptions.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: 'Disables all interactive elements: sorting, filtering, pagination, selection, editing, and drag operations.',
+    },
   ];
 
   tableOutputDocs: ApiDocEntry[] = [
-    { name: 'selectionChange', type: 'readonly T[]', description: 'Emits the current set of selected rows whenever a checkbox is toggled or "select all" is used.' },
-    { name: 'pageChange', type: 'PageSizeChange', description: 'Emits { pageIndex, pageSize } when the user changes page or page size in offset mode.' },
-    { name: 'cursorChange', type: 'CursorPageChange', description: 'Emits { cursor, direction } when the user clicks next/previous in cursor pagination mode.' },
-    { name: 'sortChange', type: 'SortChange', description: 'Emits { field, direction } when a column header is clicked to toggle sorting. Direction cycles: Ascending -> Descending -> none.' },
-    { name: 'sortFieldChange', type: 'string', description: 'Emits the currently sorted field name (or empty string when sort is cleared). Useful for two-way binding scenarios.' },
-    { name: 'sortDirectionChange', type: "'Ascending' | 'Descending' | ''", description: 'Emits the current sort direction. Companion to sortFieldChange for granular sort state tracking.' },
-    { name: 'filterChange', type: 'FilterChange<T>', description: 'Emits when any column filter is applied, removed, or cleared. Payload includes the changed field plus all active filters.' },
-    { name: 'globalSearchChange', type: 'GlobalSearchChange', description: 'Emits { searchTerm, mode } when the global search input value changes (after debounce).' },
-    { name: 'expansionChange', type: '{ row: T; expanded: boolean }', description: 'Emits when a tree-table row is expanded or collapsed via the toggle chevron.' },
-    { name: 'columnResize', type: 'ColumnResizeEvent', description: 'Emits { field, width, previousWidth } when a column resize operation completes.' },
-    { name: 'cellEdit', type: 'CellEditEvent<T>', description: 'Emits { row, field, oldValue, newValue } when an inline cell edit is confirmed (Enter or blur).' },
+    {
+      name: 'selectionChange',
+      type: 'readonly T[]',
+      description: 'Emits the current set of selected rows whenever a checkbox is toggled or "select all" is used.',
+    },
+    {
+      name: 'pageChange',
+      type: 'PageSizeChange',
+      description: 'Emits { pageIndex, pageSize } when the user changes page or page size in offset mode.',
+    },
+    {
+      name: 'cursorChange',
+      type: 'CursorPageChange',
+      description: 'Emits { cursor, direction } when the user clicks next/previous in cursor pagination mode.',
+    },
+    {
+      name: 'sortChange',
+      type: 'SortChange',
+      description:
+        'Emits { field, direction } when a column header is clicked to toggle sorting. Direction cycles: Ascending -> Descending -> none.',
+    },
+    {
+      name: 'sortFieldChange',
+      type: 'string',
+      description: 'Emits the currently sorted field name (or empty string when sort is cleared). Useful for two-way binding scenarios.',
+    },
+    {
+      name: 'sortDirectionChange',
+      type: "'Ascending' | 'Descending' | ''",
+      description: 'Emits the current sort direction. Companion to sortFieldChange for granular sort state tracking.',
+    },
+    {
+      name: 'filterChange',
+      type: 'FilterChange<T>',
+      description:
+        'Emits when any column filter is applied, removed, or cleared. Payload includes the changed field plus all active filters.',
+    },
+    {
+      name: 'globalSearchChange',
+      type: 'GlobalSearchChange',
+      description: 'Emits { searchTerm, mode } when the global search input value changes (after debounce).',
+    },
+    {
+      name: 'expansionChange',
+      type: '{ row: T; expanded: boolean }',
+      description: 'Emits when a tree-table row is expanded or collapsed via the toggle chevron.',
+    },
+    {
+      name: 'columnResize',
+      type: 'ColumnResizeEvent',
+      description: 'Emits { field, width, previousWidth } when a column resize operation completes.',
+    },
+    {
+      name: 'cellEdit',
+      type: 'CellEditEvent<T>',
+      description: 'Emits { row, field, oldValue, newValue } when an inline cell edit is confirmed (Enter or blur).',
+    },
     { name: 'cellEditCancel', type: '{ row: T; field: string }', description: 'Emits when an inline cell edit is cancelled via Escape.' },
-    { name: 'cellEditError', type: 'CellEditErrorEvent<T>', description: 'Emits { row, field, value, error } when a cell edit fails the column validator.' },
-    { name: 'detailExpansionChange', type: 'RowExpandEvent<T>', description: 'Emits { row, expanded } when an expandable detail row is expanded or collapsed.' },
-    { name: 'columnReorder', type: 'ColumnReorderEvent', description: 'Emits { previousIndex, currentIndex, columns } when a column is dragged to a new position.' },
-    { name: 'rowReorder', type: 'RowReorderEvent<T>', description: 'Emits { row, previousIndex, currentIndex, data } when a row is dragged to a new position.' },
-    { name: 'groupExpandChange', type: 'GroupExpandEvent', description: 'Emits { groupValue, expanded } when a row group header is toggled.' },
-    { name: 'rowClick', type: 'T', description: 'Emits the row object when any data row is clicked. Fires for all click interactions regardless of selectableRows mode.' },
-    { name: 'masterDetailRowChange', type: 'T', description: 'Emits the row object when the selected row in a master-detail layout changes.' },
-    { name: 'activeRowChange', type: 'T | null', description: 'Emits the active row (or null on deselect) when selectableRows is true or "single". Only one row is active at a time.' },
-    { name: 'activeRowsChange', type: 'readonly T[]', description: 'Emits the full array of active rows when selectableRows is "multi". Users toggle rows by clicking.' },
+    {
+      name: 'cellEditError',
+      type: 'CellEditErrorEvent<T>',
+      description: 'Emits { row, field, value, error } when a cell edit fails the column validator.',
+    },
+    {
+      name: 'detailExpansionChange',
+      type: 'RowExpandEvent<T>',
+      description: 'Emits { row, expanded } when an expandable detail row is expanded or collapsed.',
+    },
+    {
+      name: 'columnReorder',
+      type: 'ColumnReorderEvent',
+      description: 'Emits { previousIndex, currentIndex, columns } when a column is dragged to a new position.',
+    },
+    {
+      name: 'rowReorder',
+      type: 'RowReorderEvent<T>',
+      description: 'Emits { row, previousIndex, currentIndex, data } when a row is dragged to a new position.',
+    },
+    {
+      name: 'groupExpandChange',
+      type: 'GroupExpandEvent',
+      description: 'Emits { groupValue, expanded } when a row group header is toggled.',
+    },
+    {
+      name: 'rowClick',
+      type: 'T',
+      description: 'Emits the row object when any data row is clicked. Fires for all click interactions regardless of selectableRows mode.',
+    },
+    {
+      name: 'masterDetailRowChange',
+      type: 'T',
+      description: 'Emits the row object when the selected row in a master-detail layout changes.',
+    },
+    {
+      name: 'activeRowChange',
+      type: 'T | null',
+      description: 'Emits the active row (or null on deselect) when selectableRows is true or "single". Only one row is active at a time.',
+    },
+    {
+      name: 'activeRowsChange',
+      type: 'readonly T[]',
+      description: 'Emits the full array of active rows when selectableRows is "multi". Users toggle rows by clicking.',
+    },
   ];
 
   tableMethodDocs: ApiDocEntry[] = [
-    { name: 'firstPage()', type: 'void', description: 'Navigate to the first page (offset mode). No-op if already on first page or disabled.' },
-    { name: 'previousPage()', type: 'void', description: 'Navigate to the previous page (offset mode). No-op if on first page or disabled.' },
+    {
+      name: 'firstPage()',
+      type: 'void',
+      description: 'Navigate to the first page (offset mode). No-op if already on first page or disabled.',
+    },
+    {
+      name: 'previousPage()',
+      type: 'void',
+      description: 'Navigate to the previous page (offset mode). No-op if on first page or disabled.',
+    },
     { name: 'nextPage()', type: 'void', description: 'Navigate to the next page (offset mode). No-op if on last page or disabled.' },
-    { name: 'lastPage()', type: 'void', description: 'Navigate to the last page (offset mode). No-op if already on last page or disabled.' },
-    { name: 'gotoPage(pageNumber)', type: 'void', description: 'Jump to a specific page by 1-based page number. Bounds-checked and no-op if disabled.' },
+    {
+      name: 'lastPage()',
+      type: 'void',
+      description: 'Navigate to the last page (offset mode). No-op if already on last page or disabled.',
+    },
+    {
+      name: 'gotoPage(pageNumber)',
+      type: 'void',
+      description: 'Jump to a specific page by 1-based page number. Bounds-checked and no-op if disabled.',
+    },
     { name: 'clearSelection()', type: 'void', description: 'Deselect all rows and emit an empty selectionChange event.' },
-    { name: 'sort(field)', type: 'void', description: 'Programmatically toggle sorting on the given field. Cycles: Ascending -> Descending -> none. Resets to first page in offset mode.' },
-    { name: 'applyColumnFilter(field, value, operator)', type: 'void', description: 'Programmatically apply a filter to a column. Replaces any existing filter on the same field and resets to first page.' },
-    { name: 'removeFilter(field)', type: 'void', description: 'Remove the active filter for a specific column field and reset to first page.' },
-    { name: 'clearAllFilters()', type: 'void', description: 'Remove all active column filters, close filter dropdowns, and reset to first page.' },
+    {
+      name: 'sort(field)',
+      type: 'void',
+      description:
+        'Programmatically toggle sorting on the given field. Cycles: Ascending -> Descending -> none. Resets to first page in offset mode.',
+    },
+    {
+      name: 'applyColumnFilter(field, value, operator)',
+      type: 'void',
+      description: 'Programmatically apply a filter to a column. Replaces any existing filter on the same field and resets to first page.',
+    },
+    {
+      name: 'removeFilter(field)',
+      type: 'void',
+      description: 'Remove the active filter for a specific column field and reset to first page.',
+    },
+    {
+      name: 'clearAllFilters()',
+      type: 'void',
+      description: 'Remove all active column filters, close filter dropdowns, and reset to first page.',
+    },
     { name: 'clearGlobalSearch()', type: 'void', description: 'Clear the global search term and any pending debounce timeout.' },
-    { name: 'toggleColumnVisibility(field)', type: 'void', description: 'Toggle a column between visible/hidden. Respects alwaysVisible and minimum-one-column rules. Persists to localStorage if storageKey is set.' },
+    {
+      name: 'toggleColumnVisibility(field)',
+      type: 'void',
+      description:
+        'Toggle a column between visible/hidden. Respects alwaysVisible and minimum-one-column rules. Persists to localStorage if storageKey is set.',
+    },
     { name: 'showAllColumns()', type: 'void', description: 'Make all columns visible. Persists to localStorage if storageKey is set.' },
-    { name: 'hideAllColumns()', type: 'void', description: 'Hide all optional columns, keeping alwaysVisible columns and at least one column shown. Persists to localStorage.' },
-    { name: 'resetColumnVisibility()', type: 'void', description: 'Reset column visibility to defaultVisible (if configured) or show all. Persists to localStorage.' },
+    {
+      name: 'hideAllColumns()',
+      type: 'void',
+      description: 'Hide all optional columns, keeping alwaysVisible columns and at least one column shown. Persists to localStorage.',
+    },
+    {
+      name: 'resetColumnVisibility()',
+      type: 'void',
+      description: 'Reset column visibility to defaultVisible (if configured) or show all. Persists to localStorage.',
+    },
     { name: 'expandAllDetails()', type: 'void', description: 'Expand all expandable detail rows (expandableDetail mode).' },
     { name: 'collapseAllDetails()', type: 'void', description: 'Collapse all expandable detail rows.' },
     { name: 'expandAllGroups()', type: 'void', description: 'Expand all row groups (grouping mode).' },
     { name: 'collapseAllGroups()', type: 'void', description: 'Collapse all row groups.' },
     { name: 'expandAllRows()', type: 'void', description: 'Expand all tree-table rows at every level (tree-table mode).' },
     { name: 'collapseAllRows()', type: 'void', description: 'Collapse all tree-table rows.' },
-    { name: 'expandToLevel(level)', type: 'void', description: 'Expand tree rows down to the given depth (0 = roots only, 1 = roots + first children, etc.).' },
-    { name: 'collapseToLevel(level)', type: 'void', description: 'Collapse tree rows below the given depth, keeping higher levels expanded.' },
+    {
+      name: 'expandToLevel(level)',
+      type: 'void',
+      description: 'Expand tree rows down to the given depth (0 = roots only, 1 = roots + first children, etc.).',
+    },
+    {
+      name: 'collapseToLevel(level)',
+      type: 'void',
+      description: 'Collapse tree rows below the given depth, keeping higher levels expanded.',
+    },
     { name: 'startEdit(row, field)', type: 'void', description: 'Programmatically enter inline edit mode for a specific cell.' },
-    { name: 'confirmEdit()', type: 'void', description: 'Confirm the currently active inline edit, running validation and emitting cellEdit or cellEditError.' },
+    {
+      name: 'confirmEdit()',
+      type: 'void',
+      description: 'Confirm the currently active inline edit, running validation and emitting cellEdit or cellEditError.',
+    },
     { name: 'cancelEdit()', type: 'void', description: 'Cancel the currently active inline edit without saving, emitting cellEditCancel.' },
     { name: 'toggleRowExpand(row)', type: 'void', description: 'Toggle tree-table row expand/collapse state for a specific row.' },
-    { name: 'toggleDetailExpand(row)', type: 'void', description: 'Toggle expandable detail row state for a specific row. Respects expandMode (single/multi).' },
-    { name: 'toggleGroupExpand(groupValue)', type: 'void', description: 'Toggle expand/collapse state of a specific row group by its group value.' },
+    {
+      name: 'toggleDetailExpand(row)',
+      type: 'void',
+      description: 'Toggle expandable detail row state for a specific row. Respects expandMode (single/multi).',
+    },
+    {
+      name: 'toggleGroupExpand(groupValue)',
+      type: 'void',
+      description: 'Toggle expand/collapse state of a specific row group by its group value.',
+    },
   ];
 
   tableContentDocs: ApiDocEntry[] = [
-    { name: '#rowDetail', type: 'TemplateRef<{ $implicit: T }>', description: 'Template for the expandable detail row content. The row object is available via let-row. Required when expandableDetail is true.' },
-    { name: '#tableFooter', type: 'TemplateRef<{ $implicit: readonly T[]; columns: readonly ColumnDefinition<T>[] }>', description: 'Custom footer template rendered between the table body and pagination. Receives all data rows and column definitions as context.' },
+    {
+      name: '#rowDetail',
+      type: 'TemplateRef<{ $implicit: T }>',
+      description:
+        'Template for the expandable detail row content. The row object is available via let-row. Required when expandableDetail is true.',
+    },
+    {
+      name: '#tableFooter',
+      type: 'TemplateRef<{ $implicit: readonly T[]; columns: readonly ColumnDefinition<T>[] }>',
+      description:
+        'Custom footer template rendered between the table body and pagination. Receives all data rows and column definitions as context.',
+    },
   ];
 
   // --- TablePaginationComponent ---
   paginationInputDocs: ApiDocEntry[] = [
-    { name: 'paginationOptions', type: 'PaginationOptions | null', default: 'null', description: 'Full pagination configuration object. Controls mode, cursors, page size, size options, and total items.' },
-    { name: 'totalItems', type: 'number', default: '0', description: 'Total number of items (fallback when paginationOptions.totalItems is not set).' },
-    { name: 'showFirstLastButtons', type: 'boolean', default: 'true', description: 'Show the first-page and last-page navigation buttons (offset mode only).' },
+    {
+      name: 'paginationOptions',
+      type: 'PaginationOptions | null',
+      default: 'null',
+      description: 'Full pagination configuration object. Controls mode, cursors, page size, size options, and total items.',
+    },
+    {
+      name: 'totalItems',
+      type: 'number',
+      default: '0',
+      description: 'Total number of items (fallback when paginationOptions.totalItems is not set).',
+    },
+    {
+      name: 'showFirstLastButtons',
+      type: 'boolean',
+      default: 'true',
+      description: 'Show the first-page and last-page navigation buttons (offset mode only).',
+    },
     { name: 'hidePageSize', type: 'boolean', default: 'false', description: 'When true, hides the page-size selector entirely.' },
     { name: 'showPageSizeOptions', type: 'boolean', default: 'true', description: 'When true, renders the page-size dropdown.' },
     { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables all pagination buttons and the page-size selector.' },
     { name: 'pageIndex', type: 'number', default: '0', description: 'Current 0-based page index (offset mode).' },
-    { name: 'pageSize', type: 'number', default: '10', description: 'Current page size (fallback when paginationOptions.pageSize is not set).' },
+    {
+      name: 'pageSize',
+      type: 'number',
+      default: '10',
+      description: 'Current page size (fallback when paginationOptions.pageSize is not set).',
+    },
   ];
 
   paginationOutputDocs: ApiDocEntry[] = [
-    { name: 'pageChange', type: 'PageSizeChange', description: 'Emits { pageIndex, pageSize } when the user navigates to a different page or changes page size (offset mode).' },
-    { name: 'cursorChange', type: 'CursorPageChange', description: 'Emits { cursor, direction } when the user clicks next/previous in cursor mode.' },
+    {
+      name: 'pageChange',
+      type: 'PageSizeChange',
+      description: 'Emits { pageIndex, pageSize } when the user navigates to a different page or changes page size (offset mode).',
+    },
+    {
+      name: 'cursorChange',
+      type: 'CursorPageChange',
+      description: 'Emits { cursor, direction } when the user clicks next/previous in cursor mode.',
+    },
   ];
 
   // --- TableFilterComponent ---
   filterInputDocs: ApiDocEntry[] = [
     { name: 'column', type: 'ColumnDefinition<T>', description: 'The column definition that this filter applies to. Required.' },
-    { name: 'filterConfig', type: 'ColumnFilter<T>', description: 'Filter configuration specifying the filter type (text, number, select, multiselect, boolean, date, numberRange, dateRange), available options, and default operator. Required.' },
-    { name: 'activeFilter', type: 'FilterConfig<T>', description: 'The currently active filter state for this column, used to pre-populate the filter UI on open.' },
+    {
+      name: 'filterConfig',
+      type: 'ColumnFilter<T>',
+      description:
+        'Filter configuration specifying the filter type (text, number, select, multiselect, boolean, date, numberRange, dateRange), available options, and default operator. Required.',
+    },
+    {
+      name: 'activeFilter',
+      type: 'FilterConfig<T>',
+      description: 'The currently active filter state for this column, used to pre-populate the filter UI on open.',
+    },
   ];
 
   filterOutputDocs: ApiDocEntry[] = [
-    { name: 'apply', type: 'FilterApplyEvent', description: 'Emits { value, operator } when the user clicks Apply or presses Enter. Value is null when the filter is cleared.' },
+    {
+      name: 'apply',
+      type: 'FilterApplyEvent',
+      description: 'Emits { value, operator } when the user clicks Apply or presses Enter. Value is null when the filter is cleared.',
+    },
     { name: 'closeFilter', type: 'void', description: 'Emits when the filter dropdown should close (after apply, clear, or cancel).' },
   ];
 
   // --- TableGlobalSearchComponent ---
   globalSearchInputDocs: ApiDocEntry[] = [
     { name: 'searchTerm', type: 'string', default: "''", description: 'Current search term value, used for controlled binding.' },
-    { name: 'placeholder', type: 'string', default: "'Search all columns...'", description: 'Placeholder text displayed inside the search input.' },
+    {
+      name: 'placeholder',
+      type: 'string',
+      default: "'Search all columns...'",
+      description: 'Placeholder text displayed inside the search input.',
+    },
     { name: 'showIcon', type: 'boolean', default: 'true', description: 'Show the magnifying glass icon before the input.' },
     { name: 'showClearButton', type: 'boolean', default: 'true', description: 'Show the X clear button when a search term is present.' },
-    { name: 'hasSearchTerm', type: 'boolean', default: 'false', description: 'Whether a search term is currently active. Controls clear button visibility.' },
+    {
+      name: 'hasSearchTerm',
+      type: 'boolean',
+      default: 'false',
+      description: 'Whether a search term is currently active. Controls clear button visibility.',
+    },
   ];
 
   globalSearchOutputDocs: ApiDocEntry[] = [
@@ -1885,9 +2821,22 @@ const config = createTable<Employee>({
 
   // --- TableColumnVisibilityComponent ---
   colVisInputDocs: ApiDocEntry[] = [
-    { name: 'columns', type: 'ColumnDefinition<T>[]', description: 'Array of all column definitions to display in the visibility toggle dropdown. Required.' },
-    { name: 'visibilityState', type: 'Map<string, boolean>', description: 'Map of field name to visibility boolean. Columns not in the map default to visible. Required.' },
-    { name: 'alwaysVisibleColumns', type: 'Set<string>', default: 'new Set()', description: 'Set of field names that cannot be hidden. Shown with a lock icon in the dropdown.' },
+    {
+      name: 'columns',
+      type: 'ColumnDefinition<T>[]',
+      description: 'Array of all column definitions to display in the visibility toggle dropdown. Required.',
+    },
+    {
+      name: 'visibilityState',
+      type: 'Map<string, boolean>',
+      description: 'Map of field name to visibility boolean. Columns not in the map default to visible. Required.',
+    },
+    {
+      name: 'alwaysVisibleColumns',
+      type: 'Set<string>',
+      default: 'new Set()',
+      description: 'Set of field names that cannot be hidden. Shown with a lock icon in the dropdown.',
+    },
   ];
 
   colVisOutputDocs: ApiDocEntry[] = [
@@ -1902,54 +2851,173 @@ const config = createTable<Employee>({
   // =========================================================================
 
   builderFieldConfigDocs: ApiDocEntry[] = [
-    { name: 'visible', type: 'StringKey<T>[]', description: 'Columns to display, in order. Each entry maps to a property key on the data object.' },
+    {
+      name: 'visible',
+      type: 'StringKey<T>[]',
+      description: 'Columns to display, in order. Each entry maps to a property key on the data object.',
+    },
     { name: 'hidden', type: 'StringKey<T>[]', default: '[]', description: 'Columns to exclude from the table.' },
-    { name: 'headers', type: 'Partial<Record<StringKey<T>, string>>', description: 'Custom header labels. Keys not specified default to the field name.' },
-    { name: 'formatters', type: 'Partial<Record<StringKey<T>, Formatter<T>>>', description: 'Cell formatters per column. Can be a function (value, row) => string, or a PipeFormatter tuple like [\'currency\', \'USD\'].' },
-    { name: 'fallbacks', type: 'Partial<Record<StringKey<T>, string>>', description: 'Fallback text displayed when a cell value is null or undefined.' },
+    {
+      name: 'headers',
+      type: 'Partial<Record<StringKey<T>, string>>',
+      description: 'Custom header labels. Keys not specified default to the field name.',
+    },
+    {
+      name: 'formatters',
+      type: 'Partial<Record<StringKey<T>, Formatter<T>>>',
+      description:
+        "Cell formatters per column. Can be a function (value, row) => string, or a PipeFormatter tuple like ['currency', 'USD'].",
+    },
+    {
+      name: 'fallbacks',
+      type: 'Partial<Record<StringKey<T>, string>>',
+      description: 'Fallback text displayed when a cell value is null or undefined.',
+    },
     { name: 'hasSelection', type: 'boolean', default: 'false', description: 'Show a checkbox column for row selection.' },
     { name: 'hasActions', type: 'boolean', default: 'false', description: 'Show an actions column with per-row action buttons.' },
-    { name: 'selectableRows', type: "boolean | 'single' | 'multi'", default: 'false', description: 'Enable click-to-highlight rows. true or \'single\' highlights one row at a time; \'multi\' allows toggling multiple rows.' },
+    {
+      name: 'selectableRows',
+      type: "boolean | 'single' | 'multi'",
+      default: 'false',
+      description: "Enable click-to-highlight rows. true or 'single' highlights one row at a time; 'multi' allows toggling multiple rows.",
+    },
     { name: 'selectedRowClass', type: 'string', default: "'bg-primary/10'", description: 'CSS class applied to the active/selected row.' },
-    { name: 'rowClass', type: '(row: T) => Record<string, boolean>', description: 'Callback to apply conditional CSS classes per row. Returns an ngClass-style object.' },
-    { name: 'actions', type: 'TableAction<T>[]', description: 'Array of per-row action button definitions (type, label, icon, action handler, etc.).' },
-    { name: 'bulkActions', type: 'TableBulkAction<T>[]', description: 'Bulk action buttons shown when rows are selected. Can render as dropdown with dropdownOptions.' },
-    { name: 'filters', type: 'ColumnFilter<T>[]', description: 'Column filter definitions. Each entry specifies field, type, options, and default operator.' },
+    {
+      name: 'rowClass',
+      type: '(row: T) => Record<string, boolean>',
+      description: 'Callback to apply conditional CSS classes per row. Returns an ngClass-style object.',
+    },
+    {
+      name: 'actions',
+      type: 'TableAction<T>[]',
+      description: 'Array of per-row action button definitions (type, label, icon, action handler, etc.).',
+    },
+    {
+      name: 'bulkActions',
+      type: 'TableBulkAction<T>[]',
+      description: 'Bulk action buttons shown when rows are selected. Can render as dropdown with dropdownOptions.',
+    },
+    {
+      name: 'filters',
+      type: 'ColumnFilter<T>[]',
+      description: 'Column filter definitions. Each entry specifies field, type, options, and default operator.',
+    },
     { name: 'enableFiltering', type: 'boolean', description: 'Master toggle for enabling/disabling column filtering.' },
-    { name: 'globalSearch', type: 'GlobalSearchConfig<T>', description: 'Global search configuration. Set enabled: true to activate the search bar above the table.' },
-    { name: 'columnVisibility', type: 'ColumnVisibilityConfig', description: 'Column visibility toggle configuration. Allows users to show/hide columns via a dropdown.' },
-    { name: 'treeTable', type: 'TreeTableConfig<T>', description: 'Tree table configuration for hierarchical data with expand/collapse, indent guides, and checkbox cascade.' },
-    { name: 'stickyColumns', type: '{ stickySelection?: boolean; stickyActions?: boolean }', description: 'Pin the selection checkbox and/or actions column during horizontal scroll.' },
+    {
+      name: 'globalSearch',
+      type: 'GlobalSearchConfig<T>',
+      description: 'Global search configuration. Set enabled: true to activate the search bar above the table.',
+    },
+    {
+      name: 'columnVisibility',
+      type: 'ColumnVisibilityConfig',
+      description: 'Column visibility toggle configuration. Allows users to show/hide columns via a dropdown.',
+    },
+    {
+      name: 'treeTable',
+      type: 'TreeTableConfig<T>',
+      description: 'Tree table configuration for hierarchical data with expand/collapse, indent guides, and checkbox cascade.',
+    },
+    {
+      name: 'stickyColumns',
+      type: '{ stickySelection?: boolean; stickyActions?: boolean }',
+      description: 'Pin the selection checkbox and/or actions column during horizontal scroll.',
+    },
     { name: 'enableColumnResizing', type: 'boolean', default: 'false', description: 'Enable column resize handles on column borders.' },
     { name: 'columnWidths', type: 'Partial<Record<StringKey<T>, number>>', description: 'Initial column widths in pixels.' },
-    { name: 'resizeMode', type: "'fit' | 'expand'", default: "'expand'", description: '\'fit\' adjusts the neighboring column; \'expand\' changes the table width.' },
-    { name: 'virtualScroll', type: 'VirtualScrollConfig', description: 'Virtual scrolling configuration for large datasets. Pagination is automatically hidden.' },
+    {
+      name: 'resizeMode',
+      type: "'fit' | 'expand'",
+      default: "'expand'",
+      description: "'fit' adjusts the neighboring column; 'expand' changes the table width.",
+    },
+    {
+      name: 'virtualScroll',
+      type: 'VirtualScrollConfig',
+      description: 'Virtual scrolling configuration for large datasets. Pagination is automatically hidden.',
+    },
     { name: 'enableInlineEditing', type: 'boolean', default: 'false', description: 'Enable double-click inline cell editing.' },
-    { name: 'cellEditors', type: 'Partial<Record<StringKey<T>, CellEditorConfig>>', description: 'Per-field editor configuration (type, options, validator).' },
+    {
+      name: 'cellEditors',
+      type: 'Partial<Record<StringKey<T>, CellEditorConfig>>',
+      description: 'Per-field editor configuration (type, options, validator).',
+    },
     { name: 'showFooter', type: 'boolean', default: 'false', description: 'Show a legacy single-row footer with aggregate values.' },
-    { name: 'footers', type: 'Partial<Record<StringKey<T>, AggregateFunction | FooterConfig<T>>>', description: 'Legacy single-row footer aggregates per column. Use footerRows for multi-row footers.' },
-    { name: 'footerRows', type: 'FooterRowDef<T>[]', description: 'Multi-row footer definitions. Each entry defines one footer row with per-column aggregates.' },
-    { name: 'expandableDetail', type: 'boolean', default: 'false', description: 'Enable expandable detail rows. Requires a #rowDetail template in the table content.' },
-    { name: 'expandMode', type: "'single' | 'multi'", default: "'multi'", description: '\'single\' collapses others when one row expands; \'multi\' allows many expanded.' },
-    { name: 'enableKeyboardNavigation', type: 'boolean', default: 'false', description: 'Enable arrow key cell navigation, Enter to edit, Space to toggle selection.' },
+    {
+      name: 'footers',
+      type: 'Partial<Record<StringKey<T>, AggregateFunction | FooterConfig<T>>>',
+      description: 'Legacy single-row footer aggregates per column. Use footerRows for multi-row footers.',
+    },
+    {
+      name: 'footerRows',
+      type: 'FooterRowDef<T>[]',
+      description: 'Multi-row footer definitions. Each entry defines one footer row with per-column aggregates.',
+    },
+    {
+      name: 'expandableDetail',
+      type: 'boolean',
+      default: 'false',
+      description: 'Enable expandable detail rows. Requires a #rowDetail template in the table content.',
+    },
+    {
+      name: 'expandMode',
+      type: "'single' | 'multi'",
+      default: "'multi'",
+      description: "'single' collapses others when one row expands; 'multi' allows many expanded.",
+    },
+    {
+      name: 'enableKeyboardNavigation',
+      type: 'boolean',
+      default: 'false',
+      description: 'Enable arrow key cell navigation, Enter to edit, Space to toggle selection.',
+    },
     { name: 'enableColumnReorder', type: 'boolean', default: 'false', description: 'Enable drag-and-drop column header reordering.' },
     { name: 'enableRowReorder', type: 'boolean', default: 'false', description: 'Enable drag-and-drop row reordering.' },
     { name: 'showDragHandle', type: 'boolean', default: 'true', description: 'Show a grip icon column for row drag-and-drop reordering.' },
-    { name: 'grouping', type: 'GroupConfig<T>', description: 'Row grouping configuration with group headers, caption aggregates, and multi-row group footers.' },
+    {
+      name: 'grouping',
+      type: 'GroupConfig<T>',
+      description: 'Row grouping configuration with group headers, caption aggregates, and multi-row group footers.',
+    },
     { name: 'childGrid', type: 'ChildGridConfig<T>', description: 'Hierarchy grid configuration for expandable nested child tables.' },
-    { name: 'masterDetail', type: 'MasterDetailConfig<T>', description: 'Master-detail layout configuration for stacked master/detail tables.' },
+    {
+      name: 'masterDetail',
+      type: 'MasterDetailConfig<T>',
+      description: 'Master-detail layout configuration for stacked master/detail tables.',
+    },
   ];
 
   builderPaginationDocs: ApiDocEntry[] = [
-    { name: 'mode', type: "'cursor' | 'offset'", description: 'Pagination strategy. \'offset\' uses page numbers; \'cursor\' uses opaque tokens for next/prev navigation.' },
+    {
+      name: 'mode',
+      type: "'cursor' | 'offset'",
+      description: "Pagination strategy. 'offset' uses page numbers; 'cursor' uses opaque tokens for next/prev navigation.",
+    },
     { name: 'pageSize', type: 'number', description: 'Number of items displayed per page.' },
-    { name: 'pageSizeOptions', type: 'number[]', default: '[5, 10, 25, 50, 100]', description: 'Dropdown options for changing the page size.' },
+    {
+      name: 'pageSizeOptions',
+      type: 'number[]',
+      default: '[5, 10, 25, 50, 100]',
+      description: 'Dropdown options for changing the page size.',
+    },
     { name: 'totalItems', type: 'number', description: 'Total item count used for calculating total pages in offset mode.' },
-    { name: 'nextCursor', type: 'string | null', description: 'Next page cursor token (cursor mode only). Set to null when no more pages.' },
-    { name: 'prevCursor', type: 'string | null', description: 'Previous page cursor token (cursor mode only). Set to null on the first page.' },
+    {
+      name: 'nextCursor',
+      type: 'string | null',
+      description: 'Next page cursor token (cursor mode only). Set to null when no more pages.',
+    },
+    {
+      name: 'prevCursor',
+      type: 'string | null',
+      description: 'Previous page cursor token (cursor mode only). Set to null on the first page.',
+    },
     { name: 'showQuickJumper', type: 'boolean', default: 'false', description: 'Show a "go to page" input for quick navigation.' },
     { name: 'showSizeChanger', type: 'boolean', default: 'false', description: 'Show the page size changer dropdown.' },
-    { name: 'showTotal', type: 'boolean | ((total, range) => string)', description: 'Show the total item count. Can be a boolean or a function returning a custom string.' },
+    {
+      name: 'showTotal',
+      type: 'boolean | ((total, range) => string)',
+      description: 'Show the total item count. Can be a boolean or a function returning a custom string.',
+    },
   ];
 
   // =========================================================================
@@ -1957,14 +3025,22 @@ const config = createTable<Employee>({
   // =========================================================================
 
   filterTypeEnumDocs: ApiDocEntry[] = [
-    { name: 'text', type: 'FilterType', description: 'Free-text input filter with string operators (contains, startsWith, endsWith, equals, etc.).' },
-    { name: 'number', type: 'FilterType', description: 'Numeric input filter with comparison operators (equals, gt, lt, gte, lte, between).' },
+    {
+      name: 'text',
+      type: 'FilterType',
+      description: 'Free-text input filter with string operators (contains, startsWith, endsWith, equals, etc.).',
+    },
+    {
+      name: 'number',
+      type: 'FilterType',
+      description: 'Numeric input filter with comparison operators (equals, gt, lt, gte, lte, between).',
+    },
     { name: 'date', type: 'FilterType', description: 'Date picker filter with date comparison operators.' },
     { name: 'select', type: 'FilterType', description: 'Single-select dropdown filter. Requires options array.' },
-    { name: 'multiselect', type: 'FilterType', description: 'Multi-select dropdown filter. Uses \'in\' operator by default.' },
+    { name: 'multiselect', type: 'FilterType', description: "Multi-select dropdown filter. Uses 'in' operator by default." },
     { name: 'boolean', type: 'FilterType', description: 'Toggle/checkbox filter for boolean fields.' },
-    { name: 'dateRange', type: 'FilterType', description: 'Date range picker filter. Uses \'between\' operator.' },
-    { name: 'numberRange', type: 'FilterType', description: 'Numeric range filter with min/max inputs. Uses \'between\' operator.' },
+    { name: 'dateRange', type: 'FilterType', description: "Date range picker filter. Uses 'between' operator." },
+    { name: 'numberRange', type: 'FilterType', description: "Numeric range filter with min/max inputs. Uses 'between' operator." },
   ];
 
   filterOperatorEnumDocs: ApiDocEntry[] = [
@@ -1986,24 +3062,50 @@ const config = createTable<Employee>({
   ];
 
   columnFilterInterfaceDocs: ApiDocEntry[] = [
-    { name: 'type', type: 'FilterType', description: 'UI widget type for the filter (text, number, date, select, multiselect, boolean, dateRange, numberRange).' },
+    {
+      name: 'type',
+      type: 'FilterType',
+      description: 'UI widget type for the filter (text, number, date, select, multiselect, boolean, dateRange, numberRange).',
+    },
     { name: 'field', type: 'StringKey<T>', description: 'Column field this filter applies to.' },
-    { name: 'operators', type: 'FilterOperator[]', description: 'Available operators the user can choose from. Defaults vary by filter type.' },
-    { name: 'options', type: 'FilterOption[]', description: 'Options for select and multiselect filter types. Each option has a label and value.' },
+    {
+      name: 'operators',
+      type: 'FilterOperator[]',
+      description: 'Available operators the user can choose from. Defaults vary by filter type.',
+    },
+    {
+      name: 'options',
+      type: 'FilterOption[]',
+      description: 'Options for select and multiselect filter types. Each option has a label and value.',
+    },
     { name: 'placeholder', type: 'string', description: 'Placeholder text for the filter input.' },
     { name: 'defaultOperator', type: 'FilterOperator', description: 'Initial operator selected when the filter is opened.' },
   ];
 
   globalSearchConfigDocs: ApiDocEntry[] = [
     { name: 'enabled', type: 'boolean', description: 'Enable the global search feature. Shows a search bar above the table.' },
-    { name: 'mode', type: "GlobalSearchMode", default: "'contains'", description: 'Search strategy: \'contains\', \'startsWith\', \'exact\', or \'fuzzy\' (Fuse.js powered).' },
+    {
+      name: 'mode',
+      type: 'GlobalSearchMode',
+      default: "'contains'",
+      description: "Search strategy: 'contains', 'startsWith', 'exact', or 'fuzzy' (Fuse.js powered).",
+    },
     { name: 'placeholder', type: 'string', default: "'Search all columns...'", description: 'Placeholder text in the search input.' },
     { name: 'debounceTime', type: 'number', default: '300', description: 'Debounce delay in milliseconds before search is executed.' },
-    { name: 'caseSensitive', type: 'boolean', default: 'false', description: 'Enable case-sensitive search. Only applies to non-fuzzy modes.' },
+    {
+      name: 'caseSensitive',
+      type: 'boolean',
+      default: 'false',
+      description: 'Enable case-sensitive search. Only applies to non-fuzzy modes.',
+    },
     { name: 'showIcon', type: 'boolean', default: 'true', description: 'Show the magnifying glass icon in the search input.' },
     { name: 'showClearButton', type: 'boolean', default: 'true', description: 'Show the clear (X) button when a search term is present.' },
     { name: 'excludeFields', type: 'StringKey<T>[]', description: 'Fields to exclude from the global search.' },
-    { name: 'customSearch', type: '(row: T, searchTerm: string) => boolean', description: 'Custom search predicate. When provided, overrides the built-in search logic.' },
+    {
+      name: 'customSearch',
+      type: '(row: T, searchTerm: string) => boolean',
+      description: 'Custom search predicate. When provided, overrides the built-in search logic.',
+    },
     { name: 'fuseOptions', type: 'IFuseOptions<T>', description: 'Fuse.js configuration options for fuzzy search mode.' },
   ];
 

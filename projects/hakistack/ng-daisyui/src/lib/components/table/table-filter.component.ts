@@ -26,13 +26,9 @@ export interface FilterApplyEvent {
       @if (filterConfig().type === 'text') {
         <div class="flex flex-col gap-2">
           <select class="select select-sm" [(ngModel)]="selectedOperator">
-            <option value="contains">Contains</option>
-            <option value="equals">Equals</option>
-            <option value="notEquals">Not Equals</option>
-            <option value="startsWith">Starts With</option>
-            <option value="endsWith">Ends With</option>
-            <option value="isEmpty">Is Empty</option>
-            <option value="isNotEmpty">Is Not Empty</option>
+            @for (op of getTextOperators(); track op.value) {
+              <option [value]="op.value">{{ op.label }}</option>
+            }
           </select>
 
           @if (selectedOperator() !== 'isEmpty' && selectedOperator() !== 'isNotEmpty') {
@@ -51,14 +47,9 @@ export interface FilterApplyEvent {
       @if (filterConfig().type === 'number') {
         <div class="flex flex-col gap-2">
           <select class="select select-sm" [(ngModel)]="selectedOperator">
-            <option value="equals">Equals</option>
-            <option value="notEquals">Not Equals</option>
-            <option value="gt">Greater Than</option>
-            <option value="lt">Less Than</option>
-            <option value="gte">Greater or Equal</option>
-            <option value="lte">Less or Equal</option>
-            <option value="isEmpty">Is Empty</option>
-            <option value="isNotEmpty">Is Not Empty</option>
+            @for (op of getNumberOperators(); track op.value) {
+              <option [value]="op.value">{{ op.label }}</option>
+            }
           </select>
 
           @if (selectedOperator() !== 'isEmpty' && selectedOperator() !== 'isNotEmpty') {
@@ -101,7 +92,12 @@ export interface FilterApplyEvent {
         <div class="flex max-h-48 flex-col gap-2 overflow-y-auto">
           @for (option of filterConfig().options ?? []; track option.value) {
             <label class="flex cursor-pointer items-center gap-2 py-1">
-              <input type="checkbox" class="checkbox checkbox-sm" [checked]="isOptionSelected(option.value)" (change)="toggleMultiSelectOption(option.value)" />
+              <input
+                type="checkbox"
+                class="checkbox checkbox-sm"
+                [checked]="isOptionSelected(option.value)"
+                (change)="toggleMultiSelectOption(option.value)"
+              />
               <span class="text-sm">{{ option.label }}</span>
             </label>
           }
@@ -112,11 +108,9 @@ export interface FilterApplyEvent {
       @if (filterConfig().type === 'date') {
         <div class="flex flex-col gap-2">
           <select class="select select-sm" [(ngModel)]="selectedOperator">
-            <option value="equals">On</option>
-            <option value="gt">After</option>
-            <option value="lt">Before</option>
-            <option value="gte">On or After</option>
-            <option value="lte">On or Before</option>
+            @for (op of getDateOperators(); track op.value) {
+              <option [value]="op.value">{{ op.label }}</option>
+            }
           </select>
 
           <input type="date" class="input input-sm" [(ngModel)]="dateValue" />
@@ -148,9 +142,7 @@ export interface FilterApplyEvent {
           <hk-lucide-icon name="Check" [size]="14"></hk-lucide-icon>
           Apply
         </button>
-        <button type="button" class="btn btn-ghost btn-sm" (click)="onClear()">
-          Clear
-        </button>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="onClear()">Clear</button>
       </div>
     </div>
   `,
@@ -244,7 +236,7 @@ export class TableFilterComponent<T extends object> implements OnInit {
     const index = current.indexOf(value);
 
     if (index > -1) {
-      this.multiSelectValue.set(current.filter(v => v !== value));
+      this.multiSelectValue.set(current.filter((v) => v !== value));
     } else {
       this.multiSelectValue.set([...current, value]);
     }
@@ -317,6 +309,52 @@ export class TableFilterComponent<T extends object> implements OnInit {
 
   private closeDropdown(): void {
     this.closeFilter.emit();
+  }
+
+  getTextOperators(): { value: FilterOperator; label: string }[] {
+    const all: { value: FilterOperator; label: string }[] = [
+      { value: 'contains', label: 'Contains' },
+      { value: 'equals', label: 'Equals' },
+      { value: 'notEquals', label: 'Not Equals' },
+      { value: 'startsWith', label: 'Starts With' },
+      { value: 'endsWith', label: 'Ends With' },
+      { value: 'isEmpty', label: 'Is Empty' },
+      { value: 'isNotEmpty', label: 'Is Not Empty' },
+    ];
+    return this.filterAllowedOperators(all);
+  }
+
+  getNumberOperators(): { value: FilterOperator; label: string }[] {
+    const all: { value: FilterOperator; label: string }[] = [
+      { value: 'equals', label: 'Equals' },
+      { value: 'notEquals', label: 'Not Equals' },
+      { value: 'gt', label: 'Greater Than' },
+      { value: 'lt', label: 'Less Than' },
+      { value: 'gte', label: 'Greater or Equal' },
+      { value: 'lte', label: 'Less or Equal' },
+      { value: 'isEmpty', label: 'Is Empty' },
+      { value: 'isNotEmpty', label: 'Is Not Empty' },
+    ];
+    return this.filterAllowedOperators(all);
+  }
+
+  getDateOperators(): { value: FilterOperator; label: string }[] {
+    const all: { value: FilterOperator; label: string }[] = [
+      { value: 'equals', label: 'On' },
+      { value: 'gt', label: 'After' },
+      { value: 'lt', label: 'Before' },
+      { value: 'gte', label: 'On or After' },
+      { value: 'lte', label: 'On or Before' },
+    ];
+    return this.filterAllowedOperators(all);
+  }
+
+  private filterAllowedOperators(operators: { value: FilterOperator; label: string }[]): { value: FilterOperator; label: string }[] {
+    const allowed = this.filterConfig().operators;
+    if (!allowed || allowed.length === 0) {
+      return operators;
+    }
+    return operators.filter((op) => allowed.includes(op.value));
   }
 
   private getDefaultOperator(): FilterOperator {
