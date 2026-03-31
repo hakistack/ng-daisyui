@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideToast, provideAlert, provideIcons, provideHkTheme } from '@hakistack/ng-daisyui';
+import { provideToast, provideAlert, provideIcons, provideHkTheme, provideFormState } from '@hakistack/ng-daisyui';
 
 import {
   Archive,
@@ -82,6 +82,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideToast(),
     provideAlert(),
+    provideFormState({ mode: 'localStorage' }),
     provideIcons({
       Archive,
       ArrowRight,

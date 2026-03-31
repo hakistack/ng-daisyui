@@ -1,12 +1,22 @@
 import { Component, inject, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
-import { DynamicFormComponent, createForm, field, layout, validation, ToastService, FormSubmissionData, FormSelectOption } from '@hakistack/ng-daisyui';
+import {
+  DynamicFormComponent,
+  createForm,
+  field,
+  layout,
+  validation,
+  ToastService,
+  FormStateService,
+  FormSubmissionData,
+  FormSelectOption,
+} from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
-type FormTab = 'layouts' | 'fields' | 'conditional' | 'dependent';
+type FormTab = 'layouts' | 'fields' | 'conditional' | 'dependent' | 'autosave';
 type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic' | 'layout-validation' | 'types';
 
 @Component({
@@ -18,7 +28,9 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
         <h1 class="text-3xl font-bold">Dynamic Forms</h1>
         <p class="text-base-content/70 mt-2">Build forms declaratively with automatic validation and layout</p>
         <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} DynamicFormComponent, createForm, field {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
+          <code class="badge badge-outline text-xs"
+            >import {{ '{' }} DynamicFormComponent, createForm, field {{ '}' }} from '&#64;hakistack/ng-daisyui'</code
+          >
         </div>
       </div>
 
@@ -31,14 +43,51 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
       @if (pageTab() === 'examples') {
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Layouts"
-            [checked]="activeTab() === 'layouts'" (change)="activeTab.set('layouts')" />
-          <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Field Types"
-            [checked]="activeTab() === 'fields'" (change)="activeTab.set('fields')" />
-          <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Conditional Logic"
-            [checked]="activeTab() === 'conditional'" (change)="activeTab.set('conditional')" />
-          <input type="radio" name="forms_tabs" role="tab" class="tab" aria-label="Dependent Fields"
-            [checked]="activeTab() === 'dependent'" (change)="activeTab.set('dependent')" />
+          <input
+            type="radio"
+            name="forms_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Layouts"
+            [checked]="activeTab() === 'layouts'"
+            (change)="activeTab.set('layouts')"
+          />
+          <input
+            type="radio"
+            name="forms_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Field Types"
+            [checked]="activeTab() === 'fields'"
+            (change)="activeTab.set('fields')"
+          />
+          <input
+            type="radio"
+            name="forms_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Conditional Logic"
+            [checked]="activeTab() === 'conditional'"
+            (change)="activeTab.set('conditional')"
+          />
+          <input
+            type="radio"
+            name="forms_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Dependent Fields"
+            [checked]="activeTab() === 'dependent'"
+            (change)="activeTab.set('dependent')"
+          />
+          <input
+            type="radio"
+            name="forms_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Auto-Save"
+            [checked]="activeTab() === 'autosave'"
+            (change)="activeTab.set('autosave')"
+          />
         </div>
 
         @if (activeTab() === 'layouts') {
@@ -80,7 +129,11 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
         }
 
         @if (activeTab() === 'conditional') {
-          <app-doc-section title="Conditional Logic" description="Fields that show/hide/require based on other values" [codeExample]="conditionalCode">
+          <app-doc-section
+            title="Conditional Logic"
+            description="Fields that show/hide/require based on other values"
+            [codeExample]="conditionalCode"
+          >
             <hk-dynamic-form [config]="conditionalForm.config()" />
             <div class="card-actions justify-end mt-4">
               <button class="btn btn-ghost" (click)="conditionalForm.reset()">Reset</button>
@@ -90,11 +143,39 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
         }
 
         @if (activeTab() === 'dependent') {
-          <app-doc-section title="Dependent Field Options" description="Select fields that load options based on another field's value" [codeExample]="dependentCode">
+          <app-doc-section
+            title="Dependent Field Options"
+            description="Select fields that load options based on another field's value"
+            [codeExample]="dependentCode"
+          >
             <hk-dynamic-form [config]="dependentForm.config()" />
             <div class="card-actions justify-end mt-4">
               <button class="btn btn-ghost" (click)="dependentForm.reset()">Reset</button>
               <button class="btn btn-primary" (click)="dependentForm.submit()">Submit</button>
+            </div>
+          </app-doc-section>
+        }
+
+        @if (activeTab() === 'autosave') {
+          <app-doc-section
+            title="Auto-Save to LocalStorage"
+            description="Form data is automatically saved as you type and restored on page reload. Try filling in some fields, then refresh the page."
+            [codeExample]="autoSaveCode"
+          >
+            <hk-dynamic-form [config]="autoSaveForm.config()" (formRestored)="onFormRestored($event)" />
+            <div class="card-actions justify-between mt-4">
+              <div>
+                @if (draftRestoredMessage()) {
+                  <div class="badge badge-info gap-2">
+                    <span>Draft restored</span>
+                  </div>
+                }
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btn-ghost" (click)="clearAutoSave()">Clear Saved Draft</button>
+                <button class="btn btn-ghost" (click)="autoSaveForm.reset()">Reset</button>
+                <button class="btn btn-primary" (click)="autoSaveForm.submit()">Submit</button>
+              </div>
             </div>
           </app-doc-section>
         }
@@ -112,18 +193,60 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
       @if (pageTab() === 'api') {
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Component"
-            [checked]="apiTab() === 'component'" (change)="apiTab.set('component')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Field Builders"
-            [checked]="apiTab() === 'field-builders'" (change)="apiTab.set('field-builders')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Options"
-            [checked]="apiTab() === 'options'" (change)="apiTab.set('options')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Conditional Logic"
-            [checked]="apiTab() === 'conditional-logic'" (change)="apiTab.set('conditional-logic')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Layout & Validation"
-            [checked]="apiTab() === 'layout-validation'" (change)="apiTab.set('layout-validation')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Types"
-            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Component"
+            [checked]="apiTab() === 'component'"
+            (change)="apiTab.set('component')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Field Builders"
+            [checked]="apiTab() === 'field-builders'"
+            (change)="apiTab.set('field-builders')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Options"
+            [checked]="apiTab() === 'options'"
+            (change)="apiTab.set('options')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Conditional Logic"
+            [checked]="apiTab() === 'conditional-logic'"
+            (change)="apiTab.set('conditional-logic')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Layout & Validation"
+            [checked]="apiTab() === 'layout-validation'"
+            (change)="apiTab.set('layout-validation')"
+          />
+          <input
+            type="radio"
+            name="api_tabs"
+            role="tab"
+            class="tab"
+            aria-label="Types"
+            [checked]="apiTab() === 'types'"
+            (change)="apiTab.set('types')"
+          />
         </div>
 
         <!-- Component sub-tab -->
@@ -137,7 +260,8 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">FormController (createForm return value)</h3>
                 <p class="text-sm text-base-content/70">
-                  The <code>createForm()</code> helper returns a <code>FormController</code> object that gives you external control over the form without needing a template reference. This is the recommended way to interact with forms programmatically.
+                  The <code>createForm()</code> helper returns a <code>FormController</code> object that gives you external control over the
+                  form without needing a template reference. This is the recommended way to interact with forms programmatically.
                 </p>
                 <app-code-block [code]="formControllerCode" />
               </div>
@@ -179,7 +303,8 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Conditional Logic Examples</h3>
                 <p class="text-sm text-base-content/70">
-                  Use <code>showWhen</code>, <code>hideWhen</code>, <code>requiredWhen</code>, and <code>disabledWhen</code> to control field visibility, requirements, and disabled state based on other field values.
+                  Use <code>showWhen</code>, <code>hideWhen</code>, <code>requiredWhen</code>, and <code>disabledWhen</code> to control
+                  field visibility, requirements, and disabled state based on other field values.
                 </p>
                 <app-code-block [code]="conditionalLogicExampleCode" />
               </div>
@@ -284,6 +409,7 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
 })
 export class FormsDemoComponent {
   private toast = inject(ToastService);
+  private formState = inject(FormStateService);
   pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<FormTab>('layouts');
   apiTab = signal<ApiSubTab>('component');
@@ -373,13 +499,36 @@ export class FormsDemoComponent {
   };
 
   private readonly citiesByState: Record<string, FormSelectOption[]> = {
-    CA: [{ value: 'la', label: 'Los Angeles' }, { value: 'sf', label: 'San Francisco' }, { value: 'sd', label: 'San Diego' }],
-    NY: [{ value: 'nyc', label: 'New York City' }, { value: 'buf', label: 'Buffalo' }],
-    TX: [{ value: 'hou', label: 'Houston' }, { value: 'dal', label: 'Dallas' }, { value: 'aus', label: 'Austin' }],
-    FL: [{ value: 'mia', label: 'Miami' }, { value: 'orl', label: 'Orlando' }],
-    ON: [{ value: 'tor', label: 'Toronto' }, { value: 'ott', label: 'Ottawa' }],
-    QC: [{ value: 'mtl', label: 'Montreal' }, { value: 'qc', label: 'Quebec City' }],
-    BC: [{ value: 'van', label: 'Vancouver' }, { value: 'vic', label: 'Victoria' }],
+    CA: [
+      { value: 'la', label: 'Los Angeles' },
+      { value: 'sf', label: 'San Francisco' },
+      { value: 'sd', label: 'San Diego' },
+    ],
+    NY: [
+      { value: 'nyc', label: 'New York City' },
+      { value: 'buf', label: 'Buffalo' },
+    ],
+    TX: [
+      { value: 'hou', label: 'Houston' },
+      { value: 'dal', label: 'Dallas' },
+      { value: 'aus', label: 'Austin' },
+    ],
+    FL: [
+      { value: 'mia', label: 'Miami' },
+      { value: 'orl', label: 'Orlando' },
+    ],
+    ON: [
+      { value: 'tor', label: 'Toronto' },
+      { value: 'ott', label: 'Ottawa' },
+    ],
+    QC: [
+      { value: 'mtl', label: 'Montreal' },
+      { value: 'qc', label: 'Quebec City' },
+    ],
+    BC: [
+      { value: 'van', label: 'Vancouver' },
+      { value: 'vic', label: 'Victoria' },
+    ],
     CDMX: [{ value: 'cdmx', label: 'Mexico City' }],
     JAL: [{ value: 'gdl', label: 'Guadalajara' }],
     NL: [{ value: 'mty', label: 'Monterrey' }],
@@ -401,7 +550,7 @@ export class FormsDemoComponent {
         optionsFrom: {
           field: 'country',
           loadFn: (country: string) => {
-            return new Promise<FormSelectOption[]>(resolve => {
+            return new Promise<FormSelectOption[]>((resolve) => {
               setTimeout(() => resolve(this.statesByCountry[country] || []), 600);
             });
           },
@@ -412,7 +561,7 @@ export class FormsDemoComponent {
         optionsFrom: {
           field: 'state',
           loadFn: (state: string) => {
-            return new Promise<FormSelectOption[]>(resolve => {
+            return new Promise<FormSelectOption[]>((resolve) => {
               setTimeout(() => resolve(this.citiesByState[state] || []), 400);
             });
           },
@@ -462,6 +611,47 @@ export class FormsDemoComponent {
     ],
     onSubmit: (data) => this.handleSubmit('Conditional Form', data),
   });
+
+  // --- Auto-Save Form ---
+  draftRestoredMessage = signal('');
+
+  autoSaveForm = createForm({
+    layout: 'grid',
+    gridColumns: 2,
+    gap: 'md',
+    fields: [
+      field.text('firstName', 'First Name', { required: true, placeholder: 'John' }),
+      field.text('lastName', 'Last Name', { required: true, placeholder: 'Doe' }),
+      field.email('email', 'Email', { required: true, colSpan: 2, placeholder: 'john@example.com' }),
+      field.select('role', 'Role', { choices: ['Developer', 'Designer', 'Manager', 'QA Engineer'] }),
+      field.select('department', 'Department', { choices: ['Engineering', 'Marketing', 'Sales', 'HR'] }),
+      field.textarea('notes', 'Notes', { colSpan: 2, placeholder: 'Type something, then refresh the page...' }),
+    ],
+    autoSave: {
+      enabled: true,
+      formId: 'demo-autosave-form',
+      debounceMs: 800,
+      clearOnSubmit: true,
+      storage: 'localStorage',
+    },
+    onSubmit: (data) => this.handleSubmit('Auto-Save Form', data),
+  });
+
+  onFormRestored(values: Record<string, unknown>) {
+    const fieldCount = Object.values(values).filter((v) => v != null && v !== '').length;
+    if (fieldCount > 0) {
+      this.draftRestoredMessage.set(`Draft restored (${fieldCount} fields)`);
+      this.toast.info('Draft Restored', 'Your previously saved form data has been restored.');
+      setTimeout(() => this.draftRestoredMessage.set(''), 5000);
+    }
+  }
+
+  clearAutoSave() {
+    this.formState.clear('demo-autosave-form').subscribe(() => {
+      this.autoSaveForm.reset();
+      this.toast.success('Draft Cleared', 'Saved form data has been removed.');
+    });
+  }
 
   private handleSubmit(formName: string, data: FormSubmissionData) {
     this.lastSubmission.set(data);
@@ -546,6 +736,39 @@ field.select('city', 'City', {
     loadFn: (state) => this.api.getCities(state),
   },
 }),`;
+
+  autoSaveCode = `import { createForm, field, provideFormState } from '@hakistack/ng-daisyui';
+
+// In app.config.ts providers:
+provideFormState({ mode: 'localStorage' })
+
+// Form config:
+const form = createForm({
+  layout: 'grid',
+  gridColumns: 2,
+  fields: [
+    field.text('firstName', 'First Name', { required: true }),
+    field.text('lastName', 'Last Name', { required: true }),
+    field.email('email', 'Email', { required: true, colSpan: 2 }),
+    field.select('role', 'Role', { choices: ['Developer', 'Designer', 'Manager'] }),
+    field.select('department', 'Department', { choices: ['Engineering', 'Marketing'] }),
+    field.textarea('notes', 'Notes', { colSpan: 2 }),
+  ],
+  autoSave: {
+    enabled: true,
+    formId: 'demo-autosave-form',  // Unique ID for storage key
+    debounceMs: 800,               // Save after 800ms of inactivity
+    clearOnSubmit: true,           // Remove saved data on successful submit
+    storage: 'localStorage',      // 'localStorage' or 'api'
+  },
+  onSubmit: (data) => console.log(data),
+});
+
+// Template:
+<hk-dynamic-form
+  [config]="form.config()"
+  (formRestored)="onDraftRestored($event)" />
+<button (click)="form.submit()">Submit</button>`;
 
   conditionalCode = `field.select('type', 'Account Type', { choices: ['personal', 'business'] }),
 field.text('company', 'Company Name', {
@@ -901,7 +1124,7 @@ const form = createForm({
       type: 'string',
       default: 'undefined',
       description:
-        'CSS class(es) applied to the field\'s outer container div (which wraps the label, input, and help text). Useful for adding margins, padding, or background styles to the entire field group.',
+        "CSS class(es) applied to the field's outer container div (which wraps the label, input, and help text). Useful for adding margins, padding, or background styles to the entire field group.",
     },
     {
       name: 'hidden',
@@ -922,7 +1145,7 @@ const form = createForm({
       type: 'boolean',
       default: 'false',
       description:
-        'When true, adds Angular\'s required validator to the field. The field will show validation errors if left empty on submission. For conditional requirements, use requiredWhen instead.',
+        "When true, adds Angular's required validator to the field. The field will show validation errors if left empty on submission. For conditional requirements, use requiredWhen instead.",
     },
     {
       name: 'prefix',
@@ -992,7 +1215,7 @@ const form = createForm({
       type: 'ValidatorFn[]',
       default: 'undefined',
       description:
-        'An array of custom Angular ValidatorFn functions applied to the field\'s form control. Use this for validation logic not covered by the built-in options (e.g., cross-field validation, async validators, custom regex with specific error messages).',
+        "An array of custom Angular ValidatorFn functions applied to the field's form control. Use this for validation logic not covered by the built-in options (e.g., cross-field validation, async validators, custom regex with specific error messages).",
     },
   ];
 
@@ -1001,19 +1224,22 @@ const form = createForm({
       name: 'minLength',
       type: 'number',
       default: 'undefined',
-      description: 'Minimum number of characters required. Adds Angular\'s minLength validator. The validation error message automatically includes the required length.',
+      description:
+        "Minimum number of characters required. Adds Angular's minLength validator. The validation error message automatically includes the required length.",
     },
     {
       name: 'maxLength',
       type: 'number',
       default: 'undefined',
-      description: 'Maximum number of characters allowed. Adds Angular\'s maxLength validator. The browser may also enforce this natively by preventing further input.',
+      description:
+        "Maximum number of characters allowed. Adds Angular's maxLength validator. The browser may also enforce this natively by preventing further input.",
     },
     {
       name: 'pattern',
       type: 'string | RegExp',
       default: 'undefined',
-      description: 'A regular expression pattern that the field value must match. Adds Angular\'s pattern validator. Can be a string or RegExp. Use for custom formats like phone numbers or postal codes.',
+      description:
+        "A regular expression pattern that the field value must match. Adds Angular's pattern validator. Can be a string or RegExp. Use for custom formats like phone numbers or postal codes.",
     },
   ];
 
@@ -1022,19 +1248,22 @@ const form = createForm({
       name: 'min',
       type: 'number',
       default: 'undefined (range: 0)',
-      description: 'Minimum allowed numeric value. Adds Angular\'s min validator. For range fields, defaults to 0 if not specified. The browser also enforces this on the native number/range input.',
+      description:
+        "Minimum allowed numeric value. Adds Angular's min validator. For range fields, defaults to 0 if not specified. The browser also enforces this on the native number/range input.",
     },
     {
       name: 'max',
       type: 'number',
       default: 'undefined (range: 100)',
-      description: 'Maximum allowed numeric value. Adds Angular\'s max validator. For range fields, defaults to 100 if not specified. The browser also enforces this on the native number/range input.',
+      description:
+        "Maximum allowed numeric value. Adds Angular's max validator. For range fields, defaults to 100 if not specified. The browser also enforces this on the native number/range input.",
     },
     {
       name: 'step',
       type: 'number',
       default: 'undefined',
-      description: 'The step increment for the number or range input. Controls the granularity of allowed values (e.g., step=0.01 for currency, step=5 for a coarse slider). The browser up/down arrows use this increment.',
+      description:
+        'The step increment for the number or range input. Controls the granularity of allowed values (e.g., step=0.01 for currency, step=5 for a coarse slider). The browser up/down arrows use this increment.',
     },
   ];
 
@@ -1051,13 +1280,14 @@ const form = createForm({
       type: 'OptionsFromConfig',
       default: 'undefined',
       description:
-        'Configuration for loading options dynamically based on another field\'s value. When the watched field changes, the loadFn is called to produce new options. Mutually exclusive with static choices -- use one or the other.',
+        "Configuration for loading options dynamically based on another field's value. When the watched field changes, the loadFn is called to produce new options. Mutually exclusive with static choices -- use one or the other.",
     },
     {
       name: 'enableSearch',
       type: 'boolean',
       default: 'undefined',
-      description: 'When true, enables a search/filter input inside the dropdown for filtering through long option lists. Useful when the select has more than 10-15 options. Uses Fuse.js for fuzzy matching.',
+      description:
+        'When true, enables a search/filter input inside the dropdown for filtering through long option lists. Useful when the select has more than 10-15 options. Uses Fuse.js for fuzzy matching.',
     },
   ];
 
@@ -1074,13 +1304,14 @@ const form = createForm({
       type: 'OptionsFromConfig',
       default: 'undefined',
       description:
-        'Dynamic option loading configuration, identical to SelectFieldOptions.optionsFrom. The loadFn receives the watched field\'s value and returns options. Previously selected values are cleared when the watched field changes (unless clearOnChange is false).',
+        "Dynamic option loading configuration, identical to SelectFieldOptions.optionsFrom. The loadFn receives the watched field's value and returns options. Previously selected values are cleared when the watched field changes (unless clearOnChange is false).",
     },
     {
       name: 'enableSearch',
       type: 'boolean',
       default: 'undefined',
-      description: 'Enables a search/filter input inside the multi-select dropdown. Works the same as in single select mode. Particularly useful for multi-selects with many options.',
+      description:
+        'Enables a search/filter input inside the multi-select dropdown. Works the same as in single select mode. Particularly useful for multi-selects with many options.',
     },
   ];
 
@@ -1096,13 +1327,15 @@ const form = createForm({
       name: 'optionsFrom',
       type: 'OptionsFromConfig',
       default: 'undefined',
-      description: 'Dynamic option loading for radio buttons, identical to select field\'s optionsFrom. The radio group re-renders when new options are loaded from the watched field.',
+      description:
+        "Dynamic option loading for radio buttons, identical to select field's optionsFrom. The radio group re-renders when new options are loaded from the watched field.",
     },
     {
       name: 'orientation',
       type: "'horizontal' | 'vertical'",
       default: 'undefined',
-      description: 'Controls whether radio buttons are laid out in a horizontal row or a vertical stack. Defaults to the component\'s built-in layout. Use "horizontal" for short lists (2-4 items) and "vertical" for longer ones.',
+      description:
+        'Controls whether radio buttons are laid out in a horizontal row or a vertical stack. Defaults to the component\'s built-in layout. Use "horizontal" for short lists (2-4 items) and "vertical" for longer ones.',
     },
   ];
 
@@ -1111,25 +1344,27 @@ const form = createForm({
       name: 'rows',
       type: 'number',
       default: '3',
-      description: 'The number of visible text rows in the textarea. Controls the initial height of the textarea element. Users can typically resize the textarea beyond this initial size.',
+      description:
+        'The number of visible text rows in the textarea. Controls the initial height of the textarea element. Users can typically resize the textarea beyond this initial size.',
     },
     {
       name: 'cols',
       type: 'number',
       default: 'undefined',
-      description: 'The number of visible character columns in the textarea. Controls the initial width. In most cases, the textarea width is controlled by CSS (colSpan or width) rather than this attribute.',
+      description:
+        'The number of visible character columns in the textarea. Controls the initial width. In most cases, the textarea width is controlled by CSS (colSpan or width) rather than this attribute.',
     },
     {
       name: 'minLength',
       type: 'number',
       default: 'undefined',
-      description: 'Minimum number of characters required. Adds Angular\'s minLength validator, same behavior as in TextFieldOptions.',
+      description: "Minimum number of characters required. Adds Angular's minLength validator, same behavior as in TextFieldOptions.",
     },
     {
       name: 'maxLength',
       type: 'number',
       default: 'undefined',
-      description: 'Maximum number of characters allowed. Adds Angular\'s maxLength validator. The browser may also enforce this natively.',
+      description: "Maximum number of characters allowed. Adds Angular's maxLength validator. The browser may also enforce this natively.",
     },
   ];
 
@@ -1145,7 +1380,8 @@ const form = createForm({
       name: 'multiple',
       type: 'boolean',
       default: 'undefined',
-      description: 'When true, allows selecting multiple files at once. The form value becomes a FileList containing all selected files instead of a single file.',
+      description:
+        'When true, allows selecting multiple files at once. The form value becomes a FileList containing all selected files instead of a single file.',
     },
   ];
 
@@ -1174,13 +1410,13 @@ const form = createForm({
       name: 'field',
       type: 'string',
       description:
-        'The key of the parent field to watch. When this field\'s value changes, the loadFn is called with the new value. For cascading selects, this creates a parent-child dependency chain (e.g., country -> state -> city).',
+        "The key of the parent field to watch. When this field's value changes, the loadFn is called with the new value. For cascading selects, this creates a parent-child dependency chain (e.g., country -> state -> city).",
     },
     {
       name: 'loadFn',
       type: '(value: T, formValues: Record<string, any>) => FormSelectOption[] | Promise<...> | Observable<...>',
       description:
-        'The function called when the watched field changes. Receives the watched field\'s new value and all current form values. Can return options synchronously, as a Promise (for API calls), or as an Observable. The field shows a loading state while the Promise/Observable resolves.',
+        "The function called when the watched field changes. Receives the watched field's new value and all current form values. Can return options synchronously, as a Promise (for API calls), or as an Observable. The field shows a loading state while the Promise/Observable resolves.",
     },
     {
       name: 'loadingPlaceholder',
@@ -1224,42 +1460,50 @@ const form = createForm({
     {
       name: 'equals',
       type: "'equals'",
-      description: 'Checks if the field value strictly equals the condition value. This is the default operator used by the [key, value] shorthand. Example: { field: "type", operator: "equals", value: "business" }.',
+      description:
+        'Checks if the field value strictly equals the condition value. This is the default operator used by the [key, value] shorthand. Example: { field: "type", operator: "equals", value: "business" }.',
     },
     {
       name: 'not-equals',
       type: "'not-equals'",
-      description: 'Checks if the field value does NOT equal the condition value. The inverse of "equals". Example: { field: "role", operator: "not-equals", value: "guest" } matches all roles except "guest".',
+      description:
+        'Checks if the field value does NOT equal the condition value. The inverse of "equals". Example: { field: "role", operator: "not-equals", value: "guest" } matches all roles except "guest".',
     },
     {
       name: 'contains',
       type: "'contains'",
-      description: 'Checks if the field value (string or array) contains the condition value. For strings, performs a substring check. For arrays (multiselect), checks if the value is in the array. Example: { field: "tags", operator: "contains", value: "urgent" }.',
+      description:
+        'Checks if the field value (string or array) contains the condition value. For strings, performs a substring check. For arrays (multiselect), checks if the value is in the array. Example: { field: "tags", operator: "contains", value: "urgent" }.',
     },
     {
       name: 'greater-than',
       type: "'greater-than'",
-      description: 'Checks if the field value is numerically greater than the condition value. Use with number or range fields. Example: { field: "quantity", operator: "greater-than", value: 10 } matches when quantity > 10.',
+      description:
+        'Checks if the field value is numerically greater than the condition value. Use with number or range fields. Example: { field: "quantity", operator: "greater-than", value: 10 } matches when quantity > 10.',
     },
     {
       name: 'less-than',
       type: "'less-than'",
-      description: 'Checks if the field value is numerically less than the condition value. Use with number or range fields. Example: { field: "age", operator: "less-than", value: 18 } matches when age < 18.',
+      description:
+        'Checks if the field value is numerically less than the condition value. Use with number or range fields. Example: { field: "age", operator: "less-than", value: 18 } matches when age < 18.',
     },
     {
       name: 'in',
       type: "'in'",
-      description: 'Checks if the field value is included in an array of allowed values. Example: { field: "country", operator: "in", value: ["US", "CA", "MX"] } matches any of those three countries.',
+      description:
+        'Checks if the field value is included in an array of allowed values. Example: { field: "country", operator: "in", value: ["US", "CA", "MX"] } matches any of those three countries.',
     },
     {
       name: 'not-in',
       type: "'not-in'",
-      description: 'Checks if the field value is NOT in an array of values. The inverse of "in". Example: { field: "status", operator: "not-in", value: ["archived", "deleted"] } matches all statuses except those two.',
+      description:
+        'Checks if the field value is NOT in an array of values. The inverse of "in". Example: { field: "status", operator: "not-in", value: ["archived", "deleted"] } matches all statuses except those two.',
     },
     {
       name: 'function',
       type: "'function'",
-      description: 'Delegates evaluation to a custom function provided as the condition value. The function receives (fieldValue, formValues, formGroup?) and returns a boolean. This is the most flexible operator for complex multi-field logic.',
+      description:
+        'Delegates evaluation to a custom function provided as the condition value. The function receives (fieldValue, formValues, formGroup?) and returns a boolean. This is the most flexible operator for complex multi-field logic.',
     },
   ];
 
@@ -1303,13 +1547,15 @@ field.text('specialField', 'Special Field', {
       name: 'title',
       type: 'string',
       default: 'undefined',
-      description: 'Optional title displayed above the form. Rendered as a heading element. Useful for labeling standalone forms or wizard sections.',
+      description:
+        'Optional title displayed above the form. Rendered as a heading element. Useful for labeling standalone forms or wizard sections.',
     },
     {
       name: 'description',
       type: 'string',
       default: 'undefined',
-      description: 'Optional description text displayed below the title and above the form fields. Provides context or instructions for the user.',
+      description:
+        'Optional description text displayed below the title and above the form fields. Provides context or instructions for the user.',
     },
     {
       name: 'layout',
@@ -1329,13 +1575,15 @@ field.text('specialField', 'Special Field', {
       name: 'gap',
       type: "'sm' | 'md' | 'lg'",
       default: 'undefined',
-      description: 'Controls the spacing between form fields. "sm" applies tight spacing, "md" is balanced, and "lg" adds generous spacing. Applies to all layout modes.',
+      description:
+        'Controls the spacing between form fields. "sm" applies tight spacing, "md" is balanced, and "lg" adds generous spacing. Applies to all layout modes.',
     },
     {
       name: 'labelWidth',
       type: "'sm' | 'md' | 'lg' | 'xl'",
       default: 'undefined',
-      description: 'Controls the width of labels in horizontal layout mode. "sm" is narrow, "xl" is wide. Has no effect in vertical or grid layouts. Set via layout.horizontal({ labelWidth: "md" }).',
+      description:
+        'Controls the width of labels in horizontal layout mode. "sm" is narrow, "xl" is wide. Has no effect in vertical or grid layouts. Set via layout.horizontal({ labelWidth: "md" }).',
     },
     {
       name: 'autoSave',
@@ -1348,13 +1596,15 @@ field.text('specialField', 'Special Field', {
       name: 'fields',
       type: 'FormFieldConfig[]',
       default: 'undefined',
-      description: 'Array of field configurations for a flat (non-wizard) form. Created using field.* builder functions. Either fields or steps must be provided, not both.',
+      description:
+        'Array of field configurations for a flat (non-wizard) form. Created using field.* builder functions. Either fields or steps must be provided, not both.',
     },
     {
       name: 'steps',
       type: 'FormStep[]',
       default: 'undefined',
-      description: 'Array of step definitions for wizard/stepper mode. Each step contains its own fields array. Created using the step.create() and step.review() helpers. Either steps or fields must be provided, not both.',
+      description:
+        'Array of step definitions for wizard/stepper mode. Each step contains its own fields array. Created using the step.create() and step.review() helpers. Either steps or fields must be provided, not both.',
     },
     {
       name: 'stepperConfig',
@@ -1374,7 +1624,8 @@ field.text('specialField', 'Special Field', {
       name: 'onReset',
       type: '() => void',
       default: 'undefined',
-      description: 'Callback invoked when the form is reset. Takes no arguments. Called in addition to the formReset output event. Use for side effects like clearing related component state.',
+      description:
+        'Callback invoked when the form is reset. Takes no arguments. Called in addition to the formReset output event. Use for side effects like clearing related component state.',
     },
     {
       name: 'onChange',
@@ -1444,19 +1695,22 @@ field.text('specialField', 'Special Field', {
       name: 'gap',
       type: "'sm' | 'md' | 'lg'",
       default: 'undefined',
-      description: 'Spacing between form fields. "sm" applies minimal gap, "md" is a balanced default, and "lg" creates generous spacing. Applied via CSS gap utility classes on the form container.',
+      description:
+        'Spacing between form fields. "sm" applies minimal gap, "md" is a balanced default, and "lg" creates generous spacing. Applied via CSS gap utility classes on the form container.',
     },
     {
       name: 'labelWidth',
       type: "'sm' | 'md' | 'lg' | 'xl'",
       default: 'undefined',
-      description: 'Width of labels in horizontal layout. Maps to CSS width classes. "sm" is approximately 80px, "md" is 120px, "lg" is 160px, "xl" is 200px. Only applies in horizontal layout mode.',
+      description:
+        'Width of labels in horizontal layout. Maps to CSS width classes. "sm" is approximately 80px, "md" is 120px, "lg" is 160px, "xl" is 200px. Only applies in horizontal layout mode.',
     },
     {
       name: 'gridColumns',
       type: 'number (1-12)',
       default: '2',
-      description: 'Number of columns in the CSS grid. Set via layout.grid(columns). A 12-column grid offers the most flexibility (fields can span 1-12 columns). Only applies in grid layout mode.',
+      description:
+        'Number of columns in the CSS grid. Set via layout.grid(columns). A 12-column grid offers the most flexibility (fields can span 1-12 columns). Only applies in grid layout mode.',
     },
     {
       name: 'colSpan',

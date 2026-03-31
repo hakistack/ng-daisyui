@@ -1,8 +1,30 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, ElementRef, effect, forwardRef, inject, input, OnDestroy, output, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  effect,
+  forwardRef,
+  inject,
+  input,
+  OnDestroy,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, NG_VALIDATORS, ValidationErrors, Validator, AbstractControl } from '@angular/forms';
 import { generateUniqueId } from '../../utils/generate-uuid';
-import { DatepickerConfig, DatepickerEvent, DatepickerPosition, DayCell, MonthInfo, ViewMode, WeekdayInfo, YearInfo } from './datepicker.types';
+import {
+  DatepickerConfig,
+  DatepickerEvent,
+  DatepickerPosition,
+  DayCell,
+  MonthInfo,
+  ViewMode,
+  WeekdayInfo,
+  YearInfo,
+} from './datepicker.types';
 import { DatepickerUtilsService } from './datepicker-utils.service';
 
 @Component({
@@ -36,9 +58,8 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   private boundDocumentKeydown = this.onDocumentKeydown.bind(this);
   private documentListenersAttached = false;
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
   private onChange = (_value: Date | { start: Date; end: Date } | null) => {};
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+
   private onTouched = () => {};
   private isFormDisabled = false;
 
@@ -119,7 +140,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     if (this.use24Hour()) {
       return Array.from({ length: 24 }, (_, i) => i);
     }
-    return Array.from({ length: 12 }, (_, i) => i === 0 ? 12 : i);
+    return Array.from({ length: 12 }, (_, i) => (i === 0 ? 12 : i));
   });
 
   readonly minuteOptions = computed(() => {
@@ -201,7 +222,9 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     if (!start) return '';
     if (!end) return this.formatDate(start);
 
-    return customRangeFormatter ? customRangeFormatter(start, end) : this.dateUtils.formatDateRange(start, end, this.locale(), this.defaultConfig.dateFormat);
+    return customRangeFormatter
+      ? customRangeFormatter(start, end)
+      : this.dateUtils.formatDateRange(start, end, this.locale(), this.defaultConfig.dateFormat);
   });
 
   readonly monthLabel = computed(() => {
@@ -801,7 +824,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
     // Check specific disabled dates
     const disabledDates = this.disabledDates();
-    if (disabledDates.some(d => this.dateUtils.isSameDay(d, date))) {
+    if (disabledDates.some((d) => this.dateUtils.isSameDay(d, date))) {
       return true;
     }
 

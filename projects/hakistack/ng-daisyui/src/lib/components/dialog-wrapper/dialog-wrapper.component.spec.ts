@@ -95,7 +95,6 @@ describe('DialogWrapperComponent', () => {
   });
 
   describe('creation with a valid component', () => {
-    let component: DialogWrapperComponent;
     let fixture: ComponentFixture<DialogWrapperComponent>;
     let mockDialogRef: DialogRef;
 
@@ -117,7 +116,6 @@ describe('DialogWrapperComponent', () => {
       }).compileComponents();
 
       fixture = TestBed.createComponent(DialogWrapperComponent);
-      component = fixture.componentInstance;
     });
 
     it('should create and attach inner component portal', () => {

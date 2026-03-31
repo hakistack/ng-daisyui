@@ -4,7 +4,6 @@ import {
   computed,
   contentChild,
   effect,
-  ElementRef,
   input,
   output,
   signal,
@@ -48,7 +47,6 @@ import {
   },
 })
 export class TreeComponent<T = unknown> {
-
   /** Combined tree setup from createTree() — pass a single object instead of separate nodes + config */
   readonly tree = input<TreeSetup<T> | null>(null);
 
@@ -66,7 +64,6 @@ export class TreeComponent<T = unknown> {
 
   /** Resolved config: tree input wins, falls back to config input */
   protected readonly resolvedConfig = computed(() => this.tree()?.config ?? this.config());
-
 
   /** Emitted when selection changes */
   readonly selectionChange = output<TreeNode<T> | TreeNode<T>[] | null>();
@@ -98,10 +95,8 @@ export class TreeComponent<T = unknown> {
   /** Emitted when filter changes */
   readonly filterChange = output<TreeFilterEvent>();
 
-
   /** Custom node template */
   readonly nodeTemplateRef = contentChild<TemplateRef<TreeNodeTemplateContext<T>>>('nodeTemplate');
-
 
   /** Map of node key -> expanded state */
   private readonly expandedKeys = signal<Set<string>>(new Set());
@@ -136,7 +131,6 @@ export class TreeComponent<T = unknown> {
 
   /** Valid drop target node */
   private readonly dropTargetKey = signal<string | null>(null);
-
 
   /** Selection mode from config */
   readonly selectionMode = computed<TreeSelectionMode>(() => this.resolvedConfig()?.selectionMode ?? null);
@@ -181,7 +175,6 @@ export class TreeComponent<T = unknown> {
   /** Whether tree is loading */
   readonly isLoading = computed(() => this.resolvedConfig()?.loading ?? false);
 
-
   constructor() {
     // Initialize expanded state from nodes
     effect(() => {
@@ -219,9 +212,7 @@ export class TreeComponent<T = unknown> {
 
       this.selectedKeys.set(selectedKeys);
     });
-
   }
-
 
   onFilterTextChange(text: string): void {
     this.filterText.set(text);
@@ -305,7 +296,6 @@ export class TreeComponent<T = unknown> {
         break;
     }
   }
-
 
   /** Expand a node */
   expandNode(node: TreeNode<T>, event?: Event): void {
@@ -443,7 +433,6 @@ export class TreeComponent<T = unknown> {
     });
   }
 
-
   /** Check if node has children */
   hasChildren(node: TreeNode<T>): boolean {
     return (node.children && node.children.length > 0) || node.leaf === false;
@@ -560,7 +549,6 @@ export class TreeComponent<T = unknown> {
     return parent.children ? parent.children.indexOf(current) === parent.children.length - 1 : false;
   }
 
-
   onDragStart(event: DragEvent, node: TreeNode<T>): void {
     if (!this.isDragDropEnabled() || node.draggable === false) return;
 
@@ -644,7 +632,6 @@ export class TreeComponent<T = unknown> {
   isDragging(node: TreeNode<T>): boolean {
     return this.draggingNode() === node;
   }
-
 
   private toggleCheckbox(node: TreeNode<T>, event?: Event): void {
     const key = this.getNodeKey(node);

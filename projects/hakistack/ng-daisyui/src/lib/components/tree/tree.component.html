@@ -9,11 +9,7 @@
         [ngModel]="filterText()"
         (ngModelChange)="onFilterTextChange($event)"
       />
-      <hk-lucide-icon
-        name="Search"
-        class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50"
-        [size]="16"
-      />
+      <hk-lucide-icon name="Search" class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" [size]="16" />
       @if (filterText()) {
         <button
           type="button"
@@ -40,11 +36,7 @@
   </div>
 } @else {
   <!-- Tree Nodes -->
-  <div
-    class="app-tree-container"
-    [class.app-tree-lines]="showLines()"
-    role="group"
-  >
+  <div class="app-tree-container" [class.app-tree-lines]="showLines()" role="group">
     @for (flatNode of flatNodes(); track trackByNode($index, flatNode)) {
       <div
         class="app-tree-node"
@@ -67,10 +59,7 @@
         (drop)="onDrop($event, flatNode.node, 'inside')"
       >
         <!-- Indentation & Lines -->
-        <div
-          class="app-tree-node-indent"
-          [style]="getIndentStyle(flatNode.level)"
-        >
+        <div class="app-tree-node-indent" [style]="getIndentStyle(flatNode.level)">
           <!-- Connecting lines (rendered via CSS) -->
           @if (showLines()) {
             @for (i of flatNode.path; track $index; let lineLevel = $index) {
@@ -95,10 +84,7 @@
                 (click)="onToggleClick($event, flatNode.node)"
                 [attr.aria-label]="isExpanded(flatNode.node) ? 'Collapse' : 'Expand'"
               >
-                <hk-lucide-icon
-                  [name]="isExpanded(flatNode.node) ? 'ChevronDown' : 'ChevronRight'"
-                  [size]="16"
-                />
+                <hk-lucide-icon [name]="isExpanded(flatNode.node) ? 'ChevronDown' : 'ChevronRight'" [size]="16" />
               </button>
             }
           }
@@ -126,28 +112,40 @@
           [class.text-primary-content]="flatNode.state.selected && selectionMode() !== 'checkbox'"
           [class.ring-2]="flatNode.state.focused"
           [class.ring-primary]="flatNode.state.focused"
+          tabindex="0"
           (click)="onNodeClick($event, flatNode.node)"
+          (keydown.enter)="onNodeClick($event, flatNode.node)"
+          (keydown.space)="onNodeClick($event, flatNode.node)"
         >
           @if (nodeTemplateRef()) {
             <!-- Custom Template -->
             <ng-container
-              *ngTemplateOutlet="nodeTemplateRef()!; context: {
-                $implicit: flatNode.node,
-                node: flatNode.node,
-                level: flatNode.level,
-                expanded: flatNode.state.expanded,
-                selected: flatNode.state.selected,
-                partialSelected: flatNode.state.partialSelected,
-                first: flatNode.first,
-                last: flatNode.last,
-                index: flatNode.index
-              }"
+              *ngTemplateOutlet="
+                nodeTemplateRef()!;
+                context: {
+                  $implicit: flatNode.node,
+                  node: flatNode.node,
+                  level: flatNode.level,
+                  expanded: flatNode.state.expanded,
+                  selected: flatNode.state.selected,
+                  partialSelected: flatNode.state.partialSelected,
+                  first: flatNode.first,
+                  last: flatNode.last,
+                  index: flatNode.index,
+                }
+              "
             />
           } @else {
             <!-- Default Template -->
             @if (flatNode.node.icon) {
               <hk-lucide-icon
-                [name]="isExpanded(flatNode.node) && flatNode.node.expandedIcon ? flatNode.node.expandedIcon : (isExpanded(flatNode.node) ? flatNode.node.icon : (flatNode.node.collapsedIcon ?? flatNode.node.icon))"
+                [name]="
+                  isExpanded(flatNode.node) && flatNode.node.expandedIcon
+                    ? flatNode.node.expandedIcon
+                    : isExpanded(flatNode.node)
+                      ? flatNode.node.icon
+                      : (flatNode.node.collapsedIcon ?? flatNode.node.icon)
+                "
                 [size]="18"
                 class="shrink-0"
               />

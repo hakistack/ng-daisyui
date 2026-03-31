@@ -24,9 +24,7 @@ const SAMPLE_DATA: TestRow[] = [
   { id: 5, name: 'Eve', email: 'eve@example.com', age: 32, active: true },
 ];
 
-function buildConfig(
-  overrides: Partial<Parameters<typeof createTable<TestRow>>[0]> = {},
-): FieldConfiguration<TestRow> {
+function buildConfig(overrides: Partial<Parameters<typeof createTable<TestRow>>[0]> = {}): FieldConfiguration<TestRow> {
   return TestBed.runInInjectionContext(() =>
     createTable<TestRow>({
       visible: ['id', 'name', 'email'],
@@ -37,19 +35,21 @@ function buildConfig(
 
 function queryAllHeaders(fixture: ComponentFixture<TableComponent<TestRow>>): string[] {
   const ths = fixture.nativeElement.querySelectorAll('th') as NodeListOf<HTMLElement>;
-  return Array.from(ths).map(th => th.textContent?.trim() ?? '');
+  return Array.from(ths).map((th) => th.textContent?.trim() ?? '');
 }
 
 function queryAllBodyRows(fixture: ComponentFixture<TableComponent<TestRow>>): HTMLElement[] {
   // CDK table uses cdk-row attribute
   return Array.from(
-    fixture.nativeElement.querySelectorAll('tr[cdk-row], tbody tr:not(.group-header-row):not(.group-footer-row):not(.footer-row):not(.detail-row)'),
+    fixture.nativeElement.querySelectorAll(
+      'tr[cdk-row], tbody tr:not(.group-header-row):not(.group-footer-row):not(.footer-row):not(.detail-row)',
+    ),
   );
 }
 
 function queryAllBodyCellsInRow(row: HTMLElement): string[] {
   const cells = row.querySelectorAll('td') as NodeListOf<HTMLElement>;
-  return Array.from(cells).map(td => td.textContent?.trim() ?? '');
+  return Array.from(cells).map((td) => td.textContent?.trim() ?? '');
 }
 
 // ---------------------------------------------------------------------------
@@ -93,7 +93,7 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       const colDefs = component.columnDefsSignal();
-      const fields = colDefs.map(c => c.field);
+      const fields = colDefs.map((c) => c.field);
       expect(fields).toEqual(expect.arrayContaining(['id', 'name', 'email', 'age', 'active']));
     });
   });
@@ -122,7 +122,7 @@ describe('TableComponent', () => {
 
       const colDefs = component.columnDefsSignal();
       // 'name' should become 'Name' etc.
-      const nameCol = colDefs.find(c => c.field === 'name');
+      const nameCol = colDefs.find((c) => c.field === 'name');
       expect(nameCol?.header).toBe('Name');
     });
 
@@ -165,13 +165,11 @@ describe('TableComponent', () => {
 
       const rows = queryAllBodyRows(fixture);
       const firstRowCells = queryAllBodyCellsInRow(rows[0]);
-      expect(firstRowCells.some(cell => cell.includes('[Alice]'))).toBe(true);
+      expect(firstRowCells.some((cell) => cell.includes('[Alice]'))).toBe(true);
     });
 
     it('should display fallback text for null/empty values', () => {
-      const dataWithNull = [
-        { id: 1, name: '', email: 'a@b.com', age: 30, active: true },
-      ];
+      const dataWithNull = [{ id: 1, name: '', email: 'a@b.com', age: 30, active: true }];
       const config = buildConfig({
         visible: ['name'],
         fallbacks: { name: 'N/A' },
@@ -182,7 +180,7 @@ describe('TableComponent', () => {
 
       const rows = queryAllBodyRows(fixture);
       const cells = queryAllBodyCellsInRow(rows[0]);
-      expect(cells.some(cell => cell.includes('N/A'))).toBe(true);
+      expect(cells.some((cell) => cell.includes('N/A'))).toBe(true);
     });
   });
 
@@ -252,7 +250,7 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       const displayData = component.displayDataSignal();
-      const names = displayData.map(d => d.name);
+      const names = displayData.map((d) => d.name);
       expect(names).toEqual(['Alice', 'Bob', 'Charlie', 'Diana', 'Eve']);
     });
 
@@ -262,7 +260,7 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       const displayData = component.displayDataSignal();
-      const names = displayData.map(d => d.name);
+      const names = displayData.map((d) => d.name);
       expect(names).toEqual(['Eve', 'Diana', 'Charlie', 'Bob', 'Alice']);
     });
   });
@@ -411,11 +409,10 @@ describe('TableComponent', () => {
 
   describe('Actions column', () => {
     it('should render action buttons when actions are configured', () => {
-      let clicked: TestRow | undefined;
       const config = buildConfig({
         visible: ['name'],
         actions: [
-          { type: 'view', label: 'View', action: (row) => { clicked = row; } },
+          { type: 'view', label: 'View', action: () => {} },
           { type: 'delete', label: 'Delete', action: () => {} },
         ],
       });
@@ -450,7 +447,13 @@ describe('TableComponent', () => {
       const config = buildConfig({
         visible: ['name'],
         actions: [
-          { type: 'view', label: 'View', action: (row) => { clicked = row; } },
+          {
+            type: 'view',
+            label: 'View',
+            action: (row) => {
+              clicked = row;
+            },
+          },
         ],
       });
       fixture.componentRef.setInput('config', config);
@@ -465,9 +468,7 @@ describe('TableComponent', () => {
     it('should hide actions when hidden callback returns true', () => {
       const config = buildConfig({
         visible: ['name'],
-        actions: [
-          { type: 'view', label: 'View', action: () => {}, hidden: (row) => row.id === 1 },
-        ],
+        actions: [{ type: 'view', label: 'View', action: () => {}, hidden: (row) => row.id === 1 }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -692,7 +693,10 @@ describe('TableComponent', () => {
     });
 
     it('should default-format camelCase field names', () => {
-      interface CamelRow { firstName: string; lastName: string }
+      interface CamelRow {
+        firstName: string;
+        lastName: string;
+      }
       const config = TestBed.runInInjectionContext(() =>
         createTable<CamelRow>({
           visible: ['firstName', 'lastName'],
@@ -853,7 +857,7 @@ describe('TableComponent', () => {
       fixture.componentRef.setInput('data', SAMPLE_DATA);
       fixture.detectChanges();
 
-      const col = component.columnDefsSignal().find(c => c.field === 'name')!;
+      const col = component.columnDefsSignal().find((c) => c.field === 'name')!;
       const cellDisplay = component.getCellDisplaySync(SAMPLE_DATA[0], col);
       expect(cellDisplay).toBeTruthy();
       expect(cellDisplay!.value).toBe('Alice');
@@ -866,7 +870,7 @@ describe('TableComponent', () => {
       fixture.componentRef.setInput('data', SAMPLE_DATA);
       fixture.detectChanges();
 
-      const col = component.columnDefsSignal().find(c => c.field === 'age')!;
+      const col = component.columnDefsSignal().find((c) => c.field === 'age')!;
       const cellDisplay = component.getCellDisplaySync(SAMPLE_DATA[0], col);
       expect(cellDisplay).toBeTruthy();
       expect(cellDisplay!.value).toBe('30');
@@ -878,7 +882,7 @@ describe('TableComponent', () => {
       fixture.componentRef.setInput('data', SAMPLE_DATA);
       fixture.detectChanges();
 
-      const col = component.columnDefsSignal().find(c => c.field === 'active')!;
+      const col = component.columnDefsSignal().find((c) => c.field === 'active')!;
       const trueDisplay = component.getCellDisplaySync(SAMPLE_DATA[0], col);
       expect(trueDisplay!.value).toBe('true');
 
@@ -894,7 +898,7 @@ describe('TableComponent', () => {
       fixture.componentRef.setInput('data', dataWithUndefined);
       fixture.detectChanges();
 
-      const col = component.columnDefsSignal().find(c => c.field === 'name')!;
+      const col = component.columnDefsSignal().find((c) => c.field === 'name')!;
       const cellDisplay = component.getCellDisplaySync(dataWithUndefined[0], col);
       expect(cellDisplay!.value).toBe('Unknown');
     });
@@ -906,7 +910,7 @@ describe('TableComponent', () => {
       fixture.componentRef.setInput('data', htmlData);
       fixture.detectChanges();
 
-      const col = component.columnDefsSignal().find(c => c.field === 'name')!;
+      const col = component.columnDefsSignal().find((c) => c.field === 'name')!;
       const cellDisplay = component.getCellDisplaySync(htmlData[0], col);
       expect(cellDisplay!.isHtml).toBe(true);
       expect(cellDisplay!.safeHtml).toBeTruthy();
@@ -919,7 +923,7 @@ describe('TableComponent', () => {
       fixture.componentRef.setInput('data', zeroData);
       fixture.detectChanges();
 
-      const col = component.columnDefsSignal().find(c => c.field === 'age')!;
+      const col = component.columnDefsSignal().find((c) => c.field === 'age')!;
       const cellDisplay = component.getCellDisplaySync(zeroData[0], col);
       expect(cellDisplay!.value).toBe('0');
     });
@@ -973,9 +977,7 @@ describe('TableComponent', () => {
       const config = buildConfig({
         visible: ['name', 'email'],
         enableFiltering: true,
-        filters: [
-          { type: 'text', field: 'name', operators: ['contains'] },
-        ],
+        filters: [{ type: 'text', field: 'name', operators: ['contains'] }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -992,9 +994,7 @@ describe('TableComponent', () => {
       const config = buildConfig({
         visible: ['name'],
         enableFiltering: true,
-        filters: [
-          { type: 'text', field: 'name', operators: ['contains'] },
-        ],
+        filters: [{ type: 'text', field: 'name', operators: ['contains'] }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1033,9 +1033,7 @@ describe('TableComponent', () => {
       const config = buildConfig({
         visible: ['name', 'email'],
         enableFiltering: true,
-        filters: [
-          { type: 'text', field: 'name', operators: ['contains'] },
-        ],
+        filters: [{ type: 'text', field: 'name', operators: ['contains'] }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1053,9 +1051,7 @@ describe('TableComponent', () => {
       const config = buildConfig({
         visible: ['name'],
         enableFiltering: true,
-        filters: [
-          { type: 'text', field: 'name', operators: ['contains'] },
-        ],
+        filters: [{ type: 'text', field: 'name', operators: ['contains'] }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1315,13 +1311,10 @@ describe('TableComponent', () => {
 
   describe('Bulk actions', () => {
     it('should render bulk actions when items are selected', () => {
-      let clicked: TestRow[] = [];
       const config = buildConfig({
         visible: ['name'],
         hasSelection: true,
-        bulkActions: [
-          { type: 'delete', label: 'Delete Selected', action: (rows) => { clicked = rows; } },
-        ],
+        bulkActions: [{ type: 'delete', label: 'Delete Selected', action: () => {} }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1343,7 +1336,13 @@ describe('TableComponent', () => {
         visible: ['name'],
         hasSelection: true,
         bulkActions: [
-          { type: 'delete', label: 'Delete', action: (rows) => { actionRows = rows; } },
+          {
+            type: 'delete',
+            label: 'Delete',
+            action: (rows) => {
+              actionRows = rows;
+            },
+          },
         ],
       });
       fixture.componentRef.setInput('config', config);
@@ -1393,7 +1392,7 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       const displayData = component.displayDataSignal();
-      const ages = displayData.map(d => d.age);
+      const ages = displayData.map((d) => d.age);
       expect(ages).toEqual([25, 28, 30, 32, 35]);
     });
 
@@ -1558,7 +1557,7 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       const updatedGroups = component.groupedDataSignal();
-      const firstGroup = updatedGroups.find(g => g.groupValue === firstGroupValue);
+      const firstGroup = updatedGroups.find((g) => g.groupValue === firstGroupValue);
       expect(firstGroup?.expanded).toBe(false);
     });
 
@@ -1575,13 +1574,13 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       let groups = component.groupedDataSignal();
-      expect(groups.every(g => g.expanded)).toBe(true);
+      expect(groups.every((g) => g.expanded)).toBe(true);
 
       component.collapseAllGroups();
       fixture.detectChanges();
 
       groups = component.groupedDataSignal();
-      expect(groups.every(g => !g.expanded)).toBe(true);
+      expect(groups.every((g) => !g.expanded)).toBe(true);
     });
   });
 
@@ -1593,9 +1592,7 @@ describe('TableComponent', () => {
     it('should resolve static tooltip', () => {
       const config = buildConfig({
         visible: ['name'],
-        actions: [
-          { type: 'view', label: 'View', action: () => {}, tooltip: 'View details' },
-        ],
+        actions: [{ type: 'view', label: 'View', action: () => {}, tooltip: 'View details' }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1609,9 +1606,7 @@ describe('TableComponent', () => {
     it('should resolve dynamic tooltip from function', () => {
       const config = buildConfig({
         visible: ['name'],
-        actions: [
-          { type: 'view', label: 'View', action: () => {}, tooltip: (row: TestRow) => `View ${row.name}` },
-        ],
+        actions: [{ type: 'view', label: 'View', action: () => {}, tooltip: (row: TestRow) => `View ${row.name}` }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1624,9 +1619,7 @@ describe('TableComponent', () => {
     it('should return empty tooltip when not configured', () => {
       const config = buildConfig({
         visible: ['name'],
-        actions: [
-          { type: 'view', label: 'View', action: () => {} },
-        ],
+        actions: [{ type: 'view', label: 'View', action: () => {} }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1646,9 +1639,7 @@ describe('TableComponent', () => {
     it('should apply custom buttonClass', () => {
       const config = buildConfig({
         visible: ['name'],
-        actions: [
-          { type: 'custom' as 'view', label: 'Custom', action: () => {}, buttonClass: 'my-custom-class' },
-        ],
+        actions: [{ type: 'custom' as 'view', label: 'Custom', action: () => {}, buttonClass: 'my-custom-class' }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1662,9 +1653,7 @@ describe('TableComponent', () => {
     it('should apply multiple buttonClasses', () => {
       const config = buildConfig({
         visible: ['name'],
-        actions: [
-          { type: 'view', label: 'View', action: () => {}, buttonClasses: ['extra-a', 'extra-b'] },
-        ],
+        actions: [{ type: 'view', label: 'View', action: () => {}, buttonClasses: ['extra-a', 'extra-b'] }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1683,7 +1672,6 @@ describe('TableComponent', () => {
 
   describe('Master-detail', () => {
     it('should set master detail selected row on click', () => {
-      interface DetailRow { detailId: number; info: string }
       const config = buildConfig({
         visible: ['name'],
       });
@@ -1849,9 +1837,7 @@ describe('TableComponent', () => {
       const config = buildConfig({
         visible: ['name'],
         hasSelection: true,
-        bulkActions: [
-          { type: 'export', label: 'Export', action: () => {} },
-        ],
+        bulkActions: [{ type: 'export', label: 'Export', action: () => {} }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -1861,16 +1847,14 @@ describe('TableComponent', () => {
       expect(component.isDropdownBulkAction(bulkActions[0])).toBe(true);
       const options = component.getDropdownOptions(bulkActions[0]);
       expect(options.length).toBe(4);
-      expect(options.map(o => o.value)).toEqual(['csv', 'excel', 'pdf', 'json']);
+      expect(options.map((o) => o.value)).toEqual(['csv', 'excel', 'pdf', 'json']);
     });
 
     it('should toggle bulk action dropdown', () => {
       const config = buildConfig({
         visible: ['name'],
         hasSelection: true,
-        bulkActions: [
-          { type: 'export', label: 'Export', action: () => {} },
-        ],
+        bulkActions: [{ type: 'export', label: 'Export', action: () => {} }],
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);

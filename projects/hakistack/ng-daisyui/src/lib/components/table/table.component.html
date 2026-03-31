@@ -323,7 +323,7 @@
                   [style.padding-left.px]="isTreeTableSignal() && isTreeColumn(column.field) ? getRowIndentPadding(row) : null"
                 >
                   @if (enableEditingSignal() && isEditing(row, column.field)) {
-                    <div class="edit-cell" (keydown)="onEditKeydown($event)">
+                    <div class="edit-cell" tabindex="-1" (keydown)="onEditKeydown($event)">
                       @switch (getEditorType(column)) {
                         @case ('toggle') {
                           <input
@@ -681,7 +681,7 @@
                 </tr>
               }
             } @else if (displayRow.type === 'group-footer') {
-              @if (displayRow.footerRowIndex != null) {
+              @if (displayRow.footerRowIndex !== undefined) {
                 @if (displayRow.group.resolvedGroupFooterRows?.[displayRow.footerRowIndex]?.colspanCells; as colspanCells) {
                   <!-- Colspan multi-row group footer -->
                   <tr class="bg-base-200/30 group-footer-row">
@@ -1047,7 +1047,7 @@
             >
               @if (enableEditingSignal() && isEditing(row, column.field)) {
                 <!-- Edit Mode -->
-                <div class="edit-cell" (keydown)="onEditKeydown($event)">
+                <div class="edit-cell" tabindex="-1" (keydown)="onEditKeydown($event)">
                   @switch (getEditorType(column)) {
                     @case ('toggle') {
                       <input

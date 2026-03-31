@@ -1,4 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, output, signal, viewChild, WritableSignal, forwardRef, OnDestroy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  output,
+  signal,
+  viewChild,
+  WritableSignal,
+  forwardRef,
+  OnDestroy,
+} from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import Fuse, { IFuseOptions } from 'fuse.js';
@@ -52,7 +66,6 @@ export type SelectColor = 'neutral' | 'primary' | 'secondary' | 'accent' | 'info
   ],
 })
 export class SelectComponent implements ControlValueAccessor, OnDestroy {
-
   private readonly theme = inject(HK_THEME);
 
   private readonly dropdownRoot = viewChild.required<ElementRef<HTMLElement>>('dropdownRoot');
@@ -113,9 +126,9 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   readonly highlightedIndex: WritableSignal<number> = signal(-1);
 
   // Form Control Integration
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+
   private _onTouched = (): void => {};
-  // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
+
   private _onChange = (_value: string | string[] | null): void => {};
   private _disabled = false;
 
@@ -136,7 +149,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     if (!term) return opts;
     if (!this.fuse) return this.fallbackFilter(opts, term);
 
-    return this.fuse.search(term).map(result => result.item);
+    return this.fuse.search(term).map((result) => result.item);
   });
 
   readonly displayValue = computed(() => {
@@ -144,7 +157,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
       const selected = this.selectedOptions();
       if (selected.length === 0) return '';
       if (!this.chipDisplay()) {
-        return selected.map(o => o.label).join(', ');
+        return selected.map((o) => o.label).join(', ');
       }
       return ''; // Chips are displayed separately
     }
@@ -159,9 +172,11 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   });
 
   readonly hasSearchTerm = computed(() => this.searchTerm().trim().length > 0);
-  readonly shouldUseVirtualScroll = computed(() => this.virtualScroll() && this.filteredOptions().length > this.config.virtualScrollThreshold);
+  readonly shouldUseVirtualScroll = computed(
+    () => this.virtualScroll() && this.filteredOptions().length > this.config.virtualScrollThreshold,
+  );
 
-  readonly hasGroups = computed(() => this.filteredOptions().some(o => !!o.group));
+  readonly hasGroups = computed(() => this.filteredOptions().some((o) => !!o.group));
   readonly groupedOptions = computed<SelectOptionGroup[]>(() => {
     const options = this.filteredOptions();
     if (!this.hasGroups()) return [];
@@ -200,7 +215,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     const filtered = this.filteredOptions();
     const selected = this.selectedOptions();
     if (filtered.length === 0) return false;
-    return filtered.every(opt => selected.some(s => s.value === opt.value));
+    return filtered.every((opt) => selected.some((s) => s.value === opt.value));
   });
 
   readonly isMaxReached = computed(() => {
@@ -272,8 +287,8 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     Enter: (filteredList, currentIndex) => this.handleEnterKey(filteredList, currentIndex),
     ' ': (filteredList, currentIndex) => this.handleSpaceKey(filteredList, currentIndex),
     Escape: () => this.closeDropdown(),
-    Home: filteredList => this.highlightFirst(filteredList),
-    End: filteredList => this.highlightLast(filteredList),
+    Home: (filteredList) => this.highlightFirst(filteredList),
+    End: (filteredList) => this.highlightLast(filteredList),
   };
 
   constructor() {
@@ -307,18 +322,20 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     if (this.multiple()) {
       // Handle array of values or SelectOption objects
       if (Array.isArray(value)) {
-        const options = value.map(v => {
-          if (typeof v === 'string') {
-            return this.effectiveOptions().find(opt => opt.value === v);
-          }
-          return v as SelectOption;
-        }).filter((o): o is SelectOption => o !== undefined);
+        const options = value
+          .map((v) => {
+            if (typeof v === 'string') {
+              return this.effectiveOptions().find((opt) => opt.value === v);
+            }
+            return v as SelectOption;
+          })
+          .filter((o): o is SelectOption => o !== undefined);
         this.selectedOptions.set(options);
       }
     } else {
       // Handle both string values and SelectOption objects
       if (typeof value === 'string') {
-        const option = this.effectiveOptions().find(opt => opt.value === value);
+        const option = this.effectiveOptions().find((opt) => opt.value === value);
         this.selectedOption.set(option || null);
       } else if (!Array.isArray(value) && typeof value === 'object' && 'value' in value && 'label' in value) {
         this.selectedOption.set(value);
@@ -370,11 +387,11 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   toggleOptionSelection(option: SelectOption): void {
     const current = this.selectedOptions();
-    const isSelected = current.some(o => o.value === option.value);
+    const isSelected = current.some((o) => o.value === option.value);
 
     if (isSelected) {
       // Remove from selection
-      const newSelection = current.filter(o => o.value !== option.value);
+      const newSelection = current.filter((o) => o.value !== option.value);
       this.selectedOptions.set(newSelection);
       this.emitMultiSelectChange(newSelection);
     } else {
@@ -390,7 +407,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   selectAll(): void {
     if (this.isDisabled()) return;
 
-    const filtered = this.filteredOptions().filter(o => !o.disabled);
+    const filtered = this.filteredOptions().filter((o) => !o.disabled);
     const max = this.maxSelectedItems();
 
     const newSelection = max !== null ? filtered.slice(0, max) : filtered;
@@ -420,7 +437,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     if (this.isDisabled()) return;
 
     const current = this.selectedOptions();
-    const newSelection = current.filter(o => o.value !== option.value);
+    const newSelection = current.filter((o) => o.value !== option.value);
     this.selectedOptions.set(newSelection);
     this.emitMultiSelectChange(newSelection);
     this._onTouched();
@@ -444,7 +461,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   /** Emit changes for multi-select mode */
   private emitMultiSelectChange(selections: SelectOption[]): void {
     this.selectionChange.emit(selections.length > 0 ? selections : null);
-    this._onChange(selections.map(o => o.value));
+    this._onChange(selections.map((o) => o.value));
   }
 
   clearSearch(event: Event): void {
@@ -487,7 +504,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   isSelected(option: SelectOption): boolean {
     if (this.multiple()) {
-      return this.selectedOptions().some(o => o.value === option.value);
+      return this.selectedOptions().some((o) => o.value === option.value);
     }
     const selected = this.selectedOption();
     return selected?.value === option.value;
@@ -579,7 +596,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   private fallbackFilter(options: SelectOption[], searchTerm: string): SelectOption[] {
     const normalizedTerm = this.normalizeString(searchTerm);
-    return options.filter(option => this.normalizeString(option.label).includes(normalizedTerm));
+    return options.filter((option) => this.normalizeString(option.label).includes(normalizedTerm));
   }
 
   private normalizeString(value: string): string {
@@ -624,7 +641,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     }
 
     const filteredList = this.filteredOptions();
-    const selectionIndex = filteredList.findIndex(option => option.value === currentSelection.value);
+    const selectionIndex = filteredList.findIndex((option) => option.value === currentSelection.value);
     this.highlightedIndex.set(selectionIndex);
   }
 

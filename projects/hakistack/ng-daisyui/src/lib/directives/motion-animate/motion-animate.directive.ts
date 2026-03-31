@@ -141,6 +141,7 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
       ease: 'easeOut' as const,
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured to exclude directive-only options
     const { trigger, margin, amount, once, offset, axis, ...animationOptions } = this.motionOptions();
 
     return {

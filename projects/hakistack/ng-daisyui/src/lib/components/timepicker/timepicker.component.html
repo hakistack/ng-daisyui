@@ -163,6 +163,8 @@
             class="relative mx-auto cursor-pointer"
             style="width: 256px; height: 256px"
             (click)="onClockDialClick($event)"
+            (keydown.enter)="onClockDialClick($event)"
+            (keydown.space)="onClockDialClick($event)"
             role="group"
             [attr.aria-label]="
               currentView() === 'hours' ? 'Hour selector' : currentView() === 'minutes' ? 'Minute selector' : 'Second selector'

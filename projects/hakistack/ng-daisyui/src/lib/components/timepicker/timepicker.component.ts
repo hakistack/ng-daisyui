@@ -11,14 +11,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import {
-  ControlValueAccessor,
-  NG_VALUE_ACCESSOR,
-  NG_VALIDATORS,
-  ValidationErrors,
-  Validator,
-  AbstractControl,
-} from '@angular/forms';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR, NG_VALIDATORS, ValidationErrors, Validator, AbstractControl } from '@angular/forms';
 import { generateUniqueId } from '../../utils/generate-uuid';
 import { ClockPosition, TimepickerEvent, TimepickerPosition, TimepickerView } from './timepicker.types';
 
@@ -59,9 +52,8 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
   private onChange = (_value: string | null) => {};
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+
   private onTouched = () => {};
   private readonly isFormDisabled = signal(false);
 
@@ -235,7 +227,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     if (this.use24Hour()) {
       const outerRing = Array.from({ length: 12 }, (_, i) => {
         const hour = i === 0 ? 12 : i;
-        const angleRad = (i * 30 - 90) * Math.PI / 180;
+        const angleRad = ((i * 30 - 90) * Math.PI) / 180;
         return {
           value: hour,
           display: hour.toString(),
@@ -246,7 +238,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
       });
       const innerRing = Array.from({ length: 12 }, (_, i) => {
         const hour = i === 0 ? 0 : i + 12;
-        const angleRad = (i * 30 - 90) * Math.PI / 180;
+        const angleRad = ((i * 30 - 90) * Math.PI) / 180;
         return {
           value: hour,
           display: hour.toString().padStart(2, '0'),
@@ -259,7 +251,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     }
 
     return [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((hour, i) => {
-      const angleRad = (i * 30 - 90) * Math.PI / 180;
+      const angleRad = ((i * 30 - 90) * Math.PI) / 180;
       return {
         value: hour,
         display: hour.toString(),
@@ -275,7 +267,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     const radius = this.OUTER_RADIUS;
     return Array.from({ length: 12 }, (_, i) => {
       const minute = i * 5;
-      const angleRad = (minute * 6 - 90) * Math.PI / 180;
+      const angleRad = ((minute * 6 - 90) * Math.PI) / 180;
       return {
         value: minute,
         display: minute.toString().padStart(2, '0'),
@@ -291,7 +283,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     const radius = this.OUTER_RADIUS;
     return Array.from({ length: 12 }, (_, i) => {
       const second = i * 5;
-      const angleRad = (second * 6 - 90) * Math.PI / 180;
+      const angleRad = ((second * 6 - 90) * Math.PI) / 180;
       return {
         value: second,
         display: second.toString().padStart(2, '0'),
@@ -304,9 +296,12 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
 
   readonly clockPositions = computed((): ClockPosition[] => {
     switch (this.currentView()) {
-      case 'hours': return this.clockHourPositions();
-      case 'minutes': return this.clockMinutePositions();
-      case 'seconds': return this.clockSecondPositions();
+      case 'hours':
+        return this.clockHourPositions();
+      case 'minutes':
+        return this.clockMinutePositions();
+      case 'seconds':
+        return this.clockSecondPositions();
     }
   });
 
@@ -625,7 +620,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
 
     // --- Try colon/dot separated format ---
     if (/[:.]/.test(cleaned)) {
-      const parts = cleaned.split(/[:.]/).map(p => p.trim());
+      const parts = cleaned.split(/[:.]/).map((p) => p.trim());
       if (parts.length >= 2) {
         const hour = parseInt(parts[0], 10);
         const minute = parseInt(parts[1], 10);
@@ -682,7 +677,9 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   private resolveAndSnap(
-    hour: number, minute: number, second: number,
+    hour: number,
+    minute: number,
+    second: number,
     period: 'AM' | 'PM' | null,
   ): { hour: number; minute: number; second: number } | null {
     if (isNaN(hour) || isNaN(minute) || isNaN(second)) return null;
@@ -692,9 +689,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
 
     if (period) {
       if (hour < 1 || hour > 12) return null;
-      hour24 = period === 'AM'
-        ? (hour === 12 ? 0 : hour)
-        : (hour === 12 ? 12 : hour + 12);
+      hour24 = period === 'AM' ? (hour === 12 ? 0 : hour) : hour === 12 ? 12 : hour + 12;
     } else {
       if (hour < 0 || hour > 23) return null;
     }
@@ -841,7 +836,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     let hour24: number;
     if (!this.use24Hour()) {
       const p = this.period();
-      hour24 = p === 'AM' ? (gridHour === 12 ? 0 : gridHour) : (gridHour === 12 ? 12 : gridHour + 12);
+      hour24 = p === 'AM' ? (gridHour === 12 ? 0 : gridHour) : gridHour === 12 ? 12 : gridHour + 12;
     } else {
       hour24 = gridHour;
     }
@@ -904,9 +899,12 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
 
   isClockValueSelected(value: number): boolean {
     switch (this.currentView()) {
-      case 'hours': return this.isHourSelected(value);
-      case 'minutes': return this.isMinuteSelected(value);
-      case 'seconds': return this.isSecondSelected(value);
+      case 'hours':
+        return this.isHourSelected(value);
+      case 'minutes':
+        return this.isMinuteSelected(value);
+      case 'seconds':
+        return this.isSecondSelected(value);
     }
   }
 
@@ -940,7 +938,8 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     }
   }
 
-  onClockDialClick(event: MouseEvent): void {
+  onClockDialClick(event: Event): void {
+    if (!(event instanceof MouseEvent)) return;
     const target = event.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const centerX = rect.width / 2;
@@ -951,7 +950,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     const distance = Math.sqrt(x * x + y * y);
     if (distance > centerX || distance < 20) return;
 
-    let angle = Math.atan2(x, -y) * 180 / Math.PI;
+    let angle = (Math.atan2(x, -y) * 180) / Math.PI;
     if (angle < 0) angle += 360;
 
     const view = this.currentView();

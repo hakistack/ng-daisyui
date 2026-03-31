@@ -64,15 +64,19 @@ export class OrganizationChartComponent<T = unknown> {
   readonly lineColor = input<string>('');
 
   /** Emitted when a node is selected */
+  // eslint-disable-next-line @angular-eslint/no-output-on-prefix
   readonly onNodeSelect = output<OrgChartNodeSelectEvent<T>>();
 
   /** Emitted when a node is unselected */
+  // eslint-disable-next-line @angular-eslint/no-output-on-prefix
   readonly onNodeUnselect = output<OrgChartNodeUnselectEvent<T>>();
 
   /** Emitted when a node is expanded */
+  // eslint-disable-next-line @angular-eslint/no-output-on-prefix
   readonly onNodeExpand = output<OrgChartNodeExpandEvent<T>>();
 
   /** Emitted when a node is collapsed */
+  // eslint-disable-next-line @angular-eslint/no-output-on-prefix
   readonly onNodeCollapse = output<OrgChartNodeCollapseEvent<T>>();
 
   /** Emitted when selection changes (for two-way binding) */
@@ -98,7 +102,7 @@ export class OrganizationChartComponent<T = unknown> {
 
   isNodeSelected(node: TreeNode<T>): boolean {
     const currentSelection = this._selection();
-    return currentSelection.some(n => this.isSameNode(n, node));
+    return currentSelection.some((n) => this.isSameNode(n, node));
   }
 
   hasChildren(node: TreeNode<T>): boolean {
@@ -167,11 +171,11 @@ export class OrganizationChartComponent<T = unknown> {
     } else if (mode === 'multiple' || mode === 'checkbox') {
       if (isSelected) {
         // Remove from selection
-        this._selection.update(current => current.filter(n => !this.isSameNode(n, node)));
+        this._selection.update((current) => current.filter((n) => !this.isSameNode(n, node)));
         this.onNodeUnselect.emit({ originalEvent: event, node });
       } else {
         // Add to selection
-        this._selection.update(current => [...current, node]);
+        this._selection.update((current) => [...current, node]);
         this.onNodeSelect.emit({ originalEvent: event, node });
       }
       this.selectionChange.emit(this._selection().length > 0 ? [...this._selection()] : null);

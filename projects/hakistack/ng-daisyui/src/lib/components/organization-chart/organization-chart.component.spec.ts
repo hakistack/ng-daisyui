@@ -2,12 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { OrganizationChartComponent } from './organization-chart.component';
 import { TreeNode } from '../../api/treenode';
-import {
-  OrgChartNodeSelectEvent,
-  OrgChartNodeUnselectEvent,
-  OrgChartNodeExpandEvent,
-  OrgChartNodeCollapseEvent,
-} from './organization-chart.types';
 
 function buildTree(): TreeNode[] {
   return [
@@ -596,12 +590,26 @@ describe('OrganizationChartComponent', () => {
     });
 
     it('should return expandedIcon when node with children is expanded', () => {
-      const node: TreeNode = { key: 'a', expanded: true, expandedIcon: 'FolderOpen', collapsedIcon: 'Folder', icon: 'File', children: [{ key: 'b' }] };
+      const node: TreeNode = {
+        key: 'a',
+        expanded: true,
+        expandedIcon: 'FolderOpen',
+        collapsedIcon: 'Folder',
+        icon: 'File',
+        children: [{ key: 'b' }],
+      };
       expect(component.getNodeIcon(node)).toBe('FolderOpen');
     });
 
     it('should return collapsedIcon when node with children is collapsed', () => {
-      const node: TreeNode = { key: 'a', expanded: false, expandedIcon: 'FolderOpen', collapsedIcon: 'Folder', icon: 'File', children: [{ key: 'b' }] };
+      const node: TreeNode = {
+        key: 'a',
+        expanded: false,
+        expandedIcon: 'FolderOpen',
+        collapsedIcon: 'Folder',
+        icon: 'File',
+        children: [{ key: 'b' }],
+      };
       expect(component.getNodeIcon(node)).toBe('Folder');
     });
 

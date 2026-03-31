@@ -1,5 +1,5 @@
 import { Component, viewChild } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { TabPanelComponent } from './tab-panel.component';
 
 // ---------------------------------------------------------------------------

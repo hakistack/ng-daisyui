@@ -48,7 +48,10 @@ export interface OptionsFromConfig<T = any> {
   readonly field: string;
   /** Function called with the watched field's value. Returns options synchronously, as a Promise, or as an Observable. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly loadFn: (value: T, formValues: Record<string, any>) => FormSelectOption[] | Promise<FormSelectOption[]> | Observable<FormSelectOption[]>;
+  readonly loadFn: (
+    value: T,
+    formValues: Record<string, any>,
+  ) => FormSelectOption[] | Promise<FormSelectOption[]> | Observable<FormSelectOption[]>;
   /** Placeholder text shown while options are loading */
   readonly loadingPlaceholder?: string;
   /** Whether to clear the field's value when the watched field changes (default: true) */
@@ -155,18 +158,23 @@ export interface RadioFieldOptions extends BaseFieldOptions {
   orientation?: 'horizontal' | 'vertical';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface CheckboxFieldOptions extends BaseFieldOptions {}
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ToggleFieldOptions extends BaseFieldOptions {}
 
 export interface DateFieldOptions extends BaseFieldOptions {
   isRange?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface TimeFieldOptions extends BaseFieldOptions {}
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface DatetimeFieldOptions extends BaseFieldOptions {}
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ColorFieldOptions extends BaseFieldOptions {}
 
 export interface FileFieldOptions extends BaseFieldOptions {

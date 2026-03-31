@@ -90,8 +90,8 @@ export function createForm(input: CreateFormInput): FormController {
 
   return {
     config,
-    submit: () => submitTrigger.update(v => v + 1),
-    reset: () => resetTrigger.update(v => v + 1),
+    submit: () => submitTrigger.update((v) => v + 1),
+    reset: () => resetTrigger.update((v) => v + 1),
   };
 }
 
@@ -121,7 +121,7 @@ function normalizeChoices(
   if (!Array.isArray(choices)) return choices; // Observable
   if (choices.length === 0) return [];
   if (typeof choices[0] === 'string') {
-    return (choices as string[]).map(opt => ({ label: opt, value: opt }));
+    return (choices as string[]).map((opt) => ({ label: opt, value: opt }));
   }
   return choices as FormSelectOption[];
 }
@@ -131,7 +131,7 @@ function autoLabel(key: string, label?: string): string {
     label ||
     key
       .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
+      .replace(/^./, (str) => str.toUpperCase())
       .trim()
   );
 }
@@ -214,8 +214,7 @@ function createField(key: string, type: FieldType, label: string, input: Interna
 
 export const field = {
   // Text-like fields
-  text: (key: string, label?: string, options?: TextFieldOptions) =>
-    createField(key, 'text', autoLabel(key, label), options),
+  text: (key: string, label?: string, options?: TextFieldOptions) => createField(key, 'text', autoLabel(key, label), options),
 
   email: (key: string, label?: string, options?: EmailFieldOptions) =>
     createField(key, 'email', autoLabel(key, label), {
@@ -230,11 +229,9 @@ export const field = {
       ...options,
     }),
 
-  tel: (key: string, label?: string, options?: TelFieldOptions) =>
-    createField(key, 'tel', autoLabel(key, label), options),
+  tel: (key: string, label?: string, options?: TelFieldOptions) => createField(key, 'tel', autoLabel(key, label), options),
 
-  url: (key: string, label?: string, options?: UrlFieldOptions) =>
-    createField(key, 'url', autoLabel(key, label), options),
+  url: (key: string, label?: string, options?: UrlFieldOptions) => createField(key, 'url', autoLabel(key, label), options),
 
   textarea: (key: string, label?: string, options?: TextareaFieldOptions) =>
     createField(key, 'textarea', autoLabel(key, label), {
@@ -244,8 +241,7 @@ export const field = {
     }),
 
   // Number fields
-  number: (key: string, label?: string, options?: NumberFieldOptions) =>
-    createField(key, 'number', autoLabel(key, label), options),
+  number: (key: string, label?: string, options?: NumberFieldOptions) => createField(key, 'number', autoLabel(key, label), options),
 
   range: (key: string, label?: string, options?: RangeFieldOptions) =>
     createField(key, 'range', autoLabel(key, label), {
@@ -269,8 +265,7 @@ export const field = {
       ...options,
     }),
 
-  radio: (key: string, label?: string, options?: RadioFieldOptions) =>
-    createField(key, 'radio', autoLabel(key, label), options),
+  radio: (key: string, label?: string, options?: RadioFieldOptions) => createField(key, 'radio', autoLabel(key, label), options),
 
   // Boolean fields
   checkbox: (key: string, label?: string, options?: CheckboxFieldOptions) =>
@@ -292,15 +287,13 @@ export const field = {
       ...options,
     }),
 
-  time: (key: string, label?: string, options?: TimeFieldOptions) =>
-    createField(key, 'time', autoLabel(key, label), options),
+  time: (key: string, label?: string, options?: TimeFieldOptions) => createField(key, 'time', autoLabel(key, label), options),
 
   datetime: (key: string, label?: string, options?: DatetimeFieldOptions) =>
     createField(key, 'datetime-local', autoLabel(key, label), options),
 
   // Other fields
-  color: (key: string, label?: string, options?: ColorFieldOptions) =>
-    createField(key, 'color', autoLabel(key, label), options),
+  color: (key: string, label?: string, options?: ColorFieldOptions) => createField(key, 'color', autoLabel(key, label), options),
 
   file: (key: string, label?: string, options?: FileFieldOptions) =>
     createField(key, 'file', autoLabel(key, label), {
@@ -308,7 +301,6 @@ export const field = {
       ...options,
     }),
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   hidden: (key: string, options?: HiddenFieldOptions) =>
     createField(key, 'hidden', '', {
       hidden: true,
