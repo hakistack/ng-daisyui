@@ -8,9 +8,9 @@ import { ApiDocEntry } from './api-table.types';
       <div class="card-body gap-3">
         <h3 class="card-title text-lg">{{ title() }}</h3>
         <div class="overflow-x-auto">
-          <table class="table table-sm">
+          <table class="table table-sm table-zebra">
             <thead>
-              <tr>
+              <tr class="text-xs uppercase tracking-wider text-base-content/50">
                 <th>Name</th>
                 <th>Type</th>
                 <th>Default</th>
@@ -20,10 +20,16 @@ import { ApiDocEntry } from './api-table.types';
             <tbody>
               @for (entry of entries(); track entry.name) {
                 <tr>
-                  <td><code class="text-primary text-xs">{{ entry.name }}</code></td>
-                  <td><code class="text-xs">{{ entry.type }}</code></td>
-                  <td><code class="text-xs">{{ entry.default ?? '-' }}</code></td>
-                  <td class="text-sm">{{ entry.description }}</td>
+                  <td>
+                    <code class="text-primary text-xs font-semibold">{{ entry.name }}</code>
+                  </td>
+                  <td>
+                    <code class="badge badge-ghost badge-sm text-xs font-mono">{{ entry.type }}</code>
+                  </td>
+                  <td>
+                    <code class="text-xs text-base-content/50">{{ entry.default ?? '-' }}</code>
+                  </td>
+                  <td class="text-sm text-base-content/70">{{ entry.description }}</td>
                 </tr>
               }
             </tbody>

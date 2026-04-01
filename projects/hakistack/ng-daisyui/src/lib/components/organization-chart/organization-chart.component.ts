@@ -221,6 +221,24 @@ export class OrganizationChartComponent<T = unknown> {
     return node.style || {};
   }
 
+  getAccentStyle(node: TreeNode<T>): Record<string, string> {
+    const colorMap: Record<string, string> = {
+      primary: 'var(--color-primary)',
+      secondary: 'var(--color-secondary)',
+      accent: 'var(--color-accent)',
+      neutral: 'var(--color-neutral)',
+      info: 'var(--color-info)',
+      success: 'var(--color-success)',
+      warning: 'var(--color-warning)',
+      error: 'var(--color-error)',
+    };
+    const color = colorMap[this.getNodeColor(node)] || colorMap['primary'];
+    return {
+      ...this.getNodeStyle(node),
+      'box-shadow': `inset 0 3px 0 0 oklch(${color})`,
+    };
+  }
+
   getTemplateContext(node: TreeNode<T>, level: number): OrgChartNodeTemplateContext<T> {
     return {
       $implicit: node,

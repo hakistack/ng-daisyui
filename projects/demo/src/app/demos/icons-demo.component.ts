@@ -4,38 +4,32 @@ import { LucideIconComponent, IconName } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
+import { DemoPageComponent } from '../shared/demo-page.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
 type IconsTab = 'basic' | 'categories' | 'playground';
 
 @Component({
   selector: 'app-icons-demo',
-  imports: [LucideIconComponent, FormsModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [LucideIconComponent, FormsModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Lucide Icons</h1>
-        <p class="text-base-content/70 mt-2">Beautiful, consistent icons from Lucide</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} LucideIconComponent {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Icons"
+      description="1000+ Lucide icons with configurable size, color, and stroke width"
+      icon="Smile"
+      category="Utilities"
+      importName="LucideIconComponent"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="icons_tabs" role="tab" class="tab" aria-label="Basic"
-            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
-          <input type="radio" name="icons_tabs" role="tab" class="tab" aria-label="Categories"
-            [checked]="activeTab() === 'categories'" (change)="activeTab.set('categories')" />
-          <input type="radio" name="icons_tabs" role="tab" class="tab" aria-label="Playground"
-            [checked]="activeTab() === 'playground'" (change)="activeTab.set('playground')" />
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'categories'" (click)="activeTab.set('categories')">
+            Categories
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'playground'" (click)="activeTab.set('playground')">
+            Playground
+          </button>
         </div>
 
         @if (activeTab() === 'basic') {
@@ -195,12 +189,16 @@ type IconsTab = 'basic' | 'categories' | 'playground';
                 </div>
 
                 <div class="form-control">
-                  <label class="label"><span class="label-text">Size: {{ playgroundSize }}px</span></label>
+                  <label class="label"
+                    ><span class="label-text">Size: {{ playgroundSize }}px</span></label
+                  >
                   <input type="range" class="range" min="16" max="96" [(ngModel)]="playgroundSize" />
                 </div>
 
                 <div class="form-control">
-                  <label class="label"><span class="label-text">Stroke Width: {{ playgroundStroke }}</span></label>
+                  <label class="label"
+                    ><span class="label-text">Stroke Width: {{ playgroundStroke }}</span></label
+                  >
                   <input type="range" class="range" min="0.5" max="4" step="0.5" [(ngModel)]="playgroundStroke" />
                 </div>
 
@@ -222,24 +220,20 @@ type IconsTab = 'basic' | 'categories' | 'playground';
 
             <div class="mt-4 p-4 bg-base-200 rounded-lg">
               <code class="text-sm">
-                &lt;hk-lucide-icon name="{{ playgroundIcon }}" [size]="{{ playgroundSize }}" [strokeWidth]="{{
-                  playgroundStroke
-                }}" color="{{ playgroundColor }}" /&gt;
+                &lt;hk-lucide-icon name="{{ playgroundIcon }}" [size]="{{ playgroundSize }}" [strokeWidth]="{{ playgroundStroke }}"
+                color="{{ playgroundColor }}" /&gt;
               </code>
             </div>
           </app-doc-section>
         }
-      }
+      </div>
 
-      @if (pageTab() === 'api') {
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="icons_api_tabs" role="tab" class="tab" aria-label="Component"
-            [checked]="apiTab() === 'component'" (change)="apiTab.set('component')" />
-          <input type="radio" name="icons_api_tabs" role="tab" class="tab" aria-label="Usage"
-            [checked]="apiTab() === 'usage'" (change)="apiTab.set('usage')" />
-          <input type="radio" name="icons_api_tabs" role="tab" class="tab" aria-label="Types"
-            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'component'" (click)="apiTab.set('component')">Component</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'usage'" (click)="apiTab.set('usage')">Usage</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         <!-- Component sub-tab -->
@@ -257,7 +251,8 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Basic Setup</h3>
                 <p class="text-sm text-base-content/70">
-                  Import <code>LucideIconComponent</code> and use it in your template with any valid Lucide icon name. The icon name is case-sensitive and follows PascalCase naming (e.g., <code>ArrowRight</code>, <code>CircleCheck</code>).
+                  Import <code>LucideIconComponent</code> and use it in your template with any valid Lucide icon name. The icon name is
+                  case-sensitive and follows PascalCase naming (e.g., <code>ArrowRight</code>, <code>CircleCheck</code>).
                 </p>
                 <app-code-block [code]="usageCode" />
               </div>
@@ -267,7 +262,8 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Color Strategies</h3>
                 <p class="text-sm text-base-content/70">
-                  You can set icon color using the <code>color</code> input prop (accepts any CSS color value), or by applying Tailwind text color utility classes directly on the host element. The component defaults to <code>currentColor</code>.
+                  You can set icon color using the <code>color</code> input prop (accepts any CSS color value), or by applying Tailwind text
+                  color utility classes directly on the host element. The component defaults to <code>currentColor</code>.
                 </p>
                 <app-code-block [code]="colorStrategyCode" />
               </div>
@@ -277,7 +273,8 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Pre-resolved Icon Data</h3>
                 <p class="text-sm text-base-content/70">
-                  For advanced use cases, you can pass pre-resolved icon data directly via the <code>iconData</code> input, bypassing the internal icon registry lookup entirely. This is useful when working with dynamically loaded icon sets.
+                  For advanced use cases, you can pass pre-resolved icon data directly via the <code>iconData</code> input, bypassing the
+                  internal icon registry lookup entirely. This is useful when working with dynamically loaded icon sets.
                 </p>
                 <app-code-block [code]="iconDataCode" />
               </div>
@@ -292,7 +289,9 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">IconName</h3>
                 <p class="text-sm text-base-content/70">
-                  Type alias for icon names accepted by the component. It is typed as <code>string</code> to allow flexibility across different Lucide versions. Browse <a href="https://lucide.dev/icons" target="_blank" class="link link-primary">lucide.dev/icons</a> for the full icon list.
+                  Type alias for icon names accepted by the component. It is typed as <code>string</code> to allow flexibility across
+                  different Lucide versions. Browse
+                  <a href="https://lucide.dev/icons" target="_blank" class="link link-primary">lucide.dev/icons</a> for the full icon list.
                 </p>
                 <app-code-block [code]="typeIconName" />
               </div>
@@ -302,19 +301,19 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">LucideIconData</h3>
                 <p class="text-sm text-base-content/70">
-                  The raw icon data object from the <code>lucide-angular</code> library. When passed via the <code>iconData</code> input, the component renders this directly without looking up the icon by name.
+                  The raw icon data object from the <code>lucide-angular</code> library. When passed via the <code>iconData</code> input,
+                  the component renders this directly without looking up the icon by name.
                 </p>
                 <app-code-block [code]="typeLucideIconData" />
               </div>
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
 })
 export class IconsDemoComponent {
-  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<IconsTab>('basic');
   apiTab = signal<'component' | 'usage' | 'types'>('component');
 
@@ -326,7 +325,18 @@ export class IconsDemoComponent {
 
   // Icon categories (using new Lucide naming convention)
   actionIcons: IconName[] = ['Plus', 'Minus', 'X', 'Check', 'Pencil', 'Trash2', 'Copy', 'Save', 'Download', 'Upload', 'Share', 'RefreshCw'];
-  navIcons: IconName[] = ['House', 'Menu', 'ChevronLeft', 'ChevronRight', 'ChevronUp', 'ChevronDown', 'ArrowLeft', 'ArrowRight', 'ExternalLink', 'Search'];
+  navIcons: IconName[] = [
+    'House',
+    'Menu',
+    'ChevronLeft',
+    'ChevronRight',
+    'ChevronUp',
+    'ChevronDown',
+    'ArrowLeft',
+    'ArrowRight',
+    'ExternalLink',
+    'Search',
+  ];
   commIcons: IconName[] = ['Mail', 'MessageSquare', 'Phone', 'Video', 'Send', 'Bell', 'AtSign', 'Inbox'];
   statusIcons: IconName[] = ['CircleCheck', 'CircleX', 'CircleAlert', 'TriangleAlert', 'Info', 'CircleQuestionMark', 'Clock', 'Loader'];
   mediaIcons: IconName[] = ['Image', 'Camera', 'Film', 'Music', 'Play', 'Pause', 'Volume2', 'Mic'];
@@ -425,16 +435,35 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
   // --- API docs ---
   inputDocs: ApiDocEntry[] = [
     { name: 'name', type: 'IconName', description: 'Lucide icon name (required). See lucide.dev/icons for the full list.' },
-    { name: 'iconData', type: 'LucideIconData', default: '-', description: 'Pre-resolved icon data object. When provided, bypasses the icon registry lookup for the name input.' },
+    {
+      name: 'iconData',
+      type: 'LucideIconData',
+      default: '-',
+      description: 'Pre-resolved icon data object. When provided, bypasses the icon registry lookup for the name input.',
+    },
     { name: 'size', type: 'number', default: '20', description: 'Icon size in pixels (width and height)' },
-    { name: 'color', type: 'string', default: "'currentColor'", description: 'CSS color value for the icon stroke. Alternatively use Tailwind text-* utility classes on the host element.' },
+    {
+      name: 'color',
+      type: 'string',
+      default: "'currentColor'",
+      description: 'CSS color value for the icon stroke. Alternatively use Tailwind text-* utility classes on the host element.',
+    },
     { name: 'strokeWidth', type: 'number', default: '2', description: 'Stroke line width of the icon paths' },
-    { name: 'absoluteStrokeWidth', type: 'boolean', default: 'false', description: 'When true, the stroke width remains constant regardless of icon size (not scaled proportionally)' },
+    {
+      name: 'absoluteStrokeWidth',
+      type: 'boolean',
+      default: 'false',
+      description: 'When true, the stroke width remains constant regardless of icon size (not scaled proportionally)',
+    },
     { name: 'class', type: 'string', default: "''", description: 'Additional CSS class(es) applied to the underlying SVG element' },
   ];
 
   outputDocs: ApiDocEntry[] = [
-    { name: '-', type: '-', description: 'This component does not emit any outputs. It is a pure display component that renders an SVG icon.' },
+    {
+      name: '-',
+      type: '-',
+      description: 'This component does not emit any outputs. It is a pure display component that renders an SVG icon.',
+    },
   ];
 
   colorStrategyCode = `<!-- Using the color input prop -->

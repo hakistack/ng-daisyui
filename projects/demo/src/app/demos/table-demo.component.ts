@@ -13,6 +13,7 @@ import {
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
+import { DemoPageComponent } from '../shared/demo-page.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
 interface User {
@@ -97,26 +98,17 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
     DocSectionComponent,
     ApiTableComponent,
     CodeBlockComponent,
+    DemoPageComponent,
   ],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Data Table</h1>
-        <p class="text-base-content/70 mt-2">Feature-rich data table with sorting, filtering, and pagination</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs"
-            >import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui'</code
-          >
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Table"
+      description="Enterprise-grade data table with sorting, filtering, pagination, and more"
+      icon="Table"
+      category="Data Display"
+      importName="TableComponent, createTable"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box w-fit flex-wrap">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
@@ -406,56 +398,17 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             <hk-table [data]="employees()" [config]="nestedMasterDetailConfig" />
           </app-doc-section>
         }
-      }
-
-      @if (pageTab() === 'api') {
+      </div>
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="hk-table"
-            [checked]="apiTab() === 'hk-table'"
-            (change)="apiTab.set('hk-table')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Sub-Components"
-            [checked]="apiTab() === 'sub-components'"
-            (change)="apiTab.set('sub-components')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Builder"
-            [checked]="apiTab() === 'builder'"
-            (change)="apiTab.set('builder')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Filtering"
-            [checked]="apiTab() === 'filtering'"
-            (change)="apiTab.set('filtering')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Types"
-            [checked]="apiTab() === 'types'"
-            (change)="apiTab.set('types')"
-          />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'hk-table'" (click)="apiTab.set('hk-table')">hk-table</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'sub-components'" (click)="apiTab.set('sub-components')">
+            Sub-Components
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'builder'" (click)="apiTab.set('builder')">Builder</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'filtering'" (click)="apiTab.set('filtering')">Filtering</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         <!-- hk-table sub-tab -->
@@ -662,13 +615,12 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
 })
 export class TableDemoComponent {
   private toast = inject(ToastService);
-  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<TableTab>('basic');
   apiTab = signal<ApiSubTab>('hk-table');
 

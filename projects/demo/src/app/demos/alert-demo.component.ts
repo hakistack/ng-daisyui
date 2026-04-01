@@ -4,68 +4,33 @@ import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
+import { DemoPageComponent } from '../shared/demo-page.component';
 
 type AlertTab = 'basic' | 'confirm' | 'loading' | 'advanced';
 type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
 @Component({
   selector: 'app-alert-demo',
-  imports: [LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Alert Dialogs</h1>
-        <p class="text-base-content/70 mt-2">Modal dialogs for confirmations, warnings, and notifications</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} AlertService {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Alert Dialogs"
+      description="Modal alerts and confirmations with rich content support"
+      icon="MessageSquareWarning"
+      category="Feedback"
+      importName="AlertService"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input
-            type="radio"
-            name="alert_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Basic"
-            [checked]="activeTab() === 'basic'"
-            (change)="activeTab.set('basic')"
-          />
-          <input
-            type="radio"
-            name="alert_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Confirmations"
-            [checked]="activeTab() === 'confirm'"
-            (change)="activeTab.set('confirm')"
-          />
-          <input
-            type="radio"
-            name="alert_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Loading"
-            [checked]="activeTab() === 'loading'"
-            (change)="activeTab.set('loading')"
-          />
-          <input
-            type="radio"
-            name="alert_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Advanced"
-            [checked]="activeTab() === 'advanced'"
-            (change)="activeTab.set('advanced')"
-          />
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'confirm'" (click)="activeTab.set('confirm')">
+            Confirmations
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'loading'" (click)="activeTab.set('loading')">Loading</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'advanced'" (click)="activeTab.set('advanced')">
+            Advanced
+          </button>
         </div>
 
         @if (activeTab() === 'basic') {
@@ -254,47 +219,21 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             </app-doc-section>
           </div>
         }
-      }
+      </div>
 
-      @if (pageTab() === 'api') {
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input
-            type="radio"
-            name="alert_api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Service Methods"
-            [checked]="apiTab() === 'methods'"
-            (change)="apiTab.set('methods')"
-          />
-          <input
-            type="radio"
-            name="alert_api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Configuration"
-            [checked]="apiTab() === 'configuration'"
-            (change)="apiTab.set('configuration')"
-          />
-          <input
-            type="radio"
-            name="alert_api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Provider Setup"
-            [checked]="apiTab() === 'provider'"
-            (change)="apiTab.set('provider')"
-          />
-          <input
-            type="radio"
-            name="alert_api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Types"
-            [checked]="apiTab() === 'types'"
-            (change)="apiTab.set('types')"
-          />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'methods'" (click)="apiTab.set('methods')">
+            Service Methods
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'configuration'" (click)="apiTab.set('configuration')">
+            Configuration
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'provider'" (click)="apiTab.set('provider')">
+            Provider Setup
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         <!-- Service Methods sub-tab -->
@@ -405,13 +344,12 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
 })
 export class AlertDemoComponent {
   private alert = inject(AlertService);
-  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<AlertTab>('basic');
   apiTab = signal<AlertApiTab>('methods');
   lastResult: { isConfirmed: boolean; isDismissed: boolean; isCancelled: boolean; dismissReason?: string } | null = null;

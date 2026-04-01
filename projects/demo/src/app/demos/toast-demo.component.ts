@@ -4,45 +4,42 @@ import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
+import { DemoPageComponent } from '../shared/demo-page.component';
 
 type ToastTab = 'basic' | 'features' | 'styles' | 'advanced';
 type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
 @Component({
   selector: 'app-toast-demo',
-  imports: [LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Toast Notifications</h1>
-        <p class="text-base-content/70 mt-2">Non-blocking notifications with actions and progress</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} ToastService {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Toast Notifications"
+      description="Non-blocking notifications with actions and progress"
+      icon="Bell"
+      category="Feedback"
+      importName="ToastService"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="toast_tabs" role="tab" class="tab" aria-label="Basic"
-            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
-          <input type="radio" name="toast_tabs" role="tab" class="tab" aria-label="Features"
-            [checked]="activeTab() === 'features'" (change)="activeTab.set('features')" />
-          <input type="radio" name="toast_tabs" role="tab" class="tab" aria-label="Styles"
-            [checked]="activeTab() === 'styles'" (change)="activeTab.set('styles')" />
-          <input type="radio" name="toast_tabs" role="tab" class="tab" aria-label="Advanced"
-            [checked]="activeTab() === 'advanced'" (change)="activeTab.set('advanced')" />
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'features'" (click)="activeTab.set('features')">
+            Features
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'styles'" (click)="activeTab.set('styles')">Styles</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'advanced'" (click)="activeTab.set('advanced')">
+            Advanced
+          </button>
         </div>
 
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
-            <app-doc-section title="Severity Levels" description="Different severity levels for various contexts" [codeExample]="severityCode">
+            <app-doc-section
+              title="Severity Levels"
+              description="Different severity levels for various contexts"
+              [codeExample]="severityCode"
+            >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
                   <hk-lucide-icon name="CircleCheck" [size]="18" />
@@ -148,19 +145,21 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             </app-doc-section>
           </div>
         }
-      }
+      </div>
 
-      @if (pageTab() === 'api') {
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="toast_api_tabs" role="tab" class="tab" aria-label="Service Methods"
-            [checked]="apiTab() === 'methods'" (change)="apiTab.set('methods')" />
-          <input type="radio" name="toast_api_tabs" role="tab" class="tab" aria-label="Configuration"
-            [checked]="apiTab() === 'configuration'" (change)="apiTab.set('configuration')" />
-          <input type="radio" name="toast_api_tabs" role="tab" class="tab" aria-label="Provider Setup"
-            [checked]="apiTab() === 'provider'" (change)="apiTab.set('provider')" />
-          <input type="radio" name="toast_api_tabs" role="tab" class="tab" aria-label="Types"
-            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'methods'" (click)="apiTab.set('methods')">
+            Service Methods
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'configuration'" (click)="apiTab.set('configuration')">
+            Configuration
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'provider'" (click)="apiTab.set('provider')">
+            Provider Setup
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         <!-- Service Methods sub-tab -->
@@ -172,7 +171,9 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Usage</h3>
                 <p class="text-sm text-base-content/70">
-                  Inject <code>ToastService</code> and call convenience methods for common severities, or use <code>show()</code> for full control. All methods return the toast ID as a <code>string</code>, which can be used with <code>dismiss()</code> and <code>pauseAutoDismiss()</code>/<code>resumeAutoDismiss()</code>.
+                  Inject <code>ToastService</code> and call convenience methods for common severities, or use <code>show()</code> for full
+                  control. All methods return the toast ID as a <code>string</code>, which can be used with <code>dismiss()</code> and
+                  <code>pauseAutoDismiss()</code>/<code>resumeAutoDismiss()</code>.
                 </p>
                 <app-code-block [code]="usageCode" />
               </div>
@@ -197,7 +198,9 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Provider Setup</h3>
                 <p class="text-sm text-base-content/70">
-                  Use <code>provideToast()</code> in your application config to set global defaults for all toasts. Alternatively, use the <code>TOAST_CONFIG</code> injection token directly for more control. Without configuration, the service uses sensible defaults (bottom-end position, 5s duration, max 5 toasts).
+                  Use <code>provideToast()</code> in your application config to set global defaults for all toasts. Alternatively, use the
+                  <code>TOAST_CONFIG</code> injection token directly for more control. Without configuration, the service uses sensible
+                  defaults (bottom-end position, 5s duration, max 5 toasts).
                 </p>
                 <app-code-block [code]="providerCode" />
               </div>
@@ -226,7 +229,8 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">ToastOptions</h3>
                 <p class="text-sm text-base-content/70">
-                  Full options object passed to <code>show()</code>. Convenience methods like <code>success()</code> set the severity automatically.
+                  Full options object passed to <code>show()</code>. Convenience methods like <code>success()</code> set the severity
+                  automatically.
                 </p>
                 <app-code-block [code]="typeToastOptions" />
               </div>
@@ -253,13 +257,12 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
 })
 export class ToastDemoComponent {
   private toast = inject(ToastService);
-  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<ToastTab>('basic');
   apiTab = signal<ToastApiTab>('methods');
 
@@ -286,7 +289,7 @@ export class ToastDemoComponent {
   showLongMessage() {
     this.toast.info(
       'System Maintenance',
-      'The system will undergo scheduled maintenance on Saturday from 2:00 AM to 6:00 AM EST. Please save your work before this time.'
+      'The system will undergo scheduled maintenance on Saturday from 2:00 AM to 6:00 AM EST. Please save your work before this time.',
     );
   }
 
@@ -555,11 +558,15 @@ providers: [
     { name: 'pauseAutoDismiss(id)', type: 'void', description: 'Pause the auto-dismiss timer for a toast (used on hover)' },
     { name: 'resumeAutoDismiss(id)', type: 'void', description: 'Resume the auto-dismiss timer for a toast (used on hover end)' },
     { name: 'handleToastClick(id)', type: 'void', description: 'Handle toast body click (calls onTap, dismisses if tapToDismiss)' },
-    { name: 'handleActionClick(id, action)', type: 'void', description: 'Handle action button click (calls onClick, dismisses unless dismissOnClick is false)' },
+    {
+      name: 'handleActionClick(id, action)',
+      type: 'void',
+      description: 'Handle action button click (calls onClick, dismisses unless dismissOnClick is false)',
+    },
   ];
 
   optionDocs: ApiDocEntry[] = [
-    { name: 'severity', type: "ToastSeverity", description: "Toast severity: 'success' | 'error' | 'warning' | 'info' (required)" },
+    { name: 'severity', type: 'ToastSeverity', description: "Toast severity: 'success' | 'error' | 'warning' | 'info' (required)" },
     { name: 'summary', type: 'string', description: 'Main toast message text (required)' },
     { name: 'detail', type: 'string', default: '-', description: 'Optional detailed message shown below summary' },
     { name: 'life', type: 'number', default: '5000', description: 'Duration in ms before auto-dismiss' },
@@ -584,12 +591,27 @@ providers: [
     { name: 'defaultLife', type: 'number', default: '5000', description: 'Default duration in ms before auto-dismiss' },
     { name: 'exitDuration', type: 'number', default: '300', description: 'Duration of exit animation in milliseconds' },
     { name: 'position', type: 'ToastPosition', default: "'bottom-end'", description: 'Default position for toast container' },
-    { name: 'preventDuplicates', type: 'boolean', default: 'true', description: 'Prevent showing duplicate toasts with same severity and summary' },
+    {
+      name: 'preventDuplicates',
+      type: 'boolean',
+      default: 'true',
+      description: 'Prevent showing duplicate toasts with same severity and summary',
+    },
     { name: 'progressBar', type: 'boolean', default: 'true', description: 'Show progress bar countdown indicator on all toasts' },
     { name: 'pauseOnHover', type: 'boolean', default: 'true', description: 'Pause auto-dismiss timer when hovering over any toast' },
     { name: 'extendedTimeOut', type: 'number', default: '1000', description: 'Additional time (ms) after hover ends before auto-dismiss' },
-    { name: 'tapToDismiss', type: 'boolean', default: 'false', description: 'Allow clicking anywhere on toast to dismiss (global default)' },
-    { name: 'autoDismiss', type: 'boolean', default: 'true', description: 'Automatically dismiss oldest toast when maxToasts limit is reached' },
+    {
+      name: 'tapToDismiss',
+      type: 'boolean',
+      default: 'false',
+      description: 'Allow clicking anywhere on toast to dismiss (global default)',
+    },
+    {
+      name: 'autoDismiss',
+      type: 'boolean',
+      default: 'true',
+      description: 'Automatically dismiss oldest toast when maxToasts limit is reached',
+    },
   ];
 
   severityTypeDocs: ApiDocEntry[] = [

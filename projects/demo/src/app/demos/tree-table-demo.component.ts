@@ -3,6 +3,7 @@ import { TableComponent, createTable, ToastService, LucideIconComponent, TreeNod
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
+import { DemoPageComponent } from '../shared/demo-page.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
 // Example: Department hierarchy using TreeNode
@@ -27,24 +28,16 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 
 @Component({
   selector: 'app-tree-table-demo',
-  imports: [TableComponent, LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [TableComponent, LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Tree Table</h1>
-        <p class="text-base-content/70 mt-2">Enterprise-grade hierarchical data display with inline toggles, indent guides, hierarchy-aware filtering/sorting, cascade selection, and expand animations</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} TableComponent, createTable {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Tree Table"
+      description="Hierarchical data tables with expandable rows and tree structure"
+      icon="ListTree"
+      category="Data Display"
+      importName="TableComponent, createTable"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box w-fit flex-wrap">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'treenode'" (click)="activeTab.set('treenode')">
@@ -83,12 +76,8 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
                 <hk-lucide-icon name="ChevronsUpDown" [size]="16" />
                 Collapse All
               </button>
-              <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(1)">
-                Level 1
-              </button>
-              <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(2)">
-                Level 2
-              </button>
+              <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(1)">Level 1</button>
+              <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(2)">Level 2</button>
             </div>
 
             <hk-table
@@ -108,11 +97,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
             description="Using a custom 'items' property for children instead of the default 'children'"
             [codeExample]="customChildrenCode"
           >
-            <hk-table
-              [data]="fileSystem()"
-              [config]="customChildrenConfig"
-              [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
-            />
+            <hk-table [data]="fileSystem()" [config]="customChildrenConfig" [paginationOptions]="{ mode: 'offset', pageSize: 20 }" />
           </app-doc-section>
         }
 
@@ -166,11 +151,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
             title="Hierarchy-Aware Filtering"
             description="When a child matches a filter/search, its ancestors stay visible. Try searching for 'React' or 'API' to see ancestors preserved."
           >
-            <hk-table
-              [data]="departmentTree()"
-              [config]="filteringConfig"
-              [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
-            />
+            <hk-table [data]="departmentTree()" [config]="filteringConfig" [paginationOptions]="{ mode: 'offset', pageSize: 20 }" />
           </app-doc-section>
         }
 
@@ -181,18 +162,10 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
             description="100 roots x 10 children x 5 grandchildren = 6,600 rows. Performance test with hierarchy-aware sorting."
           >
             <div class="flex gap-2 mb-4 flex-wrap">
-              <button class="btn btn-sm btn-outline" (click)="expandLargeToLevel(1)">
-                Expand Level 1
-              </button>
-              <button class="btn btn-sm btn-outline" (click)="expandLargeToLevel(2)">
-                Expand Level 2
-              </button>
-              <button class="btn btn-sm btn-outline" (click)="expandAllLarge()">
-                Expand All
-              </button>
-              <button class="btn btn-sm btn-outline" (click)="collapseAllLarge()">
-                Collapse All
-              </button>
+              <button class="btn btn-sm btn-outline" (click)="expandLargeToLevel(1)">Expand Level 1</button>
+              <button class="btn btn-sm btn-outline" (click)="expandLargeToLevel(2)">Expand Level 2</button>
+              <button class="btn btn-sm btn-outline" (click)="expandAllLarge()">Expand All</button>
+              <button class="btn btn-sm btn-outline" (click)="collapseAllLarge()">Collapse All</button>
             </div>
 
             <hk-table
@@ -203,19 +176,16 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
             />
           </app-doc-section>
         }
-      }
-
-      @if (pageTab() === 'api') {
+      </div>
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="treetable_api_tabs" role="tab" class="tab" aria-label="Component"
-            [checked]="apiTab() === 'component'" (change)="apiTab.set('component')" />
-          <input type="radio" name="treetable_api_tabs" role="tab" class="tab" aria-label="Configuration"
-            [checked]="apiTab() === 'configuration'" (change)="apiTab.set('configuration')" />
-          <input type="radio" name="treetable_api_tabs" role="tab" class="tab" aria-label="Methods"
-            [checked]="apiTab() === 'methods'" (change)="apiTab.set('methods')" />
-          <input type="radio" name="treetable_api_tabs" role="tab" class="tab" aria-label="Types"
-            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'component'" (click)="apiTab.set('component')">Component</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'configuration'" (click)="apiTab.set('configuration')">
+            Configuration
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'methods'" (click)="apiTab.set('methods')">Methods</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         <!-- Component sub-tab -->
@@ -235,7 +205,8 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">TreeNode Data Example</h3>
                 <p class="text-sm text-base-content/70">
-                  Use the standard <code>TreeNode</code> interface with a <code>children</code> property. The tree table automatically detects and renders the hierarchy with inline expand/collapse toggles.
+                  Use the standard <code>TreeNode</code> interface with a <code>children</code> property. The tree table automatically
+                  detects and renders the hierarchy with inline expand/collapse toggles.
                 </p>
                 <app-code-block [code]="treeNodeCode" />
               </div>
@@ -245,7 +216,8 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Custom Children Property Example</h3>
                 <p class="text-sm text-base-content/70">
-                  For data that uses a property other than <code>children</code> (e.g., <code>items</code>, <code>subRows</code>), set the <code>childrenProperty</code> option along with a <code>getRowKey</code> function.
+                  For data that uses a property other than <code>children</code> (e.g., <code>items</code>, <code>subRows</code>), set the
+                  <code>childrenProperty</code> option along with a <code>getRowKey</code> function.
                 </p>
                 <app-code-block [code]="customChildrenCode" />
               </div>
@@ -267,7 +239,8 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">TreeTableConfig</h3>
                 <p class="text-sm text-base-content/70">
-                  The <code>treeTable</code> object within <code>createTable()</code> configuration. Controls all tree-specific behavior including expansion, indentation, cascade selection, and hierarchy-aware filtering.
+                  The <code>treeTable</code> object within <code>createTable()</code> configuration. Controls all tree-specific behavior
+                  including expansion, indentation, cascade selection, and hierarchy-aware filtering.
                 </p>
                 <app-code-block [code]="typeTreeTableConfig" />
               </div>
@@ -277,7 +250,8 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">ExpansionChangeEvent</h3>
                 <p class="text-sm text-base-content/70">
-                  Emitted by the <code>(expansionChange)</code> output whenever a row is expanded or collapsed. Contains the affected row data and its new expansion state.
+                  Emitted by the <code>(expansionChange)</code> output whenever a row is expanded or collapsed. Contains the affected row
+                  data and its new expansion state.
                 </p>
                 <app-code-block [code]="typeExpansionChangeEvent" />
               </div>
@@ -287,7 +261,8 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">CheckboxCascade</h3>
                 <p class="text-sm text-base-content/70">
-                  Controls how checkbox selection propagates through the hierarchy. Choose between downward-only, upward-only, bidirectional, or no propagation.
+                  Controls how checkbox selection propagates through the hierarchy. Choose between downward-only, upward-only,
+                  bidirectional, or no propagation.
                 </p>
                 <app-code-block [code]="typeCheckboxCascade" />
               </div>
@@ -297,20 +272,20 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">FilterHierarchyMode</h3>
                 <p class="text-sm text-base-content/70">
-                  Determines how global search/filtering interacts with the tree hierarchy when rows are filtered. Controls whether ancestor and/or descendant rows remain visible for context.
+                  Determines how global search/filtering interacts with the tree hierarchy when rows are filtered. Controls whether ancestor
+                  and/or descendant rows remain visible for context.
                 </p>
                 <app-code-block [code]="typeFilterHierarchyMode" />
               </div>
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
 })
 export class TreeTableDemoComponent {
   private toast = inject(ToastService);
-  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<DemoTab>('treenode');
   apiTab = signal<'component' | 'configuration' | 'methods' | 'types'>('component');
   selectedItems = signal<TreeNode<Department>[]>([]);
@@ -318,7 +293,8 @@ export class TreeTableDemoComponent {
 
   // ViewChild refs for calling methods
   readonly deptTable = viewChild<TableComponent<TreeNode<Department>>>('deptTableRef');
-  readonly largeTable = viewChild<TableComponent<{ id: string; name: string; category: string; value: number; children?: unknown[] }>>('largeTableRef');
+  readonly largeTable =
+    viewChild<TableComponent<{ id: string; name: string; category: string; value: number; children?: unknown[] }>>('largeTableRef');
 
   // TreeNode-based department data
   departmentTree = signal<TreeNode<Department>[]>([
@@ -515,11 +491,12 @@ export class TreeTableDemoComponent {
         if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
       },
-      modified: (value) => new Date(value as Date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      }),
+      modified: (value) =>
+        new Date(value as Date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        }),
     },
     treeTable: {
       enabled: true,
@@ -666,47 +643,206 @@ export class TreeTableDemoComponent {
   // --- API Documentation ---
 
   tableInputDocs: ApiDocEntry[] = [
-    { name: 'data', type: 'readonly T[] | null', default: 'null', description: 'The hierarchical data array to display. For TreeNode-based data, each item uses the standard "children" property. For custom data, specify the children property name in treeTable.childrenProperty.' },
-    { name: 'config', type: 'FieldConfiguration<T> | null', default: 'null', description: 'Table configuration object returned by createTable(). Contains column definitions, formatters, selection settings, global search config, and the treeTable option that enables hierarchical display.' },
-    { name: 'paginationOptions', type: 'PaginationOptions | null', default: 'null', description: "Pagination configuration. Supports offset mode ({ mode: 'offset', pageSize: number }) or cursor mode. In tree table mode, pagination applies to the flattened visible rows." },
-    { name: 'showFirstLastButtons', type: 'boolean', default: 'true', description: 'Show first/last page navigation buttons in the paginator.' },
+    {
+      name: 'data',
+      type: 'readonly T[] | null',
+      default: 'null',
+      description:
+        'The hierarchical data array to display. For TreeNode-based data, each item uses the standard "children" property. For custom data, specify the children property name in treeTable.childrenProperty.',
+    },
+    {
+      name: 'config',
+      type: 'FieldConfiguration<T> | null',
+      default: 'null',
+      description:
+        'Table configuration object returned by createTable(). Contains column definitions, formatters, selection settings, global search config, and the treeTable option that enables hierarchical display.',
+    },
+    {
+      name: 'paginationOptions',
+      type: 'PaginationOptions | null',
+      default: 'null',
+      description:
+        "Pagination configuration. Supports offset mode ({ mode: 'offset', pageSize: number }) or cursor mode. In tree table mode, pagination applies to the flattened visible rows.",
+    },
+    {
+      name: 'showFirstLastButtons',
+      type: 'boolean',
+      default: 'true',
+      description: 'Show first/last page navigation buttons in the paginator.',
+    },
     { name: 'hidePageSize', type: 'boolean', default: 'false', description: 'Hide the page size selector in the paginator.' },
     { name: 'showPageSizeOptions', type: 'boolean', default: 'true', description: 'Show page size dropdown options in the paginator.' },
-    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable all interactive elements in the table (selection, sorting, filtering, expansion toggles).' },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: 'Disable all interactive elements in the table (selection, sorting, filtering, expansion toggles).',
+    },
   ];
 
   treeConfigDocs: ApiDocEntry[] = [
-    { name: 'treeTable.enabled', type: 'boolean', default: 'false', description: 'Enable tree table mode. When true, the table renders hierarchical data with inline expand/collapse toggles, indentation, and optional indent guide lines.' },
-    { name: 'treeTable.childrenProperty', type: 'string', default: "'children'", description: "Property name on each row object that contains the child items array. Set this when your data uses a custom property like 'items' or 'subRows' instead of the default 'children'." },
-    { name: 'treeTable.expandAll', type: 'boolean', default: 'false', description: 'Expand all rows on initial render. All nodes at every depth level are shown expanded. Overrides initialExpandedKeys and initialExpandLevel.' },
-    { name: 'treeTable.initialExpandedKeys', type: 'string[]', default: '[]', description: 'Array of row keys to expand on initial render. For TreeNode data, these match the node key property. For custom data, keys are generated by getRowKey or by index.' },
-    { name: 'treeTable.initialExpandLevel', type: 'number', default: '-', description: 'Expand all nodes up to this depth on initial render. 1 = only root nodes are expanded (their children are visible). 2 = roots and their children expanded, etc.' },
-    { name: 'treeTable.indentSize', type: 'number', default: '24', description: 'Indentation size in pixels per nesting level. Controls how far child rows are offset from their parent.' },
-    { name: 'treeTable.getRowKey', type: '(row: T) => string', default: '-', description: 'Custom function to extract a unique key from each row. Required for non-TreeNode data without a "key" property. Used for tracking expanded state and selection.' },
-    { name: 'treeTable.treeColumnIndex', type: 'number', default: '0', description: 'Index into the visible[] column array that renders the inline tree toggle (expand/collapse chevron). Defaults to 0 (first visible column).' },
-    { name: 'treeTable.showIndentGuides', type: 'boolean', default: 'true', description: 'Show visual vertical indent guide lines connecting parent and child rows. Helps users visually trace the hierarchy.' },
-    { name: 'treeTable.filterHierarchyMode', type: "'ancestors' | 'descendants' | 'both' | 'none'", default: "'ancestors'", description: "Controls how global search/filtering interacts with the tree hierarchy. 'ancestors' keeps parent rows visible when a child matches. 'descendants' shows all children when a parent matches. 'both' combines both behaviors. 'none' filters rows independently." },
-    { name: 'treeTable.checkboxCascade', type: "'none' | 'downward' | 'upward' | 'both'", default: "'none'", description: "Checkbox selection cascade behavior when hasSelection is true. 'downward' auto-selects all children when a parent is checked. 'upward' auto-checks a parent when all children are checked. 'both' enables bidirectional cascade. 'none' disables cascade." },
+    {
+      name: 'treeTable.enabled',
+      type: 'boolean',
+      default: 'false',
+      description:
+        'Enable tree table mode. When true, the table renders hierarchical data with inline expand/collapse toggles, indentation, and optional indent guide lines.',
+    },
+    {
+      name: 'treeTable.childrenProperty',
+      type: 'string',
+      default: "'children'",
+      description:
+        "Property name on each row object that contains the child items array. Set this when your data uses a custom property like 'items' or 'subRows' instead of the default 'children'.",
+    },
+    {
+      name: 'treeTable.expandAll',
+      type: 'boolean',
+      default: 'false',
+      description:
+        'Expand all rows on initial render. All nodes at every depth level are shown expanded. Overrides initialExpandedKeys and initialExpandLevel.',
+    },
+    {
+      name: 'treeTable.initialExpandedKeys',
+      type: 'string[]',
+      default: '[]',
+      description:
+        'Array of row keys to expand on initial render. For TreeNode data, these match the node key property. For custom data, keys are generated by getRowKey or by index.',
+    },
+    {
+      name: 'treeTable.initialExpandLevel',
+      type: 'number',
+      default: '-',
+      description:
+        'Expand all nodes up to this depth on initial render. 1 = only root nodes are expanded (their children are visible). 2 = roots and their children expanded, etc.',
+    },
+    {
+      name: 'treeTable.indentSize',
+      type: 'number',
+      default: '24',
+      description: 'Indentation size in pixels per nesting level. Controls how far child rows are offset from their parent.',
+    },
+    {
+      name: 'treeTable.getRowKey',
+      type: '(row: T) => string',
+      default: '-',
+      description:
+        'Custom function to extract a unique key from each row. Required for non-TreeNode data without a "key" property. Used for tracking expanded state and selection.',
+    },
+    {
+      name: 'treeTable.treeColumnIndex',
+      type: 'number',
+      default: '0',
+      description:
+        'Index into the visible[] column array that renders the inline tree toggle (expand/collapse chevron). Defaults to 0 (first visible column).',
+    },
+    {
+      name: 'treeTable.showIndentGuides',
+      type: 'boolean',
+      default: 'true',
+      description: 'Show visual vertical indent guide lines connecting parent and child rows. Helps users visually trace the hierarchy.',
+    },
+    {
+      name: 'treeTable.filterHierarchyMode',
+      type: "'ancestors' | 'descendants' | 'both' | 'none'",
+      default: "'ancestors'",
+      description:
+        "Controls how global search/filtering interacts with the tree hierarchy. 'ancestors' keeps parent rows visible when a child matches. 'descendants' shows all children when a parent matches. 'both' combines both behaviors. 'none' filters rows independently.",
+    },
+    {
+      name: 'treeTable.checkboxCascade',
+      type: "'none' | 'downward' | 'upward' | 'both'",
+      default: "'none'",
+      description:
+        "Checkbox selection cascade behavior when hasSelection is true. 'downward' auto-selects all children when a parent is checked. 'upward' auto-checks a parent when all children are checked. 'both' enables bidirectional cascade. 'none' disables cascade.",
+    },
   ];
 
   treeMethodDocs: ApiDocEntry[] = [
-    { name: 'expandAllRows()', type: 'void', description: 'Expand every row in the tree, making all descendants visible at every level. Collects all row keys and marks them as expanded.' },
-    { name: 'collapseAllRows()', type: 'void', description: 'Collapse every row in the tree, hiding all child rows. Only root-level rows remain visible.' },
-    { name: 'expandToLevel(n)', type: 'void', description: 'Expand all nodes up to depth n. For example, expandToLevel(1) expands only root nodes so their direct children are visible. expandToLevel(2) also expands those children.' },
-    { name: 'collapseToLevel(n)', type: 'void', description: 'Collapse nodes deeper than depth n, keeping shallower levels expanded. collapseToLevel(1) keeps roots expanded but collapses everything below.' },
-    { name: 'toggleRowExpand(row, event?)', type: 'void', description: 'Toggle a specific row between expanded and collapsed states. Optionally pass the MouseEvent to stop propagation. Triggers expand animation on newly revealed children and emits expansionChange.' },
-    { name: 'isRowExpanded(row)', type: 'boolean', description: 'Check whether a specific row is currently expanded. Returns false for rows without children or rows not in the expanded set.' },
-    { name: 'getRowLevel(row)', type: 'number', description: 'Get the nesting depth level of a row. Returns 0 for root-level rows, 1 for their children, and so on.' },
-    { name: 'getRowIndentPadding(row)', type: 'number', description: 'Get the computed left padding in pixels for a row based on its nesting level. Includes an 8px base padding plus level * indentSize.' },
-    { name: 'hasChildren(row)', type: 'boolean', description: 'Check whether a row has child rows (based on the configured childrenProperty).' },
-    { name: 'isIndeterminate(row)', type: 'boolean', description: 'Check if a parent row has a partial/indeterminate selection state. Returns true when some (but not all) children are selected and checkboxCascade is enabled. Used to show the indeterminate checkbox visual.' },
+    {
+      name: 'expandAllRows()',
+      type: 'void',
+      description:
+        'Expand every row in the tree, making all descendants visible at every level. Collects all row keys and marks them as expanded.',
+    },
+    {
+      name: 'collapseAllRows()',
+      type: 'void',
+      description: 'Collapse every row in the tree, hiding all child rows. Only root-level rows remain visible.',
+    },
+    {
+      name: 'expandToLevel(n)',
+      type: 'void',
+      description:
+        'Expand all nodes up to depth n. For example, expandToLevel(1) expands only root nodes so their direct children are visible. expandToLevel(2) also expands those children.',
+    },
+    {
+      name: 'collapseToLevel(n)',
+      type: 'void',
+      description:
+        'Collapse nodes deeper than depth n, keeping shallower levels expanded. collapseToLevel(1) keeps roots expanded but collapses everything below.',
+    },
+    {
+      name: 'toggleRowExpand(row, event?)',
+      type: 'void',
+      description:
+        'Toggle a specific row between expanded and collapsed states. Optionally pass the MouseEvent to stop propagation. Triggers expand animation on newly revealed children and emits expansionChange.',
+    },
+    {
+      name: 'isRowExpanded(row)',
+      type: 'boolean',
+      description:
+        'Check whether a specific row is currently expanded. Returns false for rows without children or rows not in the expanded set.',
+    },
+    {
+      name: 'getRowLevel(row)',
+      type: 'number',
+      description: 'Get the nesting depth level of a row. Returns 0 for root-level rows, 1 for their children, and so on.',
+    },
+    {
+      name: 'getRowIndentPadding(row)',
+      type: 'number',
+      description:
+        'Get the computed left padding in pixels for a row based on its nesting level. Includes an 8px base padding plus level * indentSize.',
+    },
+    {
+      name: 'hasChildren(row)',
+      type: 'boolean',
+      description: 'Check whether a row has child rows (based on the configured childrenProperty).',
+    },
+    {
+      name: 'isIndeterminate(row)',
+      type: 'boolean',
+      description:
+        'Check if a parent row has a partial/indeterminate selection state. Returns true when some (but not all) children are selected and checkboxCascade is enabled. Used to show the indeterminate checkbox visual.',
+    },
   ];
 
   treeOutputDocs: ApiDocEntry[] = [
-    { name: 'expansionChange', type: '{ row: T; expanded: boolean }', description: 'Emitted when a row is expanded or collapsed. The event contains the row data and its new expansion state (true = expanded, false = collapsed).' },
-    { name: 'selectionChange', type: 'readonly T[]', description: 'Emitted when row selection changes (requires hasSelection in config). Returns the array of all currently selected rows. In cascade mode, includes rows selected via propagation.' },
-    { name: 'sortChange', type: 'SortChange', description: 'Emitted when the sort column or direction changes. In tree table mode, sorting is hierarchy-aware: children are sorted within their parent group.' },
-    { name: 'globalSearchChange', type: 'GlobalSearchChange', description: 'Emitted when the global search input changes. In tree table mode with filterHierarchyMode, ancestors of matching rows stay visible.' },
+    {
+      name: 'expansionChange',
+      type: '{ row: T; expanded: boolean }',
+      description:
+        'Emitted when a row is expanded or collapsed. The event contains the row data and its new expansion state (true = expanded, false = collapsed).',
+    },
+    {
+      name: 'selectionChange',
+      type: 'readonly T[]',
+      description:
+        'Emitted when row selection changes (requires hasSelection in config). Returns the array of all currently selected rows. In cascade mode, includes rows selected via propagation.',
+    },
+    {
+      name: 'sortChange',
+      type: 'SortChange',
+      description:
+        'Emitted when the sort column or direction changes. In tree table mode, sorting is hierarchy-aware: children are sorted within their parent group.',
+    },
+    {
+      name: 'globalSearchChange',
+      type: 'GlobalSearchChange',
+      description:
+        'Emitted when the global search input changes. In tree table mode with filterHierarchyMode, ancestors of matching rows stay visible.',
+    },
     { name: 'rowClick', type: 'T', description: 'Emitted when a row is clicked. Provides the row data for the clicked row.' },
   ];
 
@@ -740,14 +876,26 @@ export class TreeTableDemoComponent {
 });`;
 
   // Dept table actions
-  expandAllDept() { this.deptTable()?.expandAllRows(); }
-  collapseAllDept() { this.deptTable()?.collapseAllRows(); }
-  expandDeptToLevel(level: number) { this.deptTable()?.expandToLevel(level); }
+  expandAllDept() {
+    this.deptTable()?.expandAllRows();
+  }
+  collapseAllDept() {
+    this.deptTable()?.collapseAllRows();
+  }
+  expandDeptToLevel(level: number) {
+    this.deptTable()?.expandToLevel(level);
+  }
 
   // Large table actions
-  expandAllLarge() { this.largeTable()?.expandAllRows(); }
-  collapseAllLarge() { this.largeTable()?.collapseAllRows(); }
-  expandLargeToLevel(level: number) { this.largeTable()?.expandToLevel(level); }
+  expandAllLarge() {
+    this.largeTable()?.expandAllRows();
+  }
+  collapseAllLarge() {
+    this.largeTable()?.collapseAllRows();
+  }
+  expandLargeToLevel(level: number) {
+    this.largeTable()?.expandToLevel(level);
+  }
 
   onExpansionChange(event: { row: TreeNode<Department>; expanded: boolean }) {
     console.log('Expansion changed:', event.row.label, 'expanded:', event.expanded);

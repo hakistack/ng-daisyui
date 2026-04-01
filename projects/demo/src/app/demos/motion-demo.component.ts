@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { MotionAnimateDirective, MotionHoverDirective, LucideIconComponent } from '@hakistack/ng-daisyui';
+import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -9,40 +10,35 @@ type MotionTab = 'animate' | 'hover' | 'presets';
 
 @Component({
   selector: 'app-motion-demo',
-  imports: [MotionAnimateDirective, MotionHoverDirective, LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [
+    MotionAnimateDirective,
+    MotionHoverDirective,
+    LucideIconComponent,
+    DemoPageComponent,
+    DocSectionComponent,
+    ApiTableComponent,
+    CodeBlockComponent,
+  ],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Motion Directives</h1>
-        <p class="text-base-content/70 mt-2">Smooth animations powered by Motion library</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} MotionAnimateDirective, MotionHoverDirective {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Motion Directives"
+      description="Declarative animations powered by Motion.dev with scroll, hover, and click triggers"
+      icon="Sparkles"
+      category="Utilities"
+      importName="MotionAnimateDirective"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="motion_tabs" role="tab" class="tab" aria-label="Animate"
-            [checked]="activeTab() === 'animate'" (change)="activeTab.set('animate')" />
-          <input type="radio" name="motion_tabs" role="tab" class="tab" aria-label="Hover"
-            [checked]="activeTab() === 'hover'" (change)="activeTab.set('hover')" />
-          <input type="radio" name="motion_tabs" role="tab" class="tab" aria-label="Presets"
-            [checked]="activeTab() === 'presets'" (change)="activeTab.set('presets')" />
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'animate'" (click)="activeTab.set('animate')">Animate</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'hover'" (click)="activeTab.set('hover')">Hover</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'presets'" (click)="activeTab.set('presets')">Presets</button>
         </div>
 
         @if (activeTab() === 'animate') {
           <div class="space-y-6">
             <app-doc-section title="Animate on Load" description="Elements animate when they appear" [codeExample]="loadCode">
-              <button class="btn btn-primary mb-4" (click)="toggleLoadDemo()">
-                {{ showLoadDemo() ? 'Hide' : 'Show' }} Elements
-              </button>
+              <button class="btn btn-primary mb-4" (click)="toggleLoadDemo()">{{ showLoadDemo() ? 'Hide' : 'Show' }} Elements</button>
 
               @if (showLoadDemo()) {
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -80,11 +76,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
 
             <app-doc-section title="Click Animations" description="Triggered by user click" [codeExample]="clickCode">
               <div class="flex flex-wrap gap-4">
-                <button
-                  [motionAnimate]="'bounceIn'"
-                  [motionOptions]="{ trigger: 'click', duration: 0.5 }"
-                  class="btn btn-primary"
-                >
+                <button [motionAnimate]="'bounceIn'" [motionOptions]="{ trigger: 'click', duration: 0.5 }" class="btn btn-primary">
                   Bounce
                 </button>
                 <button
@@ -94,11 +86,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                 >
                   Pulse
                 </button>
-                <button
-                  [motionAnimate]="{ rotate: [0, 360] }"
-                  [motionOptions]="{ trigger: 'click', duration: 0.5 }"
-                  class="btn btn-accent"
-                >
+                <button [motionAnimate]="{ rotate: [0, 360] }" [motionOptions]="{ trigger: 'click', duration: 0.5 }" class="btn btn-accent">
                   <hk-lucide-icon name="RefreshCw" [size]="18" />
                   Spin
                 </button>
@@ -113,9 +101,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
             </app-doc-section>
 
             <app-doc-section title="Staggered Animation" description="Elements animate in sequence with delays" [codeExample]="staggerCode">
-              <button class="btn btn-primary mb-4" (click)="toggleStaggerDemo()">
-                {{ showStaggerDemo() ? 'Reset' : 'Animate' }} List
-              </button>
+              <button class="btn btn-primary mb-4" (click)="toggleStaggerDemo()">{{ showStaggerDemo() ? 'Reset' : 'Animate' }} List</button>
 
               @if (showStaggerDemo()) {
                 <div class="space-y-2">
@@ -170,10 +156,18 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               </div>
             </app-doc-section>
 
-            <app-doc-section title="Combined Hover Effects" description="Multiple properties animated together" [codeExample]="combinedHoverCode">
+            <app-doc-section
+              title="Combined Hover Effects"
+              description="Multiple properties animated together"
+              [codeExample]="combinedHoverCode"
+            >
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div
-                  [motionHover]="{ scale: [1, 1.05], y: [0, -4], boxShadow: ['0 4px 6px -1px rgba(0,0,0,0.1)', '0 20px 25px -5px rgba(0,0,0,0.15)'] }"
+                  [motionHover]="{
+                    scale: [1, 1.05],
+                    y: [0, -4],
+                    boxShadow: ['0 4px 6px -1px rgba(0,0,0,0.1)', '0 20px 25px -5px rgba(0,0,0,0.15)'],
+                  }"
                   [animationOptions]="{ duration: 0.3, ease: 'easeOut' }"
                   class="p-6 bg-base-200 rounded-xl shadow-md cursor-pointer"
                 >
@@ -208,14 +202,14 @@ type MotionTab = 'animate' | 'hover' | 'presets';
 
         @if (activeTab() === 'presets') {
           <div class="space-y-6">
-            <app-doc-section title="Animation Presets" description="Built-in named animations (click to trigger)" [codeExample]="presetCode">
+            <app-doc-section
+              title="Animation Presets"
+              description="Built-in named animations (click to trigger)"
+              [codeExample]="presetCode"
+            >
               <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 @for (preset of presets; track preset) {
-                  <button
-                    [motionAnimate]="preset"
-                    [motionOptions]="{ trigger: 'click', duration: 0.6 }"
-                    class="btn btn-outline btn-sm"
-                  >
+                  <button [motionAnimate]="preset" [motionOptions]="{ trigger: 'click', duration: 0.6 }" class="btn btn-outline btn-sm">
                     {{ preset }}
                   </button>
                 }
@@ -243,19 +237,23 @@ type MotionTab = 'animate' | 'hover' | 'presets';
             </app-doc-section>
           </div>
         }
-      }
+      </div>
 
-      @if (pageTab() === 'api') {
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="motion_api_tabs" role="tab" class="tab" aria-label="Animate Directive"
-            [checked]="apiTab() === 'animate-directive'" (change)="apiTab.set('animate-directive')" />
-          <input type="radio" name="motion_api_tabs" role="tab" class="tab" aria-label="Hover Directive"
-            [checked]="apiTab() === 'hover-directive'" (change)="apiTab.set('hover-directive')" />
-          <input type="radio" name="motion_api_tabs" role="tab" class="tab" aria-label="Scroll Directive"
-            [checked]="apiTab() === 'scroll-directive'" (change)="apiTab.set('scroll-directive')" />
-          <input type="radio" name="motion_api_tabs" role="tab" class="tab" aria-label="Options & Types"
-            [checked]="apiTab() === 'options-types'" (change)="apiTab.set('options-types')" />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'animate-directive'" (click)="apiTab.set('animate-directive')">
+            Animate Directive
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'hover-directive'" (click)="apiTab.set('hover-directive')">
+            Hover Directive
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'scroll-directive'" (click)="apiTab.set('scroll-directive')">
+            Scroll Directive
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'options-types'" (click)="apiTab.set('options-types')">
+            Options & Types
+          </button>
         </div>
 
         <!-- Animate Directive sub-tab -->
@@ -268,7 +266,8 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Available Presets</h3>
                 <p class="text-sm text-base-content/70">
-                  Built-in animation presets that can be passed as a string to the <code>[motionAnimate]</code> input. Each preset defines a complete set of keyframes for common animation patterns.
+                  Built-in animation presets that can be passed as a string to the <code>[motionAnimate]</code> input. Each preset defines a
+                  complete set of keyframes for common animation patterns.
                 </p>
                 <app-code-block [code]="presetsListCode" />
               </div>
@@ -278,7 +277,8 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Usage</h3>
                 <p class="text-sm text-base-content/70">
-                  Import <code>MotionAnimateDirective</code> and apply it to any element. You can use a preset name or supply custom keyframe objects for full control over the animation.
+                  Import <code>MotionAnimateDirective</code> and apply it to any element. You can use a preset name or supply custom
+                  keyframe objects for full control over the animation.
                 </p>
                 <app-code-block [code]="usageCode" />
               </div>
@@ -315,7 +315,8 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">AnimationPreset</h3>
                 <p class="text-sm text-base-content/70">
-                  Union type of all built-in preset animation names. Pass one of these strings to the <code>[motionAnimate]</code> input to use a pre-defined animation.
+                  Union type of all built-in preset animation names. Pass one of these strings to the <code>[motionAnimate]</code> input to
+                  use a pre-defined animation.
                 </p>
                 <app-code-block [code]="typeAnimationPreset" />
               </div>
@@ -325,7 +326,8 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">HoverKeyframes</h3>
                 <p class="text-sm text-base-content/70">
-                  A record of CSS property names to keyframe value arrays. Each property maps to a two-element array representing the start and end values for the hover transition.
+                  A record of CSS property names to keyframe value arrays. Each property maps to a two-element array representing the start
+                  and end values for the hover transition.
                 </p>
                 <app-code-block [code]="typeHoverKeyframes" />
               </div>
@@ -335,19 +337,19 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Easing</h3>
                 <p class="text-sm text-base-content/70">
-                  Accepts a named easing string (e.g., <code>'easeOut'</code>, <code>'easeInOut'</code>), a CSS cubic-bezier array <code>[n, n, n, n]</code>, or a custom easing function.
+                  Accepts a named easing string (e.g., <code>'easeOut'</code>, <code>'easeInOut'</code>), a CSS cubic-bezier array
+                  <code>[n, n, n, n]</code>, or a custom easing function.
                 </p>
                 <app-code-block [code]="typeEasing" />
               </div>
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
 })
 export class MotionDemoComponent {
-  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<MotionTab>('animate');
   apiTab = signal<'animate-directive' | 'hover-directive' | 'scroll-directive' | 'options-types'>('animate-directive');
   showLoadDemo = signal(true);
@@ -526,7 +528,12 @@ customOptions: MotionDirectiveOptions = {
 
   // --- API docs ---
   animateDocs: ApiDocEntry[] = [
-    { name: '[motionAnimate]', type: "AnimationPreset | Record<string, unknown>", default: "'fadeIn'", description: 'Preset name (e.g. \'fadeIn\', \'bounceIn\') or custom keyframes object' },
+    {
+      name: '[motionAnimate]',
+      type: 'AnimationPreset | Record<string, unknown>',
+      default: "'fadeIn'",
+      description: "Preset name (e.g. 'fadeIn', 'bounceIn') or custom keyframes object",
+    },
     { name: '[motionOptions]', type: 'MotionDirectiveOptions', default: '{}', description: 'Animation and trigger configuration options' },
   ];
 
@@ -539,9 +546,19 @@ customOptions: MotionDirectiveOptions = {
   hoverDocs: ApiDocEntry[] = [
     { name: '[motionHover]', type: 'HoverKeyframes', description: 'Required. Keyframes to animate on hover (e.g. { scale: [1, 1.1] })' },
     { name: '[hoverOptions]', type: 'HoverOptions', default: '-', description: 'Hover listener options (passive, once)' },
-    { name: '[animationOptions]', type: 'HoverAnimationOptions', default: '{ duration: 0.3, ease: \'easeOut\' }', description: 'Animation timing and easing configuration' },
+    {
+      name: '[animationOptions]',
+      type: 'HoverAnimationOptions',
+      default: "{ duration: 0.3, ease: 'easeOut' }",
+      description: 'Animation timing and easing configuration',
+    },
     { name: '[restoreOnLeave]', type: 'boolean', default: 'true', description: 'Whether to animate back to initial values on hover end' },
-    { name: '[customRestoreKeyframes]', type: 'HoverKeyframes', default: '-', description: 'Custom keyframes for the restore animation instead of auto-captured values' },
+    {
+      name: '[customRestoreKeyframes]',
+      type: 'HoverKeyframes',
+      default: '-',
+      description: 'Custom keyframes for the restore animation instead of auto-captured values',
+    },
   ];
 
   hoverOutputDocs: ApiDocEntry[] = [
@@ -556,18 +573,47 @@ customOptions: MotionDirectiveOptions = {
   ];
 
   scrollDocs: ApiDocEntry[] = [
-    { name: '[motionScroll]', type: 'ScrollAnimationKeyframes | boolean', default: '-', description: 'Scroll-linked keyframes object, or true for progress tracking only' },
-    { name: '[scrollOptions]', type: 'ScrollOptions', default: '{}', description: 'Combined scroll configuration (container, target, axis, offset)' },
-    { name: '[scrollContainer]', type: 'HTMLElement', default: '-', description: 'Scroll container element (shorthand for scrollOptions.container)' },
-    { name: '[scrollTarget]', type: 'HTMLElement', default: 'host element', description: 'Target element to track (shorthand for scrollOptions.target)' },
+    {
+      name: '[motionScroll]',
+      type: 'ScrollAnimationKeyframes | boolean',
+      default: '-',
+      description: 'Scroll-linked keyframes object, or true for progress tracking only',
+    },
+    {
+      name: '[scrollOptions]',
+      type: 'ScrollOptions',
+      default: '{}',
+      description: 'Combined scroll configuration (container, target, axis, offset)',
+    },
+    {
+      name: '[scrollContainer]',
+      type: 'HTMLElement',
+      default: '-',
+      description: 'Scroll container element (shorthand for scrollOptions.container)',
+    },
+    {
+      name: '[scrollTarget]',
+      type: 'HTMLElement',
+      default: 'host element',
+      description: 'Target element to track (shorthand for scrollOptions.target)',
+    },
     { name: '[scrollAxis]', type: "'x' | 'y'", default: "'y'", description: 'Scroll axis to track' },
-    { name: '[scrollOffset]', type: 'ScrollOffset', default: '-', description: 'Scroll offset range, e.g. [\'start\', \'end\']' },
-    { name: '[animationOptions]', type: 'ScrollAnimationOptions', default: '{ ease: \'linear\' }', description: 'Animation options for scroll-linked animations' },
+    { name: '[scrollOffset]', type: 'ScrollOffset', default: '-', description: "Scroll offset range, e.g. ['start', 'end']" },
+    {
+      name: '[animationOptions]',
+      type: 'ScrollAnimationOptions',
+      default: "{ ease: 'linear' }",
+      description: 'Animation options for scroll-linked animations',
+    },
   ];
 
   scrollOutputDocs: ApiDocEntry[] = [
     { name: '(scrollProgress)', type: 'number', description: 'Emits scroll progress from 0 to 1 (progress tracking mode)' },
-    { name: '(scrollInfo)', type: 'ScrollInfo', description: 'Emits detailed scroll info with x/y current position, scrollLength, and velocity' },
+    {
+      name: '(scrollInfo)',
+      type: 'ScrollInfo',
+      description: 'Emits detailed scroll info with x/y current position, scrollLength, and velocity',
+    },
   ];
 
   scrollMethodDocs: ApiDocEntry[] = [
@@ -579,9 +625,19 @@ customOptions: MotionDirectiveOptions = {
     { name: 'trigger', type: "'immediate' | 'click' | 'scroll'", default: "'immediate'", description: 'What triggers the animation' },
     { name: 'duration', type: 'number', default: '0.6', description: 'Animation duration in seconds' },
     { name: 'delay', type: 'number', default: '0', description: 'Delay before animation starts (seconds)' },
-    { name: 'ease', type: 'Easing | Easing[]', default: "'easeOut'", description: 'Easing function: string name, cubic-bezier [n,n,n,n], or custom function' },
+    {
+      name: 'ease',
+      type: 'Easing | Easing[]',
+      default: "'easeOut'",
+      description: 'Easing function: string name, cubic-bezier [n,n,n,n], or custom function',
+    },
     { name: 'repeat', type: 'number', default: '0', description: 'Number of times to repeat the animation' },
-    { name: 'direction', type: "'normal' | 'reverse' | 'alternate' | 'alternate-reverse'", default: "'normal'", description: 'Animation playback direction' },
+    {
+      name: 'direction',
+      type: "'normal' | 'reverse' | 'alternate' | 'alternate-reverse'",
+      default: "'normal'",
+      description: 'Animation playback direction',
+    },
     { name: 'endDelay', type: 'number', default: '0', description: 'Delay after animation completes (seconds)' },
     { name: 'type', type: "'tween' | 'spring' | 'inertia'", default: "'tween'", description: 'Animation type' },
     { name: 'stiffness', type: 'number', default: '-', description: 'Spring stiffness (spring type only)' },
@@ -590,7 +646,12 @@ customOptions: MotionDirectiveOptions = {
     { name: 'bounce', type: 'number', default: '-', description: 'Duration-based spring bounce (spring type only)' },
     { name: 'once', type: 'boolean', default: 'false', description: 'Only animate once when using scroll trigger' },
     { name: 'margin', type: 'string', default: '-', description: 'IntersectionObserver rootMargin for scroll trigger' },
-    { name: 'amount', type: "number | 'some' | 'all'", default: '-', description: 'How much of the element must be visible to trigger (scroll)' },
+    {
+      name: 'amount',
+      type: "number | 'some' | 'all'",
+      default: '-',
+      description: 'How much of the element must be visible to trigger (scroll)',
+    },
   ];
 
   hoverOptionsDocs: ApiDocEntry[] = [
@@ -599,12 +660,36 @@ customOptions: MotionDirectiveOptions = {
   ];
 
   scrollInfoDocs: ApiDocEntry[] = [
-    { name: 'x.current', type: 'number', description: 'Current horizontal scroll position in pixels from the left edge of the scrollable container.' },
-    { name: 'x.scrollLength', type: 'number', description: 'Total horizontal scrollable distance in pixels (scrollWidth minus clientWidth).' },
-    { name: 'x.velocity', type: 'number', description: 'Current horizontal scroll velocity in pixels per second. Positive values indicate rightward scrolling.' },
-    { name: 'y.current', type: 'number', description: 'Current vertical scroll position in pixels from the top of the scrollable container.' },
-    { name: 'y.scrollLength', type: 'number', description: 'Total vertical scrollable distance in pixels (scrollHeight minus clientHeight).' },
-    { name: 'y.velocity', type: 'number', description: 'Current vertical scroll velocity in pixels per second. Positive values indicate downward scrolling.' },
+    {
+      name: 'x.current',
+      type: 'number',
+      description: 'Current horizontal scroll position in pixels from the left edge of the scrollable container.',
+    },
+    {
+      name: 'x.scrollLength',
+      type: 'number',
+      description: 'Total horizontal scrollable distance in pixels (scrollWidth minus clientWidth).',
+    },
+    {
+      name: 'x.velocity',
+      type: 'number',
+      description: 'Current horizontal scroll velocity in pixels per second. Positive values indicate rightward scrolling.',
+    },
+    {
+      name: 'y.current',
+      type: 'number',
+      description: 'Current vertical scroll position in pixels from the top of the scrollable container.',
+    },
+    {
+      name: 'y.scrollLength',
+      type: 'number',
+      description: 'Total vertical scrollable distance in pixels (scrollHeight minus clientHeight).',
+    },
+    {
+      name: 'y.velocity',
+      type: 'number',
+      description: 'Current vertical scroll velocity in pixels per second. Positive values indicate downward scrolling.',
+    },
   ];
 
   typeAnimationPreset = `type AnimationPreset =

@@ -14,6 +14,7 @@ import {
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
+import { DemoPageComponent } from '../shared/demo-page.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
 type FormTab = 'layouts' | 'fields' | 'conditional' | 'dependent' | 'autosave';
@@ -21,73 +22,31 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
 
 @Component({
   selector: 'app-forms-demo',
-  imports: [DynamicFormComponent, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [DynamicFormComponent, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Dynamic Forms</h1>
-        <p class="text-base-content/70 mt-2">Build forms declaratively with automatic validation and layout</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs"
-            >import {{ '{' }} DynamicFormComponent, createForm, field {{ '}' }} from '&#64;hakistack/ng-daisyui'</code
-          >
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Dynamic Forms"
+      description="Build complex forms with validation, conditional logic, and multiple layouts"
+      icon="FileInput"
+      category="Forms"
+      importName="DynamicFormComponent, createForm, field"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input
-            type="radio"
-            name="forms_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Layouts"
-            [checked]="activeTab() === 'layouts'"
-            (change)="activeTab.set('layouts')"
-          />
-          <input
-            type="radio"
-            name="forms_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Field Types"
-            [checked]="activeTab() === 'fields'"
-            (change)="activeTab.set('fields')"
-          />
-          <input
-            type="radio"
-            name="forms_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Conditional Logic"
-            [checked]="activeTab() === 'conditional'"
-            (change)="activeTab.set('conditional')"
-          />
-          <input
-            type="radio"
-            name="forms_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Dependent Fields"
-            [checked]="activeTab() === 'dependent'"
-            (change)="activeTab.set('dependent')"
-          />
-          <input
-            type="radio"
-            name="forms_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Auto-Save"
-            [checked]="activeTab() === 'autosave'"
-            (change)="activeTab.set('autosave')"
-          />
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'layouts'" (click)="activeTab.set('layouts')">Layouts</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'fields'" (click)="activeTab.set('fields')">
+            Field Types
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'conditional'" (click)="activeTab.set('conditional')">
+            Conditional Logic
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'dependent'" (click)="activeTab.set('dependent')">
+            Dependent Fields
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'autosave'" (click)="activeTab.set('autosave')">
+            Auto-Save
+          </button>
         </div>
 
         @if (activeTab() === 'layouts') {
@@ -188,65 +147,23 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
             </div>
           </div>
         }
-      }
+      </div>
 
-      @if (pageTab() === 'api') {
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Component"
-            [checked]="apiTab() === 'component'"
-            (change)="apiTab.set('component')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Field Builders"
-            [checked]="apiTab() === 'field-builders'"
-            (change)="apiTab.set('field-builders')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Options"
-            [checked]="apiTab() === 'options'"
-            (change)="apiTab.set('options')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Conditional Logic"
-            [checked]="apiTab() === 'conditional-logic'"
-            (change)="apiTab.set('conditional-logic')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Layout & Validation"
-            [checked]="apiTab() === 'layout-validation'"
-            (change)="apiTab.set('layout-validation')"
-          />
-          <input
-            type="radio"
-            name="api_tabs"
-            role="tab"
-            class="tab"
-            aria-label="Types"
-            [checked]="apiTab() === 'types'"
-            (change)="apiTab.set('types')"
-          />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'component'" (click)="apiTab.set('component')">Component</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'field-builders'" (click)="apiTab.set('field-builders')">
+            Field Builders
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'options'" (click)="apiTab.set('options')">Options</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'conditional-logic'" (click)="apiTab.set('conditional-logic')">
+            Conditional Logic
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'layout-validation'" (click)="apiTab.set('layout-validation')">
+            Layout & Validation
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         <!-- Component sub-tab -->
@@ -403,14 +320,13 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
 })
 export class FormsDemoComponent {
   private toast = inject(ToastService);
   private formState = inject(FormStateService);
-  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<FormTab>('layouts');
   apiTab = signal<ApiSubTab>('component');
   lastSubmission = signal<FormSubmissionData | null>(null);

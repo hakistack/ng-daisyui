@@ -6,40 +6,41 @@ import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { CodeBlockComponent } from '../shared/code-block.component';
+import { DemoPageComponent } from '../shared/demo-page.component';
 
 type TimepickerTab = 'basic' | 'options' | 'clockFace' | 'advanced';
 type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
 
 @Component({
   selector: 'app-timepicker-demo',
-  imports: [TimepickerComponent, ReactiveFormsModule, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [
+    TimepickerComponent,
+    ReactiveFormsModule,
+    JsonPipe,
+    DocSectionComponent,
+    ApiTableComponent,
+    CodeBlockComponent,
+    DemoPageComponent,
+  ],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Timepicker</h1>
-        <p class="text-base-content/70 mt-2">Time picker with hour/minute/second selection and 12h/24h support</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} TimepickerComponent {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Timepicker"
+      description="Clock-based time picker with hours, minutes, and seconds selection"
+      icon="Clock"
+      category="Inputs"
+      importName="TimepickerComponent"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="timepicker_tabs" role="tab" class="tab" aria-label="Basic"
-            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
-          <input type="radio" name="timepicker_tabs" role="tab" class="tab" aria-label="Options"
-            [checked]="activeTab() === 'options'" (change)="activeTab.set('options')" />
-          <input type="radio" name="timepicker_tabs" role="tab" class="tab" aria-label="Clock Face"
-            [checked]="activeTab() === 'clockFace'" (change)="activeTab.set('clockFace')" />
-          <input type="radio" name="timepicker_tabs" role="tab" class="tab" aria-label="Advanced"
-            [checked]="activeTab() === 'advanced'" (change)="activeTab.set('advanced')" />
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'options'" (click)="activeTab.set('options')">Options</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'clockFace'" (click)="activeTab.set('clockFace')">
+            Clock Face
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'advanced'" (click)="activeTab.set('advanced')">
+            Advanced
+          </button>
         </div>
 
         @if (activeTab() === 'basic') {
@@ -79,12 +80,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
           <div class="space-y-6">
             <app-doc-section title="With Seconds" description="Include seconds in time selection" [codeExample]="secondsCode">
               <div class="max-w-sm">
-                <hk-timepicker
-                  [formControl]="secondsControl"
-                  placeholder="HH:MM:SS"
-                  [showSeconds]="true"
-                  [showNowButton]="true"
-                />
+                <hk-timepicker [formControl]="secondsControl" placeholder="HH:MM:SS" [showSeconds]="true" [showNowButton]="true" />
               </div>
               <div class="mt-4 text-sm">
                 Selected: <code class="bg-base-200 px-2 py-1 rounded">{{ secondsControl.value | json }}</code>
@@ -93,12 +89,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
 
             <app-doc-section title="5-Minute Step" description="Select minutes in 5-minute increments" [codeExample]="stepCode">
               <div class="max-w-sm">
-                <hk-timepicker
-                  [formControl]="step5Control"
-                  placeholder="Select time"
-                  [minuteStep]="5"
-                  [showNowButton]="true"
-                />
+                <hk-timepicker [formControl]="step5Control" placeholder="Select time" [minuteStep]="5" [showNowButton]="true" />
               </div>
               <div class="mt-4 text-sm">
                 Selected: <code class="bg-base-200 px-2 py-1 rounded">{{ step5Control.value | json }}</code>
@@ -124,7 +115,11 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
 
         @if (activeTab() === 'clockFace') {
           <div class="space-y-6">
-            <app-doc-section title="Clock Face (12h)" description="Material Design-style clock selector with AM/PM" [codeExample]="clockFace12hCode">
+            <app-doc-section
+              title="Clock Face (12h)"
+              description="Material Design-style clock selector with AM/PM"
+              [codeExample]="clockFace12hCode"
+            >
               <div class="max-w-sm">
                 <hk-timepicker
                   [formControl]="clockFace12hControl"
@@ -140,7 +135,11 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
               </div>
             </app-doc-section>
 
-            <app-doc-section title="Clock Face (24h)" description="24-hour clock with inner/outer ring for all 24 hours" [codeExample]="clockFace24hCode">
+            <app-doc-section
+              title="Clock Face (24h)"
+              description="24-hour clock with inner/outer ring for all 24 hours"
+              [codeExample]="clockFace24hCode"
+            >
               <div class="max-w-sm">
                 <hk-timepicker
                   [formControl]="clockFace24hControl"
@@ -156,7 +155,11 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
               </div>
             </app-doc-section>
 
-            <app-doc-section title="Clock Face with Seconds" description="Clock face with seconds support" [codeExample]="clockFaceSecondsCode">
+            <app-doc-section
+              title="Clock Face with Seconds"
+              description="Clock face with seconds support"
+              [codeExample]="clockFaceSecondsCode"
+            >
               <div class="max-w-sm">
                 <hk-timepicker
                   [formControl]="clockFaceSecondsControl"
@@ -175,7 +178,11 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
 
         @if (activeTab() === 'advanced') {
           <div class="space-y-6">
-            <app-doc-section title="Min/Max Constraints" description="Restrict selectable time range (09:00 - 17:00)" [codeExample]="constraintCode">
+            <app-doc-section
+              title="Min/Max Constraints"
+              description="Restrict selectable time range (09:00 - 17:00)"
+              [codeExample]="constraintCode"
+            >
               <div class="max-w-sm">
                 <hk-timepicker
                   [formControl]="constrainedControl"
@@ -190,12 +197,13 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
               </div>
             </app-doc-section>
 
-            <app-doc-section title="Pre-filled Value" description="Timepicker with an initial value set programmatically" [codeExample]="prefilledCode">
+            <app-doc-section
+              title="Pre-filled Value"
+              description="Timepicker with an initial value set programmatically"
+              [codeExample]="prefilledCode"
+            >
               <div class="max-w-sm">
-                <hk-timepicker
-                  [formControl]="prefilledControl"
-                  [use24Hour]="false"
-                />
+                <hk-timepicker [formControl]="prefilledControl" [use24Hour]="false" />
               </div>
               <div class="mt-4 text-sm">
                 Selected: <code class="bg-base-200 px-2 py-1 rounded">{{ prefilledControl.value | json }}</code>
@@ -204,27 +212,24 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
 
             <app-doc-section title="Disabled State" description="Timepicker in disabled state">
               <div class="max-w-sm">
-                <hk-timepicker
-                  [formControl]="disabledControl"
-                  placeholder="Disabled"
-                />
+                <hk-timepicker [formControl]="disabledControl" placeholder="Disabled" />
               </div>
             </app-doc-section>
           </div>
         }
-      }
+      </div>
 
-      @if (pageTab() === 'api') {
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Component"
-            [checked]="apiTab() === 'component'" (change)="apiTab.set('component')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Configuration"
-            [checked]="apiTab() === 'configuration'" (change)="apiTab.set('configuration')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Clock Face"
-            [checked]="apiTab() === 'clock-face'" (change)="apiTab.set('clock-face')" />
-          <input type="radio" name="api_tabs" role="tab" class="tab" aria-label="Types"
-            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'component'" (click)="apiTab.set('component')">Component</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'configuration'" (click)="apiTab.set('configuration')">
+            Configuration
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'clock-face'" (click)="apiTab.set('clock-face')">
+            Clock Face
+          </button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         <!-- Component sub-tab -->
@@ -238,15 +243,15 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">ControlValueAccessor</h3>
                 <p class="text-sm text-base-content/70">
-                  <code>hk-timepicker</code> implements <code>ControlValueAccessor</code> and <code>Validator</code>,
-                  so it works seamlessly with Angular reactive forms and template-driven forms. Bind it with
-                  <code>[formControl]</code>, <code>formControlName</code>, or <code>[(ngModel)]</code>.
+                  <code>hk-timepicker</code> implements <code>ControlValueAccessor</code> and <code>Validator</code>, so it works seamlessly
+                  with Angular reactive forms and template-driven forms. Bind it with <code>[formControl]</code>,
+                  <code>formControlName</code>, or <code>[(ngModel)]</code>.
                 </p>
                 <p class="text-sm text-base-content/70">
                   The value format is a <strong>string</strong>: <code>"HH:MM"</code> (e.g. <code>"14:30"</code>) or
-                  <code>"HH:MM:SS"</code> (e.g. <code>"14:30:45"</code>) when <code>showSeconds</code> is enabled.
-                  The value is always in 24-hour format regardless of the <code>use24Hour</code> display setting.
-                  A <code>null</code> value represents no selection.
+                  <code>"HH:MM:SS"</code> (e.g. <code>"14:30:45"</code>) when <code>showSeconds</code> is enabled. The value is always in
+                  24-hour format regardless of the <code>use24Hour</code> display setting. A <code>null</code> value represents no
+                  selection.
                 </p>
                 <app-code-block [code]="cvaExampleCode" lang="typescript" />
               </div>
@@ -273,9 +278,8 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
                 <h3 class="card-title text-lg">clockFace Input</h3>
                 <app-api-table title="Clock Face Input" [entries]="clockFaceInputDocs" />
                 <p class="text-sm text-base-content/70 mt-2">
-                  When <code>[clockFace]="true"</code>, the timepicker replaces the default grid selector with a
-                  Material Design-style analog clock face. Users select hours and minutes (and optionally seconds)
-                  by clicking or dragging on the circular dial.
+                  When <code>[clockFace]="true"</code>, the timepicker replaces the default grid selector with a Material Design-style
+                  analog clock face. Users select hours and minutes (and optionally seconds) by clicking or dragging on the circular dial.
                 </p>
               </div>
             </div>
@@ -285,25 +289,23 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
                 <h3 class="card-title text-lg">How the Clock Face Works</h3>
                 <div class="space-y-3 text-sm text-base-content/70">
                   <p>
-                    <strong>Hour Selection:</strong> In 12-hour mode, hours 1--12 are displayed on a single ring.
-                    In 24-hour mode, the clock uses two concentric rings: the outer ring displays hours 1--12 and
-                    the inner ring displays hours 13--24 (with 0 representing midnight). This dual-ring layout
-                    allows all 24 hours to be accessible without scrolling.
+                    <strong>Hour Selection:</strong> In 12-hour mode, hours 1--12 are displayed on a single ring. In 24-hour mode, the clock
+                    uses two concentric rings: the outer ring displays hours 1--12 and the inner ring displays hours 13--24 (with 0
+                    representing midnight). This dual-ring layout allows all 24 hours to be accessible without scrolling.
                   </p>
                   <p>
-                    <strong>Minute / Second Selection:</strong> After selecting an hour, the view automatically
-                    transitions to minute selection. If <code>showSeconds</code> is enabled, selecting a minute
-                    advances to the seconds dial. Minutes and seconds are displayed on a single ring with values
-                    0--59 (labels shown at 5-unit intervals: 0, 5, 10, ..., 55).
+                    <strong>Minute / Second Selection:</strong> After selecting an hour, the view automatically transitions to minute
+                    selection. If <code>showSeconds</code> is enabled, selecting a minute advances to the seconds dial. Minutes and seconds
+                    are displayed on a single ring with values 0--59 (labels shown at 5-unit intervals: 0, 5, 10, ..., 55).
                   </p>
                   <p>
-                    <strong>Interaction:</strong> Users can click directly on a number or click and drag around the
-                    dial to scrub through values. The selected hand rotates to follow the pointer during drag. On
-                    pointer release, the value snaps to the nearest step and the view advances to the next unit.
+                    <strong>Interaction:</strong> Users can click directly on a number or click and drag around the dial to scrub through
+                    values. The selected hand rotates to follow the pointer during drag. On pointer release, the value snaps to the nearest
+                    step and the view advances to the next unit.
                   </p>
                   <p>
-                    <strong>AM/PM Toggle:</strong> In 12-hour mode, AM/PM buttons appear below the clock. Toggling
-                    AM/PM immediately updates the stored 24-hour value without changing the displayed hour.
+                    <strong>AM/PM Toggle:</strong> In 12-hour mode, AM/PM buttons appear below the clock. Toggling AM/PM immediately updates
+                    the stored 24-hour value without changing the displayed hour.
                   </p>
                 </div>
               </div>
@@ -324,9 +326,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
             <div class="card card-border bg-base-100">
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">TimepickerEvent</h3>
-                <p class="text-sm text-base-content/70">
-                  Emitted by the <code>(timeChange)</code> output whenever the time value changes.
-                </p>
+                <p class="text-sm text-base-content/70">Emitted by the <code>(timeChange)</code> output whenever the time value changes.</p>
                 <app-code-block [code]="timepickerEventType" lang="typescript" />
               </div>
             </div>
@@ -334,9 +334,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
             <div class="card card-border bg-base-100">
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">TimepickerPosition</h3>
-                <p class="text-sm text-base-content/70">
-                  Controls where the dropdown panel appears relative to the input field.
-                </p>
+                <p class="text-sm text-base-content/70">Controls where the dropdown panel appears relative to the input field.</p>
                 <app-code-block [code]="timepickerPositionType" lang="typescript" />
               </div>
             </div>
@@ -355,21 +353,20 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">ClockPosition</h3>
                 <p class="text-sm text-base-content/70">
-                  Internal type representing a single position on the clock face dial. Each position maps a numeric
-                  value to x/y coordinates on the SVG circle and indicates whether it sits on the inner ring (24-hour mode).
+                  Internal type representing a single position on the clock face dial. Each position maps a numeric value to x/y coordinates
+                  on the SVG circle and indicates whether it sits on the inner ring (24-hour mode).
                 </p>
                 <app-code-block [code]="clockPositionType" lang="typescript" />
               </div>
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimepickerDemoComponent {
-  readonly pageTab = signal<'examples' | 'api'>('examples');
   readonly activeTab = signal<TimepickerTab>('basic');
   readonly apiTab = signal<ApiSubTab>('component');
 
@@ -458,80 +455,300 @@ timeControl = new FormControl<string | null>('14:30');
   // --- API docs: Component sub-tab ---
   readonly inputDocs: ApiDocEntry[] = [
     { name: 'placeholder', type: 'string', default: "'Select Time'", description: 'Placeholder text shown when no time is selected' },
-    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable the timepicker input and prevent the dropdown from opening' },
-    { name: 'use24Hour', type: 'boolean', default: 'true', description: 'Use 24-hour format for display. When false, shows AM/PM toggle. The underlying value is always stored in 24-hour format' },
-    { name: 'showSeconds', type: 'boolean', default: 'false', description: 'Include seconds in time selection. Changes the value format from "HH:MM" to "HH:MM:SS"' },
-    { name: 'minuteStep', type: 'number', default: '1', description: 'Minute step interval for the minute selector (e.g. 5, 15, 30). Values are snapped to the nearest step' },
-    { name: 'secondStep', type: 'number', default: '1', description: 'Second step interval for the second selector. Works identically to minuteStep but for seconds' },
-    { name: 'closeOnSelect', type: 'boolean', default: 'true', description: 'Automatically close the picker dropdown after a complete time selection (hour + minute, or hour + minute + second when showSeconds is enabled)' },
-    { name: 'showClearButton', type: 'boolean', default: 'true', description: 'Show a clear button in the dropdown footer to reset the selection to null' },
-    { name: 'showNowButton', type: 'boolean', default: 'true', description: 'Show a "Now" button in the dropdown footer that sets the time to the current system time, snapped to configured step intervals' },
-    { name: 'dropdownPosition', type: 'TimepickerPosition', default: "'bottom-left'", description: 'Position of the dropdown panel relative to the input field' },
-    { name: 'minWidth', type: 'string', default: "'16rem'", description: 'CSS minimum width of the dropdown panel (e.g. "16rem", "250px")' },
-    { name: 'required', type: 'boolean', default: 'false', description: 'Mark the field as required. Adds validation that emits a "required" error when the value is null' },
-    { name: 'name', type: 'string', default: "''", description: 'Name attribute for the underlying input element. Also used to generate a unique input ID' },
-    { name: 'formControlName', type: 'string', default: "''", description: 'FormControlName for reactive form binding inside a FormGroup. Alternative to [formControl]' },
-    { name: 'minTime', type: 'string | undefined', default: 'undefined', description: 'Minimum selectable time in "HH:MM" or "HH:MM:SS" format. Hours outside the valid range are visually disabled' },
-    { name: 'maxTime', type: 'string | undefined', default: 'undefined', description: 'Maximum selectable time in "HH:MM" or "HH:MM:SS" format. Hours outside the valid range are visually disabled' },
-    { name: 'clockFace', type: 'boolean', default: 'false', description: 'Use a Material Design-style analog clock face instead of the default grid selector' },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: 'Disable the timepicker input and prevent the dropdown from opening',
+    },
+    {
+      name: 'use24Hour',
+      type: 'boolean',
+      default: 'true',
+      description:
+        'Use 24-hour format for display. When false, shows AM/PM toggle. The underlying value is always stored in 24-hour format',
+    },
+    {
+      name: 'showSeconds',
+      type: 'boolean',
+      default: 'false',
+      description: 'Include seconds in time selection. Changes the value format from "HH:MM" to "HH:MM:SS"',
+    },
+    {
+      name: 'minuteStep',
+      type: 'number',
+      default: '1',
+      description: 'Minute step interval for the minute selector (e.g. 5, 15, 30). Values are snapped to the nearest step',
+    },
+    {
+      name: 'secondStep',
+      type: 'number',
+      default: '1',
+      description: 'Second step interval for the second selector. Works identically to minuteStep but for seconds',
+    },
+    {
+      name: 'closeOnSelect',
+      type: 'boolean',
+      default: 'true',
+      description:
+        'Automatically close the picker dropdown after a complete time selection (hour + minute, or hour + minute + second when showSeconds is enabled)',
+    },
+    {
+      name: 'showClearButton',
+      type: 'boolean',
+      default: 'true',
+      description: 'Show a clear button in the dropdown footer to reset the selection to null',
+    },
+    {
+      name: 'showNowButton',
+      type: 'boolean',
+      default: 'true',
+      description:
+        'Show a "Now" button in the dropdown footer that sets the time to the current system time, snapped to configured step intervals',
+    },
+    {
+      name: 'dropdownPosition',
+      type: 'TimepickerPosition',
+      default: "'bottom-left'",
+      description: 'Position of the dropdown panel relative to the input field',
+    },
+    {
+      name: 'minWidth',
+      type: 'string',
+      default: "'16rem'",
+      description: 'CSS minimum width of the dropdown panel (e.g. "16rem", "250px")',
+    },
+    {
+      name: 'required',
+      type: 'boolean',
+      default: 'false',
+      description: 'Mark the field as required. Adds validation that emits a "required" error when the value is null',
+    },
+    {
+      name: 'name',
+      type: 'string',
+      default: "''",
+      description: 'Name attribute for the underlying input element. Also used to generate a unique input ID',
+    },
+    {
+      name: 'formControlName',
+      type: 'string',
+      default: "''",
+      description: 'FormControlName for reactive form binding inside a FormGroup. Alternative to [formControl]',
+    },
+    {
+      name: 'minTime',
+      type: 'string | undefined',
+      default: 'undefined',
+      description: 'Minimum selectable time in "HH:MM" or "HH:MM:SS" format. Hours outside the valid range are visually disabled',
+    },
+    {
+      name: 'maxTime',
+      type: 'string | undefined',
+      default: 'undefined',
+      description: 'Maximum selectable time in "HH:MM" or "HH:MM:SS" format. Hours outside the valid range are visually disabled',
+    },
+    {
+      name: 'clockFace',
+      type: 'boolean',
+      default: 'false',
+      description: 'Use a Material Design-style analog clock face instead of the default grid selector',
+    },
   ];
 
   readonly outputDocs: ApiDocEntry[] = [
-    { name: 'timeChange', type: 'TimepickerEvent', description: 'Emitted when the time value changes. Provides the formatted string value along with individual hours, minutes, and seconds fields' },
+    {
+      name: 'timeChange',
+      type: 'TimepickerEvent',
+      description:
+        'Emitted when the time value changes. Provides the formatted string value along with individual hours, minutes, and seconds fields',
+    },
     { name: 'pickerOpened', type: 'void', description: 'Emitted when the picker dropdown opens (either by click or programmatically)' },
-    { name: 'pickerClosed', type: 'void', description: 'Emitted when the picker dropdown closes (by selection, click outside, Escape key, or programmatically)' },
+    {
+      name: 'pickerClosed',
+      type: 'void',
+      description: 'Emitted when the picker dropdown closes (by selection, click outside, Escape key, or programmatically)',
+    },
   ];
 
   readonly methodDocs: ApiDocEntry[] = [
     { name: 'togglePicker()', type: 'void', description: 'Toggle the picker dropdown open or closed' },
     { name: 'openPicker()', type: 'void', description: 'Programmatically open the picker dropdown' },
     { name: 'closePicker()', type: 'void', description: 'Programmatically close the picker dropdown' },
-    { name: 'selectNow()', type: 'void', description: 'Set the time to the current system time, snapped to configured minuteStep and secondStep intervals' },
+    {
+      name: 'selectNow()',
+      type: 'void',
+      description: 'Set the time to the current system time, snapped to configured minuteStep and secondStep intervals',
+    },
     { name: 'clearSelection()', type: 'void', description: 'Clear the current time selection, setting the value to null' },
-    { name: 'setView(view)', type: 'void', description: "Set the active picker view to 'hours', 'minutes', or 'seconds'. Useful for programmatic navigation between dials" },
-    { name: 'selectHour(hour)', type: 'void', description: 'Programmatically select an hour value (0-23). Advances the view to minutes automatically' },
-    { name: 'selectMinute(minute)', type: 'void', description: 'Programmatically select a minute value (0-59). Advances to seconds view if showSeconds is enabled, otherwise finalizes selection' },
+    {
+      name: 'setView(view)',
+      type: 'void',
+      description: "Set the active picker view to 'hours', 'minutes', or 'seconds'. Useful for programmatic navigation between dials",
+    },
+    {
+      name: 'selectHour(hour)',
+      type: 'void',
+      description: 'Programmatically select an hour value (0-23). Advances the view to minutes automatically',
+    },
+    {
+      name: 'selectMinute(minute)',
+      type: 'void',
+      description:
+        'Programmatically select a minute value (0-59). Advances to seconds view if showSeconds is enabled, otherwise finalizes selection',
+    },
     { name: 'selectSecond(second)', type: 'void', description: 'Programmatically select a second value (0-59). Finalizes the selection' },
-    { name: 'togglePeriod()', type: 'void', description: 'Toggle between AM and PM. Only applicable in 12-hour mode (use24Hour = false). Converts the stored hour accordingly' },
-    { name: 'parseUserInput(text)', type: '{ hour: number; minute: number; second: number } | null', description: 'Parse a user-typed string into a 24-hour time object. Supports many formats: colon-separated (14:30), AM/PM (2:30pm), shorthand (230p), bare digits (1430), and timestamps' },
-    { name: 'markAsTouched()', type: 'void', description: 'Mark the control as touched for validation display. Called automatically on blur, but available for programmatic use' },
+    {
+      name: 'togglePeriod()',
+      type: 'void',
+      description: 'Toggle between AM and PM. Only applicable in 12-hour mode (use24Hour = false). Converts the stored hour accordingly',
+    },
+    {
+      name: 'parseUserInput(text)',
+      type: '{ hour: number; minute: number; second: number } | null',
+      description:
+        'Parse a user-typed string into a 24-hour time object. Supports many formats: colon-separated (14:30), AM/PM (2:30pm), shorthand (230p), bare digits (1430), and timestamps',
+    },
+    {
+      name: 'markAsTouched()',
+      type: 'void',
+      description: 'Mark the control as touched for validation display. Called automatically on blur, but available for programmatic use',
+    },
   ];
 
   // --- API docs: Configuration sub-tab ---
   readonly timeFormatDocs: ApiDocEntry[] = [
-    { name: 'use24Hour', type: 'boolean', default: 'true', description: 'Controls the display format. When true, hours 0-23 are shown. When false, hours 1-12 with AM/PM toggle are shown. The underlying value is always stored in 24-hour "HH:MM" or "HH:MM:SS" format regardless of this setting' },
-    { name: 'showSeconds', type: 'boolean', default: 'false', description: 'When enabled, adds a seconds dial to the picker and changes the value format from "HH:MM" to "HH:MM:SS". Applies to both grid and clock face modes' },
-    { name: 'minuteStep', type: 'number', default: '1', description: 'Step interval for the minute selector. For example, a value of 5 shows 0, 5, 10, 15, ..., 55. The "Now" button also snaps to this interval. Common values: 1, 5, 10, 15, 30' },
-    { name: 'secondStep', type: 'number', default: '1', description: 'Step interval for the second selector. Works identically to minuteStep. Only relevant when showSeconds is true' },
+    {
+      name: 'use24Hour',
+      type: 'boolean',
+      default: 'true',
+      description:
+        'Controls the display format. When true, hours 0-23 are shown. When false, hours 1-12 with AM/PM toggle are shown. The underlying value is always stored in 24-hour "HH:MM" or "HH:MM:SS" format regardless of this setting',
+    },
+    {
+      name: 'showSeconds',
+      type: 'boolean',
+      default: 'false',
+      description:
+        'When enabled, adds a seconds dial to the picker and changes the value format from "HH:MM" to "HH:MM:SS". Applies to both grid and clock face modes',
+    },
+    {
+      name: 'minuteStep',
+      type: 'number',
+      default: '1',
+      description:
+        'Step interval for the minute selector. For example, a value of 5 shows 0, 5, 10, 15, ..., 55. The "Now" button also snaps to this interval. Common values: 1, 5, 10, 15, 30',
+    },
+    {
+      name: 'secondStep',
+      type: 'number',
+      default: '1',
+      description: 'Step interval for the second selector. Works identically to minuteStep. Only relevant when showSeconds is true',
+    },
   ];
 
   readonly behaviorDocs: ApiDocEntry[] = [
-    { name: 'closeOnSelect', type: 'boolean', default: 'true', description: 'When true, the dropdown automatically closes after a complete time selection. Set to false to keep the picker open for further adjustments' },
-    { name: 'showClearButton', type: 'boolean', default: 'true', description: 'Shows a clear (x) button in the dropdown footer. Clicking it resets the value to null and clears all selected hour/minute/second state' },
-    { name: 'showNowButton', type: 'boolean', default: 'true', description: 'Shows a "Now" button in the dropdown footer. Clicking it sets the time to the current system time, snapped to the nearest minuteStep and secondStep' },
+    {
+      name: 'closeOnSelect',
+      type: 'boolean',
+      default: 'true',
+      description:
+        'When true, the dropdown automatically closes after a complete time selection. Set to false to keep the picker open for further adjustments',
+    },
+    {
+      name: 'showClearButton',
+      type: 'boolean',
+      default: 'true',
+      description:
+        'Shows a clear (x) button in the dropdown footer. Clicking it resets the value to null and clears all selected hour/minute/second state',
+    },
+    {
+      name: 'showNowButton',
+      type: 'boolean',
+      default: 'true',
+      description:
+        'Shows a "Now" button in the dropdown footer. Clicking it sets the time to the current system time, snapped to the nearest minuteStep and secondStep',
+    },
   ];
 
   readonly constraintsDocs: ApiDocEntry[] = [
-    { name: 'minTime', type: 'string | undefined', default: 'undefined', description: 'Minimum selectable time in "HH:MM" or "HH:MM:SS" format (e.g. "09:00"). Hours before this time are visually disabled and cannot be selected. Validation emits a "minTime" error if the current value is below this threshold' },
-    { name: 'maxTime', type: 'string | undefined', default: 'undefined', description: 'Maximum selectable time in "HH:MM" or "HH:MM:SS" format (e.g. "17:00"). Hours after this time are visually disabled and cannot be selected. Validation emits a "maxTime" error if the current value exceeds this threshold' },
+    {
+      name: 'minTime',
+      type: 'string | undefined',
+      default: 'undefined',
+      description:
+        'Minimum selectable time in "HH:MM" or "HH:MM:SS" format (e.g. "09:00"). Hours before this time are visually disabled and cannot be selected. Validation emits a "minTime" error if the current value is below this threshold',
+    },
+    {
+      name: 'maxTime',
+      type: 'string | undefined',
+      default: 'undefined',
+      description:
+        'Maximum selectable time in "HH:MM" or "HH:MM:SS" format (e.g. "17:00"). Hours after this time are visually disabled and cannot be selected. Validation emits a "maxTime" error if the current value exceeds this threshold',
+    },
   ];
 
   readonly displayDocs: ApiDocEntry[] = [
-    { name: 'placeholder', type: 'string', default: "'Select Time'", description: 'Placeholder text displayed in the input field when no time has been selected' },
-    { name: 'dropdownPosition', type: 'TimepickerPosition', default: "'bottom-left'", description: 'Controls where the dropdown panel appears relative to the input. Options: "bottom-left", "bottom-right", "top-left", "top-right"' },
-    { name: 'minWidth', type: 'string', default: "'16rem'", description: 'CSS min-width applied to the dropdown panel. Accepts any valid CSS width value (e.g. "16rem", "250px", "100%")' },
+    {
+      name: 'placeholder',
+      type: 'string',
+      default: "'Select Time'",
+      description: 'Placeholder text displayed in the input field when no time has been selected',
+    },
+    {
+      name: 'dropdownPosition',
+      type: 'TimepickerPosition',
+      default: "'bottom-left'",
+      description:
+        'Controls where the dropdown panel appears relative to the input. Options: "bottom-left", "bottom-right", "top-left", "top-right"',
+    },
+    {
+      name: 'minWidth',
+      type: 'string',
+      default: "'16rem'",
+      description: 'CSS min-width applied to the dropdown panel. Accepts any valid CSS width value (e.g. "16rem", "250px", "100%")',
+    },
   ];
 
   readonly formIntegrationDocs: ApiDocEntry[] = [
-    { name: 'required', type: 'boolean', default: 'false', description: 'Marks the field as required. When true and the value is null, a "required" validation error is emitted. Works with both reactive forms and template-driven forms' },
-    { name: 'name', type: 'string', default: "''", description: 'Sets the name attribute on the underlying input element. Also used to derive a unique ID for accessibility (label association)' },
-    { name: 'formControlName', type: 'string', default: "''", description: 'Binds the timepicker to a FormControl inside a FormGroup by name. Alternative to passing [formControl] directly' },
-    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables the timepicker input and prevents the dropdown from opening. Can also be set via FormControl.disable() when using reactive forms' },
+    {
+      name: 'required',
+      type: 'boolean',
+      default: 'false',
+      description:
+        'Marks the field as required. When true and the value is null, a "required" validation error is emitted. Works with both reactive forms and template-driven forms',
+    },
+    {
+      name: 'name',
+      type: 'string',
+      default: "''",
+      description:
+        'Sets the name attribute on the underlying input element. Also used to derive a unique ID for accessibility (label association)',
+    },
+    {
+      name: 'formControlName',
+      type: 'string',
+      default: "''",
+      description: 'Binds the timepicker to a FormControl inside a FormGroup by name. Alternative to passing [formControl] directly',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description:
+        'Disables the timepicker input and prevents the dropdown from opening. Can also be set via FormControl.disable() when using reactive forms',
+    },
   ];
 
   // --- API docs: Clock Face sub-tab ---
   readonly clockFaceInputDocs: ApiDocEntry[] = [
-    { name: 'clockFace', type: 'boolean', default: 'false', description: 'When set to true, replaces the default grid-based hour/minute/second selector with a Material Design-style analog clock face. The clock supports click and drag interaction for selecting values' },
+    {
+      name: 'clockFace',
+      type: 'boolean',
+      default: 'false',
+      description:
+        'When set to true, replaces the default grid-based hour/minute/second selector with a Material Design-style analog clock face. The clock supports click and drag interaction for selecting values',
+    },
   ];
 
   readonly clockFaceApiCode = `<!-- 12-hour clock face with AM/PM -->

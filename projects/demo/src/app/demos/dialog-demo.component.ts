@@ -7,6 +7,7 @@ import { DialogService, LucideIconComponent, SelectComponent } from '@hakistack/
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
+import { DemoPageComponent } from '../shared/demo-page.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 
 // ============================================================================
@@ -118,38 +119,21 @@ export class DataDialogComponent {
             <label class="label">
               <span class="label-text">Name</span>
             </label>
-            <input
-              type="text"
-              class="input input-bordered w-full"
-              placeholder="Enter name"
-              [(ngModel)]="formData.name"
-              name="name"
-            />
+            <input type="text" class="input input-bordered w-full" placeholder="Enter name" [(ngModel)]="formData.name" name="name" />
           </div>
 
           <div class="form-control">
             <label class="label">
               <span class="label-text">Email</span>
             </label>
-            <input
-              type="email"
-              class="input input-bordered w-full"
-              placeholder="Enter email"
-              [(ngModel)]="formData.email"
-              name="email"
-            />
+            <input type="email" class="input input-bordered w-full" placeholder="Enter email" [(ngModel)]="formData.email" name="email" />
           </div>
 
           <div class="form-control">
             <label class="label">
               <span class="label-text">Role</span>
             </label>
-            <hk-select
-              [options]="roles"
-              [(ngModel)]="formData.role"
-              name="role"
-              placeholder="Select role"
-            />
+            <hk-select [options]="roles" [(ngModel)]="formData.role" name="role" placeholder="Select role" />
           </div>
 
           <div class="form-control">
@@ -243,28 +227,59 @@ export class FormDialogComponent {
 
         <div class="prose prose-sm max-w-none max-h-[60vh] overflow-y-auto">
           <h3>1. Acceptance of Terms</h3>
-          <p>By accessing and using this service, you accept and agree to be bound by the terms and provision of this agreement. Additionally, when using this service's particular services, you shall be subject to any posted guidelines or rules applicable to such services.</p>
+          <p>
+            By accessing and using this service, you accept and agree to be bound by the terms and provision of this agreement.
+            Additionally, when using this service's particular services, you shall be subject to any posted guidelines or rules applicable
+            to such services.
+          </p>
 
           <h3>2. Description of Service</h3>
-          <p>The Service provides users with access to a rich collection of resources, including various communications tools, forums, shopping services, personalized content, and branded programming through its network of properties.</p>
+          <p>
+            The Service provides users with access to a rich collection of resources, including various communications tools, forums,
+            shopping services, personalized content, and branded programming through its network of properties.
+          </p>
 
           <h3>3. Registration Obligations</h3>
-          <p>In consideration of your use of the Service, you agree to: (a) provide true, accurate, current, and complete information about yourself as prompted by the Service's registration form and (b) maintain and promptly update the Registration Data to keep it true, accurate, current, and complete.</p>
+          <p>
+            In consideration of your use of the Service, you agree to: (a) provide true, accurate, current, and complete information about
+            yourself as prompted by the Service's registration form and (b) maintain and promptly update the Registration Data to keep it
+            true, accurate, current, and complete.
+          </p>
 
           <h3>4. User Account, Password, and Security</h3>
-          <p>You will receive a password and account designation upon completing the Service's registration process. You are responsible for maintaining the confidentiality of the password and account and are fully responsible for all activities that occur under your password or account.</p>
+          <p>
+            You will receive a password and account designation upon completing the Service's registration process. You are responsible for
+            maintaining the confidentiality of the password and account and are fully responsible for all activities that occur under your
+            password or account.
+          </p>
 
           <h3>5. User Conduct</h3>
-          <p>You understand that all information, data, text, software, music, sound, photographs, graphics, video, messages, tags, or other materials, whether publicly posted or privately transmitted, are the sole responsibility of the person from whom such Content originated.</p>
+          <p>
+            You understand that all information, data, text, software, music, sound, photographs, graphics, video, messages, tags, or other
+            materials, whether publicly posted or privately transmitted, are the sole responsibility of the person from whom such Content
+            originated.
+          </p>
 
           <h3>6. Content Submitted</h3>
-          <p>The Service does not claim ownership of Content you submit or make available for inclusion on the Service. However, with respect to Content you submit or make available for inclusion on publicly accessible areas of the Service, you grant the following worldwide, royalty-free, and non-exclusive license(s).</p>
+          <p>
+            The Service does not claim ownership of Content you submit or make available for inclusion on the Service. However, with respect
+            to Content you submit or make available for inclusion on publicly accessible areas of the Service, you grant the following
+            worldwide, royalty-free, and non-exclusive license(s).
+          </p>
 
           <h3>7. Indemnity</h3>
-          <p>You agree to indemnify and hold the Service and its subsidiaries, affiliates, officers, agents, employees, partners, and licensors harmless from any claim or demand, including reasonable attorneys' fees, made by any third party due to or arising out of Content you submit, post, transmit, or otherwise make available through the Service.</p>
+          <p>
+            You agree to indemnify and hold the Service and its subsidiaries, affiliates, officers, agents, employees, partners, and
+            licensors harmless from any claim or demand, including reasonable attorneys' fees, made by any third party due to or arising out
+            of Content you submit, post, transmit, or otherwise make available through the Service.
+          </p>
 
           <h3>8. Modifications to Service</h3>
-          <p>The Service reserves the right at any time and from time to time to modify or discontinue, temporarily or permanently, the Service (or any part thereof) with or without notice. You agree that the Service shall not be liable to you or to any third party for any modification, suspension, or discontinuance of the Service.</p>
+          <p>
+            The Service reserves the right at any time and from time to time to modify or discontinue, temporarily or permanently, the
+            Service (or any part thereof) with or without notice. You agree that the Service shall not be liable to you or to any third
+            party for any modification, suspension, or discontinuance of the Service.
+          </p>
         </div>
 
         <div class="card-actions justify-end mt-4">
@@ -295,32 +310,21 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
 
 @Component({
   selector: 'app-dialog-demo',
-  imports: [LucideIconComponent, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent],
+  imports: [LucideIconComponent, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
-    <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold">Dialog Service</h1>
-        <p class="text-base-content/70 mt-2">CDK-based modal dialogs with responsive design</p>
-        <div class="mt-2">
-          <code class="badge badge-outline text-xs">import {{ '{' }} DialogService {{ '}' }} from '&#64;hakistack/ng-daisyui'</code>
-        </div>
-      </div>
-
-      <!-- Page Tabs -->
-      <div role="tablist" class="tabs tabs-border">
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'examples'" (click)="pageTab.set('examples')">Examples</button>
-        <button role="tab" class="tab" [class.tab-active]="pageTab() === 'api'" (click)="pageTab.set('api')">API</button>
-      </div>
-
-      @if (pageTab() === 'examples') {
+    <app-demo-page
+      title="Dialog Service"
+      description="Programmatic dialogs with component injection and data passing"
+      icon="PanelTopOpen"
+      category="Feedback"
+      importName="DialogService"
+    >
+      <div examples>
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="dialog_tabs" role="tab" class="tab" aria-label="Basic"
-            [checked]="activeTab() === 'basic'" (change)="activeTab.set('basic')" />
-          <input type="radio" name="dialog_tabs" role="tab" class="tab" aria-label="Forms"
-            [checked]="activeTab() === 'forms'" (change)="activeTab.set('forms')" />
-          <input type="radio" name="dialog_tabs" role="tab" class="tab" aria-label="Options"
-            [checked]="activeTab() === 'options'" (change)="activeTab.set('options')" />
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'forms'" (click)="activeTab.set('forms')">Forms</button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'options'" (click)="activeTab.set('options')">Options</button>
         </div>
 
         @if (activeTab() === 'basic') {
@@ -359,7 +363,11 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
               </div>
 
               @if (termsResult) {
-                <div class="alert mt-4" [class.alert-success]="termsResult === 'accepted'" [class.alert-warning]="termsResult !== 'accepted'">
+                <div
+                  class="alert mt-4"
+                  [class.alert-success]="termsResult === 'accepted'"
+                  [class.alert-warning]="termsResult !== 'accepted'"
+                >
                   <hk-lucide-icon [name]="termsResult === 'accepted' ? 'Check' : 'X'" [size]="18" />
                   <span>Terms {{ termsResult === 'accepted' ? 'accepted' : 'declined' }}</span>
                 </div>
@@ -369,7 +377,11 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
         }
 
         @if (activeTab() === 'forms') {
-          <app-doc-section title="Form Dialog" description="Dialog with form inputs and selects (test responsiveness)" [codeExample]="formCode">
+          <app-doc-section
+            title="Form Dialog"
+            description="Dialog with form inputs and selects (test responsiveness)"
+            [codeExample]="formCode"
+          >
             <div class="flex flex-wrap gap-3">
               <button class="btn btn-outline btn-success" (click)="openFormDialog('create')">
                 <hk-lucide-icon name="UserPlus" [size]="18" />
@@ -402,19 +414,15 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
             </app-doc-section>
           </div>
         }
-      }
+      </div>
 
-      @if (pageTab() === 'api') {
+      <div api>
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box">
-          <input type="radio" name="dialog_api_tabs" role="tab" class="tab" aria-label="Service"
-            [checked]="apiTab() === 'service'" (change)="apiTab.set('service')" />
-          <input type="radio" name="dialog_api_tabs" role="tab" class="tab" aria-label="DialogConfig"
-            [checked]="apiTab() === 'config'" (change)="apiTab.set('config')" />
-          <input type="radio" name="dialog_api_tabs" role="tab" class="tab" aria-label="DialogRef"
-            [checked]="apiTab() === 'ref'" (change)="apiTab.set('ref')" />
-          <input type="radio" name="dialog_api_tabs" role="tab" class="tab" aria-label="Types"
-            [checked]="apiTab() === 'types'" (change)="apiTab.set('types')" />
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'service'" (click)="apiTab.set('service')">Service</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'config'" (click)="apiTab.set('config')">DialogConfig</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'ref'" (click)="apiTab.set('ref')">DialogRef</button>
+          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         <!-- Service sub-tab -->
@@ -426,7 +434,9 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Usage</h3>
                 <p class="text-sm text-base-content/70">
-                  Inject <code>DialogService</code> and use <code>open()</code> to launch a modal dialog wrapped in a styled container, or <code>openRaw()</code> for a plain CDK dialog without the wrapper. Both return a <code>DialogRef</code> for controlling the dialog.
+                  Inject <code>DialogService</code> and use <code>open()</code> to launch a modal dialog wrapped in a styled container, or
+                  <code>openRaw()</code> for a plain CDK dialog without the wrapper. Both return a <code>DialogRef</code> for controlling
+                  the dialog.
                 </p>
                 <app-code-block [code]="usageCode" />
               </div>
@@ -453,7 +463,8 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Dialog Component Pattern</h3>
                 <p class="text-sm text-base-content/70">
-                  Dialog components receive data via the <code>DIALOG_DATA</code> injection token and control closing via <code>DialogRef</code>. Both are imported from <code>&#64;angular/cdk/dialog</code>.
+                  Dialog components receive data via the <code>DIALOG_DATA</code> injection token and control closing via
+                  <code>DialogRef</code>. Both are imported from <code>&#64;angular/cdk/dialog</code>.
                 </p>
                 <app-code-block [code]="componentCode" />
               </div>
@@ -470,7 +481,8 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Handling Dialog Results</h3>
                 <p class="text-sm text-base-content/70">
-                  Subscribe to <code>closed</code> to receive the result value passed to <code>close(result)</code>. Use <code>outsideClicked</code> and <code>keydownEvents</code> for additional interaction handling.
+                  Subscribe to <code>closed</code> to receive the result value passed to <code>close(result)</code>. Use
+                  <code>outsideClicked</code> and <code>keydownEvents</code> for additional interaction handling.
                 </p>
                 <app-code-block [code]="refUsageCode" />
               </div>
@@ -485,7 +497,8 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">DialogConfig</h3>
                 <p class="text-sm text-base-content/70">
-                  Configuration object passed as the second argument to <code>open()</code> or <code>openRaw()</code>. Extends CDK <code>DialogConfig</code> with a typed <code>data</code> property.
+                  Configuration object passed as the second argument to <code>open()</code> or <code>openRaw()</code>. Extends CDK
+                  <code>DialogConfig</code> with a typed <code>data</code> property.
                 </p>
                 <app-code-block [code]="typeDialogConfig" />
               </div>
@@ -495,7 +508,8 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">DialogRef</h3>
                 <p class="text-sm text-base-content/70">
-                  Reference to an open dialog, returned by <code>open()</code> and <code>openRaw()</code>. Provides methods for closing and observables for monitoring dialog events.
+                  Reference to an open dialog, returned by <code>open()</code> and <code>openRaw()</code>. Provides methods for closing and
+                  observables for monitoring dialog events.
                 </p>
                 <app-code-block [code]="typeDialogRef" />
               </div>
@@ -504,21 +518,18 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
             <div class="card card-border bg-base-100">
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">DIALOG_DATA</h3>
-                <p class="text-sm text-base-content/70">
-                  CDK injection token used inside dialog components to access the data payload.
-                </p>
+                <p class="text-sm text-base-content/70">CDK injection token used inside dialog components to access the data payload.</p>
                 <app-code-block [code]="typeDialogData" />
               </div>
             </div>
           </div>
         }
-      }
-    </div>
+      </div>
+    </app-demo-page>
   `,
 })
 export class DialogDemoComponent {
   private dialogService = inject(DialogService);
-  pageTab = signal<'examples' | 'api'>('examples');
   activeTab = signal<DialogTab>('basic');
   apiTab = signal<DialogApiTab>('service');
 
@@ -655,15 +666,23 @@ export class MyDialogComponent {
 
   // --- API docs ---
   methodDocs: ApiDocEntry[] = [
-    { name: 'open(component, options?)', type: 'DialogRef<DialogWrapperComponent>', description: 'Open a wrapped dialog that hosts your component inside a styled modal-box' },
-    { name: 'openRaw(component, options?)', type: 'DialogRef<T>', description: 'Open a plain CDK dialog without the modal wrapper (for custom layouts)' },
+    {
+      name: 'open(component, options?)',
+      type: 'DialogRef<DialogWrapperComponent>',
+      description: 'Open a wrapped dialog that hosts your component inside a styled modal-box',
+    },
+    {
+      name: 'openRaw(component, options?)',
+      type: 'DialogRef<T>',
+      description: 'Open a plain CDK dialog without the modal wrapper (for custom layouts)',
+    },
   ];
 
   configDocs: ApiDocEntry[] = [
     { name: 'data', type: 'D', default: '-', description: 'Payload injected into the dialog component via DIALOG_DATA token' },
     { name: 'disableClose', type: 'boolean', default: 'false', description: 'Disable closing via ESC key and backdrop click' },
-    { name: 'width', type: 'string', default: '-', description: 'Dialog width (CSS value, e.g. \'500px\', \'80vw\')' },
-    { name: 'height', type: 'string', default: '-', description: 'Dialog height (CSS value, e.g. \'90vh\')' },
+    { name: 'width', type: 'string', default: '-', description: "Dialog width (CSS value, e.g. '500px', '80vw')" },
+    { name: 'height', type: 'string', default: '-', description: "Dialog height (CSS value, e.g. '90vh')" },
     { name: 'minWidth', type: 'string | number', default: '-', description: 'Minimum dialog width' },
     { name: 'minHeight', type: 'string | number', default: '-', description: 'Minimum dialog height' },
     { name: 'maxWidth', type: 'string | number', default: '-', description: 'Maximum dialog width' },
@@ -674,7 +693,12 @@ export class MyDialogComponent {
     { name: 'ariaLabel', type: 'string', default: '-', description: 'Aria label for the dialog element' },
     { name: 'ariaLabelledBy', type: 'string', default: '-', description: 'ID of element that labels the dialog' },
     { name: 'ariaDescribedBy', type: 'string', default: '-', description: 'ID of element that describes the dialog' },
-    { name: 'autoFocus', type: "boolean | string | 'first-tabbable' | 'first-heading'", default: "'first-tabbable'", description: 'Where to focus on open' },
+    {
+      name: 'autoFocus',
+      type: "boolean | string | 'first-tabbable' | 'first-heading'",
+      default: "'first-tabbable'",
+      description: 'Where to focus on open',
+    },
     { name: 'restoreFocus', type: 'boolean', default: 'true', description: 'Whether to restore focus to the trigger element on close' },
   ];
 
