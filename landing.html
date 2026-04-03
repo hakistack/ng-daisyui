@@ -4,28 +4,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>@hakistack/ng-daisyui — Angular UI Components</title>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <title>@hakistack/ng-daisyui — Angular UI Component Library</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/full.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
     code, .font-mono { font-family: 'JetBrains Mono', monospace; }
-
     .hero-gradient {
       background: linear-gradient(135deg, oklch(0.25 0.05 260) 0%, oklch(0.15 0.03 280) 50%, oklch(0.2 0.06 310) 100%);
-    }
-    .card-glow:hover {
-      box-shadow: 0 0 30px oklch(0.6 0.15 260 / 0.15);
-    }
-    .feature-icon {
-      background: linear-gradient(135deg, oklch(0.6 0.2 260) 0%, oklch(0.5 0.2 300) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
     .code-block {
       background: oklch(0.15 0.02 260);
@@ -41,32 +31,50 @@
       background: linear-gradient(90deg, transparent, oklch(0.4 0.1 260), transparent);
       height: 1px;
     }
+    .feature-chip {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 0.375rem;
+      background: oklch(0.25 0.02 260);
+      border: 1px solid oklch(0.35 0.03 260);
+      color: oklch(0.7 0.01 260);
+      white-space: nowrap;
+    }
+    .feature-chip-accent {
+      background: oklch(0.25 0.06 260);
+      border-color: oklch(0.4 0.1 260);
+      color: oklch(0.8 0.1 260);
+    }
     @keyframes float {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
     }
     .float-anim { animation: float 6s ease-in-out infinite; }
-    .float-anim-delay { animation: float 6s ease-in-out 2s infinite; }
-    .float-anim-delay-2 { animation: float 6s ease-in-out 4s infinite; }
+    .float-anim-d1 { animation: float 6s ease-in-out 2s infinite; }
+    .float-anim-d2 { animation: float 6s ease-in-out 4s infinite; }
   </style>
 </head>
 
 <body class="bg-base-300 text-base-content">
 
-  <!-- ========== NAVBAR ========== -->
+  <!-- ===== NAVBAR ===== -->
   <nav class="navbar bg-base-100/80 backdrop-blur-xl sticky top-0 z-50 border-b border-base-content/5">
     <div class="container mx-auto px-4">
       <div class="flex-1">
-        <a class="text-xl font-bold tracking-tight" href="#">
-          <span class="text-primary">haki</span><span class="text-base-content">stack</span>
-          <span class="text-xs font-mono text-base-content/50 ml-2">ng-daisyui</span>
+        <a class="flex items-center gap-2" href="#">
+          <span class="w-8 h-8 rounded-lg bg-primary text-primary-content flex items-center justify-center text-xs font-black">hk</span>
+          <span class="font-bold">ng-daisyui</span>
+          <span class="badge badge-ghost badge-xs font-mono">v0.1.52</span>
         </a>
       </div>
-      <div class="hidden md:flex gap-1">
-        <a href="#components" class="btn btn-ghost btn-sm">Components</a>
-        <a href="#features" class="btn btn-ghost btn-sm">Features</a>
-        <a href="#builder" class="btn btn-ghost btn-sm">Builder API</a>
-        <a href="#install" class="btn btn-ghost btn-sm">Install</a>
+      <div class="hidden lg:flex gap-1">
+        <a href="#forms" class="btn btn-ghost btn-sm text-xs">Forms</a>
+        <a href="#table" class="btn btn-ghost btn-sm text-xs">Table</a>
+        <a href="#inputs" class="btn btn-ghost btn-sm text-xs">Inputs</a>
+        <a href="#tree" class="btn btn-ghost btn-sm text-xs">Tree</a>
+        <a href="#feedback" class="btn btn-ghost btn-sm text-xs">Feedback</a>
+        <a href="#motion" class="btn btn-ghost btn-sm text-xs">Motion</a>
+        <a href="#services" class="btn btn-ghost btn-sm text-xs">Services</a>
       </div>
       <div class="flex-none ml-2">
         <a href="#install" class="btn btn-primary btn-sm">Get Started</a>
@@ -74,676 +82,964 @@
     </div>
   </nav>
 
-  <!-- ========== HERO ========== -->
+  <!-- ===== HERO ===== -->
   <section class="hero-gradient relative overflow-hidden">
     <div class="absolute inset-0 opacity-10">
       <div class="absolute top-20 left-10 w-72 h-72 bg-primary/30 rounded-full blur-3xl float-anim"></div>
-      <div class="absolute bottom-20 right-10 w-96 h-96 bg-secondary/20 rounded-full blur-3xl float-anim-delay"></div>
-      <div class="absolute top-40 right-1/3 w-64 h-64 bg-accent/20 rounded-full blur-3xl float-anim-delay-2"></div>
+      <div class="absolute bottom-20 right-10 w-96 h-96 bg-secondary/20 rounded-full blur-3xl float-anim-d1"></div>
+      <div class="absolute top-40 right-1/3 w-64 h-64 bg-accent/20 rounded-full blur-3xl float-anim-d2"></div>
     </div>
-
     <div class="container mx-auto px-4 py-24 md:py-36 relative z-10">
       <div class="text-center max-w-4xl mx-auto">
-        <div class="badge badge-outline badge-primary mb-6 font-mono text-xs tracking-wider">v0.1.52 &middot; Angular 21 &middot; DaisyUI 5 &middot; Tailwind 4</div>
+        <div class="flex flex-wrap justify-center gap-2 mb-6">
+          <span class="badge badge-outline badge-primary font-mono text-xs">Angular 21</span>
+          <span class="badge badge-outline badge-secondary font-mono text-xs">DaisyUI 5</span>
+          <span class="badge badge-outline badge-accent font-mono text-xs">Tailwind 4</span>
+          <span class="badge badge-outline font-mono text-xs">Signals-First</span>
+          <span class="badge badge-outline font-mono text-xs">Standalone</span>
+          <span class="badge badge-outline font-mono text-xs">OnPush</span>
+        </div>
         <h1 class="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-tight mb-6">
-          Build Angular UIs<br />
-          <span class="text-primary">Fast</span> &amp; <span class="text-secondary">Beautiful</span>
+          The Angular UI Library<br />
+          <span class="text-primary">Your App Deserves</span>
         </h1>
-        <p class="text-lg md:text-xl text-base-content/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-          A production-ready Angular component library powered by DaisyUI and Tailwind CSS. Type-safe builder APIs, standalone components, signals-first architecture.
+        <p class="text-lg md:text-xl text-base-content/50 max-w-2xl mx-auto mb-10 leading-relaxed">
+          Production-ready components with type-safe builder APIs, enterprise-grade data tables, dynamic forms with wizard support, tree views, animations, and more.
         </p>
         <div class="flex flex-wrap justify-center gap-4">
-          <a href="#install" class="btn btn-primary btn-lg gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Install Now
-          </a>
-          <a href="#components" class="btn btn-outline btn-lg gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            Explore Components
-          </a>
+          <a href="#install" class="btn btn-primary btn-lg">Get Started</a>
+          <a href="#forms" class="btn btn-outline btn-lg">Explore Components</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ========== STATS BAR ========== -->
+  <!-- ===== STATS ===== -->
   <section class="bg-base-100 border-y border-base-content/5">
     <div class="container mx-auto px-4 py-8">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-        <div>
-          <div class="stat-number text-3xl md:text-4xl font-black">14+</div>
-          <div class="text-sm text-base-content/50 mt-1">Components</div>
-        </div>
-        <div>
-          <div class="stat-number text-3xl md:text-4xl font-black">100+</div>
-          <div class="text-sm text-base-content/50 mt-1">Builder Functions</div>
-        </div>
-        <div>
-          <div class="stat-number text-3xl md:text-4xl font-black">24</div>
-          <div class="text-sm text-base-content/50 mt-1">Form Field Types</div>
-        </div>
-        <div>
-          <div class="stat-number text-3xl md:text-4xl font-black">4</div>
-          <div class="text-sm text-base-content/50 mt-1">Motion Directives</div>
-        </div>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
+        <div><div class="stat-number text-3xl md:text-4xl font-black">14+</div><div class="text-xs text-base-content/40 mt-1">Components</div></div>
+        <div><div class="stat-number text-3xl md:text-4xl font-black">100+</div><div class="text-xs text-base-content/40 mt-1">Builder Functions</div></div>
+        <div><div class="stat-number text-3xl md:text-4xl font-black">24</div><div class="text-xs text-base-content/40 mt-1">Form Field Types</div></div>
+        <div><div class="stat-number text-3xl md:text-4xl font-black">15</div><div class="text-xs text-base-content/40 mt-1">Filter Operators</div></div>
+        <div><div class="stat-number text-3xl md:text-4xl font-black">14</div><div class="text-xs text-base-content/40 mt-1">Animation Presets</div></div>
       </div>
     </div>
   </section>
 
-  <!-- ========== COMPONENTS GRID ========== -->
-  <section id="components" class="py-20 md:py-28">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-16">
-        <div class="badge badge-ghost mb-4 font-mono text-xs">COMPONENTS</div>
-        <h2 class="text-3xl md:text-5xl font-bold mb-4">Everything You Need</h2>
-        <p class="text-base-content/50 max-w-xl mx-auto">From forms and tables to trees and animations. Each component is standalone, OnPush, and signals-first.</p>
+
+  <!-- ============================================================ -->
+  <!--                    DYNAMIC FORM                              -->
+  <!-- ============================================================ -->
+  <section id="forms" class="py-20 md:py-28">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="flex items-start gap-4 mb-10">
+        <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 260)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+        </div>
+        <div>
+          <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-1">Forms</div>
+          <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Dynamic Form</h2>
+          <p class="text-base-content/50 mt-1 max-w-2xl">Build complex forms declaratively with a type-safe builder API. Supports 24 field types, conditional logic, wizard stepper, auto-save, and responsive grid layouts.</p>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Field Types -->
+      <div class="card bg-base-100 border border-base-content/5 mb-6">
+        <div class="card-body">
+          <h3 class="font-semibold mb-3">24 Field Types</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="feature-chip feature-chip-accent">text</span>
+            <span class="feature-chip feature-chip-accent">email</span>
+            <span class="feature-chip feature-chip-accent">password</span>
+            <span class="feature-chip feature-chip-accent">number</span>
+            <span class="feature-chip feature-chip-accent">tel</span>
+            <span class="feature-chip feature-chip-accent">url</span>
+            <span class="feature-chip feature-chip-accent">textarea</span>
+            <span class="feature-chip feature-chip-accent">select</span>
+            <span class="feature-chip feature-chip-accent">multiselect</span>
+            <span class="feature-chip feature-chip-accent">radio</span>
+            <span class="feature-chip feature-chip-accent">checkbox</span>
+            <span class="feature-chip feature-chip-accent">toggle</span>
+            <span class="feature-chip feature-chip-accent">date</span>
+            <span class="feature-chip feature-chip-accent">datetime-local</span>
+            <span class="feature-chip feature-chip-accent">time</span>
+            <span class="feature-chip feature-chip-accent">range</span>
+            <span class="feature-chip feature-chip-accent">file</span>
+            <span class="feature-chip feature-chip-accent">color</span>
+            <span class="feature-chip feature-chip-accent">hidden</span>
+          </div>
+        </div>
+      </div>
 
-        <!-- Dynamic Form -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
-          <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 260)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
-              </div>
-              <div class="badge badge-primary badge-outline badge-xs">Core</div>
+      <!-- Feature Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Layout Modes</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">vertical</span>
+              <span class="feature-chip">horizontal</span>
+              <span class="feature-chip">grid (1-12 cols)</span>
             </div>
-            <h3 class="card-title text-lg">Dynamic Form</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">24 field types, grid/horizontal/vertical layouts, wizard stepper, conditional logic, auto-save, and reactive validation. All built with a type-safe builder API.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Wizard Stepper</span>
-              <span class="badge badge-sm badge-ghost">Auto-Save</span>
-              <span class="badge badge-sm badge-ghost">Conditional Logic</span>
-              <span class="badge badge-sm badge-ghost">Responsive Grid</span>
+            <p class="text-xs text-base-content/40 mt-1">Responsive grid with per-field <code class="text-[10px]">colSpan</code> supporting breakpoints: default, sm, md, lg, xl, 2xl. Field width options: full, 1/2, 1/3, 1/4, 2/3, 3/4, auto.</p>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Conditional Logic</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">showWhen</span>
+              <span class="feature-chip">hideWhen</span>
+              <span class="feature-chip">requiredWhen</span>
+              <span class="feature-chip">disabledWhen</span>
+            </div>
+            <p class="text-xs text-base-content/40 mt-1">Operators: equals, not-equals, contains, greater-than, less-than, in, not-in, function. Supports static values or dynamic callback functions.</p>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Wizard Stepper</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">linear mode</span>
+              <span class="feature-chip">step validation</span>
+              <span class="feature-chip">step summary</span>
+              <span class="feature-chip">review step</span>
+            </div>
+            <p class="text-xs text-base-content/40 mt-1">Multi-step forms with <code class="text-[10px]">step.create()</code> and <code class="text-[10px]">step.review()</code>. Custom button labels per step, optional steps, and animated transitions.</p>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Auto-Save</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">localStorage</span>
+              <span class="feature-chip">API endpoint</span>
+              <span class="feature-chip">debounced</span>
+              <span class="feature-chip">clear on submit</span>
+            </div>
+            <p class="text-xs text-base-content/40 mt-1">Configured via <code class="text-[10px]">provideFormState()</code>. Automatically saves and restores form state with <code class="text-[10px]">FormStateService</code>.</p>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Validation</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">required</span>
+              <span class="feature-chip">minLength / maxLength</span>
+              <span class="feature-chip">min / max</span>
+              <span class="feature-chip">pattern (regex)</span>
+              <span class="feature-chip">email</span>
+              <span class="feature-chip">custom ValidatorFn</span>
             </div>
           </div>
         </div>
-
-        <!-- Table -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
-          <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 160)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
-              </div>
-              <div class="badge badge-primary badge-outline badge-xs">Core</div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Dynamic Options</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">optionsFrom field</span>
+              <span class="feature-chip">async loadFn</span>
+              <span class="feature-chip">Promise / Observable</span>
+              <span class="feature-chip">loading placeholder</span>
             </div>
-            <h3 class="card-title text-lg">Data Table</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Enterprise-grade table with sorting, filtering, pagination (cursor + offset), inline editing, virtual scrolling, tree tables, master-detail, row grouping, and CSV/JSON export.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Virtual Scroll</span>
-              <span class="badge badge-sm badge-ghost">Tree Table</span>
-              <span class="badge badge-sm badge-ghost">Inline Edit</span>
-              <span class="badge badge-sm badge-ghost">Export</span>
+            <p class="text-xs text-base-content/40 mt-1">Load select/radio options dynamically based on another field's value. Supports sync arrays, Promises, and Observables.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code Example -->
+      <div class="code-block rounded-xl p-5 overflow-x-auto text-sm leading-relaxed">
+<pre><code><span class="text-base-content/40">// Type-safe form with grid layout, wizard, and conditional fields</span>
+<span class="text-primary/80">const</span> form = <span class="text-secondary">createForm</span>({
+  <span class="text-warning/80">steps</span>: [
+    step.<span class="text-info">create</span>(<span class="text-success">'Personal'</span>, [
+      field.<span class="text-info">text</span>(<span class="text-success">'firstName'</span>, <span class="text-success">'First Name'</span>, { required: <span class="text-primary/80">true</span>, colSpan: { default: <span class="text-accent">12</span>, md: <span class="text-accent">6</span> } }),
+      field.<span class="text-info">text</span>(<span class="text-success">'lastName'</span>, <span class="text-success">'Last Name'</span>, { required: <span class="text-primary/80">true</span>, colSpan: { default: <span class="text-accent">12</span>, md: <span class="text-accent">6</span> } }),
+      field.<span class="text-info">email</span>(<span class="text-success">'email'</span>, <span class="text-success">'Email'</span>),
+    ]),
+    step.<span class="text-info">create</span>(<span class="text-success">'Role'</span>, [
+      field.<span class="text-info">select</span>(<span class="text-success">'role'</span>, <span class="text-success">'Role'</span>, { choices: [<span class="text-success">'Admin'</span>, <span class="text-success">'Editor'</span>, <span class="text-success">'Viewer'</span>] }),
+      field.<span class="text-info">toggle</span>(<span class="text-success">'isManager'</span>, <span class="text-success">'Is Manager?'</span>),
+      field.<span class="text-info">number</span>(<span class="text-success">'teamSize'</span>, <span class="text-success">'Team Size'</span>, {
+        <span class="text-warning/80">showWhen</span>: [<span class="text-success">'isManager'</span>, <span class="text-primary/80">true</span>],  <span class="text-base-content/40">// only visible when isManager is true</span>
+        min: <span class="text-accent">1</span>, max: <span class="text-accent">100</span>,
+      }),
+    ]),
+    step.<span class="text-info">review</span>(<span class="text-success">'Review'</span>),
+  ],
+  <span class="text-warning/80">layout</span>: <span class="text-success">'grid'</span>, <span class="text-warning/80">gridColumns</span>: <span class="text-accent">12</span>,
+  <span class="text-warning/80">autoSave</span>: { enabled: <span class="text-primary/80">true</span>, formId: <span class="text-success">'onboarding'</span>, debounceMs: <span class="text-accent">1000</span> },
+  <span class="text-warning/80">onSubmit</span>: (data) =&gt; api.createUser(data.values),
+});</code></pre>
+      </div>
+      <div class="mt-2 text-xs text-base-content/30 font-mono">// Template: &lt;hk-dynamic-form [config]="form.config()" /&gt; &lt;button (click)="form.submit()"&gt;Submit&lt;/button&gt;</div>
+    </div>
+  </section>
+
+  <div class="section-divider mx-auto max-w-5xl"></div>
+
+  <!-- ============================================================ -->
+  <!--                    DATA TABLE                                -->
+  <!-- ============================================================ -->
+  <section id="table" class="py-20 md:py-28">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="flex items-start gap-4 mb-10">
+        <div class="w-14 h-14 rounded-2xl bg-success/10 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 160)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
+        </div>
+        <div>
+          <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-1">Data Display</div>
+          <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Data Table</h2>
+          <p class="text-base-content/50 mt-1 max-w-2xl">Enterprise-grade table with every feature you'd expect from a premium grid component. Sorting, filtering, pagination, inline editing, virtual scrolling, tree tables, nested grids, and more.</p>
+        </div>
+      </div>
+
+      <!-- Feature Matrix -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Filtering</h4>
+            <p class="text-xs text-base-content/40 mb-2">8 filter types, 15 operators</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">text</span>
+              <span class="feature-chip">number</span>
+              <span class="feature-chip">date</span>
+              <span class="feature-chip">select</span>
+              <span class="feature-chip">multiselect</span>
+              <span class="feature-chip">boolean</span>
+              <span class="feature-chip">dateRange</span>
+              <span class="feature-chip">numberRange</span>
+            </div>
+            <p class="text-[10px] text-base-content/30 mt-2">Operators: equals, notEquals, contains, notContains, startsWith, endsWith, gt, lt, gte, lte, between, in, notIn, isEmpty, isNotEmpty</p>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Global Search</h4>
+            <p class="text-xs text-base-content/40 mb-2">4 search modes with Fuse.js</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip feature-chip-accent">contains</span>
+              <span class="feature-chip feature-chip-accent">startsWith</span>
+              <span class="feature-chip feature-chip-accent">exact</span>
+              <span class="feature-chip feature-chip-accent">fuzzy (Fuse.js)</span>
+            </div>
+            <p class="text-[10px] text-base-content/30 mt-2">Configurable: debounceTime, caseSensitive, excludeFields, customSearch function, Fuse.js options</p>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Pagination</h4>
+            <p class="text-xs text-base-content/40 mb-2">Two strategies, signal-based state</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">cursor-based</span>
+              <span class="feature-chip">offset-based</span>
+              <span class="feature-chip">page size options</span>
+              <span class="feature-chip">quick jumper</span>
+              <span class="feature-chip">show total</span>
             </div>
           </div>
         </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Inline Editing</h4>
+            <p class="text-xs text-base-content/40 mb-2">5 editor types with validation</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">text</span>
+              <span class="feature-chip">number</span>
+              <span class="feature-chip">select</span>
+              <span class="feature-chip">date</span>
+              <span class="feature-chip">toggle</span>
+            </div>
+            <p class="text-[10px] text-base-content/30 mt-2">Per-cell validators: (value, row) =&gt; boolean | string. Events: cellEditEvent, cellEditErrorEvent</p>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Column Features</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">resizing (fit/expand)</span>
+              <span class="feature-chip">reordering (drag)</span>
+              <span class="feature-chip">sticky (start/end)</span>
+              <span class="feature-chip">visibility toggle</span>
+              <span class="feature-chip">min/max width</span>
+              <span class="feature-chip">localStorage persist</span>
+            </div>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Row Features</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">selection (single/multi/checkbox)</span>
+              <span class="feature-chip">reordering (drag)</span>
+              <span class="feature-chip">expandable detail</span>
+              <span class="feature-chip">conditional CSS</span>
+              <span class="feature-chip">keyboard navigation</span>
+            </div>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Row Grouping</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">groupBy field</span>
+              <span class="feature-chip">aggregates (sum/avg/min/max/count)</span>
+              <span class="feature-chip">group header label</span>
+              <span class="feature-chip">group footer rows</span>
+              <span class="feature-chip">caption aggregates</span>
+            </div>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Advanced Layouts</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip feature-chip-accent">tree table</span>
+              <span class="feature-chip feature-chip-accent">child grid (nested)</span>
+              <span class="feature-chip feature-chip-accent">master-detail</span>
+              <span class="feature-chip">virtual scrolling</span>
+              <span class="feature-chip">multi-row footer</span>
+            </div>
+            <p class="text-[10px] text-base-content/30 mt-2">Tree: indent guides, expand levels, checkbox cascade (none/downward/upward/both), custom children property. Hierarchy: unlimited nesting depth.</p>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Actions &amp; Export</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">row actions (view/edit/delete/custom)</span>
+              <span class="feature-chip">bulk actions with dropdown</span>
+              <span class="feature-chip">CSV export</span>
+              <span class="feature-chip">JSON export</span>
+              <span class="feature-chip">Excel</span>
+              <span class="feature-chip">PDF</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <!-- Code Example -->
+      <div class="code-block rounded-xl p-5 overflow-x-auto text-sm leading-relaxed">
+<pre><code><span class="text-primary/80">const</span> table = <span class="text-secondary">createTable</span>&lt;User&gt;({
+  <span class="text-warning/80">visible</span>: [<span class="text-success">'id'</span>, <span class="text-success">'name'</span>, <span class="text-success">'email'</span>, <span class="text-success">'role'</span>, <span class="text-success">'salary'</span>, <span class="text-success">'status'</span>],
+  <span class="text-warning/80">headers</span>: { id: <span class="text-success">'ID'</span>, name: <span class="text-success">'Full Name'</span>, salary: <span class="text-success">'Salary'</span> },
+  <span class="text-warning/80">formatters</span>: {
+    salary: [<span class="text-success">'currency'</span>, <span class="text-success">'USD'</span>],
+    status: (v) =&gt; <span class="text-success">`&lt;span class="badge badge-</span><span class="text-accent">${</span>v === <span class="text-success">'active'</span> ? <span class="text-success">'success'</span> : <span class="text-success">'error'</span><span class="text-accent">}</span><span class="text-success">"&gt;${v}&lt;/span&gt;`</span>,
+  },
+  <span class="text-warning/80">hasSelection</span>: <span class="text-primary/80">true</span>,
+  <span class="text-warning/80">hasActions</span>: <span class="text-primary/80">true</span>,
+  <span class="text-warning/80">actions</span>: [
+    { type: <span class="text-success">'view'</span>, label: <span class="text-success">'View'</span>, icon: <span class="text-success">'Eye'</span>, action: (row) =&gt; open(row) },
+    { type: <span class="text-success">'edit'</span>, label: <span class="text-success">'Edit'</span>, icon: <span class="text-success">'Pencil'</span>, action: (row) =&gt; edit(row) },
+    { type: <span class="text-success">'delete'</span>, label: <span class="text-success">'Delete'</span>, icon: <span class="text-success">'Trash2'</span>, action: (row) =&gt; del(row),
+      <span class="text-warning/80">hidden</span>: (row) =&gt; row.role === <span class="text-success">'admin'</span> },
+  ],
+  <span class="text-warning/80">filters</span>: [
+    { field: <span class="text-success">'role'</span>, type: <span class="text-success">'select'</span>, options: [{ label: <span class="text-success">'Admin'</span>, value: <span class="text-success">'admin'</span> }] },
+    { field: <span class="text-success">'salary'</span>, type: <span class="text-success">'numberRange'</span> },
+    { field: <span class="text-success">'status'</span>, type: <span class="text-success">'select'</span>, options: [{ label: <span class="text-success">'Active'</span>, value: <span class="text-success">'active'</span> }] },
+  ],
+  <span class="text-warning/80">globalSearch</span>: { enabled: <span class="text-primary/80">true</span>, mode: <span class="text-success">'fuzzy'</span>, debounceTime: <span class="text-accent">300</span> },
+  <span class="text-warning/80">enableInlineEditing</span>: <span class="text-primary/80">true</span>,
+  <span class="text-warning/80">cellEditors</span>: { salary: { type: <span class="text-success">'number'</span>, validator: (v) =&gt; +v &gt; <span class="text-accent">0</span> || <span class="text-success">'Must be positive'</span> } },
+  <span class="text-warning/80">grouping</span>: { groupBy: <span class="text-success">'role'</span>, initiallyExpanded: <span class="text-primary/80">true</span> },
+  <span class="text-warning/80">columnVisibility</span>: { enabled: <span class="text-primary/80">true</span>, alwaysVisible: [<span class="text-success">'name'</span>] },
+});</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mx-auto max-w-5xl"></div>
+
+  <!-- ============================================================ -->
+  <!--                    INPUTS (Select, Date, Time)               -->
+  <!-- ============================================================ -->
+  <section id="inputs" class="py-20 md:py-28">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="text-center mb-12">
+        <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-2">Inputs</div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Select, Datepicker &amp; Timepicker</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Select -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
+        <div class="card bg-base-100 border border-base-content/5">
           <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 200)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
-              </div>
-              <div class="badge badge-secondary badge-outline badge-xs">Input</div>
-            </div>
             <h3 class="card-title text-lg">Select</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Enhanced dropdown with single/multi-select, fuzzy search via Fuse.js, virtual scrolling for large lists, option groups, chip display, and full keyboard navigation.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Fuzzy Search</span>
-              <span class="badge badge-sm badge-ghost">Multi-Select</span>
-              <span class="badge badge-sm badge-ghost">Virtual Scroll</span>
+            <p class="text-xs text-base-content/50 mb-3">Enhanced dropdown with advanced features</p>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">single select</span>
+              <span class="feature-chip">multi-select</span>
+              <span class="feature-chip">fuzzy search (Fuse.js)</span>
+              <span class="feature-chip">virtual scrolling</span>
+              <span class="feature-chip">option groups</span>
+              <span class="feature-chip">chip display</span>
+              <span class="feature-chip">max selected limit</span>
+              <span class="feature-chip">select all / clear all</span>
+              <span class="feature-chip">allow clear</span>
+              <span class="feature-chip">keyboard navigation</span>
+              <span class="feature-chip">FormControl integration</span>
+            </div>
+            <div class="text-xs text-base-content/40">
+              <strong class="text-base-content/60">Sizes:</strong> xs, sm, md, lg, xl<br/>
+              <strong class="text-base-content/60">Colors:</strong> neutral, primary, secondary, accent, info, success, warning, error
             </div>
           </div>
         </div>
 
         <!-- Datepicker -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
+        <div class="card bg-base-100 border border-base-content/5">
           <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 40)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-              </div>
-              <div class="badge badge-secondary badge-outline badge-xs">Input</div>
-            </div>
             <h3 class="card-title text-lg">Datepicker</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Calendar-based picker supporting single date and date range selection. Day, month, and year views. Min/max bounds, disabled dates, and Intl-based formatting.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Date Range</span>
-              <span class="badge badge-sm badge-ghost">Multi-View</span>
-              <span class="badge badge-sm badge-ghost">Intl Format</span>
+            <p class="text-xs text-base-content/50 mb-3">Calendar-based with range support</p>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">single date</span>
+              <span class="feature-chip">date range</span>
+              <span class="feature-chip">day view</span>
+              <span class="feature-chip">month view</span>
+              <span class="feature-chip">year view</span>
+              <span class="feature-chip">min / max dates</span>
+              <span class="feature-chip">disabled dates</span>
+              <span class="feature-chip">today button</span>
+              <span class="feature-chip">clear button</span>
+              <span class="feature-chip">Intl.DateTimeFormat</span>
+              <span class="feature-chip">animated transitions</span>
+            </div>
+            <div class="text-xs text-base-content/40">
+              <strong class="text-base-content/60">Positions:</strong> auto, top-left, top-right, bottom-left, bottom-right
             </div>
           </div>
         </div>
 
         <!-- Timepicker -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
+        <div class="card bg-base-100 border border-base-content/5">
           <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 40)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <div class="badge badge-secondary badge-outline badge-xs">Input</div>
-            </div>
             <h3 class="card-title text-lg">Timepicker</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Clock-face time picker with hours, minutes, and seconds selection. Supports 12 and 24-hour format with keyboard input and dropdown positioning.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">12/24h Format</span>
-              <span class="badge badge-sm badge-ghost">Clock Face</span>
-              <span class="badge badge-sm badge-ghost">Keyboard Input</span>
+            <p class="text-xs text-base-content/50 mb-3">Clock-face time selection</p>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">clock face UI</span>
+              <span class="feature-chip">12-hour format</span>
+              <span class="feature-chip">24-hour format</span>
+              <span class="feature-chip">hours / minutes / seconds</span>
+              <span class="feature-chip">keyboard input</span>
+              <span class="feature-chip">dropdown positioning</span>
+              <span class="feature-chip">HH:MM:SS output</span>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
 
+  <div class="section-divider mx-auto max-w-5xl"></div>
+
+  <!-- ============================================================ -->
+  <!--                    TREE & ORG CHART                          -->
+  <!-- ============================================================ -->
+  <section id="tree" class="py-20 md:py-28">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="text-center mb-12">
+        <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-2">Data Display</div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Tree View &amp; Organization Chart</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Tree -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
+        <div class="card bg-base-100 border border-base-content/5">
           <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 130)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-              </div>
-              <div class="badge badge-accent badge-outline badge-xs">Data</div>
+            <h3 class="card-title text-lg mb-3">Tree Component</h3>
+            <div class="flex flex-wrap gap-1.5 mb-4">
+              <span class="feature-chip">single selection</span>
+              <span class="feature-chip">multiple selection</span>
+              <span class="feature-chip">checkbox (with cascade)</span>
+              <span class="feature-chip">drag &amp; drop</span>
+              <span class="feature-chip">same-level restrict</span>
+              <span class="feature-chip">lazy loading</span>
+              <span class="feature-chip">virtual scrolling</span>
+              <span class="feature-chip">filter (lenient/strict)</span>
+              <span class="feature-chip">keyboard navigation</span>
+              <span class="feature-chip">custom node templates</span>
+              <span class="feature-chip">indent guides</span>
+              <span class="feature-chip">expand all</span>
+              <span class="feature-chip">ARIA labels</span>
             </div>
-            <h3 class="card-title text-lg">Tree View</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Hierarchical tree with single/multi/checkbox selection, drag-and-drop reordering, lazy loading, virtual scrolling, filtering, and keyboard navigation.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Drag & Drop</span>
-              <span class="badge badge-sm badge-ghost">Lazy Load</span>
-              <span class="badge badge-sm badge-ghost">Checkbox</span>
-              <span class="badge badge-sm badge-ghost">Virtual Scroll</span>
+
+            <h4 class="font-semibold text-xs text-base-content/60 uppercase tracking-wider mb-2">Node Builders</h4>
+            <div class="flex flex-wrap gap-1.5 mb-4">
+              <span class="feature-chip feature-chip-accent">node.create()</span>
+              <span class="feature-chip feature-chip-accent">node.folder()</span>
+              <span class="feature-chip feature-chip-accent">node.file()</span>
+              <span class="feature-chip feature-chip-accent">node.lazy()</span>
+              <span class="feature-chip feature-chip-accent">node.fromData()</span>
+            </div>
+
+            <h4 class="font-semibold text-xs text-base-content/60 uppercase tracking-wider mb-2">Utility Functions</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">walkTree()</span>
+              <span class="feature-chip">findNode()</span>
+              <span class="feature-chip">findNodePath()</span>
+              <span class="feature-chip">mapTree()</span>
+              <span class="feature-chip">filterTree()</span>
+              <span class="feature-chip">flattenTree()</span>
+              <span class="feature-chip">countNodes()</span>
+              <span class="feature-chip">buildTree()</span>
             </div>
           </div>
         </div>
 
         <!-- Org Chart -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
+        <div class="card bg-base-100 border border-base-content/5">
           <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 130)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="6" x="8" y="2" rx="1"/><rect width="8" height="6" x="2" y="16" rx="1"/><rect width="8" height="6" x="14" y="16" rx="1"/><path d="M12 8v4"/><path d="M6 19h-1a2 2 0 0 1-2-2v-3h18v3a2 2 0 0 1-2 2h-1"/></svg>
-              </div>
-              <div class="badge badge-accent badge-outline badge-xs">Data</div>
+            <h3 class="card-title text-lg mb-3">Organization Chart</h3>
+            <div class="flex flex-wrap gap-1.5 mb-4">
+              <span class="feature-chip">TreeNode-based API</span>
+              <span class="feature-chip">single / multi selection</span>
+              <span class="feature-chip">collapsible nodes</span>
+              <span class="feature-chip">custom node templates</span>
+              <span class="feature-chip">vertical orientation</span>
+              <span class="feature-chip">horizontal orientation</span>
+              <span class="feature-chip">connecting lines</span>
             </div>
-            <h3 class="card-title text-lg">Organization Chart</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Visualize hierarchies with customizable node templates, 8 color themes, vertical/horizontal orientation, and interactive selection.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Custom Templates</span>
-              <span class="badge badge-sm badge-ghost">8 Themes</span>
-              <span class="badge badge-sm badge-ghost">Interactive</span>
+
+            <h4 class="font-semibold text-xs text-base-content/60 uppercase tracking-wider mb-2">8 Color Themes</h4>
+            <div class="flex flex-wrap gap-1.5 mb-4">
+              <span class="badge badge-primary badge-xs">primary</span>
+              <span class="badge badge-secondary badge-xs">secondary</span>
+              <span class="badge badge-accent badge-xs">accent</span>
+              <span class="badge badge-neutral badge-xs">neutral</span>
+              <span class="badge badge-info badge-xs">info</span>
+              <span class="badge badge-success badge-xs">success</span>
+              <span class="badge badge-warning badge-xs">warning</span>
+              <span class="badge badge-error badge-xs">error</span>
             </div>
+
+            <h4 class="font-semibold text-xs text-base-content/60 uppercase tracking-wider mb-2">Template Context</h4>
+            <p class="text-xs text-base-content/40">Custom templates receive: <code class="text-[10px]">node</code>, <code class="text-[10px]">selected</code>, <code class="text-[10px]">expanded</code>, <code class="text-[10px]">level</code>, <code class="text-[10px]">toggle()</code>, <code class="text-[10px]">select(event)</code></p>
           </div>
         </div>
-
-        <!-- Stepper -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
-          <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 300)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>
-              </div>
-              <div class="badge badge-info badge-outline badge-xs">Navigation</div>
-            </div>
-            <h3 class="card-title text-lg">Stepper</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Multi-step wizard with linear or free-form progression, animated step indicators, content transitions, and state management built on Angular CDK.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Linear Mode</span>
-              <span class="badge badge-sm badge-ghost">Animated</span>
-              <span class="badge badge-sm badge-ghost">CDK Stepper</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
-          <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 300)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7 5-5 5 5"/><path d="M13 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/></svg>
-              </div>
-              <div class="badge badge-info badge-outline badge-xs">Navigation</div>
-            </div>
-            <h3 class="card-title text-lg">Tab Group</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Accessible tabbed interface with icon support, multiple DaisyUI styles (lift, border, box), disabled tabs, and lazy content loading.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Lift/Border/Box</span>
-              <span class="badge badge-sm badge-ghost">Icons</span>
-              <span class="badge badge-sm badge-ghost">Lazy Load</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Toast -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
-          <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 80)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-              </div>
-              <div class="badge badge-warning badge-outline badge-xs">Feedback</div>
-            </div>
-            <h3 class="card-title text-lg">Toast Notifications</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Non-intrusive stacking notifications with 4 severity levels, 6 positions, auto-dismiss with progress bar, action buttons, and pause-on-hover.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Stacking</span>
-              <span class="badge badge-sm badge-ghost">Progress Bar</span>
-              <span class="badge badge-sm badge-ghost">Actions</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Alert / Dialog -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
-          <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 80)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"/><path d="M12 8v4"/><circle cx="12" cy="12" r="10"/></svg>
-              </div>
-              <div class="badge badge-warning badge-outline badge-xs">Feedback</div>
-            </div>
-            <h3 class="card-title text-lg">Alert Service</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">Modal alerts and dialogs via a simple service API. Confirm, delete confirm, loading overlay, countdown timer, HTML content from URL, and i18n-ready.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">Confirm/Delete</span>
-              <span class="badge badge-sm badge-ghost">Loading</span>
-              <span class="badge badge-sm badge-ghost">Countdown</span>
-              <span class="badge badge-sm badge-ghost">i18n</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Icons -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1">
-          <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 350)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              </div>
-              <div class="badge badge-error badge-outline badge-xs">Utility</div>
-            </div>
-            <h3 class="card-title text-lg">Lucide Icons</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed">1000+ icons from the Lucide library with configurable size, color, and stroke width. Type-safe icon names and custom icon registration.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="badge badge-sm badge-ghost">1000+ Icons</span>
-              <span class="badge badge-sm badge-ghost">Type-Safe</span>
-              <span class="badge badge-sm badge-ghost">Custom Icons</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Motion -->
-        <div class="card bg-base-100 border border-base-content/5 card-glow transition-all duration-300 hover:-translate-y-1 md:col-span-2 lg:col-span-3">
-          <div class="card-body">
-            <div class="flex items-start justify-between">
-              <div class="text-3xl mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 350)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a7.5 7.5 0 1 0 0 8.6"/><path d="M21 12H9"/></svg>
-              </div>
-              <div class="badge badge-error badge-outline badge-xs">Animation</div>
-            </div>
-            <h3 class="card-title text-lg">Motion Directives</h3>
-            <p class="text-sm text-base-content/60 leading-relaxed mb-4">Powered by Motion.dev. Four directives for declarative animations with zero boilerplate.</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div class="bg-base-200 rounded-lg p-4">
-                <div class="font-semibold text-sm mb-1">hkMotionAnimate</div>
-                <div class="text-xs text-base-content/50">14 presets (fadeIn, slideUp, zoomIn, bounceIn...) with spring physics and scroll triggers</div>
-              </div>
-              <div class="bg-base-200 rounded-lg p-4">
-                <div class="font-semibold text-sm mb-1">hkMotionHover</div>
-                <div class="text-xs text-base-content/50">Hover enter/leave animations with cascade and stagger for child elements</div>
-              </div>
-              <div class="bg-base-200 rounded-lg p-4">
-                <div class="font-semibold text-sm mb-1">hkMotionScroll</div>
-                <div class="text-xs text-base-content/50">Scroll-triggered animations with fade, slide, parallax, and viewport thresholds</div>
-              </div>
-              <div class="bg-base-200 rounded-lg p-4">
-                <div class="font-semibold text-sm mb-1">AutoFocus</div>
-                <div class="text-xs text-base-content/50">Simple directive to auto-focus elements on mount</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== DIVIDER ========== -->
-  <div class="section-divider mx-auto max-w-4xl"></div>
-
-  <!-- ========== FEATURES ========== -->
-  <section id="features" class="py-20 md:py-28">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-16">
-        <div class="badge badge-ghost mb-4 font-mono text-xs">WHY NG-DAISYUI</div>
-        <h2 class="text-3xl md:text-5xl font-bold mb-4">Built the Right Way</h2>
-        <p class="text-base-content/50 max-w-xl mx-auto">Angular 21 best practices baked in. No shortcuts, no legacy patterns.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 260)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">Strict TypeScript</h3>
-            <p class="text-sm text-base-content/50">Full strict mode with strict templates and injection parameters. No <code class="text-xs bg-base-200 px-1 rounded">any</code> types.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 300)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">Signals-First</h3>
-            <p class="text-sm text-base-content/50">Built on Angular signals: <code class="text-xs bg-base-200 px-1 rounded">signal()</code>, <code class="text-xs bg-base-200 px-1 rounded">computed()</code>, <code class="text-xs bg-base-200 px-1 rounded">input()</code>, <code class="text-xs bg-base-200 px-1 rounded">output()</code>.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 160)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">OnPush Everywhere</h3>
-            <p class="text-sm text-base-content/50">Every component uses <code class="text-xs bg-base-200 px-1 rounded">ChangeDetectionStrategy.OnPush</code> for peak performance.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 230)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">Standalone Components</h3>
-            <p class="text-sm text-base-content/50">No NgModules. Every component is standalone and tree-shakeable by default.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 150)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">Accessible</h3>
-            <p class="text-sm text-base-content/50">WCAG AA compliant with full keyboard navigation, ARIA attributes, and focus management.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 80)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">DaisyUI v4 + v5 Themes</h3>
-            <p class="text-sm text-base-content/50">Full theme support with <code class="text-xs bg-base-200 px-1 rounded">provideHkTheme()</code>. Swap themes at the provider level.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-error/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 20)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">Reactive Forms</h3>
-            <p class="text-sm text-base-content/50">All form logic is reactive. No template-driven forms. Clean, predictable state management.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 260)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">CDK DataSource</h3>
-            <p class="text-sm text-base-content/50">Table integrates with Angular CDK DataSource for server-side data, streaming, and custom loading strategies.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 300)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold mb-1">Auto-Save</h3>
-            <p class="text-sm text-base-content/50">Form state persists to localStorage or your API with debounced saves via <code class="text-xs bg-base-200 px-1 rounded">FormStateService</code>.</p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== DIVIDER ========== -->
-  <div class="section-divider mx-auto max-w-4xl"></div>
-
-  <!-- ========== BUILDER API ========== -->
-  <section id="builder" class="py-20 md:py-28">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-16">
-        <div class="badge badge-ghost mb-4 font-mono text-xs">BUILDER API</div>
-        <h2 class="text-3xl md:text-5xl font-bold mb-4">Declarative &amp; Type-Safe</h2>
-        <p class="text-base-content/50 max-w-xl mx-auto">Configure components with builder functions. Full IntelliSense, zero guesswork.</p>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-
-        <!-- Form Builder -->
-        <div>
-          <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-primary"></span>
-            Form Builder
-          </h3>
-          <div class="code-block rounded-xl p-6 overflow-x-auto">
-            <pre class="text-sm leading-relaxed"><code class="text-base-content/80"><span class="text-primary/80">const</span> form = <span class="text-secondary">createForm</span>({
-  <span class="text-warning/80">fields</span>: [
-    field.<span class="text-info">text</span>(<span class="text-success">'name'</span>, <span class="text-success">'Full Name'</span>, {
-      required: <span class="text-primary/80">true</span>,
-      minLength: <span class="text-accent">2</span>,
-      placeholder: <span class="text-success">'John Doe'</span>
-    }),
-    field.<span class="text-info">email</span>(<span class="text-success">'email'</span>, <span class="text-success">'Email'</span>),
-    field.<span class="text-info">select</span>(<span class="text-success">'role'</span>, <span class="text-success">'Role'</span>, {
-      choices: [<span class="text-success">'Admin'</span>, <span class="text-success">'Editor'</span>, <span class="text-success">'Viewer'</span>]
-    }),
-    field.<span class="text-info">toggle</span>(<span class="text-success">'active'</span>, <span class="text-success">'Active'</span>),
-  ],
-  <span class="text-warning/80">layout</span>: <span class="text-success">'grid'</span>,
-  <span class="text-warning/80">gridColumns</span>: <span class="text-accent">2</span>,
-  <span class="text-warning/80">onSubmit</span>: (data) => console.log(data),
-});</code></pre>
-          </div>
-          <div class="mt-3 text-xs text-base-content/40 font-mono">
-            // Template: &lt;hk-dynamic-form [config]="form.config()" /&gt;
-          </div>
-        </div>
-
-        <!-- Table Builder -->
-        <div>
-          <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-secondary"></span>
-            Table Builder
-          </h3>
-          <div class="code-block rounded-xl p-6 overflow-x-auto">
-            <pre class="text-sm leading-relaxed"><code class="text-base-content/80"><span class="text-primary/80">const</span> table = <span class="text-secondary">createTable</span>&lt;User&gt;({
-  <span class="text-warning/80">visible</span>: [<span class="text-success">'id'</span>, <span class="text-success">'name'</span>, <span class="text-success">'email'</span>, <span class="text-success">'role'</span>, <span class="text-success">'salary'</span>],
-  <span class="text-warning/80">headers</span>: {
-    id: <span class="text-success">'ID'</span>, name: <span class="text-success">'Full Name'</span>,
-    email: <span class="text-success">'Email'</span>, role: <span class="text-success">'Role'</span>,
-  },
-  <span class="text-warning/80">formatters</span>: {
-    salary: [<span class="text-success">'currency'</span>, <span class="text-success">'USD'</span>],
-  },
-  <span class="text-warning/80">hasSelection</span>: <span class="text-primary/80">true</span>,
-  <span class="text-warning/80">hasActions</span>: <span class="text-primary/80">true</span>,
-  <span class="text-warning/80">actions</span>: [
-    { type: <span class="text-success">'view'</span>, label: <span class="text-success">'View'</span>, icon: <span class="text-success">'Eye'</span>,
-      action: (row) =&gt; console.log(row) },
-  ],
-  <span class="text-warning/80">filters</span>: [
-    { field: <span class="text-success">'role'</span>, type: <span class="text-success">'select'</span>,
-      options: [{ label: <span class="text-success">'Admin'</span>, value: <span class="text-success">'admin'</span> }] },
-  ],
-  <span class="text-warning/80">globalSearch</span>: { enabled: <span class="text-primary/80">true</span>, mode: <span class="text-success">'fuzzy'</span> },
-});</code></pre>
-          </div>
-          <div class="mt-3 text-xs text-base-content/40 font-mono">
-            // Template: &lt;hk-table [config]="table" [data]="users()" /&gt;
-          </div>
-        </div>
-
-        <!-- Tree Builder -->
-        <div>
-          <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-accent"></span>
-            Tree Builder
-          </h3>
-          <div class="code-block rounded-xl p-6 overflow-x-auto">
-            <pre class="text-sm leading-relaxed"><code class="text-base-content/80"><span class="text-primary/80">const</span> tree = <span class="text-secondary">createTree</span>({
+      <!-- Tree Code Example -->
+      <div class="code-block rounded-xl p-5 overflow-x-auto text-sm leading-relaxed">
+<pre><code><span class="text-primary/80">const</span> tree = <span class="text-secondary">createTree</span>({
   <span class="text-warning/80">nodes</span>: [
     node.<span class="text-info">folder</span>(<span class="text-success">'src'</span>, [
       node.<span class="text-info">folder</span>(<span class="text-success">'components'</span>, [
         node.<span class="text-info">file</span>(<span class="text-success">'app.component.ts'</span>),
         node.<span class="text-info">file</span>(<span class="text-success">'app.routes.ts'</span>),
       ]),
-      node.<span class="text-info">lazy</span>(<span class="text-success">'assets'</span>),
+      node.<span class="text-info">lazy</span>(<span class="text-success">'assets'</span>),  <span class="text-base-content/40">// children loaded on expand</span>
     ]),
   ],
   <span class="text-warning/80">selectionMode</span>: <span class="text-success">'checkbox'</span>,
   <span class="text-warning/80">dragDrop</span>: <span class="text-primary/80">true</span>,
   <span class="text-warning/80">filter</span>: <span class="text-primary/80">true</span>,
-});</code></pre>
-          </div>
-        </div>
+  <span class="text-warning/80">filterMode</span>: <span class="text-success">'lenient'</span>,  <span class="text-base-content/40">// shows ancestors of matches</span>
+  <span class="text-warning/80">propagateSelectionDown</span>: <span class="text-primary/80">true</span>,
+  <span class="text-warning/80">propagateSelectionUp</span>: <span class="text-primary/80">true</span>,
+});
 
-        <!-- Wizard Steps -->
-        <div>
-          <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-info"></span>
-            Wizard Steps
-          </h3>
-          <div class="code-block rounded-xl p-6 overflow-x-auto">
-            <pre class="text-sm leading-relaxed"><code class="text-base-content/80"><span class="text-primary/80">const</span> wizard = <span class="text-secondary">createForm</span>({
-  <span class="text-warning/80">steps</span>: [
-    step.<span class="text-info">create</span>(<span class="text-success">'Personal Info'</span>, [
-      field.<span class="text-info">text</span>(<span class="text-success">'firstName'</span>, <span class="text-success">'First Name'</span>),
-      field.<span class="text-info">text</span>(<span class="text-success">'lastName'</span>, <span class="text-success">'Last Name'</span>),
-    ]),
-    step.<span class="text-info">create</span>(<span class="text-success">'Contact'</span>, [
-      field.<span class="text-info">email</span>(<span class="text-success">'email'</span>, <span class="text-success">'Email'</span>),
-      field.<span class="text-info">tel</span>(<span class="text-success">'phone'</span>, <span class="text-success">'Phone'</span>),
-    ]),
-    step.<span class="text-info">review</span>(<span class="text-success">'Review'</span>),
-  ],
-  <span class="text-warning/80">autoSave</span>: { enabled: <span class="text-primary/80">true</span> },
-  <span class="text-warning/80">onSubmit</span>: (data) => save(data),
-});</code></pre>
-          </div>
-        </div>
-
+<span class="text-base-content/40">// Utilities</span>
+<span class="text-primary/80">const</span> found = <span class="text-secondary">findNode</span>(tree.nodes, n =&gt; n.label === <span class="text-success">'app.routes.ts'</span>);
+<span class="text-primary/80">const</span> path = <span class="text-secondary">findNodePath</span>(tree.nodes, n =&gt; n.key === <span class="text-success">'target'</span>);
+<span class="text-secondary">walkTree</span>(tree.nodes, n =&gt; console.log(n.label));</code></pre>
       </div>
     </div>
   </section>
 
-  <!-- ========== DIVIDER ========== -->
-  <div class="section-divider mx-auto max-w-4xl"></div>
+  <div class="section-divider mx-auto max-w-5xl"></div>
 
-  <!-- ========== SERVICES ========== -->
+  <!-- ============================================================ -->
+  <!--                    NAVIGATION (Stepper + Tabs)               -->
+  <!-- ============================================================ -->
   <section class="py-20 md:py-28">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-16">
-        <div class="badge badge-ghost mb-4 font-mono text-xs">SERVICES &amp; PROVIDERS</div>
-        <h2 class="text-3xl md:text-5xl font-bold mb-4">Powerful Services</h2>
-        <p class="text-base-content/50 max-w-xl mx-auto">Inject and configure with Angular's dependency injection. Everything is tree-shakeable.</p>
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="text-center mb-12">
+        <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-2">Navigation</div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Stepper &amp; Tabs</h2>
       </div>
 
-      <div class="max-w-4xl mx-auto">
-        <div class="overflow-x-auto">
-          <table class="table table-zebra">
-            <thead>
-              <tr>
-                <th class="text-base-content/70">Provider</th>
-                <th class="text-base-content/70">Service</th>
-                <th class="text-base-content/70">Purpose</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">provideFormState()</code></td>
-                <td class="text-sm">FormStateService</td>
-                <td class="text-sm text-base-content/60">Auto-save form state to localStorage or API with debounce</td>
-              </tr>
-              <tr>
-                <td><code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">providePipes()</code></td>
-                <td class="text-sm">PipeRegistryService</td>
-                <td class="text-sm text-base-content/60">Register and apply built-in + custom pipes programmatically</td>
-              </tr>
-              <tr>
-                <td><code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">provideAlert()</code></td>
-                <td class="text-sm">AlertService</td>
-                <td class="text-sm text-base-content/60">Show alerts, confirms, loading overlays, and countdowns</td>
-              </tr>
-              <tr>
-                <td><code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">provideToast()</code></td>
-                <td class="text-sm">ToastService</td>
-                <td class="text-sm text-base-content/60">Stacking toast notifications with auto-dismiss and actions</td>
-              </tr>
-              <tr>
-                <td><code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">provideHkTheme()</code></td>
-                <td class="text-sm">ThemeService</td>
-                <td class="text-sm text-base-content/60">Theme configuration for DaisyUI v4 or v5 compatibility</td>
-              </tr>
-              <tr>
-                <td><code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">provideIcons()</code></td>
-                <td class="text-sm">IconService</td>
-                <td class="text-sm text-base-content/60">Register custom Lucide icons beyond the default set</td>
-              </tr>
-              <tr>
-                <td><code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">DialogService</code></td>
-                <td class="text-sm">DialogService</td>
-                <td class="text-sm text-base-content/60">Open components in CDK dialogs with data injection</td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body">
+            <h3 class="card-title text-lg">Stepper</h3>
+            <p class="text-xs text-base-content/50 mb-3">Multi-step wizard built on Angular CDK Stepper</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">linear / free-form</span>
+              <span class="feature-chip">step states (number/done/edit/error)</span>
+              <span class="feature-chip">animated content transitions</span>
+              <span class="feature-chip">step indicator bar</span>
+              <span class="feature-chip">custom button labels</span>
+              <span class="feature-chip">optional steps</span>
+              <span class="feature-chip">step validation</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body">
+            <h3 class="card-title text-lg">Tab Group &amp; Tab Panel</h3>
+            <p class="text-xs text-base-content/50 mb-3">Accessible tabbed interface with DaisyUI styling</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">3 styles: lift, border, box</span>
+              <span class="feature-chip">icon support (Lucide)</span>
+              <span class="feature-chip">disabled tabs</span>
+              <span class="feature-chip">lazy content loading</span>
+              <span class="feature-chip">keyboard navigation</span>
+              <span class="feature-chip">horizontal / vertical</span>
+              <span class="feature-chip">follow / explicit activation</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ========== DIVIDER ========== -->
-  <div class="section-divider mx-auto max-w-4xl"></div>
+  <div class="section-divider mx-auto max-w-5xl"></div>
 
-  <!-- ========== PAGINATION HELPERS ========== -->
-  <section class="py-20 md:py-28 bg-base-200/30">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-16">
-        <div class="badge badge-ghost mb-4 font-mono text-xs">PAGINATION HELPERS</div>
-        <h2 class="text-3xl md:text-5xl font-bold mb-4">Server-Side Ready</h2>
-        <p class="text-base-content/50 max-w-xl mx-auto">Signal-based pagination state management for both cursor and offset strategies.</p>
+  <!-- ============================================================ -->
+  <!--                    FEEDBACK (Toast, Alert, Dialog)            -->
+  <!-- ============================================================ -->
+  <section id="feedback" class="py-20 md:py-28">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="text-center mb-12">
+        <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-2">Feedback</div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Toast, Alert &amp; Dialog</h2>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Toast -->
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body">
+            <h3 class="card-title text-lg">Toast Notifications</h3>
+            <p class="text-xs text-base-content/50 mb-3">Stacking notifications via ToastService</p>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">success / info / warning / error</span>
+              <span class="feature-chip">6 positions</span>
+              <span class="feature-chip">progress bar countdown</span>
+              <span class="feature-chip">pause on hover</span>
+              <span class="feature-chip">tap to dismiss</span>
+              <span class="feature-chip">action buttons</span>
+              <span class="feature-chip">stacking with max limit</span>
+              <span class="feature-chip">prevent duplicates</span>
+              <span class="feature-chip">soft/muted style</span>
+              <span class="feature-chip">sticky (no auto-dismiss)</span>
+            </div>
+            <div class="text-xs text-base-content/40">
+              <strong class="text-base-content/60">API:</strong> show(), success(), error(), info(), warning(), dismiss(), clear()
+            </div>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body">
+            <h3 class="card-title text-lg">Alert Service</h3>
+            <p class="text-xs text-base-content/50 mb-3">Modal dialogs via promise-based API</p>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip feature-chip-accent">show()</span>
+              <span class="feature-chip feature-chip-accent">confirm()</span>
+              <span class="feature-chip feature-chip-accent">confirmDelete()</span>
+              <span class="feature-chip feature-chip-accent">question()</span>
+              <span class="feature-chip feature-chip-accent">showLoading()</span>
+              <span class="feature-chip feature-chip-accent">countdown()</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">5 icons (success/error/warning/info/question)</span>
+              <span class="feature-chip">7 sizes (sm to full)</span>
+              <span class="feature-chip">9 positions</span>
+              <span class="feature-chip">timer + progress bar</span>
+              <span class="feature-chip">HTML content</span>
+              <span class="feature-chip">load HTML from URL</span>
+              <span class="feature-chip">live countdown display</span>
+              <span class="feature-chip">i18n ready</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dialog -->
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body">
+            <h3 class="card-title text-lg">Dialog Service</h3>
+            <p class="text-xs text-base-content/50 mb-3">Programmatic dialogs via Angular CDK</p>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">open() with wrapper</span>
+              <span class="feature-chip">openRaw() without wrapper</span>
+              <span class="feature-chip">DIALOG_DATA injection</span>
+              <span class="feature-chip">auto-close on route change</span>
+              <span class="feature-chip">DialogRef control</span>
+              <span class="feature-chip">backdrop click handling</span>
+              <span class="feature-chip">custom width/height</span>
+              <span class="feature-chip">any component as content</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert Code Example -->
+      <div class="code-block rounded-xl p-5 overflow-x-auto text-sm leading-relaxed">
+<pre><code><span class="text-base-content/40">// Confirmation dialog</span>
+<span class="text-primary/80">const</span> result = <span class="text-primary/80">await</span> alertService.<span class="text-secondary">confirm</span>({
+  title: <span class="text-success">'Delete User'</span>,
+  text: <span class="text-success">'This action cannot be undone.'</span>,
+  icon: <span class="text-success">'warning'</span>,
+  confirmStyle: <span class="text-success">'error'</span>,
+});
+<span class="text-primary/80">if</span> (result.isConfirmed) deleteUser();
+
+<span class="text-base-content/40">// Countdown timer</span>
+<span class="text-primary/80">await</span> alertService.<span class="text-secondary">countdown</span>({
+  title: <span class="text-success">'Session Expiring'</span>,
+  html: <span class="text-success">'Auto-logout in &lt;kbd&gt;{seconds}&lt;/kbd&gt; seconds'</span>,  <span class="text-base-content/40">// live countdown</span>
+  timer: <span class="text-accent">30000</span>,
+  timerProgressBar: <span class="text-primary/80">true</span>,
+});
+
+<span class="text-base-content/40">// Toast with actions</span>
+toastService.<span class="text-secondary">show</span>({
+  severity: <span class="text-success">'info'</span>,
+  summary: <span class="text-success">'File uploaded'</span>,
+  actions: [
+    { label: <span class="text-success">'Undo'</span>, onClick: () =&gt; undo(), style: <span class="text-success">'primary'</span> },
+    { label: <span class="text-success">'View'</span>, onClick: () =&gt; navigate() },
+  ],
+});</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mx-auto max-w-5xl"></div>
+
+  <!-- ============================================================ -->
+  <!--                    ICONS                                     -->
+  <!-- ============================================================ -->
+  <section class="py-20 md:py-28">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="flex items-start gap-4 mb-8">
+        <div class="w-14 h-14 rounded-2xl bg-warning/10 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 80)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div>
+          <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-1">Utilities</div>
+          <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Lucide Icons</h2>
+          <p class="text-base-content/50 mt-1 max-w-2xl">Access 1000+ icons from the Lucide library. Type-safe icon names, configurable size/color/stroke, and custom icon registration via <code class="text-xs">provideIcons()</code>.</p>
+        </div>
+      </div>
+      <div class="code-block rounded-xl p-5 overflow-x-auto text-sm leading-relaxed">
+<pre><code><span class="text-base-content/40">// Use in templates</span>
+&lt;<span class="text-info">hk-lucide-icon</span> name=<span class="text-success">"Check"</span> [size]=<span class="text-success">"24"</span> color=<span class="text-success">"green"</span> [strokeWidth]=<span class="text-success">"2"</span> /&gt;
+
+<span class="text-base-content/40">// Register custom icons in app config</span>
+<span class="text-secondary">provideIcons</span>({ MyCustomIcon: customIconData })</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mx-auto max-w-5xl"></div>
+
+  <!-- ============================================================ -->
+  <!--                    MOTION DIRECTIVES                         -->
+  <!-- ============================================================ -->
+  <section id="motion" class="py-20 md:py-28">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="flex items-start gap-4 mb-10">
+        <div class="w-14 h-14 rounded-2xl bg-error/10 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.2 20)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+        </div>
+        <div>
+          <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-1">Animation</div>
+          <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Motion Directives</h2>
+          <p class="text-base-content/50 mt-1 max-w-2xl">Declarative animations powered by Motion.dev. Three directives for mount, hover, and scroll animations with spring physics and 14 built-in presets.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body">
+            <h3 class="font-semibold text-sm">hkMotionAnimate</h3>
+            <p class="text-xs text-base-content/40 mb-3">Trigger animations on mount, scroll, or click</p>
+            <h4 class="text-[10px] uppercase tracking-wider text-base-content/50 mb-2">14 Presets</h4>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">fadeIn</span>
+              <span class="feature-chip">fadeOut</span>
+              <span class="feature-chip">fadeInUp</span>
+              <span class="feature-chip">fadeInDown</span>
+              <span class="feature-chip">fadeInLeft</span>
+              <span class="feature-chip">fadeInRight</span>
+              <span class="feature-chip">zoomIn</span>
+              <span class="feature-chip">zoomOut</span>
+              <span class="feature-chip">slideInUp</span>
+              <span class="feature-chip">slideInDown</span>
+              <span class="feature-chip">bounceIn</span>
+              <span class="feature-chip">rotateIn</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">triggers: immediate / scroll / click</span>
+              <span class="feature-chip">repeat, direction, delay</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body">
+            <h3 class="font-semibold text-sm">hkMotionHover</h3>
+            <p class="text-xs text-base-content/40 mb-3">Animate on mouse enter/leave</p>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">custom hover keyframes</span>
+              <span class="feature-chip">custom unhover keyframes</span>
+              <span class="feature-chip">restore on leave</span>
+              <span class="feature-chip">cascade to children</span>
+              <span class="feature-chip">stagger children</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body">
+            <h3 class="font-semibold text-sm">hkMotionScroll</h3>
+            <p class="text-xs text-base-content/40 mb-3">Scroll-linked animations &amp; parallax</p>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <span class="feature-chip">scroll progress (0-1)</span>
+              <span class="feature-chip">parallax offset</span>
+              <span class="feature-chip">custom container/target</span>
+              <span class="feature-chip">x / y axis</span>
+              <span class="feature-chip">velocity tracking</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Physics & Easing -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Spring Physics</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">stiffness</span>
+              <span class="feature-chip">damping</span>
+              <span class="feature-chip">mass</span>
+              <span class="feature-chip">velocity</span>
+              <span class="feature-chip">bounce</span>
+              <span class="feature-chip">restDelta / restSpeed</span>
+            </div>
+            <p class="text-xs text-base-content/40 mt-2">Animation types: tween, spring, inertia. All directives respect <code class="text-[10px]">prefers-reduced-motion</code>.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 border border-base-content/5">
+          <div class="card-body gap-2">
+            <h4 class="font-semibold text-sm">Easing Functions</h4>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="feature-chip">linear</span>
+              <span class="feature-chip">easeIn / easeOut / easeInOut</span>
+              <span class="feature-chip">circIn / circOut / circInOut</span>
+              <span class="feature-chip">backIn / backOut / backInOut</span>
+              <span class="feature-chip">anticipate</span>
+              <span class="feature-chip">cubic bezier [n,n,n,n]</span>
+              <span class="feature-chip">custom function</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mx-auto max-w-5xl"></div>
+
+  <!-- ============================================================ -->
+  <!--                    SERVICES & PROVIDERS                      -->
+  <!-- ============================================================ -->
+  <section id="services" class="py-20 md:py-28">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="text-center mb-12">
+        <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-2">Infrastructure</div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Services &amp; Providers</h2>
+        <p class="text-base-content/50 mt-2 max-w-xl mx-auto text-sm">Tree-shakeable services configured via Angular's dependency injection. Everything is optional.</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="table table-zebra">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-base-content/50">
+              <th>Provider</th>
+              <th>Service</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code class="text-xs badge badge-ghost">provideFormState()</code></td>
+              <td class="text-sm">FormStateService</td>
+              <td class="text-sm text-base-content/60">Auto-save/restore form state. Modes: <code class="text-[10px]">localStorage</code> (custom key prefix) or <code class="text-[10px]">api</code> (POST/GET to endpoint)</td>
+            </tr>
+            <tr>
+              <td><code class="text-xs badge badge-ghost">providePipes()</code></td>
+              <td class="text-sm">PipeRegistryService</td>
+              <td class="text-sm text-base-content/60">Apply pipes programmatically. Built-in: currency, date, decimal, json, keyValue, lowercase, percent, titlecase, uppercase. Supports custom pipes via <code class="text-[10px]">CUSTOM_PIPES</code> token</td>
+            </tr>
+            <tr>
+              <td><code class="text-xs badge badge-ghost">provideAlert()</code></td>
+              <td class="text-sm">AlertService</td>
+              <td class="text-sm text-base-content/60">Promise-based modal dialogs. i18n via translate function and <code class="text-[10px]">langChange$</code> observable</td>
+            </tr>
+            <tr>
+              <td><code class="text-xs badge badge-ghost">provideToast()</code></td>
+              <td class="text-sm">ToastService</td>
+              <td class="text-sm text-base-content/60">Notification stacking. Global config: maxToasts, preventDuplicates, extendedTimeOut, exitDuration</td>
+            </tr>
+            <tr>
+              <td><code class="text-xs badge badge-ghost">provideHkTheme()</code></td>
+              <td class="text-sm">ThemeService</td>
+              <td class="text-sm text-base-content/60">Theme compatibility layer for DaisyUI v4 and v5</td>
+            </tr>
+            <tr>
+              <td><code class="text-xs badge badge-ghost">provideIcons()</code></td>
+              <td class="text-sm">IconService</td>
+              <td class="text-sm text-base-content/60">Register additional Lucide icons beyond the 29 built-in defaults</td>
+            </tr>
+            <tr>
+              <td><code class="text-xs badge badge-ghost">DialogService</code></td>
+              <td class="text-sm">DialogService</td>
+              <td class="text-sm text-base-content/60">Angular CDK Dialog wrapper with component injection and route-aware auto-close</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mx-auto max-w-5xl"></div>
+
+  <!-- ============================================================ -->
+  <!--                    PAGINATION HELPERS                        -->
+  <!-- ============================================================ -->
+  <section class="py-20 md:py-28 bg-base-200/30">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="text-center mb-12">
+        <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-2">Helpers</div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Pagination Helpers</h2>
+        <p class="text-base-content/50 mt-2 max-w-xl mx-auto text-sm">Signal-based pagination state management for both cursor and offset strategies. Generates HttpParams for your API automatically.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="card bg-base-100 border border-base-content/5">
           <div class="card-body">
             <h3 class="card-title text-base">
               <span class="badge badge-primary badge-sm">Cursor</span>
-              Cursor-Based Pagination
+              createCursorPagination()
             </h3>
-            <div class="code-block rounded-lg p-4 mt-2">
-              <pre class="text-xs leading-relaxed"><code class="text-base-content/80"><span class="text-primary/80">const</span> pagination = <span class="text-secondary">createCursorPagination</span>({
-  pageSize: <span class="text-accent">20</span>,
-});
+            <div class="code-block rounded-lg p-4 mt-2 text-xs leading-relaxed">
+<pre><code><span class="text-primary/80">const</span> pg = <span class="text-secondary">createCursorPagination</span>({ pageSize: <span class="text-accent">20</span> });
 
-<span class="text-base-content/40">// Computed signals</span>
-pagination.<span class="text-info">canGoNext</span>   <span class="text-base-content/40">// Signal&lt;boolean&gt;</span>
-pagination.<span class="text-info">canGoPrev</span>   <span class="text-base-content/40">// Signal&lt;boolean&gt;</span>
-pagination.<span class="text-info">isLoading</span>   <span class="text-base-content/40">// Signal&lt;boolean&gt;</span>
-
-<span class="text-base-content/40">// Get HttpParams for your API</span>
-<span class="text-primary/80">const</span> params = <span class="text-secondary">getCursorHttpParams</span>(pagination);</code></pre>
+pg.<span class="text-info">canGoNext</span>    <span class="text-base-content/40">// Signal&lt;boolean&gt;</span>
+pg.<span class="text-info">canGoPrev</span>    <span class="text-base-content/40">// Signal&lt;boolean&gt;</span>
+pg.<span class="text-info">isLoading</span>    <span class="text-base-content/40">// Signal&lt;boolean&gt;</span>
+pg.<span class="text-info">goNext</span>()      <span class="text-base-content/40">// returns next cursor</span>
+pg.<span class="text-info">goPrev</span>()      <span class="text-base-content/40">// returns prev cursor</span>
+pg.<span class="text-info">getHttpParams</span>() <span class="text-base-content/40">// HttpParams ready for API</span>
+pg.<span class="text-info">updateFromResponse</span>(apiResponse)</code></pre>
             </div>
           </div>
         </div>
@@ -752,21 +1048,19 @@ pagination.<span class="text-info">isLoading</span>   <span class="text-base-con
           <div class="card-body">
             <h3 class="card-title text-base">
               <span class="badge badge-secondary badge-sm">Offset</span>
-              Offset-Based Pagination
+              createOffsetPagination()
             </h3>
-            <div class="code-block rounded-lg p-4 mt-2">
-              <pre class="text-xs leading-relaxed"><code class="text-base-content/80"><span class="text-primary/80">const</span> pagination = <span class="text-secondary">createOffsetPagination</span>({
-  pageSize: <span class="text-accent">25</span>,
-  totalItems: <span class="text-accent">500</span>,
+            <div class="code-block rounded-lg p-4 mt-2 text-xs leading-relaxed">
+<pre><code><span class="text-primary/80">const</span> pg = <span class="text-secondary">createOffsetPagination</span>({
+  pageSize: <span class="text-accent">25</span>, totalItems: <span class="text-accent">500</span>,
 });
 
-<span class="text-base-content/40">// Navigate</span>
-pagination.<span class="text-info">goNext</span>()
-pagination.<span class="text-info">goToPage</span>(<span class="text-accent">3</span>)
-pagination.<span class="text-info">changePageSize</span>(<span class="text-accent">50</span>)
-
-<span class="text-base-content/40">// Computed: totalPages, offset, etc.</span>
-pagination.<span class="text-info">totalPages</span>  <span class="text-base-content/40">// Signal&lt;number&gt;</span></code></pre>
+pg.<span class="text-info">totalPages</span>   <span class="text-base-content/40">// Signal&lt;number&gt; (computed)</span>
+pg.<span class="text-info">offset</span>       <span class="text-base-content/40">// Signal&lt;number&gt; (computed)</span>
+pg.<span class="text-info">goToPage</span>(<span class="text-accent">3</span>)
+pg.<span class="text-info">goFirst</span>() / pg.<span class="text-info">goLast</span>()
+pg.<span class="text-info">changePageSize</span>(<span class="text-accent">50</span>)
+pg.<span class="text-info">getHttpParams</span>() <span class="text-base-content/40">// limit, offset, sort</span></code></pre>
             </div>
           </div>
         </div>
@@ -774,86 +1068,123 @@ pagination.<span class="text-info">totalPages</span>  <span class="text-base-con
     </div>
   </section>
 
-  <!-- ========== DIVIDER ========== -->
-  <div class="section-divider mx-auto max-w-4xl"></div>
+  <div class="section-divider mx-auto max-w-5xl"></div>
 
-  <!-- ========== PEER DEPS ========== -->
+  <!-- ============================================================ -->
+  <!--                    ARCHITECTURE                              -->
+  <!-- ============================================================ -->
   <section class="py-20 md:py-28">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-16">
-        <div class="badge badge-ghost mb-4 font-mono text-xs">TECH STACK</div>
-        <h2 class="text-3xl md:text-5xl font-bold mb-4">Built On Modern Foundations</h2>
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="text-center mb-12">
+        <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-2">Architecture</div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Built the Right Way</h2>
       </div>
 
-      <div class="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
-        <div class="badge badge-lg badge-outline gap-2 py-4 px-5">
-          <span class="font-bold text-error">Angular</span> 21+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="flex gap-3">
+          <div class="shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">TS</div>
+          <div>
+            <h4 class="font-semibold text-sm">Strict TypeScript</h4>
+            <p class="text-xs text-base-content/40">Strict mode, strict templates, strict injection. No <code class="text-[10px]">any</code> types anywhere.</p>
+          </div>
         </div>
-        <div class="badge badge-lg badge-outline gap-2 py-4 px-5">
-          <span class="font-bold text-info">Tailwind CSS</span> 4+
+        <div class="flex gap-3">
+          <div class="shrink-0 w-9 h-9 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary text-sm font-bold">S</div>
+          <div>
+            <h4 class="font-semibold text-sm">Signals-First</h4>
+            <p class="text-xs text-base-content/40"><code class="text-[10px]">signal()</code>, <code class="text-[10px]">computed()</code>, <code class="text-[10px]">input()</code>, <code class="text-[10px]">output()</code> throughout. Reactive and predictable.</p>
+          </div>
         </div>
-        <div class="badge badge-lg badge-outline gap-2 py-4 px-5">
-          <span class="font-bold text-success">DaisyUI</span> 5+
+        <div class="flex gap-3">
+          <div class="shrink-0 w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent text-sm font-bold">OP</div>
+          <div>
+            <h4 class="font-semibold text-sm">OnPush Everywhere</h4>
+            <p class="text-xs text-base-content/40">Every component uses <code class="text-[10px]">ChangeDetectionStrategy.OnPush</code>.</p>
+          </div>
         </div>
-        <div class="badge badge-lg badge-outline gap-2 py-4 px-5">
-          <span class="font-bold text-warning">Angular CDK</span> 21+
+        <div class="flex gap-3">
+          <div class="shrink-0 w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center text-info text-sm font-bold">SA</div>
+          <div>
+            <h4 class="font-semibold text-sm">Standalone</h4>
+            <p class="text-xs text-base-content/40">No NgModules. Every component is standalone and tree-shakeable.</p>
+          </div>
         </div>
-        <div class="badge badge-lg badge-outline gap-2 py-4 px-5">
-          <span class="font-bold text-primary">Lucide</span> Icons
+        <div class="flex gap-3">
+          <div class="shrink-0 w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center text-success text-sm font-bold">A11y</div>
+          <div>
+            <h4 class="font-semibold text-sm">Accessible</h4>
+            <p class="text-xs text-base-content/40">WCAG AA, keyboard nav, ARIA, focus management. Passes AXE checks.</p>
+          </div>
         </div>
-        <div class="badge badge-lg badge-outline gap-2 py-4 px-5">
-          <span class="font-bold text-secondary">Fuse.js</span> Search
-        </div>
-        <div class="badge badge-lg badge-outline gap-2 py-4 px-5">
-          <span class="font-bold text-accent">Motion</span> Animations
+        <div class="flex gap-3">
+          <div class="shrink-0 w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center text-warning text-sm font-bold">CDK</div>
+          <div>
+            <h4 class="font-semibold text-sm">Angular CDK</h4>
+            <p class="text-xs text-base-content/40">Built on CDK Dialog, CDK Stepper, CDK virtual scroll. Solid foundations.</p>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ========== DIVIDER ========== -->
-  <div class="section-divider mx-auto max-w-4xl"></div>
+  <div class="section-divider mx-auto max-w-5xl"></div>
 
-  <!-- ========== INSTALL ========== -->
+  <!-- ============================================================ -->
+  <!--                    TECH STACK                                -->
+  <!-- ============================================================ -->
+  <section class="py-16">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <div class="text-center mb-8">
+        <h2 class="text-xl font-bold">Peer Dependencies</h2>
+      </div>
+      <div class="flex flex-wrap justify-center gap-3">
+        <span class="badge badge-lg badge-outline py-4 px-5"><strong class="text-error">Angular</strong>&nbsp;21+</span>
+        <span class="badge badge-lg badge-outline py-4 px-5"><strong class="text-info">Tailwind CSS</strong>&nbsp;4+</span>
+        <span class="badge badge-lg badge-outline py-4 px-5"><strong class="text-success">DaisyUI</strong>&nbsp;5+</span>
+        <span class="badge badge-lg badge-outline py-4 px-5"><strong class="text-warning">Angular CDK</strong>&nbsp;21+</span>
+        <span class="badge badge-lg badge-outline py-4 px-5"><strong class="text-primary">Lucide</strong>&nbsp;Icons</span>
+        <span class="badge badge-lg badge-outline py-4 px-5"><strong class="text-secondary">Fuse.js</strong>&nbsp;Search</span>
+        <span class="badge badge-lg badge-outline py-4 px-5"><strong class="text-accent">Motion</strong>&nbsp;Animations</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mx-auto max-w-5xl"></div>
+
+  <!-- ============================================================ -->
+  <!--                    INSTALL                                   -->
+  <!-- ============================================================ -->
   <section id="install" class="py-20 md:py-28">
-    <div class="container mx-auto px-4">
+    <div class="container mx-auto px-4 max-w-6xl">
       <div class="text-center mb-12">
-        <div class="badge badge-ghost mb-4 font-mono text-xs">GET STARTED</div>
-        <h2 class="text-3xl md:text-5xl font-bold mb-4">Up and Running in Minutes</h2>
+        <div class="badge badge-sm badge-ghost text-[10px] uppercase tracking-widest font-semibold mb-2">Get Started</div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Up and Running in Minutes</h2>
       </div>
 
-      <div class="max-w-2xl mx-auto space-y-6">
-
-        <!-- Step 1 -->
+      <div class="max-w-2xl mx-auto space-y-8">
         <div class="flex gap-4">
           <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center font-bold text-sm">1</div>
           <div class="flex-1">
             <h3 class="font-semibold mb-2">Configure the registry</h3>
-            <p class="text-sm text-base-content/50 mb-3">Add this to your project's <code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">.npmrc</code> file:</p>
-            <div class="code-block rounded-lg p-4">
-              <code class="text-sm text-base-content/80">@hakistack:registry=https://hakistack-registry.fly.dev</code>
-            </div>
+            <p class="text-sm text-base-content/50 mb-3">Add to your project's <code class="text-xs bg-base-200 px-1.5 py-0.5 rounded">.npmrc</code>:</p>
+            <div class="code-block rounded-lg p-4"><code class="text-sm">@hakistack:registry=https://hakistack-registry.fly.dev</code></div>
           </div>
         </div>
 
-        <!-- Step 2 -->
         <div class="flex gap-4">
           <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center font-bold text-sm">2</div>
           <div class="flex-1">
-            <h3 class="font-semibold mb-2">Install the package</h3>
-            <div class="code-block rounded-lg p-4">
-              <code class="text-sm text-base-content/80">npm install @hakistack/ng-daisyui</code>
-            </div>
+            <h3 class="font-semibold mb-2">Install</h3>
+            <div class="code-block rounded-lg p-4"><code class="text-sm">npm install @hakistack/ng-daisyui</code></div>
           </div>
         </div>
 
-        <!-- Step 3 -->
         <div class="flex gap-4">
           <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center font-bold text-sm">3</div>
           <div class="flex-1">
             <h3 class="font-semibold mb-2">Import and use</h3>
-            <div class="code-block rounded-lg p-4">
-              <pre class="text-sm leading-relaxed"><code class="text-base-content/80"><span class="text-primary/80">import</span> { DynamicFormComponent, createForm, field }
+            <div class="code-block rounded-lg p-5 text-sm leading-relaxed">
+<pre><code><span class="text-primary/80">import</span> { DynamicFormComponent, createForm, field }
   <span class="text-primary/80">from</span> <span class="text-success">'@hakistack/ng-daisyui'</span>;
 
 @<span class="text-secondary">Component</span>({
@@ -865,30 +1196,34 @@ pagination.<span class="text-info">totalPages</span>  <span class="text-base-con
 })
 <span class="text-primary/80">export class</span> <span class="text-secondary">MyComponent</span> {
   form = <span class="text-secondary">createForm</span>({
-    <span class="text-warning/80">fields</span>: [field.<span class="text-info">text</span>(<span class="text-success">'name'</span>, <span class="text-success">'Name'</span>)],
-    <span class="text-warning/80">onSubmit</span>: (data) => console.log(data),
+    <span class="text-warning/80">fields</span>: [
+      field.<span class="text-info">text</span>(<span class="text-success">'name'</span>, <span class="text-success">'Name'</span>, { required: <span class="text-primary/80">true</span> }),
+      field.<span class="text-info">email</span>(<span class="text-success">'email'</span>, <span class="text-success">'Email'</span>),
+      field.<span class="text-info">select</span>(<span class="text-success">'role'</span>, <span class="text-success">'Role'</span>, {
+        choices: [<span class="text-success">'Admin'</span>, <span class="text-success">'Editor'</span>, <span class="text-success">'Viewer'</span>],
+      }),
+    ],
+    <span class="text-warning/80">onSubmit</span>: (data) =&gt; console.log(data),
   });
 }</code></pre>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </section>
 
-  <!-- ========== FOOTER ========== -->
+  <!-- ===== FOOTER ===== -->
   <footer class="bg-base-100 border-t border-base-content/5">
-    <div class="container mx-auto px-4 py-12">
+    <div class="container mx-auto px-4 py-10">
       <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-          <span class="text-lg font-bold">
-            <span class="text-primary">haki</span><span>stack</span>
-          </span>
-          <span class="text-sm text-base-content/40 ml-2">@hakistack/ng-daisyui v0.1.52</span>
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-md bg-primary text-primary-content flex items-center justify-center text-xs font-black">hk</span>
+          <span class="font-bold text-sm">ng-daisyui</span>
+          <span class="text-xs text-base-content/30 font-mono">v0.1.52</span>
         </div>
-        <div class="text-sm text-base-content/40">
-          Angular 21 &middot; DaisyUI 5 &middot; Tailwind CSS 4 &middot; Built with signals
+        <div class="text-xs text-base-content/30">
+          Angular 21 &middot; DaisyUI 5 &middot; Tailwind CSS 4 &middot; Standalone &middot; Signals &middot; OnPush
         </div>
       </div>
     </div>
