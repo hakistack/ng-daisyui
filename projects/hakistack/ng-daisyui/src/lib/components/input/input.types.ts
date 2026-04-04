@@ -1,3 +1,5 @@
+import type { CountryCode } from 'libphonenumber-js';
+
 export type InputVariant = 'text' | 'currency' | 'phone' | 'percentage' | 'password';
 
 /** Available size variants matching daisyUI */
@@ -15,7 +17,7 @@ export interface CurrencyConfig {
 }
 
 export interface PhoneConfig {
-  readonly country?: string;
+  readonly country?: CountryCode;
   readonly format?: 'national' | 'international';
 }
 

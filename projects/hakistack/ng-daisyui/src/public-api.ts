@@ -146,6 +146,7 @@ export type {
   PasswordConfig,
 } from './lib/components/input/input.types';
 export type { InputVariantStrategy } from './lib/components/input/input-variant-strategies';
+export type { CountryCode } from 'libphonenumber-js';
 
 // Select
 export { SelectComponent } from './lib/components/select/select.component';

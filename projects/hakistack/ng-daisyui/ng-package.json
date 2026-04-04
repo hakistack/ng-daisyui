@@ -16,6 +16,7 @@
     "fuse.js",
     "motion",
     "tslib",
-    "uuid"
+    "uuid",
+    "libphonenumber-js"
   ]
 }

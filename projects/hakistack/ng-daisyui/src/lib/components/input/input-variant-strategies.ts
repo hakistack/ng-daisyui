@@ -1,3 +1,5 @@
+import { AsYouType, getExampleNumber, parsePhoneNumberWithError } from 'libphonenumber-js';
+import examples from 'libphonenumber-js/mobile/examples';
 import { CurrencyConfig, InputVariant, PercentageConfig, PhoneConfig } from './input.types';
 
 export interface InputVariantStrategy {
@@ -111,11 +113,6 @@ class CurrencyStrategy implements InputVariantStrategy {
 
 // ── Phone Strategy ─────────────────────────────────────────────────────────
 
-const PHONE_FORMATS: Record<string, { mask: string; maxDigits: number }> = {
-  US: { mask: '(###) ###-####', maxDigits: 10 },
-  CA: { mask: '(###) ###-####', maxDigits: 10 },
-};
-
 class PhoneStrategy implements InputVariantStrategy {
   format(value: string | number | null, config?: PhoneConfig): string {
     if (value == null || value === '') return '';
@@ -124,28 +121,31 @@ class PhoneStrategy implements InputVariantStrategy {
     if (!digits) return '';
 
     const country = config?.country ?? 'US';
-    const formatConfig = PHONE_FORMATS[country];
+    const format = config?.format ?? 'national';
 
-    if (!formatConfig) return digits;
-
-    const trimmed = digits.slice(0, formatConfig.maxDigits);
-    let result = '';
-    let digitIndex = 0;
-
-    for (const char of formatConfig.mask) {
-      if (digitIndex >= trimmed.length) break;
-      if (char === '#') {
-        result += trimmed[digitIndex++];
-      } else {
-        result += char;
+    try {
+      const phone = parsePhoneNumberWithError(digits, { defaultCountry: country });
+      if (phone) {
+        return format === 'international' ? phone.formatInternational() : phone.formatNational();
       }
+    } catch {
+      // Partial input — use AsYouType for progressive formatting
     }
 
-    return result;
+    return new AsYouType(country).input(digits);
   }
 
-  parse(displayValue: string): string {
+  parse(displayValue: string, config?: PhoneConfig): string {
     if (!displayValue) return '';
+
+    const country = config?.country ?? 'US';
+    try {
+      const phone = parsePhoneNumberWithError(displayValue, { defaultCountry: country });
+      if (phone) return phone.number;
+    } catch {
+      // Fall back to raw digits
+    }
+
     return displayValue.replace(/\D/g, '');
   }
 
@@ -160,16 +160,16 @@ class PhoneStrategy implements InputVariantStrategy {
   shouldAllowKey(event: KeyboardEvent, currentValue: string, config?: PhoneConfig): boolean {
     if (isNavigationKey(event)) return true;
 
-    const country = (config as PhoneConfig | undefined)?.country ?? 'US';
-    const formatConfig = PHONE_FORMATS[country];
-    const maxDigits = formatConfig?.maxDigits ?? 15;
+    const country = config?.country ?? 'US';
+    const example = getExampleNumber(country, examples);
+    const maxDigits = example?.nationalNumber.length ?? 15;
     const currentDigits = currentValue.replace(/\D/g, '');
 
     if (currentDigits.length >= maxDigits && /^[0-9]$/.test(event.key)) {
       return false;
     }
 
-    return /^[0-9]$/.test(event.key);
+    return /^[0-9+]$/.test(event.key);
   }
 }
 
