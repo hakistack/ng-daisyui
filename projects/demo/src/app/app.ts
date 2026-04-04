@@ -3,6 +3,8 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideIconComponent } from '@hakistack/ng-daisyui';
 
 const THEMES = [
+  'obsidian',
+  'obsidian-light',
   'reportforge',
   'light',
   'dark',

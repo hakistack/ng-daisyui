@@ -1,0 +1,63 @@
+/**
+ * @hakistack/ng-daisyui - "Obsidian" Theme (Dark)
+ *
+ * Deep blue-charcoal surfaces, crisp blue accents, layered depth.
+ *
+ * Usage (DaisyUI v5 / Tailwind v4):
+ *
+ *   @import "tailwindcss";
+ *   @plugin "daisyui";
+ *   @import "@hakistack/ng-daisyui/themes/daisyui-v5";
+ *   @import "@hakistack/ng-daisyui/themes/obsidian";
+ *
+ * Then set on your root element:
+ *   <html data-theme="obsidian">
+ */
+
+@plugin "daisyui/theme" {
+  name: "obsidian";
+  default: false;
+  prefersdark: false;
+  color-scheme: dark;
+
+  --color-base-100: #0e1117;
+  --color-base-200: #151921;
+  --color-base-300: #1c212b;
+  --color-base-content: #e2e6ef;
+
+  --color-primary: #5b8def;
+  --color-primary-content: #ffffff;
+
+  --color-secondary: #e8a44e;
+  --color-secondary-content: #1a1207;
+
+  --color-accent: #7da8f5;
+  --color-accent-content: #0e1117;
+
+  --color-neutral: #2a3040;
+  --color-neutral-content: #8d95a8;
+
+  --color-info: #5b8def;
+  --color-info-content: #e2e6ef;
+
+  --color-success: #4ecb8d;
+  --color-success-content: #052e1c;
+
+  --color-warning: #e8a44e;
+  --color-warning-content: #1a1207;
+
+  --color-error: #e8606a;
+  --color-error-content: #1c0606;
+
+  --radius-selector: 1.25rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.875rem;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  --border: 1px;
+
+  --depth: 1;
+  --noise: 0;
+}

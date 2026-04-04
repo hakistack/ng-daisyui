@@ -5,6 +5,8 @@
 @source "../../../projects/hakistack/ng-daisyui/src/**/*.ts";
 @source "../../../projects/hakistack/ng-daisyui/src/**/*.html";
 @import "../../../projects/hakistack/ng-daisyui/styles.css";
+@import "../../../projects/hakistack/ng-daisyui/themes/obsidian.css";
+@import "../../../projects/hakistack/ng-daisyui/themes/obsidian-light.css";
 
 
 /* ReportForge Studio — Dark */
