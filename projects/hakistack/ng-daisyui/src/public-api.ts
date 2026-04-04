@@ -51,6 +51,7 @@ export type {
   ColorFieldOptions,
   FileFieldOptions,
   HiddenFieldOptions,
+  EditorFieldOptions,
 } from './lib/components/dynamic-form/dynamic-form.types';
 
 // Table

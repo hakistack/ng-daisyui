@@ -220,6 +220,12 @@ const THEMES = [
                   Timepicker
                 </a>
               </li>
+              <li>
+                <a routerLink="/editor" routerLinkActive="active">
+                  <hk-lucide-icon name="FileText" [size]="16" />
+                  Editor
+                </a>
+              </li>
 
               <li class="menu-title mt-4">Navigation</li>
               <li>

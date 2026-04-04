@@ -22,6 +22,7 @@ import { catchError, debounceTime, distinctUntilChanged, from, isObservable, Obs
 
 import { FormStateMetadata, FormStateService } from '../../services/form-state.service';
 import { DatepickerComponent } from '../datepicker/datepicker.component';
+import { EditorComponent } from '../editor/editor.component';
 import { SelectComponent } from '../select/select.component';
 import { StepperComponent } from '../stepper/stepper.component';
 import {
@@ -45,6 +46,7 @@ import { TimepickerComponent } from '../timepicker/timepicker.component';
     CdkStepperModule,
     SelectComponent,
     DatepickerComponent,
+    EditorComponent,
     StepperComponent,
     TimepickerComponent,
   ],

@@ -1,0 +1,149 @@
+<div class="hk-editor-wrapper" [class.hk-editor-focused]="isFocused()" [class.hk-editor-disabled]="disabled()">
+  <!-- Custom DaisyUI Toolbar -->
+  @if (!isLoading()) {
+    <div #toolbarContainer class="hk-editor-toolbar">
+      @for (group of resolvedToolbar(); track $index) {
+        <div class="hk-toolbar-group">
+          @for (item of group; track $index) {
+            @if (isStringItem(item)) {
+              @switch (item) {
+                @case ('bold') {
+                  <button type="button" class="ql-bold btn btn-ghost btn-xs btn-square" aria-label="Bold">
+                    <hk-lucide-icon name="Bold" [size]="15" />
+                  </button>
+                }
+                @case ('italic') {
+                  <button type="button" class="ql-italic btn btn-ghost btn-xs btn-square" aria-label="Italic">
+                    <hk-lucide-icon name="Italic" [size]="15" />
+                  </button>
+                }
+                @case ('underline') {
+                  <button type="button" class="ql-underline btn btn-ghost btn-xs btn-square" aria-label="Underline">
+                    <hk-lucide-icon name="Underline" [size]="15" />
+                  </button>
+                }
+                @case ('strike') {
+                  <button type="button" class="ql-strike btn btn-ghost btn-xs btn-square" aria-label="Strikethrough">
+                    <hk-lucide-icon name="Strikethrough" [size]="15" />
+                  </button>
+                }
+                @case ('blockquote') {
+                  <button type="button" class="ql-blockquote btn btn-ghost btn-xs btn-square" aria-label="Blockquote">
+                    <hk-lucide-icon name="Quote" [size]="15" />
+                  </button>
+                }
+                @case ('code-block') {
+                  <button type="button" class="ql-code-block btn btn-ghost btn-xs btn-square" aria-label="Code block">
+                    <hk-lucide-icon name="Code" [size]="15" />
+                  </button>
+                }
+                @case ('link') {
+                  <button type="button" class="ql-link btn btn-ghost btn-xs btn-square" aria-label="Link">
+                    <hk-lucide-icon name="Link" [size]="15" />
+                  </button>
+                }
+                @case ('image') {
+                  <button type="button" class="ql-image btn btn-ghost btn-xs btn-square" aria-label="Image">
+                    <hk-lucide-icon name="Image" [size]="15" />
+                  </button>
+                }
+                @case ('video') {
+                  <button type="button" class="ql-video btn btn-ghost btn-xs btn-square" aria-label="Video">
+                    <hk-lucide-icon name="Video" [size]="15" />
+                  </button>
+                }
+                @case ('clean') {
+                  <button type="button" class="ql-clean btn btn-ghost btn-xs btn-square" aria-label="Clear formatting">
+                    <hk-lucide-icon name="RemoveFormatting" [size]="15" />
+                  </button>
+                }
+              }
+            } @else {
+              @switch (getItemKey(item)) {
+                @case ('header') {
+                  <button
+                    type="button"
+                    class="ql-header btn btn-ghost btn-xs btn-square"
+                    [attr.value]="getItemValue(item)"
+                    [attr.aria-label]="'Heading ' + getItemValue(item)"
+                  >
+                    @switch (getItemValue(item)) {
+                      @case (1) {
+                        <hk-lucide-icon name="Heading1" [size]="15" />
+                      }
+                      @case (2) {
+                        <hk-lucide-icon name="Heading2" [size]="15" />
+                      }
+                      @case (3) {
+                        <hk-lucide-icon name="Heading3" [size]="15" />
+                      }
+                      @default {
+                        <span class="text-xs font-semibold">H{{ getItemValue(item) }}</span>
+                      }
+                    }
+                  </button>
+                }
+                @case ('list') {
+                  @if (getItemValue(item) === 'ordered') {
+                    <button type="button" class="ql-list btn btn-ghost btn-xs btn-square" value="ordered" aria-label="Ordered list">
+                      <hk-lucide-icon name="ListOrdered" [size]="15" />
+                    </button>
+                  }
+                  @if (getItemValue(item) === 'bullet') {
+                    <button type="button" class="ql-list btn btn-ghost btn-xs btn-square" value="bullet" aria-label="Bullet list">
+                      <hk-lucide-icon name="List" [size]="15" />
+                    </button>
+                  }
+                }
+                @case ('indent') {
+                  @if (getItemValue(item) === '-1') {
+                    <button type="button" class="ql-indent btn btn-ghost btn-xs btn-square" value="-1" aria-label="Decrease indent">
+                      <hk-lucide-icon name="IndentDecrease" [size]="15" />
+                    </button>
+                  }
+                  @if (getItemValue(item) === '+1') {
+                    <button type="button" class="ql-indent btn btn-ghost btn-xs btn-square" value="+1" aria-label="Increase indent">
+                      <hk-lucide-icon name="IndentIncrease" [size]="15" />
+                    </button>
+                  }
+                }
+                @case ('align') {
+                  @switch (getItemValue(item)) {
+                    @case ('') {
+                      <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="" aria-label="Align left">
+                        <hk-lucide-icon name="AlignLeft" [size]="15" />
+                      </button>
+                    }
+                    @case ('center') {
+                      <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="center" aria-label="Align center">
+                        <hk-lucide-icon name="AlignCenter" [size]="15" />
+                      </button>
+                    }
+                    @case ('right') {
+                      <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="right" aria-label="Align right">
+                        <hk-lucide-icon name="AlignRight" [size]="15" />
+                      </button>
+                    }
+                    @case ('justify') {
+                      <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="justify" aria-label="Justify">
+                        <hk-lucide-icon name="AlignJustify" [size]="15" />
+                      </button>
+                    }
+                  }
+                }
+              }
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Editor Container -->
+  <div #editorContainer [style.--editor-height]="editorHeight()"></div>
+
+  <!-- Character Counter -->
+  @if (maxLength() !== null && !isLoading()) {
+    <div class="hk-editor-footer">{{ characterCount() }} / {{ maxLength() }}</div>
+  }
+</div>

@@ -1,0 +1,203 @@
+/* Core structural CSS from Quill (contenteditable, lists, indentation) */
+@import 'quill/dist/quill.core.css';
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* ══════════════════════════════════════════════════════
+   TOOLBAR
+   ══════════════════════════════════════════════════════ */
+
+.hk-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-base-300, var(--hk-color-base-content-15));
+  border-bottom: none;
+  border-radius: var(--rounded-box, 0.5rem) var(--rounded-box, 0.5rem) 0 0;
+  background: var(--color-base-200, var(--hk-color-base-200));
+}
+
+.hk-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.0625rem;
+}
+
+.hk-toolbar-group + .hk-toolbar-group {
+  margin-left: 0.25rem;
+  padding-left: 0.375rem;
+  border-left: 1px solid var(--color-base-300, var(--hk-color-base-content-10));
+}
+
+/* Active toolbar button — Quill adds ql-active class */
+:host ::ng-deep .hk-editor-toolbar button.ql-active {
+  background: var(--color-primary, var(--hk-color-primary)) !important;
+  color: var(--color-primary-content, #fff) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   EDITOR CONTAINER
+   ══════════════════════════════════════════════════════ */
+
+:host ::ng-deep .ql-container {
+  border: 1px solid var(--color-base-300, var(--hk-color-base-content-15));
+  border-radius: 0 0 var(--rounded-box, 0.5rem) var(--rounded-box, 0.5rem);
+  background: var(--color-base-100, var(--hk-color-base-100));
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+:host ::ng-deep .ql-editor {
+  min-height: var(--editor-height, 200px);
+  color: var(--color-base-content, var(--hk-color-base-content));
+  line-height: 1.6;
+  padding: 0.75rem 1rem;
+}
+
+:host ::ng-deep .ql-editor.ql-blank::before {
+  color: var(--color-base-content, var(--hk-color-base-content));
+  opacity: 0.35;
+  font-style: normal;
+  left: 1rem;
+  right: 1rem;
+}
+
+/* ══════════════════════════════════════════════════════
+   FOCUS STATE
+   ══════════════════════════════════════════════════════ */
+
+.hk-editor-focused .hk-editor-toolbar {
+  border-color: var(--color-primary, var(--hk-color-primary));
+}
+
+.hk-editor-focused ::ng-deep .ql-container {
+  border-color: var(--color-primary, var(--hk-color-primary));
+  outline: 2px solid color-mix(in oklch, var(--color-primary, var(--hk-color-primary)) 25%, transparent);
+  outline-offset: -1px;
+}
+
+/* ══════════════════════════════════════════════════════
+   DISABLED STATE
+   ══════════════════════════════════════════════════════ */
+
+.hk-editor-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════
+   CONTENT FORMATTING
+   ══════════════════════════════════════════════════════ */
+
+:host ::ng-deep .ql-editor h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5em; }
+:host ::ng-deep .ql-editor h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5em; }
+:host ::ng-deep .ql-editor h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5em; }
+:host ::ng-deep .ql-editor h4 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5em; }
+:host ::ng-deep .ql-editor h5 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5em; }
+:host ::ng-deep .ql-editor h6 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5em; }
+
+:host ::ng-deep .ql-editor p { margin-bottom: 0.5em; }
+
+:host ::ng-deep .ql-editor blockquote {
+  border-left: 4px solid var(--color-primary, var(--hk-color-primary));
+  padding-left: 1rem;
+  opacity: 0.85;
+  margin: 0.5em 0;
+}
+
+:host ::ng-deep .ql-editor pre.ql-syntax,
+:host ::ng-deep .ql-editor .ql-code-block-container {
+  background: var(--color-base-200, var(--hk-color-base-content-5));
+  border: 1px solid var(--color-base-300, var(--hk-color-base-content-10));
+  border-radius: var(--rounded-btn, 0.375rem);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875em;
+  padding: 0.75rem 1rem;
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
+:host ::ng-deep .ql-editor code {
+  background: var(--color-base-200, var(--hk-color-base-content-5));
+  border-radius: 0.25rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875em;
+  padding: 0.125rem 0.375rem;
+}
+
+:host ::ng-deep .ql-editor a {
+  color: var(--color-primary, var(--hk-color-primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:host ::ng-deep .ql-editor img {
+  max-width: 100%;
+  border-radius: var(--rounded-box, 0.5rem);
+  margin: 0.5em 0;
+}
+
+:host ::ng-deep .ql-editor ol,
+:host ::ng-deep .ql-editor ul {
+  margin-bottom: 0.5em;
+}
+
+:host ::ng-deep .ql-editor hr {
+  border: none;
+  border-top: 1px solid var(--color-base-300, var(--hk-color-base-content-15));
+  margin: 1em 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   TOOLTIP (link edit)
+   ══════════════════════════════════════════════════════ */
+
+:host ::ng-deep .ql-tooltip {
+  background: var(--color-base-200, var(--hk-color-base-200));
+  border: 1px solid var(--color-base-300, var(--hk-color-base-content-15));
+  border-radius: var(--rounded-box, 0.5rem);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  color: var(--color-base-content, var(--hk-color-base-content));
+  padding: 0.5rem 0.75rem;
+  z-index: 50;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .ql-tooltip input[type="text"] {
+  background: var(--color-base-100, var(--hk-color-base-100));
+  border: 1px solid var(--color-base-300, var(--hk-color-base-content-15));
+  border-radius: var(--rounded-btn, 0.25rem);
+  color: var(--color-base-content, var(--hk-color-base-content));
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  outline: none;
+}
+
+:host ::ng-deep .ql-tooltip input[type="text"]:focus {
+  border-color: var(--color-primary, var(--hk-color-primary));
+}
+
+:host ::ng-deep .ql-tooltip a {
+  color: var(--color-primary, var(--hk-color-primary));
+  font-size: 0.8125rem;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════
+   CHARACTER COUNTER
+   ══════════════════════════════════════════════════════ */
+
+.hk-editor-footer {
+  font-size: 0.75rem;
+  color: var(--color-base-content, var(--hk-color-base-content));
+  opacity: 0.4;
+  text-align: right;
+  margin-top: 0.25rem;
+  padding-right: 0.25rem;
+}

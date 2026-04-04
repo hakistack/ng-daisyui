@@ -21,6 +21,7 @@ export type FieldType =
   | 'range'
   | 'file'
   | 'color'
+  | 'editor'
   | 'hidden';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,6 +183,15 @@ export interface FileFieldOptions extends BaseFieldOptions {
   multiple?: boolean;
 }
 
+export interface EditorFieldOptions extends BaseFieldOptions {
+  editorHeight?: string;
+  toolbar?: 'full' | 'basic' | 'minimal';
+  outputFormat?: 'html' | 'delta';
+  formats?: string[];
+  minLength?: number;
+  maxLength?: number;
+}
+
 export interface HiddenFieldOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultValue?: any;
@@ -227,6 +237,11 @@ export interface FormFieldConfig {
   readonly disabledWhen?: ConditionalLogic[];
   readonly enableSearch?: boolean;
   readonly isRangeDate?: boolean;
+  // Editor
+  readonly editorHeight?: string;
+  readonly editorToolbar?: 'full' | 'basic' | 'minimal';
+  readonly editorOutputFormat?: 'html' | 'delta';
+  readonly editorFormats?: string[];
   readonly orientation?: 'horizontal' | 'vertical';
   /** Grid column span (1-12). Can be responsive: { default: 12, md: 6, lg: 4 } */
   readonly colSpan?: number | ResponsiveColSpan;

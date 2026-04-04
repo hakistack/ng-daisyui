@@ -11,6 +11,7 @@ import {
   CreateFormInput,
   DateFieldOptions,
   DatetimeFieldOptions,
+  EditorFieldOptions,
   EmailFieldOptions,
   FieldType,
   FileFieldOptions,
@@ -156,6 +157,11 @@ interface InternalFieldInput extends BaseFieldOptions {
   multiple?: boolean;
   step?: number;
   isRangeDate?: boolean;
+  // Editor
+  editorHeight?: string;
+  editorToolbar?: 'full' | 'basic' | 'minimal';
+  editorOutputFormat?: 'html' | 'delta';
+  editorFormats?: string[];
 }
 
 function createField(key: string, type: FieldType, label: string, input: InternalFieldInput = {}): FormFieldConfig {
@@ -206,6 +212,11 @@ function createField(key: string, type: FieldType, label: string, input: Interna
     step: input.step,
     orientation: input.orientation,
     isRangeDate: input.isRangeDate,
+    // Editor
+    editorHeight: input.editorHeight,
+    editorToolbar: input.editorToolbar,
+    editorOutputFormat: input.editorOutputFormat,
+    editorFormats: input.editorFormats,
   };
 }
 
@@ -298,6 +309,16 @@ export const field = {
   file: (key: string, label?: string, options?: FileFieldOptions) =>
     createField(key, 'file', autoLabel(key, label), {
       accept: '*/*',
+      ...options,
+    }),
+
+  editor: (key: string, label?: string, options?: EditorFieldOptions) =>
+    createField(key, 'editor', autoLabel(key, label), {
+      placeholder: `Enter ${(label || key).toLowerCase()}...`,
+      editorHeight: options?.editorHeight,
+      editorToolbar: options?.toolbar,
+      editorOutputFormat: options?.outputFormat,
+      editorFormats: options?.formats,
       ...options,
     }),
 

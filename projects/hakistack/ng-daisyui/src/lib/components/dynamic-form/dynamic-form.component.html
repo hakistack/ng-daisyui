@@ -95,17 +95,13 @@
         }
       </div>
     }
-
   }
 </form>
 
 <ng-template #fieldTemplate let-field="field" let-formGroup="formGroup">
   <div [formGroup]="formGroup" [class]="isHorizontalLayout() ? 'form-field-container flex items-start gap-4' : 'form-field-container'">
     @if (field.type !== 'hidden') {
-      <label
-        [for]="field.id"
-        [class]="isHorizontalLayout() ? 'flex items-center pt-2 shrink-0 ' + labelWidthClass() : 'mb-1 block'"
-      >
+      <label [for]="field.id" [class]="isHorizontalLayout() ? 'flex items-center pt-2 shrink-0 ' + labelWidthClass() : 'mb-1 block'">
         <span class="text-sm">
           {{ field.label }}
           @if (isFieldRequired(field)) {
@@ -118,13 +114,31 @@
     <div [class]="isHorizontalLayout() ? 'form-input-container flex-1' : 'form-input-container'">
       @switch (field.type) {
         @case ('text') {
-          <input [id]="field.id" [formControlName]="field.key" type="text" [placeholder]="field.placeholder || ''" [class]="getBaseInputClasses()" />
+          <input
+            [id]="field.id"
+            [formControlName]="field.key"
+            type="text"
+            [placeholder]="field.placeholder || ''"
+            [class]="getBaseInputClasses()"
+          />
         }
         @case ('email') {
-          <input [id]="field.id" [formControlName]="field.key" type="email" [placeholder]="field.placeholder || ''" [class]="getBaseInputClasses()" />
+          <input
+            [id]="field.id"
+            [formControlName]="field.key"
+            type="email"
+            [placeholder]="field.placeholder || ''"
+            [class]="getBaseInputClasses()"
+          />
         }
         @case ('password') {
-          <input [id]="field.id" [formControlName]="field.key" type="password" [placeholder]="field.placeholder || ''" [class]="getBaseInputClasses()" />
+          <input
+            [id]="field.id"
+            [formControlName]="field.key"
+            type="password"
+            [placeholder]="field.placeholder || ''"
+            [class]="getBaseInputClasses()"
+          />
         }
         @case ('number') {
           <input
@@ -147,13 +161,28 @@
             [class]="getBaseInputClasses('textarea')"
           ></textarea>
         }
+        @case ('editor') {
+          <hk-editor
+            [id]="field.id"
+            [formControlName]="field.key"
+            [placeholder]="field.placeholder || 'Write something...'"
+            [editorHeight]="field.editorHeight || '200px'"
+            [toolbar]="field.editorToolbar || 'basic'"
+            [outputFormat]="field.editorOutputFormat || 'html'"
+            [formats]="field.editorFormats || null"
+            [minLength]="field.minLength ?? null"
+            [maxLength]="field.maxLength ?? null"
+          />
+        }
         @case ('select') {
           <div class="relative">
             <hk-select
               [id]="field.id"
               [options]="getFieldOptions(field)"
               [formControlName]="field.key"
-              [placeholder]="isFieldOptionsLoading(field) ? (field.optionsFrom?.loadingPlaceholder || 'Loading options...') : field.placeholder"
+              [placeholder]="
+                isFieldOptionsLoading(field) ? field.optionsFrom?.loadingPlaceholder || 'Loading options...' : field.placeholder
+              "
               [enableSearch]="field.enableSearch"
               [class.pointer-events-none]="isFieldOptionsLoading(field)"
               [class.opacity-60]="isFieldOptionsLoading(field)"
@@ -179,7 +208,13 @@
             <div [class]="field.orientation === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col gap-2'">
               @for (option of getFieldOptions(field); track option.value) {
                 <label class="flex cursor-pointer items-center gap-2">
-                  <input [id]="field.id + '_' + option.value" [formControlName]="field.key" type="radio" [value]="option.value" class="radio" />
+                  <input
+                    [id]="field.id + '_' + option.value"
+                    [formControlName]="field.key"
+                    type="radio"
+                    [value]="option.value"
+                    class="radio"
+                  />
                   <span class="text-sm">{{ option.label }}</span>
                 </label>
               }
@@ -220,22 +255,47 @@
           </div>
         }
         @case ('file') {
-          <input [id]="field.id" [formControlName]="field.key" type="file" [accept]="field.accept || '*/*'" [multiple]="field.multiple" [class]="getBaseInputClasses('file')" />
+          <input
+            [id]="field.id"
+            [formControlName]="field.key"
+            type="file"
+            [accept]="field.accept || '*/*'"
+            [multiple]="field.multiple"
+            [class]="getBaseInputClasses('file')"
+          />
         }
         @case ('color') {
           <input [id]="field.id" [formControlName]="field.key" type="color" [class]="getBaseInputClasses()" />
         }
         @case ('tel') {
-          <input [id]="field.id" [formControlName]="field.key" type="tel" [placeholder]="field.placeholder || ''" [class]="getBaseInputClasses()" />
+          <input
+            [id]="field.id"
+            [formControlName]="field.key"
+            type="tel"
+            [placeholder]="field.placeholder || ''"
+            [class]="getBaseInputClasses()"
+          />
         }
         @case ('url') {
-          <input [id]="field.id" [formControlName]="field.key" type="url" [placeholder]="field.placeholder || ''" [class]="getBaseInputClasses()" />
+          <input
+            [id]="field.id"
+            [formControlName]="field.key"
+            type="url"
+            [placeholder]="field.placeholder || ''"
+            [class]="getBaseInputClasses()"
+          />
         }
         @case ('hidden') {
           <input [formControlName]="field.key" type="hidden" />
         }
         @default {
-          <input [id]="field.id" [formControlName]="field.key" [type]="field.type" [placeholder]="field.placeholder || ''" [class]="getBaseInputClasses(field.type)" />
+          <input
+            [id]="field.id"
+            [formControlName]="field.key"
+            [type]="field.type"
+            [placeholder]="field.placeholder || ''"
+            [class]="getBaseInputClasses(field.type)"
+          />
         }
       }
     </div>
