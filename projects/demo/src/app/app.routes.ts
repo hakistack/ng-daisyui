@@ -6,8 +6,13 @@ export const routes: Routes = [
   { path: 'wizard', loadComponent: () => import('./demos/wizard-demo.component').then((m) => m.WizardDemoComponent) },
   { path: 'table', loadComponent: () => import('./demos/table-demo.component').then((m) => m.TableDemoComponent) },
   { path: 'tree-table', loadComponent: () => import('./demos/tree-table-demo.component').then((m) => m.TreeTableDemoComponent) },
+  {
+    path: 'virtual-scroller',
+    loadComponent: () => import('./demos/virtual-scroller-demo.component').then((m) => m.VirtualScrollerDemoComponent),
+  },
   { path: 'tree', loadComponent: () => import('./demos/tree-demo.component').then((m) => m.TreeDemoComponent) },
   { path: 'org-chart', loadComponent: () => import('./demos/org-chart-demo.component').then((m) => m.OrgChartDemoComponent) },
+  { path: 'input', loadComponent: () => import('./demos/input-demo.component').then((m) => m.InputDemoComponent) },
   { path: 'select', loadComponent: () => import('./demos/select-demo.component').then((m) => m.SelectDemoComponent) },
   { path: 'datepicker', loadComponent: () => import('./demos/datepicker-demo.component').then((m) => m.DatepickerDemoComponent) },
   { path: 'timepicker', loadComponent: () => import('./demos/timepicker-demo.component').then((m) => m.TimepickerDemoComponent) },

@@ -186,7 +186,20 @@ const THEMES = [
                 </a>
               </li>
 
+              <li>
+                <a routerLink="/virtual-scroller" routerLinkActive="active">
+                  <hk-lucide-icon name="ScrollText" [size]="16" />
+                  Virtual Scroller
+                </a>
+              </li>
+
               <li class="menu-title mt-4">Inputs</li>
+              <li>
+                <a routerLink="/input" routerLinkActive="active">
+                  <hk-lucide-icon name="TextCursorInput" [size]="16" />
+                  Input
+                </a>
+              </li>
               <li>
                 <a routerLink="/select" routerLinkActive="active">
                   <hk-lucide-icon name="ChevronDown" [size]="16" />

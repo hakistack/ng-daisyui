@@ -134,6 +134,19 @@ export type {
 } from './lib/components/table/table.types';
 export type { AggregateFunction } from './lib/components/table/table-aggregates';
 
+// Input
+export { InputComponent } from './lib/components/input/input.component';
+export type {
+  InputVariant,
+  InputSize,
+  InputColor,
+  CurrencyConfig,
+  PhoneConfig,
+  PercentageConfig,
+  PasswordConfig,
+} from './lib/components/input/input.types';
+export type { InputVariantStrategy } from './lib/components/input/input-variant-strategies';
+
 // Select
 export { SelectComponent } from './lib/components/select/select.component';
 export type { SelectOption } from './lib/components/select/select.types';
@@ -230,6 +243,17 @@ export type {
   TreeNodeDragStartEvent as TreeDragStartEvent,
   TreeNodeDragEndEvent as TreeDragEndEvent,
 } from './lib/components/tree/tree.types';
+
+// Virtual Scroller
+export { VirtualScrollerComponent } from './lib/components/virtual-scroller/virtual-scroller.component';
+export type {
+  VirtualScrollerOrientation,
+  VirtualScrollerLazyLoadEvent,
+  VirtualScrollerItemContext,
+  VirtualScrollerLoaderContext,
+  VirtualScrollerScrollEvent,
+  VirtualScrollBehavior,
+} from './lib/components/virtual-scroller/virtual-scroller.types';
 
 // ============================================================================
 // API (Core Types)

@@ -127,6 +127,29 @@ export type {
   OrgChartNodeColor,
 } from './organization-chart/organization-chart.types';
 
+// Input
+export { InputComponent } from './input/input.component';
+export type {
+  InputVariant,
+  InputSize,
+  InputColor,
+  CurrencyConfig,
+  PhoneConfig,
+  PercentageConfig,
+  PasswordConfig,
+} from './input/input.types';
+
+// Virtual Scroller
+export { VirtualScrollerComponent } from './virtual-scroller/virtual-scroller.component';
+export type {
+  VirtualScrollerOrientation,
+  VirtualScrollerLazyLoadEvent,
+  VirtualScrollerItemContext,
+  VirtualScrollerLoaderContext,
+  VirtualScrollerScrollEvent,
+  VirtualScrollBehavior,
+} from './virtual-scroller/virtual-scroller.types';
+
 // Toast
 export { ToastComponent } from './toast/toast.component';
 export { ToastService } from './toast/toast.service';

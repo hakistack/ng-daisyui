@@ -1,0 +1,56 @@
+<!-- Header -->
+@if (headerTemplate(); as header) {
+  <ng-container *ngTemplateOutlet="header" />
+}
+
+<!-- Viewport -->
+<cdk-virtual-scroll-viewport
+  #viewport
+  [itemSize]="effectiveItemSize()"
+  [orientation]="cdkOrientation()"
+  [minBufferPx]="minBufferPx()"
+  [maxBufferPx]="maxBufferPx()"
+  [style.height]="viewportHeight()"
+  [style.width]="viewportWidth()"
+  [class]="containerClass()"
+>
+  @if (isGridMode()) {
+    <!-- Grid mode: iterate virtual rows -->
+    <div *cdkVirtualFor="let row of virtualRows(); trackBy: trackByRow" class="flex">
+      @for (item of row; track trackByItem($index, item)) {
+        <div [class]="itemClass()" [style.width]="gridItemWidth()">
+          @if (item !== null && itemTemplate(); as tpl) {
+            <ng-container *ngTemplateOutlet="tpl; context: getItemContext(item, $index)" />
+          } @else if (item === null && loaderTemplate(); as loader) {
+            <ng-container *ngTemplateOutlet="loader; context: getLoaderContext($index)" />
+          } @else if (item === null) {
+            <div class="skeleton w-full" [style.height.px]="itemSize()"></div>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Single-item mode -->
+    <div *cdkVirtualFor="let item of effectiveItems(); let i = index; trackBy: trackByItem" [class]="itemClass()">
+      @if (item !== null && itemTemplate(); as tpl) {
+        <ng-container *ngTemplateOutlet="tpl; context: getItemContext(item, i)" />
+      } @else if (item === null && loaderTemplate(); as loader) {
+        <ng-container *ngTemplateOutlet="loader; context: getLoaderContext(i)" />
+      } @else if (item === null) {
+        <div class="skeleton w-full" [style.height.px]="itemSize()"></div>
+      }
+    </div>
+  }
+</cdk-virtual-scroll-viewport>
+
+<!-- Loading overlay -->
+@if (loading()) {
+  <div class="flex items-center justify-center p-4">
+    <span class="loading loading-spinner loading-md"></span>
+  </div>
+}
+
+<!-- Footer -->
+@if (footerTemplate(); as footer) {
+  <ng-container *ngTemplateOutlet="footer" />
+}
