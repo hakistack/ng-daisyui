@@ -386,6 +386,24 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly enableKeyboardNavSignal = computed(() => this.fieldConfig()?.enableKeyboardNavigation ?? false);
   readonly activeCellSignal = signal<[number, number] | null>(null);
 
+  /** Number of special columns prepended before data columns (drag handle, select, expand). */
+  readonly specialColumnOffsetSignal = computed(() => {
+    let offset = 0;
+    if (this.showDragHandleColumnSignal()) offset++;
+    if (this.hasSelectionSignal()) offset++;
+    if (this.showExpandColumnSignal()) offset++;
+    return offset;
+  });
+
+  /** Column index of the select column within displayedColumnsSignal. */
+  readonly selectColIndexSignal = computed(() => (this.showDragHandleColumnSignal() ? 1 : 0));
+
+  /** Column index of the detail-expand column within displayedColumnsSignal. */
+  readonly expandColIndexSignal = computed(() => this.specialColumnOffsetSignal() - 1);
+
+  /** Column index of the actions column within displayedColumnsSignal. */
+  readonly actionsColIndexSignal = computed(() => this.displayedColumnsSignal().length - 1);
+
   // ============================================================================
   // Column Reordering
   // ============================================================================

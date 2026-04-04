@@ -847,7 +847,15 @@
         @if (showDragHandleColumnSignal()) {
           <ng-container cdkColumnDef="__drag_handle">
             <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2"></th>
-            <td cdk-cell *cdkCellDef="let row" class="w-10 px-2 cursor-grab">
+            <td
+              cdk-cell
+              *cdkCellDef="let row; let rowIdx = dataIndex"
+              class="w-10 px-2 cursor-grab"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, 0)"
+              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, 0) : null"
+              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
+              (click)="onCellClick(rowIdx, 0)"
+            >
               <hk-lucide-icon name="GripVertical" class="h-4 w-4 opacity-40" aria-hidden="true" />
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
@@ -870,7 +878,16 @@
                 />
               </label>
             </th>
-            <td cdk-cell *cdkCellDef="let row" class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
+            <td
+              cdk-cell
+              *cdkCellDef="let row; let rowIdx = dataIndex"
+              class="w-8 px-4"
+              [class.sticky-start]="stickySelectionSignal()"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, selectColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, selectColIndexSignal()) : null"
+              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
+              (click)="onCellClick(rowIdx, selectColIndexSignal())"
+            >
               <label>
                 <input
                   type="checkbox"
@@ -892,7 +909,15 @@
         @if (showExpandColumnSignal()) {
           <ng-container cdkColumnDef="__detail_expand">
             <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2"></th>
-            <td cdk-cell *cdkCellDef="let row" class="w-10 px-2">
+            <td
+              cdk-cell
+              *cdkCellDef="let row; let rowIdx = dataIndex"
+              class="w-10 px-2"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, expandColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, expandColIndexSignal()) : null"
+              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
+              (click)="onCellClick(rowIdx, expandColIndexSignal())"
+            >
               <button
                 type="button"
                 class="btn btn-ghost btn-xs btn-square"
@@ -1036,14 +1061,14 @@
               class="transition-colors duration-200"
               [class.sticky-start]="isStickyStart(column.field)"
               [class.sticky-end]="isStickyEnd(column.field)"
-              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, colIdx)"
-              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, colIdx) : null"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, colIdx + specialColumnOffsetSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, colIdx + specialColumnOffsetSignal()) : null"
               [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
               [style.width.px]="getColumnWidth(column.field)"
               [style.min-width.px]="column.minWidth"
               [style.max-width.px]="column.maxWidth"
               [style.padding-left.px]="isTreeTableSignal() && isTreeColumn(column.field) ? getRowIndentPadding(row) : null"
-              (click)="onCellClick(rowIdx, colIdx)"
+              (click)="onCellClick(rowIdx, colIdx + specialColumnOffsetSignal())"
             >
               @if (enableEditingSignal() && isEditing(row, column.field)) {
                 <!-- Edit Mode -->
@@ -1159,7 +1184,16 @@
         @if (hasActionsSignal()) {
           <ng-container cdkColumnDef="actions">
             <th cdk-header-cell *cdkHeaderCellDef class="text-center" [class.sticky-end]="stickyActionsSignal()">Actions</th>
-            <td cdk-cell *cdkCellDef="let row" class="text-center" [class.sticky-end]="stickyActionsSignal()">
+            <td
+              cdk-cell
+              *cdkCellDef="let row; let rowIdx = dataIndex"
+              class="text-center"
+              [class.sticky-end]="stickyActionsSignal()"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, actionsColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, actionsColIndexSignal()) : null"
+              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
+              (click)="onCellClick(rowIdx, actionsColIndexSignal())"
+            >
               <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
                 @for (action of actionListSignal(); track trackByAction($index, action)) {
                   @if (!action.config.hidden?.(row)) {
