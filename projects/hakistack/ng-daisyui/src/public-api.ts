@@ -308,6 +308,8 @@ export type {
 // ============================================================================
 
 export { AutoFocusDirective } from './lib/directives/auto-focus/auto-focus.directive';
+export { InputMaskDirective } from './lib/directives/input-mask/input-mask.directive';
+export type { MaskDefinition, MaskSlot, MaskChar } from './lib/directives/input-mask/input-mask.types';
 export { MotionAnimateDirective } from './lib/directives/motion-animate/motion-animate.directive';
 export { MotionHoverDirective } from './lib/directives/motion-hover/motion-hover.directive';
 export { MotionScrollDirective } from './lib/directives/motion-scroll/motion-scroll.directive';

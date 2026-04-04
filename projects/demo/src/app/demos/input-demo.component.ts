@@ -1,19 +1,28 @@
 import { Component, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
-import { InputComponent, InputColor } from '@hakistack/ng-daisyui';
+import { InputComponent, InputColor, InputMaskDirective } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
 
-type ExampleTab = 'basic' | 'variants' | 'styling' | 'forms';
+type ExampleTab = 'basic' | 'variants' | 'styling' | 'forms' | 'mask';
 type ApiTab = 'component' | 'configs' | 'types';
 
 @Component({
   selector: 'app-input-demo',
-  imports: [InputComponent, ReactiveFormsModule, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [
+    InputComponent,
+    InputMaskDirective,
+    ReactiveFormsModule,
+    JsonPipe,
+    DocSectionComponent,
+    ApiTableComponent,
+    CodeBlockComponent,
+    DemoPageComponent,
+  ],
   template: `
     <app-demo-page
       title="Input"
@@ -33,6 +42,7 @@ type ApiTab = 'component' | 'configs' | 'types';
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'forms'" (click)="activeTab.set('forms')">
             Reactive Forms
           </button>
+          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'mask'" (click)="activeTab.set('mask')">Input Mask</button>
         </div>
 
         <!-- Basic Tab -->
@@ -261,6 +271,107 @@ type ApiTab = 'component' | 'configs' | 'types';
             </app-doc-section>
           </div>
         }
+
+        <!-- Input Mask Tab -->
+        @if (activeTab() === 'mask') {
+          <div class="grid gap-6 lg:grid-cols-2">
+            <app-doc-section
+              title="Phone Mask"
+              description="Live formatting as you type with slot characters"
+              [codeExample]="phoneMaskCode"
+            >
+              <input
+                class="input input-bordered w-full"
+                hkInputMask="(999) 999-9999"
+                placeholder="(___) ___-____"
+                (maskValueChange)="maskPhone.set($event)"
+              />
+              <div class="mt-3 text-sm">
+                Value: <code class="bg-base-200 px-2 py-1 rounded">{{ maskPhone() }}</code>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section title="Date Mask" description="Date format with auto-inserted separators" [codeExample]="dateMaskCode">
+              <input
+                class="input input-bordered w-full"
+                hkInputMask="99/99/9999"
+                placeholder="MM/DD/YYYY"
+                (maskValueChange)="maskDate.set($event)"
+              />
+              <div class="mt-3 text-sm">
+                Value: <code class="bg-base-200 px-2 py-1 rounded">{{ maskDate() }}</code>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section
+              title="SSN Mask (unmask)"
+              description="With unmask=true, only raw digits are emitted"
+              [codeExample]="ssnMaskCode"
+            >
+              <input
+                class="input input-bordered w-full"
+                hkInputMask="999-99-9999"
+                [unmask]="true"
+                placeholder="___-__-____"
+                (maskValueChange)="maskSsn.set($event)"
+              />
+              <div class="mt-3 text-sm">
+                Raw value: <code class="bg-base-200 px-2 py-1 rounded">{{ maskSsn() }}</code>
+                <span class="text-base-content/60 ml-2">(digits only, no dashes)</span>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section
+              title="Serial Number (mixed)"
+              description="Alpha (a), alphanumeric (*), and digit (9) mask characters"
+              [codeExample]="serialMaskCode"
+            >
+              <input
+                class="input input-bordered w-full"
+                hkInputMask="a*-999-a999"
+                placeholder="__-___-____"
+                (maskValueChange)="maskSerial.set($event)"
+              />
+              <div class="mt-3 text-sm">
+                Value: <code class="bg-base-200 px-2 py-1 rounded">{{ maskSerial() }}</code>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section
+              title="Optional Section"
+              description="Characters after ? are optional — won't clear on blur if missing"
+              [codeExample]="optionalMaskCode"
+            >
+              <input
+                class="input input-bordered w-full"
+                hkInputMask="(999) 999-9999? x99999"
+                placeholder="(___) ___-____ x_____"
+                (maskValueChange)="maskOptional.set($event)"
+              />
+              <div class="mt-3 text-sm">
+                Value: <code class="bg-base-200 px-2 py-1 rounded">{{ maskOptional() }}</code>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section
+              title="Custom Slot Character"
+              description="Use a space instead of underscore as the placeholder"
+              [codeExample]="customSlotCode"
+            >
+              <input
+                class="input input-bordered w-full"
+                hkInputMask="99:99"
+                slotChar=" "
+                [autoClear]="false"
+                placeholder="HH:MM"
+                (maskValueChange)="maskCustom.set($event)"
+              />
+              <div class="mt-3 text-sm">
+                Value: <code class="bg-base-200 px-2 py-1 rounded">{{ maskCustom() }}</code>
+              </div>
+            </app-doc-section>
+          </div>
+        }
       </div>
 
       <!-- API Section -->
@@ -324,6 +435,14 @@ export class InputDemoComponent {
   demoPhoneControl = new FormControl<string | null>(null);
   disabledControl = new FormControl('Hello');
   programmaticControl = new FormControl<number | null>(null);
+
+  // Mask demo state
+  maskPhone = signal('');
+  maskDate = signal('');
+  maskSsn = signal('');
+  maskSerial = signal('');
+  maskOptional = signal('');
+  maskCustom = signal('');
 
   formValues = signal<Record<string, unknown>>({});
 
@@ -406,6 +525,50 @@ phoneControl = new FormControl<string | null>(null);
 <hk-input [formControl]="nameControl" placeholder="Full name" />
 <hk-input variant="currency" [formControl]="salaryControl" placeholder="Annual salary" />
 <hk-input variant="phone" [formControl]="phoneControl" placeholder="Phone number" />`;
+
+  // ── Mask Code Examples ────────────────────────────────────────────────
+
+  phoneMaskCode = `<input
+  class="input input-bordered w-full"
+  hkInputMask="(999) 999-9999"
+  placeholder="(___) ___-____"
+  (maskValueChange)="onValueChange($event)"
+/>`;
+
+  dateMaskCode = `<input
+  class="input input-bordered w-full"
+  hkInputMask="99/99/9999"
+  placeholder="MM/DD/YYYY"
+/>`;
+
+  ssnMaskCode = `<!-- unmask=true emits raw digits only -->
+<input
+  class="input input-bordered w-full"
+  hkInputMask="999-99-9999"
+  [unmask]="true"
+  (maskValueChange)="onValue($event)"
+/>
+// maskValueChange emits "123456789" not "123-45-6789"`;
+
+  serialMaskCode = `<!-- Mask chars: a=alpha, *=alphanumeric, 9=digit -->
+<input
+  class="input input-bordered w-full"
+  hkInputMask="a*-999-a999"
+/>`;
+
+  optionalMaskCode = `<!-- Everything after ? is optional -->
+<input
+  class="input input-bordered w-full"
+  hkInputMask="(999) 999-9999? x99999"
+/>`;
+
+  customSlotCode = `<!-- Custom slot character (space instead of _) -->
+<input
+  class="input input-bordered w-full"
+  hkInputMask="99:99"
+  slotChar=" "
+  [autoClear]="false"
+/>`;
 
   typesCode = `type InputVariant = 'text' | 'currency' | 'phone' | 'percentage' | 'password';
 type InputSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
