@@ -6,6 +6,8 @@ module.exports = {
   presets: [ngDaisyuiPreset],
   content: [
     path.join(__dirname, 'src/**/*.{html,ts}'),
+    // Shared demo components
+    path.join(__dirname, '../../projects/shared-demos/**/*.{html,ts}'),
     // Dev: scan library source directly (in prod, the preset scans the FESM bundle)
     path.join(__dirname, '../../projects/hakistack/ng-daisyui/src/**/*.{html,ts}'),
   ],

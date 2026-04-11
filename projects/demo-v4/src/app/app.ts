@@ -3,11 +3,38 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideIconComponent } from '@hakistack/ng-daisyui';
 
 const THEMES = [
-  'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate',
-  'synthwave', 'retro', 'cyberpunk', 'valentine', 'halloween', 'garden',
-  'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe', 'black',
-  'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade',
-  'night', 'coffee', 'winter', 'dim', 'nord', 'sunset',
+  'light',
+  'dark',
+  'cupcake',
+  'bumblebee',
+  'emerald',
+  'corporate',
+  'synthwave',
+  'retro',
+  'cyberpunk',
+  'valentine',
+  'halloween',
+  'garden',
+  'forest',
+  'aqua',
+  'lofi',
+  'pastel',
+  'fantasy',
+  'wireframe',
+  'black',
+  'luxury',
+  'dracula',
+  'cmyk',
+  'autumn',
+  'business',
+  'acid',
+  'lemonade',
+  'night',
+  'coffee',
+  'winter',
+  'dim',
+  'nord',
+  'sunset',
 ] as const;
 
 @Component({
@@ -28,10 +55,7 @@ const THEMES = [
             <span class="text-xl font-bold">ng-daisyui (v4 theme)</span>
           </div>
           <div class="flex-none">
-            <select
-              class="select select-bordered select-sm w-36"
-              [value]="currentTheme()"
-              (change)="setTheme($any($event.target).value)">
+            <select class="select select-bordered select-sm w-36" [value]="currentTheme()" (change)="setTheme($any($event.target).value)">
               @for (theme of themes; track theme) {
                 <option [value]="theme" [selected]="currentTheme() === theme" class="capitalize">{{ theme }}</option>
               }
@@ -96,8 +120,20 @@ const THEMES = [
                 Organization Chart
               </a>
             </li>
+            <li>
+              <a routerLink="/virtual-scroller" routerLinkActive="active">
+                <hk-lucide-icon name="ScrollText" [size]="18" />
+                Virtual Scroller
+              </a>
+            </li>
 
             <li class="menu-title mt-4">Inputs</li>
+            <li>
+              <a routerLink="/input" routerLinkActive="active">
+                <hk-lucide-icon name="TextCursorInput" [size]="18" />
+                Input
+              </a>
+            </li>
             <li>
               <a routerLink="/select" routerLinkActive="active">
                 <hk-lucide-icon name="ChevronDown" [size]="18" />
@@ -108,6 +144,18 @@ const THEMES = [
               <a routerLink="/datepicker" routerLinkActive="active">
                 <hk-lucide-icon name="Calendar" [size]="18" />
                 Datepicker
+              </a>
+            </li>
+            <li>
+              <a routerLink="/timepicker" routerLinkActive="active">
+                <hk-lucide-icon name="Clock" [size]="18" />
+                Timepicker
+              </a>
+            </li>
+            <li>
+              <a routerLink="/editor" routerLinkActive="active">
+                <hk-lucide-icon name="FileText" [size]="18" />
+                Editor
               </a>
             </li>
 
@@ -163,7 +211,8 @@ const THEMES = [
             <select
               class="select select-bordered select-sm w-full capitalize"
               [value]="currentTheme()"
-              (change)="setTheme($any($event.target).value)">
+              (change)="setTheme($any($event.target).value)"
+            >
               @for (theme of themes; track theme) {
                 <option [value]="theme" [selected]="currentTheme() === theme" class="capitalize">{{ theme }}</option>
               }

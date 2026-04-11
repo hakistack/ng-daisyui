@@ -6,6 +6,9 @@
     "paths": {
       "@hakistack/ng-daisyui": [
         "./projects/hakistack/ng-daisyui/src/public-api.ts"
+      ],
+      "@shared-demos/*": [
+        "./projects/shared-demos/*"
       ]
     },
     "strict": true,

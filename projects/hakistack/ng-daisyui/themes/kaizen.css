@@ -1,0 +1,63 @@
+/**
+ * @hakistack/ng-daisyui - "Kaizen" Theme (Dark)
+ *
+ * Dark editorial aesthetic with warm orange primary, purple secondary,
+ * and blue accent on near-black surfaces.
+ *
+ * Usage (DaisyUI v5 / Tailwind v4):
+ *
+ *   @import "tailwindcss";
+ *   @plugin "daisyui";
+ *   @import "@hakistack/ng-daisyui/themes/daisyui-v5";
+ *   @import "@hakistack/ng-daisyui/themes/kaizen";
+ *
+ * Then set on your root element:
+ *   <html data-theme="kaizen">
+ */
+
+@plugin "daisyui/theme" {
+  name: "kaizen";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(15.5% 0.004 286);
+  --color-base-200: oklch(19.3% 0.006 286);
+  --color-base-300: oklch(22.9% 0.010 286);
+  --color-base-content: oklch(92.6% 0.005 78);
+
+  --color-primary: oklch(65.2% 0.180 35);
+  --color-primary-content: oklch(100% 0 0);
+
+  --color-secondary: oklch(70.9% 0.159 294);
+  --color-secondary-content: oklch(15.5% 0.004 286);
+
+  --color-accent: oklch(65.5% 0.156 263);
+  --color-accent-content: oklch(15.5% 0.004 286);
+
+  --color-neutral: oklch(28.9% 0.016 285);
+  --color-neutral-content: oklch(63.7% 0.018 286);
+
+  --color-info: oklch(65.5% 0.156 263);
+  --color-info-content: oklch(100% 0 0);
+
+  --color-success: oklch(77.9% 0.165 157);
+  --color-success-content: oklch(26.8% 0.056 160);
+
+  --color-warning: oklch(83.3% 0.146 88);
+  --color-warning-content: oklch(18.9% 0.024 75);
+
+  --color-error: oklch(66.5% 0.183 23);
+  --color-error-content: oklch(100% 0 0);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.75rem;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}

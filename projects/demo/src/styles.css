@@ -4,76 +4,136 @@
 }
 @source "../../../projects/hakistack/ng-daisyui/src/**/*.ts";
 @source "../../../projects/hakistack/ng-daisyui/src/**/*.html";
+@source "../../../projects/shared-demos/**/*.ts";
 @import "../../../projects/hakistack/ng-daisyui/styles.css";
+@import "../../../projects/hakistack/ng-daisyui/themes/kaizen.css";
 @import "../../../projects/hakistack/ng-daisyui/themes/obsidian.css";
 @import "../../../projects/hakistack/ng-daisyui/themes/obsidian-light.css";
 
+/* ── Custom font families ── */
+@theme {
+  --font-serif: 'DM Serif Display', 'Georgia', serif;
+  --font-sans: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
 
-/* ReportForge Studio — Dark */
+/* ══════════════════════════════════════════════════════════════
+   REPORTFORGE THEME (existing)
+   ══════════════════════════════════════════════════════════════ */
+
 @plugin "daisyui/theme" {
   name: "reportforge";
   default: false;
   prefersdark: false;
   color-scheme: dark;
-  /* Indigo accent (#6366f1) */
   --color-primary: oklch(0.585 0.204 277);
   --color-primary-content: oklch(1 0 0);
-  /* Muted blue-gray (#8b8fa3) */
   --color-secondary: oklch(0.653 0.030 277);
   --color-secondary-content: oklch(1 0 0);
-  /* Lighter indigo (#818cf8) */
   --color-accent: oklch(0.680 0.158 277);
   --color-accent-content: oklch(0.178 0.013 271);
-  /* Border tone (#2e3348) */
   --color-neutral: oklch(0.326 0.038 274);
   --color-neutral-content: oklch(0.920 0.004 286);
-  /* bg (#0f1117) → surface (#1a1d27) → elevated (#242837) */
   --color-base-100: oklch(0.178 0.013 271);
   --color-base-200: oklch(0.232 0.020 272);
   --color-base-300: oklch(0.280 0.028 273);
   --color-base-content: oklch(0.920 0.004 286);
-  /* Info = indigo accent */
   --color-info: oklch(0.585 0.204 277);
   --color-info-content: oklch(1 0 0);
-  /* Success (#22c55e) */
   --color-success: oklch(0.723 0.192 150);
   --color-success-content: oklch(1 0 0);
-  /* Warning (#f59e0b) — dark text for contrast */
   --color-warning: oklch(0.769 0.165 70);
   --color-warning-content: oklch(0.178 0.013 271);
-  /* Error/Danger (#ef4444) */
   --color-error: oklch(0.637 0.208 25);
   --color-error-content: oklch(1 0 0);
-  /* 8px radius everywhere — clean studio look */
   --radius-selector: 0.5rem;
   --radius-field: 0.5rem;
   --radius-box: 0.5rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
-  /* Visible borders, subtle depth, no noise */
   --border: 1px;
   --depth: 1;
   --noise: 0;
 }
 
-/* ── Demo app layout polish ── */
 
-/* Thin custom scrollbar for sidebar */
-.sidebar-scroll::-webkit-scrollbar {
-  width: 4px;
+/* ══════════════════════════════════════════════════════════════
+   KAIZEN-SCOPED ENHANCEMENTS
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Grain overlay ── */
+[data-theme="kaizen"]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
-.sidebar-scroll::-webkit-scrollbar-track {
-  background: transparent;
+
+/* ── Custom scrollbar ── */
+[data-theme="kaizen"] ::-webkit-scrollbar { width: 5px; height: 5px; }
+[data-theme="kaizen"] ::-webkit-scrollbar-track { background: transparent; }
+[data-theme="kaizen"] ::-webkit-scrollbar-thumb {
+  background: oklch(0.35 0.01 260 / 0.5);
+  border-radius: 9999px;
 }
+[data-theme="kaizen"] ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.45 0.01 260 / 0.6);
+}
+
+/* ── Card hover lift ── */
+[data-theme="kaizen"] .card {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+[data-theme="kaizen"] .card:hover {
+  border-color: oklch(0.4 0.01 260 / 0.4);
+  box-shadow: 0 4px 16px oklch(0 0 0 / 0.35);
+}
+
+/* ── Scrollable tab rows ── */
+.tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: thin;
+}
+.tabs::-webkit-scrollbar { height: 3px; }
+.tabs::-webkit-scrollbar-track { background: transparent; }
+.tabs::-webkit-scrollbar-thumb { background: oklch(0.35 0.01 260 / 0.3); border-radius: 9999px; }
+
+/* ── Variant tabs container feel ── */
+[data-theme="kaizen"] .tabs-box,
+[data-theme="kaizen"] .tabs-boxed {
+  background: color-mix(in oklch, var(--color-base-300) 50%, transparent);
+  border: 1px solid oklch(0.25 0.01 260 / 0.5);
+  padding: 3px;
+}
+
+/* ── Code block CSS variable overrides ── */
+[data-theme="kaizen"] {
+  --cb-bg: #0C0C0E;
+  --cb-header-bg: #111114;
+  --cb-border: #2A2A33;
+  --cb-btn-color: #8A8A96;
+  --cb-btn-bg: #1C1C21;
+  --cb-btn-border: #2A2A33;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   DEMO APP LAYOUT
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar scrollbar ── */
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
 .sidebar-scroll::-webkit-scrollbar-thumb {
   background: oklch(0.4 0.01 260 / 0.3);
   border-radius: 9999px;
 }
-.sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.5 0.01 260 / 0.5);
-}
 
-/* Menu item transitions & active styling */
+/* ── Menu item transitions & active styling ── */
 .sidebar-menu .menu li > a {
   transition: all 0.15s ease;
   border-left: 2px solid transparent;
@@ -88,7 +148,7 @@
   font-weight: 600;
 }
 
-/* Category headers */
+/* ── Category headers ── */
 .sidebar-menu .menu li.menu-title {
   font-size: 0.65rem;
   letter-spacing: 0.08em;
@@ -97,4 +157,11 @@
   padding-bottom: 0.25rem;
   margin-bottom: 0.125rem;
   border-bottom: 1px solid oklch(0.5 0.01 260 / 0.08);
+}
+
+/* ── Glassmorphism header ── */
+.glass-header {
+  background: color-mix(in oklch, var(--color-base-100) 65%, transparent);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
 }
