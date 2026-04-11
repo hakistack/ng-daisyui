@@ -7,6 +7,7 @@
 @source "../../../projects/shared-demos/**/*.ts";
 @import "../../../projects/hakistack/ng-daisyui/styles.css";
 @import "../../../projects/hakistack/ng-daisyui/themes/kaizen.css";
+@import "../../../projects/hakistack/ng-daisyui/themes/kaizen-light.css";
 @import "../../../projects/hakistack/ng-daisyui/themes/obsidian.css";
 @import "../../../projects/hakistack/ng-daisyui/themes/obsidian-light.css";
 

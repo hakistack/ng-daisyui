@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 
 const THEMES = [
   'kaizen',
+  'kaizen-light',
   'obsidian',
   'obsidian-light',
   'reportforge',

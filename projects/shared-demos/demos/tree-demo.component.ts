@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, viewChild } from '@angular/core';
 import { TreeComponent, TreeNode, LucideIconComponent, ToastService, createTree, node } from '@hakistack/ng-daisyui';
 import { inject } from '@angular/core';
 import { DocSectionComponent } from '../shared/doc-section.component';
@@ -902,9 +902,9 @@ onSelectionChange(nodes: TreeNode | TreeNode[] | null) {
   ];
 
   // Reference to tree components for expand/collapse all
-  basicTree: TreeComponent<FileNode> | undefined;
-  checkboxTree: TreeComponent<FileNode> | undefined;
-  lazyTree: TreeComponent<FileNode> | undefined;
+  readonly basicTree = viewChild<TreeComponent<FileNode>>('basicTree');
+  readonly checkboxTree = viewChild<TreeComponent<FileNode>>('checkboxTree');
+  readonly lazyTree = viewChild<TreeComponent<FileNode>>('lazyTree');
 
   // Event handlers
   onNodeExpand(event: any) {
@@ -939,12 +939,27 @@ onSelectionChange(nodes: TreeNode | TreeNode[] | null) {
 
   clearCheckboxSelection() {
     this.checkboxSelection.set([]);
-    this.checkboxTree?.clearSelection();
+    this.checkboxTree()?.clearSelection();
   }
 
   onNodeDrop(event: any) {
     this.lastDropEvent.set(event);
-    this.toast.success(`Moved "${event.dragNode.label}" ${event.dropPosition} "${event.dropNode?.label}"`);
+
+    const { dragNode, dragNodeParent, dropNode, dropNodeParent, dropPosition, dropIndex } = event;
+    const sourceList: TreeNode<FileNode>[] = dragNodeParent ? dragNodeParent.children : this.dragDrop.nodes;
+    const sourceIdx = sourceList.indexOf(dragNode);
+    if (sourceIdx !== -1) sourceList.splice(sourceIdx, 1);
+
+    if (dropPosition === 'inside') {
+      if (!dropNode.children) dropNode.children = [];
+      dropNode.children.push(dragNode);
+    } else {
+      const targetList: TreeNode<FileNode>[] = dropNodeParent ? dropNodeParent.children : this.dragDrop.nodes;
+      const adjustedIdx = dropPosition === 'before' ? targetList.indexOf(dropNode) : targetList.indexOf(dropNode) + 1;
+      targetList.splice(Math.max(0, adjustedIdx), 0, dragNode);
+    }
+
+    this.toast.success(`Moved "${dragNode.label}" ${dropPosition} "${dropNode?.label}"`);
   }
 
   onDragStart(event: any) {
@@ -967,7 +982,7 @@ onSelectionChange(nodes: TreeNode | TreeNode[] | null) {
       ];
 
       nd.children = children;
-      this.lazyTree?.completeLoading(nd);
+      this.lazyTree()?.completeLoading(nd);
       this.toast.success(`Loaded ${children.length} children`);
     }, 1000);
   }

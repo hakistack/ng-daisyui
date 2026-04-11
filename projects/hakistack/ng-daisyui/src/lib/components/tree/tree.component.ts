@@ -132,6 +132,12 @@ export class TreeComponent<T = unknown> {
   /** Valid drop target node */
   private readonly dropTargetKey = signal<string | null>(null);
 
+  /** Computed drop position within the target node */
+  private readonly dropPositionSignal = signal<'before' | 'after' | 'inside' | null>(null);
+
+  /** Whether same-level-only drag is enforced */
+  private readonly isDragDropSameLevel = computed(() => this.resolvedConfig()?.dragDropSameLevel ?? false);
+
   /** Selection mode from config */
   readonly selectionMode = computed<TreeSelectionMode>(() => this.resolvedConfig()?.selectionMode ?? null);
 
@@ -552,6 +558,11 @@ export class TreeComponent<T = unknown> {
   onDragStart(event: DragEvent, node: TreeNode<T>): void {
     if (!this.isDragDropEnabled() || node.draggable === false) return;
 
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', this.getNodeKey(node) || '');
+    }
+
     this.draggingNode.set(node);
     this.nodeDragStart.emit({
       originalEvent: event,
@@ -562,6 +573,7 @@ export class TreeComponent<T = unknown> {
   onDragEnd(event: DragEvent, node: TreeNode<T>): void {
     this.draggingNode.set(null);
     this.dropTargetKey.set(null);
+    this.dropPositionSignal.set(null);
     this.nodeDragEnd.emit({
       originalEvent: event,
       node,
@@ -579,21 +591,47 @@ export class TreeComponent<T = unknown> {
     if (this.isDescendant(dragging, node)) return;
 
     event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+
     const key = this.getNodeKey(node);
     if (key) this.dropTargetKey.set(key);
+
+    // Calculate drop position from cursor Y within the node row
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = event.clientY - rect.top;
+    const height = rect.height;
+    const threshold = height * 0.25;
+
+    let position: 'before' | 'after' | 'inside';
+    if (y < threshold) {
+      position = 'before';
+    } else if (y > height - threshold) {
+      position = 'after';
+    } else if (!this.isDragDropSameLevel() && (this.hasChildren(node) || node.leaf !== true)) {
+      position = 'inside';
+    } else {
+      position = y < height / 2 ? 'before' : 'after';
+    }
+
+    this.dropPositionSignal.set(position);
   }
 
   onDragLeave(event: DragEvent, node: TreeNode<T>): void {
     const key = this.getNodeKey(node);
     if (this.dropTargetKey() === key) {
       this.dropTargetKey.set(null);
+      this.dropPositionSignal.set(null);
     }
   }
 
-  onDrop(event: DragEvent, targetNode: TreeNode<T>, position: 'before' | 'after' | 'inside'): void {
+  onDropOnNode(event: DragEvent, targetNode: TreeNode<T>): void {
     event.preventDefault();
+    event.stopPropagation();
 
     const dragNode = this.draggingNode();
+    const position = this.dropPositionSignal() ?? 'after';
     if (!dragNode || dragNode === targetNode) return;
 
     // Find parents and indices
@@ -622,11 +660,16 @@ export class TreeComponent<T = unknown> {
 
     this.draggingNode.set(null);
     this.dropTargetKey.set(null);
+    this.dropPositionSignal.set(null);
   }
 
   isDropTarget(node: TreeNode<T>): boolean {
     const key = this.getNodeKey(node);
     return key === this.dropTargetKey();
+  }
+
+  getDropPosition(): 'before' | 'after' | 'inside' | null {
+    return this.dropPositionSignal();
   }
 
   isDragging(node: TreeNode<T>): boolean {

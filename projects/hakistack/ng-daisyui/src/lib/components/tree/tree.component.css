@@ -30,11 +30,6 @@
   opacity: 0.5;
 }
 
-.app-tree-node-drop-target > .app-tree-node-content {
-  outline: 2px dashed var(--hk-color-primary);
-  outline-offset: 2px;
-}
-
 /* Connecting Lines */
 .app-tree-lines .app-tree-line {
   position: absolute;
@@ -70,33 +65,20 @@
   bottom: 50%;
 }
 
-/* Drop Zones */
-.app-tree-drop-zone {
-  height: 4px;
-  margin: -2px 0;
-  position: relative;
-  z-index: 10;
+/* Drop position indicators */
+.app-tree-node-drop-before {
+  box-shadow: inset 0 2px 0 0 oklch(from var(--color-primary) l c h);
 }
 
-.app-tree-drop-zone:hover {
-  background-color: var(--hk-color-primary-30);
-  border-radius: 2px;
+.app-tree-node-drop-after {
+  box-shadow: inset 0 -2px 0 0 oklch(from var(--color-primary) l c h);
 }
 
-/* Alternative: Show line indicator on hover */
-.app-tree-drop-zone::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 2px;
-  background-color: transparent;
-  transition: background-color 0.15s ease;
-}
-
-.app-tree-drop-zone:hover::after {
-  background-color: var(--hk-color-primary);
+.app-tree-node-drop-target > .app-tree-node-content {
+  background: oklch(from var(--color-primary) l c h / 0.1);
+  outline: 2px dashed oklch(from var(--color-primary) l c h / 0.5);
+  outline-offset: -2px;
+  border-radius: 0.25rem;
 }
 
 /* Checkbox alignment */

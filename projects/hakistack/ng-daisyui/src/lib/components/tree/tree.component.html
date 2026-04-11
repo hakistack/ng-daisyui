@@ -43,7 +43,9 @@
         [class.app-tree-node-selected]="flatNode.state.selected"
         [class.app-tree-node-focused]="flatNode.state.focused"
         [class.app-tree-node-dragging]="flatNode.state.dragging"
-        [class.app-tree-node-drop-target]="flatNode.state.dropTarget"
+        [class.app-tree-node-drop-target]="isDropTarget(flatNode.node) && getDropPosition() === 'inside'"
+        [class.app-tree-node-drop-before]="isDropTarget(flatNode.node) && getDropPosition() === 'before'"
+        [class.app-tree-node-drop-after]="isDropTarget(flatNode.node) && getDropPosition() === 'after'"
         [class.app-tree-node-first]="flatNode.first"
         [class.app-tree-node-last]="flatNode.last"
         [attr.data-level]="flatNode.level"
@@ -56,7 +58,7 @@
         (dragend)="onDragEnd($event, flatNode.node)"
         (dragover)="onDragOver($event, flatNode.node)"
         (dragleave)="onDragLeave($event, flatNode.node)"
-        (drop)="onDrop($event, flatNode.node, 'inside')"
+        (drop)="onDropOnNode($event, flatNode.node)"
       >
         <!-- Indentation & Lines -->
         <div class="app-tree-node-indent" [style]="getIndentStyle(flatNode.level)">
@@ -156,27 +158,6 @@
           }
         </div>
       </div>
-
-      <!-- Drop zones for reordering (before/after) -->
-      @if (isDragDropEnabled() && isDragging(flatNode.node) === false) {
-        <!-- Drop before indicator -->
-        <div
-          class="app-tree-drop-zone app-tree-drop-before"
-          [style.margin-left.px]="flatNode.level * indentSize() + 24"
-          (dragover)="$event.preventDefault(); $event.stopPropagation()"
-          (drop)="onDrop($event, flatNode.node, 'before')"
-        ></div>
-
-        <!-- Drop after indicator (only for last item or different parent) -->
-        @if (flatNode.last) {
-          <div
-            class="app-tree-drop-zone app-tree-drop-after"
-            [style.margin-left.px]="flatNode.level * indentSize() + 24"
-            (dragover)="$event.preventDefault(); $event.stopPropagation()"
-            (drop)="onDrop($event, flatNode.node, 'after')"
-          ></div>
-        }
-      }
     }
   </div>
 }
