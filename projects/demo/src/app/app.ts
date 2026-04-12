@@ -226,6 +226,14 @@ export class App implements OnInit {
 
   readonly navSections: NavSection[] = [
     {
+      title: 'Overview',
+      items: [
+        { path: '/getting-started', label: 'Getting Started', icon: 'Rocket' },
+        { path: '/installation', label: 'Installation', icon: 'Download' },
+        { path: '/key-patterns', label: 'Key Patterns', icon: 'Lightbulb' },
+      ],
+    },
+    {
       title: 'Forms',
       items: [
         { path: '/forms', label: 'Dynamic Forms', icon: 'FileInput' },
