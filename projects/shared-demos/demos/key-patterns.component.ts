@@ -22,7 +22,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           <ul class="space-y-1">
             @for (section of toc; track section.id) {
               <li>
-                <a class="link link-hover text-sm flex items-center gap-2" [href]="'#' + section.id">
+                <a class="link link-hover text-sm flex items-center gap-2 cursor-pointer" (click)="scrollTo(section.id)">
                   <hk-lucide-icon [name]="section.icon" [size]="14" class="text-primary" />
                   {{ section.label }}
                 </a>
@@ -463,6 +463,13 @@ import { CodeBlockComponent } from '../shared/code-block.component';
   `,
 })
 export class KeyPatternsComponent {
+  scrollTo(id: string): void {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    history.replaceState(null, '', '#' + id);
+  }
+
   toc = [
     { id: 'builders', icon: 'Hammer', label: 'Builder Functions' },
     { id: 'form-controller', icon: 'ToggleRight', label: 'FormController Pattern' },
