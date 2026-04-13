@@ -4,18 +4,18 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
 import { CodeBlockComponent } from '../shared/code-block.component';
 
 @Component({
-  selector: 'app-getting-started',
+  selector: 'app-getting-started-v4',
   imports: [LucideIconComponent, CodeBlockComponent, RouterLink],
   template: `
     <div class="space-y-14 max-w-4xl">
       <!-- Hero -->
       <div class="hero bg-base-200 rounded-box py-12 px-6">
         <div class="hero-content flex-col text-center">
-          <span class="badge badge-soft badge-primary badge-sm font-mono">v0.1.55</span>
+          <span class="badge badge-primary badge-outline badge-sm font-mono">DaisyUI 4 · Tailwind 3</span>
           <h1 class="text-4xl lg:text-5xl font-serif tracking-tight">ng-daisyui</h1>
-          <p class="text-base-content/50 text-sm leading-relaxed max-w-lg">
-            Production-ready Angular components powered by DaisyUI and Tailwind CSS. Install once, import what you need -- zero config
-            required.
+          <p class="text-base-content/60 text-sm leading-relaxed max-w-lg">
+            Production-ready Angular components running on the legacy DaisyUI v4 + Tailwind v3 toolchain. Same library as v5 -- just
+            rendered with v4 class names.
           </p>
           <div class="flex gap-2 mt-2">
             <a routerLink="/installation" class="btn btn-primary btn-sm">
@@ -44,20 +44,36 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         }
       </div>
 
+      <!-- v5 upgrade CTA -->
+      <div role="alert" class="alert alert-warning">
+        <hk-lucide-icon name="Lightbulb" [size]="18" />
+        <div>
+          <h3 class="font-bold text-sm">On a new project?</h3>
+          <div class="text-xs">
+            Prefer the <strong>v5</strong> demo -- it runs on Tailwind v4 and DaisyUI v5 (soft/dash styles, &#64;plugin syntax, zero
+            tailwind.config.js).
+          </div>
+        </div>
+        <a href="/" class="btn btn-sm btn-ghost">
+          Open v5
+          <hk-lucide-icon name="ArrowRight" [size]="14" />
+        </a>
+      </div>
+
       <!-- Features -->
       <div>
         <h2 class="text-xl font-serif mb-4">Why ng-daisyui?</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           @for (feature of features; track feature.title) {
-            <div class="card bg-base-100 card-border card-sm">
-              <div class="card-body">
+            <div class="card bg-base-100 border border-base-300">
+              <div class="card-body p-4">
                 <div class="flex items-center gap-3">
                   <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <hk-lucide-icon [name]="feature.icon" [size]="18" />
                   </div>
                   <h3 class="card-title text-sm">{{ feature.title }}</h3>
                 </div>
-                <p class="text-xs text-base-content/50 leading-relaxed">{{ feature.description }}</p>
+                <p class="text-xs text-base-content/60 leading-relaxed">{{ feature.description }}</p>
               </div>
             </div>
           }
@@ -71,43 +87,43 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <!-- Compact visual tracker -->
         <ul class="steps w-full mb-6 hidden sm:flex">
           <li class="step step-primary" data-content="1">Install</li>
-          <li class="step step-primary" data-content="2">Styles</li>
-          <li class="step step-primary" data-content="3">Use</li>
-          <li class="step step-success" data-content="✓">Done</li>
+          <li class="step step-primary" data-content="2">Tailwind</li>
+          <li class="step step-primary" data-content="3">Styles</li>
+          <li class="step step-success" data-content="✓">Use</li>
         </ul>
 
         <!-- Step content cards -->
         <div class="space-y-3">
-          <div class="card bg-base-100 card-border">
+          <div class="card bg-base-100 border border-base-300">
             <div class="card-body">
               <div class="flex items-center gap-3 mb-1">
                 <span class="badge badge-primary badge-lg font-mono">1</span>
-                <h3 class="card-title text-base">Install the package</h3>
+                <h3 class="card-title text-base">Install the library and peers</h3>
               </div>
-              <p class="text-sm text-base-content/50 mb-3">One command. All dependencies included.</p>
+              <p class="text-sm text-base-content/60 mb-3">Tailwind 3 and DaisyUI 4 stay in devDependencies.</p>
               <app-code-block [code]="installCmd" />
             </div>
           </div>
 
-          <div class="card bg-base-100 card-border">
+          <div class="card bg-base-100 border border-base-300">
             <div class="card-body">
               <div class="flex items-center gap-3 mb-1">
                 <span class="badge badge-primary badge-lg font-mono">2</span>
-                <h3 class="card-title text-base">Configure your styles</h3>
+                <h3 class="card-title text-base">Wire up Tailwind with the v4 preset</h3>
               </div>
-              <p class="text-sm text-base-content/50 mb-3">Add Tailwind + DaisyUI + library styles to your global CSS.</p>
-              <app-code-block [code]="stylesCode" />
+              <p class="text-sm text-base-content/60 mb-3">The preset enables DaisyUI and the library's component styles.</p>
+              <app-code-block [code]="tailwindConfigCode" />
             </div>
           </div>
 
-          <div class="card bg-base-100 card-border">
+          <div class="card bg-base-100 border border-base-300">
             <div class="card-body">
               <div class="flex items-center gap-3 mb-1">
                 <span class="badge badge-primary badge-lg font-mono">3</span>
-                <h3 class="card-title text-base">Use a component</h3>
+                <h3 class="card-title text-base">Global styles</h3>
               </div>
-              <p class="text-sm text-base-content/50 mb-3">Import standalone components directly -- no modules needed.</p>
-              <app-code-block [code]="usageCode" />
+              <p class="text-sm text-base-content/60 mb-3">Classic &#64;tailwind directives plus the library theme adapter.</p>
+              <app-code-block [code]="stylesCode" />
             </div>
           </div>
 
@@ -117,9 +133,10 @@ import { CodeBlockComponent } from '../shared/code-block.component';
                 <span class="badge badge-success badge-lg">
                   <hk-lucide-icon name="Check" [size]="14" />
                 </span>
-                <h3 class="card-title text-base text-success">You're all set!</h3>
+                <h3 class="card-title text-base text-success">Import and go</h3>
               </div>
-              <p class="text-sm text-base-content/50">Explore the component demos from the sidebar.</p>
+              <p class="text-sm text-base-content/60 mb-3">Standalone components are just imports -- no modules required.</p>
+              <app-code-block [code]="usageCode" />
             </div>
           </div>
         </div>
@@ -130,21 +147,23 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <!-- Component Overview -->
       <div>
         <h2 class="text-xl font-serif mb-1">Components</h2>
-        <p class="text-sm text-base-content/40 mb-4">All standalone. Import only what you need.</p>
+        <p class="text-sm text-base-content/50 mb-4">All standalone. Import only what you need.</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           @for (group of componentGroups; track group.title) {
-            <ul class="list bg-base-100 rounded-box shadow-sm">
-              <li class="p-4 pb-2 text-xs font-semibold uppercase tracking-wider opacity-40">{{ group.title }}</li>
+            <ul class="menu bg-base-100 rounded-box shadow-sm p-2">
+              <li class="menu-title text-xs font-semibold uppercase tracking-wider opacity-50">{{ group.title }}</li>
               @for (item of group.items; track item.label) {
-                <li class="list-row">
-                  <div class="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0">
-                    <hk-lucide-icon [name]="item.icon" [size]="15" class="text-base-content/40" />
-                  </div>
-                  <div>
-                    <a [routerLink]="item.path" class="link link-hover text-sm font-medium">{{ item.label }}</a>
-                    <div class="text-xs text-base-content/40">{{ item.desc }}</div>
-                  </div>
+                <li>
+                  <a [routerLink]="item.path" class="flex items-start gap-3">
+                    <span class="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0 mt-0.5">
+                      <hk-lucide-icon [name]="item.icon" [size]="15" class="text-base-content/50" />
+                    </span>
+                    <span class="flex-1 min-w-0">
+                      <span class="block text-sm font-medium">{{ item.label }}</span>
+                      <span class="block text-xs text-base-content/50 whitespace-normal">{{ item.desc }}</span>
+                    </span>
+                  </a>
                 </li>
               }
             </ul>
@@ -156,7 +175,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <div class="card bg-neutral text-neutral-content">
         <div class="card-body items-center text-center">
           <h2 class="card-title">Why builders? Why no buttons in forms?</h2>
-          <p class="text-sm opacity-70">Learn the design decisions behind ng-daisyui and how they help you write less code.</p>
+          <p class="text-sm opacity-70">The library's design decisions apply identically to v4 and v5 consumers.</p>
           <div class="card-actions">
             <a routerLink="/key-patterns" class="btn btn-primary btn-sm">
               <hk-lucide-icon name="Lightbulb" [size]="14" />
@@ -168,10 +187,10 @@ import { CodeBlockComponent } from '../shared/code-block.component';
     </div>
   `,
 })
-export class GettingStartedComponent {
+export class GettingStartedV4Component {
   stats = [
     { icon: 'Package', title: 'Components', value: '20+', desc: 'Standalone, tree-shakable' },
-    { icon: 'Palette', title: 'Themes', value: '40+', desc: 'DaisyUI built-in + custom' },
+    { icon: 'Palette', title: 'Themes', value: '32+', desc: 'DaisyUI 4 built-ins + customs' },
     { icon: 'Zap', title: 'Performance', value: 'OnPush', desc: 'Signals throughout' },
   ];
 
@@ -183,8 +202,8 @@ export class GettingStartedComponent {
     },
     {
       icon: 'Paintbrush',
-      title: 'DaisyUI + Tailwind',
-      description: 'Themeable components using DaisyUI v5 semantic classes on Tailwind CSS v4.',
+      title: 'DaisyUI 4 + Tailwind 3',
+      description: 'Themeable components using DaisyUI v4 semantic classes on Tailwind v3 with the classic JIT engine.',
     },
     {
       icon: 'Accessibility',
@@ -193,18 +212,18 @@ export class GettingStartedComponent {
     },
     {
       icon: 'Package',
-      title: 'Zero Config',
-      description: 'Install one package and go. All dependencies like icons and animations are included.',
+      title: 'Drop-in',
+      description: 'Install one package, add the preset, set a data-theme. Peers like DaisyUI stay in your config.',
     },
     {
       icon: 'Puzzle',
       title: 'Builder APIs',
-      description: 'Type-safe builder functions like createForm(), createTable(), and createTree().',
+      description: 'Type-safe builder functions like createForm(), createTable(), and createTree() -- same as v5.',
     },
     {
       icon: 'Palette',
-      title: 'Themeable',
-      description: 'All DaisyUI themes plus custom themes like Kaizen and Obsidian with one attribute.',
+      title: 'Theme-config',
+      description: 'Custom themes live in tailwind.config.js under daisyui.themes -- the v4 way.',
     },
   ];
 
@@ -231,14 +250,28 @@ export class GettingStartedComponent {
     },
   ];
 
-  installCmd = `npm install @hakistack/ng-daisyui`;
+  installCmd = `npm install @hakistack/ng-daisyui
+npm install -D tailwindcss@^3.4 postcss autoprefixer daisyui@^4.12`;
 
-  stylesCode = `/* styles.css */
-@import "tailwindcss";
-@plugin "daisyui" {
-  themes: all;
-}
-@import "@hakistack/ng-daisyui";`;
+  tailwindConfigCode = `// tailwind.config.js
+const ngDaisyuiPreset = require('@hakistack/ng-daisyui/themes/daisyui-v4-preset');
+
+module.exports = {
+  presets: [ngDaisyuiPreset],
+  content: [
+    './src/**/*.{html,ts}',
+    './node_modules/@hakistack/ng-daisyui/**/*.{mjs,js}',
+  ],
+  plugins: [require('daisyui')],
+  daisyui: { themes: ['light', 'dark'] },
+};`;
+
+  stylesCode = `/* src/styles.css */
+@import "@hakistack/ng-daisyui/themes/daisyui-v4.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;`;
 
   usageCode = `import { Component } from '@angular/core';
 import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui';

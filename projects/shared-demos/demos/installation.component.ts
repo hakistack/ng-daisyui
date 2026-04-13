@@ -24,16 +24,24 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
         </div>
       </div>
 
-      <!-- Steps -->
-      <ul class="timeline timeline-vertical timeline-compact">
+      <!-- Compact visual tracker -->
+      <ul class="steps w-full hidden sm:flex">
+        <li class="step step-primary" data-content="1">Install</li>
+        <li class="step step-primary" data-content="2">Styles</li>
+        <li class="step step-primary" data-content="3">Theme</li>
+        <li class="step step-success" data-content="✓">Use</li>
+      </ul>
+
+      <!-- Step content cards -->
+      <div class="space-y-3">
         <!-- Step 1: Install -->
-        <li>
-          <div class="timeline-middle">
-            <span class="badge badge-primary badge-sm font-mono">1</span>
-          </div>
-          <div class="timeline-end timeline-box w-full">
-            <h2 class="font-semibold text-base mb-1">Install the package</h2>
-            <p class="text-xs text-base-content/50 mb-3">
+        <div class="card bg-base-100 card-border">
+          <div class="card-body">
+            <div class="flex items-center gap-3 mb-1">
+              <span class="badge badge-primary badge-lg font-mono">1</span>
+              <h2 class="card-title text-base">Install the package</h2>
+            </div>
+            <p class="text-sm text-base-content/50 mb-3">
               All dependencies (Tailwind CSS, DaisyUI, icons, animations) are included automatically.
             </p>
 
@@ -55,37 +63,33 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
               }
             }
           </div>
-          <hr />
-        </li>
+        </div>
 
         <!-- Step 2: Styles -->
-        <li>
-          <hr />
-          <div class="timeline-middle">
-            <span class="badge badge-primary badge-sm font-mono">2</span>
-          </div>
-          <div class="timeline-end timeline-box w-full">
-            <h2 class="font-semibold text-base mb-1">Configure styles</h2>
-            <p class="text-xs text-base-content/50 mb-3">Update your global stylesheet. With Tailwind v4, configuration lives in CSS.</p>
+        <div class="card bg-base-100 card-border">
+          <div class="card-body">
+            <div class="flex items-center gap-3 mb-1">
+              <span class="badge badge-primary badge-lg font-mono">2</span>
+              <h2 class="card-title text-base">Configure styles</h2>
+            </div>
+            <p class="text-sm text-base-content/50 mb-3">Update your global stylesheet. With Tailwind v4, configuration lives in CSS.</p>
             <app-code-block [code]="stylesCode" />
           </div>
-          <hr />
-        </li>
+        </div>
 
         <!-- Step 3: Theme -->
-        <li>
-          <hr />
-          <div class="timeline-middle">
-            <span class="badge badge-primary badge-sm font-mono">3</span>
-          </div>
-          <div class="timeline-end timeline-box w-full">
-            <h2 class="font-semibold text-base mb-1">Set a theme</h2>
-            <p class="text-xs text-base-content/50 mb-3">
+        <div class="card bg-base-100 card-border">
+          <div class="card-body">
+            <div class="flex items-center gap-3 mb-1">
+              <span class="badge badge-primary badge-lg font-mono">3</span>
+              <h2 class="card-title text-base">Set a theme</h2>
+            </div>
+            <p class="text-sm text-base-content/50 mb-3">
               Add a <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">data-theme</code> attribute to your root element.
             </p>
             <app-code-block [code]="themeCode" lang="angular-html" />
 
-            <div class="mt-3">
+            <div class="mt-4">
               <p class="text-xs text-base-content/40 font-semibold uppercase tracking-wider mb-2">Custom themes included</p>
               <div class="flex flex-wrap gap-2">
                 @for (theme of customThemes; track theme.name) {
@@ -97,25 +101,25 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
               </div>
             </div>
           </div>
-          <hr />
-        </li>
+        </div>
 
         <!-- Step 4: Use -->
-        <li>
-          <hr />
-          <div class="timeline-middle">
-            <span class="badge badge-primary badge-sm font-mono">4</span>
-          </div>
-          <div class="timeline-end timeline-box w-full">
-            <h2 class="font-semibold text-base mb-1">Use a component</h2>
-            <p class="text-xs text-base-content/50 mb-3">
+        <div class="card bg-success/5 border border-success/30">
+          <div class="card-body">
+            <div class="flex items-center gap-3 mb-1">
+              <span class="badge badge-success badge-lg">
+                <hk-lucide-icon name="Check" [size]="14" />
+              </span>
+              <h2 class="card-title text-base text-success">Use a component</h2>
+            </div>
+            <p class="text-sm text-base-content/50 mb-3">
               Import standalone components directly into your component's
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">imports</code> array.
             </p>
             <app-code-block [code]="usageCode" />
           </div>
-        </li>
-      </ul>
+        </div>
+      </div>
 
       <!-- Optional config -->
       <div class="space-y-3">

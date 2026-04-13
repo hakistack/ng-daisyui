@@ -1,7 +1,19 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'forms', pathMatch: 'full' },
+  { path: '', redirectTo: 'getting-started', pathMatch: 'full' },
+  {
+    path: 'getting-started',
+    loadComponent: () => import('@shared-demos/demos/getting-started-v4.component').then((m) => m.GettingStartedV4Component),
+  },
+  {
+    path: 'installation',
+    loadComponent: () => import('@shared-demos/demos/installation-v4.component').then((m) => m.InstallationV4Component),
+  },
+  {
+    path: 'key-patterns',
+    loadComponent: () => import('@shared-demos/demos/key-patterns-v4.component').then((m) => m.KeyPatternsV4Component),
+  },
   { path: 'forms', loadComponent: () => import('@shared-demos/demos/forms-demo.component').then((m) => m.FormsDemoComponent) },
   { path: 'wizard', loadComponent: () => import('@shared-demos/demos/wizard-demo.component').then((m) => m.WizardDemoComponent) },
   { path: 'table', loadComponent: () => import('@shared-demos/demos/table-demo.component').then((m) => m.TableDemoComponent) },

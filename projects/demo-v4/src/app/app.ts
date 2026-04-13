@@ -1,22 +1,19 @@
-import { Component, signal, OnInit } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Router, NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideIconComponent } from '@hakistack/ng-daisyui';
+import { filter } from 'rxjs';
 
 const THEMES = [
   'light',
   'dark',
   'cupcake',
-  'bumblebee',
   'emerald',
   'corporate',
-  'synthwave',
   'retro',
   'cyberpunk',
   'valentine',
-  'halloween',
   'garden',
   'forest',
-  'aqua',
   'lofi',
   'pastel',
   'fantasy',
@@ -35,188 +32,189 @@ const THEMES = [
   'dim',
   'nord',
   'sunset',
+  'sirat',
+  'hacienda',
 ] as const;
+
+interface NavItem {
+  path: string;
+  label: string;
+  icon: string;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideIconComponent],
   template: `
-    <div class="drawer lg:drawer-open min-h-screen bg-base-200">
+    <div class="drawer lg:drawer-open min-h-screen bg-base-100">
       <input id="sidebar" type="checkbox" class="drawer-toggle" />
 
-      <!-- Main content -->
-      <div class="drawer-content">
-        <!-- Navbar for mobile -->
-        <div class="navbar bg-base-100 lg:hidden sticky top-0 z-30 shadow-sm">
-          <div class="flex-1 flex items-center gap-2">
-            <label for="sidebar" class="btn btn-ghost btn-square">
-              <hk-lucide-icon name="Menu" [size]="24" />
+      <!-- ══ Main content ══ -->
+      <div class="drawer-content flex flex-col">
+        <!-- Desktop header -->
+        <header
+          class="glass-header sticky top-0 z-30 hidden lg:flex items-center justify-between px-12 h-14 border-b border-base-content/10"
+        >
+          <div class="flex items-center gap-2 text-sm text-base-content/50">
+            <span>{{ currentSection() }}</span>
+            @if (currentPageLabel()) {
+              <span class="text-base-content/20">/</span>
+              <span class="text-base-content/80 font-medium">{{ currentPageLabel() }}</span>
+            }
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- Version switcher → v5 -->
+            <a
+              href="/"
+              class="btn btn-ghost btn-sm gap-2 border border-base-content/10 font-normal text-xs h-8 min-h-0 normal-case"
+              aria-label="Switch to DaisyUI 5 demo"
+            >
+              <span class="badge badge-primary badge-outline badge-sm font-mono">v5</span>
+              <span>Switch to v5</span>
+              <hk-lucide-icon name="ArrowRight" [size]="12" />
+            </a>
+
+            <!-- Theme dropdown -->
+            <div class="dropdown dropdown-end">
+              <div
+                tabindex="0"
+                role="button"
+                class="btn btn-ghost btn-sm gap-2 border border-base-content/10 font-normal text-xs h-8 min-h-0 normal-case"
+              >
+                <hk-lucide-icon name="Palette" [size]="13" />
+                <span class="capitalize">{{ currentTheme() }}</span>
+                <hk-lucide-icon name="ChevronsUpDown" [size]="12" />
+              </div>
+              <ul
+                tabindex="0"
+                class="dropdown-content menu menu-sm bg-base-300 rounded-box z-50 w-52 max-h-72 overflow-y-auto p-2 shadow-2xl mt-2 flex-nowrap"
+              >
+                @for (theme of themes; track theme) {
+                  <li>
+                    <button
+                      type="button"
+                      class="capitalize justify-start text-xs"
+                      [class.active]="currentTheme() === theme"
+                      (click)="setTheme(theme)"
+                    >
+                      {{ theme }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+        </header>
+
+        <!-- Mobile header -->
+        <header
+          class="glass-header sticky top-0 z-30 flex lg:hidden items-center justify-between px-4 h-14 border-b border-base-content/10"
+        >
+          <div class="flex items-center gap-3">
+            <label for="sidebar" class="btn btn-ghost btn-sm btn-square">
+              <hk-lucide-icon name="Menu" [size]="20" />
             </label>
-            <span class="text-xl font-bold">ng-daisyui (v4 theme)</span>
+            <span class="font-serif text-base">ng-daisyui</span>
+            <span class="badge badge-outline badge-sm font-mono text-[10px]">v4</span>
           </div>
-          <div class="flex-none">
-            <select class="select select-bordered select-sm w-36" [value]="currentTheme()" (change)="setTheme($any($event.target).value)">
-              @for (theme of themes; track theme) {
-                <option [value]="theme" [selected]="currentTheme() === theme" class="capitalize">{{ theme }}</option>
-              }
-            </select>
+          <div class="flex items-center gap-1">
+            <!-- Version switcher (compact) -->
+            <a href="/" class="btn btn-ghost btn-sm btn-square" aria-label="Switch to DaisyUI 5 demo">
+              <hk-lucide-icon name="ArrowRight" [size]="16" />
+            </a>
+            <!-- Theme dropdown -->
+            <div class="dropdown dropdown-end">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square">
+                <hk-lucide-icon name="Palette" [size]="16" />
+              </div>
+              <ul
+                tabindex="0"
+                class="dropdown-content menu menu-sm bg-base-300 rounded-box z-50 w-52 max-h-80 overflow-y-auto p-2 shadow-2xl flex-nowrap"
+              >
+                @for (theme of themes; track theme) {
+                  <li>
+                    <button
+                      type="button"
+                      class="capitalize justify-start text-xs"
+                      [class.active]="currentTheme() === theme"
+                      (click)="setTheme(theme)"
+                    >
+                      {{ theme }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            </div>
           </div>
-        </div>
+        </header>
 
         <!-- Page content -->
-        <main class="p-4 lg:p-8">
-          <router-outlet />
+        <main class="flex-1 px-4 py-6 lg:px-12 lg:py-10">
+          <div class="max-w-7xl mx-auto">
+            <router-outlet />
+          </div>
         </main>
+
+        <!-- Footer -->
+        <footer class="px-4 lg:px-12 py-4 border-t border-base-content/10">
+          <div class="max-w-7xl mx-auto flex items-center justify-between text-[11px] text-base-content/40 font-mono">
+            <span>ng-daisyui &middot; Angular 21 &middot; DaisyUI 4 &middot; Tailwind 3</span>
+            <span>OnPush &middot; Signals &middot; Standalone</span>
+          </div>
+        </footer>
       </div>
 
-      <!-- Sidebar -->
+      <!-- ══ Sidebar ══ -->
       <div class="drawer-side z-40">
         <label for="sidebar" class="drawer-overlay"></label>
-        <aside class="bg-base-100 w-72 min-h-full border-r border-base-300 flex flex-col">
-          <!-- Logo -->
-          <div class="p-4 border-b border-base-300">
-            <h1 class="text-2xl font-bold text-primary">ng-daisyui (v4 theme)</h1>
-            <p class="text-sm text-base-content/60">DaisyUI v4 + Tailwind v3</p>
+        <aside class="bg-base-100 w-72 min-h-full border-r border-base-content/10 flex flex-col">
+          <!-- Brand -->
+          <div class="px-5 pt-5 pb-4">
+            <div class="flex items-center gap-3">
+              <span
+                class="w-9 h-9 rounded-lg bg-primary text-primary-content flex items-center justify-center text-sm font-black tracking-tight shrink-0 shadow-sm"
+                >hk</span
+              >
+              <div class="min-w-0 flex-1">
+                <div class="font-serif text-base leading-tight">ng-daisyui</div>
+                <div class="text-[10px] text-base-content/50 font-mono tracking-wide flex items-center gap-1.5">
+                  <span class="badge badge-outline badge-xs font-mono">v4</span>
+                  <span>DaisyUI 4 · TW 3</span>
+                </div>
+              </div>
+            </div>
           </div>
 
+          <div class="h-px bg-base-content/10 mx-4"></div>
+
           <!-- Navigation -->
-          <ul class="menu p-4 gap-1 flex-1 overflow-y-auto">
-            <li class="menu-title">Forms</li>
-            <li>
-              <a routerLink="/forms" routerLinkActive="active">
-                <hk-lucide-icon name="FileInput" [size]="18" />
-                Dynamic Forms
-              </a>
-            </li>
-            <li>
-              <a routerLink="/wizard" routerLinkActive="active">
-                <hk-lucide-icon name="ListOrdered" [size]="18" />
-                Form Wizard
-              </a>
-            </li>
-
-            <li class="menu-title mt-4">Data Display</li>
-            <li>
-              <a routerLink="/table" routerLinkActive="active">
-                <hk-lucide-icon name="Table" [size]="18" />
-                Table
-              </a>
-            </li>
-            <li>
-              <a routerLink="/tree-table" routerLinkActive="active">
-                <hk-lucide-icon name="ListTree" [size]="18" />
-                Tree Table
-              </a>
-            </li>
-            <li>
-              <a routerLink="/tree" routerLinkActive="active">
-                <hk-lucide-icon name="GitBranch" [size]="18" />
-                Tree
-              </a>
-            </li>
-            <li>
-              <a routerLink="/org-chart" routerLinkActive="active">
-                <hk-lucide-icon name="Network" [size]="18" />
-                Organization Chart
-              </a>
-            </li>
-            <li>
-              <a routerLink="/virtual-scroller" routerLinkActive="active">
-                <hk-lucide-icon name="ScrollText" [size]="18" />
-                Virtual Scroller
-              </a>
-            </li>
-
-            <li class="menu-title mt-4">Inputs</li>
-            <li>
-              <a routerLink="/input" routerLinkActive="active">
-                <hk-lucide-icon name="TextCursorInput" [size]="18" />
-                Input
-              </a>
-            </li>
-            <li>
-              <a routerLink="/select" routerLinkActive="active">
-                <hk-lucide-icon name="ChevronDown" [size]="18" />
-                Select
-              </a>
-            </li>
-            <li>
-              <a routerLink="/datepicker" routerLinkActive="active">
-                <hk-lucide-icon name="Calendar" [size]="18" />
-                Datepicker
-              </a>
-            </li>
-            <li>
-              <a routerLink="/timepicker" routerLinkActive="active">
-                <hk-lucide-icon name="Clock" [size]="18" />
-                Timepicker
-              </a>
-            </li>
-            <li>
-              <a routerLink="/editor" routerLinkActive="active">
-                <hk-lucide-icon name="FileText" [size]="18" />
-                Editor
-              </a>
-            </li>
-
-            <li class="menu-title mt-4">Navigation</li>
-            <li>
-              <a routerLink="/tabs" routerLinkActive="active">
-                <hk-lucide-icon name="PanelTop" [size]="18" />
-                Tabs
-              </a>
-            </li>
-
-            <li class="menu-title mt-4">Feedback</li>
-            <li>
-              <a routerLink="/toast" routerLinkActive="active">
-                <hk-lucide-icon name="Bell" [size]="18" />
-                Toast Notifications
-              </a>
-            </li>
-            <li>
-              <a routerLink="/alert" routerLinkActive="active">
-                <hk-lucide-icon name="MessageSquareWarning" [size]="18" />
-                Alert Dialogs
-              </a>
-            </li>
-            <li>
-              <a routerLink="/dialog" routerLinkActive="active">
-                <hk-lucide-icon name="PanelTopOpen" [size]="18" />
-                Dialog Service
-              </a>
-            </li>
-
-            <li class="menu-title mt-4">Utilities</li>
-            <li>
-              <a routerLink="/icons" routerLinkActive="active">
-                <hk-lucide-icon name="Smile" [size]="18" />
-                Icons
-              </a>
-            </li>
-            <li>
-              <a routerLink="/motion" routerLinkActive="active">
-                <hk-lucide-icon name="Sparkles" [size]="18" />
-                Motion Directives
-              </a>
-            </li>
-          </ul>
-
-          <!-- Theme Picker -->
-          <div class="p-4 border-t border-base-300">
-            <label class="text-xs font-semibold text-base-content/60 mb-2 flex items-center gap-1.5">
-              <hk-lucide-icon name="Palette" [size]="14" />
-              Theme
-            </label>
-            <select
-              class="select select-bordered select-sm w-full capitalize"
-              [value]="currentTheme()"
-              (change)="setTheme($any($event.target).value)"
-            >
-              @for (theme of themes; track theme) {
-                <option [value]="theme" [selected]="currentTheme() === theme" class="capitalize">{{ theme }}</option>
+          <nav class="sidebar-menu flex-1 overflow-y-auto sidebar-scroll px-3 py-3">
+            <ul class="menu gap-0.5">
+              @for (section of navSections; track section.title) {
+                <li class="menu-title mt-5 first:mt-1">
+                  <span>{{ section.title }}</span>
+                </li>
+                @for (item of section.items; track item.path) {
+                  <li>
+                    <a [routerLink]="item.path" routerLinkActive="active">
+                      <hk-lucide-icon [name]="item.icon" [size]="15" />
+                      {{ item.label }}
+                    </a>
+                  </li>
+                }
               }
-            </select>
+            </ul>
+          </nav>
+
+          <!-- Sidebar footer -->
+          <div class="px-5 py-3 border-t border-base-content/10">
+            <div class="text-[10px] text-base-content/40 font-mono">Built with DaisyUI 4 &middot; Tailwind 3</div>
           </div>
         </aside>
       </div>
@@ -224,14 +222,97 @@ const THEMES = [
   `,
 })
 export class App implements OnInit {
+  private router = inject(Router);
   readonly themes = THEMES;
-  readonly currentTheme = signal('dark');
+  readonly currentTheme = signal<string>('dark');
+  readonly currentPath = signal('');
+
+  readonly currentPageLabel = computed(() => {
+    const path = this.currentPath();
+    for (const section of this.navSections) {
+      const item = section.items.find((i) => i.path === path);
+      if (item) return item.label;
+    }
+    return '';
+  });
+
+  readonly currentSection = computed(() => {
+    const path = this.currentPath();
+    for (const section of this.navSections) {
+      if (section.items.some((i) => i.path === path)) return section.title;
+    }
+    return '';
+  });
+
+  readonly navSections: NavSection[] = [
+    {
+      title: 'Overview',
+      items: [
+        { path: '/getting-started', label: 'Getting Started', icon: 'Rocket' },
+        { path: '/installation', label: 'Installation', icon: 'Download' },
+        { path: '/key-patterns', label: 'Key Patterns', icon: 'Lightbulb' },
+      ],
+    },
+    {
+      title: 'Forms',
+      items: [
+        { path: '/forms', label: 'Dynamic Forms', icon: 'FileInput' },
+        { path: '/wizard', label: 'Form Wizard', icon: 'ListOrdered' },
+      ],
+    },
+    {
+      title: 'Data Display',
+      items: [
+        { path: '/table', label: 'Table', icon: 'Table' },
+        { path: '/tree-table', label: 'Tree Table', icon: 'ListTree' },
+        { path: '/tree', label: 'Tree', icon: 'GitBranch' },
+        { path: '/org-chart', label: 'Organization Chart', icon: 'Network' },
+        { path: '/virtual-scroller', label: 'Virtual Scroller', icon: 'ScrollText' },
+      ],
+    },
+    {
+      title: 'Inputs',
+      items: [
+        { path: '/input', label: 'Input', icon: 'TextCursorInput' },
+        { path: '/select', label: 'Select', icon: 'ChevronDown' },
+        { path: '/datepicker', label: 'Datepicker', icon: 'Calendar' },
+        { path: '/timepicker', label: 'Timepicker', icon: 'Clock' },
+        { path: '/editor', label: 'Editor', icon: 'FileText' },
+      ],
+    },
+    {
+      title: 'Navigation',
+      items: [{ path: '/tabs', label: 'Tabs', icon: 'PanelTop' }],
+    },
+    {
+      title: 'Feedback',
+      items: [
+        { path: '/toast', label: 'Toast Notifications', icon: 'Bell' },
+        { path: '/alert', label: 'Alert Dialogs', icon: 'MessageSquareWarning' },
+        { path: '/dialog', label: 'Dialog Service', icon: 'PanelTopOpen' },
+      ],
+    },
+    {
+      title: 'Utilities',
+      items: [
+        { path: '/icons', label: 'Icons', icon: 'Smile' },
+        { path: '/motion', label: 'Motion Directives', icon: 'Sparkles' },
+      ],
+    },
+  ];
 
   ngOnInit(): void {
     const saved = localStorage.getItem('hk-demo-v4-theme');
     if (saved) {
       this.setTheme(saved);
+    } else {
+      this.setTheme(this.currentTheme());
     }
+
+    this.currentPath.set('/' + this.router.url.split('/').filter(Boolean)[0]);
+    this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
+      this.currentPath.set('/' + e.urlAfterRedirects.split('/').filter(Boolean)[0]);
+    });
   }
 
   setTheme(theme: string): void {

@@ -77,7 +77,18 @@ interface NavSection {
               <span class="text-base-content/70 font-medium">{{ currentPageLabel() }}</span>
             }
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <!-- Version switcher → v4 -->
+            <a
+              href="/v4/"
+              class="btn btn-ghost btn-sm gap-2 border border-base-content/8 font-normal text-xs h-8 min-h-0 normal-case"
+              aria-label="Switch to DaisyUI 4 demo"
+            >
+              <span class="badge badge-soft badge-primary badge-sm font-mono">v4</span>
+              <span>Switch to v4</span>
+              <hk-lucide-icon name="ArrowRight" [size]="12" />
+            </a>
+
             <div class="dropdown dropdown-end">
               <div
                 tabindex="0"
@@ -114,26 +125,33 @@ interface NavSection {
               <hk-lucide-icon name="Menu" [size]="20" />
             </label>
             <span class="font-serif text-base">ng-daisyui</span>
+            <span class="badge badge-soft badge-primary badge-sm font-mono text-[10px]">v5</span>
           </div>
-          <div class="dropdown dropdown-end">
-            <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square">
-              <hk-lucide-icon name="Palette" [size]="16" />
+          <div class="flex items-center gap-1">
+            <!-- Version switcher (compact) → v4 -->
+            <a href="/v4/" class="btn btn-ghost btn-sm btn-square" aria-label="Switch to DaisyUI 4 demo">
+              <hk-lucide-icon name="ArrowRight" [size]="16" />
+            </a>
+            <div class="dropdown dropdown-end">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square">
+                <hk-lucide-icon name="Palette" [size]="16" />
+              </div>
+              <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-80 overflow-y-auto p-2 shadow-2xl">
+                @for (theme of themes; track theme) {
+                  <li>
+                    <input
+                      type="radio"
+                      name="theme-mobile"
+                      class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start capitalize"
+                      [attr.aria-label]="theme"
+                      [value]="theme"
+                      [checked]="currentTheme() === theme"
+                      (change)="setTheme(theme)"
+                    />
+                  </li>
+                }
+              </ul>
             </div>
-            <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-80 overflow-y-auto p-2 shadow-2xl">
-              @for (theme of themes; track theme) {
-                <li>
-                  <input
-                    type="radio"
-                    name="theme-mobile"
-                    class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start capitalize"
-                    [attr.aria-label]="theme"
-                    [value]="theme"
-                    [checked]="currentTheme() === theme"
-                    (change)="setTheme(theme)"
-                  />
-                </li>
-              }
-            </ul>
           </div>
         </header>
 
