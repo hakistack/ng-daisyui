@@ -9,6 +9,7 @@
     "demo:v4": "cd projects/demo-v4 && ng serve --open --port 58791",
     "install:v4": "cd projects/demo-v4 && npm install",
     "build": "ng build @hakistack/ng-daisyui && node scripts/fix-exports.mjs",
+    "vercel:build": "ng build demo --base-href=/ && npm --prefix projects/demo-v4 run build -- --base-href=/v4/ && node scripts/assemble-vercel.mjs",
     "lint": "ng lint",
     "build:watch": "ng build @hakistack/ng-daisyui --watch",
     "watch": "ng build --watch --configuration development",

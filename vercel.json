@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run vercel:build",
+  "outputDirectory": "dist/vercel",
+  "installCommand": "npm install && npm --prefix projects/demo-v4 install",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/v4", "destination": "/v4/index.html" },
+    { "source": "/v4/", "destination": "/v4/index.html" },
+    { "source": "/v4/((?!.*\\.).*)", "destination": "/v4/index.html" },
+    { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
+  ]
+}
