@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideIconComponent } from '@hakistack/ng-daisyui';
 import { filter } from 'rxjs';
+import { SHOW_OVERVIEW } from '@shared-demos/config';
 
 const THEMES = [
   'light',
@@ -245,14 +246,18 @@ export class App implements OnInit {
   });
 
   readonly navSections: NavSection[] = [
-    {
-      title: 'Overview',
-      items: [
-        { path: '/getting-started', label: 'Getting Started', icon: 'Rocket' },
-        { path: '/installation', label: 'Installation', icon: 'Download' },
-        { path: '/key-patterns', label: 'Key Patterns', icon: 'Lightbulb' },
-      ],
-    },
+    ...(SHOW_OVERVIEW
+      ? [
+          {
+            title: 'Overview',
+            items: [
+              { path: '/getting-started', label: 'Getting Started', icon: 'Rocket' },
+              { path: '/installation', label: 'Installation', icon: 'Download' },
+              { path: '/key-patterns', label: 'Key Patterns', icon: 'Lightbulb' },
+            ],
+          },
+        ]
+      : []),
     {
       title: 'Forms',
       items: [

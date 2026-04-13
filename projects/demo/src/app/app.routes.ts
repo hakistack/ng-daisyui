@@ -1,7 +1,8 @@
 import { Routes } from '@angular/router';
+import { SHOW_OVERVIEW } from '@shared-demos/config';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'getting-started', pathMatch: 'full' },
+  { path: '', redirectTo: SHOW_OVERVIEW ? 'getting-started' : 'forms', pathMatch: 'full' },
   {
     path: 'getting-started',
     loadComponent: () => import('@shared-demos/demos/getting-started.component').then((m) => m.GettingStartedComponent),
