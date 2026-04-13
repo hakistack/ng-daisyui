@@ -4,14 +4,15 @@ import { CodeBlockComponent } from './code-block.component';
 @Component({
   selector: 'app-doc-section',
   imports: [CodeBlockComponent],
+  host: { class: 'block' },
   template: `
     <div class="card card-border card-bordered bg-base-200 border-l-2 border-l-primary/20">
-      <div class="card-body gap-2">
+      <div class="card-body gap-1.5 p-4 sm:p-5">
         <h2 class="card-title text-base font-serif">{{ title() }}</h2>
         @if (description()) {
           <p class="text-xs text-base-content/45">{{ description() }}</p>
         }
-        <div class="mt-1">
+        <div class="mt-0.5">
           <ng-content />
         </div>
         @if (codeExample()) {

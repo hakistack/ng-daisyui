@@ -18,7 +18,7 @@ type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic';
       category="Inputs"
       importName="EditorComponent"
     >
-      <div examples>
+      <div examples class="space-y-6">
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'toolbars'" (click)="activeTab.set('toolbars')">

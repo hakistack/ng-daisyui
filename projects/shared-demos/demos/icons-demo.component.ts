@@ -20,7 +20,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
       category="Utilities"
       importName="LucideIconComponent"
     >
-      <div examples>
+      <div examples class="space-y-6">
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
@@ -228,7 +228,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
         }
       </div>
 
-      <div api>
+      <div api class="space-y-6">
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'component'" (click)="apiTab.set('component')">Component</button>

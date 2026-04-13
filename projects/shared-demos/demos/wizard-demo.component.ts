@@ -20,7 +20,7 @@ type WizardTab = 'linear' | 'nonlinear';
       category="Forms"
       importName="DynamicFormComponent, createForm, field, step"
     >
-      <div examples>
+      <div examples class="space-y-6">
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'linear'" (click)="activeTab.set('linear')">
@@ -70,7 +70,7 @@ type WizardTab = 'linear' | 'nonlinear';
         }
       </div>
 
-      <div api>
+      <div api class="space-y-6">
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'stepper-component'" (click)="apiTab.set('stepper-component')">

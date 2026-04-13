@@ -155,15 +155,15 @@ interface NavSection {
         </header>
 
         <!-- Page content -->
-        <main class="flex-1 px-4 py-6 lg:px-12 lg:py-10">
-          <div class="max-w-7xl mx-auto">
+        <main class="flex-1 px-4 py-4 lg:px-8 lg:py-6">
+          <div class="max-w-6xl mx-auto">
             <router-outlet />
           </div>
         </main>
 
         <!-- Footer -->
-        <footer class="px-4 lg:px-12 py-4 border-t border-base-content/10">
-          <div class="max-w-7xl mx-auto flex items-center justify-between text-[11px] text-base-content/40 font-mono">
+        <footer class="px-4 lg:px-8 py-4 border-t border-base-content/10">
+          <div class="max-w-6xl mx-auto flex items-center justify-between text-[11px] text-base-content/40 font-mono">
             <span>ng-daisyui &middot; Angular 21 &middot; DaisyUI 4 &middot; Tailwind 3</span>
             <span>OnPush &middot; Signals &middot; Standalone</span>
           </div>

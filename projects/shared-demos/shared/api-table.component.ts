@@ -3,6 +3,7 @@ import { ApiDocEntry } from './api-table.types';
 
 @Component({
   selector: 'app-api-table',
+  host: { class: 'block' },
   template: `
     <div class="card card-border card-bordered bg-base-200">
       <div class="card-body gap-3">

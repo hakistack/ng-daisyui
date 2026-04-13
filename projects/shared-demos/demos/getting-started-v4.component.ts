@@ -7,7 +7,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
   selector: 'app-getting-started-v4',
   imports: [LucideIconComponent, CodeBlockComponent, RouterLink],
   template: `
-    <div class="space-y-14 max-w-4xl">
+    <div class="space-y-10 max-w-4xl">
       <!-- Hero -->
       <div class="hero bg-base-200 rounded-box py-12 px-6">
         <div class="hero-content flex-col text-center">

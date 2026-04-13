@@ -31,7 +31,7 @@ type ApiTab = 'component' | 'configs' | 'types';
       category="Inputs"
       importName="InputComponent"
     >
-      <div examples>
+      <div examples class="space-y-6">
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
@@ -375,7 +375,7 @@ type ApiTab = 'component' | 'configs' | 'types';
       </div>
 
       <!-- API Section -->
-      <div api>
+      <div api class="space-y-6">
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'component'" (click)="apiTab.set('component')">Component</button>
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'configs'" (click)="apiTab.set('configs')">

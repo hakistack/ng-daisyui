@@ -6,7 +6,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
   selector: 'app-key-patterns',
   imports: [LucideIconComponent, CodeBlockComponent],
   template: `
-    <div class="space-y-14 max-w-4xl">
+    <div class="space-y-10 max-w-4xl">
       <!-- Hero -->
       <div class="space-y-2">
         <h1 class="text-3xl lg:text-4xl font-serif tracking-tight">Key Patterns</h1>

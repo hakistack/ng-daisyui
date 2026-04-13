@@ -108,7 +108,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
       category="Data Display"
       importName="TableComponent, createTable"
     >
-      <div examples>
+      <div examples class="space-y-6">
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed w-fit flex-wrap">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
@@ -399,7 +399,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
           </app-doc-section>
         }
       </div>
-      <div api>
+      <div api class="space-y-6">
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'hk-table'" (click)="apiTab.set('hk-table')">hk-table</button>

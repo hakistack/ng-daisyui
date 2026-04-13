@@ -27,7 +27,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
       category="Utilities"
       importName="MotionAnimateDirective"
     >
-      <div examples>
+      <div examples class="space-y-6">
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'animate'" (click)="activeTab.set('animate')">Animate</button>
@@ -239,7 +239,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
         }
       </div>
 
-      <div api>
+      <div api class="space-y-6">
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'animate-directive'" (click)="apiTab.set('animate-directive')">

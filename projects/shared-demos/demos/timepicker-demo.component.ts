@@ -30,7 +30,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
       category="Inputs"
       importName="TimepickerComponent"
     >
-      <div examples>
+      <div examples class="space-y-6">
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
@@ -219,7 +219,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
         }
       </div>
 
-      <div api>
+      <div api class="space-y-6">
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'component'" (click)="apiTab.set('component')">Component</button>

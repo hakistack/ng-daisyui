@@ -20,7 +20,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
       category="Navigation"
       importName="TabGroupComponent, TabPanelComponent"
     >
-      <div examples>
+      <div examples class="space-y-6">
         <!-- Variant Tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
@@ -224,7 +224,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
         }
       </div>
 
-      <div api>
+      <div api class="space-y-6">
         <!-- API Sub-tabs -->
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'tab-group'" (click)="apiTab.set('tab-group')">TabGroup</button>

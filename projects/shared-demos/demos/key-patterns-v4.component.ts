@@ -14,7 +14,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
   selector: 'app-key-patterns-v4',
   imports: [LucideIconComponent, CodeBlockComponent],
   template: `
-    <div class="space-y-14 max-w-4xl">
+    <div class="space-y-10 max-w-4xl">
       <!-- Hero -->
       <div class="space-y-2">
         <div class="flex items-center gap-2 flex-wrap">
