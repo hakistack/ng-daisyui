@@ -3,6 +3,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "baseUrl": ".",
     "paths": {
       "@hakistack/ng-daisyui": [
         "./projects/hakistack/ng-daisyui/src/public-api.ts"
