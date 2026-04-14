@@ -1,5 +1,6 @@
 import { Component, input, signal } from '@angular/core';
 import { LucideIconComponent, IconName } from '@hakistack/ng-daisyui';
+import { SHOW_IMPORT } from '../config';
 
 @Component({
   selector: 'app-demo-page',
@@ -17,9 +18,11 @@ import { LucideIconComponent, IconName } from '@hakistack/ng-daisyui';
             <span class="badge badge-sm badge-ghost text-[9px] uppercase tracking-widest font-semibold">{{ category() }}</span>
           </div>
           <p class="text-base-content/45 text-sm max-w-2xl leading-relaxed">{{ description() }}</p>
-          <code class="text-[11px] bg-base-200 px-2.5 py-1 rounded-md font-mono text-base-content/40 inline-block mt-2">
-            import {{ '{' }} {{ importName() }} {{ '}' }} from '&#64;hakistack/ng-daisyui'
-          </code>
+          @if (showImport) {
+            <code class="text-[11px] bg-base-200 px-2.5 py-1 rounded-md font-mono text-base-content/40 inline-block mt-2">
+              import {{ '{' }} {{ importName() }} {{ '}' }} from '&#64;hakistack/ng-daisyui'
+            </code>
+          }
         </div>
       </div>
 
@@ -48,5 +51,6 @@ export class DemoPageComponent {
   category = input.required<string>();
   importName = input.required<string>();
 
+  readonly showImport = SHOW_IMPORT;
   activeTab = signal<'examples' | 'api'>('examples');
 }

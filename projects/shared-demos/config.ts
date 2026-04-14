@@ -12,3 +12,6 @@
  * Use case: showcase-only mode — we don't want visitors to install yet.
  */
 export const SHOW_OVERVIEW = false;
+
+/** When `false`, the import snippet (`import { X } from '@hakistack/ng-daisyui'`) is hidden on every demo page. */
+export const SHOW_IMPORT = false;
