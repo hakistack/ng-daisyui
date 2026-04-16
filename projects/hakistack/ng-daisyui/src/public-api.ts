@@ -19,6 +19,7 @@ export type {
   FieldType,
   FormStep,
   StepperConfig,
+  ConditionShorthand,
   ConditionalLogic,
   FormValues,
   StepChangeEvent,
@@ -51,7 +52,6 @@ export type {
   ColorFieldOptions,
   FileFieldOptions,
   HiddenFieldOptions,
-  EditorFieldOptions,
 } from './lib/components/dynamic-form/dynamic-form.types';
 
 // Table
@@ -62,21 +62,7 @@ export { TablePaginationComponent } from './lib/components/table/table-paginatio
 export { TableFilterComponent } from './lib/components/table/table-filter.component';
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
-export {
-  createTable,
-  projectFields,
-  clearHeaderFormatCache,
-  flattenTreeData,
-  generateRowKey,
-  getRowChildren,
-  rowHasChildren,
-  groupData,
-  resolveFooterRows,
-  resolveGroupAggregates,
-  isColspanFooterRow,
-  exportToCsv,
-  exportToJson,
-} from './lib/components/table/table.helpers';
+export { createTable, exportToCsv, exportToJson } from './lib/components/table/table.helpers';
 export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
 export type {
   ChildGridConfig,
@@ -103,6 +89,8 @@ export type {
   FilterChange,
   FilterOperator,
   FilterType,
+  TableInstance,
+  TableController,
   PaginationOptions,
   CursorPageChange,
   PageSizeChange,

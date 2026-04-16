@@ -16,7 +16,7 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { AbstractControl, NG_VALIDATORS, NG_VALUE_ACCESSOR, ValidationErrors, Validator } from '@angular/forms';
-import Quill from 'quill';
+import Quill, { type QuillOptions } from 'quill';
 
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
 import type {
@@ -126,8 +126,7 @@ export class EditorComponent implements Validator, OnDestroy {
     return Object.keys(item)[0] ?? '';
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getItemValue(item: EditorToolbarItem): any {
+  getItemValue(item: EditorToolbarItem): unknown {
     if (typeof item === 'string') return item;
     return Object.values(item)[0];
   }
@@ -141,25 +140,21 @@ export class EditorComponent implements Validator, OnDestroy {
 
     const userModules = this.modules();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const quillModules: Record<string, any> = {
+    const quillModules: Record<string, unknown> = {
       toolbar: toolbarEl ?? false,
       ...userModules,
     };
 
     const quillFormats = this.formats();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options: Record<string, any> = {
-      theme: false,
+    // Quill accepts `false` for theme to disable theming, but its types only allow `string`
+    const options: QuillOptions = {
+      theme: false as unknown as string,
       modules: quillModules,
       placeholder: this.placeholder(),
       readOnly: this.disabled() || this.readonly(),
+      formats: quillFormats,
     };
-
-    if (quillFormats) {
-      options['formats'] = quillFormats;
-    }
 
     this.quillInstance = new Quill(container, options);
 

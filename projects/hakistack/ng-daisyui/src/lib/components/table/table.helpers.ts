@@ -1,4 +1,4 @@
-import { inject } from '@angular/core';
+import { computed, inject, isDevMode, signal, WritableSignal } from '@angular/core';
 
 import { PipeRegistryService } from '../../services';
 import { AGGREGATE_LABELS, AggregateFunction, computeAggregate } from './table-aggregates';
@@ -20,6 +20,7 @@ import {
   ResolvedGroupAggregates,
   RowGroup,
   StringKey,
+  TableInstance,
   TreeTableConfig,
 } from './table.types';
 
@@ -86,7 +87,68 @@ function downloadFile(content: string, filename: string, mimeType: string): void
 // Cache for formatted headers to avoid repeated string processing
 const headerFormatCache = new Map<string, string>();
 
-export function createTable<T>(config: FieldConfig<T>): FieldConfiguration<T> {
+// ============================================================================
+// Controller plumbing (module-private)
+// ============================================================================
+
+/**
+ * Per-controller runtime state. Kept out of the public FieldConfiguration interface
+ * via a module-private WeakMap so consumers can't accidentally depend on it.
+ */
+interface InternalControllerState<T extends object> {
+  readonly instances: WritableSignal<TableInstance<T>[]>;
+  warnedEmpty: boolean;
+  warnedMulti: boolean;
+}
+
+// Keyed by the controller object itself. WeakMap → no leaks when a controller is GC'd.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const controllerRegistry = new WeakMap<FieldConfiguration<any>, InternalControllerState<any>>();
+
+function warnEmpty<T extends object>(state: InternalControllerState<T>): void {
+  if (state.warnedEmpty || !isDevMode()) return;
+  state.warnedEmpty = true;
+  console.warn(
+    '[ng-daisyui] TableController method called but no <hk-table> is currently attached. ' +
+      'Either the table has not mounted yet (call from ngOnInit or later) or the controller is not bound to [config].',
+  );
+}
+
+function warnMulti<T extends object>(state: InternalControllerState<T>, count: number): void {
+  if (state.warnedMulti || !isDevMode()) return;
+  state.warnedMulti = true;
+  console.warn(
+    `[ng-daisyui] TableController is bound to ${count} <hk-table> instances. ` +
+      'Top-level methods target the primary (first attached) instance. ' +
+      'Use controller.instances()[i] to target a specific one.',
+  );
+}
+
+/**
+ * @internal — called by TableComponent lifecycle hooks. Do not call from application code.
+ * Not re-exported from public-api.ts.
+ */
+export function _attachTableInstance<T extends object>(cfg: FieldConfiguration<T> | null | undefined, instance: TableInstance<T>): void {
+  const state = cfg && controllerRegistry.get(cfg);
+  if (!state) return;
+  state.instances.update((list) => [...list, instance]);
+}
+
+/**
+ * @internal — called by TableComponent lifecycle hooks. Do not call from application code.
+ * Not re-exported from public-api.ts.
+ */
+export function _detachTableInstance<T extends object>(cfg: FieldConfiguration<T> | null | undefined, instance: TableInstance<T>): void {
+  const state = cfg && controllerRegistry.get(cfg);
+  if (!state) return;
+  state.instances.update((list) => list.filter((x) => x !== instance));
+}
+
+// ============================================================================
+// createTable
+// ============================================================================
+
+export function createTable<T extends object>(config: FieldConfig<T>): FieldConfiguration<T> {
   const normalizedConfig = createFieldConfig(config);
 
   const schema = buildColumnSchema(normalizedConfig);
@@ -102,14 +164,66 @@ export function createTable<T>(config: FieldConfig<T>): FieldConfiguration<T> {
   // Resolve group-level aggregates (caption + group footer rows)
   const resolvedGroupAggregates = resolveGroupAggregates(normalizedConfig.grouping, schema);
 
-  return {
+  // --- Controller state ---
+  const state: InternalControllerState<T> = {
+    instances: signal<TableInstance<T>[]>([]),
+    warnedEmpty: false,
+    warnedMulti: false,
+  };
+  const instances = computed(() => state.instances() as readonly TableInstance<T>[]);
+  const primary = computed(() => state.instances()[0]);
+
+  // Forwarder: dispatch to primary() with dev-mode warnings for 0 / >1 attached instances.
+  const forward =
+    <K extends keyof TableInstance<T>>(method: K) =>
+    (...args: unknown[]): void => {
+      const list = state.instances();
+      if (list.length === 0) {
+        warnEmpty(state);
+        return;
+      }
+      if (list.length > 1) warnMulti(state, list.length);
+      const target = list[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (target[method] as (...a: any[]) => unknown).apply(target, args);
+    };
+
+  const controller: FieldConfiguration<T> = {
     config: normalizedConfig,
     columns: schema,
     resolvedFooterRows,
     resolvedGroupAggregates,
     childGrid: normalizedConfig.childGrid,
     masterDetail: normalizedConfig.masterDetail,
+
+    instances,
+    primary,
+
+    applyColumnFilter: forward('applyColumnFilter') as FieldConfiguration<T>['applyColumnFilter'],
+    removeFilter: forward('removeFilter') as FieldConfiguration<T>['removeFilter'],
+    clearAllFilters: forward('clearAllFilters') as FieldConfiguration<T>['clearAllFilters'],
+    firstPage: forward('firstPage') as FieldConfiguration<T>['firstPage'],
+    previousPage: forward('previousPage') as FieldConfiguration<T>['previousPage'],
+    nextPage: forward('nextPage') as FieldConfiguration<T>['nextPage'],
+    lastPage: forward('lastPage') as FieldConfiguration<T>['lastPage'],
+    gotoPage: forward('gotoPage') as FieldConfiguration<T>['gotoPage'],
+    sort: forward('sort') as FieldConfiguration<T>['sort'],
+    clearSelection: forward('clearSelection') as FieldConfiguration<T>['clearSelection'],
+    clearGlobalSearch: forward('clearGlobalSearch') as FieldConfiguration<T>['clearGlobalSearch'],
+    toggleColumnVisibility: forward('toggleColumnVisibility') as FieldConfiguration<T>['toggleColumnVisibility'],
+    showAllColumns: forward('showAllColumns') as FieldConfiguration<T>['showAllColumns'],
+    hideAllColumns: forward('hideAllColumns') as FieldConfiguration<T>['hideAllColumns'],
+    resetColumnVisibility: forward('resetColumnVisibility') as FieldConfiguration<T>['resetColumnVisibility'],
+    expandAllRows: forward('expandAllRows') as FieldConfiguration<T>['expandAllRows'],
+    collapseAllRows: forward('collapseAllRows') as FieldConfiguration<T>['collapseAllRows'],
+    expandToLevel: forward('expandToLevel') as FieldConfiguration<T>['expandToLevel'],
+    collapseToLevel: forward('collapseToLevel') as FieldConfiguration<T>['collapseToLevel'],
+    expandAllDetails: forward('expandAllDetails') as FieldConfiguration<T>['expandAllDetails'],
+    collapseAllDetails: forward('collapseAllDetails') as FieldConfiguration<T>['collapseAllDetails'],
   };
+
+  controllerRegistry.set(controller, state);
+  return controller;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { Signal } from '@angular/core';
 import { IFuseOptions } from 'fuse.js';
 import { SafeHtml } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
@@ -16,14 +17,123 @@ export type ActionType = 'view' | 'edit' | 'delete' | 'upload' | 'download' | 'p
 // Formatter type - uses unknown for value to avoid contravariance issues with generics
 export type Formatter<T> = ((value: unknown, row: T) => string | Observable<string>) | PipeFormatter;
 
-export interface FieldConfiguration<T> {
+/**
+ * Per-instance imperative surface for a single live <hk-table> component.
+ *
+ * Returned by `TableController<T>.instances()` / `.primary()`. `TableComponent<T>`
+ * satisfies this interface structurally — you rarely construct it directly.
+ *
+ * Use this type when writing helpers that operate on a single live table:
+ * ```ts
+ * function resetTable<T extends object>(t: TableInstance<T>) {
+ *   t.clearAllFilters();
+ *   t.firstPage();
+ * }
+ * ```
+ */
+export interface TableInstance<T extends object> {
+  // Filters
+  applyColumnFilter(field: string, value: unknown, operator: FilterOperator): void;
+  removeFilter(field: string): void;
+  clearAllFilters(): void;
+  hasFilterForColumn(field: string): boolean;
+  getActiveFilterForColumn(field: string): FilterConfig<T> | undefined;
+
+  // Pagination
+  firstPage(): void;
+  previousPage(): void;
+  nextPage(): void;
+  lastPage(): void;
+  gotoPage(pageNumber: number): void;
+
+  // Sorting
+  sort(field: string): void;
+
+  // Selection
+  clearSelection(): void;
+  isSelected(row: T): boolean;
+
+  // Global search
+  clearGlobalSearch(): void;
+
+  // Column visibility
+  isColumnVisible(field: string): boolean;
+  toggleColumnVisibility(field: string): void;
+  showAllColumns(): void;
+  hideAllColumns(): void;
+  resetColumnVisibility(): void;
+
+  // Tree / master-detail expansion
+  expandAllRows(): void;
+  collapseAllRows(): void;
+  expandToLevel(level: number): void;
+  collapseToLevel(level: number): void;
+  expandAllDetails(): void;
+  collapseAllDetails(): void;
+}
+
+/**
+ * Controller returned by `createTable()`.
+ *
+ * Carries the resolved configuration (for `[config]` binding) and an imperative API
+ * for driving the bound `<hk-table>` from outside — no `viewChild` needed.
+ *
+ * ```ts
+ * table = createTable<User>({ visible: ['id', 'name'], filters: [...] });
+ *
+ * applyFilter(value: string) {
+ *   this.table.applyColumnFilter('name', value, 'contains');
+ * }
+ * ```
+ *
+ * When multiple `<hk-table>`s bind the same controller (e.g. child grids, master-detail),
+ * top-level methods target the first attached instance; use `.instances()` to target
+ * a specific one.
+ *
+ * `TableController<T>` is a semantic alias for `FieldConfiguration<T>` — both names
+ * refer to the same shape.
+ */
+export interface FieldConfiguration<T extends object> {
+  // --- Data (resolved config) ---
   readonly config: FieldConfig<T>;
   readonly columns: ColumnDefinition<T>[];
   readonly resolvedFooterRows?: ResolvedFooterRow<T>[];
   readonly resolvedGroupAggregates?: ResolvedGroupAggregates<T>;
   readonly childGrid?: ChildGridConfig<T>;
   readonly masterDetail?: MasterDetailConfig<T>;
+
+  // --- Instance tracking ---
+  /** All live <hk-table> components currently bound to this controller. */
+  readonly instances: Signal<readonly TableInstance<T>[]>;
+  /** Convenience for the first attached instance. `undefined` when none are attached. */
+  readonly primary: Signal<TableInstance<T> | undefined>;
+
+  // --- Imperative API (forwards to the primary instance) ---
+  readonly applyColumnFilter: (field: string, value: unknown, operator: FilterOperator) => void;
+  readonly removeFilter: (field: string) => void;
+  readonly clearAllFilters: () => void;
+  readonly firstPage: () => void;
+  readonly previousPage: () => void;
+  readonly nextPage: () => void;
+  readonly lastPage: () => void;
+  readonly gotoPage: (page: number) => void;
+  readonly sort: (field: string) => void;
+  readonly clearSelection: () => void;
+  readonly clearGlobalSearch: () => void;
+  readonly toggleColumnVisibility: (field: string) => void;
+  readonly showAllColumns: () => void;
+  readonly hideAllColumns: () => void;
+  readonly resetColumnVisibility: () => void;
+  readonly expandAllRows: () => void;
+  readonly collapseAllRows: () => void;
+  readonly expandToLevel: (level: number) => void;
+  readonly collapseToLevel: (level: number) => void;
+  readonly expandAllDetails: () => void;
+  readonly collapseAllDetails: () => void;
 }
+
+/** Semantic alias for `FieldConfiguration<T>` — use whichever name reads better in context. */
+export type TableController<T extends object> = FieldConfiguration<T>;
 
 // Hierarchy Grid (Child Grid) configuration
 export interface ChildGridConfig<TParent = unknown> {
@@ -383,6 +493,62 @@ export interface FilterChange<T = unknown> {
   value: unknown;
   operator: FilterOperator;
   filters: FilterConfig<T>[]; // All active filters
+}
+
+/**
+ * Public imperative API exposed by TableComponent<T>.
+ *
+ * Consumers who need to drive the table programmatically (e.g. from a custom
+ * filter bar above the table) can type their template ref against this
+ * interface instead of importing the full TableComponent class:
+ *
+ * ```ts
+ * onSearch(value: string, table: HkTableApi<User>) {
+ *   value
+ *     ? table.applyColumnFilter('name', value, 'contains')
+ *     : table.removeFilter('name');
+ * }
+ * ```
+ */
+export interface HkTableApi<T extends object> {
+  // Filters
+  applyColumnFilter(field: string, value: unknown, operator: FilterOperator): void;
+  removeFilter(field: string): void;
+  clearAllFilters(): void;
+  hasFilterForColumn(field: string): boolean;
+  getActiveFilterForColumn(field: string): FilterConfig<T> | undefined;
+
+  // Pagination
+  firstPage(): void;
+  previousPage(): void;
+  nextPage(): void;
+  lastPage(): void;
+  gotoPage(pageNumber: number): void;
+
+  // Sorting
+  sort(field: string): void;
+
+  // Selection
+  clearSelection(): void;
+  isSelected(row: T): boolean;
+
+  // Global search
+  clearGlobalSearch(): void;
+
+  // Column visibility
+  isColumnVisible(field: string): boolean;
+  toggleColumnVisibility(field: string): void;
+  showAllColumns(): void;
+  hideAllColumns(): void;
+  resetColumnVisibility(): void;
+
+  // Tree / master-detail expansion
+  expandAllRows(): void;
+  collapseAllRows(): void;
+  expandToLevel(level: number): void;
+  collapseToLevel(level: number): void;
+  expandAllDetails(): void;
+  collapseAllDetails(): void;
 }
 
 // Tree table configuration

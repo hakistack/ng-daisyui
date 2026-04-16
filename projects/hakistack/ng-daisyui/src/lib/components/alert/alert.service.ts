@@ -448,12 +448,10 @@ export class AlertService {
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        console.error(`AlertService: Failed to fetch HTML from ${url} (${response.status})`);
         return `<p class="text-error">Failed to load content.</p>`;
       }
       return response.text();
-    } catch (error) {
-      console.error(`AlertService: Failed to fetch HTML from ${url}`, error);
+    } catch {
       return `<p class="text-error">Failed to load content.</p>`;
     }
   }

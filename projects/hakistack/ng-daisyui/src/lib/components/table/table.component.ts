@@ -4,6 +4,7 @@ import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -67,6 +68,8 @@ import {
   TableBulkAction,
 } from './table.types';
 import {
+  _attachTableInstance,
+  _detachTableInstance,
   collectAncestorKeys,
   exportToCsv,
   exportToJson,
@@ -145,7 +148,7 @@ interface SortState {
     '(keydown)': 'onTableKeydown($event)',
   },
 })
-export class TableComponent<T extends object> implements OnDestroy {
+export class TableComponent<T extends object> implements OnDestroy, AfterViewInit {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
@@ -995,15 +998,47 @@ export class TableComponent<T extends object> implements OnDestroy {
     { label: 'JSON', value: 'json', icon: 'Braces' },
   ] as const;
 
+  /**
+   * Tracks the controller this component is currently attached to.
+   * Used to detach from the previous controller if `[config]` changes identity at runtime.
+   */
+  private attachedConfig: FieldConfiguration<T> | null = null;
+
   constructor() {
     this.dataSource = new SignalDataSource(this.currentDataSignal);
     this.setupEffects();
+
+    // Re-attach when the bound [config] identity changes (e.g. swap controllers at runtime).
+    effect(() => {
+      const next = this.config();
+      const prev = this.attachedConfig;
+      if (next === prev) return;
+      if (prev) _detachTableInstance(prev, this);
+      if (next) _attachTableInstance(next, this);
+      this.attachedConfig = next ?? null;
+    });
+  }
+
+  ngAfterViewInit(): void {
+    // First attach. The constructor effect has likely already attached at creation time,
+    // but if [config] was set after view init (rare), this covers that case.
+    const cfg = this.config();
+    if (cfg && this.attachedConfig !== cfg) {
+      _attachTableInstance(cfg, this);
+      this.attachedConfig = cfg;
+    }
   }
 
   ngOnDestroy(): void {
     // Clean up debounce timeout to prevent memory leaks
     if (this.searchDebounceTimeout) {
       clearTimeout(this.searchDebounceTimeout);
+    }
+
+    // Detach from the controller so controller.instances() stays accurate.
+    if (this.attachedConfig) {
+      _detachTableInstance(this.attachedConfig, this);
+      this.attachedConfig = null;
     }
   }
 
@@ -1249,6 +1284,10 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   closeAllFilterDropdowns(): void {
     this.openFilterField.set(null);
+    // Close any open filter popovers
+    if (this.isBrowser) {
+      this.elementRef.nativeElement.querySelectorAll('[id^="filter-popover-"][popover]').forEach((el: HTMLElement) => el.hidePopover?.());
+    }
   }
 
   isFilterOpen(field: string): boolean {
@@ -1274,8 +1313,14 @@ export class TableComponent<T extends object> implements OnDestroy {
     // Remove existing filter for this field
     const filters = this.filterState().filter((f) => f.field !== field);
 
-    // Add new filter if value is not empty
-    if (value != null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+    // Add new filter if value is not empty. Treat empty arrays AND arrays of only
+    // empty/null entries (e.g. ['', ''] from an untouched date-range UI) as empty so
+    // clearing a range input actually clears the filter instead of leaving an active
+    // filter with NaN bounds that excludes every row.
+    const isEmpty =
+      value == null || value === '' || (Array.isArray(value) && (value.length === 0 || value.every((v) => v == null || v === '')));
+
+    if (!isEmpty) {
       filters.push({
         field: field as Extract<keyof T, string>,
         value,
@@ -2219,9 +2264,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     queueMicrotask(() => {
       try {
         localStorage.setItem(storageKey, JSON.stringify(visibilityObj));
-      } catch (e) {
-        console.error('Failed to save column visibility to storage:', e);
-      }
+      } catch {}
     });
   }
 
@@ -2244,27 +2287,11 @@ export class TableComponent<T extends object> implements OnDestroy {
           return newState;
         });
       }
-    } catch (e) {
-      // Silent fail if localStorage is not available or parse error
-      console.error('Failed to load column visibility from storage:', e);
-    }
+    } catch {}
   }
 
   // Private methods
   private setupEffects(): void {
-    // Runtime compatibility warnings
-    effect(() => {
-      const config = this.fieldConfig();
-      if (config?.expandableDetail && config?.virtualScroll?.enabled) {
-        console.warn(
-          '[TableComponent] Expandable detail rows and virtual scroll are mutually exclusive. Virtual scroll requires uniform row heights. Expandable detail will be disabled.',
-        );
-      }
-      if (config?.grouping?.groupBy && config?.treeTable?.enabled) {
-        console.warn('[TableComponent] Row grouping and tree table are mutually exclusive. Tree table takes precedence.');
-      }
-    });
-
     // Note: group expansion initialization is handled lazily.
     // expandedGroups starts as null (uninitialized). groupedDataSignal treats
     // null as "use defaults" (initiallyExpanded). On first user interaction,
@@ -2590,18 +2617,18 @@ export class TableComponent<T extends object> implements OnDestroy {
     const value = row[filter.field];
     const filterValue = filter.value;
 
-    // Handle empty/null checks first
+    // Explicit empty checks first — independent of value nullity
     if (filter.operator === 'isEmpty') {
       return value == null || value === '';
     }
-
     if (filter.operator === 'isNotEmpty') {
       return value != null && value !== '';
     }
 
-    // If row value is null/undefined and we're not checking for empty, filter out
+    // Null-value semantics: "not" operators match null rows (null is not equal to /
+    // does not contain / is not in anything). Other operators filter nulls out.
     if (value == null) {
-      return false;
+      return filter.operator === 'notEquals' || filter.operator === 'notContains' || filter.operator === 'notIn';
     }
 
     switch (filter.operator) {
@@ -2636,23 +2663,35 @@ export class TableComponent<T extends object> implements OnDestroy {
         return Number(value) <= Number(filterValue);
 
       case 'in':
-        if (Array.isArray(filterValue)) {
-          return filterValue.includes(value);
-        }
-        return false;
+        return Array.isArray(filterValue) ? filterValue.includes(value) : false;
 
       case 'notIn':
-        if (Array.isArray(filterValue)) {
-          return !filterValue.includes(value);
-        }
-        return true;
+        // Aligned with `in` — malformed (non-array) filter value fails closed.
+        return Array.isArray(filterValue) ? !filterValue.includes(value) : false;
 
-      case 'between':
-        if (Array.isArray(filterValue) && filterValue.length === 2) {
-          const numValue = Number(value);
-          return numValue >= Number(filterValue[0]) && numValue <= Number(filterValue[1]);
+      case 'between': {
+        if (!Array.isArray(filterValue) || filterValue.length !== 2) return false;
+        const [a, b] = filterValue as [unknown, unknown];
+
+        // Date range: parse both sides via Date so ISO strings compare correctly.
+        // (Number('2025-01-15') is NaN, so the old number-only logic silently
+        // excluded every row whenever a date range was applied.)
+        if (filter.type === 'dateRange') {
+          const t = new Date(value as string | number | Date).getTime();
+          if (isNaN(t)) return false;
+          const lo = a != null && a !== '' ? new Date(a as string | number | Date).getTime() : -Infinity;
+          const hi = b != null && b !== '' ? new Date(b as string | number | Date).getTime() : Infinity;
+          return t >= lo && t <= hi;
         }
-        return false;
+
+        // Numeric range (numberRange or legacy usage). Partial ranges are allowed:
+        // missing low bound → -Infinity; missing high bound → +Infinity.
+        const n = Number(value);
+        if (isNaN(n)) return false;
+        const lo = a != null && a !== '' ? Number(a) : -Infinity;
+        const hi = b != null && b !== '' ? Number(b) : Infinity;
+        return n >= lo && n <= hi;
+      }
 
       default:
         return true;

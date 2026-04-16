@@ -16,7 +16,6 @@ import {
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import Fuse, { IFuseOptions } from 'fuse.js';
-import { generateUniqueId } from '../../utils/generate-uuid';
 import { HK_THEME } from '../../theme/theme.config';
 
 export interface SelectOption {
@@ -88,8 +87,6 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   readonly placeholder = input<string>('Select an option');
   readonly searchPlaceholder = input<string>('Search options...');
   readonly disabled = input<boolean>(false);
-  readonly generateMockData = input<boolean>(false);
-  readonly mockDataCount = input<number>(1000);
 
   // Multi-select inputs
   readonly multiple = input<boolean>(false);
@@ -135,7 +132,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   // Computed properties
   readonly effectiveOptions = computed(() => {
     const opts = this.options();
-    return opts.length > 0 ? opts : this.generateMockData() ? this.generateRandomOptions(this.mockDataCount()) : [];
+    return opts;
   });
 
   readonly filteredOptions = computed(() => {
@@ -570,24 +567,6 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     document.removeEventListener('click', this.boundDocumentClick);
     document.removeEventListener('keydown', this.boundDocumentKeydown);
     this.documentListenersAttached = false;
-  }
-
-  private generateRandomOptions(count: number): SelectOption[] {
-    // Simple mock data generation without external dependencies
-    const firstNames = ['John', 'Jane', 'Mike', 'Sarah', 'David', 'Emma', 'Chris', 'Lisa', 'Tom', 'Anna'];
-    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Wilson', 'Moore'];
-
-    return Array.from({ length: count }, (_, index) => {
-      const firstName = firstNames[index % firstNames.length];
-      const lastName = lastNames[Math.floor(index / firstNames.length) % lastNames.length];
-      const suffix = Math.floor(index / 100) > 0 ? ` ${Math.floor(index / 100) + 1}` : '';
-
-      return {
-        value: generateUniqueId(),
-        label: `${firstName} ${lastName}${suffix}`,
-        id: generateUniqueId(),
-      } as const;
-    });
   }
 
   private escapeRegExp(string: string): string {

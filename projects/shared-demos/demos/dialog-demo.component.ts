@@ -1,8 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { JsonPipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormsModule } from '@angular/forms';
-import { delay } from 'rxjs';
+import { delay, map } from 'rxjs';
 import { DialogService, LucideIconComponent, SelectComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -320,13 +322,6 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
       importName="DialogService"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'forms'" (click)="activeTab.set('forms')">Forms</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'options'" (click)="activeTab.set('options')">Options</button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
             <app-doc-section title="Basic Dialog" description="Simple dialog with confirm/cancel buttons" [codeExample]="basicCode">
@@ -530,7 +525,10 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
 })
 export class DialogDemoComponent {
   private dialogService = inject(DialogService);
-  activeTab = signal<DialogTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as DialogTab);
+
   apiTab = signal<DialogApiTab>('service');
 
   simpleResult: string | null = null;

@@ -1,5 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { map } from 'rxjs';
 import { createForm, field, DynamicFormComponent } from '@hakistack/ng-daisyui';
 import { EditorComponent } from '../../hakistack/ng-daisyui/src/lib/components/editor/editor.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
@@ -19,19 +22,6 @@ type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic';
       importName="EditorComponent"
     >
       <div examples class="space-y-6">
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'toolbars'" (click)="activeTab.set('toolbars')">
-            Toolbars
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'forms'" (click)="activeTab.set('forms')">
-            Reactive Forms
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'dynamic'" (click)="activeTab.set('dynamic')">
-            Dynamic Form
-          </button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="grid gap-6">
             <app-doc-section
@@ -109,7 +99,10 @@ type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic';
   `,
 })
 export class EditorDemoComponent {
-  activeTab = signal<ExampleTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as ExampleTab);
+
   lastHtml = signal<string>('');
   contentControl = new FormControl('');
 

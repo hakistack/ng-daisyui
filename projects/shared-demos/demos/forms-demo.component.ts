@@ -1,4 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { JsonPipe } from '@angular/common';
 import {
   DynamicFormComponent,
@@ -32,23 +35,6 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
       importName="DynamicFormComponent, createForm, field"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'layouts'" (click)="activeTab.set('layouts')">Layouts</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'fields'" (click)="activeTab.set('fields')">
-            Field Types
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'conditional'" (click)="activeTab.set('conditional')">
-            Conditional Logic
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'dependent'" (click)="activeTab.set('dependent')">
-            Dependent Fields
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'autosave'" (click)="activeTab.set('autosave')">
-            Auto-Save
-          </button>
-        </div>
-
         @if (activeTab() === 'layouts') {
           <div class="space-y-6">
             <app-doc-section title="Vertical Layout (Default)" description="Standard stacked form layout" [codeExample]="verticalCode">
@@ -327,7 +313,9 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
 export class FormsDemoComponent {
   private toast = inject(ToastService);
   private formState = inject(FormStateService);
-  activeTab = signal<FormTab>('layouts');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'layouts') as FormTab);
   apiTab = signal<ApiSubTab>('component');
   lastSubmission = signal<FormSubmissionData | null>(null);
 
@@ -465,9 +453,9 @@ export class FormsDemoComponent {
         required: true,
         optionsFrom: {
           field: 'country',
-          loadFn: (country: string) => {
+          loadFn: (country: unknown) => {
             return new Promise<FormSelectOption[]>((resolve) => {
-              setTimeout(() => resolve(this.statesByCountry[country] || []), 600);
+              setTimeout(() => resolve(this.statesByCountry[country as string] || []), 600);
             });
           },
           loadingPlaceholder: 'Loading states...',
@@ -476,9 +464,9 @@ export class FormsDemoComponent {
       field.select('city', 'City', {
         optionsFrom: {
           field: 'state',
-          loadFn: (state: string) => {
+          loadFn: (state: unknown) => {
             return new Promise<FormSelectOption[]>((resolve) => {
-              setTimeout(() => resolve(this.citiesByState[state] || []), 400);
+              setTimeout(() => resolve(this.citiesByState[state as string] || []), 400);
             });
           },
           loadingPlaceholder: 'Loading cities...',

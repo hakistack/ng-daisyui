@@ -941,11 +941,13 @@
               @if (isDetailExpanded(row)) {
                 <div
                   class="detail-content"
-                  [class.bg-base-200/30]="!!rowDetailTemplate()"
-                  [class.border-t]="!!rowDetailTemplate()"
-                  [class.border-base-content/10]="!!rowDetailTemplate()"
-                  [class.p-4]="!!rowDetailTemplate()"
-                  [class.p-0]="!rowDetailTemplate()"
+                  [ngClass]="{
+                    'bg-base-200/30': !!rowDetailTemplate(),
+                    'border-t': !!rowDetailTemplate(),
+                    'border-base-content/10': !!rowDetailTemplate(),
+                    'p-4': !!rowDetailTemplate(),
+                    'p-0': !rowDetailTemplate(),
+                  }"
                 >
                   @if (rowDetailTemplate()) {
                     <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: row }" />
@@ -1011,32 +1013,36 @@
                   </span>
                 </div>
 
-                <!-- Filter Dropdown -->
+                <!-- Filter Dropdown (Popover API — escapes overflow clipping) -->
                 @if (enableFilteringSignal() && hasFilterForColumn(column.field)) {
-                  <div class="dropdown dropdown-right">
-                    <button
-                      tabindex="0"
-                      type="button"
-                      class="btn btn-ghost btn-xs"
-                      [class.btn-primary]="getActiveFilterForColumn(column.field)"
-                      (click)="$event.stopPropagation()"
-                      [attr.aria-label]="'Filter ' + column.header"
-                    >
-                      <hk-lucide-icon name="ListFilter" class="h-3 w-3" aria-hidden="true"></hk-lucide-icon>
-                      @if (getActiveFilterForColumn(column.field)) {
-                        <span class="badge badge-xs badge-primary">1</span>
-                      }
-                    </button>
-                    <div tabindex="0" class="dropdown-content card card-compact bg-base-100 z-50 mt-2 w-72 shadow-xl">
-                      <div class="card-body">
-                        <hk-table-filter
-                          [column]="column"
-                          [filterConfig]="getFilterForColumn(column.field)!"
-                          [activeFilter]="getActiveFilterForColumn(column.field)"
-                          (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
-                          (closeFilter)="closeAllFilterDropdowns()"
-                        />
-                      </div>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs"
+                    [class.btn-primary]="getActiveFilterForColumn(column.field)"
+                    (click)="$event.stopPropagation()"
+                    [attr.aria-label]="'Filter ' + column.header"
+                    [attr.popovertarget]="'filter-popover-' + column.field"
+                    [style.anchor-name]="'--filter-anchor-' + column.field"
+                  >
+                    <hk-lucide-icon name="ListFilter" class="h-3 w-3" aria-hidden="true"></hk-lucide-icon>
+                    @if (getActiveFilterForColumn(column.field)) {
+                      <span class="badge badge-xs badge-primary">1</span>
+                    }
+                  </button>
+                  <div
+                    class="dropdown card card-compact bg-base-100 w-72 shadow-xl"
+                    popover
+                    [id]="'filter-popover-' + column.field"
+                    [style.position-anchor]="'--filter-anchor-' + column.field"
+                  >
+                    <div class="card-body">
+                      <hk-table-filter
+                        [column]="column"
+                        [filterConfig]="getFilterForColumn(column.field)!"
+                        [activeFilter]="getActiveFilterForColumn(column.field)"
+                        (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
+                        (closeFilter)="closeAllFilterDropdowns()"
+                      />
                     </div>
                   </div>
                 }

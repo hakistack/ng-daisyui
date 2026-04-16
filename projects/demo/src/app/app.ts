@@ -47,10 +47,16 @@ const THEMES = [
   'silk',
 ] as const;
 
+interface NavChild {
+  id: string;
+  label: string;
+}
+
 interface NavItem {
   path: string;
   label: string;
   icon: string;
+  children?: NavChild[];
 }
 
 interface NavSection {
@@ -201,10 +207,28 @@ interface NavSection {
                 </li>
                 @for (item of section.items; track item.path) {
                   <li>
-                    <a [routerLink]="item.path" routerLinkActive="active">
-                      <hk-lucide-icon [name]="item.icon" [size]="15" />
-                      {{ item.label }}
-                    </a>
+                    @if (item.children?.length) {
+                      <details [open]="currentPath() === item.path">
+                        <summary>
+                          <hk-lucide-icon [name]="item.icon" [size]="15" />
+                          {{ item.label }}
+                        </summary>
+                        <ul>
+                          @for (child of item.children; track child.id) {
+                            <li>
+                              <a [routerLink]="item.path + '/' + child.id" routerLinkActive="active">
+                                {{ child.label }}
+                              </a>
+                            </li>
+                          }
+                        </ul>
+                      </details>
+                    } @else {
+                      <a [routerLink]="item.path" routerLinkActive="active">
+                        <hk-lucide-icon [name]="item.icon" [size]="15" />
+                        {{ item.label }}
+                      </a>
+                    }
                   </li>
                 }
               }
@@ -259,47 +283,242 @@ export class App implements OnInit {
     {
       title: 'Forms',
       items: [
-        { path: '/forms', label: 'Dynamic Forms', icon: 'FileInput' },
-        { path: '/wizard', label: 'Form Wizard', icon: 'ListOrdered' },
+        {
+          path: '/forms',
+          label: 'Dynamic Forms',
+          icon: 'FileInput',
+          children: [
+            { id: 'layouts', label: 'Layouts' },
+            { id: 'fields', label: 'Field Types' },
+            { id: 'conditional', label: 'Conditional Logic' },
+            { id: 'dependent', label: 'Dependent Fields' },
+            { id: 'autosave', label: 'Auto-Save' },
+          ],
+        },
+        {
+          path: '/wizard',
+          label: 'Form Wizard',
+          icon: 'ListOrdered',
+          children: [
+            { id: 'linear', label: 'Linear Wizard' },
+            { id: 'nonlinear', label: 'Non-linear Wizard' },
+          ],
+        },
       ],
     },
     {
       title: 'Data Display',
       items: [
-        { path: '/table', label: 'Table', icon: 'Table' },
-        { path: '/tree-table', label: 'Tree Table', icon: 'ListTree' },
-        { path: '/tree', label: 'Tree', icon: 'GitBranch' },
-        { path: '/org-chart', label: 'Organization Chart', icon: 'Network' },
-        { path: '/virtual-scroller', label: 'Virtual Scroller', icon: 'ScrollText' },
+        {
+          path: '/table',
+          label: 'Table',
+          icon: 'Table',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'full', label: 'Full Featured' },
+            { id: 'filtering', label: 'Filtering' },
+            { id: 'selectableRow', label: 'Selectable Row' },
+            { id: 'sticky', label: 'Sticky' },
+            { id: 'resizable', label: 'Resizable' },
+            { id: 'virtualScroll', label: 'Virtual Scroll' },
+            { id: 'editable', label: 'Editable' },
+            { id: 'footer', label: 'Footer' },
+            { id: 'expandable', label: 'Expandable' },
+            { id: 'grouped', label: 'Grouped' },
+            { id: 'reorderable', label: 'Reorderable' },
+            { id: 'keyboard', label: 'Keyboard' },
+            { id: 'hierarchy', label: 'Hierarchy' },
+            { id: 'masterDetail', label: 'Master-Detail' },
+            { id: 'nestedMasterDetail', label: 'Nested Master-Detail' },
+          ],
+        },
+        {
+          path: '/tree-table',
+          label: 'Tree Table',
+          icon: 'ListTree',
+          children: [
+            { id: 'treenode', label: 'TreeNode Data' },
+            { id: 'custom', label: 'Custom Children' },
+            { id: 'features', label: 'Full Features' },
+            { id: 'cascade', label: 'Cascade Selection' },
+            { id: 'filtering', label: 'Hierarchy Filtering' },
+            { id: 'large', label: 'Large Dataset' },
+          ],
+        },
+        {
+          path: '/tree',
+          label: 'Tree',
+          icon: 'GitBranch',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'selection', label: 'Single Selection' },
+            { id: 'checkbox', label: 'Checkbox' },
+            { id: 'dragdrop', label: 'Drag & Drop' },
+            { id: 'lazy', label: 'Lazy Loading' },
+            { id: 'filter', label: 'Filter' },
+          ],
+        },
+        {
+          path: '/org-chart',
+          label: 'Organization Chart',
+          icon: 'Network',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'selection', label: 'Selection' },
+            { id: 'templates', label: 'Templates' },
+            { id: 'colors', label: 'Colors' },
+          ],
+        },
+        {
+          path: '/virtual-scroller',
+          label: 'Virtual Scroller',
+          icon: 'ScrollText',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'horizontal', label: 'Horizontal' },
+            { id: 'grid', label: 'Grid' },
+            { id: 'lazy', label: 'Lazy Loading' },
+          ],
+        },
       ],
     },
     {
       title: 'Inputs',
       items: [
-        { path: '/input', label: 'Input', icon: 'TextCursorInput' },
-        { path: '/select', label: 'Select', icon: 'ChevronDown' },
-        { path: '/datepicker', label: 'Datepicker', icon: 'Calendar' },
-        { path: '/timepicker', label: 'Timepicker', icon: 'Clock' },
-        { path: '/editor', label: 'Editor', icon: 'FileText' },
+        {
+          path: '/input',
+          label: 'Input',
+          icon: 'TextCursorInput',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'variants', label: 'Variants' },
+            { id: 'styling', label: 'Styling' },
+            { id: 'forms', label: 'Reactive Forms' },
+            { id: 'mask', label: 'Input Mask' },
+          ],
+        },
+        {
+          path: '/select',
+          label: 'Select',
+          icon: 'ChevronDown',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'variants', label: 'Variants' },
+            { id: 'features', label: 'Features' },
+            { id: 'grouped', label: 'Grouped' },
+            { id: 'multiselect', label: 'Multiselect' },
+          ],
+        },
+        {
+          path: '/datepicker',
+          label: 'Datepicker',
+          icon: 'Calendar',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'datetime', label: 'Date + Time' },
+            { id: 'options', label: 'Options' },
+            { id: 'advanced', label: 'Advanced' },
+          ],
+        },
+        {
+          path: '/timepicker',
+          label: 'Timepicker',
+          icon: 'Clock',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'options', label: 'Options' },
+            { id: 'clockFace', label: 'Clock Face' },
+            { id: 'advanced', label: 'Advanced' },
+          ],
+        },
+        {
+          path: '/editor',
+          label: 'Editor',
+          icon: 'FileText',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'toolbars', label: 'Toolbars' },
+            { id: 'forms', label: 'Reactive Forms' },
+            { id: 'dynamic', label: 'Dynamic Form' },
+          ],
+        },
       ],
     },
     {
       title: 'Navigation',
-      items: [{ path: '/tabs', label: 'Tabs', icon: 'PanelTop' }],
+      items: [
+        {
+          path: '/tabs',
+          label: 'Tabs',
+          icon: 'PanelTop',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'features', label: 'Features' },
+            { id: 'vertical', label: 'Vertical' },
+          ],
+        },
+      ],
     },
     {
       title: 'Feedback',
       items: [
-        { path: '/toast', label: 'Toast Notifications', icon: 'Bell' },
-        { path: '/alert', label: 'Alert Dialogs', icon: 'MessageSquareWarning' },
-        { path: '/dialog', label: 'Dialog Service', icon: 'PanelTopOpen' },
+        {
+          path: '/toast',
+          label: 'Toast Notifications',
+          icon: 'Bell',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'features', label: 'Features' },
+            { id: 'styles', label: 'Styles' },
+            { id: 'advanced', label: 'Advanced' },
+          ],
+        },
+        {
+          path: '/alert',
+          label: 'Alert Dialogs',
+          icon: 'MessageSquareWarning',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'confirm', label: 'Confirmations' },
+            { id: 'loading', label: 'Loading' },
+            { id: 'advanced', label: 'Advanced' },
+          ],
+        },
+        {
+          path: '/dialog',
+          label: 'Dialog Service',
+          icon: 'PanelTopOpen',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'forms', label: 'Forms' },
+            { id: 'options', label: 'Options' },
+          ],
+        },
       ],
     },
     {
       title: 'Utilities',
       items: [
-        { path: '/icons', label: 'Icons', icon: 'Smile' },
-        { path: '/motion', label: 'Motion Directives', icon: 'Sparkles' },
+        {
+          path: '/icons',
+          label: 'Icons',
+          icon: 'Smile',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'categories', label: 'Categories' },
+            { id: 'playground', label: 'Playground' },
+          ],
+        },
+        {
+          path: '/motion',
+          label: 'Motion Directives',
+          icon: 'Sparkles',
+          children: [
+            { id: 'animate', label: 'Animate' },
+            { id: 'hover', label: 'Hover' },
+            { id: 'presets', label: 'Presets' },
+          ],
+        },
       ],
     },
   ];
@@ -310,7 +529,7 @@ export class App implements OnInit {
       this.setTheme(saved);
     }
 
-    this.currentPath.set(this.router.url);
+    this.currentPath.set('/' + this.router.url.split('/').filter(Boolean)[0]);
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
       this.currentPath.set('/' + e.urlAfterRedirects.split('/').filter(Boolean)[0]);
     });

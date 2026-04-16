@@ -1,4 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
 import { SelectComponent, SelectOption } from '@hakistack/ng-daisyui';
@@ -8,6 +11,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
 
+type ExampleTab = 'basic' | 'variants' | 'features' | 'grouped' | 'multiselect';
 type ApiSubTab = 'component' | 'configuration' | 'multi-select' | 'keyboard-a11y' | 'types';
 
 @Component({
@@ -22,21 +26,6 @@ type ApiSubTab = 'component' | 'configuration' | 'multi-select' | 'keyboard-a11y
       importName="SelectComponent"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'variants'" (click)="activeTab.set('variants')">
-            Variants
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'features'" (click)="activeTab.set('features')">
-            Features
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'grouped'" (click)="activeTab.set('grouped')">Grouped</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'multiselect'" (click)="activeTab.set('multiselect')">
-            Multiselect
-          </button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="grid gap-6 lg:grid-cols-2">
             <app-doc-section title="Basic Select" description="Simple dropdown selection" [codeExample]="basicCode">
@@ -542,7 +531,9 @@ type ApiSubTab = 'component' | 'configuration' | 'multi-select' | 'keyboard-a11y
   `,
 })
 export class SelectDemoComponent {
-  activeTab = signal<'basic' | 'variants' | 'features' | 'grouped' | 'multiselect'>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as ExampleTab);
   apiTab = signal<ApiSubTab>('component');
 
   basicSelection = signal<SelectOption | null>(null);
@@ -810,19 +801,6 @@ options: SelectOption[] = [
       description: 'When true, prevents all user interaction with the select. Also controlled via ControlValueAccessor setDisabledState.',
     },
     {
-      name: 'generateMockData',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'When true and no options are provided, automatically generates random mock options for testing and prototyping purposes.',
-    },
-    {
-      name: 'mockDataCount',
-      type: 'number',
-      default: '1000',
-      description: 'Number of mock options to generate when generateMockData is true.',
-    },
-    {
       name: 'multiple',
       type: 'boolean',
       default: 'false',
@@ -1040,19 +1018,6 @@ options: SelectOption[] = [
       default: '[]',
       description:
         'Array of selectable options. Each option must have a value and label. Optionally include disabled, id, or group properties. Options with a group property are rendered under group headers automatically.',
-    },
-    {
-      name: 'generateMockData',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'When true and no options are provided, automatically generates random mock options for testing and prototyping purposes.',
-    },
-    {
-      name: 'mockDataCount',
-      type: 'number',
-      default: '1000',
-      description: 'Number of mock options to generate when generateMockData is true.',
     },
   ];
 

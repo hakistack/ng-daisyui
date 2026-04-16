@@ -1,5 +1,8 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { JsonPipe } from '@angular/common';
 import { TimepickerComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
@@ -31,18 +34,6 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
       importName="TimepickerComponent"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'options'" (click)="activeTab.set('options')">Options</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'clockFace'" (click)="activeTab.set('clockFace')">
-            Clock Face
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'advanced'" (click)="activeTab.set('advanced')">
-            Advanced
-          </button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
             <app-doc-section title="24h Format" description="Basic time picker in 24-hour format" [codeExample]="basic24hCode">
@@ -367,7 +358,10 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimepickerDemoComponent {
-  readonly activeTab = signal<TimepickerTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  readonly activeTab = computed(() => (this.featureParam() ?? 'basic') as TimepickerTab);
+
   readonly apiTab = signal<ApiSubTab>('component');
 
   readonly basic24hControl = new FormControl<string | null>(null);

@@ -2,8 +2,7 @@ export type EditorOutputFormat = 'html' | 'delta';
 
 export type EditorToolbarPreset = 'full' | 'basic' | 'minimal';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type EditorToolbarItem = string | Record<string, any>;
+export type EditorToolbarItem = string | Record<string, unknown>;
 export type EditorToolbarGroup = EditorToolbarItem[];
 export type EditorToolbarConfig = EditorToolbarPreset | EditorToolbarGroup[];
 

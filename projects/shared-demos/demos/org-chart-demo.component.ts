@@ -1,4 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import {
   OrganizationChartComponent,
   TreeNode,
@@ -32,18 +35,6 @@ interface Person {
       importName="OrganizationChartComponent"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'selection'" (click)="activeTab.set('selection')">
-            Selection
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'templates'" (click)="activeTab.set('templates')">
-            Templates
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'colors'" (click)="activeTab.set('colors')">Colors</button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
             <app-doc-section
@@ -244,7 +235,10 @@ interface Person {
   `,
 })
 export class OrgChartDemoComponent {
-  activeTab = signal<OrgChartTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as OrgChartTab);
+
   apiTab = signal<'component' | 'node-config' | 'methods' | 'types'>('component');
   selectedNode = signal<TreeNode | null>(null);
   selectedNodes = signal<TreeNode[]>([]);

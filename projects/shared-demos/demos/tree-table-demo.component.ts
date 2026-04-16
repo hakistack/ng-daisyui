@@ -1,4 +1,7 @@
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { TableComponent, createTable, ToastService, LucideIconComponent, TreeNode } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -38,28 +41,6 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
       importName="TableComponent, createTable"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed w-fit flex-wrap">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'treenode'" (click)="activeTab.set('treenode')">
-            TreeNode Data
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'custom'" (click)="activeTab.set('custom')">
-            Custom Children
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'features'" (click)="activeTab.set('features')">
-            Full Features
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'cascade'" (click)="activeTab.set('cascade')">
-            Cascade Selection
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'filtering'" (click)="activeTab.set('filtering')">
-            Hierarchy Filtering
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'large'" (click)="activeTab.set('large')">
-            Large Dataset
-          </button>
-        </div>
-
         <!-- TreeNode Data Tab -->
         @if (activeTab() === 'treenode') {
           <app-doc-section
@@ -286,7 +267,9 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 })
 export class TreeTableDemoComponent {
   private toast = inject(ToastService);
-  activeTab = signal<DemoTab>('treenode');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'treenode') as DemoTab);
   apiTab = signal<'component' | 'configuration' | 'methods' | 'types'>('component');
   selectedItems = signal<TreeNode<Department>[]>([]);
   cascadeSelectedItems = signal<TreeNode<Department>[]>([]);

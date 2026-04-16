@@ -124,7 +124,7 @@ export class ToastService {
         transitionDuration: 0,
       };
 
-      this._toasts.update(toasts => {
+      this._toasts.update((toasts) => {
         const updated = [...toasts, toast];
 
         if (this.config.maxToasts > 0 && updated.length > this.config.maxToasts) {
@@ -144,24 +144,23 @@ export class ToastService {
 
         if (toast.progressBar && isPlatformBrowser(this.platformId)) {
           requestAnimationFrame(() => {
-            this._toasts.update(toasts =>
-              toasts.map(t =>
+            this._toasts.update((toasts) =>
+              toasts.map((t) =>
                 t.id === id && !t.isPaused && !t.dismissing
                   ? {
                       ...t,
                       progressTarget: 0,
                       transitionDuration: life,
                     }
-                  : t
-              )
+                  : t,
+              ),
             );
           });
         }
       }
 
       return id;
-    } catch (error) {
-      console.error('ToastService: Failed to show toast', error);
+    } catch {
       return '';
     }
   }
@@ -170,19 +169,19 @@ export class ToastService {
    * Dismiss a specific toast
    */
   dismiss(id: string): void {
-    const toast = this._toasts().find(t => t.id === id);
+    const toast = this._toasts().find((t) => t.id === id);
     if (!toast || toast.dismissing) return;
 
     this.clearTimer(id);
 
-    this._toasts.update(toasts => toasts.map(t => (t.id === id ? { ...t, dismissing: true } : t)));
+    this._toasts.update((toasts) => toasts.map((t) => (t.id === id ? { ...t, dismissing: true } : t)));
 
     const exitDuration = this.prefersReducedMotion ? 0 : this.config.exitDuration;
 
     timer(exitDuration)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        this._toasts.update(toasts => toasts.filter(t => t.id !== id));
+        this._toasts.update((toasts) => toasts.filter((t) => t.id !== id));
       });
   }
 
@@ -207,13 +206,13 @@ export class ToastService {
     clearTimeout(timerData.timerId);
     this.timers.set(id, { ...timerData, remainingTime: remaining });
 
-    const toast = this._toasts().find(t => t.id === id);
+    const toast = this._toasts().find((t) => t.id === id);
     if (!toast) return;
 
     const currentProgress = (remaining / toast.life) * 100;
 
-    this._toasts.update(toasts =>
-      toasts.map(t =>
+    this._toasts.update((toasts) =>
+      toasts.map((t) =>
         t.id === id
           ? {
               ...t,
@@ -222,8 +221,8 @@ export class ToastService {
               progressTarget: currentProgress,
               transitionDuration: 0,
             }
-          : t
-      )
+          : t,
+      ),
     );
   }
 
@@ -234,7 +233,7 @@ export class ToastService {
     const timerData = this.timers.get(id);
     if (!timerData) return;
 
-    const toast = this._toasts().find(t => t.id === id);
+    const toast = this._toasts().find((t) => t.id === id);
     if (!toast || toast.sticky) return;
 
     const delay = this.config.extendedTimeOut > 0 ? this.config.extendedTimeOut : timerData.remainingTime;
@@ -242,8 +241,8 @@ export class ToastService {
     this.timers.delete(id);
     this.scheduleAutoDismiss(id, delay);
 
-    this._toasts.update(toasts =>
-      toasts.map(t =>
+    this._toasts.update((toasts) =>
+      toasts.map((t) =>
         t.id === id
           ? {
               ...t,
@@ -252,8 +251,8 @@ export class ToastService {
               progressTarget: 0,
               transitionDuration: delay,
             }
-          : t
-      )
+          : t,
+      ),
     );
   }
 
@@ -261,7 +260,7 @@ export class ToastService {
    * Handle toast click
    */
   handleToastClick(id: string): void {
-    const toast = this._toasts().find(t => t.id === id);
+    const toast = this._toasts().find((t) => t.id === id);
     if (!toast) return;
 
     toast.onTap?.();
@@ -312,7 +311,7 @@ export class ToastService {
   }
 
   private findDuplicate(options: ToastOptions): Toast | undefined {
-    return this._toasts().find(t => t.summary === options.summary && t.severity === options.severity && !t.dismissing);
+    return this._toasts().find((t) => t.summary === options.summary && t.severity === options.severity && !t.dismissing);
   }
 
   private bootstrapContainer(): void {
@@ -357,7 +356,7 @@ export class ToastService {
   }
 
   private clearAllTimers(): void {
-    this.timers.forEach(timerData => clearTimeout(timerData.timerId));
+    this.timers.forEach((timerData) => clearTimeout(timerData.timerId));
     this.timers.clear();
   }
 }

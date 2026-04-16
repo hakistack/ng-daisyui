@@ -1,5 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { debounceTime, map } from 'rxjs/operators';
 import {
   TableComponent,
   createTable,
@@ -73,6 +77,7 @@ interface CustomerOrder {
 type TableTab =
   | 'basic'
   | 'full'
+  | 'filtering'
   | 'selectableRow'
   | 'sticky'
   | 'resizable'
@@ -92,6 +97,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
   selector: 'app-table-demo',
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     TableComponent,
     LucideIconComponent,
     HkFooterDirective,
@@ -109,50 +115,6 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
       importName="TableComponent, createTable"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed w-fit flex-wrap">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'full'" (click)="activeTab.set('full')">Full Featured</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'selectableRow'" (click)="activeTab.set('selectableRow')">
-            Selectable Row
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'sticky'" (click)="activeTab.set('sticky')">Sticky</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'resizable'" (click)="activeTab.set('resizable')">
-            Resizable
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'virtualScroll'" (click)="activeTab.set('virtualScroll')">
-            Virtual Scroll
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'editable'" (click)="activeTab.set('editable')">
-            Editable
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'footer'" (click)="activeTab.set('footer')">Footer</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'expandable'" (click)="activeTab.set('expandable')">
-            Expandable
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'grouped'" (click)="activeTab.set('grouped')">Grouped</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'reorderable'" (click)="activeTab.set('reorderable')">
-            Reorderable
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'keyboard'" (click)="activeTab.set('keyboard')">
-            Keyboard
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'hierarchy'" (click)="activeTab.set('hierarchy')">
-            Hierarchy
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'masterDetail'" (click)="activeTab.set('masterDetail')">
-            Master-Detail
-          </button>
-          <button
-            role="tab"
-            class="tab"
-            [class.tab-active]="activeTab() === 'nestedMasterDetail'"
-            (click)="activeTab.set('nestedMasterDetail')"
-          >
-            Nested Master-Detail
-          </button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <app-doc-section title="Basic Table" description="Simple table with sorting" [codeExample]="basicCode">
             <hk-table [data]="users()" [config]="basicConfig" (sortChange)="onSort($event)" />
@@ -183,6 +145,62 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               <span>{{ selectedUsers().length }} user(s) selected</span>
             </div>
           }
+        }
+
+        @if (activeTab() === 'filtering') {
+          <app-doc-section
+            title="All Filter Types"
+            description="Column-header filter dropdowns for every supported FilterType. Click the filter icon next to any header to try text, number, date, select, multi-select, boolean, date range, and number range filters."
+            [codeExample]="filteringCode"
+          >
+            <hk-table [data]="users()" [config]="filteringConfig" (filterChange)="onFilter($event)" />
+          </app-doc-section>
+
+          <app-doc-section
+            title="Grid-Style Filter Bar (Top Panel)"
+            description="Compose a reactive filter form above the table and drive it through the controller returned by createTable(). No viewChild, no template refs — just call filterGridConfig.applyColumnFilter(...) directly. Column header filter icons are hidden via enableFiltering: false while filter configs remain registered for programmatic use."
+            [codeExample]="filterGridCode"
+          >
+            <form [formGroup]="filterGridForm" class="bg-base-200/40 border border-base-content/10 rounded-box p-4 mb-4">
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div class="form-control">
+                  <label class="label py-1"><span class="label-text text-xs font-semibold">Buscar</span></label>
+                  <input type="text" class="input input-bordered input-sm w-full" placeholder="Nombre..." formControlName="name" />
+                </div>
+                <div class="form-control">
+                  <label class="label py-1"><span class="label-text text-xs font-semibold">Oficina</span></label>
+                  <select class="select select-bordered select-sm w-full" formControlName="dept">
+                    <option value="">Seleccione</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Sales">Sales</option>
+                    <option value="HR">HR</option>
+                    <option value="Finance">Finance</option>
+                  </select>
+                </div>
+                <div class="form-control lg:col-span-2">
+                  <label class="label py-1"><span class="label-text text-xs font-semibold">Fecha</span></label>
+                  <div class="flex gap-2">
+                    <input type="date" class="input input-bordered input-sm flex-1" aria-label="Desde" formControlName="dateFrom" />
+                    <input type="date" class="input input-bordered input-sm flex-1" aria-label="Hasta" formControlName="dateTo" />
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 flex justify-end">
+                <button type="button" class="btn btn-ghost btn-sm" (click)="clearFilterGrid()">
+                  <hk-lucide-icon name="X" [size]="14" />
+                  Limpiar filtros
+                </button>
+              </div>
+            </form>
+
+            <hk-table [data]="users()" [config]="filterGridConfig" (filterChange)="onFilter($event)" />
+          </app-doc-section>
+
+          <div class="alert alert-info">
+            <hk-lucide-icon name="Info" [size]="20" />
+            <span>Each column below demonstrates a different filter type. Open the dev console to see filterChange events.</span>
+          </div>
         }
 
         @if (activeTab() === 'selectableRow') {
@@ -621,7 +639,9 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
 })
 export class TableDemoComponent {
   private toast = inject(ToastService);
-  activeTab = signal<TableTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as TableTab);
   apiTab = signal<ApiSubTab>('hk-table');
 
   // Sample data
@@ -905,6 +925,127 @@ export class TableDemoComponent {
     pageSizeOptions: [5, 10, 25],
     totalItems: 8,
   };
+
+  // --- Filtering Showcase Config (one filter of every FilterType) ---
+  filteringConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
+    headers: {
+      id: 'ID',
+      name: 'Name (text)',
+      email: 'Email (text)',
+      role: 'Role (multiselect)',
+      department: 'Dept (select)',
+      salary: 'Salary (numberRange)',
+      status: 'Active (boolean)',
+      joinDate: 'Joined (dateRange)',
+    },
+    formatters: {
+      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      joinDate: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      status: (value) => {
+        const colors: Record<string, string> = {
+          active: 'badge-success',
+          inactive: 'badge-error',
+          pending: 'badge-warning',
+        };
+        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+      },
+    },
+    enableFiltering: true,
+    filters: [
+      // number filter (with comparison operators)
+      { field: 'id', type: 'number', placeholder: 'Filter by ID...' },
+      // text filter (contains/startsWith/endsWith/equals/isEmpty...)
+      { field: 'name', type: 'text', placeholder: 'Search name...' },
+      // text filter with restricted operator set
+      { field: 'email', type: 'text', operators: ['contains', 'startsWith', 'endsWith'], placeholder: 'Search email...' },
+      // multiselect filter (in operator, checkbox list)
+      {
+        field: 'role',
+        type: 'multiselect',
+        options: [
+          { label: 'Admin', value: 'admin' },
+          { label: 'Editor', value: 'editor' },
+          { label: 'Viewer', value: 'viewer' },
+        ],
+      },
+      // single-value select
+      {
+        field: 'department',
+        type: 'select',
+        options: [
+          { label: 'Engineering', value: 'Engineering' },
+          { label: 'Marketing', value: 'Marketing' },
+          { label: 'Sales', value: 'Sales' },
+          { label: 'HR', value: 'HR' },
+          { label: 'Finance', value: 'Finance' },
+        ],
+      },
+      // numberRange filter (between operator, min/max inputs)
+      { field: 'salary', type: 'numberRange' },
+      // boolean-style filter (mapped via select → Yes/No)
+      {
+        field: 'status',
+        type: 'select',
+        options: [
+          { label: 'Active', value: 'active' },
+          { label: 'Inactive', value: 'inactive' },
+          { label: 'Pending', value: 'pending' },
+        ],
+      },
+      // dateRange filter (between operator, two date inputs)
+      { field: 'joinDate', type: 'dateRange' },
+    ],
+  });
+
+  // --- Grid Filter Bar (top panel) ---
+  // Controller returned by createTable() — we drive it directly, no viewChild required.
+  filterGridConfig = createTable<User>({
+    visible: ['name', 'department', 'joinDate', 'role', 'status'],
+    headers: {
+      name: 'Nombre',
+      department: 'Oficina',
+      joinDate: 'Inicio',
+      role: 'Rol',
+      status: 'Estatus',
+    },
+    formatters: {
+      joinDate: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      status: (value) => {
+        const colors: Record<string, string> = {
+          active: 'badge-success',
+          inactive: 'badge-error',
+          pending: 'badge-warning',
+        };
+        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+      },
+    },
+    // enableFiltering: false hides the column-header filter icons while keeping
+    // the filter configs registered so applyColumnFilter() still works.
+    enableFiltering: false,
+    filters: [
+      { field: 'name', type: 'text' },
+      {
+        field: 'department',
+        type: 'select',
+        options: [
+          { label: 'Engineering', value: 'Engineering' },
+          { label: 'Marketing', value: 'Marketing' },
+          { label: 'Sales', value: 'Sales' },
+          { label: 'HR', value: 'HR' },
+          { label: 'Finance', value: 'Finance' },
+        ],
+      },
+      { field: 'joinDate', type: 'dateRange' },
+    ],
+  });
+
+  filterGridForm = inject(FormBuilder).nonNullable.group({
+    name: '',
+    dept: '',
+    dateFrom: '',
+    dateTo: '',
+  });
 
   // --- Sticky Columns Config ---
   stickyConfig = createTable<User>({
@@ -1937,6 +2078,27 @@ export class TableDemoComponent {
     console.log('Filter:', event);
   }
 
+  // --- Grid Filter Bar: one subscription pushes form values into the table controller ---
+  private _wireFilterGrid = this.filterGridForm.valueChanges
+    .pipe(debounceTime(200), takeUntilDestroyed())
+    .subscribe(({ name, dept, dateFrom, dateTo }) => {
+      // Scalar values: applyColumnFilter treats '' / null as "remove filter" automatically.
+      this.filterGridConfig.applyColumnFilter('name', name ?? '', 'contains');
+      this.filterGridConfig.applyColumnFilter('department', dept ?? '', 'equals');
+
+      // Range values need an explicit remove when both bounds are empty.
+      if (dateFrom || dateTo) {
+        this.filterGridConfig.applyColumnFilter('joinDate', [dateFrom, dateTo], 'between');
+      } else {
+        this.filterGridConfig.removeFilter('joinDate');
+      }
+    });
+
+  clearFilterGrid(): void {
+    this.filterGridForm.reset();
+    this.filterGridConfig.clearAllFilters();
+  }
+
   onSearch(event: unknown) {
     console.log('Search:', event);
   }
@@ -2067,6 +2229,133 @@ const config = createTable<User>({
   (selectionChange)="onSelection($event)"
   (sortChange)="onSort($event)"
 />`;
+
+  filteringCode = `// TypeScript — showcase all FilterType values
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
+  enableFiltering: true,
+  filters: [
+    // number — equals, notEquals, gt, lt, gte, lte, isEmpty, isNotEmpty
+    { field: 'id', type: 'number' },
+
+    // text — contains, equals, startsWith, endsWith, isEmpty, isNotEmpty
+    { field: 'name', type: 'text', placeholder: 'Search name...' },
+
+    // text with a restricted operator list
+    {
+      field: 'email',
+      type: 'text',
+      operators: ['contains', 'startsWith', 'endsWith'],
+    },
+
+    // multiselect — uses 'in' operator (checkbox list)
+    {
+      field: 'role',
+      type: 'multiselect',
+      options: [
+        { label: 'Admin', value: 'admin' },
+        { label: 'Editor', value: 'editor' },
+        { label: 'Viewer', value: 'viewer' },
+      ],
+    },
+
+    // select — single-value dropdown (equals)
+    {
+      field: 'department',
+      type: 'select',
+      options: [
+        { label: 'Engineering', value: 'Engineering' },
+        { label: 'Sales', value: 'Sales' },
+      ],
+    },
+
+    // numberRange — min/max inputs (between)
+    { field: 'salary', type: 'numberRange' },
+
+    // boolean — Yes/No dropdown (equals)
+    { field: 'isActive', type: 'boolean' },
+
+    // dateRange — from/to date pickers (between)
+    { field: 'joinDate', type: 'dateRange' },
+  ],
+});
+
+// Template
+<hk-table
+  [data]="users()"
+  [config]="config"
+  (filterChange)="onFilter($event)"
+/>
+
+// Handler
+onFilter(event: FilterChange<User>) {
+  console.log('changed field:', event.field);
+  console.log('all active filters:', event.filters);
+}`;
+
+  filterGridCode = `// Controller returned by createTable() — drive the table imperatively
+// with no viewChild and no template refs.
+import { createTable, TableController } from '@hakistack/ng-daisyui';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime } from 'rxjs/operators';
+
+@Component({
+  imports: [ReactiveFormsModule, TableComponent],
+  template: \`
+    <form [formGroup]="form">
+      <input formControlName="name" placeholder="Buscar" />
+      <select formControlName="dept">
+        <option value="">Oficina</option>
+        <option value="Engineering">Engineering</option>
+      </select>
+      <input type="date" formControlName="dateFrom" />
+      <input type="date" formControlName="dateTo" />
+      <button type="button" (click)="clear()">Limpiar</button>
+    </form>
+
+    <hk-table [data]="users()" [config]="table" />
+  \`,
+})
+class GridFilterBar {
+  // createTable() returns a TableController<T> — same object is the [config] binding
+  // AND the imperative handle.
+  table: TableController<User> = createTable<User>({
+    visible: ['name', 'department', 'joinDate'],
+    enableFiltering: false,   // hide column-header filter icons
+    filters: [                 // still registered so applyColumnFilter() works
+      { field: 'name', type: 'text' },
+      { field: 'department', type: 'select', options: [/* ... */] },
+      { field: 'joinDate', type: 'dateRange' },
+    ],
+  });
+
+  form = inject(FormBuilder).nonNullable.group({
+    name: '', dept: '', dateFrom: '', dateTo: '',
+  });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(debounceTime(200), takeUntilDestroyed())
+      .subscribe(({ name, dept, dateFrom, dateTo }) => {
+        // Empty scalar values are treated as "remove filter" by applyColumnFilter.
+        this.table.applyColumnFilter('name', name, 'contains');
+        this.table.applyColumnFilter('department', dept, 'equals');
+
+        // Range values need an explicit remove when both bounds are empty.
+        if (dateFrom || dateTo) {
+          this.table.applyColumnFilter('joinDate', [dateFrom, dateTo], 'between');
+        } else {
+          this.table.removeFilter('joinDate');
+        }
+      });
+  }
+
+  clear() {
+    this.form.reset();
+    this.table.clearAllFilters();
+  }
+}`;
 
   builderCode = `import { createTable } from '@hakistack/ng-daisyui';
 

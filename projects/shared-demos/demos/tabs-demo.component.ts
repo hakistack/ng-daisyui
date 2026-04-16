@@ -1,4 +1,7 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -21,17 +24,6 @@ type TabsTab = 'basic' | 'features' | 'vertical';
       importName="TabGroupComponent, TabPanelComponent"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'features'" (click)="activeTab.set('features')">
-            Features
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'vertical'" (click)="activeTab.set('vertical')">
-            Vertical
-          </button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
             <app-doc-section title="Basic Tabs" description="Simple horizontal tabs" [codeExample]="basicCode">
@@ -301,7 +293,10 @@ type TabsTab = 'basic' | 'features' | 'vertical';
   `,
 })
 export class TabsDemoComponent {
-  activeTab = signal<TabsTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as TabsTab);
+
   apiTab = signal<'tab-group' | 'tab-panel' | 'types'>('tab-group');
   basicTab = signal('overview');
   programmaticTab = signal('first');

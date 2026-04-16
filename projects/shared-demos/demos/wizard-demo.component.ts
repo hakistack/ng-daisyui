@@ -1,5 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { JsonPipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { DynamicFormComponent, createForm, field, step, ToastService, FormSubmissionData } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -21,16 +24,6 @@ type WizardTab = 'linear' | 'nonlinear';
       importName="DynamicFormComponent, createForm, field, step"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'linear'" (click)="activeTab.set('linear')">
-            Linear Wizard
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'nonlinear'" (click)="activeTab.set('nonlinear')">
-            Non-linear Wizard
-          </button>
-        </div>
-
         @if (activeTab() === 'linear') {
           <app-doc-section
             title="User Registration Wizard"
@@ -153,7 +146,10 @@ type WizardTab = 'linear' | 'nonlinear';
 })
 export class WizardDemoComponent {
   private toast = inject(ToastService);
-  activeTab = signal<WizardTab>('linear');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'linear') as WizardTab);
+
   apiTab = signal<'stepper-component' | 'step-builder' | 'configuration' | 'types'>('stepper-component');
   lastSubmission = signal<FormSubmissionData | null>(null);
   currentStep = signal<unknown>(null);

@@ -233,9 +233,11 @@
                       <button
                         type="button"
                         class="btn btn-sm transition-all duration-200"
-                        [class.btn-primary]="month.isSelected"
-                        [class.btn-ghost]="!month.isSelected"
-                        [class.hover:btn-primary]="!month.isSelected"
+                        [ngClass]="{
+                          'btn-primary': month.isSelected,
+                          'btn-ghost': !month.isSelected,
+                          'hover:btn-primary': !month.isSelected,
+                        }"
                         (click)="selectMonth(month.index)"
                         [attr.aria-pressed]="month.isSelected"
                       >
@@ -286,9 +288,11 @@
                       <button
                         type="button"
                         class="btn btn-sm transition-all duration-200"
-                        [class.btn-primary]="year.isSelected"
-                        [class.btn-ghost]="!year.isSelected"
-                        [class.hover:btn-primary]="!year.isSelected"
+                        [ngClass]="{
+                          'btn-primary': year.isSelected,
+                          'btn-ghost': !year.isSelected,
+                          'hover:btn-primary': !year.isSelected,
+                        }"
                         (click)="selectYear(year.year)"
                         [attr.aria-pressed]="year.isSelected"
                       >

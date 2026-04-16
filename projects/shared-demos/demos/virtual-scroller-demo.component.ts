@@ -1,4 +1,7 @@
-import { Component, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { VirtualScrollerComponent, VirtualScrollerLazyLoadEvent, VirtualScrollerScrollEvent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -38,16 +41,6 @@ function generateProducts(count: number): Product[] {
       importName="VirtualScrollerComponent"
     >
       <div examples class="space-y-6">
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'horizontal'" (click)="activeTab.set('horizontal')">
-            Horizontal
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'grid'" (click)="activeTab.set('grid')">Grid</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'lazy'" (click)="activeTab.set('lazy')">Lazy Loading</button>
-        </div>
-
-        <!-- Basic -->
         @if (activeTab() === 'basic') {
           <div class="grid gap-6 lg:grid-cols-2">
             <app-doc-section
@@ -254,7 +247,10 @@ function generateProducts(count: number): Product[] {
   `,
 })
 export class VirtualScrollerDemoComponent {
-  activeTab = signal<ExampleTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as ExampleTab);
+
   apiTab = signal<ApiTab>('component');
   gridCols = signal(3);
   lastScrollEvent = signal<VirtualScrollerScrollEvent | null>(null);

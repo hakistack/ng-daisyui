@@ -1,4 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { ToastService, LucideIconComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -21,18 +24,6 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
       importName="ToastService"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'features'" (click)="activeTab.set('features')">
-            Features
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'styles'" (click)="activeTab.set('styles')">Styles</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'advanced'" (click)="activeTab.set('advanced')">
-            Advanced
-          </button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
             <app-doc-section
@@ -262,8 +253,11 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
   `,
 })
 export class ToastDemoComponent {
+  private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
-  activeTab = signal<ToastTab>('basic');
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as ToastTab);
+
   apiTab = signal<ToastApiTab>('methods');
 
   showSuccess() {

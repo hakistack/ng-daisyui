@@ -8,6 +8,7 @@ import {
   CheckboxFieldOptions,
   ColorFieldOptions,
   ConditionalLogic,
+  ConditionShorthand,
   CreateFormInput,
   DateFieldOptions,
   DatetimeFieldOptions,
@@ -98,8 +99,7 @@ export function createForm(input: CreateFormInput): FormController {
 
 // ── Internal helpers ────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseCondition(condition?: string | [string, any]): ConditionalLogic[] {
+function parseCondition(condition?: ConditionShorthand): ConditionalLogic[] {
   if (!condition) return [];
 
   if (typeof condition === 'string') {

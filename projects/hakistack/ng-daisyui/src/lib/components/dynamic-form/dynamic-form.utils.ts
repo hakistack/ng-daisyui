@@ -7,8 +7,7 @@ export class FormUtils {
   private static readonly groupCache = new Map<string, Map<string, readonly FormFieldConfig[]>>();
 
   private static readonly EMPTY_VALIDATORS: ValidatorFn[] = Object.freeze([]) as unknown as ValidatorFn[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private static readonly EMPTY_ARRAY: readonly any[] = Object.freeze([]);
+  private static readonly EMPTY_ARRAY: readonly unknown[] = Object.freeze([]);
 
   private static readonly MAX_VALIDATOR_CACHE_SIZE = 500;
   private static readonly MAX_GROUP_CACHE_SIZE = 100;
@@ -30,7 +29,16 @@ export class FormUtils {
    * Creates Angular validators from a field config's flattened validation properties
    */
   static createValidators(field: FormFieldConfig): ValidatorFn[] {
-    if (!field.required && !field.minLength && !field.maxLength && !field.min && field.max == null && !field.email && !field.pattern && !field.customValidators?.length) {
+    if (
+      !field.required &&
+      !field.minLength &&
+      !field.maxLength &&
+      !field.min &&
+      field.max == null &&
+      !field.email &&
+      !field.pattern &&
+      !field.customValidators?.length
+    ) {
       return this.EMPTY_VALIDATORS;
     }
 
@@ -52,7 +60,14 @@ export class FormUtils {
    * Creates validators with conditional required logic
    */
   static createValidatorsWithConditionalRequired(field: FormFieldConfig, isRequired: boolean): ValidatorFn[] {
-    const hasBase = field.minLength || field.maxLength || field.min != null || field.max != null || field.email || field.pattern || field.customValidators?.length;
+    const hasBase =
+      field.minLength ||
+      field.maxLength ||
+      field.min != null ||
+      field.max != null ||
+      field.email ||
+      field.pattern ||
+      field.customValidators?.length;
 
     if (!hasBase && !isRequired) return this.EMPTY_VALIDATORS;
 

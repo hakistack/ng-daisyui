@@ -4,7 +4,6 @@ import { isPlatformBrowser } from '@angular/common';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-
 /**
  * Metadata for form state (wizard step, validation state, etc.)
  */
@@ -52,9 +51,7 @@ export type FormStateOptions = FormStateApiOptions | FormStateLocalStorageOption
  */
 export type FormStateStorageMode = 'api' | 'localStorage';
 
-
 const FORM_STATE_OPTIONS = new InjectionToken<FormStateOptions>('FORM_STATE_OPTIONS');
-
 
 /**
  * Provides form state auto-save functionality.
@@ -71,7 +68,6 @@ const FORM_STATE_OPTIONS = new InjectionToken<FormStateOptions>('FORM_STATE_OPTI
 export function provideFormState(options: FormStateOptions): EnvironmentProviders {
   return makeEnvironmentProviders([{ provide: FORM_STATE_OPTIONS, useValue: options }]);
 }
-
 
 /**
  * Service for persisting and loading form state.
@@ -141,9 +137,6 @@ export class FormStateService {
     const mode = this.resolveMode(storageOverride);
 
     if (!this.canUseMode(mode)) {
-      if (storageOverride === 'api' && this.options?.mode !== 'api') {
-        console.warn('FormStateService: API mode override requires provideFormState({ mode: "api", apiUrl: "..." })');
-      }
       return of(null);
     }
 
@@ -162,13 +155,15 @@ export class FormStateService {
    * @param metadata - Optional metadata (step info, etc.)
    * @param storageOverride - Override global storage mode for this operation
    */
-  save(formId: string, values: Record<string, unknown>, metadata?: FormStateMetadata, storageOverride?: FormStateStorageMode): Observable<void> {
+  save(
+    formId: string,
+    values: Record<string, unknown>,
+    metadata?: FormStateMetadata,
+    storageOverride?: FormStateStorageMode,
+  ): Observable<void> {
     const mode = this.resolveMode(storageOverride);
 
     if (!this.canUseMode(mode)) {
-      if (storageOverride === 'api' && this.options?.mode !== 'api') {
-        console.warn('FormStateService: API mode override requires provideFormState({ mode: "api", apiUrl: "..." })');
-      }
       return of(void 0);
     }
 
@@ -208,7 +203,6 @@ export class FormStateService {
     return this.http!.delete<void>(`${this.apiUrl}/${formId}`);
   }
 
-
   private loadFromLocalStorage(formId: string): FormState | null {
     if (!this.isBrowser) return null;
 
@@ -227,9 +221,7 @@ export class FormStateService {
     try {
       const key = this.keyPrefix + state.formId;
       localStorage.setItem(key, JSON.stringify(state));
-    } catch (e) {
-      console.warn('FormStateService: Failed to save to localStorage', e);
-    }
+    } catch {}
   }
 
   private clearFromLocalStorage(formId: string): void {

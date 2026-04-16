@@ -61,13 +61,7 @@ function pressKey(component: SelectComponent, key: string): void {
 @Component({
   selector: 'hk-test-host',
   imports: [SelectComponent, ReactiveFormsModule],
-  template: `
-    <hk-select
-      [options]="options()"
-      [multiple]="multiple()"
-      [formControl]="control"
-    />
-  `,
+  template: ` <hk-select [options]="options()" [multiple]="multiple()" [formControl]="control" /> `,
 })
 class TestHostComponent {
   readonly control = new FormControl<string | string[] | null>(null);
@@ -173,8 +167,8 @@ describe('SelectComponent', () => {
     it('should display option labels', () => {
       openDropdown(fixture);
       const buttons = queryAll(fixture, '[role="option"] button');
-      const labels = buttons.map(b => b.textContent?.trim());
-      expect(labels).toEqual(MOCK_OPTIONS.map(o => o.label));
+      const labels = buttons.map((b) => b.textContent?.trim());
+      expect(labels).toEqual(MOCK_OPTIONS.map((o) => o.label));
     });
 
     it('should select an option on click and close dropdown', () => {
@@ -445,7 +439,7 @@ describe('SelectComponent', () => {
 
       const filtered = component.filteredOptions();
       expect(filtered.length).toBeGreaterThan(0);
-      expect(filtered.some(o => o.label.toLowerCase().includes('ban'))).toBe(true);
+      expect(filtered.some((o) => o.label.toLowerCase().includes('ban'))).toBe(true);
     });
 
     it('should emit searchChange when search term changes', () => {
@@ -706,7 +700,7 @@ describe('SelectComponent', () => {
       fixture.detectChanges();
 
       expect(component.selectedOptions().length).toBe(2);
-      expect(component.selectedOptions().map(o => o.value)).toEqual(['apple', 'cherry']);
+      expect(component.selectedOptions().map((o) => o.value)).toEqual(['apple', 'cherry']);
     });
 
     it('should toggle option off when clicked again', () => {
@@ -894,7 +888,7 @@ describe('SelectComponent', () => {
       component.selectAll();
       fixture.detectChanges();
 
-      const selectedValues = component.selectedOptions().map(o => o.value);
+      const selectedValues = component.selectedOptions().map((o) => o.value);
       expect(selectedValues).not.toContain('b');
       expect(selectedValues).toEqual(['a', 'c']);
     });
@@ -1275,7 +1269,7 @@ describe('SelectComponent', () => {
 
       component.writeValue(['apple', 'cherry']);
       expect(component.selectedOptions().length).toBe(2);
-      expect(component.selectedOptions().map(o => o.value)).toEqual(['apple', 'cherry']);
+      expect(component.selectedOptions().map((o) => o.value)).toEqual(['apple', 'cherry']);
     });
 
     it('should handle writeValue for multi-select with SelectOption array', () => {
@@ -1304,7 +1298,7 @@ describe('SelectComponent', () => {
       component.writeValue(['apple', 'nonexistent', 'cherry']);
       // Only matching options should be selected
       expect(component.selectedOptions().length).toBe(2);
-      expect(component.selectedOptions().map(o => o.value)).toEqual(['apple', 'cherry']);
+      expect(component.selectedOptions().map((o) => o.value)).toEqual(['apple', 'cherry']);
     });
 
     it('should handle options with id property for trackBy', () => {
@@ -1665,47 +1659,6 @@ describe('SelectComponent', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Mock data generation
-  // -------------------------------------------------------------------------
-
-  describe('mock data generation', () => {
-    it('should generate mock data when enabled and no options provided', () => {
-      fixture.componentRef.setInput('generateMockData', true);
-      fixture.componentRef.setInput('mockDataCount', 50);
-      fixture.detectChanges();
-
-      expect(component.effectiveOptions().length).toBe(50);
-    });
-
-    it('should prefer provided options over mock data', () => {
-      fixture.componentRef.setInput('options', MOCK_OPTIONS);
-      fixture.componentRef.setInput('generateMockData', true);
-      fixture.detectChanges();
-
-      expect(component.effectiveOptions().length).toBe(MOCK_OPTIONS.length);
-    });
-
-    it('should not generate mock data when disabled', () => {
-      fixture.componentRef.setInput('generateMockData', false);
-      fixture.detectChanges();
-
-      expect(component.effectiveOptions().length).toBe(0);
-    });
-
-    it('should generate options with labels and values', () => {
-      fixture.componentRef.setInput('generateMockData', true);
-      fixture.componentRef.setInput('mockDataCount', 5);
-      fixture.detectChanges();
-
-      const opts = component.effectiveOptions();
-      for (const opt of opts) {
-        expect(opt.label).toBeTruthy();
-        expect(opt.value).toBeTruthy();
-      }
-    });
-  });
-
-  // -------------------------------------------------------------------------
   // Document click outside (close dropdown)
   // -------------------------------------------------------------------------
 
@@ -1833,7 +1786,7 @@ describe('SelectComponent (FormControl integration)', () => {
 
     const selectComponent = hostFixture.debugElement.children[0].componentInstance as SelectComponent;
     expect(selectComponent.selectedOptions().length).toBe(2);
-    expect(selectComponent.selectedOptions().map(o => o.value)).toEqual(['apple', 'cherry']);
+    expect(selectComponent.selectedOptions().map((o) => o.value)).toEqual(['apple', 'cherry']);
   });
 
   it('should update display when FormControl value changes', () => {

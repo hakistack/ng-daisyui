@@ -205,8 +205,7 @@ export class DynamicFormComponent {
       return of(pending).pipe(
         debounceTime(autoSaveConfig?.debounceMs ?? 1000),
         switchMap(({ formId, values, metadata }) => this.formStateService.save(formId, values, metadata, storageMode)),
-        catchError((error) => {
-          console.error('Auto-save failed:', error);
+        catchError(() => {
           return of(null);
         }),
       );

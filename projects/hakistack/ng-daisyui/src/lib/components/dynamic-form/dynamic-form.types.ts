@@ -1,5 +1,5 @@
 import { Signal } from '@angular/core';
-import { ValidatorFn } from '@angular/forms';
+import { FormGroup, ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
 
 export type FieldType =
@@ -24,8 +24,7 @@ export type FieldType =
   | 'editor'
   | 'hidden';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface FormSelectOption<T = any> {
+export interface FormSelectOption<T = string> {
   readonly value: T;
   readonly label: string;
   readonly disabled?: boolean;
@@ -35,23 +34,20 @@ export interface FormSelectOption<T = any> {
 export interface ConditionalLogic {
   readonly field: string;
   readonly operator: 'equals' | 'not-equals' | 'contains' | 'greater-than' | 'less-than' | 'in' | 'not-in' | 'function';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly value: any | ((fieldValue: any, formValues: Record<string, any>, formGroup?: any) => boolean);
+  readonly value: unknown | ((fieldValue: unknown, formValues: Record<string, unknown>, formGroup?: FormGroup) => boolean);
 }
 
 /**
  * Configuration for loading options dynamically based on another field's value.
  * When the watched field changes, loadFn is called to produce new options.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface OptionsFromConfig<T = any> {
+export interface OptionsFromConfig<T = unknown> {
   /** The key of the field to watch */
   readonly field: string;
   /** Function called with the watched field's value. Returns options synchronously, as a Promise, or as an Observable. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly loadFn: (
     value: T,
-    formValues: Record<string, any>,
+    formValues: Record<string, unknown>,
   ) => FormSelectOption[] | Promise<FormSelectOption[]> | Observable<FormSelectOption[]>;
   /** Placeholder text shown while options are loading */
   readonly loadingPlaceholder?: string;
@@ -61,14 +57,12 @@ export interface OptionsFromConfig<T = any> {
 
 // ── User-facing field option interfaces ─────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ConditionShorthand = string | [string, any] | [string, (value: any, formValues?: Record<string, any>) => boolean];
+export type ConditionShorthand = string | [string, unknown] | [string, (value: unknown, formValues?: Record<string, unknown>) => boolean];
 
 /** Shared options available on every field type */
 export interface BaseFieldOptions {
   placeholder?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultValue?: any;
+  defaultValue?: unknown;
   helpText?: string;
   /** Grid column span (1-12). Can be responsive: { default: 12, md: 6, lg: 4 } */
   colSpan?: number | ResponsiveColSpan;
@@ -193,8 +187,7 @@ export interface EditorFieldOptions extends BaseFieldOptions {
 }
 
 export interface HiddenFieldOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultValue?: any;
+  defaultValue?: unknown;
 }
 
 // ── Internal field config (consumed by the component) ───────────────────────
@@ -205,8 +198,7 @@ export interface FormFieldConfig {
   readonly type: FieldType;
   readonly label: string;
   readonly placeholder?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly defaultValue?: any;
+  readonly defaultValue?: unknown;
   // Flattened validation
   readonly required?: boolean;
   readonly minLength?: number;
@@ -349,23 +341,20 @@ export interface FormConfig {
 }
 
 export interface FormSubmissionData {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly values: Record<string, any>;
+  readonly values: Record<string, unknown>;
   readonly valid: boolean;
   readonly errors: Record<string, string[]>;
   readonly completedSteps?: string[];
   readonly currentStep?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type FormValues<T extends readonly FormFieldConfig[]> = Record<T[number]['key'], any>;
+export type FormValues<T extends readonly FormFieldConfig[]> = Record<T[number]['key'], unknown>;
 
 export interface StepChangeEvent {
   readonly previousStep: string | null;
   readonly currentStep: string;
   readonly stepIndex: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly formValues: Record<string, any>;
+  readonly formValues: Record<string, unknown>;
 }
 
 /**

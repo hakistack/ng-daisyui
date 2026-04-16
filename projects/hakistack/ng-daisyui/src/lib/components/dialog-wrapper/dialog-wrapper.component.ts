@@ -1,7 +1,18 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { CdkPortalOutlet, ComponentPortal, PortalModule } from '@angular/cdk/portal';
 
-import { ChangeDetectionStrategy, Component, ComponentRef, ElementRef, inject, Injector, OnDestroy, OnInit, Type, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ComponentRef,
+  ElementRef,
+  inject,
+  Injector,
+  OnDestroy,
+  OnInit,
+  Type,
+  viewChild,
+} from '@angular/core';
 
 interface InternalWrapperData<T = unknown> {
   /** The actual "inner" component to render */
@@ -45,7 +56,6 @@ export class DialogWrapperComponent<T = unknown> implements OnInit, OnDestroy {
 
   private createAndAttachPortal(): void {
     if (!this.data?.component) {
-      console.warn('DialogWrapperComponent: No component provided in data');
       return;
     }
 
@@ -57,8 +67,7 @@ export class DialogWrapperComponent<T = unknown> implements OnInit, OnDestroy {
 
       this.portal = new ComponentPortal(this.data.component, null, childInjector);
       this.componentRef = this.outlet().attachComponentPortal(this.portal);
-    } catch (error) {
-      console.error('DialogWrapperComponent: Failed to create portal:', error);
+    } catch {
       this.dialogRef.close();
     }
   }

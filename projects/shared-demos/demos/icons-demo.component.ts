@@ -1,5 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { map } from 'rxjs';
 import { LucideIconComponent, IconName } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -21,17 +24,6 @@ type IconsTab = 'basic' | 'categories' | 'playground';
       importName="LucideIconComponent"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'categories'" (click)="activeTab.set('categories')">
-            Categories
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'playground'" (click)="activeTab.set('playground')">
-            Playground
-          </button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
             <app-doc-section title="Basic Usage" description="Simple icon rendering" [codeExample]="basicCode">
@@ -314,7 +306,10 @@ type IconsTab = 'basic' | 'categories' | 'playground';
   `,
 })
 export class IconsDemoComponent {
-  activeTab = signal<IconsTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as IconsTab);
+
   apiTab = signal<'component' | 'usage' | 'types'>('component');
 
   // Playground state

@@ -1,4 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { MotionAnimateDirective, MotionHoverDirective, LucideIconComponent } from '@hakistack/ng-daisyui';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
@@ -28,13 +31,6 @@ type MotionTab = 'animate' | 'hover' | 'presets';
       importName="MotionAnimateDirective"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'animate'" (click)="activeTab.set('animate')">Animate</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'hover'" (click)="activeTab.set('hover')">Hover</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'presets'" (click)="activeTab.set('presets')">Presets</button>
-        </div>
-
         @if (activeTab() === 'animate') {
           <div class="space-y-6">
             <app-doc-section title="Animate on Load" description="Elements animate when they appear" [codeExample]="loadCode">
@@ -350,7 +346,10 @@ type MotionTab = 'animate' | 'hover' | 'presets';
   `,
 })
 export class MotionDemoComponent {
-  activeTab = signal<MotionTab>('animate');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'animate') as MotionTab);
+
   apiTab = signal<'animate-directive' | 'hover-directive' | 'scroll-directive' | 'options-types'>('animate-directive');
   showLoadDemo = signal(true);
   showStaggerDemo = signal(false);

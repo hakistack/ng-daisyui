@@ -1,6 +1,8 @@
-import { Component, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { TreeComponent, TreeNode, LucideIconComponent, ToastService, createTree, node } from '@hakistack/ng-daisyui';
-import { inject } from '@angular/core';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -27,22 +29,6 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
       importName="TreeComponent, createTree, node"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed w-fit flex-wrap">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'selection'" (click)="activeTab.set('selection')">
-            Single Selection
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'checkbox'" (click)="activeTab.set('checkbox')">
-            Checkbox
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'dragdrop'" (click)="activeTab.set('dragdrop')">
-            Drag & Drop
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'lazy'" (click)="activeTab.set('lazy')">Lazy Loading</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'filter'" (click)="activeTab.set('filter')">Filter</button>
-        </div>
-
         <!-- Basic Tab -->
         @if (activeTab() === 'basic') {
           <app-doc-section
@@ -279,8 +265,9 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 })
 export class TreeDemoComponent {
   private toast = inject(ToastService);
-
-  activeTab = signal<DemoTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as DemoTab);
   apiTab = signal<'component' | 'tree-config' | 'node-helpers' | 'types'>('component');
 
   // Selection state

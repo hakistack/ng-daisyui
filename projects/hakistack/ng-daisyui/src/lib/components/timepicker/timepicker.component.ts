@@ -11,12 +11,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, NG_VALIDATORS, ValidationErrors, Validator, AbstractControl } from '@angular/forms';
 import { generateUniqueId } from '../../utils/generate-uuid';
 import { ClockPosition, TimepickerEvent, TimepickerPosition, TimepickerView } from './timepicker.types';
 
 @Component({
   selector: 'hk-timepicker',
+  imports: [CommonModule],
   templateUrl: './timepicker.component.html',
   styleUrls: ['./timepicker.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

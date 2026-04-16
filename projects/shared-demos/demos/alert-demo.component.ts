@@ -1,4 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { AlertService, LucideIconComponent, type AlertSize } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -21,18 +24,6 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
       importName="AlertService"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'confirm'" (click)="activeTab.set('confirm')">
-            Confirmations
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'loading'" (click)="activeTab.set('loading')">Loading</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'advanced'" (click)="activeTab.set('advanced')">
-            Advanced
-          </button>
-        </div>
-
         @if (activeTab() === 'basic') {
           <div class="space-y-6">
             <app-doc-section
@@ -349,8 +340,11 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
   `,
 })
 export class AlertDemoComponent {
+  private route = inject(ActivatedRoute);
   private alert = inject(AlertService);
-  activeTab = signal<AlertTab>('basic');
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as AlertTab);
+
   apiTab = signal<AlertApiTab>('methods');
   lastResult: { isConfirmed: boolean; isDismissed: boolean; isCancelled: boolean; dismissReason?: string } | null = null;
 

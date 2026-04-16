@@ -10,11 +10,13 @@
     <!-- Node content -->
     <div
       class="card bg-base-100 border border-base-300 shadow-sm px-5 py-3 min-w-35 relative transition-all duration-200"
-      [class.cursor-pointer]="selectionMode() && node.selectable !== false"
-      [class.hover:shadow-md]="selectionMode() && node.selectable !== false"
-      [class.hover:border-primary]="selectionMode() && node.selectable !== false"
-      [class.ring-2]="isNodeSelected(node)"
-      [class.ring-primary]="isNodeSelected(node)"
+      [ngClass]="{
+        'cursor-pointer': selectionMode() && node.selectable !== false,
+        'hover:shadow-md': selectionMode() && node.selectable !== false,
+        'hover:border-primary': selectionMode() && node.selectable !== false,
+        'ring-2': isNodeSelected(node),
+        'ring-primary': isNodeSelected(node),
+      }"
       [style]="getAccentStyle(node)"
       (click)="selectNode($event, node)"
       [attr.role]="selectionMode() ? 'button' : null"

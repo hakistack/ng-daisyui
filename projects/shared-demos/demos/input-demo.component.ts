@@ -1,4 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
 import { InputComponent, InputColor, InputMaskDirective } from '@hakistack/ng-daisyui';
@@ -32,19 +35,6 @@ type ApiTab = 'component' | 'configs' | 'types';
       importName="InputComponent"
     >
       <div examples class="space-y-6">
-        <!-- Variant Tabs -->
-        <div role="tablist" class="tabs tabs-box tabs-boxed">
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'basic'" (click)="activeTab.set('basic')">Basic</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'variants'" (click)="activeTab.set('variants')">
-            Variants
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'styling'" (click)="activeTab.set('styling')">Styling</button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'forms'" (click)="activeTab.set('forms')">
-            Reactive Forms
-          </button>
-          <button role="tab" class="tab" [class.tab-active]="activeTab() === 'mask'" (click)="activeTab.set('mask')">Input Mask</button>
-        </div>
-
         <!-- Basic Tab -->
         @if (activeTab() === 'basic') {
           <div class="grid gap-6 lg:grid-cols-2">
@@ -415,7 +405,9 @@ type ApiTab = 'component' | 'configs' | 'types';
   `,
 })
 export class InputDemoComponent {
-  activeTab = signal<ExampleTab>('basic');
+  private route = inject(ActivatedRoute);
+  private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
+  activeTab = computed(() => (this.featureParam() ?? 'basic') as ExampleTab);
   apiTab = signal<ApiTab>('component');
 
   colors: InputColor[] = ['neutral', 'primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error'];

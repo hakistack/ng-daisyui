@@ -75,6 +75,7 @@ export type {
   FieldType,
   FormStep,
   StepperConfig,
+  ConditionShorthand,
   ConditionalLogic,
   FormValues,
   StepChangeEvent,
