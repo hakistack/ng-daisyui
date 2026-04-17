@@ -63,21 +63,10 @@ export class OrganizationChartComponent<T = unknown> {
   /** Line color */
   readonly lineColor = input<string>('');
 
-  /** Emitted when a node is selected */
-  // eslint-disable-next-line @angular-eslint/no-output-on-prefix
-  readonly onNodeSelect = output<OrgChartNodeSelectEvent<T>>();
-
-  /** Emitted when a node is unselected */
-  // eslint-disable-next-line @angular-eslint/no-output-on-prefix
-  readonly onNodeUnselect = output<OrgChartNodeUnselectEvent<T>>();
-
-  /** Emitted when a node is expanded */
-  // eslint-disable-next-line @angular-eslint/no-output-on-prefix
-  readonly onNodeExpand = output<OrgChartNodeExpandEvent<T>>();
-
-  /** Emitted when a node is collapsed */
-  // eslint-disable-next-line @angular-eslint/no-output-on-prefix
-  readonly onNodeCollapse = output<OrgChartNodeCollapseEvent<T>>();
+  readonly nodeSelect = output<OrgChartNodeSelectEvent<T>>();
+  readonly nodeUnselect = output<OrgChartNodeUnselectEvent<T>>();
+  readonly nodeExpand = output<OrgChartNodeExpandEvent<T>>();
+  readonly nodeCollapse = output<OrgChartNodeCollapseEvent<T>>();
 
   /** Emitted when selection changes (for two-way binding) */
   readonly selectionChange = output<TreeNode<T> | TreeNode<T>[] | null>();
@@ -112,7 +101,7 @@ export class OrganizationChartComponent<T = unknown> {
   }
 
   isExpanded(node: TreeNode<T>): boolean {
-    return node.expanded === true;
+    return !!node.expanded;
   }
 
   getNodeIcon(node: TreeNode<T>): IconName | undefined {
@@ -138,9 +127,9 @@ export class OrganizationChartComponent<T = unknown> {
     node.expanded = !wasExpanded;
 
     if (node.expanded) {
-      this.onNodeExpand.emit({ originalEvent: event, node });
+      this.nodeExpand.emit({ originalEvent: event, node });
     } else {
-      this.onNodeCollapse.emit({ originalEvent: event, node });
+      this.nodeCollapse.emit({ originalEvent: event, node });
     }
   }
 
@@ -156,27 +145,27 @@ export class OrganizationChartComponent<T = unknown> {
       if (isSelected) {
         // Unselect
         this._selection.set([]);
-        this.onNodeUnselect.emit({ originalEvent: event, node });
+        this.nodeUnselect.emit({ originalEvent: event, node });
         this.selectionChange.emit(null);
       } else {
         // Unselect previous and select new
         const previousSelection = this._selection();
         if (previousSelection.length > 0) {
-          this.onNodeUnselect.emit({ originalEvent: event, node: previousSelection[0] });
+          this.nodeUnselect.emit({ originalEvent: event, node: previousSelection[0] });
         }
         this._selection.set([node]);
-        this.onNodeSelect.emit({ originalEvent: event, node });
+        this.nodeSelect.emit({ originalEvent: event, node });
         this.selectionChange.emit(node);
       }
     } else if (mode === 'multiple' || mode === 'checkbox') {
       if (isSelected) {
         // Remove from selection
         this._selection.update((current) => current.filter((n) => !this.isSameNode(n, node)));
-        this.onNodeUnselect.emit({ originalEvent: event, node });
+        this.nodeUnselect.emit({ originalEvent: event, node });
       } else {
         // Add to selection
         this._selection.update((current) => [...current, node]);
-        this.onNodeSelect.emit({ originalEvent: event, node });
+        this.nodeSelect.emit({ originalEvent: event, node });
       }
       this.selectionChange.emit(this._selection().length > 0 ? [...this._selection()] : null);
     }

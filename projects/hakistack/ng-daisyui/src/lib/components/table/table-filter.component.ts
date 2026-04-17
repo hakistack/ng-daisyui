@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, input, OnInit, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
+import { SelectComponent, SelectOption } from '../select/select.component';
+import { DatepickerComponent } from '../datepicker/datepicker.component';
 import { ColumnDefinition, ColumnFilter, FilterConfig, FilterOperator } from './table.types';
 
 export interface FilterApplyEvent {
@@ -11,7 +13,7 @@ export interface FilterApplyEvent {
 
 @Component({
   selector: 'hk-table-filter',
-  imports: [FormsModule, LucideIconComponent],
+  imports: [FormsModule, LucideIconComponent, SelectComponent, DatepickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-3">
@@ -66,42 +68,43 @@ export interface FilterApplyEvent {
 
       <!-- Select Filter -->
       @if (filterConfig().type === 'select') {
-        <div class="flex flex-col gap-2">
-          <select class="select select-sm" [(ngModel)]="selectValue">
-            <option value="">-- Select --</option>
-            @for (option of filterConfig().options ?? []; track option.value) {
-              <option [ngValue]="option.value">{{ option.label }}</option>
-            }
-          </select>
-        </div>
+        <hk-select
+          [options]="selectOptionsSignal()"
+          [ngModel]="selectValueString()"
+          (ngModelChange)="onSelectChange($event)"
+          placeholder="-- Select --"
+          size="sm"
+          [allowClear]="true"
+          [enableSearch]="selectOptionsSignal().length > 6"
+        />
       }
 
       <!-- Boolean Filter -->
       @if (filterConfig().type === 'boolean') {
-        <div class="flex flex-col gap-2">
-          <select class="select select-sm" [ngModel]="booleanValueString()" (ngModelChange)="onBooleanChange($event)">
-            <option value="">-- Select --</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
+        <hk-select
+          [options]="booleanOptions"
+          [ngModel]="booleanValueString()"
+          (ngModelChange)="onBooleanChange($event)"
+          placeholder="-- Select --"
+          size="sm"
+          [allowClear]="true"
+        />
       }
 
       <!-- Multi-Select Filter -->
       @if (filterConfig().type === 'multiselect') {
-        <div class="flex max-h-48 flex-col gap-2 overflow-y-auto">
-          @for (option of filterConfig().options ?? []; track option.value) {
-            <label class="flex cursor-pointer items-center gap-2 py-1">
-              <input
-                type="checkbox"
-                class="checkbox checkbox-sm"
-                [checked]="isOptionSelected(option.value)"
-                (change)="toggleMultiSelectOption(option.value)"
-              />
-              <span class="text-sm">{{ option.label }}</span>
-            </label>
-          }
-        </div>
+        <hk-select
+          [options]="selectOptionsSignal()"
+          [multiple]="true"
+          [ngModel]="multiSelectStrings()"
+          (ngModelChange)="onMultiSelectChange($event)"
+          placeholder="Select values..."
+          size="sm"
+          [enableSearch]="selectOptionsSignal().length > 6"
+          [showSelectAll]="true"
+          [chipDisplay]="true"
+          [maxChipsVisible]="2"
+        />
       }
 
       <!-- Date Filter -->
@@ -113,7 +116,13 @@ export interface FilterApplyEvent {
             }
           </select>
 
-          <input type="date" class="input input-sm" [(ngModel)]="dateValue" />
+          <hk-datepicker
+            [ngModel]="dateValueAsDate()"
+            (ngModelChange)="onDateChange($event)"
+            placeholder="Select date"
+            [showClearButton]="true"
+            [showTodayButton]="true"
+          />
         </div>
       }
 
@@ -130,10 +139,13 @@ export interface FilterApplyEvent {
 
       <!-- Date Range Filter -->
       @if (filterConfig().type === 'dateRange') {
-        <div class="flex flex-col gap-2">
-          <input type="date" class="input input-sm" [(ngModel)]="dateRangeStart" placeholder="From" />
-          <input type="date" class="input input-sm" [(ngModel)]="dateRangeEnd" placeholder="To" />
-        </div>
+        <hk-datepicker
+          [range]="true"
+          [ngModel]="dateRangeAsObject()"
+          (ngModelChange)="onDateRangeChange($event)"
+          placeholder="Select date range"
+          [showClearButton]="true"
+        />
       }
 
       <!-- Action Buttons -->
@@ -168,17 +180,88 @@ export class TableFilterComponent<T extends object> implements OnInit {
 
   selectedOperator = signal<FilterOperator>('contains');
 
+  readonly booleanOptions: SelectOption[] = [
+    { value: 'true', label: 'Yes' },
+    { value: 'false', label: 'No' },
+  ];
+
+  /** Convert filter config options to SelectOption[] for hk-select */
+  readonly selectOptionsSignal = computed<SelectOption[]>(() => {
+    const opts = this.filterConfig().options ?? [];
+    return opts.map((o) => ({ value: String(o.value), label: o.label }));
+  });
+
+  /** String representation of the current select value for hk-select */
+  selectValueString(): string {
+    const val = this.selectValue();
+    return val == null || val === '' ? '' : String(val);
+  }
+
   booleanValueString(): string {
     const val = this.booleanValue();
     if (val === null) return '';
     return val ? 'true' : 'false';
   }
 
-  onBooleanChange(value: string): void {
-    if (value === '') {
+  /** String[] of multiselect values for hk-select multiple */
+  multiSelectStrings(): string[] {
+    return this.multiSelectValue().map((v) => String(v));
+  }
+
+  /** Convert date string to Date for hk-datepicker */
+  dateValueAsDate(): Date | null {
+    const v = this.dateValue();
+    if (!v) return null;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  /** Convert dateRange strings to object for hk-datepicker range */
+  dateRangeAsObject(): { start: Date; end: Date } | null {
+    const s = this.dateRangeStart();
+    const e = this.dateRangeEnd();
+    if (!s && !e) return null;
+    const start = s ? new Date(s) : new Date();
+    const end = e ? new Date(e) : new Date();
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+    return { start, end };
+  }
+
+  /** Handle hk-select single selection change */
+  onSelectChange(value: string | null): void {
+    this.selectValue.set(value ?? '');
+  }
+
+  onBooleanChange(value: string | null): void {
+    if (!value || value === '') {
       this.booleanValue.set(null);
     } else {
       this.booleanValue.set(value === 'true');
+    }
+  }
+
+  /** Handle hk-select multi-selection change */
+  onMultiSelectChange(values: string[]): void {
+    this.multiSelectValue.set(values ?? []);
+  }
+
+  /** Handle hk-datepicker single date change */
+  onDateChange(date: Date | null): void {
+    if (date) {
+      this.dateValue.set(date.toISOString().split('T')[0]);
+    } else {
+      this.dateValue.set('');
+    }
+  }
+
+  /** Handle hk-datepicker range change */
+  onDateRangeChange(range: { start: Date; end: Date } | null): void {
+    if (range) {
+      this.dateRangeStart.set(range.start.toISOString().split('T')[0]);
+      this.dateRangeEnd.set(range.end.toISOString().split('T')[0]);
+    } else {
+      this.dateRangeStart.set('');
+      this.dateRangeEnd.set('');
     }
   }
 
@@ -224,21 +307,6 @@ export class TableFilterComponent<T extends object> implements OnInit {
           }
           break;
       }
-    }
-  }
-
-  isOptionSelected(value: unknown): boolean {
-    return this.multiSelectValue().includes(value);
-  }
-
-  toggleMultiSelectOption(value: unknown): void {
-    const current = this.multiSelectValue();
-    const index = current.indexOf(value);
-
-    if (index > -1) {
-      this.multiSelectValue.set(current.filter((v) => v !== value));
-    } else {
-      this.multiSelectValue.set([...current, value]);
     }
   }
 

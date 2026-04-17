@@ -382,7 +382,6 @@ export class DynamicFormComponent {
       currentStep: this.currentStep()?.name,
     };
 
-    // Emit output event
     this.formSubmit.emit(submissionData);
 
     // Call config callback if provided
@@ -408,7 +407,6 @@ export class DynamicFormComponent {
       this.completedSteps.set(new Set());
     }
 
-    // Emit output event
     this.formReset.emit();
 
     // Call config callback if provided
@@ -454,7 +452,6 @@ export class DynamicFormComponent {
     const config = this.config();
     if (!config.steps) return;
 
-    // Check if navigation is allowed
     const stepperConfig = config.stepperConfig;
 
     // In linear mode, can only go to completed steps or current step
@@ -530,7 +527,6 @@ export class DynamicFormComponent {
     // Update current step index
     this.currentStepIndex.set(event.currentIndex);
 
-    // Emit step change event
     const previousStepName = steps[event.previousIndex]?.name ?? null;
     this.emitStepChange(previousStepName);
   }
@@ -879,7 +875,6 @@ export class DynamicFormComponent {
 
   // Private methods
   private setupFormReactivity(): void {
-    // Initialize form when config changes
     effect(() => {
       const config = this.config();
       // Support both fields and steps mode
@@ -890,7 +885,6 @@ export class DynamicFormComponent {
       }
     });
 
-    // Initialize auto-save form ID as a derived value
     effect(() => {
       const autoSaveConfig = this.getAutoSaveConfig();
       this.autoSaveFormId.set(autoSaveConfig?.enabled && autoSaveConfig.formId ? autoSaveConfig.formId : null);
@@ -1050,7 +1044,6 @@ export class DynamicFormComponent {
       .subscribe((values) => {
         this.formValues.set(values);
 
-        // Emit output event
         this.formChange.emit(values);
 
         // Call config callback if provided

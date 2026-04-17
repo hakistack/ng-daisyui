@@ -92,9 +92,7 @@ class SignalDataSource<T> extends DataSource<T> {
     return toObservable(this.dataSignal);
   }
 
-  disconnect(): void {
-    // Cleanup if needed
-  }
+  disconnect(): void {}
 }
 
 // Enhanced pagination state interface
@@ -158,7 +156,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // Handle click outside to close dropdowns
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    // Check if click is outside any bulk action dropdown
     const dropdownContainer = target.closest('.bulk-action-dropdown');
     if (!dropdownContainer) {
       this.openBulkActionDropdown.set(null);
@@ -475,7 +472,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     disabled: false,
   });
 
-  // Computed signals for better performance
   readonly sortFieldSignal = computed(() => this.sortState().field);
   readonly sortDirectionSignal = computed(() => this.sortState().direction);
 
@@ -1103,7 +1099,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // Update sort state
     this.sortState.set(newSortState);
 
-    // Emit all sort events
     this.emitSortEvents(newSortState);
 
     // Reset to first page for offset mode (client-side sorting)
@@ -1161,7 +1156,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   /** Handle dropdown option selection */
   onBulkActionOptionSelect(bulkAction: BulkActionItem<T>, option: BulkActionDropdownOption): void {
-    this.openBulkActionDropdown.set(null); // Close the dropdown
+    this.openBulkActionDropdown.set(null);
 
     // Built-in CSV/JSON export when using default export options
     if (bulkAction.key === 'export' && bulkAction.config.useDefaultExportOptions !== false) {
@@ -1335,7 +1330,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // Reset to first page when filter changes
     this.firstPage();
 
-    // Emit filter change event
     this.filterChange.emit({
       field,
       value,
@@ -1351,7 +1345,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // Reset to first page
     this.firstPage();
 
-    // Emit filter change event
     this.filterChange.emit({
       field,
       value: null,
@@ -1365,7 +1358,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     this.closeAllFilterDropdowns();
     this.firstPage();
 
-    // Emit filter change event
     this.filterChange.emit({
       field: '',
       value: null,

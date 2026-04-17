@@ -1,7 +1,4 @@
-export type AggregateFunction =
-  | 'sum' | 'avg' | 'count' | 'min' | 'max'
-  | 'trueCount' | 'falseCount'
-  | 'median' | 'distinctCount';
+export type AggregateFunction = 'sum' | 'avg' | 'count' | 'min' | 'max' | 'trueCount' | 'falseCount' | 'median' | 'distinctCount';
 
 /** Labels for aggregate functions */
 export const AGGREGATE_LABELS: Record<AggregateFunction, string> = {
@@ -19,29 +16,25 @@ export const AGGREGATE_LABELS: Record<AggregateFunction, string> = {
 /**
  * Computes an aggregate value over a data array for a given field.
  */
-export function computeAggregate<T>(
-  data: readonly T[],
-  field: Extract<keyof T, string>,
-  fn: AggregateFunction,
-): number {
+export function computeAggregate<T>(data: readonly T[], field: Extract<keyof T, string>, fn: AggregateFunction): number {
   if (data.length === 0) return 0;
 
-  const rawValues = data.map(row => (row as Record<string, unknown>)[field]);
+  const rawValues = data.map((row) => (row as Record<string, unknown>)[field]);
 
   switch (fn) {
     case 'count':
       return data.length;
     case 'trueCount':
-      return rawValues.filter(v => Boolean(v) === true).length;
+      return rawValues.filter((v) => Boolean(v)).length;
     case 'falseCount':
-      return rawValues.filter(v => Boolean(v) === false).length;
+      return rawValues.filter((v) => !Boolean(v)).length;
     case 'distinctCount':
       return new Set(rawValues).size;
     default:
       break;
   }
 
-  const values = rawValues.map(v => Number(v)).filter(v => !isNaN(v));
+  const values = rawValues.map((v) => Number(v)).filter((v) => !isNaN(v));
   if (values.length === 0) return 0;
 
   switch (fn) {

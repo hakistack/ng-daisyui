@@ -67,12 +67,7 @@ import { ColumnDefinition } from './table.types';
               Hide All
             </button>
 
-            <button
-              type="button"
-              class="btn btn-ghost btn-xs gap-1"
-              (click)="onReset()"
-              aria-label="Reset to default columns"
-            >
+            <button type="button" class="btn btn-ghost btn-xs gap-1" (click)="onReset()" aria-label="Reset to default columns">
               <hk-lucide-icon name="RotateCcw" [size]="14" aria-hidden="true" />
               Reset
             </button>
@@ -96,24 +91,23 @@ export class TableColumnVisibilityComponent<T extends Record<string, unknown>> {
 
   // Computed signals
   readonly visibleColumnsCount = computed(() => {
-    return this.columns().filter(c => this.isColumnVisible(c.field)).length;
+    return this.columns().filter((c) => this.isColumnVisible(c.field)).length;
   });
 
   readonly allColumnsVisible = computed(() => {
-    return this.columns().every(c => this.isColumnVisible(c.field));
+    return this.columns().every((c) => this.isColumnVisible(c.field));
   });
 
   readonly onlyRequiredColumnsVisible = computed(() => {
     const alwaysVisible = this.alwaysVisibleColumns();
-    const visibleColumns = this.columns().filter(c => this.isColumnVisible(c.field));
+    const visibleColumns = this.columns().filter((c) => this.isColumnVisible(c.field));
 
     // If no always-visible columns defined, check if only 1 column is visible
     if (alwaysVisible.size === 0) {
       return visibleColumns.length === 1;
     }
 
-    // Check if only the always-visible columns are shown
-    return visibleColumns.every(c => alwaysVisible.has(c.field));
+    return visibleColumns.every((c) => alwaysVisible.has(c.field));
   });
 
   isColumnVisible(field: string): boolean {

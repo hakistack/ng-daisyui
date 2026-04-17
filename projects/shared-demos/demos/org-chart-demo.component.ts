@@ -55,7 +55,7 @@ interface Person {
 
             <app-doc-section title="Collapsible Nodes" description="Click the toggle button to expand/collapse nodes">
               <div class="overflow-x-auto">
-                <hk-organization-chart [value]="collapsibleData" (onNodeExpand)="onExpand($event)" (onNodeCollapse)="onCollapse($event)" />
+                <hk-organization-chart [value]="collapsibleData" (nodeExpand)="onExpand($event)" (nodeCollapse)="onCollapse($event)" />
               </div>
               @if (lastEvent()) {
                 <div class="alert alert-info mt-4">
@@ -70,7 +70,7 @@ interface Person {
           <div class="space-y-6">
             <app-doc-section title="Single Selection" description="Click on a node to select it" [codeExample]="singleSelectCode">
               <div class="overflow-x-auto">
-                <hk-organization-chart [value]="basicData" selectionMode="single" (onNodeSelect)="onSelect($event)" />
+                <hk-organization-chart [value]="basicData" selectionMode="single" (nodeSelect)="onSelect($event)" />
               </div>
               @if (selectedNode()) {
                 <div class="alert alert-success mt-4">
@@ -482,7 +482,7 @@ onSelect(event: OrgChartNodeSelectEvent): void {
 <hk-organization-chart
   [value]="orgData"
   selectionMode="single"
-  (onNodeSelect)="onSelect($event)"
+  (nodeSelect)="onSelect($event)"
 />`;
 
   templateCode = `// TypeScript
@@ -554,22 +554,22 @@ templateData: TreeNode<Person>[] = [
 
   outputDocs: ApiDocEntry[] = [
     {
-      name: 'onNodeSelect',
+      name: 'nodeSelect',
       type: 'OrgChartNodeSelectEvent<T>',
       description: 'Emitted when a node is selected. Payload includes the original DOM event and the selected node.',
     },
     {
-      name: 'onNodeUnselect',
+      name: 'nodeUnselect',
       type: 'OrgChartNodeUnselectEvent<T>',
       description: 'Emitted when a node is unselected. Payload includes the original DOM event and the unselected node.',
     },
     {
-      name: 'onNodeExpand',
+      name: 'nodeExpand',
       type: 'OrgChartNodeExpandEvent<T>',
       description: 'Emitted when a collapsed node is expanded. Payload includes the original DOM event and the expanded node.',
     },
     {
-      name: 'onNodeCollapse',
+      name: 'nodeCollapse',
       type: 'OrgChartNodeCollapseEvent<T>',
       description: 'Emitted when an expanded node is collapsed. Payload includes the original DOM event and the collapsed node.',
     },
@@ -606,8 +606,7 @@ templateData: TreeNode<Person>[] = [
     {
       name: 'toggleNode(event, node)',
       type: 'void',
-      description:
-        'Programmatically toggle a node between expanded and collapsed states. Emits onNodeExpand or onNodeCollapse accordingly.',
+      description: 'Programmatically toggle a node between expanded and collapsed states. Emits nodeExpand or nodeCollapse accordingly.',
     },
     {
       name: 'selectNode(event, node)',

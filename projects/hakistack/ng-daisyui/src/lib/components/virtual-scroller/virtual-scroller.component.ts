@@ -177,7 +177,6 @@ export class VirtualScrollerComponent<T = any> implements OnInit {
     const start = Math.max(0, first - bufferSize);
     const end = Math.min(data.length, last + bufferSize);
 
-    // Check if any items in range are null (unloaded)
     let needsLoad = false;
     for (let i = start; i < end; i++) {
       if (data[i] == null) {
