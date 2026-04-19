@@ -430,6 +430,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
       this.pickerOpened.emit();
       this.addDocumentListeners();
       this.currentView.set('hours');
+      this.scrollToSelected();
     } else {
       this.pickerClosed.emit();
       this.removeDocumentListeners();
@@ -452,7 +453,20 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
       this.pickerOpened.emit();
       this.addDocumentListeners();
       this.currentView.set('hours');
+      this.scrollToSelected();
     }
+  }
+
+  private scrollToSelected(): void {
+    requestAnimationFrame(() => {
+      const root = this.tpRoot().nativeElement;
+      root.querySelectorAll('.tp-scroll-col').forEach((col: Element) => {
+        const active = col.querySelector('.btn-active');
+        if (active) {
+          active.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
+      });
+    });
   }
 
   markAsTouched(): void {
@@ -731,7 +745,9 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
       this.selectedHour.set(hour);
     }
 
-    this.currentView.set('minutes');
+    if (this.clockFace()) {
+      this.currentView.set('minutes');
+    }
     this.emitIfComplete();
   }
 
@@ -739,13 +755,13 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     if (this.isDisabled()) return;
     this.selectedMinute.set(minute);
 
-    if (this.showSeconds()) {
+    if (this.showSeconds() && this.clockFace()) {
       this.currentView.set('seconds');
-    } else {
-      this.emitIfComplete();
-      if (this.closeOnSelect() && this.hasSelection()) {
-        this.closePicker();
-      }
+    }
+    this.emitIfComplete();
+
+    if (!this.clockFace() && !this.showSeconds() && this.closeOnSelect() && this.hasSelection()) {
+      this.closePicker();
     }
   }
 
@@ -760,8 +776,11 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   togglePeriod(): void {
+    this.setPeriod(this.period() === 'AM' ? 'PM' : 'AM');
+  }
+
+  setPeriod(newPeriod: 'AM' | 'PM'): void {
     if (this.isDisabled()) return;
-    const newPeriod = this.period() === 'AM' ? 'PM' : 'AM';
     this.period.set(newPeriod);
 
     const hour = this.selectedHour();

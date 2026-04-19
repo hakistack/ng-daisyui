@@ -106,59 +106,59 @@
       [attr.aria-label]="placeholder()"
       aria-modal="true"
     >
-      <!-- Time Display Header -->
-      <div class="mb-4 flex items-center justify-center gap-1">
-        <button
-          type="button"
-          class="btn btn-sm font-mono text-lg"
-          [class.btn-primary]="currentView() === 'hours'"
-          [class.btn-ghost]="currentView() !== 'hours'"
-          (click)="setView('hours')"
-          aria-label="Select hour"
-        >
-          {{ displayHour() }}
-        </button>
-        <span class="text-base-content/50 text-lg font-mono">:</span>
-        <button
-          type="button"
-          class="btn btn-sm font-mono text-lg"
-          [class.btn-primary]="currentView() === 'minutes'"
-          [class.btn-ghost]="currentView() !== 'minutes'"
-          (click)="setView('minutes')"
-          aria-label="Select minute"
-        >
-          {{ displayMinute() }}
-        </button>
-        @if (showSeconds()) {
-          <span class="text-base-content/50 text-lg font-mono">:</span>
-          <button
-            type="button"
-            class="btn btn-sm font-mono text-lg"
-            [class.btn-primary]="currentView() === 'seconds'"
-            [class.btn-ghost]="currentView() !== 'seconds'"
-            (click)="setView('seconds')"
-            aria-label="Select second"
-          >
-            {{ displaySecond() }}
-          </button>
-        }
-        @if (!use24Hour()) {
-          <button
-            type="button"
-            class="btn btn-sm btn-outline ml-2"
-            (click)="togglePeriod()"
-            [disabled]="isDisabled()"
-            aria-label="Toggle AM/PM"
-          >
-            {{ period() }}
-          </button>
-        }
-      </div>
-
       <!-- Views -->
       <div class="timepicker-content">
         @if (clockFace()) {
-          <!-- Clock Face -->
+          <!-- Clock Face Header -->
+          <div class="mb-4 flex items-center justify-center gap-1">
+            <button
+              type="button"
+              class="btn btn-sm font-mono text-lg"
+              [class.btn-primary]="currentView() === 'hours'"
+              [class.btn-ghost]="currentView() !== 'hours'"
+              (click)="setView('hours')"
+              aria-label="Select hour"
+            >
+              {{ displayHour() }}
+            </button>
+            <span class="text-base-content/50 text-lg font-mono">:</span>
+            <button
+              type="button"
+              class="btn btn-sm font-mono text-lg"
+              [class.btn-primary]="currentView() === 'minutes'"
+              [class.btn-ghost]="currentView() !== 'minutes'"
+              (click)="setView('minutes')"
+              aria-label="Select minute"
+            >
+              {{ displayMinute() }}
+            </button>
+            @if (showSeconds()) {
+              <span class="text-base-content/50 text-lg font-mono">:</span>
+              <button
+                type="button"
+                class="btn btn-sm font-mono text-lg"
+                [class.btn-primary]="currentView() === 'seconds'"
+                [class.btn-ghost]="currentView() !== 'seconds'"
+                (click)="setView('seconds')"
+                aria-label="Select second"
+              >
+                {{ displaySecond() }}
+              </button>
+            }
+            @if (!use24Hour()) {
+              <button
+                type="button"
+                class="btn btn-sm btn-outline ml-2"
+                (click)="togglePeriod()"
+                [disabled]="isDisabled()"
+                aria-label="Toggle AM/PM"
+              >
+                {{ period() }}
+              </button>
+            }
+          </div>
+
+          <!-- Clock Dial -->
           <div
             class="relative mx-auto cursor-pointer"
             style="width: 256px; height: 256px"
@@ -170,10 +170,7 @@
               currentView() === 'hours' ? 'Hour selector' : currentView() === 'minutes' ? 'Minute selector' : 'Second selector'
             "
           >
-            <!-- Background circle -->
             <div class="bg-base-200 absolute inset-0 rounded-full"></div>
-
-            <!-- SVG Hand -->
             <svg class="absolute inset-0 pointer-events-none" width="256" height="256" aria-hidden="true">
               <circle cx="128" cy="128" r="3" style="fill: var(--color-primary)" />
               @if (showClockHand()) {
@@ -183,8 +180,6 @@
                 </g>
               }
             </svg>
-
-            <!-- Number buttons -->
             @for (pos of clockPositions(); track pos.value) {
               <button
                 type="button"
@@ -199,67 +194,65 @@
             }
           </div>
         } @else {
-          <!-- Grid Views -->
-          @switch (currentView()) {
-            @case ('hours') {
-              <div class="grid grid-cols-4 gap-1">
+          <!-- Scrollable Columns -->
+          <div class="flex items-start justify-center gap-1">
+            <!-- Hours Column -->
+            <div class="flex flex-col items-center">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">Hr</span>
+              <div #hourCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Hours">
                 @for (hour of hourOptions(); track hour) {
                   <button
                     type="button"
-                    class="btn btn-sm font-mono transition-all duration-200"
-                    [class]="{
-                      'btn-primary': isHourSelected(hour),
-                      'btn-ghost': !isHourSelected(hour),
-                      'hover:btn-primary': !isHourSelected(hour),
-                    }"
+                    role="option"
+                    class="btn btn-ghost btn-sm w-full font-mono"
+                    [class.btn-active]="isHourSelected(hour)"
                     [disabled]="isHourDisabled(hour)"
+                    [attr.aria-selected]="isHourSelected(hour)"
                     (click)="selectHour(hour)"
-                    [attr.aria-pressed]="isHourSelected(hour)"
                   >
                     {{ formatNumber(hour) }}
                   </button>
                 }
               </div>
-            }
+            </div>
 
-            @case ('minutes') {
-              <div class="max-h-52 overflow-auto">
-                <div class="grid gap-1" [class]="minuteGridCols()">
-                  @for (minute of minuteOptions(); track minute) {
-                    <button
-                      type="button"
-                      class="btn btn-sm font-mono transition-all duration-200"
-                      [class]="{
-                        'btn-primary': isMinuteSelected(minute),
-                        'btn-ghost': !isMinuteSelected(minute),
-                        'hover:btn-primary': !isMinuteSelected(minute),
-                      }"
-                      [disabled]="isMinuteDisabled(minute)"
-                      (click)="selectMinute(minute)"
-                      [attr.aria-pressed]="isMinuteSelected(minute)"
-                    >
-                      {{ formatNumber(minute) }}
-                    </button>
-                  }
-                </div>
+            <span class="text-base-content/30 text-lg font-mono mt-7">:</span>
+
+            <!-- Minutes Column -->
+            <div class="flex flex-col items-center">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">Min</span>
+              <div #minCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Minutes">
+                @for (minute of minuteOptions(); track minute) {
+                  <button
+                    type="button"
+                    role="option"
+                    class="btn btn-ghost btn-sm w-full font-mono"
+                    [class.btn-active]="isMinuteSelected(minute)"
+                    [disabled]="isMinuteDisabled(minute)"
+                    [attr.aria-selected]="isMinuteSelected(minute)"
+                    (click)="selectMinute(minute)"
+                  >
+                    {{ formatNumber(minute) }}
+                  </button>
+                }
               </div>
-            }
+            </div>
 
-            @case ('seconds') {
-              <div class="max-h-52 overflow-auto">
-                <div class="grid gap-1" [class]="secondGridCols()">
+            <!-- Seconds Column -->
+            @if (showSeconds()) {
+              <span class="text-base-content/30 text-lg font-mono mt-7">:</span>
+              <div class="flex flex-col items-center">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">Sec</span>
+                <div #secCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Seconds">
                   @for (second of secondOptions(); track second) {
                     <button
                       type="button"
-                      class="btn btn-sm font-mono transition-all duration-200"
-                      [class]="{
-                        'btn-primary': isSecondSelected(second),
-                        'btn-ghost': !isSecondSelected(second),
-                        'hover:btn-primary': !isSecondSelected(second),
-                      }"
+                      role="option"
+                      class="btn btn-ghost btn-sm w-full font-mono"
+                      [class.btn-active]="isSecondSelected(second)"
                       [disabled]="isSecondDisabled(second)"
+                      [attr.aria-selected]="isSecondSelected(second)"
                       (click)="selectSecond(second)"
-                      [attr.aria-pressed]="isSecondSelected(second)"
                     >
                       {{ formatNumber(second) }}
                     </button>
@@ -267,7 +260,36 @@
                 </div>
               </div>
             }
-          }
+
+            <!-- AM/PM Column -->
+            @if (!use24Hour()) {
+              <div class="flex flex-col items-center ml-1">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">&nbsp;</span>
+                <div class="flex flex-col gap-1 mt-1">
+                  <button
+                    type="button"
+                    class="btn btn-sm w-14 font-mono text-xs"
+                    [class.btn-primary]="period() === 'AM'"
+                    [class.btn-ghost]="period() !== 'AM'"
+                    (click)="setPeriod('AM')"
+                    aria-label="AM"
+                  >
+                    AM
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm w-14 font-mono text-xs"
+                    [class.btn-primary]="period() === 'PM'"
+                    [class.btn-ghost]="period() !== 'PM'"
+                    (click)="setPeriod('PM')"
+                    aria-label="PM"
+                  >
+                    PM
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
         }
       </div>
 

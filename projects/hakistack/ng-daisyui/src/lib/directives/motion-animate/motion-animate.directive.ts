@@ -13,7 +13,6 @@ import { prefersReducedMotion, safeStopAnimation } from '../motion.utils';
 type InViewOptions = NonNullable<Parameters<typeof inView>[2]>;
 
 @Directive({
-  // eslint-disable-next-line @angular-eslint/directive-selector
   selector: '[motionAnimate]',
 })
 export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
@@ -23,16 +22,14 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   readonly motionAnimate = input<AnimationPreset | Record<string, unknown>>('fadeIn');
   readonly motionOptions = input<MotionDirectiveOptions>({});
 
-  private element: HTMLElement;
+  private element!: HTMLElement;
   private cleanupFunctions: (() => void)[] = [];
   private hasAnimated = false;
   private animationControls: AnimationControls | null = null;
-
-  constructor() {
-    this.element = this.elementRef.nativeElement;
-  }
+  private clickHandler: (() => void) | null = null;
 
   ngOnInit(): void {
+    this.element = this.elementRef.nativeElement;
     this.setupAnimation();
   }
 
@@ -49,6 +46,7 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private setupAnimation(): void {
+    if (!this.element) return;
     const trigger: TriggerType = this.motionOptions().trigger || 'immediate';
 
     switch (trigger) {
@@ -69,19 +67,13 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
     const options: InViewOptions = {};
     const motionOpts = this.motionOptions();
 
-    if (motionOpts.margin) {
-      options.margin = motionOpts.margin;
-    }
-
-    if (motionOpts.amount !== undefined) {
-      options.amount = motionOpts.amount;
-    }
+    if (motionOpts.margin) options.margin = motionOpts.margin;
+    if (motionOpts.amount !== undefined) options.amount = motionOpts.amount;
 
     const cleanup = inView(
       this.element,
       () => {
-        const shouldAnimate = !this.hasAnimated || !motionOpts.once;
-        if (shouldAnimate) {
+        if (!this.hasAnimated || !motionOpts.once) {
           this.playAnimation();
           this.hasAnimated = true;
         }
@@ -95,12 +87,10 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private setupClickAnimation(): void {
-    const handleClick = () => this.playAnimation();
-
-    this.element.addEventListener('click', handleClick);
-    this.cleanupFunctions.push(() => {
-      this.element.removeEventListener('click', handleClick);
-    });
+    this.clickHandler = () => this.playAnimation();
+    this.element.addEventListener('click', this.clickHandler);
+    const handler = this.clickHandler;
+    this.cleanupFunctions.push(() => this.element.removeEventListener('click', handler));
   }
 
   private playAnimation(): void {
@@ -116,14 +106,10 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
     }
 
     safeStopAnimation(this.animationControls);
-
-    const keyframes = this.getKeyframes();
-    const options = this.getAnimationOptions();
-
     try {
-      this.animationControls = animate(this.element, keyframes, options);
+      this.animationControls = animate(this.element, this.getKeyframes(), this.getAnimationOptions()) as AnimationControls;
     } catch {
-      // Animation failed — element may have been removed from DOM
+      this.animationControls = null;
     }
   }
 
@@ -136,43 +122,32 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private getAnimationOptions(): MotionAnimationOptions {
-    const defaultOptions: MotionAnimationOptions = {
-      duration: 0.6,
-      ease: 'easeOut' as const,
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured to exclude directive-only options
     const { trigger, margin, amount, once, offset, axis, ...animationOptions } = this.motionOptions();
-
-    return {
-      ...defaultOptions,
-      ...animationOptions,
-    };
+    return { duration: 0.6, ease: 'easeOut' as const, ...animationOptions };
   }
 
   private cleanup(): void {
     safeStopAnimation(this.animationControls);
+    this.animationControls = null;
+    this.clickHandler = null;
 
-    for (const cleanupFn of this.cleanupFunctions) {
+    for (const fn of this.cleanupFunctions) {
       try {
-        cleanupFn();
+        fn();
       } catch {
-        // Cleanup may fail if element was already removed
+        /* element may already be removed */
       }
     }
     this.cleanupFunctions = [];
   }
 
-  // Public methods for programmatic control
-  public play(): void {
+  play(): void {
     this.playAnimation();
   }
-
-  public stop(): void {
+  stop(): void {
     safeStopAnimation(this.animationControls);
   }
-
-  public reset(): void {
+  reset(): void {
     this.hasAnimated = false;
   }
 }

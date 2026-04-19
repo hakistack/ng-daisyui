@@ -10,11 +10,9 @@ export interface HoverOptions {
 }
 
 export type HoverAnimationOptions = MotionAnimationOptions;
-
 export type HoverKeyframes = Record<string, unknown> | Record<string, unknown[]>;
 
 @Directive({
-  // eslint-disable-next-line @angular-eslint/directive-selector
   selector: '[motionHover]',
 })
 export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
@@ -30,17 +28,14 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
   readonly hoverStart = output<PointerEvent>();
   readonly hoverEnd = output<PointerEvent>();
 
-  private element: HTMLElement;
+  private element!: HTMLElement;
   private cleanup?: () => void;
   private currentAnimation: AnimationControls | null = null;
   private restoreAnimation: AnimationControls | null = null;
   private initialValues?: Record<string, unknown>;
 
-  constructor() {
-    this.element = this.elementRef.nativeElement;
-  }
-
   ngOnInit(): void {
+    this.element = this.elementRef.nativeElement;
     this.captureInitialValues();
     this.setupHoverAnimation();
   }
@@ -58,19 +53,23 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private captureInitialValues(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
     const keyframes = this.hoverKeyframes();
     if (!keyframes) return;
 
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    this.initialValues = {};
     const computedStyle = window.getComputedStyle(this.element);
+    this.initialValues = {};
 
     for (const prop of Object.keys(keyframes)) {
       switch (prop) {
         case 'x':
         case 'y':
         case 'z':
+        case 'rotate':
+        case 'rotateX':
+        case 'rotateY':
+        case 'rotateZ':
           this.initialValues[prop] = 0;
           break;
         case 'scale':
@@ -78,12 +77,6 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
         case 'scaleY':
         case 'scaleZ':
           this.initialValues[prop] = 1;
-          break;
-        case 'rotate':
-        case 'rotateX':
-        case 'rotateY':
-        case 'rotateZ':
-          this.initialValues[prop] = 0;
           break;
         case 'opacity':
           this.initialValues[prop] = computedStyle.opacity || 1;
@@ -93,23 +86,17 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
           break;
         default: {
           const value = computedStyle.getPropertyValue(prop);
-          if (value) {
-            this.initialValues[prop] = value;
-          }
+          if (value) this.initialValues[prop] = value;
         }
       }
     }
   }
 
   private setupHoverAnimation(): void {
-    if (prefersReducedMotion(this.platformId)) {
-      return;
-    }
+    if (prefersReducedMotion(this.platformId)) return;
 
     const keyframes = this.hoverKeyframes();
-    if (!keyframes) {
-      return;
-    }
+    if (!keyframes) return;
 
     try {
       this.cleanup = hover(
@@ -121,104 +108,80 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
 
           return (endEvent: PointerEvent) => {
             this.hoverEnd.emit(endEvent);
-            if (this.restoreOnLeave()) {
-              this.animateRestore();
-            }
+            if (this.restoreOnLeave()) this.animateRestore();
           };
         },
         this.hoverOptions() || {},
       );
     } catch {
-      // Hover setup failed — element may not support pointer events
+      this.cleanup = undefined;
     }
   }
 
   private animateRestore(): void {
     this.stopAnimations();
+    const restoreKeyframes = this.customRestoreKeyframes() || this.createRestoreKeyframes();
+    if (!restoreKeyframes || Object.keys(restoreKeyframes).length === 0) return;
 
     try {
-      const restoreKeyframes = this.customRestoreKeyframes() || this.createRestoreKeyframes();
-
-      if (restoreKeyframes && Object.keys(restoreKeyframes).length > 0) {
-        this.restoreAnimation = animate(this.element, restoreKeyframes, this.getRestoreAnimationOptions()) as AnimationControls;
-      }
+      this.restoreAnimation = animate(this.element, restoreKeyframes, this.getRestoreOptions()) as AnimationControls;
     } catch {
-      // Restore animation failed — element may have been removed
+      this.restoreAnimation = null;
     }
   }
 
   private createRestoreKeyframes(): HoverKeyframes {
+    if (!this.initialValues) return {};
     const keyframes = this.hoverKeyframes();
-    if (!this.initialValues || !keyframes) return {};
-
-    const restoreKeyframes: HoverKeyframes = {};
-
+    const restore: HoverKeyframes = {};
     for (const prop of Object.keys(keyframes)) {
       if (Object.prototype.hasOwnProperty.call(this.initialValues, prop)) {
-        restoreKeyframes[prop] = this.initialValues[prop];
+        restore[prop] = this.initialValues[prop];
       }
     }
-
-    return restoreKeyframes;
+    return restore;
   }
 
   private getAnimationOptions(): HoverAnimationOptions {
-    const defaultOptions: HoverAnimationOptions = {
-      duration: 0.3,
-      ease: 'easeOut' as const,
-      type: 'tween',
-    };
-
-    return {
-      ...defaultOptions,
-      ...this.animationOptions(),
-    };
+    return { duration: 0.3, ease: 'easeOut' as const, type: 'tween', ...this.animationOptions() };
   }
 
-  private getRestoreAnimationOptions(): HoverAnimationOptions {
-    const restoreOptions = this.getAnimationOptions();
-
-    return {
-      ...restoreOptions,
-      duration: (restoreOptions.duration || 0.3) * 0.8,
-      ease: 'easeOut' as const,
-    };
+  private getRestoreOptions(): HoverAnimationOptions {
+    const opts = this.getAnimationOptions();
+    return { ...opts, duration: (opts.duration || 0.3) * 0.8, ease: 'easeOut' as const };
   }
 
   private stopAnimations(): void {
     safeStopAnimation(this.currentAnimation);
     safeStopAnimation(this.restoreAnimation);
+    this.currentAnimation = null;
+    this.restoreAnimation = null;
   }
 
   private cleanupHover(): void {
     this.stopAnimations();
-
     if (this.cleanup) {
       try {
         this.cleanup();
       } catch {
-        // Cleanup may fail if element was already removed
+        /* element may already be removed */
       }
       this.cleanup = undefined;
     }
   }
 
-  // Public methods for programmatic control
-  public triggerHover(): void {
+  triggerHover(): void {
     const keyframes = this.hoverKeyframes();
-    if (keyframes) {
-      this.stopAnimations();
-      this.currentAnimation = animate(this.element, keyframes, this.getAnimationOptions()) as AnimationControls;
-    }
+    if (!keyframes) return;
+    this.stopAnimations();
+    this.currentAnimation = animate(this.element, keyframes, this.getAnimationOptions()) as AnimationControls;
   }
 
-  public triggerRestore(): void {
-    if (this.restoreOnLeave()) {
-      this.animateRestore();
-    }
+  triggerRestore(): void {
+    if (this.restoreOnLeave()) this.animateRestore();
   }
 
-  public stop(): void {
+  stop(): void {
     this.stopAnimations();
   }
 }

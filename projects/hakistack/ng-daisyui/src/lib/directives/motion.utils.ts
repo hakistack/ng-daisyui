@@ -1,24 +1,21 @@
 import { isPlatformBrowser } from '@angular/common';
 import type { AnimationControls } from './motion.types';
 
-let cachedReducedMotion: boolean | null = null;
+let reducedMotionQuery: MediaQueryList | null = null;
 
 export function prefersReducedMotion(platformId: object): boolean {
-  if (!isPlatformBrowser(platformId)) {
-    return false;
+  if (!isPlatformBrowser(platformId)) return false;
+  if (!reducedMotionQuery) {
+    reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   }
-  if (cachedReducedMotion === null) {
-    cachedReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  }
-  return cachedReducedMotion;
+  return reducedMotionQuery.matches;
 }
 
 export function safeStopAnimation(controls: AnimationControls | null): void {
-  if (controls && typeof controls.stop === 'function') {
-    try {
-      controls.stop();
-    } catch {
-      // Silently ignore — animation may already be finished or disposed
-    }
+  if (!controls) return;
+  try {
+    controls.stop();
+  } catch {
+    // Animation may already be finished or disposed
   }
 }

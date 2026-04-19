@@ -9,16 +9,8 @@ export type OffsetPoint = 'start' | 'center' | 'end' | OffsetValue;
 export type ScrollOffset = [OffsetPoint, OffsetPoint] | OffsetPoint[];
 
 export interface ScrollInfo {
-  x: {
-    current: number;
-    scrollLength: number;
-    velocity: number;
-  };
-  y: {
-    current: number;
-    scrollLength: number;
-    velocity: number;
-  };
+  x: { current: number; scrollLength: number; velocity: number };
+  y: { current: number; scrollLength: number; velocity: number };
 }
 
 export interface ScrollOptions {
@@ -36,7 +28,6 @@ interface ScrollAnimationOptions {
 }
 
 @Directive({
-  // eslint-disable-next-line @angular-eslint/directive-selector
   selector: '[motionScroll]',
 })
 export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
@@ -44,28 +35,22 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
   private readonly platformId = inject(PLATFORM_ID);
 
   readonly motionScroll = input<ScrollAnimationKeyframes | boolean | undefined>(undefined);
-
   readonly scrollOptions = input<ScrollOptions>({});
-
   readonly scrollContainer = input<HTMLElement | undefined>();
   readonly scrollTarget = input<HTMLElement | undefined>();
   readonly scrollAxis = input<ScrollAxis>('y');
   readonly scrollOffset = input<ScrollOffset | undefined>();
-
   readonly animationOptions = input<ScrollAnimationOptions>({});
 
   readonly scrollProgress = output<number>();
   readonly scrollInfo = output<ScrollInfo>();
 
-  private element: HTMLElement;
+  private element!: HTMLElement;
   private cleanupFunction?: VoidFunction;
   private animationControls: AnimationPlaybackControls | null = null;
 
-  constructor() {
-    this.element = this.elementRef.nativeElement;
-  }
-
   ngOnInit(): void {
+    this.element = this.elementRef.nativeElement;
     this.setupScrollAnimation();
   }
 
@@ -89,11 +74,7 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
 
   private setupScrollAnimation(): void {
     const anim = this.motionScroll();
-    if (!anim) return;
-
-    if (prefersReducedMotion(this.platformId)) {
-      return;
-    }
+    if (!anim || prefersReducedMotion(this.platformId)) return;
 
     const options = this.buildScrollOptions();
 
@@ -116,12 +97,8 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
 
   private setupScrollLinkedAnimation(options: ScrollOptions, keyframes: ScrollAnimationKeyframes): void {
     try {
-      const animationOpts = {
-        ease: 'linear' as const,
-        ...this.animationOptions(),
-      };
-
-      this.animationControls = animate(this.element, keyframes as Record<string, string | number | (string | number)[]>, animationOpts);
+      const animOpts = { ease: 'linear' as const, ...this.animationOptions() };
+      this.animationControls = animate(this.element, keyframes as Record<string, string | number | (string | number)[]>, animOpts);
       this.cleanupFunction = scroll(this.animationControls, this.filterScrollOptions(options) as Parameters<typeof scroll>[1]);
     } catch {
       this.setupScrollProgressTracking(options);
@@ -138,30 +115,17 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
         this.filterScrollOptions(options) as Parameters<typeof scroll>[1],
       );
     } catch {
-      // Scroll tracking failed — element may not be scrollable
+      this.cleanupFunction = undefined;
     }
   }
 
   private filterScrollOptions(options: ScrollOptions): Partial<ScrollOptions> {
-    const filteredOptions: Partial<ScrollOptions> = {};
-
-    if (options.container) {
-      filteredOptions.container = options.container;
-    }
-
-    if (options.target && options.target !== this.element) {
-      filteredOptions.target = options.target;
-    }
-
-    if (options.axis && options.axis !== 'y') {
-      filteredOptions.axis = options.axis;
-    }
-
-    if (options.offset) {
-      filteredOptions.offset = options.offset;
-    }
-
-    return filteredOptions;
+    const filtered: Partial<ScrollOptions> = {};
+    if (options.container) filtered.container = options.container;
+    if (options.target && options.target !== this.element) filtered.target = options.target;
+    if (options.axis && options.axis !== 'y') filtered.axis = options.axis;
+    if (options.offset) filtered.offset = options.offset;
+    return filtered;
   }
 
   private cleanup(): void {
@@ -169,27 +133,24 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
       try {
         this.animationControls.stop();
       } catch {
-        // Animation may already be stopped
+        /* already stopped */
       }
+      this.animationControls = null;
     }
-
     if (this.cleanupFunction) {
       try {
         this.cleanupFunction();
       } catch {
-        // Cleanup may fail if scroll context was already disposed
+        /* already disposed */
       }
+      this.cleanupFunction = undefined;
     }
-
-    this.cleanupFunction = undefined;
-    this.animationControls = null;
   }
 
-  public stop(): void {
+  stop(): void {
     this.cleanup();
   }
-
-  public restart(): void {
+  restart(): void {
     this.cleanup();
     this.setupScrollAnimation();
   }

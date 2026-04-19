@@ -14,7 +14,7 @@ export type Easing =
   | 'backOut'
   | 'backInOut'
   | 'anticipate'
-  | [number, number, number, number] // cubic bezier
+  | [number, number, number, number]
   | EasingFunction;
 
 export interface MotionAnimationOptions {
@@ -25,21 +25,28 @@ export interface MotionAnimationOptions {
   direction?: 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
   endDelay?: number;
   type?: 'tween' | 'spring' | 'inertia';
-  // Spring options
   stiffness?: number;
   damping?: number;
   mass?: number;
   velocity?: number;
   restDelta?: number;
   restSpeed?: number;
-  // Duration-based spring options
   bounce?: number;
   visualDuration?: number;
 }
 
+/** Matches the real return type from motion's animate() */
 export interface AnimationControls {
+  play: () => void;
+  pause: () => void;
   stop: () => void;
-  finished?: Promise<void>;
+  complete: () => void;
+  cancel: () => void;
+  then: (resolve: () => void, reject?: () => void) => Promise<void>;
+  time: number;
+  speed: number;
+  duration: number;
+  finished: Promise<void>;
 }
 
 export const ANIMATION_PRESETS = {
@@ -94,11 +101,9 @@ type MarginType = NonNullable<InViewOptions['margin']>;
 
 export interface MotionDirectiveOptions extends MotionAnimationOptions {
   trigger?: TriggerType;
-  // inView specific options
   margin?: MarginType;
   amount?: number | 'some' | 'all';
   once?: boolean;
-  // scroll specific options
   offset?: [string, string] | string[];
   axis?: 'x' | 'y';
 }

@@ -68,8 +68,6 @@ export const routes: Routes = [
   { path: 'dialog', redirectTo: 'dialog/basic', pathMatch: 'full' },
   { path: 'dialog/:feature', loadComponent: () => import('@shared-demos/demos/dialog-demo.component').then((m) => m.DialogDemoComponent) },
   // Utilities
-  { path: 'icons', redirectTo: 'icons/basic', pathMatch: 'full' },
-  { path: 'icons/:feature', loadComponent: () => import('@shared-demos/demos/icons-demo.component').then((m) => m.IconsDemoComponent) },
   { path: 'motion', redirectTo: 'motion/animate', pathMatch: 'full' },
   { path: 'motion/:feature', loadComponent: () => import('@shared-demos/demos/motion-demo.component').then((m) => m.MotionDemoComponent) },
 ];

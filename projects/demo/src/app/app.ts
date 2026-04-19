@@ -23,7 +23,6 @@ import {
   Bell,
   MessageSquareWarning,
   PanelTopOpen,
-  Smile,
   Sparkles,
   ArrowRight,
   Palette,
@@ -51,7 +50,6 @@ const sidebarIcons = {
   Bell,
   MessageSquareWarning,
   PanelTopOpen,
-  Smile,
   Sparkles,
   ArrowRight,
   Palette,
@@ -557,16 +555,6 @@ export class App implements OnInit {
     {
       title: 'Utilities',
       items: [
-        {
-          path: '/icons',
-          label: 'Icons',
-          icon: 'Smile',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'categories', label: 'Categories' },
-            { id: 'playground', label: 'Playground' },
-          ],
-        },
         {
           path: '/motion',
           label: 'Motion Directives',
