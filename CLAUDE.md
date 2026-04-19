@@ -136,7 +136,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Set `changeDetection: ChangeDetectionStrategy.OnPush` in `@Component` decorator
 - Prefer inline templates for small components
 - Prefer Reactive forms instead of Template-driven ones
-- Use `[ngClass]` with object syntax for conditional classes, especially when class names contain special characters (e.g. Tailwind's `/` opacity modifiers like `bg-base-200/30`). Use `[class.name]` only for simple class names without special characters.
+- Do NOT use `ngClass`, use `class` bindings instead
 - Do NOT use `ngStyle`, use `style` bindings instead
 - When using external templates/styles, use paths relative to the component TS file.
 

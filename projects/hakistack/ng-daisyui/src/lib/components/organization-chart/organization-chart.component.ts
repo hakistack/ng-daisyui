@@ -10,7 +10,7 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideIconComponent, IconName } from '../lucide-icon/lucide-icon.component';
+import { LucideAngularModule, ChevronDown, ChevronRight } from 'lucide-angular';
 import { TreeNode } from '../../api/treenode';
 import {
   OrgChartSelectionMode,
@@ -25,12 +25,15 @@ import {
 
 @Component({
   selector: 'hk-organization-chart',
-  imports: [CommonModule, LucideIconComponent],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './organization-chart.component.html',
   styleUrl: './organization-chart.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrganizationChartComponent<T = unknown> {
+  readonly chevronDownIcon = ChevronDown;
+  readonly chevronRightIcon = ChevronRight;
+
   readonly nodeTemplate = contentChild<TemplateRef<OrgChartNodeTemplateContext<T>>>('nodeTemplate');
 
   /** The hierarchical data to display */
@@ -104,7 +107,7 @@ export class OrganizationChartComponent<T = unknown> {
     return !!node.expanded;
   }
 
-  getNodeIcon(node: TreeNode<T>): IconName | undefined {
+  getNodeIcon(node: TreeNode<T>): string | undefined {
     if (this.hasChildren(node)) {
       if (this.isExpanded(node) && node.expandedIcon) {
         return node.expandedIcon;

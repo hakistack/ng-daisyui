@@ -2,7 +2,33 @@ import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { TreeComponent, TreeNode, LucideIconComponent, ToastService, createTree, node } from '@hakistack/ng-daisyui';
+import { TreeComponent, TreeNode, ToastService, createTree, node } from '@hakistack/ng-daisyui';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  Info,
+  CheckCheck,
+  Move,
+  FileCode,
+  FileText,
+  Image,
+  Braces,
+  Monitor,
+  Server,
+  Cloud,
+  Code,
+  Users,
+  LayoutGrid,
+  Palette,
+  Share2,
+  Megaphone,
+  Building2,
+  Circle,
+  ListTodo,
+  CircleCheckBig,
+  CircleCheck,
+} from 'lucide-angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -19,7 +45,33 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 
 @Component({
   selector: 'app-tree-demo',
-  imports: [TreeComponent, LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [TreeComponent, LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  providers: [
+    {
+      provide: LUCIDE_ICONS,
+      multi: true,
+      useValue: new LucideIconProvider({
+        FileCode,
+        FileText,
+        Image,
+        Braces,
+        Monitor,
+        Server,
+        Cloud,
+        Code,
+        Users,
+        LayoutGrid,
+        Palette,
+        Share2,
+        Megaphone,
+        Building2,
+        Circle,
+        ListTodo,
+        CircleCheckBig,
+        CircleCheck,
+      }),
+    },
+  ],
   template: `
     <app-demo-page
       title="Tree"
@@ -67,7 +119,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
               <div>
                 @if (singleSelection()) {
                   <div class="alert alert-info">
-                    <hk-lucide-icon name="Info" [size]="20" />
+                    <lucide-icon [img]="infoIcon" [size]="20" />
                     <span
                       >Selected: <strong>{{ singleSelection()?.label }}</strong></span
                     >
@@ -106,7 +158,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
               <div>
                 @if (checkboxSelection().length > 0) {
                   <div class="alert alert-success">
-                    <hk-lucide-icon name="CheckCheck" [size]="20" />
+                    <lucide-icon [img]="checkCheckIcon" [size]="20" />
                     <div>
                       <strong>{{ checkboxSelection().length }} nodes selected:</strong>
                       <ul class="list-disc list-inside mt-1 text-sm">
@@ -143,7 +195,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 
             @if (lastDropEvent()) {
               <div class="alert alert-info mt-4">
-                <hk-lucide-icon name="Move" [size]="20" />
+                <lucide-icon [img]="moveIcon" [size]="20" />
                 <span>
                   Dropped "<strong>{{ lastDropEvent()?.dragNode?.label }}</strong
                   >"
@@ -264,6 +316,9 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
   `,
 })
 export class TreeDemoComponent {
+  readonly infoIcon = Info;
+  readonly checkCheckIcon = CheckCheck;
+  readonly moveIcon = Move;
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));

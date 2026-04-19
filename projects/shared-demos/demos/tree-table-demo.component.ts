@@ -2,7 +2,18 @@ import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { TableComponent, createTable, ToastService, LucideIconComponent, TreeNode } from '@hakistack/ng-daisyui';
+import { TableComponent, createTable, ToastService, TreeNode } from '@hakistack/ng-daisyui';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Info,
+  Eye,
+  Pencil,
+  Download,
+} from 'lucide-angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -31,7 +42,8 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 
 @Component({
   selector: 'app-tree-table-demo',
-  imports: [TableComponent, LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [TableComponent, LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ Eye, Pencil, Download }) }],
   template: `
     <app-demo-page
       title="Tree Table"
@@ -50,11 +62,11 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
           >
             <div class="flex gap-2 mb-4 flex-wrap">
               <button class="btn btn-sm btn-outline" (click)="expandAllDept()">
-                <hk-lucide-icon name="ChevronsDownUp" [size]="16" />
+                <lucide-icon [img]="chevronsDownUpIcon" [size]="16" />
                 Expand All
               </button>
               <button class="btn btn-sm btn-outline" (click)="collapseAllDept()">
-                <hk-lucide-icon name="ChevronsUpDown" [size]="16" />
+                <lucide-icon [img]="chevronsUpDownIcon" [size]="16" />
                 Collapse All
               </button>
               <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(1)">Level 1</button>
@@ -98,7 +110,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 
           @if (selectedItems().length > 0) {
             <div class="alert alert-info">
-              <hk-lucide-icon name="Info" [size]="20" />
+              <lucide-icon [img]="infoIcon" [size]="20" />
               <span>{{ selectedItems().length }} item(s) selected</span>
             </div>
           }
@@ -120,7 +132,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 
           @if (cascadeSelectedItems().length > 0) {
             <div class="alert alert-info">
-              <hk-lucide-icon name="Info" [size]="20" />
+              <lucide-icon [img]="infoIcon" [size]="20" />
               <span>{{ cascadeSelectedItems().length }} item(s) selected via cascade</span>
             </div>
           }
@@ -266,6 +278,9 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
   `,
 })
 export class TreeTableDemoComponent {
+  readonly chevronsDownUpIcon = ChevronsDownUp;
+  readonly chevronsUpDownIcon = ChevronsUpDown;
+  readonly infoIcon = Info;
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
@@ -513,13 +528,13 @@ export class TreeTableDemoComponent {
       {
         type: 'view',
         label: 'View',
-        icon: 'Eye',
+        icon: Eye,
         action: (row) => this.toast.info(`Viewing: ${row.label}`),
       },
       {
         type: 'edit',
         label: 'Edit',
-        icon: 'Pencil',
+        icon: Pencil,
         action: (row) => this.toast.info(`Editing: ${row.label}`),
       },
     ],
@@ -527,7 +542,7 @@ export class TreeTableDemoComponent {
       {
         type: 'export',
         label: 'Export',
-        icon: 'Download',
+        icon: Download,
         action: (rows, option) => this.toast.success(`Exporting ${rows.length} items as ${option?.label ?? 'file'}`),
       },
     ],

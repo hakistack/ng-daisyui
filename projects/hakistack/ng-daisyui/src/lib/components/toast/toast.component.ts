@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, ViewEncapsulation } from '@angular/core';
-
-import { IconName, LucideIconComponent } from '../lucide-icon/lucide-icon.component';
+import { CommonModule } from '@angular/common';
+import { LucideAngularModule, LucideIconData, X, CircleCheck, Info, TriangleAlert, CircleX } from 'lucide-angular';
 import { TOAST_CONFIG } from './toast.config';
 import { ToastService } from './toast.service';
 import { Toast, ToastAction, ToastPosition, ToastSeverity } from './toast.types';
@@ -10,7 +10,7 @@ type PositionHorizontal = 'start' | 'center' | 'end';
 
 @Component({
   selector: 'hk-toast',
-  imports: [LucideIconComponent],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './toast.component.html',
   styleUrl: './toast.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,14 +20,16 @@ export class ToastComponent {
   private readonly toastService = inject(ToastService);
   private readonly config = inject(TOAST_CONFIG, { optional: true });
 
+  readonly xIcon = X;
+
   readonly toasts = this.toastService.toasts;
   readonly position = signal<ToastPosition>(this.config?.position || 'bottom-end');
 
-  private readonly severityConfig: Record<ToastSeverity, { class: string; icon: IconName }> = {
-    success: { class: 'alert-success', icon: 'CircleCheck' },
-    info: { class: 'alert-info', icon: 'Info' },
-    warning: { class: 'alert-warning', icon: 'TriangleAlert' },
-    error: { class: 'alert-error', icon: 'CircleX' },
+  private readonly severityConfig: Record<ToastSeverity, { class: string; icon: LucideIconData }> = {
+    success: { class: 'alert-success', icon: CircleCheck },
+    info: { class: 'alert-info', icon: Info },
+    warning: { class: 'alert-warning', icon: TriangleAlert },
+    error: { class: 'alert-error', icon: CircleX },
   };
 
   readonly positionVertical = computed<PositionVertical>(() => {
@@ -72,8 +74,8 @@ export class ToastComponent {
     return classes.join(' ');
   }
 
-  getIcon(severity: ToastSeverity): IconName {
-    return this.severityConfig[severity]?.icon ?? 'Info';
+  getIcon(severity: ToastSeverity): LucideIconData {
+    return this.severityConfig[severity]?.icon ?? Info;
   }
 
   dismiss(id: string): void {

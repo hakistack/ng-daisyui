@@ -13,7 +13,7 @@
       (keydown.enter)="onToastClick(toast)"
     >
       <!-- Icon -->
-      <hk-lucide-icon [name]="getIcon(toast.severity)" [size]="20" class="toast-icon" />
+      <lucide-icon [img]="getIcon(toast.severity)" [size]="20" class="toast-icon" />
 
       <!-- Content -->
       <div class="toast-content">
@@ -26,11 +26,7 @@
         @if (toast.actions?.length) {
           <div class="toast-actions">
             @for (action of toast.actions; track $index) {
-              <button
-                type="button"
-                [class]="getActionButtonClass(action.style)"
-                (click)="handleActionClick(toast, action, $event)"
-              >
+              <button type="button" [class]="getActionButtonClass(action.style)" (click)="handleActionClick(toast, action, $event)">
                 {{ action.label }}
               </button>
             }
@@ -45,7 +41,7 @@
         aria-label="Dismiss notification"
         (click)="dismiss(toast.id); $event.stopPropagation()"
       >
-        <hk-lucide-icon name="X" [size]="16" />
+        <lucide-icon [img]="xIcon" [size]="16" />
       </button>
 
       <!-- Progress bar -->
@@ -54,7 +50,7 @@
           class="toast-progress"
           [class.paused]="toast.isPaused"
           [style.width.%]="toast.progressTarget"
-          [style.--progress-duration.ms]="toast.transitionDuration"
+          [style]="'--progress-duration:' + toast.transitionDuration + 'ms'"
         ></div>
       }
     </div>

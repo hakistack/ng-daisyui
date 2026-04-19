@@ -15,7 +15,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
-import { NgTemplateOutlet } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { debounceTime, identity } from 'rxjs';
 
 import {
@@ -29,7 +29,7 @@ import {
 
 @Component({
   selector: 'hk-virtual-scroller',
-  imports: [ScrollingModule, NgTemplateOutlet],
+  imports: [ScrollingModule, CommonModule],
   templateUrl: './virtual-scroller.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },

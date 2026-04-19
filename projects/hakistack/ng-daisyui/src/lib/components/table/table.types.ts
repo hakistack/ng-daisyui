@@ -1,10 +1,10 @@
 import { Signal } from '@angular/core';
 import { IFuseOptions } from 'fuse.js';
+import { LucideIconData } from 'lucide-angular';
 import { SafeHtml } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
 
 import { PipeFormatter } from '../../types/base-pipes.type';
-import { IconName } from '../lucide-icon/lucide-icon.component';
 import { AggregateFunction } from './table-aggregates';
 
 // Common type aliases with better constraints
@@ -180,7 +180,7 @@ export interface TableAction<T> {
   action: (row: T) => void;
   hidden?: (row: T) => boolean;
   disabled?: (row: T) => boolean;
-  icon?: IconName;
+  icon?: string | LucideIconData;
   tooltip?: string | ((row: T) => string);
   buttonClass?: string;
   buttonClasses?: string[];
@@ -191,7 +191,7 @@ export interface TableAction<T> {
 export interface BulkActionDropdownOption {
   label: string;
   value: string;
-  icon?: IconName;
+  icon?: string | LucideIconData;
   disabled?: boolean;
 }
 
@@ -205,7 +205,7 @@ export interface TableBulkAction<T> {
   action: (rows: T[], option?: BulkActionDropdownOption) => void;
   hidden?: (rows: T[]) => boolean;
   disabled?: (rows: T[]) => boolean;
-  icon?: IconName;
+  icon?: string | LucideIconData;
   tooltip?: string | ((rows: T[]) => string);
   buttonClass?: string;
   buttonClasses?: string[];

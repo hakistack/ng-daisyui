@@ -1,22 +1,12 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  contentChildren,
-  inject,
-  input,
-  model,
-  AfterContentInit,
-} from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, contentChildren, inject, input, model, AfterContentInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Tab, TabContent, TabList, TabPanel, Tabs } from '@angular/aria/tabs';
 import { TabPanelComponent } from '../tab-panel/tab-panel.component';
-import { LucideIconComponent } from '../../lucide-icon/lucide-icon.component';
 import { HK_THEME } from '../../../theme/theme.config';
 
 @Component({
   selector: 'hk-tab-group',
-  imports: [NgTemplateOutlet, LucideIconComponent, Tabs, TabList, Tab, TabPanel, TabContent],
+  imports: [CommonModule, Tabs, TabList, Tab, TabPanel, TabContent],
   templateUrl: './tab-group.component.html',
   styleUrl: './tab-group.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

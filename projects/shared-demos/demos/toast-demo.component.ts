@@ -2,7 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { ToastService, LucideIconComponent } from '@hakistack/ng-daisyui';
+import { ToastService } from '@hakistack/ng-daisyui';
+import { LucideAngularModule, CircleCheck, CircleX, TriangleAlert, Info, Wifi, WifiOff } from 'lucide-angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -14,7 +15,7 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
 @Component({
   selector: 'app-toast-demo',
-  imports: [LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="Toast Notifications"
@@ -33,19 +34,19 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
-                  <hk-lucide-icon name="CircleCheck" [size]="18" />
+                  <lucide-icon [img]="circleCheckIcon" [size]="18" />
                   Success
                 </button>
                 <button class="btn btn-error" (click)="showError()">
-                  <hk-lucide-icon name="CircleX" [size]="18" />
+                  <lucide-icon [img]="circleXIcon" [size]="18" />
                   Error
                 </button>
                 <button class="btn btn-warning" (click)="showWarning()">
-                  <hk-lucide-icon name="TriangleAlert" [size]="18" />
+                  <lucide-icon [img]="triangleAlertIcon" [size]="18" />
                   Warning
                 </button>
                 <button class="btn btn-info" (click)="showInfo()">
-                  <hk-lucide-icon name="Info" [size]="18" />
+                  <lucide-icon [img]="infoIcon" [size]="18" />
                   Info
                 </button>
               </div>
@@ -118,11 +119,11 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             <app-doc-section title="Network Status" description="Built-in online/offline notifications" [codeExample]="networkCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-success" (click)="showOnline()">
-                  <hk-lucide-icon name="Wifi" [size]="18" />
+                  <lucide-icon [img]="wifiIcon" [size]="18" />
                   Online
                 </button>
                 <button class="btn btn-outline btn-error" (click)="showOffline()">
-                  <hk-lucide-icon name="WifiOff" [size]="18" />
+                  <lucide-icon [img]="wifiOffIcon" [size]="18" />
                   Offline
                 </button>
               </div>
@@ -253,6 +254,12 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
   `,
 })
 export class ToastDemoComponent {
+  readonly circleCheckIcon = CircleCheck;
+  readonly circleXIcon = CircleX;
+  readonly triangleAlertIcon = TriangleAlert;
+  readonly infoIcon = Info;
+  readonly wifiIcon = Wifi;
+  readonly wifiOffIcon = WifiOff;
   private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));

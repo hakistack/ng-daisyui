@@ -1,5 +1,3 @@
-import { v4 as uuid } from 'uuid';
-
 export function generateUniqueId(): string {
-  return uuid();
+  return crypto.randomUUID();
 }

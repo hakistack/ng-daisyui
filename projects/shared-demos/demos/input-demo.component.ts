@@ -10,6 +10,7 @@ import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
+import { LucideAngularModule, LUCIDE_ICONS, LucideIconProvider, Search, Mail } from 'lucide-angular';
 
 type ExampleTab = 'basic' | 'variants' | 'styling' | 'forms' | 'mask';
 type ApiTab = 'component' | 'configs' | 'types';
@@ -21,11 +22,13 @@ type ApiTab = 'component' | 'configs' | 'types';
     InputMaskDirective,
     ReactiveFormsModule,
     JsonPipe,
+    LucideAngularModule,
     DocSectionComponent,
     ApiTableComponent,
     CodeBlockComponent,
     DemoPageComponent,
   ],
+  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ Search, Mail }) }],
   template: `
     <app-demo-page
       title="Input"

@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal, TrackByFunction } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
+import { LucideAngularModule, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-angular';
 import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.types';
 
 @Component({
   selector: 'hk-table-pagination',
-  imports: [CommonModule, LucideIconComponent],
+  imports: [CommonModule, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer class="border-base-content/10 flex justify-between gap-4 border-t p-4">
@@ -64,7 +64,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
                 [attr.aria-label]="'Go to first page'"
                 title="First page"
               >
-                <hk-lucide-icon name="ChevronsLeft" aria-hidden="true"></hk-lucide-icon>
+                <lucide-icon [img]="chevronsLeftIcon" aria-hidden="true"></lucide-icon>
               </button>
             }
 
@@ -77,7 +77,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               [attr.aria-label]="'Go to previous page'"
               title="Previous page"
             >
-              <hk-lucide-icon name="ChevronLeft" aria-hidden="true"></hk-lucide-icon>
+              <lucide-icon [img]="chevronLeftIcon" aria-hidden="true"></lucide-icon>
             </button>
 
             <!-- Page Number Buttons -->
@@ -115,7 +115,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               [attr.aria-label]="'Go to next page'"
               title="Next page"
             >
-              <hk-lucide-icon name="ChevronRight" aria-hidden="true"></hk-lucide-icon>
+              <lucide-icon [img]="chevronRightIcon" aria-hidden="true"></lucide-icon>
             </button>
 
             <!-- Last Page Button -->
@@ -128,7 +128,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
                 [attr.aria-label]="'Go to last page'"
                 title="Last page"
               >
-                <hk-lucide-icon name="ChevronsRight" aria-hidden="true"></hk-lucide-icon>
+                <lucide-icon [img]="chevronsRightIcon" aria-hidden="true"></lucide-icon>
               </button>
             }
           </div>
@@ -143,7 +143,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               [attr.aria-label]="'Go to previous page'"
               title="Previous page"
             >
-              <hk-lucide-icon name="ChevronLeft" aria-hidden="true"></hk-lucide-icon>
+              <lucide-icon [img]="chevronLeftIcon" aria-hidden="true"></lucide-icon>
               Previous
             </button>
 
@@ -156,7 +156,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               title="Next page"
             >
               Next
-              <hk-lucide-icon name="ChevronRight" aria-hidden="true"></hk-lucide-icon>
+              <lucide-icon [img]="chevronRightIcon" aria-hidden="true"></lucide-icon>
             </button>
           </div>
         }
@@ -187,6 +187,11 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
   `,
 })
 export class TablePaginationComponent {
+  readonly chevronsLeftIcon = ChevronsLeft;
+  readonly chevronLeftIcon = ChevronLeft;
+  readonly chevronRightIcon = ChevronRight;
+  readonly chevronsRightIcon = ChevronsRight;
+
   // Inputs
   readonly paginationOptions = input<PaginationOptions | null>(null);
   readonly totalItems = input<number>(0);

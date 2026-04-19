@@ -1,6 +1,51 @@
 import { Component } from '@angular/core';
-import { LucideIconComponent } from '@hakistack/ng-daisyui';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  Hammer,
+  X,
+  Check,
+  ToggleRight,
+  LayoutList,
+  PanelBottom,
+  PanelTop,
+  Save,
+  Table,
+  Code,
+  Columns3,
+  GitBranch,
+  Database,
+  Bell,
+  Settings,
+  Unplug,
+  Info,
+  Zap,
+  Smile,
+} from 'lucide-angular';
 import { CodeBlockComponent } from '../shared/code-block.component';
+
+const icons = {
+  Hammer,
+  X,
+  Check,
+  ToggleRight,
+  LayoutList,
+  PanelBottom,
+  PanelTop,
+  Save,
+  Table,
+  Code,
+  Columns3,
+  GitBranch,
+  Database,
+  Bell,
+  Settings,
+  Unplug,
+  Info,
+  Zap,
+  Smile,
+};
 
 /**
  * V4 variant of KeyPatternsComponent.
@@ -12,7 +57,8 @@ import { CodeBlockComponent } from '../shared/code-block.component';
  */
 @Component({
   selector: 'app-key-patterns-v4',
-  imports: [LucideIconComponent, CodeBlockComponent],
+  imports: [LucideAngularModule, CodeBlockComponent],
+  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(icons) }],
   template: `
     <div class="space-y-10 max-w-4xl">
       <!-- Hero -->
@@ -34,7 +80,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
             @for (section of toc; track section.id) {
               <li>
                 <a class="link link-hover text-sm flex items-center gap-2 cursor-pointer" (click)="scrollTo(section.id)">
-                  <hk-lucide-icon [name]="section.icon" [size]="14" class="text-primary" />
+                  <lucide-icon [name]="section.icon" [size]="14" class="text-primary" />
                   {{ section.label }}
                 </a>
               </li>
@@ -47,7 +93,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section id="builders" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-            <hk-lucide-icon name="Hammer" [size]="20" />
+            <lucide-icon name="Hammer" [size]="20" />
           </div>
           <div>
             <h2 class="text-2xl font-serif">Builder Functions</h2>
@@ -62,7 +108,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm text-error">
-              <hk-lucide-icon name="X" [size]="16" />
+              <lucide-icon name="X" [size]="16" />
               The problem
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -76,7 +122,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm text-success">
-              <hk-lucide-icon name="Check" [size]="16" />
+              <lucide-icon name="Check" [size]="16" />
               The ng-daisyui way
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -122,7 +168,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section id="form-controller" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0 mt-0.5">
-            <hk-lucide-icon name="ToggleRight" [size]="20" />
+            <lucide-icon name="ToggleRight" [size]="20" />
           </div>
           <div>
             <h2 class="text-2xl font-serif">FormController Pattern</h2>
@@ -133,7 +179,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm text-error">
-              <hk-lucide-icon name="X" [size]="16" />
+              <lucide-icon name="X" [size]="16" />
               The problem with embedded buttons
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -148,7 +194,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm text-success">
-              <hk-lucide-icon name="Check" [size]="16" />
+              <lucide-icon name="Check" [size]="16" />
               The ng-daisyui way
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -165,14 +211,14 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <hk-lucide-icon name="LayoutList" [size]="16" />
+              <lucide-icon name="LayoutList" [size]="16" />
               Layouts this enables
             </h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               @for (ex of controllerExamples; track ex.title) {
                 <div class="bg-base-200 rounded-box p-4 space-y-2">
                   <div class="flex items-center gap-2">
-                    <hk-lucide-icon [name]="ex.icon" [size]="14" class="text-primary" />
+                    <lucide-icon [name]="ex.icon" [size]="14" class="text-primary" />
                     <span class="text-xs font-semibold">{{ ex.title }}</span>
                   </div>
                   <p class="text-xs text-base-content/55 leading-relaxed">{{ ex.desc }}</p>
@@ -189,7 +235,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section id="table-builder" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0 mt-0.5">
-            <hk-lucide-icon name="Table" [size]="20" />
+            <lucide-icon name="Table" [size]="20" />
           </div>
           <div>
             <h2 class="text-2xl font-serif">Table Builder</h2>
@@ -203,7 +249,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <hk-lucide-icon name="Code" [size]="16" />
+              <lucide-icon name="Code" [size]="16" />
               Why a builder instead of a template?
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -222,7 +268,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <hk-lucide-icon name="Columns3" [size]="16" />
+              <lucide-icon name="Columns3" [size]="16" />
               Type-safe formatters with fmt.*()
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -240,7 +286,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
               @for (feat of tableFeatures; track feat) {
                 <div class="flex items-center gap-1.5 text-xs text-base-content/70">
-                  <hk-lucide-icon name="Check" [size]="12" class="text-success shrink-0" />
+                  <lucide-icon name="Check" [size]="12" class="text-success shrink-0" />
                   {{ feat }}
                 </div>
               }
@@ -271,7 +317,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section id="tree-builder" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-warning/10 text-warning flex items-center justify-center shrink-0 mt-0.5">
-            <hk-lucide-icon name="GitBranch" [size]="20" />
+            <lucide-icon name="GitBranch" [size]="20" />
           </div>
           <div>
             <h2 class="text-2xl font-serif">Tree Builder</h2>
@@ -295,7 +341,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <hk-lucide-icon name="Database" [size]="16" />
+              <lucide-icon name="Database" [size]="16" />
               Convert flat data to trees
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -329,7 +375,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section id="services" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-info/10 text-info flex items-center justify-center shrink-0 mt-0.5">
-            <hk-lucide-icon name="Bell" [size]="20" />
+            <lucide-icon name="Bell" [size]="20" />
           </div>
           <div>
             <h2 class="text-2xl font-serif">Service Patterns</h2>
@@ -340,7 +386,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <hk-lucide-icon name="Code" [size]="16" />
+              <lucide-icon name="Code" [size]="16" />
               Why services instead of components?
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -357,7 +403,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <hk-lucide-icon name="Settings" [size]="16" />
+              <lucide-icon name="Settings" [size]="16" />
               Provider-based configuration
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -385,7 +431,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section id="standalone" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-success/10 text-success flex items-center justify-center shrink-0 mt-0.5">
-            <hk-lucide-icon name="Unplug" [size]="20" />
+            <lucide-icon name="Unplug" [size]="20" />
           </div>
           <div>
             <h2 class="text-2xl font-serif">Standalone & Signals</h2>
@@ -402,7 +448,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
             </p>
             <app-code-block [code]="standaloneCode" />
             <div role="alert" class="alert alert-info text-xs">
-              <hk-lucide-icon name="Info" [size]="14" />
+              <lucide-icon name="Info" [size]="14" />
               <span>
                 No <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">NgDaisyuiModule.forRoot()</code>. No shared modules. Just import
                 and use.
@@ -414,7 +460,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <hk-lucide-icon name="Zap" [size]="16" />
+              <lucide-icon name="Zap" [size]="16" />
               Signals & OnPush
             </h3>
             <p class="text-sm text-base-content/70 leading-relaxed">
@@ -433,7 +479,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section id="icons" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-            <hk-lucide-icon name="Smile" [size]="20" />
+            <lucide-icon name="Smile" [size]="20" />
           </div>
           <div>
             <h2 class="text-2xl font-serif">Icon Registration</h2>
@@ -764,5 +810,5 @@ providers: [
 ]
 
 // Then use anywhere
-// <hk-lucide-icon name="Home" [size]="20" />`;
+// <lucide-icon name="Home" [size]="20" />`;
 }

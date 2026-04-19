@@ -23,17 +23,19 @@
     <!-- Close button (DaisyUI standard pattern) -->
     @if (!config().loading && config().allowEscapeKey) {
       <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Close" (click)="dismiss('close')">
-        <hk-lucide-icon name="X" [size]="16" />
+        <lucide-icon [img]="xIcon" [size]="16" />
       </button>
     }
 
     <!-- Icon -->
-    @if (config().icon && !config().loading) {
-      <div class="mb-4 flex justify-center">
-        <div [class]="iconContainerClasses()" class="alert-icon-enter">
-          <hk-lucide-icon [name]="iconName()" [size]="48" />
+    @if (iconData(); as icon) {
+      @if (!config().loading) {
+        <div class="mb-4 flex justify-center">
+          <div [class]="iconContainerClasses()" class="alert-icon-enter">
+            <lucide-icon [img]="icon" [size]="48" />
+          </div>
         </div>
-      </div>
+      }
     }
 
     <!-- Loading spinner (DaisyUI loading component) -->
@@ -83,7 +85,7 @@
 
     <!-- Timer progress bar -->
     @if (config().timerProgressBar && config().timer && !config().loading) {
-      <div class="alert-timer-progress" [style.--alert-timer-duration.ms]="config().timer"></div>
+      <div class="alert-timer-progress" [style]="'--alert-timer-duration:' + config().timer + 'ms'"></div>
     }
   </div>
 

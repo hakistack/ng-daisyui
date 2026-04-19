@@ -1,6 +1,5 @@
 import { TreeNode } from '../../api/treenode';
 import { generateUniqueId } from '../../utils/generate-uuid';
-import { IconName } from '../lucide-icon/lucide-icon.component';
 import { BuildTreeOptions, CreateTreeInput, FromDataOptions, TreeConfig, TreeSetup } from './tree.types';
 
 // ---------------------------------------------------------------------------
@@ -95,8 +94,8 @@ export const node = {
   folder<T = unknown>(label: string, children: TreeNode<T>[], opts?: Partial<TreeNode<T>>): TreeNode<T> {
     return {
       key: generateKey(),
-      icon: 'Folder' as IconName,
-      expandedIcon: 'FolderOpen' as IconName,
+      icon: 'Folder',
+      expandedIcon: 'FolderOpen',
       ...opts,
       label,
       children,
@@ -122,8 +121,8 @@ export const node = {
   lazy<T = unknown>(label: string, opts?: Partial<TreeNode<T>>): TreeNode<T> {
     return {
       key: generateKey(),
-      icon: 'Folder' as IconName,
-      expandedIcon: 'FolderOpen' as IconName,
+      icon: 'Folder',
+      expandedIcon: 'FolderOpen',
       ...opts,
       label,
       leaf: false,

@@ -19,9 +19,6 @@
         [class.tab-active]="selectedTab() === panel.value()"
         [class.tab-disabled]="panel.disabled()"
       >
-        @if (panel.icon()) {
-          <hk-lucide-icon [name]="panel.icon()!" [size]="16" class="mr-1.5" />
-        }
         {{ panel.label() }}
       </button>
     }
@@ -32,12 +29,7 @@
   <!-- Tab Panels -->
   <div class="bg-base-100 border-base-300 rounded-b-box border border-t-0 p-4">
     @for (panel of panels(); track panel.value()) {
-      <div
-        ngTabPanel
-        role="tabpanel"
-        [value]="panel.value()"
-        [class.hidden]="selectedTab() !== panel.value()"
-      >
+      <div ngTabPanel role="tabpanel" [value]="panel.value()" [class.hidden]="selectedTab() !== panel.value()">
         <ng-template ngTabContent>
           <ng-container [ngTemplateOutlet]="panel.contentTemplateRef()"></ng-container>
         </ng-template>

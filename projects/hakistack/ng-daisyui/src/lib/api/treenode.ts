@@ -1,5 +1,3 @@
-import type { IconName } from '../components/lucide-icon/lucide-icon.component';
-
 /**
  * TreeNode interface for hierarchical data structures.
  * Used by OrganizationChart, Tree, TreeTable, and other tree-based components.
@@ -55,14 +53,14 @@ export interface TreeNode<T = unknown> {
   // Visual
   // ============================================================================
 
-  /** Display icon (Lucide icon name) */
-  icon?: IconName;
+  /** Display icon */
+  icon?: string;
 
   /** Icon when node is expanded */
-  expandedIcon?: IconName;
+  expandedIcon?: string;
 
   /** Icon when node is collapsed */
-  collapsedIcon?: IconName;
+  collapsedIcon?: string;
 
   /** Inline styles */
   style?: Record<string, string>;

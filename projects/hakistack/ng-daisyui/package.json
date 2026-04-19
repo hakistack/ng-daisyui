@@ -70,7 +70,6 @@
   },
   "dependencies": {
     "tslib": "^2.3.0",
-    "uuid": "^13.0.0",
     "fuse.js": "^7.0.0",
     "libphonenumber-js": "^1.11.0",
     "lucide-angular": "^0.500.0",

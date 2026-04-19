@@ -11,10 +11,11 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 
-import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
+import { LucideAngularModule, LucideIconData, X, CircleCheck, CircleX, TriangleAlert, Info, CircleQuestionMark } from 'lucide-angular';
 import type { AlertIcon, AlertInternalConfig, AlertResult, AlertSize } from './alert.types';
 
 const SIZE_CLASS_MAP: Record<AlertSize, string> = {
@@ -27,12 +28,12 @@ const SIZE_CLASS_MAP: Record<AlertSize, string> = {
   full: 'w-11/12 max-w-5xl',
 };
 
-const ICON_MAP: Record<AlertIcon, string> = {
-  success: 'CircleCheck',
-  error: 'CircleX',
-  warning: 'TriangleAlert',
-  info: 'Info',
-  question: 'CircleHelp',
+const ICON_MAP: Record<AlertIcon, LucideIconData> = {
+  success: CircleCheck,
+  error: CircleX,
+  warning: TriangleAlert,
+  info: Info,
+  question: CircleQuestionMark,
 };
 
 const ICON_COLOR_MAP: Record<AlertIcon, string> = {
@@ -59,12 +60,14 @@ const EXIT_DURATION = 150;
   templateUrl: './alert-overlay.component.html',
   styleUrl: './alert-overlay.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucideIconComponent, CdkTrapFocus],
+  imports: [CommonModule, LucideAngularModule, CdkTrapFocus],
   host: { class: 'hk-alert-overlay' },
 })
 export class AlertOverlayComponent {
   readonly config = input.required<AlertInternalConfig>();
   readonly dismissing = signal(false);
+
+  readonly xIcon = X;
 
   private readonly sanitizer = inject(DomSanitizer);
   private readonly destroyRef = inject(DestroyRef);
@@ -82,9 +85,9 @@ export class AlertOverlayComponent {
   readonly cancelBtn = viewChild<ElementRef<HTMLButtonElement>>('cancelBtn');
   readonly confirmBtn = viewChild<ElementRef<HTMLButtonElement>>('confirmBtn');
 
-  readonly iconName = computed(() => {
+  readonly iconData = computed<LucideIconData | null>(() => {
     const icon = this.config().icon;
-    return icon ? ICON_MAP[icon] : '';
+    return icon ? ICON_MAP[icon] : null;
   });
 
   readonly iconContainerClasses = computed(() => {

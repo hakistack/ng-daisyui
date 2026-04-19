@@ -8,12 +8,24 @@ import {
   TableComponent,
   createTable,
   ToastService,
-  LucideIconComponent,
   HkFooterDirective,
   CellEditEvent,
   RowReorderEvent,
   ColumnReorderEvent,
 } from '@hakistack/ng-daisyui';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  Info,
+  X,
+  MousePointerClick,
+  Users,
+  Eye,
+  Pencil,
+  Trash2,
+  Download,
+} from 'lucide-angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -99,13 +111,14 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
     CommonModule,
     ReactiveFormsModule,
     TableComponent,
-    LucideIconComponent,
+    LucideAngularModule,
     HkFooterDirective,
     DocSectionComponent,
     ApiTableComponent,
     CodeBlockComponent,
     DemoPageComponent,
   ],
+  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ Eye, Pencil, Trash2, Download }) }],
   template: `
     <app-demo-page
       title="Table"
@@ -141,7 +154,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
 
           @if (selectedUsers().length > 0) {
             <div class="alert alert-info">
-              <hk-lucide-icon name="Info" [size]="20" />
+              <lucide-icon [img]="infoIcon" [size]="20" />
               <span>{{ selectedUsers().length }} user(s) selected</span>
             </div>
           }
@@ -188,7 +201,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               </div>
               <div class="mt-3 flex justify-end">
                 <button type="button" class="btn btn-ghost btn-sm" (click)="clearFilterGrid()">
-                  <hk-lucide-icon name="X" [size]="14" />
+                  <lucide-icon [img]="xIcon" [size]="14" />
                   Limpiar filtros
                 </button>
               </div>
@@ -198,7 +211,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
           </app-doc-section>
 
           <div class="alert alert-info">
-            <hk-lucide-icon name="Info" [size]="20" />
+            <lucide-icon [img]="infoIcon" [size]="20" />
             <span>Each column below demonstrates a different filter type. Open the dev console to see filterChange events.</span>
           </div>
         }
@@ -214,7 +227,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
 
           @if (activeUser()) {
             <div class="alert alert-info">
-              <hk-lucide-icon name="MousePointerClick" [size]="20" />
+              <lucide-icon [img]="mousePointerClickIcon" [size]="20" />
               <span
                 >Active row: <strong>{{ activeUser()!.name }}</strong> ({{ activeUser()!.role }})</span
               >
@@ -231,7 +244,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
 
           @if (activeUsers().length > 0) {
             <div class="alert alert-info">
-              <hk-lucide-icon name="MousePointerClick" [size]="20" />
+              <lucide-icon [img]="mousePointerClickIcon" [size]="20" />
               <span
                 >{{ activeUsers().length }} row(s) selected: <strong>{{ activeUserNames() }}</strong></span
               >
@@ -307,7 +320,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               <ng-template hkFooter let-data let-columns="columns">
                 <div class="flex items-center justify-between px-2 py-1">
                   <div class="flex items-center gap-2 text-sm text-base-content/70">
-                    <hk-lucide-icon name="Users" class="h-4 w-4" />
+                    <lucide-icon [img]="usersIcon" class="h-4 w-4" />
                     <span>{{ data.length }} employees across {{ uniqueDepartments(data).length }} departments</span>
                   </div>
                   <div class="flex items-center gap-4">
@@ -638,6 +651,10 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
   `,
 })
 export class TableDemoComponent {
+  readonly infoIcon = Info;
+  readonly xIcon = X;
+  readonly mousePointerClickIcon = MousePointerClick;
+  readonly usersIcon = Users;
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
@@ -845,19 +862,19 @@ export class TableDemoComponent {
       {
         type: 'view',
         label: 'View',
-        icon: 'Eye',
+        icon: Eye,
         action: (row) => this.toast.info(`Viewing ${row.name}`),
       },
       {
         type: 'edit',
         label: 'Edit',
-        icon: 'Pencil',
+        icon: Pencil,
         action: (row) => this.toast.info(`Editing ${row.name}`),
       },
       {
         type: 'delete',
         label: 'Delete',
-        icon: 'Trash2',
+        icon: Trash2,
         action: (row) => this.toast.warning(`Delete ${row.name}?`),
       },
     ],
@@ -865,13 +882,13 @@ export class TableDemoComponent {
       {
         type: 'delete',
         label: 'Delete Selected',
-        icon: 'Trash2',
+        icon: Trash2,
         action: (rows) => this.toast.warning(`Delete ${rows.length} users?`),
       },
       {
         type: 'export',
         label: 'Export',
-        icon: 'Download',
+        icon: Download,
         action: (rows, option) => this.toast.success(`Exporting ${rows.length} users as ${option?.label ?? 'file'}`),
       },
     ],
@@ -1067,8 +1084,8 @@ export class TableDemoComponent {
     hasSelection: true,
     hasActions: true,
     actions: [
-      { type: 'view', label: 'View', icon: 'Eye', action: (row) => this.toast.info(`Viewing ${row.name}`) },
-      { type: 'edit', label: 'Edit', icon: 'Pencil', action: (row) => this.toast.info(`Editing ${row.name}`) },
+      { type: 'view', label: 'View', icon: Eye, action: (row) => this.toast.info(`Viewing ${row.name}`) },
+      { type: 'edit', label: 'Edit', icon: Pencil, action: (row) => this.toast.info(`Editing ${row.name}`) },
     ],
     stickyColumns: {
       stickySelection: true,
@@ -2209,10 +2226,10 @@ const config = createTable<User>({
   hasSelection: true,
   hasActions: true,
   actions: [
-    { type: 'view', label: 'View', icon: 'Eye', action: (row) => {} },
+    { type: 'view', label: 'View', icon: Eye, action: (row) => {} },
   ],
   bulkActions: [
-    { type: 'delete', label: 'Delete', icon: 'Trash2', action: (rows) => {} },
+    { type: 'delete', label: 'Delete', icon: Trash2, action: (rows) => {} },
   ],
   filters: [
     { field: 'role', type: 'select', options: [...] },
@@ -2368,10 +2385,10 @@ const config = createTable<User>({
   hasSelection: true,
   hasActions: true,
   actions: [
-    { type: 'edit', label: 'Edit', icon: 'Pencil', action: (row) => {} },
+    { type: 'edit', label: 'Edit', icon: Pencil, action: (row) => {} },
   ],
   bulkActions: [
-    { type: 'delete', label: 'Delete', icon: 'Trash2', action: (rows) => {} },
+    { type: 'delete', label: 'Delete', icon: Trash2, action: (rows) => {} },
   ],
   filters: [
     { field: 'status', type: 'select', options: [{ label: 'Active', value: 'active' }] },

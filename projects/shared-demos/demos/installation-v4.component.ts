@@ -1,12 +1,12 @@
 import { Component, signal } from '@angular/core';
-import { LucideIconComponent } from '@hakistack/ng-daisyui';
+import { LucideAngularModule } from 'lucide-angular';
 import { CodeBlockComponent } from '../shared/code-block.component';
 
 type PkgManager = 'npm' | 'yarn' | 'pnpm';
 
 @Component({
   selector: 'app-installation-v4',
-  imports: [LucideIconComponent, CodeBlockComponent],
+  imports: [LucideAngularModule, CodeBlockComponent],
   template: `
     <div class="space-y-10 max-w-4xl">
       <!-- Hero -->
@@ -22,7 +22,7 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
 
       <!-- Prerequisites -->
       <div role="alert" class="alert alert-info">
-        <hk-lucide-icon name="Info" [size]="18" />
+        <lucide-icon name="Info" [size]="18" />
         <div>
           <h3 class="font-bold text-sm">Prerequisites</h3>
           <div class="text-xs">
@@ -148,7 +148,7 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
           <div class="card-body">
             <div class="flex items-center gap-3 mb-1">
               <span class="badge badge-success badge-lg">
-                <hk-lucide-icon name="Check" [size]="14" />
+                <lucide-icon name="Check" [size]="14" />
               </span>
               <h2 class="card-title text-base text-success">Use a component</h2>
             </div>

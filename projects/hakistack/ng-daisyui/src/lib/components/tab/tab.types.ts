@@ -1,5 +1,3 @@
-import { IconName } from '../lucide-icon/lucide-icon.component';
-
 /**
  * Represents a tab item configuration
  */
@@ -8,8 +6,8 @@ export interface TabItem {
   value: string;
   /** Display text for the tab header */
   label: string;
-  /** Optional icon to display alongside the label */
-  icon?: IconName;
+  /** Optional icon to display alongside the label (reserved for future custom icon support) */
+  icon?: string;
   /** Whether this tab is disabled and cannot be selected */
   disabled?: boolean;
 }

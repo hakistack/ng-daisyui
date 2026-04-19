@@ -486,7 +486,7 @@ describe('TabGroupComponent', () => {
   // Icons
   // -------------------------------------------------------------------------
   describe('tabs with icons', () => {
-    it('should render icon elements for tabs with icons', async () => {
+    it('should render tabs without icon elements (icon rendering removed)', async () => {
       await TestBed.configureTestingModule({
         imports: [IconTabTestHostComponent],
       }).compileComponents();
@@ -495,8 +495,8 @@ describe('TabGroupComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      const icons = fixture.nativeElement.querySelectorAll('hk-lucide-icon');
-      expect(icons.length).toBe(2);
+      const icons = fixture.nativeElement.querySelectorAll('lucide-icon');
+      expect(icons.length).toBe(0);
     });
   });
 

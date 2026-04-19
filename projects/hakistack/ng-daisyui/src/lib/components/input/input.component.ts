@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, forwardRef, input, output, signal, viewChild } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
+import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 import { VARIANT_STRATEGY_MAP } from './input-variant-strategies';
 import { CurrencyConfig, InputColor, InputSize, InputVariant, PasswordConfig, PercentageConfig, PhoneConfig } from './input.types';
 
 @Component({
   selector: 'hk-input',
-  imports: [LucideIconComponent],
+  imports: [LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     {
@@ -23,7 +23,7 @@ import { CurrencyConfig, InputColor, InputSize, InputVariant, PasswordConfig, Pe
       @if (hasPrefix()) {
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 z-10">
           @if (effectivePrefixIcon(); as icon) {
-            <hk-lucide-icon [name]="icon" [size]="16" class="text-base-content/50" />
+            <lucide-icon [name]="icon" [size]="16" class="text-base-content/50" />
           }
           @if (effectivePrefixText(); as text) {
             <span class="text-base-content/50 text-sm">{{ text }}</span>
@@ -62,11 +62,11 @@ import { CurrencyConfig, InputColor, InputSize, InputVariant, PasswordConfig, Pe
               [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
               (click)="togglePasswordVisibility()"
             >
-              <hk-lucide-icon [name]="passwordVisible() ? 'EyeOff' : 'Eye'" [size]="16" />
+              <lucide-icon [img]="passwordVisible() ? eyeOffIcon : eyeIcon" [size]="16" />
             </button>
           }
           @if (effectiveSuffixIcon(); as icon) {
-            <hk-lucide-icon [name]="icon" [size]="16" class="text-base-content/50" />
+            <lucide-icon [name]="icon" [size]="16" class="text-base-content/50" />
           }
           @if (effectiveSuffixText(); as text) {
             <span class="text-base-content/50 text-sm">{{ text }}</span>
@@ -77,6 +77,9 @@ import { CurrencyConfig, InputColor, InputSize, InputVariant, PasswordConfig, Pe
   `,
 })
 export class InputComponent implements ControlValueAccessor {
+  readonly eyeIcon = Eye;
+  readonly eyeOffIcon = EyeOff;
+
   private readonly inputEl = viewChild<ElementRef<HTMLInputElement>>('inputEl');
 
   // ── Signal Inputs ──────────────────────────────────────────────────────

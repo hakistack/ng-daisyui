@@ -2,7 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { AlertService, LucideIconComponent, type AlertSize } from '@hakistack/ng-daisyui';
+import { AlertService, type AlertSize } from '@hakistack/ng-daisyui';
+import { LucideAngularModule, CircleCheck, CircleX, TriangleAlert, Info, Trash2, Loader, Clock, FileText, Globe } from 'lucide-angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -14,7 +15,7 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
 @Component({
   selector: 'app-alert-demo',
-  imports: [LucideIconComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="Alert Dialogs"
@@ -33,19 +34,19 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
-                  <hk-lucide-icon name="CircleCheck" [size]="18" />
+                  <lucide-icon [img]="circleCheckIcon" [size]="18" />
                   Success
                 </button>
                 <button class="btn btn-error" (click)="showError()">
-                  <hk-lucide-icon name="CircleX" [size]="18" />
+                  <lucide-icon [img]="circleXIcon" [size]="18" />
                   Error
                 </button>
                 <button class="btn btn-warning" (click)="showWarning()">
-                  <hk-lucide-icon name="TriangleAlert" [size]="18" />
+                  <lucide-icon [img]="triangleAlertIcon" [size]="18" />
                   Warning
                 </button>
                 <button class="btn btn-info" (click)="showInfo()">
-                  <hk-lucide-icon name="Info" [size]="18" />
+                  <lucide-icon [img]="infoIcon" [size]="18" />
                   Info
                 </button>
               </div>
@@ -77,7 +78,7 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             <app-doc-section title="Delete with Item Name" description="Show the item being deleted" [codeExample]="deleteCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-error" (click)="showDeleteWithItem()">
-                  <hk-lucide-icon name="Trash2" [size]="18" />
+                  <lucide-icon [img]="trash2Icon" [size]="18" />
                   Delete "Project Alpha"
                 </button>
               </div>
@@ -99,7 +100,7 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             <app-doc-section title="Loading State" description="Show loading indicator during async operations" [codeExample]="loadingCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showLoading()">
-                  <hk-lucide-icon name="Loader" [size]="18" />
+                  <lucide-icon [img]="loaderIcon" [size]="18" />
                   Show Loading (3s)
                 </button>
                 <button class="btn btn-outline" (click)="showLoadingWithUpdate()">Loading with Update</button>
@@ -120,7 +121,7 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-warning" (click)="showCountdown()">
-                  <hk-lucide-icon name="Clock" [size]="18" />
+                  <lucide-icon [img]="clockIcon" [size]="18" />
                   Session Timeout Warning
                 </button>
                 <button class="btn btn-outline" (click)="showCountdownCustom()">Custom Countdown</button>
@@ -149,19 +150,19 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showHtmlUrlTerms()">
-                  <hk-lucide-icon name="FileText" [size]="18" />
+                  <lucide-icon [img]="fileTextIcon" [size]="18" />
                   Terms (from file)
                 </button>
                 <button class="btn btn-outline" (click)="showHtmlUrlReleaseNotes()">
-                  <hk-lucide-icon name="FileText" [size]="18" />
+                  <lucide-icon [img]="fileTextIcon" [size]="18" />
                   Release Notes (from file)
                 </button>
                 <button class="btn btn-outline" (click)="showHtmlUrlRemote()">
-                  <hk-lucide-icon name="Globe" [size]="18" />
+                  <lucide-icon [img]="globeIcon" [size]="18" />
                   Remote URL (httpbin)
                 </button>
                 <button class="btn btn-outline" (click)="showHtmlUrlNotFound()">
-                  <hk-lucide-icon name="TriangleAlert" [size]="18" />
+                  <lucide-icon [img]="triangleAlertIcon" [size]="18" />
                   Bad URL (error fallback)
                 </button>
               </div>
@@ -340,6 +341,15 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
   `,
 })
 export class AlertDemoComponent {
+  readonly circleCheckIcon = CircleCheck;
+  readonly circleXIcon = CircleX;
+  readonly triangleAlertIcon = TriangleAlert;
+  readonly infoIcon = Info;
+  readonly trash2Icon = Trash2;
+  readonly loaderIcon = Loader;
+  readonly clockIcon = Clock;
+  readonly fileTextIcon = FileText;
+  readonly globeIcon = Globe;
   private route = inject(ActivatedRoute);
   private alert = inject(AlertService);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));

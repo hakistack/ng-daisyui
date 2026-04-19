@@ -2,7 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { MotionAnimateDirective, MotionHoverDirective, LucideIconComponent } from '@hakistack/ng-daisyui';
+import { MotionAnimateDirective, MotionHoverDirective } from '@hakistack/ng-daisyui';
+import { LucideAngularModule, RefreshCw, Rocket, Sparkles, ArrowRight, Inbox, Star, Send, Archive, Trash2 } from 'lucide-angular';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -16,7 +17,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
   imports: [
     MotionAnimateDirective,
     MotionHoverDirective,
-    LucideIconComponent,
+    LucideAngularModule,
     DemoPageComponent,
     DocSectionComponent,
     ApiTableComponent,
@@ -83,7 +84,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   Pulse
                 </button>
                 <button [motionAnimate]="{ rotate: [0, 360] }" [motionOptions]="{ trigger: 'click', duration: 0.5 }" class="btn btn-accent">
-                  <hk-lucide-icon name="RefreshCw" [size]="18" />
+                  <lucide-icon [img]="refreshCwIcon" [size]="18" />
                   Spin
                 </button>
                 <button
@@ -107,7 +108,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                       [motionOptions]="{ trigger: 'immediate', duration: 0.4, delay: i * 0.1 }"
                       class="p-4 bg-base-200 rounded-lg flex items-center gap-3"
                     >
-                      <hk-lucide-icon [name]="item.icon" [size]="20" class="text-primary" />
+                      <lucide-icon [img]="iconMap[item.icon]" [size]="20" class="text-primary" />
                       <span>{{ item.label }}</span>
                     </div>
                   }
@@ -167,7 +168,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.3, ease: 'easeOut' }"
                   class="p-6 bg-base-200 rounded-xl shadow-md cursor-pointer"
                 >
-                  <hk-lucide-icon name="Rocket" [size]="32" class="text-primary mb-3" />
+                  <lucide-icon [img]="rocketIcon" [size]="32" class="text-primary mb-3" />
                   <h3 class="font-semibold">Card Lift</h3>
                   <p class="text-sm text-base-content/70 mt-1">Scales up with elevated shadow</p>
                 </div>
@@ -177,7 +178,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-xl cursor-pointer"
                 >
-                  <hk-lucide-icon name="Sparkles" [size]="32" class="text-secondary mb-3" />
+                  <lucide-icon [img]="sparklesIcon" [size]="32" class="text-secondary mb-3" />
                   <h3 class="font-semibold">Subtle Tilt</h3>
                   <p class="text-sm text-base-content/70 mt-1">Gentle scale with rotation</p>
                 </div>
@@ -187,7 +188,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-base-200 rounded-xl cursor-pointer border-l-4 border-accent"
                 >
-                  <hk-lucide-icon name="ArrowRight" [size]="32" class="text-accent mb-3" />
+                  <lucide-icon [img]="arrowRightIcon" [size]="32" class="text-accent mb-3" />
                   <h3 class="font-semibold">Slide Right</h3>
                   <p class="text-sm text-base-content/70 mt-1">Suggests forward navigation</p>
                 </div>
@@ -346,6 +347,11 @@ type MotionTab = 'animate' | 'hover' | 'presets';
   `,
 })
 export class MotionDemoComponent {
+  readonly refreshCwIcon = RefreshCw;
+  readonly rocketIcon = Rocket;
+  readonly sparklesIcon = Sparkles;
+  readonly arrowRightIcon = ArrowRight;
+  readonly iconMap: Record<string, any> = { Inbox, Star, Send, Archive, Trash2 };
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
   activeTab = computed(() => (this.featureParam() ?? 'animate') as MotionTab);

@@ -1,6 +1,5 @@
 import { TemplateRef } from '@angular/core';
 import { TreeNode, TreeSelectionMode } from '../../api/treenode';
-import { IconName } from '../lucide-icon/lucide-icon.component';
 
 /**
  * Tree component configuration
@@ -218,7 +217,7 @@ export interface FromDataOptions<T> {
   /** Extract children array from item (for nested source data) */
   childrenFn?: (item: T) => T[] | undefined;
   /** Extract icon name from item */
-  iconFn?: (item: T) => IconName | undefined;
+  iconFn?: (item: T) => string | undefined;
 }
 
 /**
@@ -232,7 +231,7 @@ export interface BuildTreeOptions<T> {
   /** Extract label from item */
   labelFn: (item: T) => string;
   /** Extract icon from item */
-  iconFn?: (item: T) => IconName | undefined;
+  iconFn?: (item: T) => string | undefined;
 }
 
 /**

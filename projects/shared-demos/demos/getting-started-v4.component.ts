@@ -1,11 +1,61 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideIconComponent } from '@hakistack/ng-daisyui';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  Package,
+  Palette,
+  Zap,
+  Paintbrush,
+  Accessibility,
+  Puzzle,
+  FileInput,
+  ListOrdered,
+  ChevronDown,
+  Calendar,
+  FileText,
+  Table,
+  GitBranch,
+  Bell,
+  MessageSquareWarning,
+  PanelTopOpen,
+  Download,
+  Play,
+  Check,
+  Lightbulb,
+  ArrowRight,
+} from 'lucide-angular';
 import { CodeBlockComponent } from '../shared/code-block.component';
+
+const icons = {
+  Package,
+  Palette,
+  Zap,
+  Paintbrush,
+  Accessibility,
+  Puzzle,
+  FileInput,
+  ListOrdered,
+  ChevronDown,
+  Calendar,
+  FileText,
+  Table,
+  GitBranch,
+  Bell,
+  MessageSquareWarning,
+  PanelTopOpen,
+  Download,
+  Play,
+  Check,
+  Lightbulb,
+  ArrowRight,
+};
 
 @Component({
   selector: 'app-getting-started-v4',
-  imports: [LucideIconComponent, CodeBlockComponent, RouterLink],
+  imports: [LucideAngularModule, CodeBlockComponent, RouterLink],
+  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(icons) }],
   template: `
     <div class="space-y-10 max-w-4xl">
       <!-- Hero -->
@@ -19,11 +69,11 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           </p>
           <div class="flex gap-2 mt-2">
             <a routerLink="/installation" class="btn btn-primary btn-sm">
-              <hk-lucide-icon name="Download" [size]="14" />
+              <lucide-icon name="Download" [size]="14" />
               Install
             </a>
             <a routerLink="/forms" class="btn btn-ghost btn-sm">
-              <hk-lucide-icon name="Play" [size]="14" />
+              <lucide-icon name="Play" [size]="14" />
               View Demos
             </a>
           </div>
@@ -35,7 +85,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         @for (s of stats; track s.title) {
           <div class="stat">
             <div class="stat-figure text-primary">
-              <hk-lucide-icon [name]="s.icon" [size]="24" />
+              <lucide-icon [name]="s.icon" [size]="24" />
             </div>
             <div class="stat-title text-xs">{{ s.title }}</div>
             <div class="stat-value text-2xl">{{ s.value }}</div>
@@ -46,7 +96,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
 
       <!-- v5 upgrade CTA -->
       <div role="alert" class="alert alert-warning">
-        <hk-lucide-icon name="Lightbulb" [size]="18" />
+        <lucide-icon name="Lightbulb" [size]="18" />
         <div>
           <h3 class="font-bold text-sm">On a new project?</h3>
           <div class="text-xs">
@@ -56,7 +106,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         </div>
         <a href="/" class="btn btn-sm btn-ghost">
           Open v5
-          <hk-lucide-icon name="ArrowRight" [size]="14" />
+          <lucide-icon name="ArrowRight" [size]="14" />
         </a>
       </div>
 
@@ -69,7 +119,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
               <div class="card-body p-4">
                 <div class="flex items-center gap-3">
                   <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <hk-lucide-icon [name]="feature.icon" [size]="18" />
+                    <lucide-icon [name]="feature.icon" [size]="18" />
                   </div>
                   <h3 class="card-title text-sm">{{ feature.title }}</h3>
                 </div>
@@ -131,7 +181,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
             <div class="card-body">
               <div class="flex items-center gap-3 mb-1">
                 <span class="badge badge-success badge-lg">
-                  <hk-lucide-icon name="Check" [size]="14" />
+                  <lucide-icon name="Check" [size]="14" />
                 </span>
                 <h3 class="card-title text-base text-success">Import and go</h3>
               </div>
@@ -157,7 +207,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
                 <li>
                   <a [routerLink]="item.path" class="flex items-start gap-3">
                     <span class="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0 mt-0.5">
-                      <hk-lucide-icon [name]="item.icon" [size]="15" class="text-base-content/50" />
+                      <lucide-icon [name]="item.icon" [size]="15" class="text-base-content/50" />
                     </span>
                     <span class="flex-1 min-w-0">
                       <span class="block text-sm font-medium">{{ item.label }}</span>
@@ -178,7 +228,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           <p class="text-sm opacity-70">The library's design decisions apply identically to v4 and v5 consumers.</p>
           <div class="card-actions">
             <a routerLink="/key-patterns" class="btn btn-primary btn-sm">
-              <hk-lucide-icon name="Lightbulb" [size]="14" />
+              <lucide-icon name="Lightbulb" [size]="14" />
               Read Key Patterns
             </a>
           </div>

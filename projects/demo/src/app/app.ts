@@ -1,6 +1,63 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { LucideIconComponent } from '@hakistack/ng-daisyui';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  Rocket,
+  Download,
+  Lightbulb,
+  FileInput,
+  ListOrdered,
+  Table,
+  ListTree,
+  GitBranch,
+  Network,
+  ScrollText,
+  TextCursorInput,
+  ChevronDown,
+  Calendar,
+  Clock,
+  FileText,
+  PanelTop,
+  Bell,
+  MessageSquareWarning,
+  PanelTopOpen,
+  Smile,
+  Sparkles,
+  ArrowRight,
+  Palette,
+  ChevronsUpDown,
+  Menu,
+} from 'lucide-angular';
+
+const sidebarIcons = {
+  Rocket,
+  Download,
+  Lightbulb,
+  FileInput,
+  ListOrdered,
+  Table,
+  ListTree,
+  GitBranch,
+  Network,
+  ScrollText,
+  TextCursorInput,
+  ChevronDown,
+  Calendar,
+  Clock,
+  FileText,
+  PanelTop,
+  Bell,
+  MessageSquareWarning,
+  PanelTopOpen,
+  Smile,
+  Sparkles,
+  ArrowRight,
+  Palette,
+  ChevronsUpDown,
+  Menu,
+};
 import { filter } from 'rxjs';
 import { SHOW_OVERVIEW } from '@shared-demos/config';
 
@@ -66,7 +123,8 @@ interface NavSection {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideIconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideAngularModule],
+  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(sidebarIcons) }],
   template: `
     <div class="drawer lg:drawer-open min-h-screen bg-base-100">
       <input id="sidebar" type="checkbox" class="drawer-toggle" />
@@ -93,7 +151,7 @@ interface NavSection {
             >
               <span class="badge badge-soft badge-primary badge-sm font-mono">v4</span>
               <span>Switch to v4</span>
-              <hk-lucide-icon name="ArrowRight" [size]="12" />
+              <lucide-icon name="ArrowRight" [size]="12" />
             </a>
 
             <div class="dropdown dropdown-end">
@@ -102,9 +160,9 @@ interface NavSection {
                 role="button"
                 class="btn btn-ghost btn-sm gap-2 border border-base-content/8 font-normal text-xs h-8 min-h-0"
               >
-                <hk-lucide-icon name="Palette" [size]="13" />
+                <lucide-icon name="Palette" [size]="13" />
                 <span class="capitalize">{{ currentTheme() }}</span>
-                <hk-lucide-icon name="ChevronsUpDown" [size]="12" />
+                <lucide-icon name="ChevronsUpDown" [size]="12" />
               </div>
               <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-72 overflow-y-auto p-2 shadow-2xl mt-2">
                 @for (theme of themes; track theme) {
@@ -129,7 +187,7 @@ interface NavSection {
         <header class="glass-header sticky top-0 z-30 flex lg:hidden items-center justify-between px-4 h-14 border-b border-base-content/5">
           <div class="flex items-center gap-3">
             <label for="sidebar" class="btn btn-ghost btn-sm btn-square">
-              <hk-lucide-icon name="Menu" [size]="20" />
+              <lucide-icon name="Menu" [size]="20" />
             </label>
             <span class="font-serif text-base">ng-daisyui</span>
             <span class="badge badge-soft badge-primary badge-sm font-mono text-[10px]">v5</span>
@@ -137,11 +195,11 @@ interface NavSection {
           <div class="flex items-center gap-1">
             <!-- Version switcher (compact) → v4 -->
             <a href="/v4/" class="btn btn-ghost btn-sm btn-square" aria-label="Switch to DaisyUI 4 demo">
-              <hk-lucide-icon name="ArrowRight" [size]="16" />
+              <lucide-icon name="ArrowRight" [size]="16" />
             </a>
             <div class="dropdown dropdown-end">
               <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square">
-                <hk-lucide-icon name="Palette" [size]="16" />
+                <lucide-icon name="Palette" [size]="16" />
               </div>
               <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-80 overflow-y-auto p-2 shadow-2xl">
                 @for (theme of themes; track theme) {
@@ -210,7 +268,7 @@ interface NavSection {
                     @if (item.children?.length) {
                       <details [open]="currentPath() === item.path">
                         <summary>
-                          <hk-lucide-icon [name]="item.icon" [size]="15" />
+                          <lucide-icon [name]="item.icon" [size]="15" />
                           {{ item.label }}
                         </summary>
                         <ul>
@@ -225,7 +283,7 @@ interface NavSection {
                       </details>
                     } @else {
                       <a [routerLink]="item.path" routerLinkActive="active">
-                        <hk-lucide-icon [name]="item.icon" [size]="15" />
+                        <lucide-icon [name]="item.icon" [size]="15" />
                         {{ item.label }}
                       </a>
                     }

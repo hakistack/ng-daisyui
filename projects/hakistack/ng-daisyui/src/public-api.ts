@@ -177,12 +177,6 @@ export { TOAST_CONFIG, DEFAULT_TOAST_CONFIG, provideToast } from './lib/componen
 export type { ToastGlobalConfig } from './lib/components/toast/toast.config';
 export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } from './lib/components/toast/toast.types';
 
-// Lucide Icon
-export { LucideIconComponent } from './lib/components/lucide-icon/lucide-icon.component';
-export type { IconName, LowerCaseIconName } from './lib/components/lucide-icon/lucide-icon.component';
-export { ICON_REGISTRY, provideIcons } from './lib/components/lucide-icon/icon-registry';
-export type { IconRegistry } from './lib/components/lucide-icon/icon-registry';
-
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
 

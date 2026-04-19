@@ -3,7 +3,170 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { map } from 'rxjs';
-import { LucideIconComponent, IconName } from '@hakistack/ng-daisyui';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  Heart,
+  Star,
+  House,
+  Settings,
+  User,
+  Mail,
+  Circle,
+  Plus,
+  Minus,
+  X,
+  Check,
+  Pencil,
+  Trash2,
+  Copy,
+  Save,
+  Download,
+  Upload,
+  Share,
+  RefreshCw,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  ArrowLeft,
+  ArrowRight,
+  ExternalLink,
+  Search,
+  MessageSquare,
+  Phone,
+  Video,
+  Send,
+  Bell,
+  AtSign,
+  Inbox,
+  CircleCheck,
+  CircleX,
+  CircleAlert,
+  TriangleAlert,
+  Info,
+  CircleQuestionMark,
+  Clock,
+  Loader,
+  Image,
+  Camera,
+  Film,
+  Music,
+  Play,
+  Pause,
+  Volume2,
+  Mic,
+  Users,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  Calendar,
+  Folder,
+  File,
+  FileText,
+  Code,
+  Terminal,
+  Database,
+  Globe,
+  Map,
+  Sun,
+  Moon,
+  Cloud,
+  Zap,
+  Gift,
+  Shield,
+  Award,
+  Flag,
+  Bookmark,
+  Tag,
+  Link,
+  Paperclip,
+  Smile,
+} from 'lucide-angular';
+
+const icons = {
+  Heart,
+  Star,
+  House,
+  Settings,
+  User,
+  Mail,
+  Circle,
+  Plus,
+  Minus,
+  X,
+  Check,
+  Pencil,
+  Trash2,
+  Copy,
+  Save,
+  Download,
+  Upload,
+  Share,
+  RefreshCw,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  ArrowLeft,
+  ArrowRight,
+  ExternalLink,
+  Search,
+  MessageSquare,
+  Phone,
+  Video,
+  Send,
+  Bell,
+  AtSign,
+  Inbox,
+  CircleCheck,
+  CircleX,
+  CircleAlert,
+  TriangleAlert,
+  Info,
+  CircleQuestionMark,
+  Clock,
+  Loader,
+  Image,
+  Camera,
+  Film,
+  Music,
+  Play,
+  Pause,
+  Volume2,
+  Mic,
+  Users,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  Calendar,
+  Folder,
+  File,
+  FileText,
+  Code,
+  Terminal,
+  Database,
+  Globe,
+  Map,
+  Sun,
+  Moon,
+  Cloud,
+  Zap,
+  Gift,
+  Shield,
+  Award,
+  Flag,
+  Bookmark,
+  Tag,
+  Link,
+  Paperclip,
+  Smile,
+};
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -14,7 +177,8 @@ type IconsTab = 'basic' | 'categories' | 'playground';
 
 @Component({
   selector: 'app-icons-demo',
-  imports: [LucideIconComponent, FormsModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [LucideAngularModule, FormsModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(icons) }],
   template: `
     <app-demo-page
       title="Icons"
@@ -28,39 +192,39 @@ type IconsTab = 'basic' | 'categories' | 'playground';
           <div class="space-y-6">
             <app-doc-section title="Basic Usage" description="Simple icon rendering" [codeExample]="basicCode">
               <div class="flex items-center gap-6">
-                <hk-lucide-icon name="Heart" />
-                <hk-lucide-icon name="Star" />
-                <hk-lucide-icon name="House" />
-                <hk-lucide-icon name="Settings" />
-                <hk-lucide-icon name="User" />
-                <hk-lucide-icon name="Mail" />
+                <lucide-icon name="Heart" />
+                <lucide-icon name="Star" />
+                <lucide-icon name="House" />
+                <lucide-icon name="Settings" />
+                <lucide-icon name="User" />
+                <lucide-icon name="Mail" />
               </div>
             </app-doc-section>
 
             <app-doc-section title="Sizes" description="Control icon size with the size input" [codeExample]="sizeCode">
               <div class="flex items-end gap-6">
                 <div class="text-center">
-                  <hk-lucide-icon name="Star" [size]="16" />
+                  <lucide-icon name="Star" [size]="16" />
                   <div class="text-xs mt-2">16px</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Star" [size]="20" />
+                  <lucide-icon name="Star" [size]="20" />
                   <div class="text-xs mt-2">20px</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Star" [size]="24" />
+                  <lucide-icon name="Star" [size]="24" />
                   <div class="text-xs mt-2">24px</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Star" [size]="32" />
+                  <lucide-icon name="Star" [size]="32" />
                   <div class="text-xs mt-2">32px</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Star" [size]="48" />
+                  <lucide-icon name="Star" [size]="48" />
                   <div class="text-xs mt-2">48px</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Star" [size]="64" />
+                  <lucide-icon name="Star" [size]="64" />
                   <div class="text-xs mt-2">64px</div>
                 </div>
               </div>
@@ -68,13 +232,13 @@ type IconsTab = 'basic' | 'categories' | 'playground';
 
             <app-doc-section title="Colors" description="Use any CSS color value" [codeExample]="colorCode">
               <div class="flex items-center gap-6">
-                <hk-lucide-icon name="Heart" [size]="32" color="red" />
-                <hk-lucide-icon name="Heart" [size]="32" color="pink" />
-                <hk-lucide-icon name="Heart" [size]="32" color="#9333ea" />
-                <hk-lucide-icon name="Heart" [size]="32" color="oklch(0.7 0.25 330)" />
-                <hk-lucide-icon name="Heart" [size]="32" class="text-primary" />
-                <hk-lucide-icon name="Heart" [size]="32" class="text-secondary" />
-                <hk-lucide-icon name="Heart" [size]="32" class="text-accent" />
+                <lucide-icon name="Heart" [size]="32" color="red" />
+                <lucide-icon name="Heart" [size]="32" color="pink" />
+                <lucide-icon name="Heart" [size]="32" color="#9333ea" />
+                <lucide-icon name="Heart" [size]="32" color="oklch(0.7 0.25 330)" />
+                <lucide-icon name="Heart" [size]="32" class="text-primary" />
+                <lucide-icon name="Heart" [size]="32" class="text-secondary" />
+                <lucide-icon name="Heart" [size]="32" class="text-accent" />
               </div>
               <div class="mt-4 text-sm text-base-content/60">
                 Use <code class="bg-base-200 px-1">color</code> prop or Tailwind text color classes
@@ -84,23 +248,23 @@ type IconsTab = 'basic' | 'categories' | 'playground';
             <app-doc-section title="Stroke Width" description="Adjust line thickness" [codeExample]="strokeCode">
               <div class="flex items-center gap-8">
                 <div class="text-center">
-                  <hk-lucide-icon name="Circle" [size]="32" [strokeWidth]="1" />
+                  <lucide-icon name="Circle" [size]="32" [strokeWidth]="1" />
                   <div class="text-xs mt-2">1</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Circle" [size]="32" [strokeWidth]="1.5" />
+                  <lucide-icon name="Circle" [size]="32" [strokeWidth]="1.5" />
                   <div class="text-xs mt-2">1.5</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Circle" [size]="32" [strokeWidth]="2" />
+                  <lucide-icon name="Circle" [size]="32" [strokeWidth]="2" />
                   <div class="text-xs mt-2">2 (default)</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Circle" [size]="32" [strokeWidth]="2.5" />
+                  <lucide-icon name="Circle" [size]="32" [strokeWidth]="2.5" />
                   <div class="text-xs mt-2">2.5</div>
                 </div>
                 <div class="text-center">
-                  <hk-lucide-icon name="Circle" [size]="32" [strokeWidth]="3" />
+                  <lucide-icon name="Circle" [size]="32" [strokeWidth]="3" />
                   <div class="text-xs mt-2">3</div>
                 </div>
               </div>
@@ -115,7 +279,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               @for (icon of actionIcons; track icon) {
                 <div class="tooltip" [attr.data-tip]="icon">
                   <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
-                    <hk-lucide-icon [name]="icon" [size]="24" />
+                    <lucide-icon [name]="icon" [size]="24" />
                   </div>
                 </div>
               }
@@ -126,7 +290,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               @for (icon of navIcons; track icon) {
                 <div class="tooltip" [attr.data-tip]="icon">
                   <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
-                    <hk-lucide-icon [name]="icon" [size]="24" />
+                    <lucide-icon [name]="icon" [size]="24" />
                   </div>
                 </div>
               }
@@ -137,7 +301,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               @for (icon of commIcons; track icon) {
                 <div class="tooltip" [attr.data-tip]="icon">
                   <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
-                    <hk-lucide-icon [name]="icon" [size]="24" />
+                    <lucide-icon [name]="icon" [size]="24" />
                   </div>
                 </div>
               }
@@ -148,7 +312,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               @for (icon of statusIcons; track icon) {
                 <div class="tooltip" [attr.data-tip]="icon">
                   <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
-                    <hk-lucide-icon [name]="icon" [size]="24" />
+                    <lucide-icon [name]="icon" [size]="24" />
                   </div>
                 </div>
               }
@@ -159,7 +323,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               @for (icon of mediaIcons; track icon) {
                 <div class="tooltip" [attr.data-tip]="icon">
                   <div class="p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
-                    <hk-lucide-icon [name]="icon" [size]="24" />
+                    <lucide-icon [name]="icon" [size]="24" />
                   </div>
                 </div>
               }
@@ -201,12 +365,7 @@ type IconsTab = 'basic' | 'categories' | 'playground';
               </div>
 
               <div class="flex items-center justify-center bg-base-200 rounded-xl p-8 min-h-[12.5rem]">
-                <hk-lucide-icon
-                  [name]="playgroundIcon"
-                  [size]="playgroundSize"
-                  [strokeWidth]="playgroundStroke"
-                  [color]="playgroundColor"
-                />
+                <lucide-icon [name]="playgroundIcon" [size]="playgroundSize" [strokeWidth]="playgroundStroke" [color]="playgroundColor" />
               </div>
             </div>
 
@@ -313,14 +472,14 @@ export class IconsDemoComponent {
   apiTab = signal<'component' | 'usage' | 'types'>('component');
 
   // Playground state
-  playgroundIcon: IconName = 'Heart';
+  playgroundIcon = 'Heart';
   playgroundSize = 48;
   playgroundStroke = 2;
   playgroundColor = '#3b82f6';
 
   // Icon categories (using new Lucide naming convention)
-  actionIcons: IconName[] = ['Plus', 'Minus', 'X', 'Check', 'Pencil', 'Trash2', 'Copy', 'Save', 'Download', 'Upload', 'Share', 'RefreshCw'];
-  navIcons: IconName[] = [
+  actionIcons: string[] = ['Plus', 'Minus', 'X', 'Check', 'Pencil', 'Trash2', 'Copy', 'Save', 'Download', 'Upload', 'Share', 'RefreshCw'];
+  navIcons: string[] = [
     'House',
     'Menu',
     'ChevronLeft',
@@ -332,11 +491,11 @@ export class IconsDemoComponent {
     'ExternalLink',
     'Search',
   ];
-  commIcons: IconName[] = ['Mail', 'MessageSquare', 'Phone', 'Video', 'Send', 'Bell', 'AtSign', 'Inbox'];
-  statusIcons: IconName[] = ['CircleCheck', 'CircleX', 'CircleAlert', 'TriangleAlert', 'Info', 'CircleQuestionMark', 'Clock', 'Loader'];
-  mediaIcons: IconName[] = ['Image', 'Camera', 'Film', 'Music', 'Play', 'Pause', 'Volume2', 'Mic'];
+  commIcons: string[] = ['Mail', 'MessageSquare', 'Phone', 'Video', 'Send', 'Bell', 'AtSign', 'Inbox'];
+  statusIcons: string[] = ['CircleCheck', 'CircleX', 'CircleAlert', 'TriangleAlert', 'Info', 'CircleQuestionMark', 'Clock', 'Loader'];
+  mediaIcons: string[] = ['Image', 'Camera', 'Film', 'Music', 'Play', 'Pause', 'Volume2', 'Mic'];
 
-  allIcons: IconName[] = [
+  allIcons: string[] = [
     ...this.actionIcons,
     ...this.navIcons,
     ...this.commIcons,
@@ -372,7 +531,7 @@ export class IconsDemoComponent {
     'Tag',
     'Link',
     'Paperclip',
-  ].sort() as IconName[];
+  ].sort() as string[];
 
   // --- Code examples ---
   basicCode = `// TypeScript
@@ -383,15 +542,15 @@ import { LucideIconComponent } from '@hakistack/ng-daisyui';
 })
 
 // Template
-<hk-lucide-icon name="Heart" />
-<hk-lucide-icon name="Star" />
-<hk-lucide-icon name="House" />`;
+<lucide-icon name="Heart" />
+<lucide-icon name="Star" />
+<lucide-icon name="House" />`;
 
   sizeCode = `// Template
-<hk-lucide-icon name="Star" [size]="16" />
-<hk-lucide-icon name="Star" [size]="24" />
-<hk-lucide-icon name="Star" [size]="32" />
-<hk-lucide-icon name="Star" [size]="48" />`;
+<lucide-icon name="Star" [size]="16" />
+<lucide-icon name="Star" [size]="24" />
+<lucide-icon name="Star" [size]="32" />
+<lucide-icon name="Star" [size]="48" />`;
 
   colorCode = `// TypeScript
 import { LucideIconComponent } from '@hakistack/ng-daisyui';

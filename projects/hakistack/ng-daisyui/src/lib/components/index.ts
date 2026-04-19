@@ -104,10 +104,6 @@ export type {
   HiddenFieldOptions,
 } from './dynamic-form/dynamic-form.types';
 
-// Lucide Icon
-export { LucideIconComponent } from './lucide-icon/lucide-icon.component';
-export type { IconName, LowerCaseIconName } from './lucide-icon/lucide-icon.component';
-
 // Tab
 export { TabGroupComponent } from './tab/tab-group/tab-group.component';
 export { TabPanelComponent } from './tab/tab-panel/tab-panel.component';

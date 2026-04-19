@@ -14,11 +14,34 @@ import {
   viewChild,
   PLATFORM_ID,
 } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { AbstractControl, NG_VALIDATORS, NG_VALUE_ACCESSOR, ValidationErrors, Validator } from '@angular/forms';
 import Quill, { type QuillOptions } from 'quill';
 
-import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
+import {
+  LucideAngularModule,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Quote,
+  Code,
+  Link,
+  Image,
+  Video,
+  RemoveFormatting,
+  Heading1,
+  Heading2,
+  Heading3,
+  ListOrdered,
+  List,
+  ListIndentDecrease,
+  ListIndentIncrease,
+  TextAlignStart,
+  TextAlignCenter,
+  TextAlignEnd,
+  TextAlignJustify,
+} from 'lucide-angular';
 import type {
   EditorOutputFormat,
   EditorToolbarConfig,
@@ -32,7 +55,7 @@ import { TOOLBAR_PRESETS } from './editor.types';
 
 @Component({
   selector: 'hk-editor',
-  imports: [LucideIconComponent],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,6 +73,29 @@ import { TOOLBAR_PRESETS } from './editor.types';
   ],
 })
 export class EditorComponent implements Validator, OnDestroy {
+  // ── Icon references ────────────────────────────────────────────────────────
+  readonly boldIcon = Bold;
+  readonly italicIcon = Italic;
+  readonly underlineIcon = Underline;
+  readonly strikethroughIcon = Strikethrough;
+  readonly quoteIcon = Quote;
+  readonly codeIcon = Code;
+  readonly linkIcon = Link;
+  readonly imageIcon = Image;
+  readonly videoIcon = Video;
+  readonly removeFormattingIcon = RemoveFormatting;
+  readonly heading1Icon = Heading1;
+  readonly heading2Icon = Heading2;
+  readonly heading3Icon = Heading3;
+  readonly listOrderedIcon = ListOrdered;
+  readonly listIcon = List;
+  readonly indentDecreaseIcon = ListIndentDecrease;
+  readonly indentIncreaseIcon = ListIndentIncrease;
+  readonly alignLeftIcon = TextAlignStart;
+  readonly alignCenterIcon = TextAlignCenter;
+  readonly alignRightIcon = TextAlignEnd;
+  readonly alignJustifyIcon = TextAlignJustify;
+
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 

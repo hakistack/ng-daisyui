@@ -65,7 +65,7 @@
     >
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-2">
-          <hk-lucide-icon name="ListFilter" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
+          <lucide-icon [img]="listFilterIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
           <span class="text-sm font-semibold">Active Filters ({{ activeFiltersCountSignal() }})</span>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -79,14 +79,14 @@
                 (click)="removeFilter(filter.field)"
                 [attr.aria-label]="'Remove filter for ' + filter.field"
               >
-                <hk-lucide-icon name="X" class="h-3 w-3" aria-hidden="true"></hk-lucide-icon>
+                <lucide-icon [img]="xIcon" class="h-3 w-3" aria-hidden="true"></lucide-icon>
               </button>
             </div>
           }
         </div>
       </div>
       <button type="button" class="btn btn-sm btn-ghost hover:bg-error/50 gap-2" (click)="clearAllFilters()" aria-label="Clear all filters">
-        <hk-lucide-icon name="X" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
+        <lucide-icon [img]="xIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
         <span>Clear All</span>
       </button>
     </div>
@@ -102,7 +102,7 @@
     >
       <div class="flex items-center gap-3">
         <div class="bg-info/20 flex h-8 w-8 items-center justify-center rounded-lg">
-          <hk-lucide-icon name="CheckCheck" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
+          <lucide-icon [img]="checkCheckIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
         </div>
         <div class="flex flex-col gap-0.5">
           <span class="text-sm font-semibold">
@@ -125,10 +125,10 @@
                 (click)="toggleBulkActionDropdown(bulkAction.key, $event)"
               >
                 @if (bulkAction.config.icon) {
-                  <hk-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></hk-lucide-icon>
+                  <lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></lucide-icon>
                 }
                 {{ bulkAction.config.label }}
-                <hk-lucide-icon name="ChevronDown" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
+                <lucide-icon [img]="chevronDownIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
               </button>
               @if (isBulkActionDropdownOpen(bulkAction.key)) {
                 <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-52 p-2 shadow-lg">
@@ -141,7 +141,7 @@
                         (click)="onBulkActionOptionSelect(bulkAction, option)"
                       >
                         @if (option.icon) {
-                          <hk-lucide-icon [name]="option.icon" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
+                          <lucide-icon [name]="option.icon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
                         }
                         {{ option.label }}
                       </button>
@@ -160,7 +160,7 @@
               (click)="bulkAction.config.action(selectedArraySignal())"
             >
               @if (bulkAction.config.icon) {
-                <hk-lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></hk-lucide-icon>
+                <lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></lucide-icon>
               }
               {{ bulkAction.config.label }}
             </button>
@@ -173,7 +173,7 @@
         (click)="clearSelection()"
         aria-label="Clear selection"
       >
-        <hk-lucide-icon name="X" class="h-4 w-4" aria-hidden="true"></hk-lucide-icon>
+        <lucide-icon [img]="xIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
         <span class="max-sm:hidden">{{ config()?.config?.clearSelectionText ?? 'Clear' }}</span>
       </button>
     </div>
@@ -197,7 +197,7 @@
       <ng-container *ngTemplateOutlet="errorTemplate()!; context: { $implicit: error()! }" />
     } @else {
       <div class="flex flex-col items-center justify-center gap-3 py-16">
-        <hk-lucide-icon name="CircleX" [size]="48" class="text-error/50" />
+        <lucide-icon [img]="circleXIcon" [size]="48" class="text-error/50" aria-hidden="true" />
         <p class="text-error font-medium">{{ error() }}</p>
       </div>
     }
@@ -209,7 +209,7 @@
       <ng-container *ngTemplateOutlet="emptyTemplate()!" />
     } @else {
       <div class="flex flex-col items-center justify-center gap-3 py-16">
-        <hk-lucide-icon name="FileText" [size]="48" class="text-base-content/20" />
+        <lucide-icon [img]="fileTextIcon" [size]="48" class="text-base-content/20" aria-hidden="true" />
         <p class="text-base-content/50 text-sm">{{ emptyMessage() }}</p>
       </div>
     }
@@ -256,12 +256,12 @@
                     <span class="text-sm opacity-70" aria-hidden="true">
                       @if (sortFieldSignal() === column.field) {
                         @if (sortDirectionSignal() === 'Ascending') {
-                          <hk-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                          <lucide-icon [img]="arrowUpIcon" class="h-4 w-4" aria-hidden="true" />
                         } @else {
-                          <hk-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                          <lucide-icon [img]="arrowDownIcon" class="h-4 w-4" aria-hidden="true" />
                         }
                       } @else {
-                        <hk-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                        <lucide-icon [img]="arrowUpDownIcon" class="h-4 w-4" aria-hidden="true" />
                       }
                     </span>
                   </div>
@@ -377,10 +377,10 @@
                       }
                       <div class="edit-cell-actions">
                         <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
-                          <hk-lucide-icon name="Check" class="h-3 w-3" />
+                          <lucide-icon [img]="checkIcon" class="h-3 w-3" aria-hidden="true" />
                         </button>
                         <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
-                          <hk-lucide-icon name="X" class="h-3 w-3" />
+                          <lucide-icon [img]="xIcon" class="h-3 w-3" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -394,7 +394,7 @@
                           [attr.aria-expanded]="isRowExpanded(row)"
                           [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
                         >
-                          <hk-lucide-icon [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'" class="h-4 w-4" aria-hidden="true" />
+                          <lucide-icon [img]="isRowExpanded(row) ? chevronDownIcon : chevronRightIcon" class="h-4 w-4" aria-hidden="true" />
                         </button>
                       } @else {
                         <span class="tree-toggle-spacer"></span>
@@ -423,7 +423,7 @@
                           (click)="action.config.action(row)"
                         >
                           @if (action.config.icon) {
-                            <hk-lucide-icon [name]="action.config.icon" aria-hidden="true"></hk-lucide-icon>
+                            <lucide-icon [name]="action.config.icon" aria-hidden="true"></lucide-icon>
                           }
                           <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
                         </button>
@@ -547,12 +547,12 @@
                     <span class="text-sm opacity-70" aria-hidden="true">
                       @if (sortFieldSignal() === column.field) {
                         @if (sortDirectionSignal() === 'Ascending') {
-                          <hk-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                          <lucide-icon [img]="arrowUpIcon" class="h-4 w-4" aria-hidden="true" />
                         } @else {
-                          <hk-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                          <lucide-icon [img]="arrowDownIcon" class="h-4 w-4" aria-hidden="true" />
                         }
                       } @else {
-                        <hk-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                        <lucide-icon [img]="arrowUpDownIcon" class="h-4 w-4" aria-hidden="true" />
                       }
                     </span>
                   </div>
@@ -570,8 +570,8 @@
               <tr class="bg-base-200/70 group-header-row cursor-pointer" (click)="toggleGroupExpand(displayRow.group.groupValue)">
                 <td [attr.colspan]="displayedColumnsSignal().length" class="py-2 px-4">
                   <div class="flex items-center gap-2 font-semibold">
-                    <hk-lucide-icon
-                      [name]="displayRow.group.expanded ? 'ChevronDown' : 'ChevronRight'"
+                    <lucide-icon
+                      [img]="displayRow.group.expanded ? chevronDownIcon : chevronRightIcon"
                       class="h-4 w-4"
                       aria-hidden="true"
                     />
@@ -623,8 +623,8 @@
                         [attr.aria-expanded]="isDetailExpanded(displayRow.row)"
                         [attr.aria-label]="isDetailExpanded(displayRow.row) ? 'Collapse details' : 'Expand details'"
                       >
-                        <hk-lucide-icon
-                          [name]="isDetailExpanded(displayRow.row) ? 'ChevronDown' : 'ChevronRight'"
+                        <lucide-icon
+                          [img]="isDetailExpanded(displayRow.row) ? chevronDownIcon : chevronRightIcon"
                           class="h-4 w-4"
                           aria-hidden="true"
                         />
@@ -650,7 +650,7 @@
                             (click)="action.config.action(displayRow.row)"
                           >
                             @if (action.config.icon) {
-                              <hk-lucide-icon [name]="action.config.icon" aria-hidden="true"></hk-lucide-icon>
+                              <lucide-icon [name]="action.config.icon" aria-hidden="true"></lucide-icon>
                             }
                             <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
                           </button>
@@ -856,7 +856,7 @@
               [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
               (click)="onCellClick(rowIdx, 0)"
             >
-              <hk-lucide-icon name="GripVertical" class="h-4 w-4 opacity-40" aria-hidden="true" />
+              <lucide-icon [img]="gripVerticalIcon" class="h-4 w-4 opacity-40" aria-hidden="true" />
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
               <td cdk-footer-cell *cdkFooterCellDef></td>
@@ -925,7 +925,7 @@
                 [attr.aria-expanded]="isDetailExpanded(row)"
                 [attr.aria-label]="isDetailExpanded(row) ? 'Collapse details' : 'Expand details'"
               >
-                <hk-lucide-icon [name]="isDetailExpanded(row) ? 'ChevronDown' : 'ChevronRight'" class="h-4 w-4" aria-hidden="true" />
+                <lucide-icon [img]="isDetailExpanded(row) ? chevronDownIcon : chevronRightIcon" class="h-4 w-4" aria-hidden="true" />
               </button>
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
@@ -941,7 +941,7 @@
               @if (isDetailExpanded(row)) {
                 <div
                   class="detail-content"
-                  [ngClass]="{
+                  [class]="{
                     'bg-base-200/30': !!rowDetailTemplate(),
                     'border-t': !!rowDetailTemplate(),
                     'border-base-content/10': !!rowDetailTemplate(),
@@ -1003,12 +1003,12 @@
                   <span class="text-sm opacity-70" [attr.aria-hidden]="true">
                     @if (sortFieldSignal() === column.field) {
                       @if (sortDirectionSignal() === 'Ascending') {
-                        <hk-lucide-icon name="ArrowUp" class="h-4 w-4" aria-hidden="true" />
+                        <lucide-icon [img]="arrowUpIcon" class="h-4 w-4" aria-hidden="true" />
                       } @else {
-                        <hk-lucide-icon name="ArrowDown" class="h-4 w-4" aria-hidden="true" />
+                        <lucide-icon [img]="arrowDownIcon" class="h-4 w-4" aria-hidden="true" />
                       }
                     } @else {
-                      <hk-lucide-icon name="ArrowUpDown" class="h-4 w-4" aria-hidden="true" />
+                      <lucide-icon [img]="arrowUpDownIcon" class="h-4 w-4" aria-hidden="true" />
                     }
                   </span>
                 </div>
@@ -1024,7 +1024,7 @@
                     [attr.popovertarget]="'filter-popover-' + column.field"
                     [style.anchor-name]="'--filter-anchor-' + column.field"
                   >
-                    <hk-lucide-icon name="ListFilter" class="h-3 w-3" aria-hidden="true"></hk-lucide-icon>
+                    <lucide-icon [img]="listFilterIcon" class="h-3 w-3" aria-hidden="true"></lucide-icon>
                     @if (getActiveFilterForColumn(column.field)) {
                       <span class="badge badge-xs badge-primary">1</span>
                     }
@@ -1132,10 +1132,10 @@
                   }
                   <div class="edit-cell-actions">
                     <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
-                      <hk-lucide-icon name="Check" class="h-3 w-3" />
+                      <lucide-icon [img]="checkIcon" class="h-3 w-3" aria-hidden="true" />
                     </button>
                     <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
-                      <hk-lucide-icon name="X" class="h-3 w-3" />
+                      <lucide-icon [img]="xIcon" class="h-3 w-3" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -1150,7 +1150,7 @@
                       [attr.aria-expanded]="isRowExpanded(row)"
                       [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
                     >
-                      <hk-lucide-icon [name]="isRowExpanded(row) ? 'ChevronDown' : 'ChevronRight'" class="h-4 w-4" aria-hidden="true" />
+                      <lucide-icon [img]="isRowExpanded(row) ? chevronDownIcon : chevronRightIcon" class="h-4 w-4" aria-hidden="true" />
                     </button>
                   } @else {
                     <span class="tree-toggle-spacer"></span>
@@ -1213,7 +1213,7 @@
                           (click)="action.config.action(row)"
                         >
                           @if (action.config.icon) {
-                            <hk-lucide-icon [name]="action.config.icon" aria-hidden="true"></hk-lucide-icon>
+                            <lucide-icon [name]="action.config.icon" aria-hidden="true"></lucide-icon>
                           }
                           <span [class.sr-only]="!!action.config.icon">
                             {{ action.config.label }}
@@ -1229,7 +1229,7 @@
                         (click)="action.config.action(row)"
                       >
                         @if (action.config.icon) {
-                          <hk-lucide-icon [name]="action.config.icon" aria-hidden="true"></hk-lucide-icon>
+                          <lucide-icon [name]="action.config.icon" aria-hidden="true"></lucide-icon>
                         }
                         <span [class.sr-only]="!!action.config.icon">
                           {{ action.config.label }}

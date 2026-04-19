@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, contentChild, input, TemplateRef } from '@angular/core';
-import { IconName } from '../../lucide-icon/lucide-icon.component';
 
 @Component({
   selector: 'hk-tab-panel',
@@ -15,8 +14,8 @@ export class TabPanelComponent {
   /** Label displayed on the tab button */
   label = input('');
 
-  /** Optional icon displayed on the tab button */
-  icon = input<IconName | undefined>(undefined);
+  /** Optional icon (reserved for future custom icon support) */
+  icon = input<string | undefined>(undefined);
 
   /** Whether the tab is disabled */
   disabled = input(false);

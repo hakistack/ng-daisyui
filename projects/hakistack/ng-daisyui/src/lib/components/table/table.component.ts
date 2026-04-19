@@ -32,7 +32,21 @@ import { AutoFocusDirective } from '../../directives';
 import { HkCellTemplateDirective } from './table-cell-template.directive';
 import { HkFooterDirective } from './table-footer-template.directive';
 
-import { LucideIconComponent } from '../lucide-icon/lucide-icon.component';
+import {
+  LucideAngularModule,
+  ListFilter,
+  X,
+  CheckCheck,
+  ChevronDown,
+  ChevronRight,
+  CircleX,
+  FileText,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Check,
+  GripVertical,
+} from 'lucide-angular';
 import { TableColumnVisibilityComponent } from './table-column-visibility.component';
 import { TableFilterComponent } from './table-filter.component';
 import { TableGlobalSearchComponent } from './table-global-search.component';
@@ -127,7 +141,7 @@ interface SortState {
     CommonModule,
     CdkTableModule,
     ScrollingModule,
-    LucideIconComponent,
+    LucideAngularModule,
     TableFilterComponent,
     TablePaginationComponent,
     TableGlobalSearchComponent,
@@ -147,6 +161,19 @@ interface SortState {
   },
 })
 export class TableComponent<T extends object> implements OnDestroy, AfterViewInit {
+  readonly listFilterIcon = ListFilter;
+  readonly xIcon = X;
+  readonly checkCheckIcon = CheckCheck;
+  readonly chevronDownIcon = ChevronDown;
+  readonly chevronRightIcon = ChevronRight;
+  readonly circleXIcon = CircleX;
+  readonly fileTextIcon = FileText;
+  readonly arrowUpIcon = ArrowUp;
+  readonly arrowDownIcon = ArrowDown;
+  readonly arrowUpDownIcon = ArrowUpDown;
+  readonly checkIcon = Check;
+  readonly gripVerticalIcon = GripVertical;
+
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
