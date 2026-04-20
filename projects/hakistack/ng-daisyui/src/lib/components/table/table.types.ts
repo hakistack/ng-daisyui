@@ -1,6 +1,6 @@
 import { Signal } from '@angular/core';
 import { IFuseOptions } from 'fuse.js';
-import { LucideIconData } from 'lucide-angular';
+import type { LucideIconData } from '@lucide/angular';
 import { SafeHtml } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
 
@@ -179,6 +179,8 @@ export interface TableAction<T> {
   buttonClass?: string;
   buttonClasses?: string[];
   buttonStyle?: CSSProperties;
+  /** Per-action column placement. Falls back to FieldConfig.actionsPosition (default: 'end'). */
+  position?: 'start' | 'end';
 }
 
 // Dropdown option for bulk actions
@@ -288,6 +290,14 @@ export interface FieldConfig<T> {
   clearSelectionText?: string;
   selectionHintText?: string;
   actions?: TableAction<T>[];
+  /** Placement of the actions column. Default: 'end' */
+  actionsPosition?: 'start' | 'end';
+  /** Header label for the actions column(s). Default: 'Actions'. Overridden by startActionsLabel / endActionsLabel. */
+  actionsLabel?: string;
+  /** Header label for the start-side actions column (when any action has position: 'start'). */
+  startActionsLabel?: string;
+  /** Header label for the end-side actions column (default actions column). */
+  endActionsLabel?: string;
   bulkActions?: TableBulkAction<T>[];
   filters?: ColumnFilter<T>[]; // Column-specific filters
   enableFiltering?: boolean; // Global filter enable/disable

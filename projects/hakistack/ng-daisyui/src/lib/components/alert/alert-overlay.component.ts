@@ -15,7 +15,16 @@ import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 
-import { LucideAngularModule, LucideIconData, X, CircleCheck, CircleX, TriangleAlert, Info, CircleQuestionMark } from 'lucide-angular';
+import {
+  LucideDynamicIcon,
+  LucideX,
+  LucideCircleCheck,
+  LucideCircleX,
+  LucideTriangleAlert,
+  LucideInfo,
+  LucideCircleQuestionMark,
+  type LucideIcon,
+} from '@lucide/angular';
 import type { AlertIcon, AlertInternalConfig, AlertResult, AlertSize } from './alert.types';
 
 const SIZE_CLASS_MAP: Record<AlertSize, string> = {
@@ -28,12 +37,12 @@ const SIZE_CLASS_MAP: Record<AlertSize, string> = {
   full: 'w-11/12 max-w-5xl',
 };
 
-const ICON_MAP: Record<AlertIcon, LucideIconData> = {
-  success: CircleCheck,
-  error: CircleX,
-  warning: TriangleAlert,
-  info: Info,
-  question: CircleQuestionMark,
+const ICON_MAP: Record<AlertIcon, LucideIcon> = {
+  success: LucideCircleCheck,
+  error: LucideCircleX,
+  warning: LucideTriangleAlert,
+  info: LucideInfo,
+  question: LucideCircleQuestionMark,
 };
 
 const ICON_COLOR_MAP: Record<AlertIcon, string> = {
@@ -60,14 +69,12 @@ const EXIT_DURATION = 150;
   templateUrl: './alert-overlay.component.html',
   styleUrl: './alert-overlay.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, LucideAngularModule, CdkTrapFocus],
+  imports: [CommonModule, LucideDynamicIcon, LucideX, CdkTrapFocus],
   host: { class: 'hk-alert-overlay' },
 })
 export class AlertOverlayComponent {
   readonly config = input.required<AlertInternalConfig>();
   readonly dismissing = signal(false);
-
-  readonly xIcon = X;
 
   private readonly sanitizer = inject(DomSanitizer);
   private readonly destroyRef = inject(DestroyRef);
@@ -85,7 +92,7 @@ export class AlertOverlayComponent {
   readonly cancelBtn = viewChild<ElementRef<HTMLButtonElement>>('cancelBtn');
   readonly confirmBtn = viewChild<ElementRef<HTMLButtonElement>>('confirmBtn');
 
-  readonly iconData = computed<LucideIconData | null>(() => {
+  readonly iconData = computed<LucideIcon | null>(() => {
     const icon = this.config().icon;
     return icon ? ICON_MAP[icon] : null;
   });

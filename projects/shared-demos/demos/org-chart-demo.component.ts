@@ -10,17 +10,15 @@ import {
   OrgChartNodeCollapseEvent,
 } from '@hakistack/ng-daisyui';
 import {
-  LucideAngularModule,
-  LUCIDE_ICONS,
-  LucideIconProvider,
-  Building2,
-  Code,
-  Monitor,
-  Server,
-  Palette,
-  Figma,
-  Brush,
-} from 'lucide-angular';
+  provideLucideIcons,
+  LucideBuilding2,
+  LucideCode,
+  LucideMonitor,
+  LucideServer,
+  LucidePalette,
+  LucidePenTool,
+  LucideBrush,
+} from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -37,15 +35,13 @@ interface Person {
 
 @Component({
   selector: 'app-org-chart-demo',
-  imports: [OrganizationChartComponent, LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
-  providers: [
-    { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ Building2, Code, Monitor, Server, Palette, Figma, Brush }) },
-  ],
+  imports: [OrganizationChartComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  providers: [provideLucideIcons(LucideBuilding2, LucideCode, LucideMonitor, LucideServer, LucidePalette, LucidePenTool, LucideBrush)],
   template: `
     <app-demo-page
       title="Organization Chart"
       description="Visualize hierarchies with customizable node templates and interactive selection"
-      icon="Network"
+      icon="network"
       category="Data Display"
       importName="OrganizationChartComponent"
     >
@@ -312,27 +308,27 @@ export class OrgChartDemoComponent {
     {
       key: '1',
       label: 'Company',
-      icon: 'Building2',
+      icon: 'building-2',
       expanded: true,
       children: [
         {
           key: '2',
           label: 'Engineering',
-          icon: 'Code',
+          icon: 'code',
           expanded: true,
           children: [
-            { key: '5', label: 'Frontend', icon: 'Monitor' },
-            { key: '6', label: 'Backend', icon: 'Server' },
+            { key: '5', label: 'Frontend', icon: 'monitor' },
+            { key: '6', label: 'Backend', icon: 'server' },
           ],
         },
         {
           key: '3',
           label: 'Design',
-          icon: 'Palette',
+          icon: 'palette',
           expanded: true,
           children: [
-            { key: '7', label: 'UI/UX', icon: 'Figma' },
-            { key: '8', label: 'Brand', icon: 'Brush' },
+            { key: '7', label: 'UI/UX', icon: 'pen-tool' },
+            { key: '8', label: 'Brand', icon: 'brush' },
           ],
         },
       ],

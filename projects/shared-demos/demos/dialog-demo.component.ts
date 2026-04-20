@@ -6,7 +6,19 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormsModule } from '@angular/forms';
 import { delay, map } from 'rxjs';
 import { DialogService, SelectComponent } from '@hakistack/ng-daisyui';
-import { LucideAngularModule, X, User, UserPlus, Save, FileText, Check, Square, Info, Lock, Pencil } from 'lucide-angular';
+import {
+  LucideDynamicIcon,
+  LucideX,
+  LucideUser,
+  LucideUserPlus,
+  LucideSave,
+  LucideFileText,
+  LucideCheck,
+  LucideSquare,
+  LucideInfo,
+  LucideLock,
+  LucidePencil,
+} from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -19,14 +31,14 @@ import { ApiDocEntry } from '../shared/api-table.types';
 
 @Component({
   selector: 'app-simple-dialog',
-  imports: [LucideAngularModule],
+  imports: [LucideDynamicIcon],
   template: `
     <div class="card bg-base-100 w-full">
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title">Simple Dialog</h2>
           <button class="btn btn-ghost btn-sm btn-circle" (click)="close()">
-            <lucide-icon [img]="xIcon" [size]="18" />
+            <svg [lucideIcon]="xIcon" [size]="18"></svg>
           </button>
         </div>
         <p class="text-base-content/70">This is a simple dialog with minimal content.</p>
@@ -39,7 +51,7 @@ import { ApiDocEntry } from '../shared/api-table.types';
   `,
 })
 export class SimpleDialogComponent {
-  readonly xIcon = X;
+  readonly xIcon = LucideX;
   private dialogRef = inject(DialogRef);
 
   close(result?: string) {
@@ -49,17 +61,17 @@ export class SimpleDialogComponent {
 
 @Component({
   selector: 'app-data-dialog',
-  imports: [LucideAngularModule],
+  imports: [LucideDynamicIcon],
   template: `
     <div class="card bg-base-100 w-full">
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title">
-            <lucide-icon [img]="userIcon" [size]="24" />
+            <svg [lucideIcon]="userIcon" [size]="24"></svg>
             User Details
           </h2>
           <button class="btn btn-ghost btn-sm btn-circle" (click)="close()">
-            <lucide-icon [img]="xIcon" [size]="18" />
+            <svg [lucideIcon]="xIcon" [size]="18"></svg>
           </button>
         </div>
 
@@ -92,8 +104,8 @@ export class SimpleDialogComponent {
   `,
 })
 export class DataDialogComponent {
-  readonly userIcon = User;
-  readonly xIcon = X;
+  readonly userIcon = LucideUser;
+  readonly xIcon = LucideX;
   data = inject(DIALOG_DATA) as { id: number; name: string; email: string; role: string };
   private dialogRef = inject(DialogRef);
 
@@ -104,17 +116,17 @@ export class DataDialogComponent {
 
 @Component({
   selector: 'app-form-dialog',
-  imports: [LucideAngularModule, FormsModule, SelectComponent],
+  imports: [LucideDynamicIcon, FormsModule, SelectComponent],
   template: `
     <div class="card bg-base-100 w-full">
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title">
-            <lucide-icon [img]="userPlusIcon" [size]="24" />
+            <svg [lucideIcon]="userPlusIcon" [size]="24"></svg>
             {{ data?.mode === 'edit' ? 'Edit User' : 'Create User' }}
           </h2>
           <button class="btn btn-ghost btn-sm btn-circle" (click)="close()">
-            <lucide-icon [img]="xIcon" [size]="18" />
+            <svg [lucideIcon]="xIcon" [size]="18"></svg>
           </button>
         </div>
 
@@ -159,7 +171,7 @@ export class DataDialogComponent {
         <div class="card-actions justify-end mt-4">
           <button class="btn btn-ghost" (click)="close()">Cancel</button>
           <button class="btn btn-primary" (click)="save()">
-            <lucide-icon [img]="saveIcon" [size]="18" />
+            <svg [lucideIcon]="saveIcon" [size]="18"></svg>
             Save
           </button>
         </div>
@@ -168,9 +180,9 @@ export class DataDialogComponent {
   `,
 })
 export class FormDialogComponent {
-  readonly userPlusIcon = UserPlus;
-  readonly xIcon = X;
-  readonly saveIcon = Save;
+  readonly userPlusIcon = LucideUserPlus;
+  readonly xIcon = LucideX;
+  readonly saveIcon = LucideSave;
   data = inject(DIALOG_DATA) as { mode: 'create' | 'edit'; user?: any } | null;
   private dialogRef = inject(DialogRef);
 
@@ -218,17 +230,17 @@ export class FormDialogComponent {
 
 @Component({
   selector: 'app-long-content-dialog',
-  imports: [LucideAngularModule],
+  imports: [LucideDynamicIcon],
   template: `
     <div class="card bg-base-100 w-full">
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title">
-            <lucide-icon [img]="fileTextIcon" [size]="24" />
+            <svg [lucideIcon]="fileTextIcon" [size]="24"></svg>
             Terms of Service
           </h2>
           <button class="btn btn-ghost btn-sm btn-circle" (click)="close()">
-            <lucide-icon [img]="xIcon" [size]="18" />
+            <svg [lucideIcon]="xIcon" [size]="18"></svg>
           </button>
         </div>
 
@@ -294,7 +306,7 @@ export class FormDialogComponent {
         <div class="card-actions justify-end mt-4">
           <button class="btn btn-ghost" (click)="close()">Decline</button>
           <button class="btn btn-primary" (click)="close('accepted')">
-            <lucide-icon [img]="checkIcon" [size]="18" />
+            <svg [lucideIcon]="checkIcon" [size]="18"></svg>
             Accept
           </button>
         </div>
@@ -303,9 +315,9 @@ export class FormDialogComponent {
   `,
 })
 export class LongContentDialogComponent {
-  readonly fileTextIcon = FileText;
-  readonly xIcon = X;
-  readonly checkIcon = Check;
+  readonly fileTextIcon = LucideFileText;
+  readonly xIcon = LucideX;
+  readonly checkIcon = LucideCheck;
   private dialogRef = inject(DialogRef);
 
   close(result?: string) {
@@ -322,12 +334,12 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
 
 @Component({
   selector: 'app-dialog-demo',
-  imports: [LucideAngularModule, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [LucideDynamicIcon, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="Dialog Service"
       description="Programmatic dialogs with component injection and data passing"
-      icon="PanelTopOpen"
+      icon="panel-top-open"
       category="Feedback"
       importName="DialogService"
     >
@@ -337,14 +349,14 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
             <app-doc-section title="Basic Dialog" description="Simple dialog with confirm/cancel buttons" [codeExample]="basicCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-primary" (click)="openSimpleDialog()">
-                  <lucide-icon [img]="squareIcon" [size]="18" />
+                  <svg [lucideIcon]="squareIcon" [size]="18"></svg>
                   Open Simple Dialog
                 </button>
               </div>
 
               @if (simpleResult) {
                 <div class="alert alert-info mt-4">
-                  <lucide-icon [img]="infoIcon" [size]="18" />
+                  <svg [lucideIcon]="infoIcon" [size]="18"></svg>
                   <span>Dialog result: {{ simpleResult }}</span>
                 </div>
               }
@@ -353,7 +365,7 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
             <app-doc-section title="Dialog with Data" description="Pass data to dialog component via DIALOG_DATA" [codeExample]="dataCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openDataDialog()">
-                  <lucide-icon [img]="userIcon" [size]="18" />
+                  <svg [lucideIcon]="userIcon" [size]="18"></svg>
                   View User Details
                 </button>
               </div>
@@ -362,7 +374,7 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
             <app-doc-section title="Long Content Dialog" description="Dialog with scrollable content">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openLongContentDialog()">
-                  <lucide-icon [img]="fileTextIcon" [size]="18" />
+                  <svg [lucideIcon]="fileTextIcon" [size]="18"></svg>
                   View Terms of Service
                 </button>
               </div>
@@ -373,7 +385,7 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
                   [class.alert-success]="termsResult === 'accepted'"
                   [class.alert-warning]="termsResult !== 'accepted'"
                 >
-                  <lucide-icon [img]="termsResult === 'accepted' ? checkIcon : xIcon" [size]="18" />
+                  <svg [lucideIcon]="termsResult === 'accepted' ? checkIcon : xIcon" [size]="18"></svg>
                   <span>Terms {{ termsResult === 'accepted' ? 'accepted' : 'declined' }}</span>
                 </div>
               }
@@ -389,18 +401,18 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
           >
             <div class="flex flex-wrap gap-3">
               <button class="btn btn-outline btn-success" (click)="openFormDialog('create')">
-                <lucide-icon [img]="userPlusIcon" [size]="18" />
+                <svg [lucideIcon]="userPlusIcon" [size]="18"></svg>
                 Create User
               </button>
               <button class="btn btn-outline" (click)="openFormDialog('edit')">
-                <lucide-icon [img]="pencilIcon" [size]="18" />
+                <svg [lucideIcon]="pencilIcon" [size]="18"></svg>
                 Edit User
               </button>
             </div>
 
             @if (formResult) {
               <div class="alert alert-success mt-4">
-                <lucide-icon [img]="checkIcon" [size]="18" />
+                <svg [lucideIcon]="checkIcon" [size]="18"></svg>
                 <span>Saved: {{ formResult | json }}</span>
               </div>
             }
@@ -412,7 +424,7 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
             <app-doc-section title="Dialog Options" description="Control dialog behavior" [codeExample]="optionsCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="openNonClosableDialog()">
-                  <lucide-icon [img]="lockIcon" [size]="18" />
+                  <svg [lucideIcon]="lockIcon" [size]="18"></svg>
                   Non-closable (ESC/Backdrop disabled)
                 </button>
               </div>
@@ -534,15 +546,15 @@ type DialogApiTab = 'service' | 'config' | 'ref' | 'types';
   `,
 })
 export class DialogDemoComponent {
-  readonly squareIcon = Square;
-  readonly infoIcon = Info;
-  readonly userIcon = User;
-  readonly fileTextIcon = FileText;
-  readonly checkIcon = Check;
-  readonly xIcon = X;
-  readonly userPlusIcon = UserPlus;
-  readonly pencilIcon = Pencil;
-  readonly lockIcon = Lock;
+  readonly squareIcon = LucideSquare;
+  readonly infoIcon = LucideInfo;
+  readonly userIcon = LucideUser;
+  readonly fileTextIcon = LucideFileText;
+  readonly checkIcon = LucideCheck;
+  readonly xIcon = LucideX;
+  readonly userPlusIcon = LucideUserPlus;
+  readonly pencilIcon = LucidePencil;
+  readonly lockIcon = LucideLock;
   private dialogService = inject(DialogService);
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));

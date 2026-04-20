@@ -19,29 +19,28 @@ import { AbstractControl, NG_VALIDATORS, NG_VALUE_ACCESSOR, ValidationErrors, Va
 import Quill, { type QuillOptions } from 'quill';
 
 import {
-  LucideAngularModule,
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  Quote,
-  Code,
-  Link,
-  Image,
-  Video,
-  RemoveFormatting,
-  Heading1,
-  Heading2,
-  Heading3,
-  ListOrdered,
-  List,
-  ListIndentDecrease,
-  ListIndentIncrease,
-  TextAlignStart,
-  TextAlignCenter,
-  TextAlignEnd,
-  TextAlignJustify,
-} from 'lucide-angular';
+  LucideBold,
+  LucideItalic,
+  LucideUnderline,
+  LucideStrikethrough,
+  LucideQuote,
+  LucideCode,
+  LucideLink,
+  LucideImage,
+  LucideVideo,
+  LucideRemoveFormatting,
+  LucideHeading1,
+  LucideHeading2,
+  LucideHeading3,
+  LucideListOrdered,
+  LucideList,
+  LucideListIndentDecrease,
+  LucideListIndentIncrease,
+  LucideTextAlignStart,
+  LucideTextAlignCenter,
+  LucideTextAlignEnd,
+  LucideTextAlignJustify,
+} from '@lucide/angular';
 import type {
   EditorOutputFormat,
   EditorToolbarConfig,
@@ -55,7 +54,30 @@ import { TOOLBAR_PRESETS } from './editor.types';
 
 @Component({
   selector: 'hk-editor',
-  imports: [CommonModule, LucideAngularModule],
+  imports: [
+    CommonModule,
+    LucideBold,
+    LucideItalic,
+    LucideUnderline,
+    LucideStrikethrough,
+    LucideQuote,
+    LucideCode,
+    LucideLink,
+    LucideImage,
+    LucideVideo,
+    LucideRemoveFormatting,
+    LucideHeading1,
+    LucideHeading2,
+    LucideHeading3,
+    LucideListOrdered,
+    LucideList,
+    LucideListIndentDecrease,
+    LucideListIndentIncrease,
+    LucideTextAlignStart,
+    LucideTextAlignCenter,
+    LucideTextAlignEnd,
+    LucideTextAlignJustify,
+  ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,29 +95,6 @@ import { TOOLBAR_PRESETS } from './editor.types';
   ],
 })
 export class EditorComponent implements Validator, OnDestroy {
-  // ── Icon references ────────────────────────────────────────────────────────
-  readonly boldIcon = Bold;
-  readonly italicIcon = Italic;
-  readonly underlineIcon = Underline;
-  readonly strikethroughIcon = Strikethrough;
-  readonly quoteIcon = Quote;
-  readonly codeIcon = Code;
-  readonly linkIcon = Link;
-  readonly imageIcon = Image;
-  readonly videoIcon = Video;
-  readonly removeFormattingIcon = RemoveFormatting;
-  readonly heading1Icon = Heading1;
-  readonly heading2Icon = Heading2;
-  readonly heading3Icon = Heading3;
-  readonly listOrderedIcon = ListOrdered;
-  readonly listIcon = List;
-  readonly indentDecreaseIcon = ListIndentDecrease;
-  readonly indentIncreaseIcon = ListIndentIncrease;
-  readonly alignLeftIcon = TextAlignStart;
-  readonly alignCenterIcon = TextAlignCenter;
-  readonly alignRightIcon = TextAlignEnd;
-  readonly alignJustifyIcon = TextAlignJustify;
-
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 

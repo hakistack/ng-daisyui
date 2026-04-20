@@ -65,7 +65,7 @@
     >
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-2">
-          <lucide-icon [img]="listFilterIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+          <svg lucideListFilter class="h-4 w-4"></svg>
           <span class="text-sm font-semibold">Active Filters ({{ activeFiltersCountSignal() }})</span>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -79,14 +79,14 @@
                 (click)="removeFilter(filter.field)"
                 [attr.aria-label]="'Remove filter for ' + filter.field"
               >
-                <lucide-icon [img]="xIcon" class="h-3 w-3" aria-hidden="true"></lucide-icon>
+                <svg lucideX class="h-3 w-3"></svg>
               </button>
             </div>
           }
         </div>
       </div>
       <button type="button" class="btn btn-sm btn-ghost hover:bg-error/50 gap-2" (click)="clearAllFilters()" aria-label="Clear all filters">
-        <lucide-icon [img]="xIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+        <svg lucideX class="h-4 w-4"></svg>
         <span>Clear All</span>
       </button>
     </div>
@@ -102,7 +102,7 @@
     >
       <div class="flex items-center gap-3">
         <div class="bg-info/20 flex h-8 w-8 items-center justify-center rounded-lg">
-          <lucide-icon [img]="checkCheckIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+          <svg lucideCheckCheck class="h-4 w-4"></svg>
         </div>
         <div class="flex flex-col gap-0.5">
           <span class="text-sm font-semibold">
@@ -125,10 +125,10 @@
                 (click)="toggleBulkActionDropdown(bulkAction.key, $event)"
               >
                 @if (bulkAction.config.icon) {
-                  <lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></lucide-icon>
+                  <svg [lucideIcon]="bulkAction.config.icon"></svg>
                 }
                 {{ bulkAction.config.label }}
-                <lucide-icon [img]="chevronDownIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                <svg lucideChevronDown class="h-4 w-4"></svg>
               </button>
               @if (isBulkActionDropdownOpen(bulkAction.key)) {
                 <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-52 p-2 shadow-lg">
@@ -141,7 +141,7 @@
                         (click)="onBulkActionOptionSelect(bulkAction, option)"
                       >
                         @if (option.icon) {
-                          <lucide-icon [name]="option.icon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                          <svg [lucideIcon]="option.icon" class="h-4 w-4"></svg>
                         }
                         {{ option.label }}
                       </button>
@@ -160,7 +160,7 @@
               (click)="bulkAction.config.action(selectedArraySignal())"
             >
               @if (bulkAction.config.icon) {
-                <lucide-icon [name]="bulkAction.config.icon" aria-hidden="true"></lucide-icon>
+                <svg [lucideIcon]="bulkAction.config.icon"></svg>
               }
               {{ bulkAction.config.label }}
             </button>
@@ -173,7 +173,7 @@
         (click)="clearSelection()"
         aria-label="Clear selection"
       >
-        <lucide-icon [img]="xIcon" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+        <svg lucideX class="h-4 w-4"></svg>
         <span class="max-sm:hidden">{{ config()?.config?.clearSelectionText ?? 'Clear' }}</span>
       </button>
     </div>
@@ -197,7 +197,7 @@
       <ng-container *ngTemplateOutlet="errorTemplate()!; context: { $implicit: error()! }" />
     } @else {
       <div class="flex flex-col items-center justify-center gap-3 py-16">
-        <lucide-icon [img]="circleXIcon" [size]="48" class="text-error/50" aria-hidden="true" />
+        <svg lucideCircleX [size]="48" class="text-error/50"></svg>
         <p class="text-error font-medium">{{ error() }}</p>
       </div>
     }
@@ -209,7 +209,7 @@
       <ng-container *ngTemplateOutlet="emptyTemplate()!" />
     } @else {
       <div class="flex flex-col items-center justify-center gap-3 py-16">
-        <lucide-icon [img]="fileTextIcon" [size]="48" class="text-base-content/20" aria-hidden="true" />
+        <svg lucideFileText [size]="48" class="text-base-content/20"></svg>
         <p class="text-base-content/50 text-sm">{{ emptyMessage() }}</p>
       </div>
     }
@@ -235,6 +235,9 @@
                 </label>
               </th>
             }
+            @if (hasStartActionsSignal()) {
+              <th class="text-center" [class.sticky-start]="stickyActionsSignal()">{{ startActionsLabelSignal() }}</th>
+            }
             @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
               <th
                 class="relative transition-colors duration-200 select-none"
@@ -256,12 +259,12 @@
                     <span class="text-sm opacity-70" aria-hidden="true">
                       @if (sortFieldSignal() === column.field) {
                         @if (sortDirectionSignal() === 'Ascending') {
-                          <lucide-icon [img]="arrowUpIcon" class="h-4 w-4" aria-hidden="true" />
+                          <svg lucideArrowUp class="h-4 w-4"></svg>
                         } @else {
-                          <lucide-icon [img]="arrowDownIcon" class="h-4 w-4" aria-hidden="true" />
+                          <svg lucideArrowDown class="h-4 w-4"></svg>
                         }
                       } @else {
-                        <lucide-icon [img]="arrowUpDownIcon" class="h-4 w-4" aria-hidden="true" />
+                        <svg lucideArrowUpDown class="h-4 w-4"></svg>
                       }
                     </span>
                   </div>
@@ -277,8 +280,8 @@
                 }
               </th>
             }
-            @if (hasActionsSignal()) {
-              <th class="text-center" [class.sticky-end]="stickyActionsSignal()">Actions</th>
+            @if (hasEndActionsSignal()) {
+              <th class="text-center" [class.sticky-end]="stickyActionsSignal()">{{ endActionsLabelSignal() }}</th>
             }
           </tr>
         </thead>
@@ -310,6 +313,28 @@
                       [attr.aria-label]="isSelected(row) ? 'Deselect row' : 'Select row'"
                     />
                   </label>
+                </td>
+              }
+              @if (hasStartActionsSignal()) {
+                <td class="text-center" [class.sticky-start]="stickyActionsSignal()">
+                  <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+                    @for (action of startActionListSignal(); track trackByAction($index, action)) {
+                      @if (!action.config.hidden?.(row)) {
+                        <button
+                          type="button"
+                          [class]="classesFor(action)"
+                          [style]="action.config.buttonStyle"
+                          [disabled]="action.config.disabled?.(row)"
+                          (click)="action.config.action(row)"
+                        >
+                          @if (action.config.icon) {
+                            <svg [lucideIcon]="action.config.icon"></svg>
+                          }
+                          <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
+                        </button>
+                      }
+                    }
+                  </div>
                 </td>
               }
               @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
@@ -377,10 +402,10 @@
                       }
                       <div class="edit-cell-actions">
                         <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
-                          <lucide-icon [img]="checkIcon" class="h-3 w-3" aria-hidden="true" />
+                          <svg lucideCheck class="h-3 w-3"></svg>
                         </button>
                         <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
-                          <lucide-icon [img]="xIcon" class="h-3 w-3" aria-hidden="true" />
+                          <svg lucideX class="h-3 w-3"></svg>
                         </button>
                       </div>
                     </div>
@@ -394,7 +419,11 @@
                           [attr.aria-expanded]="isRowExpanded(row)"
                           [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
                         >
-                          <lucide-icon [img]="isRowExpanded(row) ? chevronDownIcon : chevronRightIcon" class="h-4 w-4" aria-hidden="true" />
+                          @if (isRowExpanded(row)) {
+                            <svg lucideChevronDown class="h-4 w-4"></svg>
+                          } @else {
+                            <svg lucideChevronRight class="h-4 w-4"></svg>
+                          }
                         </button>
                       } @else {
                         <span class="tree-toggle-spacer"></span>
@@ -410,10 +439,10 @@
                   }
                 </td>
               }
-              @if (hasActionsSignal()) {
+              @if (hasEndActionsSignal()) {
                 <td class="text-center" [class.sticky-end]="stickyActionsSignal()">
                   <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                    @for (action of actionListSignal(); track trackByAction($index, action)) {
+                    @for (action of endActionListSignal(); track trackByAction($index, action)) {
                       @if (!action.config.hidden?.(row)) {
                         <button
                           type="button"
@@ -423,7 +452,7 @@
                           (click)="action.config.action(row)"
                         >
                           @if (action.config.icon) {
-                            <lucide-icon [name]="action.config.icon" aria-hidden="true"></lucide-icon>
+                            <svg [lucideIcon]="action.config.icon"></svg>
                           }
                           <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
                         </button>
@@ -444,12 +473,15 @@
                       @if (hasSelectionSignal()) {
                         <td></td>
                       }
+                      @if (hasStartActionsSignal()) {
+                        <td></td>
+                      }
                       @for (cell of footerRow.colspanCells; track $index) {
                         <td [attr.colspan]="cell.colspan" [class]="cell.class ?? ''" class="font-semibold">
                           {{ getColspanCellValue(cell) }}
                         </td>
                       }
-                      @if (hasActionsSignal()) {
+                      @if (hasEndActionsSignal()) {
                         <td></td>
                       }
                     </tr>
@@ -458,12 +490,15 @@
                       @if (hasSelectionSignal()) {
                         <td></td>
                       }
+                      @if (hasStartActionsSignal()) {
+                        <td></td>
+                      }
                       @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                         <td class="font-semibold">
                           {{ getFooterRowCellValue(footerRow, column) }}
                         </td>
                       }
-                      @if (hasActionsSignal()) {
+                      @if (hasEndActionsSignal()) {
                         <td></td>
                       }
                     </tr>
@@ -474,6 +509,9 @@
                   @if (hasSelectionSignal()) {
                     <td></td>
                   }
+                  @if (hasStartActionsSignal()) {
+                    <td></td>
+                  }
                   @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                     <td class="font-semibold">
                       @if (column.footer) {
@@ -481,7 +519,7 @@
                       }
                     </td>
                   }
-                  @if (hasActionsSignal()) {
+                  @if (hasEndActionsSignal()) {
                     <td></td>
                   }
                 </tr>
@@ -533,6 +571,9 @@
             @if (showExpandColumnSignal()) {
               <th class="w-10 px-2"></th>
             }
+            @if (hasStartActionsSignal()) {
+              <th class="text-center">{{ startActionsLabelSignal() }}</th>
+            }
             @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
               <th class="relative transition-colors duration-200 select-none">
                 <div class="flex items-center gap-1">
@@ -547,20 +588,20 @@
                     <span class="text-sm opacity-70" aria-hidden="true">
                       @if (sortFieldSignal() === column.field) {
                         @if (sortDirectionSignal() === 'Ascending') {
-                          <lucide-icon [img]="arrowUpIcon" class="h-4 w-4" aria-hidden="true" />
+                          <svg lucideArrowUp class="h-4 w-4"></svg>
                         } @else {
-                          <lucide-icon [img]="arrowDownIcon" class="h-4 w-4" aria-hidden="true" />
+                          <svg lucideArrowDown class="h-4 w-4"></svg>
                         }
                       } @else {
-                        <lucide-icon [img]="arrowUpDownIcon" class="h-4 w-4" aria-hidden="true" />
+                        <svg lucideArrowUpDown class="h-4 w-4"></svg>
                       }
                     </span>
                   </div>
                 </div>
               </th>
             }
-            @if (hasActionsSignal()) {
-              <th class="text-center">Actions</th>
+            @if (hasEndActionsSignal()) {
+              <th class="text-center">{{ endActionsLabelSignal() }}</th>
             }
           </tr>
         </thead>
@@ -570,11 +611,11 @@
               <tr class="bg-base-200/70 group-header-row cursor-pointer" (click)="toggleGroupExpand(displayRow.group.groupValue)">
                 <td [attr.colspan]="displayedColumnsSignal().length" class="py-2 px-4">
                   <div class="flex items-center gap-2 font-semibold">
-                    <lucide-icon
-                      [img]="displayRow.group.expanded ? chevronDownIcon : chevronRightIcon"
-                      class="h-4 w-4"
-                      aria-hidden="true"
-                    />
+                    @if (displayRow.group.expanded) {
+                      <svg lucideChevronDown class="h-4 w-4"></svg>
+                    } @else {
+                      <svg lucideChevronRight class="h-4 w-4"></svg>
+                    }
                     <span>{{ displayRow.group.groupLabel }}</span>
                     <span class="badge badge-sm badge-neutral">{{ displayRow.group.rows.length }}</span>
                     @if (hasGroupCaptionAggregatesSignal()) {
@@ -623,24 +664,19 @@
                         [attr.aria-expanded]="isDetailExpanded(displayRow.row)"
                         [attr.aria-label]="isDetailExpanded(displayRow.row) ? 'Collapse details' : 'Expand details'"
                       >
-                        <lucide-icon
-                          [img]="isDetailExpanded(displayRow.row) ? chevronDownIcon : chevronRightIcon"
-                          class="h-4 w-4"
-                          aria-hidden="true"
-                        />
+                        @if (isDetailExpanded(displayRow.row)) {
+                          <svg lucideChevronDown class="h-4 w-4"></svg>
+                        } @else {
+                          <svg lucideChevronRight class="h-4 w-4"></svg>
+                        }
                       </button>
                     }
                   </td>
                 }
-                @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
-                  <td>
-                    <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: displayRow.row, column: column }" />
-                  </td>
-                }
-                @if (hasActionsSignal()) {
+                @if (hasStartActionsSignal()) {
                   <td class="text-center">
                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                      @for (action of actionListSignal(); track trackByAction($index, action)) {
+                      @for (action of startActionListSignal(); track trackByAction($index, action)) {
                         @if (!action.config.hidden?.(displayRow.row)) {
                           <button
                             type="button"
@@ -650,7 +686,34 @@
                             (click)="action.config.action(displayRow.row)"
                           >
                             @if (action.config.icon) {
-                              <lucide-icon [name]="action.config.icon" aria-hidden="true"></lucide-icon>
+                              <svg [lucideIcon]="action.config.icon"></svg>
+                            }
+                            <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
+                          </button>
+                        }
+                      }
+                    </div>
+                  </td>
+                }
+                @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+                  <td>
+                    <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: displayRow.row, column: column }" />
+                  </td>
+                }
+                @if (hasEndActionsSignal()) {
+                  <td class="text-center">
+                    <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+                      @for (action of endActionListSignal(); track trackByAction($index, action)) {
+                        @if (!action.config.hidden?.(displayRow.row)) {
+                          <button
+                            type="button"
+                            [class]="classesFor(action)"
+                            [style]="action.config.buttonStyle"
+                            [disabled]="action.config.disabled?.(displayRow.row)"
+                            (click)="action.config.action(displayRow.row)"
+                          >
+                            @if (action.config.icon) {
+                              <svg [lucideIcon]="action.config.icon"></svg>
                             }
                             <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
                           </button>
@@ -694,12 +757,15 @@
                     @if (showExpandColumnSignal()) {
                       <td></td>
                     }
+                    @if (hasStartActionsSignal()) {
+                      <td></td>
+                    }
                     @for (cell of colspanCells; track $index) {
                       <td [attr.colspan]="cell.colspan" [class]="cell.class ?? ''" class="text-sm text-base-content/70 font-medium">
                         {{ getGroupColspanCellValue(cell, displayRow.group) }}
                       </td>
                     }
-                    @if (hasActionsSignal()) {
+                    @if (hasEndActionsSignal()) {
                       <td></td>
                     }
                   </tr>
@@ -715,12 +781,15 @@
                     @if (showExpandColumnSignal()) {
                       <td></td>
                     }
+                    @if (hasStartActionsSignal()) {
+                      <td></td>
+                    }
                     @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                       <td class="text-sm text-base-content/70 font-medium">
                         {{ getGroupFooterRowCellValue(displayRow.group, displayRow.footerRowIndex, column) }}
                       </td>
                     }
-                    @if (hasActionsSignal()) {
+                    @if (hasEndActionsSignal()) {
                       <td></td>
                     }
                   </tr>
@@ -758,12 +827,15 @@
                     @if (showExpandColumnSignal()) {
                       <td></td>
                     }
+                    @if (hasStartActionsSignal()) {
+                      <td></td>
+                    }
                     @for (cell of footerRow.colspanCells; track $index) {
                       <td [attr.colspan]="cell.colspan" [class]="cell.class ?? ''" class="font-semibold">
                         {{ getColspanCellValue(cell) }}
                       </td>
                     }
-                    @if (hasActionsSignal()) {
+                    @if (hasEndActionsSignal()) {
                       <td></td>
                     }
                   </tr>
@@ -778,12 +850,15 @@
                     @if (showExpandColumnSignal()) {
                       <td></td>
                     }
+                    @if (hasStartActionsSignal()) {
+                      <td></td>
+                    }
                     @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                       <td class="font-semibold">
                         {{ getFooterRowCellValue(footerRow, column) }}
                       </td>
                     }
-                    @if (hasActionsSignal()) {
+                    @if (hasEndActionsSignal()) {
                       <td></td>
                     }
                   </tr>
@@ -800,6 +875,9 @@
                 @if (showExpandColumnSignal()) {
                   <td></td>
                 }
+                @if (hasStartActionsSignal()) {
+                  <td></td>
+                }
                 @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                   <td class="font-semibold">
                     @if (column.footer) {
@@ -807,7 +885,7 @@
                     }
                   </td>
                 }
-                @if (hasActionsSignal()) {
+                @if (hasEndActionsSignal()) {
                   <td></td>
                 }
               </tr>
@@ -856,7 +934,7 @@
               [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
               (click)="onCellClick(rowIdx, 0)"
             >
-              <lucide-icon [img]="gripVerticalIcon" class="h-4 w-4 opacity-40" aria-hidden="true" />
+              <svg lucideGripVertical class="h-4 w-4 opacity-40"></svg>
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
               <td cdk-footer-cell *cdkFooterCellDef></td>
@@ -925,7 +1003,11 @@
                 [attr.aria-expanded]="isDetailExpanded(row)"
                 [attr.aria-label]="isDetailExpanded(row) ? 'Collapse details' : 'Expand details'"
               >
-                <lucide-icon [img]="isDetailExpanded(row) ? chevronDownIcon : chevronRightIcon" class="h-4 w-4" aria-hidden="true" />
+                @if (isDetailExpanded(row)) {
+                  <svg lucideChevronDown class="h-4 w-4"></svg>
+                } @else {
+                  <svg lucideChevronRight class="h-4 w-4"></svg>
+                }
               </button>
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
@@ -1003,12 +1085,12 @@
                   <span class="text-sm opacity-70" [attr.aria-hidden]="true">
                     @if (sortFieldSignal() === column.field) {
                       @if (sortDirectionSignal() === 'Ascending') {
-                        <lucide-icon [img]="arrowUpIcon" class="h-4 w-4" aria-hidden="true" />
+                        <svg lucideArrowUp class="h-4 w-4"></svg>
                       } @else {
-                        <lucide-icon [img]="arrowDownIcon" class="h-4 w-4" aria-hidden="true" />
+                        <svg lucideArrowDown class="h-4 w-4"></svg>
                       }
                     } @else {
-                      <lucide-icon [img]="arrowUpDownIcon" class="h-4 w-4" aria-hidden="true" />
+                      <svg lucideArrowUpDown class="h-4 w-4"></svg>
                     }
                   </span>
                 </div>
@@ -1024,7 +1106,7 @@
                     [attr.popovertarget]="'filter-popover-' + column.field"
                     [style.anchor-name]="'--filter-anchor-' + column.field"
                   >
-                    <lucide-icon [img]="listFilterIcon" class="h-3 w-3" aria-hidden="true"></lucide-icon>
+                    <svg lucideListFilter class="h-3 w-3"></svg>
                     @if (getActiveFilterForColumn(column.field)) {
                       <span class="badge badge-xs badge-primary">1</span>
                     }
@@ -1132,10 +1214,10 @@
                   }
                   <div class="edit-cell-actions">
                     <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
-                      <lucide-icon [img]="checkIcon" class="h-3 w-3" aria-hidden="true" />
+                      <svg lucideCheck class="h-3 w-3"></svg>
                     </button>
                     <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
-                      <lucide-icon [img]="xIcon" class="h-3 w-3" aria-hidden="true" />
+                      <svg lucideX class="h-3 w-3"></svg>
                     </button>
                   </div>
                 </div>
@@ -1150,7 +1232,11 @@
                       [attr.aria-expanded]="isRowExpanded(row)"
                       [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
                     >
-                      <lucide-icon [img]="isRowExpanded(row) ? chevronDownIcon : chevronRightIcon" class="h-4 w-4" aria-hidden="true" />
+                      @if (isRowExpanded(row)) {
+                        <svg lucideChevronDown class="h-4 w-4"></svg>
+                      } @else {
+                        <svg lucideChevronRight class="h-4 w-4"></svg>
+                      }
                     </button>
                   } @else {
                     <span class="tree-toggle-spacer"></span>
@@ -1186,22 +1272,24 @@
           </ng-container>
         }
 
-        <!-- Actions Column -->
-        @if (hasActionsSignal()) {
-          <ng-container cdkColumnDef="actions">
-            <th cdk-header-cell *cdkHeaderCellDef class="text-center" [class.sticky-end]="stickyActionsSignal()">Actions</th>
+        <!-- Actions Column — Start side -->
+        @if (hasStartActionsSignal()) {
+          <ng-container cdkColumnDef="actions_start">
+            <th cdk-header-cell *cdkHeaderCellDef class="text-center" [class.sticky-start]="stickyActionsSignal()">
+              {{ startActionsLabelSignal() }}
+            </th>
             <td
               cdk-cell
               *cdkCellDef="let row; let rowIdx = dataIndex"
               class="text-center"
-              [class.sticky-end]="stickyActionsSignal()"
-              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, actionsColIndexSignal())"
-              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, actionsColIndexSignal()) : null"
+              [class.sticky-start]="stickyActionsSignal()"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, startActionsColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, startActionsColIndexSignal()) : null"
               [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
-              (click)="onCellClick(rowIdx, actionsColIndexSignal())"
+              (click)="onCellClick(rowIdx, startActionsColIndexSignal())"
             >
               <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                @for (action of actionListSignal(); track trackByAction($index, action)) {
+                @for (action of startActionListSignal(); track trackByAction($index, action)) {
                   @if (!action.config.hidden?.(row)) {
                     @if (isTooltipVisible(row, action)) {
                       <div class="tooltip" [attr.data-tip]="getTooltip(row, action) || action.config.label">
@@ -1213,7 +1301,7 @@
                           (click)="action.config.action(row)"
                         >
                           @if (action.config.icon) {
-                            <lucide-icon [name]="action.config.icon" aria-hidden="true"></lucide-icon>
+                            <svg [lucideIcon]="action.config.icon"></svg>
                           }
                           <span [class.sr-only]="!!action.config.icon">
                             {{ action.config.label }}
@@ -1229,7 +1317,69 @@
                         (click)="action.config.action(row)"
                       >
                         @if (action.config.icon) {
-                          <lucide-icon [name]="action.config.icon" aria-hidden="true"></lucide-icon>
+                          <svg [lucideIcon]="action.config.icon"></svg>
+                        }
+                        <span [class.sr-only]="!!action.config.icon">
+                          {{ action.config.label }}
+                        </span>
+                      </button>
+                    }
+                  }
+                }
+              </div>
+            </td>
+            @if (hasFooterSignal() && !hasFooterRowsSignal()) {
+              <td cdk-footer-cell *cdkFooterCellDef></td>
+            }
+          </ng-container>
+        }
+
+        <!-- Actions Column — End side -->
+        @if (hasEndActionsSignal()) {
+          <ng-container cdkColumnDef="actions_end">
+            <th cdk-header-cell *cdkHeaderCellDef class="text-center" [class.sticky-end]="stickyActionsSignal()">
+              {{ endActionsLabelSignal() }}
+            </th>
+            <td
+              cdk-cell
+              *cdkCellDef="let row; let rowIdx = dataIndex"
+              class="text-center"
+              [class.sticky-end]="stickyActionsSignal()"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, endActionsColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, endActionsColIndexSignal()) : null"
+              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
+              (click)="onCellClick(rowIdx, endActionsColIndexSignal())"
+            >
+              <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+                @for (action of endActionListSignal(); track trackByAction($index, action)) {
+                  @if (!action.config.hidden?.(row)) {
+                    @if (isTooltipVisible(row, action)) {
+                      <div class="tooltip" [attr.data-tip]="getTooltip(row, action) || action.config.label">
+                        <button
+                          type="button"
+                          [class]="classesFor(action)"
+                          [style]="action.config.buttonStyle"
+                          [disabled]="action.config.disabled?.(row)"
+                          (click)="action.config.action(row)"
+                        >
+                          @if (action.config.icon) {
+                            <svg [lucideIcon]="action.config.icon"></svg>
+                          }
+                          <span [class.sr-only]="!!action.config.icon">
+                            {{ action.config.label }}
+                          </span>
+                        </button>
+                      </div>
+                    } @else {
+                      <button
+                        type="button"
+                        [class]="classesFor(action)"
+                        [style]="action.config.buttonStyle"
+                        [disabled]="action.config.disabled?.(row)"
+                        (click)="action.config.action(row)"
+                      >
+                        @if (action.config.icon) {
+                          <svg [lucideIcon]="action.config.icon"></svg>
                         }
                         <span [class.sr-only]="!!action.config.icon">
                           {{ action.config.label }}

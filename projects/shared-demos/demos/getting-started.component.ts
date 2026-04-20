@@ -1,59 +1,58 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
-  LucideAngularModule,
-  LUCIDE_ICONS,
-  LucideIconProvider,
-  Package,
-  Palette,
-  Zap,
-  Paintbrush,
-  Accessibility,
-  Puzzle,
-  FileInput,
-  ListOrdered,
-  ChevronDown,
-  Calendar,
-  FileText,
-  Table,
-  GitBranch,
-  Bell,
-  MessageSquareWarning,
-  PanelTopOpen,
-  Download,
-  Play,
-  Check,
-  Lightbulb,
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  provideLucideIcons,
+  LucidePackage,
+  LucidePalette,
+  LucideZap,
+  LucidePaintbrush,
+  LucideAccessibility,
+  LucidePuzzle,
+  LucideFileInput,
+  LucideListOrdered,
+  LucideChevronDown,
+  LucideCalendar,
+  LucideFileText,
+  LucideTable,
+  LucideGitBranch,
+  LucideBell,
+  LucideMessageSquareWarning,
+  LucidePanelTopOpen,
+  LucideDownload,
+  LucidePlay,
+  LucideCheck,
+  LucideLightbulb,
+} from '@lucide/angular';
 import { CodeBlockComponent } from '../shared/code-block.component';
-
-const icons = {
-  Package,
-  Palette,
-  Zap,
-  Paintbrush,
-  Accessibility,
-  Puzzle,
-  FileInput,
-  ListOrdered,
-  ChevronDown,
-  Calendar,
-  FileText,
-  Table,
-  GitBranch,
-  Bell,
-  MessageSquareWarning,
-  PanelTopOpen,
-  Download,
-  Play,
-  Check,
-  Lightbulb,
-};
 
 @Component({
   selector: 'app-getting-started',
-  imports: [LucideAngularModule, CodeBlockComponent, RouterLink],
-  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(icons) }],
+  imports: [LucideDynamicIcon, CodeBlockComponent, RouterLink],
+  providers: [
+    provideLucideIcons(
+      LucidePackage,
+      LucidePalette,
+      LucideZap,
+      LucidePaintbrush,
+      LucideAccessibility,
+      LucidePuzzle,
+      LucideFileInput,
+      LucideListOrdered,
+      LucideChevronDown,
+      LucideCalendar,
+      LucideFileText,
+      LucideTable,
+      LucideGitBranch,
+      LucideBell,
+      LucideMessageSquareWarning,
+      LucidePanelTopOpen,
+      LucideDownload,
+      LucidePlay,
+      LucideCheck,
+      LucideLightbulb,
+    ),
+  ],
   template: `
     <div class="space-y-10 max-w-4xl">
       <!-- Hero -->
@@ -67,11 +66,11 @@ const icons = {
           </p>
           <div class="flex gap-2 mt-2">
             <a routerLink="/installation" class="btn btn-primary btn-sm">
-              <lucide-icon name="Download" [size]="14" />
+              <svg lucideIcon="download" [size]="14"></svg>
               Install
             </a>
             <a routerLink="/forms" class="btn btn-ghost btn-sm">
-              <lucide-icon name="Play" [size]="14" />
+              <svg lucideIcon="play" [size]="14"></svg>
               View Demos
             </a>
           </div>
@@ -83,7 +82,7 @@ const icons = {
         @for (s of stats; track s.title) {
           <div class="stat">
             <div class="stat-figure text-primary">
-              <lucide-icon [name]="s.icon" [size]="24" />
+              <svg [lucideIcon]="s.icon" [size]="24"></svg>
             </div>
             <div class="stat-title text-xs">{{ s.title }}</div>
             <div class="stat-value text-2xl">{{ s.value }}</div>
@@ -101,7 +100,7 @@ const icons = {
               <div class="card-body">
                 <div class="flex items-center gap-3">
                   <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <lucide-icon [name]="feature.icon" [size]="18" />
+                    <svg [lucideIcon]="feature.icon" [size]="18"></svg>
                   </div>
                   <h3 class="card-title text-sm">{{ feature.title }}</h3>
                 </div>
@@ -163,7 +162,7 @@ const icons = {
             <div class="card-body">
               <div class="flex items-center gap-3 mb-1">
                 <span class="badge badge-success badge-lg">
-                  <lucide-icon name="Check" [size]="14" />
+                  <svg lucideIcon="check" [size]="14"></svg>
                 </span>
                 <h3 class="card-title text-base text-success">You're all set!</h3>
               </div>
@@ -187,7 +186,7 @@ const icons = {
               @for (item of group.items; track item.label) {
                 <li class="list-row">
                   <div class="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0">
-                    <lucide-icon [name]="item.icon" [size]="15" class="text-base-content/40" />
+                    <svg [lucideIcon]="item.icon" [size]="15" class="text-base-content/40"></svg>
                   </div>
                   <div>
                     <a [routerLink]="item.path" class="link link-hover text-sm font-medium">{{ item.label }}</a>
@@ -207,7 +206,7 @@ const icons = {
           <p class="text-sm opacity-70">Learn the design decisions behind ng-daisyui and how they help you write less code.</p>
           <div class="card-actions">
             <a routerLink="/key-patterns" class="btn btn-primary btn-sm">
-              <lucide-icon name="Lightbulb" [size]="14" />
+              <svg lucideIcon="lightbulb" [size]="14"></svg>
               Read Key Patterns
             </a>
           </div>
@@ -218,39 +217,39 @@ const icons = {
 })
 export class GettingStartedComponent {
   stats = [
-    { icon: 'Package', title: 'Components', value: '20+', desc: 'Standalone, tree-shakable' },
-    { icon: 'Palette', title: 'Themes', value: '40+', desc: 'DaisyUI built-in + custom' },
-    { icon: 'Zap', title: 'Performance', value: 'OnPush', desc: 'Signals throughout' },
+    { icon: 'package', title: 'Components', value: '20+', desc: 'Standalone, tree-shakable' },
+    { icon: 'palette', title: 'Themes', value: '40+', desc: 'DaisyUI built-in + custom' },
+    { icon: 'zap', title: 'Performance', value: 'OnPush', desc: 'Signals throughout' },
   ];
 
   features = [
     {
-      icon: 'Zap',
+      icon: 'zap',
       title: 'Signals & OnPush',
       description: 'Built with Angular signals and OnPush change detection for optimal performance.',
     },
     {
-      icon: 'Paintbrush',
+      icon: 'paintbrush',
       title: 'DaisyUI + Tailwind',
       description: 'Themeable components using DaisyUI v5 semantic classes on Tailwind CSS v4.',
     },
     {
-      icon: 'Accessibility',
+      icon: 'accessibility',
       title: 'Accessible',
       description: 'WCAG AA compliant with ARIA attributes, focus management, and keyboard navigation.',
     },
     {
-      icon: 'Package',
+      icon: 'package',
       title: 'Zero Config',
       description: 'Install one package and go. All dependencies like icons and animations are included.',
     },
     {
-      icon: 'Puzzle',
+      icon: 'puzzle',
       title: 'Builder APIs',
       description: 'Type-safe builder functions like createForm(), createTable(), and createTree().',
     },
     {
-      icon: 'Palette',
+      icon: 'palette',
       title: 'Themeable',
       description: 'All DaisyUI themes plus custom themes like Kaizen and Obsidian with one attribute.',
     },
@@ -260,21 +259,21 @@ export class GettingStartedComponent {
     {
       title: 'Forms & Input',
       items: [
-        { path: '/forms', label: 'Dynamic Forms', icon: 'FileInput', desc: 'Builder-driven form generation' },
-        { path: '/wizard', label: 'Form Wizard', icon: 'ListOrdered', desc: 'Multi-step form flows' },
-        { path: '/select', label: 'Select', icon: 'ChevronDown', desc: 'Searchable dropdown with virtual scroll' },
-        { path: '/datepicker', label: 'Datepicker', icon: 'Calendar', desc: 'Date and range picker' },
-        { path: '/editor', label: 'Rich Text Editor', icon: 'FileText', desc: 'Quill-based rich text editing' },
+        { path: '/forms', label: 'Dynamic Forms', icon: 'file-input', desc: 'Builder-driven form generation' },
+        { path: '/wizard', label: 'Form Wizard', icon: 'list-ordered', desc: 'Multi-step form flows' },
+        { path: '/select', label: 'Select', icon: 'chevron-down', desc: 'Searchable dropdown with virtual scroll' },
+        { path: '/datepicker', label: 'Datepicker', icon: 'calendar', desc: 'Date and range picker' },
+        { path: '/editor', label: 'Rich Text Editor', icon: 'file-text', desc: 'Quill-based rich text editing' },
       ],
     },
     {
       title: 'Data & Feedback',
       items: [
-        { path: '/table', label: 'Table', icon: 'Table', desc: 'Sort, filter, paginate, CDK DataSource' },
-        { path: '/tree', label: 'Tree', icon: 'GitBranch', desc: 'Hierarchical data with drag-and-drop' },
-        { path: '/toast', label: 'Toast', icon: 'Bell', desc: 'Stacking notification system' },
-        { path: '/alert', label: 'Alert Dialogs', icon: 'MessageSquareWarning', desc: 'Confirm, prompt, and alert' },
-        { path: '/dialog', label: 'Dialog Service', icon: 'PanelTopOpen', desc: 'Programmatic modal dialogs' },
+        { path: '/table', label: 'Table', icon: 'table', desc: 'Sort, filter, paginate, CDK DataSource' },
+        { path: '/tree', label: 'Tree', icon: 'git-branch', desc: 'Hierarchical data with drag-and-drop' },
+        { path: '/toast', label: 'Toast', icon: 'bell', desc: 'Stacking notification system' },
+        { path: '/alert', label: 'Alert Dialogs', icon: 'message-square-warning', desc: 'Confirm, prompt, and alert' },
+        { path: '/dialog', label: 'Dialog Service', icon: 'panel-top-open', desc: 'Programmatic modal dialogs' },
       ],
     },
   ];

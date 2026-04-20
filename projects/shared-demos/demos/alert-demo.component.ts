@@ -3,7 +3,18 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 import { AlertService, type AlertSize } from '@hakistack/ng-daisyui';
-import { LucideAngularModule, CircleCheck, CircleX, TriangleAlert, Info, Trash2, Loader, Clock, FileText, Globe } from 'lucide-angular';
+import {
+  LucideDynamicIcon,
+  LucideCircleCheck,
+  LucideCircleX,
+  LucideTriangleAlert,
+  LucideInfo,
+  LucideTrash2,
+  LucideLoader,
+  LucideClock,
+  LucideFileText,
+  LucideGlobe,
+} from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -15,12 +26,12 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
 @Component({
   selector: 'app-alert-demo',
-  imports: [LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [LucideDynamicIcon, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="Alert Dialogs"
       description="Modal alerts and confirmations with rich content support"
-      icon="MessageSquareWarning"
+      icon="message-square-warning"
       category="Feedback"
       importName="AlertService"
     >
@@ -34,19 +45,19 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
-                  <lucide-icon [img]="circleCheckIcon" [size]="18" />
+                  <svg [lucideIcon]="circleCheckIcon" [size]="18"></svg>
                   Success
                 </button>
                 <button class="btn btn-error" (click)="showError()">
-                  <lucide-icon [img]="circleXIcon" [size]="18" />
+                  <svg [lucideIcon]="circleXIcon" [size]="18"></svg>
                   Error
                 </button>
                 <button class="btn btn-warning" (click)="showWarning()">
-                  <lucide-icon [img]="triangleAlertIcon" [size]="18" />
+                  <svg [lucideIcon]="triangleAlertIcon" [size]="18"></svg>
                   Warning
                 </button>
                 <button class="btn btn-info" (click)="showInfo()">
-                  <lucide-icon [img]="infoIcon" [size]="18" />
+                  <svg [lucideIcon]="infoIcon" [size]="18"></svg>
                   Info
                 </button>
               </div>
@@ -78,7 +89,7 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             <app-doc-section title="Delete with Item Name" description="Show the item being deleted" [codeExample]="deleteCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-error" (click)="showDeleteWithItem()">
-                  <lucide-icon [img]="trash2Icon" [size]="18" />
+                  <svg [lucideIcon]="trash2Icon" [size]="18"></svg>
                   Delete "Project Alpha"
                 </button>
               </div>
@@ -100,7 +111,7 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             <app-doc-section title="Loading State" description="Show loading indicator during async operations" [codeExample]="loadingCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showLoading()">
-                  <lucide-icon [img]="loaderIcon" [size]="18" />
+                  <svg [lucideIcon]="loaderIcon" [size]="18"></svg>
                   Show Loading (3s)
                 </button>
                 <button class="btn btn-outline" (click)="showLoadingWithUpdate()">Loading with Update</button>
@@ -121,7 +132,7 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-warning" (click)="showCountdown()">
-                  <lucide-icon [img]="clockIcon" [size]="18" />
+                  <svg [lucideIcon]="clockIcon" [size]="18"></svg>
                   Session Timeout Warning
                 </button>
                 <button class="btn btn-outline" (click)="showCountdownCustom()">Custom Countdown</button>
@@ -150,19 +161,19 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline" (click)="showHtmlUrlTerms()">
-                  <lucide-icon [img]="fileTextIcon" [size]="18" />
+                  <svg [lucideIcon]="fileTextIcon" [size]="18"></svg>
                   Terms (from file)
                 </button>
                 <button class="btn btn-outline" (click)="showHtmlUrlReleaseNotes()">
-                  <lucide-icon [img]="fileTextIcon" [size]="18" />
+                  <svg [lucideIcon]="fileTextIcon" [size]="18"></svg>
                   Release Notes (from file)
                 </button>
                 <button class="btn btn-outline" (click)="showHtmlUrlRemote()">
-                  <lucide-icon [img]="globeIcon" [size]="18" />
+                  <svg [lucideIcon]="globeIcon" [size]="18"></svg>
                   Remote URL (httpbin)
                 </button>
                 <button class="btn btn-outline" (click)="showHtmlUrlNotFound()">
-                  <lucide-icon [img]="triangleAlertIcon" [size]="18" />
+                  <svg [lucideIcon]="triangleAlertIcon" [size]="18"></svg>
                   Bad URL (error fallback)
                 </button>
               </div>
@@ -341,15 +352,15 @@ type AlertApiTab = 'methods' | 'configuration' | 'provider' | 'types';
   `,
 })
 export class AlertDemoComponent {
-  readonly circleCheckIcon = CircleCheck;
-  readonly circleXIcon = CircleX;
-  readonly triangleAlertIcon = TriangleAlert;
-  readonly infoIcon = Info;
-  readonly trash2Icon = Trash2;
-  readonly loaderIcon = Loader;
-  readonly clockIcon = Clock;
-  readonly fileTextIcon = FileText;
-  readonly globeIcon = Globe;
+  readonly circleCheckIcon = LucideCircleCheck;
+  readonly circleXIcon = LucideCircleX;
+  readonly triangleAlertIcon = LucideTriangleAlert;
+  readonly infoIcon = LucideInfo;
+  readonly trash2Icon = LucideTrash2;
+  readonly loaderIcon = LucideLoader;
+  readonly clockIcon = LucideClock;
+  readonly fileTextIcon = LucideFileText;
+  readonly globeIcon = LucideGlobe;
   private route = inject(ActivatedRoute);
   private alert = inject(AlertService);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));

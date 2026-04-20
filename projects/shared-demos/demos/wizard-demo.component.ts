@@ -19,7 +19,7 @@ type WizardTab = 'linear' | 'nonlinear';
     <app-demo-page
       title="Form Wizard"
       description="Multi-step forms with stepper navigation and validation"
-      icon="ListOrdered"
+      icon="list-ordered"
       category="Forms"
       importName="DynamicFormComponent, createForm, field, step"
     >

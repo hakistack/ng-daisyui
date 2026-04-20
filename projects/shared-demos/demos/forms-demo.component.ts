@@ -30,7 +30,7 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
     <app-demo-page
       title="Dynamic Forms"
       description="Build complex forms with validation, conditional logic, and multiple layouts"
-      icon="FileInput"
+      icon="file-input"
       category="Forms"
       importName="DynamicFormComponent, createForm, field"
     >

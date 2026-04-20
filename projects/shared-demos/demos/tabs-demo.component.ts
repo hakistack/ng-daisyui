@@ -19,7 +19,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
     <app-demo-page
       title="Tabs"
       description="Accessible tabbed interface with icons, styles, and lazy loading"
-      icon="PanelTop"
+      icon="panel-top"
       category="Navigation"
       importName="TabGroupComponent, TabPanelComponent"
     >

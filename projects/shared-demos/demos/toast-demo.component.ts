@@ -3,7 +3,15 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 import { ToastService } from '@hakistack/ng-daisyui';
-import { LucideAngularModule, CircleCheck, CircleX, TriangleAlert, Info, Wifi, WifiOff } from 'lucide-angular';
+import {
+  LucideDynamicIcon,
+  LucideCircleCheck,
+  LucideCircleX,
+  LucideTriangleAlert,
+  LucideInfo,
+  LucideWifi,
+  LucideWifiOff,
+} from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -15,12 +23,12 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
 
 @Component({
   selector: 'app-toast-demo',
-  imports: [LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [LucideDynamicIcon, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="Toast Notifications"
       description="Non-blocking notifications with actions and progress"
-      icon="Bell"
+      icon="bell"
       category="Feedback"
       importName="ToastService"
     >
@@ -34,19 +42,19 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             >
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-success" (click)="showSuccess()">
-                  <lucide-icon [img]="circleCheckIcon" [size]="18" />
+                  <svg [lucideIcon]="circleCheckIcon" [size]="18"></svg>
                   Success
                 </button>
                 <button class="btn btn-error" (click)="showError()">
-                  <lucide-icon [img]="circleXIcon" [size]="18" />
+                  <svg [lucideIcon]="circleXIcon" [size]="18"></svg>
                   Error
                 </button>
                 <button class="btn btn-warning" (click)="showWarning()">
-                  <lucide-icon [img]="triangleAlertIcon" [size]="18" />
+                  <svg [lucideIcon]="triangleAlertIcon" [size]="18"></svg>
                   Warning
                 </button>
                 <button class="btn btn-info" (click)="showInfo()">
-                  <lucide-icon [img]="infoIcon" [size]="18" />
+                  <svg [lucideIcon]="infoIcon" [size]="18"></svg>
                   Info
                 </button>
               </div>
@@ -119,11 +127,11 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
             <app-doc-section title="Network Status" description="Built-in online/offline notifications" [codeExample]="networkCode">
               <div class="flex flex-wrap gap-3">
                 <button class="btn btn-outline btn-success" (click)="showOnline()">
-                  <lucide-icon [img]="wifiIcon" [size]="18" />
+                  <svg [lucideIcon]="wifiIcon" [size]="18"></svg>
                   Online
                 </button>
                 <button class="btn btn-outline btn-error" (click)="showOffline()">
-                  <lucide-icon [img]="wifiOffIcon" [size]="18" />
+                  <svg [lucideIcon]="wifiOffIcon" [size]="18"></svg>
                   Offline
                 </button>
               </div>
@@ -254,12 +262,12 @@ type ToastApiTab = 'methods' | 'configuration' | 'provider' | 'types';
   `,
 })
 export class ToastDemoComponent {
-  readonly circleCheckIcon = CircleCheck;
-  readonly circleXIcon = CircleX;
-  readonly triangleAlertIcon = TriangleAlert;
-  readonly infoIcon = Info;
-  readonly wifiIcon = Wifi;
-  readonly wifiOffIcon = WifiOff;
+  readonly circleCheckIcon = LucideCircleCheck;
+  readonly circleXIcon = LucideCircleX;
+  readonly triangleAlertIcon = LucideTriangleAlert;
+  readonly infoIcon = LucideInfo;
+  readonly wifiIcon = LucideWifi;
+  readonly wifiOffIcon = LucideWifiOff;
   private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));

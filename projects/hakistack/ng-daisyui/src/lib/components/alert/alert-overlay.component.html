@@ -23,7 +23,7 @@
     <!-- Close button (DaisyUI standard pattern) -->
     @if (!config().loading && config().allowEscapeKey) {
       <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Close" (click)="dismiss('close')">
-        <lucide-icon [img]="xIcon" [size]="16" />
+        <svg lucideX [size]="16"></svg>
       </button>
     }
 
@@ -32,7 +32,7 @@
       @if (!config().loading) {
         <div class="mb-4 flex justify-center">
           <div [class]="iconContainerClasses()" class="alert-icon-enter">
-            <lucide-icon [img]="icon" [size]="48" />
+            <svg [lucideIcon]="icon" [size]="48"></svg>
           </div>
         </div>
       }

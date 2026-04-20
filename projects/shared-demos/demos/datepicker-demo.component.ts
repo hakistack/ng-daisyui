@@ -30,7 +30,7 @@ type ApiSubTab = 'component' | 'configuration' | 'time-mode' | 'types';
     <app-demo-page
       title="Datepicker"
       description="Calendar-based date picker with single date and range selection"
-      icon="Calendar"
+      icon="calendar"
       category="Inputs"
       importName="DatepickerComponent"
     >

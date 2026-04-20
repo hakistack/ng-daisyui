@@ -36,7 +36,7 @@ function generateProducts(count: number): Product[] {
     <app-demo-page
       title="Virtual Scroller"
       description="Performance-optimized scrolling for large datasets using virtual rendering"
-      icon="ScrollText"
+      icon="scroll-text"
       category="Data Display"
       importName="VirtualScrollerComponent"
     >

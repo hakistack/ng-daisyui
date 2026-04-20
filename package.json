@@ -64,6 +64,7 @@
     "@angular/platform-browser": "^21.2.7",
     "@angular/router": "^21.2.7",
     "@jsverse/transloco": "^8.2.1",
+    "@lucide/angular": "^1.7.0",
     "@tailwindcss/postcss": "^4.2.2",
     "fuse.js": "^7.2.0",
     "libphonenumber-js": "^1.12.41",

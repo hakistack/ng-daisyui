@@ -1,66 +1,65 @@
 import { Component, input, signal } from '@angular/core';
 import {
-  LucideAngularModule,
-  LUCIDE_ICONS,
-  LucideIconProvider,
-  FileInput,
-  ListOrdered,
-  Table,
-  ListTree,
-  GitBranch,
-  Network,
-  ScrollText,
-  TextCursorInput,
-  ChevronDown,
-  Calendar,
-  Clock,
-  FileText,
-  PanelTop,
-  Bell,
-  MessageSquareWarning,
-  PanelTopOpen,
-  Smile,
-  Sparkles,
-  Rocket,
-  Download,
-  Lightbulb,
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  provideLucideIcons,
+  LucideFileInput,
+  LucideListOrdered,
+  LucideTable,
+  LucideListTree,
+  LucideGitBranch,
+  LucideNetwork,
+  LucideScrollText,
+  LucideTextCursorInput,
+  LucideChevronDown,
+  LucideCalendar,
+  LucideClock,
+  LucideFileText,
+  LucidePanelTop,
+  LucideBell,
+  LucideMessageSquareWarning,
+  LucidePanelTopOpen,
+  LucideSmile,
+  LucideSparkles,
+  LucideRocket,
+  LucideDownload,
+  LucideLightbulb,
+} from '@lucide/angular';
 import { SHOW_IMPORT } from '../config';
-
-const icons = {
-  FileInput,
-  ListOrdered,
-  Table,
-  ListTree,
-  GitBranch,
-  Network,
-  ScrollText,
-  TextCursorInput,
-  ChevronDown,
-  Calendar,
-  Clock,
-  FileText,
-  PanelTop,
-  Bell,
-  MessageSquareWarning,
-  PanelTopOpen,
-  Smile,
-  Sparkles,
-  Rocket,
-  Download,
-  Lightbulb,
-};
 
 @Component({
   selector: 'app-demo-page',
-  imports: [LucideAngularModule],
-  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(icons) }],
+  imports: [LucideDynamicIcon],
+  providers: [
+    provideLucideIcons(
+      LucideFileInput,
+      LucideListOrdered,
+      LucideTable,
+      LucideListTree,
+      LucideGitBranch,
+      LucideNetwork,
+      LucideScrollText,
+      LucideTextCursorInput,
+      LucideChevronDown,
+      LucideCalendar,
+      LucideClock,
+      LucideFileText,
+      LucidePanelTop,
+      LucideBell,
+      LucideMessageSquareWarning,
+      LucidePanelTopOpen,
+      LucideSmile,
+      LucideSparkles,
+      LucideRocket,
+      LucideDownload,
+      LucideLightbulb,
+    ),
+  ],
   template: `
     <div class="space-y-4">
       <!-- Hero header -->
       <div class="flex items-start gap-4">
         <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-          <lucide-icon [name]="icon()" [size]="20" />
+          <svg [lucideIcon]="icon()" [size]="20"></svg>
         </div>
         <div>
           <div class="flex items-center gap-3 mb-1">

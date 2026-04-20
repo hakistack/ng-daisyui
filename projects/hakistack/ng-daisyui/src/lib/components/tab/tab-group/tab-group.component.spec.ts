@@ -495,7 +495,7 @@ describe('TabGroupComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      const icons = fixture.nativeElement.querySelectorAll('lucide-icon');
+      const icons = fixture.nativeElement.querySelectorAll('svg[lucideIcon], svg[data-lucide]');
       expect(icons.length).toBe(0);
     });
   });

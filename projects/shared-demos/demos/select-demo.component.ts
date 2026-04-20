@@ -21,7 +21,7 @@ type ApiSubTab = 'component' | 'configuration' | 'multi-select' | 'keyboard-a11y
     <app-demo-page
       title="Select"
       description="Enhanced dropdown with search, virtual scrolling, and multiselect support"
-      icon="ChevronDown"
+      icon="chevron-down"
       category="Inputs"
       importName="SelectComponent"
     >

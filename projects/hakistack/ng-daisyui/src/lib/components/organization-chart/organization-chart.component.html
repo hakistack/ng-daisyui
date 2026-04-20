@@ -31,7 +31,7 @@
           @if (node.loading) {
             <span class="loading loading-spinner loading-sm"></span>
           } @else if (getNodeIcon(node); as icon) {
-            <lucide-icon [name]="icon" [size]="20" class="opacity-70" />
+            <svg [lucideIcon]="icon" [size]="20" class="opacity-70"></svg>
           }
           <span class="font-medium text-sm whitespace-nowrap">{{ node.label }}</span>
         </div>
@@ -45,7 +45,11 @@
           [attr.aria-expanded]="isExpanded(node)"
           aria-label="Toggle children"
         >
-          <lucide-icon [img]="isExpanded(node) ? chevronDownIcon : chevronRightIcon" [size]="14" />
+          @if (isExpanded(node)) {
+            <svg lucideChevronDown [size]="14"></svg>
+          } @else {
+            <svg lucideChevronRight [size]="14"></svg>
+          }
         </button>
       }
     </div>

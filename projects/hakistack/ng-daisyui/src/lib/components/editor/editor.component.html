@@ -9,52 +9,52 @@
               @switch (item) {
                 @case ('bold') {
                   <button type="button" class="ql-bold btn btn-ghost btn-xs btn-square" aria-label="Bold">
-                    <lucide-icon [img]="boldIcon" [size]="15" />
+                    <svg lucideBold [size]="15"></svg>
                   </button>
                 }
                 @case ('italic') {
                   <button type="button" class="ql-italic btn btn-ghost btn-xs btn-square" aria-label="Italic">
-                    <lucide-icon [img]="italicIcon" [size]="15" />
+                    <svg lucideItalic [size]="15"></svg>
                   </button>
                 }
                 @case ('underline') {
                   <button type="button" class="ql-underline btn btn-ghost btn-xs btn-square" aria-label="Underline">
-                    <lucide-icon [img]="underlineIcon" [size]="15" />
+                    <svg lucideUnderline [size]="15"></svg>
                   </button>
                 }
                 @case ('strike') {
                   <button type="button" class="ql-strike btn btn-ghost btn-xs btn-square" aria-label="Strikethrough">
-                    <lucide-icon [img]="strikethroughIcon" [size]="15" />
+                    <svg lucideStrikethrough [size]="15"></svg>
                   </button>
                 }
                 @case ('blockquote') {
                   <button type="button" class="ql-blockquote btn btn-ghost btn-xs btn-square" aria-label="Blockquote">
-                    <lucide-icon [img]="quoteIcon" [size]="15" />
+                    <svg lucideQuote [size]="15"></svg>
                   </button>
                 }
                 @case ('code-block') {
                   <button type="button" class="ql-code-block btn btn-ghost btn-xs btn-square" aria-label="Code block">
-                    <lucide-icon [img]="codeIcon" [size]="15" />
+                    <svg lucideCode [size]="15"></svg>
                   </button>
                 }
                 @case ('link') {
                   <button type="button" class="ql-link btn btn-ghost btn-xs btn-square" aria-label="Link">
-                    <lucide-icon [img]="linkIcon" [size]="15" />
+                    <svg lucideLink [size]="15"></svg>
                   </button>
                 }
                 @case ('image') {
                   <button type="button" class="ql-image btn btn-ghost btn-xs btn-square" aria-label="Image">
-                    <lucide-icon [img]="imageIcon" [size]="15" />
+                    <svg lucideImage [size]="15"></svg>
                   </button>
                 }
                 @case ('video') {
                   <button type="button" class="ql-video btn btn-ghost btn-xs btn-square" aria-label="Video">
-                    <lucide-icon [img]="videoIcon" [size]="15" />
+                    <svg lucideVideo [size]="15"></svg>
                   </button>
                 }
                 @case ('clean') {
                   <button type="button" class="ql-clean btn btn-ghost btn-xs btn-square" aria-label="Clear formatting">
-                    <lucide-icon [img]="removeFormattingIcon" [size]="15" />
+                    <svg lucideRemoveFormatting [size]="15"></svg>
                   </button>
                 }
               }
@@ -69,13 +69,13 @@
                   >
                     @switch (getItemValue(item)) {
                       @case (1) {
-                        <lucide-icon [img]="heading1Icon" [size]="15" />
+                        <svg lucideHeading1 [size]="15"></svg>
                       }
                       @case (2) {
-                        <lucide-icon [img]="heading2Icon" [size]="15" />
+                        <svg lucideHeading2 [size]="15"></svg>
                       }
                       @case (3) {
-                        <lucide-icon [img]="heading3Icon" [size]="15" />
+                        <svg lucideHeading3 [size]="15"></svg>
                       }
                       @default {
                         <span class="text-xs font-semibold">H{{ getItemValue(item) }}</span>
@@ -86,24 +86,24 @@
                 @case ('list') {
                   @if (getItemValue(item) === 'ordered') {
                     <button type="button" class="ql-list btn btn-ghost btn-xs btn-square" value="ordered" aria-label="Ordered list">
-                      <lucide-icon [img]="listOrderedIcon" [size]="15" />
+                      <svg lucideListOrdered [size]="15"></svg>
                     </button>
                   }
                   @if (getItemValue(item) === 'bullet') {
                     <button type="button" class="ql-list btn btn-ghost btn-xs btn-square" value="bullet" aria-label="Bullet list">
-                      <lucide-icon [img]="listIcon" [size]="15" />
+                      <svg lucideList [size]="15"></svg>
                     </button>
                   }
                 }
                 @case ('indent') {
                   @if (getItemValue(item) === '-1') {
                     <button type="button" class="ql-indent btn btn-ghost btn-xs btn-square" value="-1" aria-label="Decrease indent">
-                      <lucide-icon [img]="indentDecreaseIcon" [size]="15" />
+                      <svg lucideListIndentDecrease [size]="15"></svg>
                     </button>
                   }
                   @if (getItemValue(item) === '+1') {
                     <button type="button" class="ql-indent btn btn-ghost btn-xs btn-square" value="+1" aria-label="Increase indent">
-                      <lucide-icon [img]="indentIncreaseIcon" [size]="15" />
+                      <svg lucideListIndentIncrease [size]="15"></svg>
                     </button>
                   }
                 }
@@ -111,22 +111,22 @@
                   @switch (getItemValue(item)) {
                     @case ('') {
                       <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="" aria-label="Align left">
-                        <lucide-icon [img]="alignLeftIcon" [size]="15" />
+                        <svg lucideTextAlignStart [size]="15"></svg>
                       </button>
                     }
                     @case ('center') {
                       <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="center" aria-label="Align center">
-                        <lucide-icon [img]="alignCenterIcon" [size]="15" />
+                        <svg lucideTextAlignCenter [size]="15"></svg>
                       </button>
                     }
                     @case ('right') {
                       <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="right" aria-label="Align right">
-                        <lucide-icon [img]="alignRightIcon" [size]="15" />
+                        <svg lucideTextAlignEnd [size]="15"></svg>
                       </button>
                     }
                     @case ('justify') {
                       <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="justify" aria-label="Justify">
-                        <lucide-icon [img]="alignJustifyIcon" [size]="15" />
+                        <svg lucideTextAlignJustify [size]="15"></svg>
                       </button>
                     }
                   }

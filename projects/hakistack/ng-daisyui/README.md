@@ -13,7 +13,7 @@ npm install @hakistack/ng-daisyui
 ### Required Dependencies
 
 ```bash
-npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk lucide-angular sweetalert2 fuse.js motion
+npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk @lucide/angular sweetalert2 fuse.js motion
 ```
 
 ### Configure Tailwind CSS
@@ -278,13 +278,34 @@ export class MyDialogComponent {
 }
 ```
 
-### LucideIconComponent
+### Lucide Icons
 
-Icon wrapper for Lucide icons.
+Uses `@lucide/angular` v1.7+ directly. Import per-icon directives for static usage, or `LucideDynamicIcon` for runtime icon selection.
 
-```html
-<hk-lucide-icon name="User" [size]="24" />
-<hk-lucide-icon name="Settings" color="red" />
+```typescript
+import { LucideUser, LucideSettings, LucideDynamicIcon } from '@lucide/angular';
+
+@Component({
+  imports: [LucideUser, LucideSettings, LucideDynamicIcon],
+  template: `
+    <svg lucideUser [size]="24"></svg>
+    <svg lucideSettings color="red"></svg>
+    <svg [lucideIcon]="iconName()" [size]="20"></svg>
+  `,
+})
+```
+
+For string-name lookup, register icons in your app config:
+
+```typescript
+import { provideLucideIcons, provideLucideConfig, LucideUser } from '@lucide/angular';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideLucideIcons(LucideUser /* , ... */),
+    provideLucideConfig({ size: 20, strokeWidth: 1.75 }),
+  ],
+};
 ```
 
 ## Services

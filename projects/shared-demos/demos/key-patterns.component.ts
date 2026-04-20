@@ -1,56 +1,55 @@
 import { Component } from '@angular/core';
 import {
-  LucideAngularModule,
-  LUCIDE_ICONS,
-  LucideIconProvider,
-  Hammer,
-  X,
-  Check,
-  ToggleRight,
-  LayoutList,
-  PanelBottom,
-  PanelTop,
-  Save,
-  Table,
-  Code,
-  Columns3,
-  GitBranch,
-  Database,
-  Bell,
-  Settings,
-  Unplug,
-  Info,
-  Zap,
-  Smile,
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  provideLucideIcons,
+  LucideHammer,
+  LucideX,
+  LucideCheck,
+  LucideToggleRight,
+  LucideLayoutList,
+  LucidePanelBottom,
+  LucidePanelTop,
+  LucideSave,
+  LucideTable,
+  LucideCode,
+  LucideColumns3,
+  LucideGitBranch,
+  LucideDatabase,
+  LucideBell,
+  LucideSettings,
+  LucideUnplug,
+  LucideInfo,
+  LucideZap,
+  LucideSmile,
+} from '@lucide/angular';
 import { CodeBlockComponent } from '../shared/code-block.component';
-
-const icons = {
-  Hammer,
-  X,
-  Check,
-  ToggleRight,
-  LayoutList,
-  PanelBottom,
-  PanelTop,
-  Save,
-  Table,
-  Code,
-  Columns3,
-  GitBranch,
-  Database,
-  Bell,
-  Settings,
-  Unplug,
-  Info,
-  Zap,
-  Smile,
-};
 
 @Component({
   selector: 'app-key-patterns',
-  imports: [LucideAngularModule, CodeBlockComponent],
-  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(icons) }],
+  imports: [LucideDynamicIcon, CodeBlockComponent],
+  providers: [
+    provideLucideIcons(
+      LucideHammer,
+      LucideX,
+      LucideCheck,
+      LucideToggleRight,
+      LucideLayoutList,
+      LucidePanelBottom,
+      LucidePanelTop,
+      LucideSave,
+      LucideTable,
+      LucideCode,
+      LucideColumns3,
+      LucideGitBranch,
+      LucideDatabase,
+      LucideBell,
+      LucideSettings,
+      LucideUnplug,
+      LucideInfo,
+      LucideZap,
+      LucideSmile,
+    ),
+  ],
   template: `
     <div class="space-y-10 max-w-4xl">
       <!-- Hero -->
@@ -69,7 +68,7 @@ const icons = {
             @for (section of toc; track section.id) {
               <li>
                 <a class="link link-hover text-sm flex items-center gap-2 cursor-pointer" (click)="scrollTo(section.id)">
-                  <lucide-icon [name]="section.icon" [size]="14" class="text-primary" />
+                  <svg [lucideIcon]="section.icon" [size]="14" class="text-primary"></svg>
                   {{ section.label }}
                 </a>
               </li>
@@ -84,7 +83,7 @@ const icons = {
       <section id="builders" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-            <lucide-icon name="Hammer" [size]="20" />
+            <svg lucideIcon="hammer" [size]="20"></svg>
           </div>
           <div>
             <h2 class="text-2xl font-serif">Builder Functions</h2>
@@ -99,7 +98,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm text-error">
-              <lucide-icon name="X" [size]="16" />
+              <svg lucideIcon="x" [size]="16"></svg>
               The problem
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -113,7 +112,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm text-success">
-              <lucide-icon name="Check" [size]="16" />
+              <svg lucideIcon="check" [size]="16"></svg>
               The ng-daisyui way
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -161,7 +160,7 @@ const icons = {
       <section id="form-controller" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0 mt-0.5">
-            <lucide-icon name="ToggleRight" [size]="20" />
+            <svg lucideIcon="toggle-right" [size]="20"></svg>
           </div>
           <div>
             <h2 class="text-2xl font-serif">FormController Pattern</h2>
@@ -172,7 +171,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm text-error">
-              <lucide-icon name="X" [size]="16" />
+              <svg lucideIcon="x" [size]="16"></svg>
               The problem with embedded buttons
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -187,7 +186,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm text-success">
-              <lucide-icon name="Check" [size]="16" />
+              <svg lucideIcon="check" [size]="16"></svg>
               The ng-daisyui way
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -204,14 +203,14 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <lucide-icon name="LayoutList" [size]="16" />
+              <svg lucideIcon="layout-list" [size]="16"></svg>
               Layouts this enables
             </h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               @for (ex of controllerExamples; track ex.title) {
                 <div class="bg-base-200 rounded-box p-4 space-y-2">
                   <div class="flex items-center gap-2">
-                    <lucide-icon [name]="ex.icon" [size]="14" class="text-primary" />
+                    <svg [lucideIcon]="ex.icon" [size]="14" class="text-primary"></svg>
                     <span class="text-xs font-semibold">{{ ex.title }}</span>
                   </div>
                   <p class="text-xs text-base-content/45 leading-relaxed">{{ ex.desc }}</p>
@@ -230,7 +229,7 @@ const icons = {
       <section id="table-builder" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0 mt-0.5">
-            <lucide-icon name="Table" [size]="20" />
+            <svg lucideIcon="table" [size]="20"></svg>
           </div>
           <div>
             <h2 class="text-2xl font-serif">Table Builder</h2>
@@ -244,7 +243,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <lucide-icon name="Code" [size]="16" />
+              <svg lucideIcon="code" [size]="16"></svg>
               Why a builder instead of a template?
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -263,7 +262,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <lucide-icon name="Columns3" [size]="16" />
+              <svg lucideIcon="columns-3" [size]="16"></svg>
               Type-safe formatters with fmt.*()
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -281,7 +280,7 @@ const icons = {
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
               @for (feat of tableFeatures; track feat) {
                 <div class="flex items-center gap-1.5 text-xs text-base-content/60">
-                  <lucide-icon name="Check" [size]="12" class="text-success shrink-0" />
+                  <svg lucideIcon="check" [size]="12" class="text-success shrink-0"></svg>
                   {{ feat }}
                 </div>
               }
@@ -314,7 +313,7 @@ const icons = {
       <section id="tree-builder" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-warning/10 text-warning flex items-center justify-center shrink-0 mt-0.5">
-            <lucide-icon name="GitBranch" [size]="20" />
+            <svg lucideIcon="git-branch" [size]="20"></svg>
           </div>
           <div>
             <h2 class="text-2xl font-serif">Tree Builder</h2>
@@ -338,7 +337,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <lucide-icon name="Database" [size]="16" />
+              <svg lucideIcon="database" [size]="16"></svg>
               Convert flat data to trees
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -374,7 +373,7 @@ const icons = {
       <section id="services" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-info/10 text-info flex items-center justify-center shrink-0 mt-0.5">
-            <lucide-icon name="Bell" [size]="20" />
+            <svg lucideIcon="bell" [size]="20"></svg>
           </div>
           <div>
             <h2 class="text-2xl font-serif">Service Patterns</h2>
@@ -385,7 +384,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <lucide-icon name="Code" [size]="16" />
+              <svg lucideIcon="code" [size]="16"></svg>
               Why services instead of components?
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -402,7 +401,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <lucide-icon name="Settings" [size]="16" />
+              <svg lucideIcon="settings" [size]="16"></svg>
               Provider-based configuration
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -432,7 +431,7 @@ const icons = {
       <section id="standalone" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-success/10 text-success flex items-center justify-center shrink-0 mt-0.5">
-            <lucide-icon name="Unplug" [size]="20" />
+            <svg lucideIcon="unplug" [size]="20"></svg>
           </div>
           <div>
             <h2 class="text-2xl font-serif">Standalone & Signals</h2>
@@ -449,7 +448,7 @@ const icons = {
             </p>
             <app-code-block [code]="standaloneCode" />
             <div role="alert" class="alert alert-info alert-soft text-xs">
-              <lucide-icon name="Info" [size]="14" />
+              <svg lucideIcon="info" [size]="14"></svg>
               <span>
                 No <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">NgDaisyuiModule.forRoot()</code>. No shared modules. Just import
                 and use.
@@ -461,7 +460,7 @@ const icons = {
         <div class="card bg-base-100 card-border">
           <div class="card-body gap-4">
             <h3 class="card-title text-sm">
-              <lucide-icon name="Zap" [size]="16" />
+              <svg lucideIcon="zap" [size]="16"></svg>
               Signals & OnPush
             </h3>
             <p class="text-sm text-base-content/60 leading-relaxed">
@@ -482,13 +481,13 @@ const icons = {
       <section id="icons" class="space-y-6 scroll-mt-20">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-            <lucide-icon name="Smile" [size]="20" />
+            <svg lucideIcon="smile" [size]="20"></svg>
           </div>
           <div>
             <h2 class="text-2xl font-serif">Icon Registration</h2>
             <p class="text-sm text-base-content/50 mt-1">
-              <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">provideIcons()</code>,
-              <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">hk-lucide-icon</code>
+              <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">provideLucideIcons()</code>,
+              <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">&lt;svg lucideHome&gt;&lt;/svg&gt;</code>
             </p>
           </div>
         </div>
@@ -517,13 +516,13 @@ export class KeyPatternsComponent {
   }
 
   toc = [
-    { id: 'builders', icon: 'Hammer', label: 'Builder Functions' },
-    { id: 'form-controller', icon: 'ToggleRight', label: 'FormController Pattern' },
-    { id: 'table-builder', icon: 'Table', label: 'Table Builder' },
-    { id: 'tree-builder', icon: 'GitBranch', label: 'Tree Builder' },
-    { id: 'services', icon: 'Bell', label: 'Service Patterns' },
-    { id: 'standalone', icon: 'Unplug', label: 'Standalone & Signals' },
-    { id: 'icons', icon: 'Smile', label: 'Icon Registration' },
+    { id: 'builders', icon: 'hammer', label: 'Builder Functions' },
+    { id: 'form-controller', icon: 'toggle-right', label: 'FormController Pattern' },
+    { id: 'table-builder', icon: 'table', label: 'Table Builder' },
+    { id: 'tree-builder', icon: 'git-branch', label: 'Tree Builder' },
+    { id: 'services', icon: 'bell', label: 'Service Patterns' },
+    { id: 'standalone', icon: 'unplug', label: 'Standalone & Signals' },
+    { id: 'icons', icon: 'smile', label: 'Icon Registration' },
   ];
 
   fieldTypes = [
@@ -588,9 +587,9 @@ export class KeyPatternsComponent {
   alertMethods = ['confirm', 'success', 'error', 'loading', 'countdown', 'deleteConfirm'];
 
   controllerExamples = [
-    { icon: 'PanelBottom', title: 'Dialog footer', desc: 'Form in body, Save/Cancel in dialog actions.' },
-    { icon: 'PanelTop', title: 'Toolbar', desc: 'Form below header, submit in a sticky toolbar.' },
-    { icon: 'Save', title: 'Auto-save', desc: 'No buttons. Debounce and save on value change.' },
+    { icon: 'panel-bottom', title: 'Dialog footer', desc: 'Form in body, Save/Cancel in dialog actions.' },
+    { icon: 'panel-top', title: 'Toolbar', desc: 'Form below header, submit in a sticky toolbar.' },
+    { icon: 'save', title: 'Auto-save', desc: 'No buttons. Debounce and save on value change.' },
   ];
 
   builderProblemCode = `// Raw config objects -- no autocomplete, no type safety
@@ -681,8 +680,8 @@ const table = createTable<User>({
   },
   selectableRows: 'multi',
   actions: [
-    { label: 'Edit', icon: 'Pencil', handler: (row) => edit(row) },
-    { label: 'Delete', icon: 'Trash2', handler: (row) => delete(row) },
+    { label: 'Edit', icon: 'pencil', handler: (row) => edit(row) },
+    { label: 'Delete', icon: 'trash-2', handler: (row) => delete(row) },
   ],
 });`;
 
@@ -726,11 +725,11 @@ const tree = createTree({
   nodes: [
     node.folder('src', [
       node.folder('app', [
-        node.file('app.ts', { icon: 'FileCode' }),
-        node.file('app.routes.ts', { icon: 'FileCode' }),
+        node.file('app.ts', { icon: 'file-code' }),
+        node.file('app.routes.ts', { icon: 'file-code' }),
       ]),
-      node.file('main.ts', { icon: 'FileCode' }),
-      node.file('styles.css', { icon: 'FileText' }),
+      node.file('main.ts', { icon: 'file-code' }),
+      node.file('styles.css', { icon: 'file-text' }),
     ]),
     node.lazy('node_modules', {
       // Loaded on expand -- great for large directories
@@ -794,10 +793,10 @@ import {
   provideToast,
   provideAlert,
   provideFormState,
-  provideIcons,
   provideHkTheme,
   providePipes,
 } from '@hakistack/ng-daisyui';
+import { provideLucideIcons, LucideHouse, LucideSettings } from '@lucide/angular';
 
 export const appConfig = {
   providers: [
@@ -806,7 +805,7 @@ export const appConfig = {
     provideAlert(),                    // Alert defaults
     provideFormState({ mode: 'localStorage' }),  // Auto-save
     providePipes(),                    // Pipe registry
-    provideIcons({ Home, Settings }), // Your icons
+    provideLucideIcons(LucideHouse, LucideSettings), // Your icons
   ],
 };`;
 
@@ -822,16 +821,18 @@ import { DynamicFormComponent, TableComponent } from '@hakistack/ng-daisyui';
 export class MyPageComponent { }`;
 
   iconCode = `// app.config.ts
-import { provideIcons } from '@hakistack/ng-daisyui';
-import { Home, Settings, User, Star } from 'lucide-angular';
+import { provideLucideIcons, LucideHouse, LucideSettings, LucideUser, LucideStar } from '@lucide/angular';
 
 providers: [
-  provideIcons({ Home, Settings, User, Star }),
+  provideLucideIcons(LucideHouse, LucideSettings, LucideUser, LucideStar),
 ]
 
-// Then use anywhere
-// <lucide-icon name="Home" [size]="20" />
-
+// Then use per-icon directive anywhere:
+// <svg lucideHouse [size]="20"></svg>
+//
+// Or the dynamic directive with a kebab-case name (requires LucideDynamicIcon in imports):
+// <svg lucideIcon="house" [size]="20"></svg>
+//
 // Library-internal icons (arrows, checks, folders, etc.)
 // are always included automatically.`;
 }

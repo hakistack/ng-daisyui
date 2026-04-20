@@ -1,61 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import {
-  LucideAngularModule,
-  LUCIDE_ICONS,
-  LucideIconProvider,
-  Rocket,
-  Download,
-  Lightbulb,
-  FileInput,
-  ListOrdered,
-  Table,
-  ListTree,
-  GitBranch,
-  Network,
-  ScrollText,
-  TextCursorInput,
-  ChevronDown,
-  Calendar,
-  Clock,
-  FileText,
-  PanelTop,
-  Bell,
-  MessageSquareWarning,
-  PanelTopOpen,
-  Sparkles,
-  ArrowRight,
-  Palette,
-  ChevronsUpDown,
-  Menu,
-} from 'lucide-angular';
-
-const sidebarIcons = {
-  Rocket,
-  Download,
-  Lightbulb,
-  FileInput,
-  ListOrdered,
-  Table,
-  ListTree,
-  GitBranch,
-  Network,
-  ScrollText,
-  TextCursorInput,
-  ChevronDown,
-  Calendar,
-  Clock,
-  FileText,
-  PanelTop,
-  Bell,
-  MessageSquareWarning,
-  PanelTopOpen,
-  Sparkles,
-  ArrowRight,
-  Palette,
-  ChevronsUpDown,
-  Menu,
-};
+import { LucideDynamicIcon } from '@lucide/angular';
 import { filter } from 'rxjs';
 import { SHOW_OVERVIEW } from '@shared-demos/config';
 
@@ -121,8 +66,7 @@ interface NavSection {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideAngularModule],
-  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(sidebarIcons) }],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideDynamicIcon],
   template: `
     <div class="drawer lg:drawer-open min-h-screen bg-base-100">
       <input id="sidebar" type="checkbox" class="drawer-toggle" />
@@ -149,7 +93,7 @@ interface NavSection {
             >
               <span class="badge badge-soft badge-primary badge-sm font-mono">v4</span>
               <span>Switch to v4</span>
-              <lucide-icon name="ArrowRight" [size]="12" />
+              <svg lucideIcon="arrow-right" [size]="12"></svg>
             </a>
 
             <div class="dropdown dropdown-end">
@@ -158,9 +102,9 @@ interface NavSection {
                 role="button"
                 class="btn btn-ghost btn-sm gap-2 border border-base-content/8 font-normal text-xs h-8 min-h-0"
               >
-                <lucide-icon name="Palette" [size]="13" />
+                <svg lucideIcon="palette" [size]="13"></svg>
                 <span class="capitalize">{{ currentTheme() }}</span>
-                <lucide-icon name="ChevronsUpDown" [size]="12" />
+                <svg lucideIcon="chevrons-up-down" [size]="12"></svg>
               </div>
               <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-72 overflow-y-auto p-2 shadow-2xl mt-2">
                 @for (theme of themes; track theme) {
@@ -185,7 +129,7 @@ interface NavSection {
         <header class="glass-header sticky top-0 z-30 flex lg:hidden items-center justify-between px-4 h-14 border-b border-base-content/5">
           <div class="flex items-center gap-3">
             <label for="sidebar" class="btn btn-ghost btn-sm btn-square">
-              <lucide-icon name="Menu" [size]="20" />
+              <svg lucideIcon="menu" [size]="20"></svg>
             </label>
             <span class="font-serif text-base">ng-daisyui</span>
             <span class="badge badge-soft badge-primary badge-sm font-mono text-[10px]">v5</span>
@@ -193,11 +137,11 @@ interface NavSection {
           <div class="flex items-center gap-1">
             <!-- Version switcher (compact) → v4 -->
             <a href="/v4/" class="btn btn-ghost btn-sm btn-square" aria-label="Switch to DaisyUI 4 demo">
-              <lucide-icon name="ArrowRight" [size]="16" />
+              <svg lucideIcon="arrow-right" [size]="16"></svg>
             </a>
             <div class="dropdown dropdown-end">
               <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square">
-                <lucide-icon name="Palette" [size]="16" />
+                <svg lucideIcon="palette" [size]="16"></svg>
               </div>
               <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-80 overflow-y-auto p-2 shadow-2xl">
                 @for (theme of themes; track theme) {
@@ -266,7 +210,7 @@ interface NavSection {
                     @if (item.children?.length) {
                       <details [open]="currentPath() === item.path">
                         <summary>
-                          <lucide-icon [name]="item.icon" [size]="15" />
+                          <svg [lucideIcon]="item.icon" [size]="15"></svg>
                           {{ item.label }}
                         </summary>
                         <ul>
@@ -281,7 +225,7 @@ interface NavSection {
                       </details>
                     } @else {
                       <a [routerLink]="item.path" routerLinkActive="active">
-                        <lucide-icon [name]="item.icon" [size]="15" />
+                        <svg [lucideIcon]="item.icon" [size]="15"></svg>
                         {{ item.label }}
                       </a>
                     }
@@ -329,9 +273,9 @@ export class App implements OnInit {
           {
             title: 'Overview',
             items: [
-              { path: '/getting-started', label: 'Getting Started', icon: 'Rocket' },
-              { path: '/installation', label: 'Installation', icon: 'Download' },
-              { path: '/key-patterns', label: 'Key Patterns', icon: 'Lightbulb' },
+              { path: '/getting-started', label: 'Getting Started', icon: 'rocket' },
+              { path: '/installation', label: 'Installation', icon: 'download' },
+              { path: '/key-patterns', label: 'Key Patterns', icon: 'lightbulb' },
             ],
           },
         ]
@@ -342,7 +286,7 @@ export class App implements OnInit {
         {
           path: '/forms',
           label: 'Dynamic Forms',
-          icon: 'FileInput',
+          icon: 'file-input',
           children: [
             { id: 'layouts', label: 'Layouts' },
             { id: 'fields', label: 'Field Types' },
@@ -354,7 +298,7 @@ export class App implements OnInit {
         {
           path: '/wizard',
           label: 'Form Wizard',
-          icon: 'ListOrdered',
+          icon: 'list-ordered',
           children: [
             { id: 'linear', label: 'Linear Wizard' },
             { id: 'nonlinear', label: 'Non-linear Wizard' },
@@ -368,12 +312,13 @@ export class App implements OnInit {
         {
           path: '/table',
           label: 'Table',
-          icon: 'Table',
+          icon: 'table',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'full', label: 'Full Featured' },
             { id: 'filtering', label: 'Filtering' },
             { id: 'selectableRow', label: 'Selectable Row' },
+            { id: 'actionsPosition', label: 'Actions Position' },
             { id: 'sticky', label: 'Sticky' },
             { id: 'resizable', label: 'Resizable' },
             { id: 'virtualScroll', label: 'Virtual Scroll' },
@@ -391,7 +336,7 @@ export class App implements OnInit {
         {
           path: '/tree-table',
           label: 'Tree Table',
-          icon: 'ListTree',
+          icon: 'list-tree',
           children: [
             { id: 'treenode', label: 'TreeNode Data' },
             { id: 'custom', label: 'Custom Children' },
@@ -404,7 +349,7 @@ export class App implements OnInit {
         {
           path: '/tree',
           label: 'Tree',
-          icon: 'GitBranch',
+          icon: 'git-branch',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'selection', label: 'Single Selection' },
@@ -417,7 +362,7 @@ export class App implements OnInit {
         {
           path: '/org-chart',
           label: 'Organization Chart',
-          icon: 'Network',
+          icon: 'network',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'selection', label: 'Selection' },
@@ -428,7 +373,7 @@ export class App implements OnInit {
         {
           path: '/virtual-scroller',
           label: 'Virtual Scroller',
-          icon: 'ScrollText',
+          icon: 'scroll-text',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'horizontal', label: 'Horizontal' },
@@ -444,7 +389,7 @@ export class App implements OnInit {
         {
           path: '/input',
           label: 'Input',
-          icon: 'TextCursorInput',
+          icon: 'text-cursor-input',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'variants', label: 'Variants' },
@@ -456,7 +401,7 @@ export class App implements OnInit {
         {
           path: '/select',
           label: 'Select',
-          icon: 'ChevronDown',
+          icon: 'chevron-down',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'variants', label: 'Variants' },
@@ -468,7 +413,7 @@ export class App implements OnInit {
         {
           path: '/datepicker',
           label: 'Datepicker',
-          icon: 'Calendar',
+          icon: 'calendar',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'datetime', label: 'Date + Time' },
@@ -479,7 +424,7 @@ export class App implements OnInit {
         {
           path: '/timepicker',
           label: 'Timepicker',
-          icon: 'Clock',
+          icon: 'clock',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'options', label: 'Options' },
@@ -490,7 +435,7 @@ export class App implements OnInit {
         {
           path: '/editor',
           label: 'Editor',
-          icon: 'FileText',
+          icon: 'file-text',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'toolbars', label: 'Toolbars' },
@@ -506,7 +451,7 @@ export class App implements OnInit {
         {
           path: '/tabs',
           label: 'Tabs',
-          icon: 'PanelTop',
+          icon: 'panel-top',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'features', label: 'Features' },
@@ -521,7 +466,7 @@ export class App implements OnInit {
         {
           path: '/toast',
           label: 'Toast Notifications',
-          icon: 'Bell',
+          icon: 'bell',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'features', label: 'Features' },
@@ -532,7 +477,7 @@ export class App implements OnInit {
         {
           path: '/alert',
           label: 'Alert Dialogs',
-          icon: 'MessageSquareWarning',
+          icon: 'message-square-warning',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'confirm', label: 'Confirmations' },
@@ -543,7 +488,7 @@ export class App implements OnInit {
         {
           path: '/dialog',
           label: 'Dialog Service',
-          icon: 'PanelTopOpen',
+          icon: 'panel-top-open',
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'forms', label: 'Forms' },
@@ -558,7 +503,7 @@ export class App implements OnInit {
         {
           path: '/motion',
           label: 'Motion Directives',
-          icon: 'Sparkles',
+          icon: 'sparkles',
           children: [
             { id: 'animate', label: 'Animate' },
             { id: 'hover', label: 'Hover' },

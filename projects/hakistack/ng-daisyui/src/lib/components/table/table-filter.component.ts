@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { LucideAngularModule, X, Check } from 'lucide-angular';
+import { LucideX, LucideCheck } from '@lucide/angular';
 import { SelectComponent, SelectOption } from '../select/select.component';
 import { DatepickerComponent } from '../datepicker/datepicker.component';
 import { ColumnDefinition, ColumnFilter, FilterConfig, FilterOperator } from './table.types';
@@ -13,14 +13,14 @@ export interface FilterApplyEvent {
 
 @Component({
   selector: 'hk-table-filter',
-  imports: [FormsModule, LucideAngularModule, SelectComponent, DatepickerComponent],
+  imports: [FormsModule, LucideX, LucideCheck, SelectComponent, DatepickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-3">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold">Filter {{ column().header }}</h3>
         <button type="button" class="btn btn-ghost btn-xs btn-circle" (click)="onCancel()" aria-label="Close filter">
-          <lucide-icon [img]="xIcon" [size]="14" aria-hidden="true"></lucide-icon>
+          <svg lucideX [size]="14"></svg>
         </button>
       </div>
 
@@ -151,7 +151,7 @@ export interface FilterApplyEvent {
       <!-- Action Buttons -->
       <div class="mt-1 flex gap-2">
         <button type="button" class="btn btn-primary btn-sm flex-1" (click)="onApply()">
-          <lucide-icon [img]="checkIcon" [size]="14" aria-hidden="true"></lucide-icon>
+          <svg lucideCheck [size]="14"></svg>
           Apply
         </button>
         <button type="button" class="btn btn-ghost btn-sm" (click)="onClear()">Clear</button>
@@ -160,9 +160,6 @@ export interface FilterApplyEvent {
   `,
 })
 export class TableFilterComponent<T extends object> implements OnInit {
-  readonly xIcon = X;
-  readonly checkIcon = Check;
-
   column = input.required<ColumnDefinition<T>>();
   filterConfig = input.required<ColumnFilter<T>>();
   activeFilter = input<FilterConfig<T>>();

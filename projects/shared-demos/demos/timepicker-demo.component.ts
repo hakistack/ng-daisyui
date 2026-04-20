@@ -29,7 +29,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
     <app-demo-page
       title="Timepicker"
       description="Clock-based time picker with hours, minutes, and seconds selection"
-      icon="Clock"
+      icon="clock"
       category="Inputs"
       importName="TimepickerComponent"
     >

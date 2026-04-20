@@ -9,7 +9,7 @@
         [ngModel]="filterText()"
         (ngModelChange)="onFilterTextChange($event)"
       />
-      <lucide-icon [img]="searchIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" [size]="16" />
+      <svg lucideSearch class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" [size]="16"></svg>
       @if (filterText()) {
         <button
           type="button"
@@ -17,7 +17,7 @@
           (click)="onFilterTextChange('')"
           aria-label="Clear filter"
         >
-          <lucide-icon [img]="xIcon" [size]="14" />
+          <svg lucideX [size]="14"></svg>
         </button>
       }
     </div>
@@ -86,7 +86,11 @@
                 (click)="onToggleClick($event, flatNode.node)"
                 [attr.aria-label]="isExpanded(flatNode.node) ? 'Collapse' : 'Expand'"
               >
-                <lucide-icon [img]="isExpanded(flatNode.node) ? chevronDownIcon : chevronRightIcon" [size]="16" />
+                @if (isExpanded(flatNode.node)) {
+                  <svg lucideChevronDown [size]="16"></svg>
+                } @else {
+                  <svg lucideChevronRight [size]="16"></svg>
+                }
               </button>
             }
           }
@@ -140,8 +144,8 @@
           } @else {
             <!-- Default Template -->
             @if (flatNode.node.icon) {
-              <lucide-icon
-                [name]="
+              <svg
+                [lucideIcon]="
                   isExpanded(flatNode.node) && flatNode.node.expandedIcon
                     ? flatNode.node.expandedIcon
                     : isExpanded(flatNode.node)
@@ -150,7 +154,7 @@
                 "
                 [size]="18"
                 class="shrink-0"
-              />
+              ></svg>
             }
             <span class="app-tree-node-label truncate">
               {{ flatNode.node.label }}

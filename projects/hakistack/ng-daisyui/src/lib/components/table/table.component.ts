@@ -33,20 +33,20 @@ import { HkCellTemplateDirective } from './table-cell-template.directive';
 import { HkFooterDirective } from './table-footer-template.directive';
 
 import {
-  LucideAngularModule,
-  ListFilter,
-  X,
-  CheckCheck,
-  ChevronDown,
-  ChevronRight,
-  CircleX,
-  FileText,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
-  Check,
-  GripVertical,
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  LucideListFilter,
+  LucideX,
+  LucideCheckCheck,
+  LucideChevronDown,
+  LucideChevronRight,
+  LucideCircleX,
+  LucideFileText,
+  LucideArrowUp,
+  LucideArrowDown,
+  LucideArrowUpDown,
+  LucideCheck,
+  LucideGripVertical,
+} from '@lucide/angular';
 import { TableColumnVisibilityComponent } from './table-column-visibility.component';
 import { TableFilterComponent } from './table-filter.component';
 import { TableGlobalSearchComponent } from './table-global-search.component';
@@ -141,7 +141,19 @@ interface SortState {
     CommonModule,
     CdkTableModule,
     ScrollingModule,
-    LucideAngularModule,
+    LucideDynamicIcon,
+    LucideListFilter,
+    LucideX,
+    LucideCheckCheck,
+    LucideChevronDown,
+    LucideChevronRight,
+    LucideCircleX,
+    LucideFileText,
+    LucideArrowUp,
+    LucideArrowDown,
+    LucideArrowUpDown,
+    LucideCheck,
+    LucideGripVertical,
     TableFilterComponent,
     TablePaginationComponent,
     TableGlobalSearchComponent,
@@ -161,19 +173,6 @@ interface SortState {
   },
 })
 export class TableComponent<T extends object> implements OnDestroy, AfterViewInit {
-  readonly listFilterIcon = ListFilter;
-  readonly xIcon = X;
-  readonly checkCheckIcon = CheckCheck;
-  readonly chevronDownIcon = ChevronDown;
-  readonly chevronRightIcon = ChevronRight;
-  readonly circleXIcon = CircleX;
-  readonly fileTextIcon = FileText;
-  readonly arrowUpIcon = ArrowUp;
-  readonly arrowDownIcon = ArrowDown;
-  readonly arrowUpDownIcon = ArrowUpDown;
-  readonly checkIcon = Check;
-  readonly gripVerticalIcon = GripVertical;
-
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
@@ -413,12 +412,13 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly enableKeyboardNavSignal = computed(() => this.fieldConfig()?.enableKeyboardNavigation ?? false);
   readonly activeCellSignal = signal<[number, number] | null>(null);
 
-  /** Number of special columns prepended before data columns (drag handle, select, expand). */
+  /** Number of special columns prepended before data columns (drag handle, select, expand, [actions_start?]). */
   readonly specialColumnOffsetSignal = computed(() => {
     let offset = 0;
     if (this.showDragHandleColumnSignal()) offset++;
     if (this.hasSelectionSignal()) offset++;
     if (this.showExpandColumnSignal()) offset++;
+    if (this.hasStartActionsSignal()) offset++;
     return offset;
   });
 
@@ -426,10 +426,24 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly selectColIndexSignal = computed(() => (this.showDragHandleColumnSignal() ? 1 : 0));
 
   /** Column index of the detail-expand column within displayedColumnsSignal. */
-  readonly expandColIndexSignal = computed(() => this.specialColumnOffsetSignal() - 1);
+  readonly expandColIndexSignal = computed(() => {
+    let idx = 0;
+    if (this.showDragHandleColumnSignal()) idx++;
+    if (this.hasSelectionSignal()) idx++;
+    return idx;
+  });
 
-  /** Column index of the actions column within displayedColumnsSignal. */
-  readonly actionsColIndexSignal = computed(() => this.displayedColumnsSignal().length - 1);
+  /** Column index of the start-side actions column within displayedColumnsSignal (-1 if none). */
+  readonly startActionsColIndexSignal = computed(() => this.displayedColumnsSignal().indexOf('actions_start'));
+  /** Column index of the end-side actions column within displayedColumnsSignal (-1 if none). */
+  readonly endActionsColIndexSignal = computed(() => this.displayedColumnsSignal().indexOf('actions_end'));
+  /** Column index of the primary actions column — end side if present, else start side. */
+  readonly actionsColIndexSignal = computed(() => {
+    const endIdx = this.endActionsColIndexSignal();
+    if (endIdx !== -1) return endIdx;
+    const startIdx = this.startActionsColIndexSignal();
+    return startIdx === -1 ? this.displayedColumnsSignal().length - 1 : startIdx;
+  });
 
   // ============================================================================
   // Column Reordering
@@ -523,6 +537,15 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly hasActionsSignal = computed(() => {
     const actions = this.fieldConfig()?.actions ?? [];
     return actions.length > 0;
+  });
+  readonly actionsPositionSignal = computed(() => this.fieldConfig()?.actionsPosition ?? 'end');
+  readonly startActionsLabelSignal = computed(() => {
+    const c = this.fieldConfig();
+    return c?.startActionsLabel ?? c?.actionsLabel ?? 'Actions';
+  });
+  readonly endActionsLabelSignal = computed(() => {
+    const c = this.fieldConfig();
+    return c?.endActionsLabel ?? c?.actionsLabel ?? 'Actions';
   });
 
   // Tree table computed signals
@@ -900,6 +923,17 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       });
   });
 
+  readonly startActionListSignal = computed(() => {
+    const defaultPos = this.actionsPositionSignal();
+    return this.actionListSignal().filter((a) => (a.config.position ?? defaultPos) === 'start');
+  });
+  readonly endActionListSignal = computed(() => {
+    const defaultPos = this.actionsPositionSignal();
+    return this.actionListSignal().filter((a) => (a.config.position ?? defaultPos) !== 'start');
+  });
+  readonly hasStartActionsSignal = computed(() => this.startActionListSignal().length > 0);
+  readonly hasEndActionsSignal = computed(() => this.endActionListSignal().length > 0);
+
   readonly bulkActionListSignal = computed<BulkActionItem<T>[]>(() => {
     const bulkActions = this.fieldConfig()?.bulkActions ?? [];
 
@@ -954,11 +988,12 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
     const visibleColumns: string[] = [...dataColumns];
 
-    // Add special columns in order: drag_handle, select, detail_expand, data, actions
+    // Add special columns in order: drag_handle, select, detail_expand, [actions_start?], data, [actions_end?]
+    if (this.hasStartActionsSignal()) visibleColumns.unshift('actions_start');
     if (this.showExpandColumnSignal()) visibleColumns.unshift('__detail_expand');
     if (this.hasSelectionSignal()) visibleColumns.unshift('select');
     if (this.showDragHandleColumnSignal()) visibleColumns.unshift('__drag_handle');
-    if (this.hasActionsSignal()) visibleColumns.push('actions');
+    if (this.hasEndActionsSignal()) visibleColumns.push('actions_end');
 
     return visibleColumns;
   });
@@ -1718,11 +1753,12 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   isStickyStart(field: string): boolean {
     if (field === 'select') return this.stickySelectionSignal();
+    if (field === 'actions_start') return this.stickyActionsSignal();
     return this.stickyStartColumnsSignal().has(field);
   }
 
   isStickyEnd(field: string): boolean {
-    if (field === 'actions') return this.stickyActionsSignal();
+    if (field === 'actions_end') return this.stickyActionsSignal();
     return this.stickyEndColumnsSignal().has(field);
   }
 
@@ -2049,7 +2085,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
           // Toggle expand if on expand column
           if (colName === '__detail_expand') {
             this.toggleDetailExpand(rowData);
-          } else if (colName !== 'select' && colName !== 'actions' && colName !== '__drag_handle') {
+          } else if (colName !== 'select' && colName !== 'actions_start' && colName !== 'actions_end' && colName !== '__drag_handle') {
             // Start edit if editable
             this.startEdit(rowData, colName);
           }
@@ -2128,7 +2164,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     if (!fromField || fromField === field) return;
 
     const cols = [...this.displayedColumnsSignal()];
-    const specialCols = new Set(['select', '__detail_expand', '__drag_handle', 'actions']);
+    const specialCols = new Set(['select', '__detail_expand', '__drag_handle', 'actions_start', 'actions_end']);
     const dataCols = cols.filter((c) => !specialCols.has(c));
 
     const fromIdx = dataCols.indexOf(fromField);

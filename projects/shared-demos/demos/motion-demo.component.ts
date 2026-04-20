@@ -3,7 +3,19 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 import { MotionAnimateDirective, MotionHoverDirective } from '@hakistack/ng-daisyui';
-import { LucideAngularModule, RefreshCw, Rocket, Sparkles, ArrowRight, Inbox, Star, Send, Archive, Trash2 } from 'lucide-angular';
+import {
+  LucideDynamicIcon,
+  LucideRefreshCw,
+  LucideRocket,
+  LucideSparkles,
+  LucideArrowRight,
+  LucideInbox,
+  LucideStar,
+  LucideSend,
+  LucideArchive,
+  LucideTrash2,
+  type LucideIcon,
+} from '@lucide/angular';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -17,7 +29,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
   imports: [
     MotionAnimateDirective,
     MotionHoverDirective,
-    LucideAngularModule,
+    LucideDynamicIcon,
     DemoPageComponent,
     DocSectionComponent,
     ApiTableComponent,
@@ -27,7 +39,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
     <app-demo-page
       title="Motion Directives"
       description="Declarative animations powered by Motion.dev with scroll, hover, and click triggers"
-      icon="Sparkles"
+      icon="sparkles"
       category="Utilities"
       importName="MotionAnimateDirective"
     >
@@ -84,7 +96,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   Pulse
                 </button>
                 <button [hkAnimate]="{ rotate: [0, 360] }" [hkAnimateOptions]="{ trigger: 'click', duration: 0.5 }" class="btn btn-accent">
-                  <lucide-icon [img]="refreshCwIcon" [size]="18" />
+                  <svg [lucideIcon]="refreshCwIcon" [size]="18"></svg>
                   Spin
                 </button>
                 <button
@@ -108,7 +120,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                       [hkAnimateOptions]="{ trigger: 'immediate', duration: 0.4, delay: i * 0.1 }"
                       class="p-4 bg-base-200 rounded-lg flex items-center gap-3"
                     >
-                      <lucide-icon [img]="iconMap[item.icon]" [size]="20" class="text-primary" />
+                      <svg [lucideIcon]="iconMap[item.icon]" [size]="20" class="text-primary"></svg>
                       <span>{{ item.label }}</span>
                     </div>
                   }
@@ -168,7 +180,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.3, ease: 'easeOut' }"
                   class="p-6 bg-base-200 rounded-xl shadow-md cursor-pointer"
                 >
-                  <lucide-icon [img]="rocketIcon" [size]="32" class="text-primary mb-3" />
+                  <svg [lucideIcon]="rocketIcon" [size]="32" class="text-primary mb-3"></svg>
                   <h3 class="font-semibold">Card Lift</h3>
                   <p class="text-sm text-base-content/70 mt-1">Scales up with elevated shadow</p>
                 </div>
@@ -178,7 +190,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-xl cursor-pointer"
                 >
-                  <lucide-icon [img]="sparklesIcon" [size]="32" class="text-secondary mb-3" />
+                  <svg [lucideIcon]="sparklesIcon" [size]="32" class="text-secondary mb-3"></svg>
                   <h3 class="font-semibold">Subtle Tilt</h3>
                   <p class="text-sm text-base-content/70 mt-1">Gentle scale with rotation</p>
                 </div>
@@ -188,7 +200,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-base-200 rounded-xl cursor-pointer border-l-4 border-accent"
                 >
-                  <lucide-icon [img]="arrowRightIcon" [size]="32" class="text-accent mb-3" />
+                  <svg [lucideIcon]="arrowRightIcon" [size]="32" class="text-accent mb-3"></svg>
                   <h3 class="font-semibold">Slide Right</h3>
                   <p class="text-sm text-base-content/70 mt-1">Suggests forward navigation</p>
                 </div>
@@ -347,11 +359,17 @@ type MotionTab = 'animate' | 'hover' | 'presets';
   `,
 })
 export class MotionDemoComponent {
-  readonly refreshCwIcon = RefreshCw;
-  readonly rocketIcon = Rocket;
-  readonly sparklesIcon = Sparkles;
-  readonly arrowRightIcon = ArrowRight;
-  readonly iconMap: Record<string, any> = { Inbox, Star, Send, Archive, Trash2 };
+  readonly refreshCwIcon = LucideRefreshCw;
+  readonly rocketIcon = LucideRocket;
+  readonly sparklesIcon = LucideSparkles;
+  readonly arrowRightIcon = LucideArrowRight;
+  readonly iconMap: Record<string, LucideIcon> = {
+    Inbox: LucideInbox,
+    Star: LucideStar,
+    Send: LucideSend,
+    Archive: LucideArchive,
+    Trash2: LucideTrash2,
+  };
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
   activeTab = computed(() => (this.featureParam() ?? 'animate') as MotionTab);

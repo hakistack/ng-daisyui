@@ -13,7 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TreeNode, TreeSelectionMode } from '../../api/treenode';
-import { LucideAngularModule, Search, X, ChevronDown, ChevronRight } from 'lucide-angular';
+import { LucideDynamicIcon, LucideSearch, LucideX, LucideChevronDown, LucideChevronRight } from '@lucide/angular';
 import {
   FlatTreeNode,
   TreeConfig,
@@ -33,7 +33,7 @@ import {
 
 @Component({
   selector: 'hk-tree',
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideDynamicIcon, LucideSearch, LucideX, LucideChevronDown, LucideChevronRight],
   templateUrl: './tree.component.html',
   styleUrl: './tree.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,12 +47,6 @@ import {
   },
 })
 export class TreeComponent<T = unknown> {
-  // ── Icon references ────────────────────────────────────────────────────────
-  readonly searchIcon = Search;
-  readonly xIcon = X;
-  readonly chevronDownIcon = ChevronDown;
-  readonly chevronRightIcon = ChevronRight;
-
   /** Combined tree setup from createTree() — pass a single object instead of separate nodes + config */
   readonly tree = input<TreeSetup<T> | null>(null);
 

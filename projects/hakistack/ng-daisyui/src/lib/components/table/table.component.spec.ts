@@ -954,7 +954,7 @@ describe('TableComponent', () => {
       expect(displayed[0]).toBe('select');
     });
 
-    it('should append "actions" when actions are configured', () => {
+    it('should append "actions_end" when actions are configured', () => {
       const config = buildConfig({
         visible: ['name'],
         actions: [{ type: 'view', label: 'View', action: () => {} }],
@@ -964,7 +964,7 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       const displayed = component.displayedColumnsSignal();
-      expect(displayed[displayed.length - 1]).toBe('actions');
+      expect(displayed[displayed.length - 1]).toBe('actions_end');
     });
   });
 
@@ -1921,7 +1921,7 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       expect(component.isStickyStart('select')).toBe(true);
-      expect(component.isStickyEnd('actions')).toBe(true);
+      expect(component.isStickyEnd('actions_end')).toBe(true);
       expect(component.isStickyStart('name')).toBe(false);
       expect(component.isStickyEnd('name')).toBe(false);
     });

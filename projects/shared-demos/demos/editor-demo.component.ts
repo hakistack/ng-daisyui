@@ -17,7 +17,7 @@ type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic';
     <app-demo-page
       title="Editor"
       description="Rich text editor powered by Quill.js with full DaisyUI theming"
-      icon="FileText"
+      icon="file-text"
       category="Inputs"
       importName="EditorComponent"
     >

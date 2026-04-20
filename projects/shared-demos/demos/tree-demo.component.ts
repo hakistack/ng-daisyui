@@ -4,31 +4,30 @@ import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 import { TreeComponent, TreeNode, ToastService, createTree, node } from '@hakistack/ng-daisyui';
 import {
-  LucideAngularModule,
-  LUCIDE_ICONS,
-  LucideIconProvider,
-  Info,
-  CheckCheck,
-  Move,
-  FileCode,
-  FileText,
-  Image,
-  Braces,
-  Monitor,
-  Server,
-  Cloud,
-  Code,
-  Users,
-  LayoutGrid,
-  Palette,
-  Share2,
-  Megaphone,
-  Building2,
-  Circle,
-  ListTodo,
-  CircleCheckBig,
-  CircleCheck,
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  provideLucideIcons,
+  LucideInfo,
+  LucideCheckCheck,
+  LucideMove,
+  LucideFileCode,
+  LucideFileText,
+  LucideImage,
+  LucideBraces,
+  LucideMonitor,
+  LucideServer,
+  LucideCloud,
+  LucideCode,
+  LucideUsers,
+  LucideLayoutGrid,
+  LucidePalette,
+  LucideShare2,
+  LucideMegaphone,
+  LucideBuilding2,
+  LucideCircle,
+  LucideListTodo,
+  LucideCircleCheckBig,
+  LucideCircleCheck,
+} from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -45,38 +44,34 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 
 @Component({
   selector: 'app-tree-demo',
-  imports: [TreeComponent, LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [TreeComponent, LucideDynamicIcon, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
   providers: [
-    {
-      provide: LUCIDE_ICONS,
-      multi: true,
-      useValue: new LucideIconProvider({
-        FileCode,
-        FileText,
-        Image,
-        Braces,
-        Monitor,
-        Server,
-        Cloud,
-        Code,
-        Users,
-        LayoutGrid,
-        Palette,
-        Share2,
-        Megaphone,
-        Building2,
-        Circle,
-        ListTodo,
-        CircleCheckBig,
-        CircleCheck,
-      }),
-    },
+    provideLucideIcons(
+      LucideFileCode,
+      LucideFileText,
+      LucideImage,
+      LucideBraces,
+      LucideMonitor,
+      LucideServer,
+      LucideCloud,
+      LucideCode,
+      LucideUsers,
+      LucideLayoutGrid,
+      LucidePalette,
+      LucideShare2,
+      LucideMegaphone,
+      LucideBuilding2,
+      LucideCircle,
+      LucideListTodo,
+      LucideCircleCheckBig,
+      LucideCircleCheck,
+    ),
   ],
   template: `
     <app-demo-page
       title="Tree"
       description="Hierarchical tree view with selection, drag-and-drop, and lazy loading"
-      icon="GitBranch"
+      icon="git-branch"
       category="Data Display"
       importName="TreeComponent, createTree, node"
     >
@@ -119,7 +114,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
               <div>
                 @if (singleSelection()) {
                   <div class="alert alert-info">
-                    <lucide-icon [img]="infoIcon" [size]="20" />
+                    <svg [lucideIcon]="infoIcon" [size]="20"></svg>
                     <span
                       >Selected: <strong>{{ singleSelection()?.label }}</strong></span
                     >
@@ -158,7 +153,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
               <div>
                 @if (checkboxSelection().length > 0) {
                   <div class="alert alert-success">
-                    <lucide-icon [img]="checkCheckIcon" [size]="20" />
+                    <svg [lucideIcon]="checkCheckIcon" [size]="20"></svg>
                     <div>
                       <strong>{{ checkboxSelection().length }} nodes selected:</strong>
                       <ul class="list-disc list-inside mt-1 text-sm">
@@ -195,7 +190,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 
             @if (lastDropEvent()) {
               <div class="alert alert-info mt-4">
-                <lucide-icon [img]="moveIcon" [size]="20" />
+                <svg [lucideIcon]="moveIcon" [size]="20"></svg>
                 <span>
                   Dropped "<strong>{{ lastDropEvent()?.dragNode?.label }}</strong
                   >"
@@ -316,9 +311,9 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
   `,
 })
 export class TreeDemoComponent {
-  readonly infoIcon = Info;
-  readonly checkCheckIcon = CheckCheck;
-  readonly moveIcon = Move;
+  readonly infoIcon = LucideInfo;
+  readonly checkCheckIcon = LucideCheckCheck;
+  readonly moveIcon = LucideMove;
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
@@ -344,40 +339,43 @@ export class TreeDemoComponent {
               node.folder<FileNode>(
                 'components',
                 [
-                  node.file('header.component.ts', { icon: 'FileCode', data: { name: 'header.component.ts', type: 'file', size: 2048 } }),
-                  node.file('footer.component.ts', { icon: 'FileCode', data: { name: 'footer.component.ts', type: 'file', size: 1024 } }),
-                  node.file('sidebar.component.ts', { icon: 'FileCode', data: { name: 'sidebar.component.ts', type: 'file', size: 3072 } }),
+                  node.file('header.component.ts', { icon: 'file-code', data: { name: 'header.component.ts', type: 'file', size: 2048 } }),
+                  node.file('footer.component.ts', { icon: 'file-code', data: { name: 'footer.component.ts', type: 'file', size: 1024 } }),
+                  node.file('sidebar.component.ts', {
+                    icon: 'file-code',
+                    data: { name: 'sidebar.component.ts', type: 'file', size: 3072 },
+                  }),
                 ],
                 { data: { name: 'components', type: 'folder' } },
               ),
               node.folder<FileNode>(
                 'services',
                 [
-                  node.file('api.service.ts', { icon: 'FileCode', data: { name: 'api.service.ts', type: 'file', size: 4096 } }),
-                  node.file('auth.service.ts', { icon: 'FileCode', data: { name: 'auth.service.ts', type: 'file', size: 2560 } }),
+                  node.file('api.service.ts', { icon: 'file-code', data: { name: 'api.service.ts', type: 'file', size: 4096 } }),
+                  node.file('auth.service.ts', { icon: 'file-code', data: { name: 'auth.service.ts', type: 'file', size: 2560 } }),
                 ],
                 { data: { name: 'services', type: 'folder' } },
               ),
-              node.file('app.component.ts', { icon: 'FileCode', data: { name: 'app.component.ts', type: 'file', size: 1536 } }),
-              node.file('app.component.html', { icon: 'FileText', data: { name: 'app.component.html', type: 'file', size: 512 } }),
+              node.file('app.component.ts', { icon: 'file-code', data: { name: 'app.component.ts', type: 'file', size: 1536 } }),
+              node.file('app.component.html', { icon: 'file-text', data: { name: 'app.component.html', type: 'file', size: 512 } }),
             ],
             { expanded: true, data: { name: 'app', type: 'folder' } },
           ),
           node.folder<FileNode>(
             'assets',
             [
-              node.file('logo.png', { icon: 'Image', data: { name: 'logo.png', type: 'file', size: 15360 } }),
-              node.file('styles.css', { icon: 'FileCode', data: { name: 'styles.css', type: 'file', size: 8192 } }),
+              node.file('logo.png', { icon: 'image', data: { name: 'logo.png', type: 'file', size: 15360 } }),
+              node.file('styles.css', { icon: 'file-code', data: { name: 'styles.css', type: 'file', size: 8192 } }),
             ],
             { data: { name: 'assets', type: 'folder' } },
           ),
-          node.file('main.ts', { icon: 'FileCode', data: { name: 'main.ts', type: 'file', size: 256 } }),
-          node.file('index.html', { icon: 'FileText', data: { name: 'index.html', type: 'file', size: 512 } }),
+          node.file('main.ts', { icon: 'file-code', data: { name: 'main.ts', type: 'file', size: 256 } }),
+          node.file('index.html', { icon: 'file-text', data: { name: 'index.html', type: 'file', size: 512 } }),
         ],
         { expanded: true, data: { name: 'src', type: 'folder' } },
       ),
-      node.file('package.json', { icon: 'Braces', data: { name: 'package.json', type: 'file', size: 1536 } }),
-      node.file('README.md', { icon: 'FileText', data: { name: 'README.md', type: 'file', size: 2048 } }),
+      node.file('package.json', { icon: 'braces', data: { name: 'package.json', type: 'file', size: 1536 } }),
+      node.file('README.md', { icon: 'file-text', data: { name: 'README.md', type: 'file', size: 2048 } }),
     ],
     showLines: false,
     keyboardNavigation: true,
@@ -392,30 +390,30 @@ export class TreeDemoComponent {
           node.folder<FileNode>(
             'Engineering',
             [
-              node.create('Frontend Team', { icon: 'Monitor', data: { name: 'Frontend Team', type: 'folder' } }),
-              node.create('Backend Team', { icon: 'Server', data: { name: 'Backend Team', type: 'folder' } }),
-              node.create('DevOps Team', { icon: 'Cloud', data: { name: 'DevOps Team', type: 'folder' } }),
+              node.create('Frontend Team', { icon: 'monitor', data: { name: 'Frontend Team', type: 'folder' } }),
+              node.create('Backend Team', { icon: 'server', data: { name: 'Backend Team', type: 'folder' } }),
+              node.create('DevOps Team', { icon: 'cloud', data: { name: 'DevOps Team', type: 'folder' } }),
             ],
-            { icon: 'Code', expanded: true, data: { name: 'Engineering', type: 'folder' } },
+            { icon: 'code', expanded: true, data: { name: 'Engineering', type: 'folder' } },
           ),
           node.folder<FileNode>(
             'Design',
             [
-              node.create('UX Team', { icon: 'Users', data: { name: 'UX Team', type: 'folder' } }),
-              node.create('UI Team', { icon: 'LayoutGrid', data: { name: 'UI Team', type: 'folder' } }),
+              node.create('UX Team', { icon: 'users', data: { name: 'UX Team', type: 'folder' } }),
+              node.create('UI Team', { icon: 'layout-grid', data: { name: 'UI Team', type: 'folder' } }),
             ],
-            { icon: 'Palette', data: { name: 'Design', type: 'folder' } },
+            { icon: 'palette', data: { name: 'Design', type: 'folder' } },
           ),
           node.folder<FileNode>(
             'Marketing',
             [
-              node.create('Content Team', { icon: 'FileText', data: { name: 'Content Team', type: 'folder' } }),
-              node.create('Social Media', { icon: 'Share2', data: { name: 'Social Media', type: 'folder' } }),
+              node.create('Content Team', { icon: 'file-text', data: { name: 'Content Team', type: 'folder' } }),
+              node.create('Social Media', { icon: 'share-2', data: { name: 'Social Media', type: 'folder' } }),
             ],
-            { icon: 'Megaphone', data: { name: 'Marketing', type: 'folder' } },
+            { icon: 'megaphone', data: { name: 'Marketing', type: 'folder' } },
           ),
         ],
-        { icon: 'Building2', expanded: true, data: { name: 'Acme Corporation', type: 'folder' } },
+        { icon: 'building-2', expanded: true, data: { name: 'Acme Corporation', type: 'folder' } },
       ),
     ],
     selectionMode: 'single',
@@ -431,30 +429,30 @@ export class TreeDemoComponent {
           node.folder<FileNode>(
             'Engineering',
             [
-              node.create('Frontend Team', { icon: 'Monitor', data: { name: 'Frontend Team', type: 'folder' } }),
-              node.create('Backend Team', { icon: 'Server', data: { name: 'Backend Team', type: 'folder' } }),
-              node.create('DevOps Team', { icon: 'Cloud', data: { name: 'DevOps Team', type: 'folder' } }),
+              node.create('Frontend Team', { icon: 'monitor', data: { name: 'Frontend Team', type: 'folder' } }),
+              node.create('Backend Team', { icon: 'server', data: { name: 'Backend Team', type: 'folder' } }),
+              node.create('DevOps Team', { icon: 'cloud', data: { name: 'DevOps Team', type: 'folder' } }),
             ],
-            { icon: 'Code', expanded: true, data: { name: 'Engineering', type: 'folder' } },
+            { icon: 'code', expanded: true, data: { name: 'Engineering', type: 'folder' } },
           ),
           node.folder<FileNode>(
             'Design',
             [
-              node.create('UX Team', { icon: 'Users', data: { name: 'UX Team', type: 'folder' } }),
-              node.create('UI Team', { icon: 'LayoutGrid', data: { name: 'UI Team', type: 'folder' } }),
+              node.create('UX Team', { icon: 'users', data: { name: 'UX Team', type: 'folder' } }),
+              node.create('UI Team', { icon: 'layout-grid', data: { name: 'UI Team', type: 'folder' } }),
             ],
-            { icon: 'Palette', data: { name: 'Design', type: 'folder' } },
+            { icon: 'palette', data: { name: 'Design', type: 'folder' } },
           ),
           node.folder<FileNode>(
             'Marketing',
             [
-              node.create('Content Team', { icon: 'FileText', data: { name: 'Content Team', type: 'folder' } }),
-              node.create('Social Media', { icon: 'Share2', data: { name: 'Social Media', type: 'folder' } }),
+              node.create('Content Team', { icon: 'file-text', data: { name: 'Content Team', type: 'folder' } }),
+              node.create('Social Media', { icon: 'share-2', data: { name: 'Social Media', type: 'folder' } }),
             ],
-            { icon: 'Megaphone', data: { name: 'Marketing', type: 'folder' } },
+            { icon: 'megaphone', data: { name: 'Marketing', type: 'folder' } },
           ),
         ],
-        { icon: 'Building2', expanded: true, data: { name: 'Acme Corporation', type: 'folder' } },
+        { icon: 'building-2', expanded: true, data: { name: 'Acme Corporation', type: 'folder' } },
       ),
     ],
     selectionMode: 'checkbox',
@@ -469,20 +467,20 @@ export class TreeDemoComponent {
       node.folder<FileNode>(
         'Tasks',
         [
-          node.create('Design homepage', { icon: 'Circle', data: { name: 'Design homepage', type: 'file' } }),
-          node.create('Implement API', { icon: 'Circle', data: { name: 'Implement API', type: 'file' } }),
-          node.create('Write tests', { icon: 'Circle', data: { name: 'Write tests', type: 'file' } }),
-          node.create('Deploy to staging', { icon: 'Circle', data: { name: 'Deploy to staging', type: 'file' } }),
+          node.create('Design homepage', { icon: 'circle', data: { name: 'Design homepage', type: 'file' } }),
+          node.create('Implement API', { icon: 'circle', data: { name: 'Implement API', type: 'file' } }),
+          node.create('Write tests', { icon: 'circle', data: { name: 'Write tests', type: 'file' } }),
+          node.create('Deploy to staging', { icon: 'circle', data: { name: 'Deploy to staging', type: 'file' } }),
         ],
-        { icon: 'ListTodo', expanded: true, data: { name: 'Tasks', type: 'folder' } },
+        { icon: 'list-todo', expanded: true, data: { name: 'Tasks', type: 'folder' } },
       ),
       node.folder<FileNode>(
         'Completed',
         [
-          node.create('Setup project', { icon: 'CircleCheckBig', data: { name: 'Setup project', type: 'file' } }),
-          node.create('Create database schema', { icon: 'CircleCheckBig', data: { name: 'Create database schema', type: 'file' } }),
+          node.create('Setup project', { icon: 'circle-check-big', data: { name: 'Setup project', type: 'file' } }),
+          node.create('Create database schema', { icon: 'circle-check-big', data: { name: 'Create database schema', type: 'file' } }),
         ],
-        { icon: 'CircleCheck', expanded: true, data: { name: 'Completed', type: 'folder' } },
+        { icon: 'circle-check', expanded: true, data: { name: 'Completed', type: 'folder' } },
       ),
     ],
     dragDrop: true,
@@ -520,10 +518,10 @@ export class TreeDemoComponent {
 const tree = createTree({
   nodes: [
     node.folder('src', [
-      node.file('app.component.ts', { icon: 'FileCode' }),
-      node.file('main.ts', { icon: 'FileCode' }),
+      node.file('app.component.ts', { icon: 'file-code' }),
+      node.file('main.ts', { icon: 'file-code' }),
     ], { expanded: true }),
-    node.file('package.json', { icon: 'Braces' }),
+    node.file('package.json', { icon: 'braces' }),
   ],
   showLines: false,
   keyboardNavigation: true,
@@ -541,9 +539,9 @@ const tree = createTree({
 const tree = createTree({
   nodes: [
     node.folder('Acme Corp', [
-      node.create('Engineering', { icon: 'Code' }),
-      node.create('Design', { icon: 'Palette' }),
-    ], { icon: 'Building2', expanded: true }),
+      node.create('Engineering', { icon: 'code' }),
+      node.create('Design', { icon: 'palette' }),
+    ], { icon: 'building-2', expanded: true }),
   ],
   selectionMode: 'single',
   showLines: false,
@@ -567,10 +565,10 @@ onSelectionChange(node: TreeNode | TreeNode[] | null) {
 const tree = createTree({
   nodes: [
     node.folder('Engineering', [
-      node.create('Frontend Team', { icon: 'Monitor' }),
-      node.create('Backend Team', { icon: 'Server' }),
-      node.create('DevOps Team', { icon: 'Cloud' }),
-    ], { icon: 'Code', expanded: true }),
+      node.create('Frontend Team', { icon: 'monitor' }),
+      node.create('Backend Team', { icon: 'server' }),
+      node.create('DevOps Team', { icon: 'cloud' }),
+    ], { icon: 'code', expanded: true }),
   ],
   selectionMode: 'checkbox',
   showLines: false,
@@ -1018,8 +1016,8 @@ onSelectionChange(nodes: TreeNode | TreeNode[] | null) {
 
     setTimeout(() => {
       const children: TreeNode<FileNode>[] = [
-        node.file(`${nd.label} - File 1`, { icon: 'FileText', data: { name: `${nd.label} - File 1`, type: 'file' } }),
-        node.file(`${nd.label} - File 2`, { icon: 'FileText', data: { name: `${nd.label} - File 2`, type: 'file' } }),
+        node.file(`${nd.label} - File 1`, { icon: 'file-text', data: { name: `${nd.label} - File 1`, type: 'file' } }),
+        node.file(`${nd.label} - File 2`, { icon: 'file-text', data: { name: `${nd.label} - File 2`, type: 'file' } }),
         node.lazy<FileNode>(`${nd.label} - Subfolder`, { data: { name: `${nd.label} - Subfolder`, type: 'folder' } }),
       ];
 

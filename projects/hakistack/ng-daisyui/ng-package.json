@@ -12,7 +12,7 @@
     "styles.css"
   ],
   "allowedNonPeerDependencies": [
-    "lucide-angular",
+    "@lucide/angular",
     "fuse.js",
     "motion",
     "tslib",

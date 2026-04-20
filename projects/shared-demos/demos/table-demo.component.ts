@@ -14,18 +14,17 @@ import {
   ColumnReorderEvent,
 } from '@hakistack/ng-daisyui';
 import {
-  LucideAngularModule,
-  LUCIDE_ICONS,
-  LucideIconProvider,
-  Info,
-  X,
-  MousePointerClick,
-  Users,
-  Eye,
-  Pencil,
-  Trash2,
-  Download,
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  provideLucideIcons,
+  LucideInfo,
+  LucideX,
+  LucideMousePointerClick,
+  LucideUsers,
+  LucideEye,
+  LucidePencil,
+  LucideTrash2,
+  LucideDownload,
+} from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -102,7 +101,8 @@ type TableTab =
   | 'keyboard'
   | 'hierarchy'
   | 'masterDetail'
-  | 'nestedMasterDetail';
+  | 'nestedMasterDetail'
+  | 'actionsPosition';
 type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'types';
 
 @Component({
@@ -111,19 +111,19 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
     CommonModule,
     ReactiveFormsModule,
     TableComponent,
-    LucideAngularModule,
+    LucideDynamicIcon,
     HkFooterDirective,
     DocSectionComponent,
     ApiTableComponent,
     CodeBlockComponent,
     DemoPageComponent,
   ],
-  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ Eye, Pencil, Trash2, Download }) }],
+  providers: [provideLucideIcons(LucideEye, LucidePencil, LucideTrash2, LucideDownload)],
   template: `
     <app-demo-page
       title="Table"
       description="Enterprise-grade data table with sorting, filtering, pagination, and more"
-      icon="Table"
+      icon="table"
       category="Data Display"
       importName="TableComponent, createTable"
     >
@@ -154,7 +154,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
 
           @if (selectedUsers().length > 0) {
             <div class="alert alert-info">
-              <lucide-icon [img]="infoIcon" [size]="20" />
+              <svg [lucideIcon]="infoIcon" [size]="20"></svg>
               <span>{{ selectedUsers().length }} user(s) selected</span>
             </div>
           }
@@ -201,7 +201,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               </div>
               <div class="mt-3 flex justify-end">
                 <button type="button" class="btn btn-ghost btn-sm" (click)="clearFilterGrid()">
-                  <lucide-icon [img]="xIcon" [size]="14" />
+                  <svg [lucideIcon]="xIcon" [size]="14"></svg>
                   Limpiar filtros
                 </button>
               </div>
@@ -211,7 +211,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
           </app-doc-section>
 
           <div class="alert alert-info">
-            <lucide-icon [img]="infoIcon" [size]="20" />
+            <svg [lucideIcon]="infoIcon" [size]="20"></svg>
             <span>Each column below demonstrates a different filter type. Open the dev console to see filterChange events.</span>
           </div>
         }
@@ -227,7 +227,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
 
           @if (activeUser()) {
             <div class="alert alert-info">
-              <lucide-icon [img]="mousePointerClickIcon" [size]="20" />
+              <svg [lucideIcon]="mousePointerClickIcon" [size]="20"></svg>
               <span
                 >Active row: <strong>{{ activeUser()!.name }}</strong> ({{ activeUser()!.role }})</span
               >
@@ -244,12 +244,48 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
 
           @if (activeUsers().length > 0) {
             <div class="alert alert-info">
-              <lucide-icon [img]="mousePointerClickIcon" [size]="20" />
+              <svg [lucideIcon]="mousePointerClickIcon" [size]="20"></svg>
               <span
                 >{{ activeUsers().length }} row(s) selected: <strong>{{ activeUserNames() }}</strong></span
               >
             </div>
           }
+        }
+
+        @if (activeTab() === 'actionsPosition') {
+          <app-doc-section
+            title="Actions at End (Default)"
+            description="By default, the actions column renders as the last column."
+            [codeExample]="actionsPositionEndCode"
+          >
+            <hk-table [data]="users()" [config]="actionsEndConfig" />
+          </app-doc-section>
+
+          <app-doc-section
+            title="Actions at Start"
+            description="Set actionsPosition: 'start' to render the actions column as the first data column (after selection/expand)."
+            [codeExample]="actionsPositionStartCode"
+          >
+            <hk-table [data]="users()" [config]="actionsStartConfig" />
+          </app-doc-section>
+
+          <app-doc-section
+            title="Actions at Start + Selection + Sticky"
+            description="Combines with selection and sticky columns — the action column auto-sticks to the start."
+            [codeExample]="actionsPositionStickyCode"
+          >
+            <div style="max-width: 700px;">
+              <hk-table [data]="users()" [config]="actionsStartStickyConfig" />
+            </div>
+          </app-doc-section>
+
+          <app-doc-section
+            title="Per-Action Placement (Split Columns)"
+            description="Set position: 'start' | 'end' on individual actions to render them in two separate columns — one before the data, one after."
+            [codeExample]="actionsPositionSplitCode"
+          >
+            <hk-table [data]="users()" [config]="actionsSplitConfig" />
+          </app-doc-section>
         }
 
         @if (activeTab() === 'sticky') {
@@ -320,7 +356,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               <ng-template hkFooter let-data let-columns="columns">
                 <div class="flex items-center justify-between px-2 py-1">
                   <div class="flex items-center gap-2 text-sm text-base-content/70">
-                    <lucide-icon [img]="usersIcon" class="h-4 w-4" />
+                    <svg [lucideIcon]="usersIcon" class="h-4 w-4"></svg>
                     <span>{{ data.length }} employees across {{ uniqueDepartments(data).length }} departments</span>
                   </div>
                   <div class="flex items-center gap-4">
@@ -651,10 +687,10 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
   `,
 })
 export class TableDemoComponent {
-  readonly infoIcon = Info;
-  readonly xIcon = X;
-  readonly mousePointerClickIcon = MousePointerClick;
-  readonly usersIcon = Users;
+  readonly infoIcon = LucideInfo;
+  readonly xIcon = LucideX;
+  readonly mousePointerClickIcon = LucideMousePointerClick;
+  readonly usersIcon = LucideUsers;
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
@@ -829,6 +865,89 @@ export class TableDemoComponent {
     },
   });
 
+  private readonly commonActions = [
+    {
+      type: 'view' as const,
+      label: 'View',
+      icon: LucideEye.icon,
+      action: (row: User) => this.toast.info(`Viewing ${row.name}`),
+    },
+    {
+      type: 'edit' as const,
+      label: 'Edit',
+      icon: LucidePencil.icon,
+      action: (row: User) => this.toast.info(`Editing ${row.name}`),
+    },
+    {
+      type: 'delete' as const,
+      label: 'Delete',
+      icon: LucideTrash2.icon,
+      action: (row: User) => this.toast.warning(`Delete ${row.name}?`),
+    },
+  ];
+
+  actionsEndConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'status'],
+    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', status: 'Status' },
+    hasActions: true,
+    actions: this.commonActions,
+  });
+
+  actionsStartConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'status'],
+    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', status: 'Status' },
+    hasActions: true,
+    actionsPosition: 'start',
+    actions: this.commonActions,
+  });
+
+  actionsStartStickyConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
+    headers: {
+      id: 'ID',
+      name: 'Name',
+      email: 'Email',
+      role: 'Role',
+      department: 'Department',
+      salary: 'Salary',
+      status: 'Status',
+      joinDate: 'Join Date',
+    },
+    hasSelection: true,
+    hasActions: true,
+    actionsPosition: 'start',
+    actions: this.commonActions,
+  });
+
+  actionsSplitConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'status'],
+    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', status: 'Status' },
+    hasActions: true,
+    startActionsLabel: 'Quick',
+    endActionsLabel: 'Manage',
+    actions: [
+      {
+        type: 'view',
+        label: 'View',
+        icon: LucideEye.icon,
+        position: 'start',
+        action: (row) => this.toast.info(`Viewing ${row.name}`),
+      },
+      {
+        type: 'edit',
+        label: 'Edit',
+        icon: LucidePencil.icon,
+        action: (row) => this.toast.info(`Editing ${row.name}`),
+      },
+      {
+        type: 'delete',
+        label: 'Delete',
+        icon: LucideTrash2.icon,
+        action: (row) => this.toast.warning(`Delete ${row.name}?`),
+      },
+    ],
+  });
+
   fullConfig = createTable<User>({
     visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
     headers: {
@@ -862,19 +981,19 @@ export class TableDemoComponent {
       {
         type: 'view',
         label: 'View',
-        icon: Eye,
+        icon: LucideEye.icon,
         action: (row) => this.toast.info(`Viewing ${row.name}`),
       },
       {
         type: 'edit',
         label: 'Edit',
-        icon: Pencil,
+        icon: LucidePencil.icon,
         action: (row) => this.toast.info(`Editing ${row.name}`),
       },
       {
         type: 'delete',
         label: 'Delete',
-        icon: Trash2,
+        icon: LucideTrash2.icon,
         action: (row) => this.toast.warning(`Delete ${row.name}?`),
       },
     ],
@@ -882,13 +1001,13 @@ export class TableDemoComponent {
       {
         type: 'delete',
         label: 'Delete Selected',
-        icon: Trash2,
+        icon: LucideTrash2.icon,
         action: (rows) => this.toast.warning(`Delete ${rows.length} users?`),
       },
       {
         type: 'export',
         label: 'Export',
-        icon: Download,
+        icon: LucideDownload.icon,
         action: (rows, option) => this.toast.success(`Exporting ${rows.length} users as ${option?.label ?? 'file'}`),
       },
     ],
@@ -1084,8 +1203,8 @@ export class TableDemoComponent {
     hasSelection: true,
     hasActions: true,
     actions: [
-      { type: 'view', label: 'View', icon: Eye, action: (row) => this.toast.info(`Viewing ${row.name}`) },
-      { type: 'edit', label: 'Edit', icon: Pencil, action: (row) => this.toast.info(`Editing ${row.name}`) },
+      { type: 'view', label: 'View', icon: LucideEye.icon, action: (row) => this.toast.info(`Viewing ${row.name}`) },
+      { type: 'edit', label: 'Edit', icon: LucidePencil.icon, action: (row) => this.toast.info(`Editing ${row.name}`) },
     ],
     stickyColumns: {
       stickySelection: true,
@@ -2220,16 +2339,68 @@ onActiveRowsChange(users: readonly User[]) {
   console.log('Selected rows:', users);
 }`;
 
+  actionsPositionEndCode = `// Default: actions render as the last column
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'status'],
+  hasActions: true,
+  actions: [
+    { type: 'view', label: 'View', icon: LucideEye.icon, action: (row) => {} },
+    { type: 'edit', label: 'Edit', icon: LucidePencil.icon, action: (row) => {} },
+    { type: 'delete', label: 'Delete', icon: LucideTrash2.icon, action: (row) => {} },
+  ],
+});`;
+
+  actionsPositionStartCode = `// Render actions as the first data column
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'status'],
+  hasActions: true,
+  actionsPosition: 'start',           // 'start' | 'end' (default: 'end')
+  actions: [
+    { type: 'view', label: 'View', icon: LucideEye.icon, action: (row) => {} },
+    { type: 'edit', label: 'Edit', icon: LucidePencil.icon, action: (row) => {} },
+    { type: 'delete', label: 'Delete', icon: LucideTrash2.icon, action: (row) => {} },
+  ],
+});`;
+
+  actionsPositionStickyCode = `// Actions at start combine with selection and auto-stick
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
+  hasSelection: true,
+  hasActions: true,
+  actionsPosition: 'start',           // actions become the leftmost data column
+  actions: [
+    { type: 'view', label: 'View', icon: LucideEye.icon, action: (row) => {} },
+    { type: 'edit', label: 'Edit', icon: LucidePencil.icon, action: (row) => {} },
+  ],
+  // stickyColumns.stickyActions defaults to true → sticks to the left when position is 'start'
+});`;
+
+  actionsPositionSplitCode = `// Per-action placement — each action has its own position
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'status'],
+  hasActions: true,
+  // Custom column header labels. Falls back to actionsLabel, then 'Actions'.
+  startActionsLabel: 'Quick',
+  endActionsLabel: 'Manage',
+  actions: [
+    // position: 'start' renders this action in a column before the data columns
+    { type: 'view', label: 'View', icon: LucideEye.icon, position: 'start', action: (row) => {} },
+    // omitting position falls back to actionsPosition (default 'end')
+    { type: 'edit', label: 'Edit', icon: LucidePencil.icon, action: (row) => {} },
+    { type: 'delete', label: 'Delete', icon: LucideTrash2.icon, action: (row) => {} },
+  ],
+});`;
+
   fullCode = `// TypeScript
 const config = createTable<User>({
   visible: ['id', 'name', 'email', 'role', 'salary', 'status'],
   hasSelection: true,
   hasActions: true,
   actions: [
-    { type: 'view', label: 'View', icon: Eye, action: (row) => {} },
+    { type: 'view', label: 'View', icon: LucideEye.icon, action: (row) => {} },
   ],
   bulkActions: [
-    { type: 'delete', label: 'Delete', icon: Trash2, action: (rows) => {} },
+    { type: 'delete', label: 'Delete', icon: LucideTrash2.icon, action: (rows) => {} },
   ],
   filters: [
     { field: 'role', type: 'select', options: [...] },
@@ -2385,10 +2556,10 @@ const config = createTable<User>({
   hasSelection: true,
   hasActions: true,
   actions: [
-    { type: 'edit', label: 'Edit', icon: Pencil, action: (row) => {} },
+    { type: 'edit', label: 'Edit', icon: LucidePencil.icon, action: (row) => {} },
   ],
   bulkActions: [
-    { type: 'delete', label: 'Delete', icon: Trash2, action: (rows) => {} },
+    { type: 'delete', label: 'Delete', icon: LucideTrash2.icon, action: (rows) => {} },
   ],
   filters: [
     { field: 'status', type: 'select', options: [{ label: 'Active', value: 'active' }] },

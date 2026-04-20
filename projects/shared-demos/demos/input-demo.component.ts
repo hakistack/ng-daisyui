@@ -10,7 +10,7 @@ import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
-import { LucideAngularModule, LUCIDE_ICONS, LucideIconProvider, Search, Mail } from 'lucide-angular';
+import { provideLucideIcons, LucideSearch, LucideMail } from '@lucide/angular';
 
 type ExampleTab = 'basic' | 'variants' | 'styling' | 'forms' | 'mask';
 type ApiTab = 'component' | 'configs' | 'types';
@@ -22,18 +22,17 @@ type ApiTab = 'component' | 'configs' | 'types';
     InputMaskDirective,
     ReactiveFormsModule,
     JsonPipe,
-    LucideAngularModule,
     DocSectionComponent,
     ApiTableComponent,
     CodeBlockComponent,
     DemoPageComponent,
   ],
-  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ Search, Mail }) }],
+  providers: [provideLucideIcons(LucideSearch, LucideMail)],
   template: `
     <app-demo-page
       title="Input"
       description="Versatile text input with variant support for currency, phone, percentage, and password"
-      icon="TextCursorInput"
+      icon="text-cursor-input"
       category="Inputs"
       importName="InputComponent"
     >
@@ -52,8 +51,8 @@ type ApiTab = 'component' | 'configs' | 'types';
 
             <app-doc-section title="With Prefix & Suffix" description="Add icons or text adornments" [codeExample]="adornmentCode">
               <div class="space-y-4">
-                <hk-input placeholder="Search..." prefixIcon="Search" />
-                <hk-input placeholder="Enter email" suffixIcon="Mail" />
+                <hk-input placeholder="Search..." prefixIcon="search" />
+                <hk-input placeholder="Enter email" suffixIcon="mail" />
                 <hk-input placeholder="https://example.com" prefixText="URL" />
               </div>
             </app-doc-section>
@@ -459,11 +458,11 @@ export class InputDemoComponent {
 
   basicCode = `<hk-input placeholder="Enter your name" (valueChange)="onValueChange($event)" />`;
 
-  adornmentCode = `<!-- Icon prefix -->
-<hk-input placeholder="Search..." prefixIcon="Search" />
+  adornmentCode = `<!-- Icon prefix (kebab-case lucide name) -->
+<hk-input placeholder="Search..." prefixIcon="search" />
 
 <!-- Icon suffix -->
-<hk-input placeholder="Enter email" suffixIcon="Mail" />
+<hk-input placeholder="Enter email" suffixIcon="mail" />
 
 <!-- Text prefix -->
 <hk-input placeholder="https://example.com" prefixText="URL" />`;

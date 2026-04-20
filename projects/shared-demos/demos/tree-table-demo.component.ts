@@ -4,16 +4,15 @@ import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 import { TableComponent, createTable, ToastService, TreeNode } from '@hakistack/ng-daisyui';
 import {
-  LucideAngularModule,
-  LUCIDE_ICONS,
-  LucideIconProvider,
-  ChevronsDownUp,
-  ChevronsUpDown,
-  Info,
-  Eye,
-  Pencil,
-  Download,
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  provideLucideIcons,
+  LucideChevronsDownUp,
+  LucideChevronsUpDown,
+  LucideInfo,
+  LucideEye,
+  LucidePencil,
+  LucideDownload,
+} from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -42,13 +41,13 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 
 @Component({
   selector: 'app-tree-table-demo',
-  imports: [TableComponent, LucideAngularModule, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
-  providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ Eye, Pencil, Download }) }],
+  imports: [TableComponent, LucideDynamicIcon, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  providers: [provideLucideIcons(LucideEye, LucidePencil, LucideDownload)],
   template: `
     <app-demo-page
       title="Tree Table"
       description="Hierarchical data tables with expandable rows and tree structure"
-      icon="ListTree"
+      icon="list-tree"
       category="Data Display"
       importName="TableComponent, createTable"
     >
@@ -62,11 +61,11 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
           >
             <div class="flex gap-2 mb-4 flex-wrap">
               <button class="btn btn-sm btn-outline" (click)="expandAllDept()">
-                <lucide-icon [img]="chevronsDownUpIcon" [size]="16" />
+                <svg [lucideIcon]="chevronsDownUpIcon" [size]="16"></svg>
                 Expand All
               </button>
               <button class="btn btn-sm btn-outline" (click)="collapseAllDept()">
-                <lucide-icon [img]="chevronsUpDownIcon" [size]="16" />
+                <svg [lucideIcon]="chevronsUpDownIcon" [size]="16"></svg>
                 Collapse All
               </button>
               <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(1)">Level 1</button>
@@ -110,7 +109,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 
           @if (selectedItems().length > 0) {
             <div class="alert alert-info">
-              <lucide-icon [img]="infoIcon" [size]="20" />
+              <svg [lucideIcon]="infoIcon" [size]="20"></svg>
               <span>{{ selectedItems().length }} item(s) selected</span>
             </div>
           }
@@ -132,7 +131,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 
           @if (cascadeSelectedItems().length > 0) {
             <div class="alert alert-info">
-              <lucide-icon [img]="infoIcon" [size]="20" />
+              <svg [lucideIcon]="infoIcon" [size]="20"></svg>
               <span>{{ cascadeSelectedItems().length }} item(s) selected via cascade</span>
             </div>
           }
@@ -278,9 +277,9 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
   `,
 })
 export class TreeTableDemoComponent {
-  readonly chevronsDownUpIcon = ChevronsDownUp;
-  readonly chevronsUpDownIcon = ChevronsUpDown;
-  readonly infoIcon = Info;
+  readonly chevronsDownUpIcon = LucideChevronsDownUp;
+  readonly chevronsUpDownIcon = LucideChevronsUpDown;
+  readonly infoIcon = LucideInfo;
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
@@ -528,13 +527,13 @@ export class TreeTableDemoComponent {
       {
         type: 'view',
         label: 'View',
-        icon: Eye,
+        icon: LucideEye.icon,
         action: (row) => this.toast.info(`Viewing: ${row.label}`),
       },
       {
         type: 'edit',
         label: 'Edit',
-        icon: Pencil,
+        icon: LucidePencil.icon,
         action: (row) => this.toast.info(`Editing: ${row.label}`),
       },
     ],
@@ -542,7 +541,7 @@ export class TreeTableDemoComponent {
       {
         type: 'export',
         label: 'Export',
-        icon: Download,
+        icon: LucideDownload.icon,
         action: (rows, option) => this.toast.success(`Exporting ${rows.length} items as ${option?.label ?? 'file'}`),
       },
     ],

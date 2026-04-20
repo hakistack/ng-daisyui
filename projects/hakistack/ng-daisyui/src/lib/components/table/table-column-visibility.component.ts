@@ -1,16 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 
-import { LucideAngularModule, Columns3, Lock, Eye, EyeOff, RotateCcw } from 'lucide-angular';
+import { LucideColumns3, LucideLock, LucideEye, LucideEyeOff, LucideRotateCcw } from '@lucide/angular';
 import { ColumnDefinition } from './table.types';
 
 @Component({
   selector: 'hk-table-column-visibility',
-  imports: [LucideAngularModule],
+  imports: [LucideColumns3, LucideLock, LucideEye, LucideEyeOff, LucideRotateCcw],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="dropdown dropdown-end">
       <summary class="btn btn-sm btn-ghost gap-2">
-        <lucide-icon [img]="columns3Icon" [size]="16" aria-hidden="true" />
+        <svg lucideColumns3 [size]="16"></svg>
         <span>Columns</span>
         <span class="badge badge-sm badge-neutral">{{ visibleColumnsCount() }}/{{ columns().length }}</span>
       </summary>
@@ -34,7 +34,7 @@ import { ColumnDefinition } from './table.types';
                 />
                 <span class="flex-1 text-sm">{{ column.header }}</span>
                 @if (isAlwaysVisible) {
-                  <lucide-icon [img]="lockIcon" [size]="12" class="opacity-50" aria-hidden="true" />
+                  <svg lucideLock [size]="12" class="opacity-50"></svg>
                 }
               </label>
             }
@@ -52,7 +52,7 @@ import { ColumnDefinition } from './table.types';
               (click)="onShowAll()"
               aria-label="Show all columns"
             >
-              <lucide-icon [img]="eyeIcon" [size]="14" aria-hidden="true" />
+              <svg lucideEye [size]="14"></svg>
               Show All
             </button>
 
@@ -63,12 +63,12 @@ import { ColumnDefinition } from './table.types';
               (click)="onHideAll()"
               aria-label="Hide optional columns"
             >
-              <lucide-icon [img]="eyeOffIcon" [size]="14" aria-hidden="true" />
+              <svg lucideEyeOff [size]="14"></svg>
               Hide All
             </button>
 
             <button type="button" class="btn btn-ghost btn-xs gap-1" (click)="onReset()" aria-label="Reset to default columns">
-              <lucide-icon [img]="rotateCcwIcon" [size]="14" aria-hidden="true" />
+              <svg lucideRotateCcw [size]="14"></svg>
               Reset
             </button>
           </div>
@@ -78,13 +78,6 @@ import { ColumnDefinition } from './table.types';
   `,
 })
 export class TableColumnVisibilityComponent<T extends Record<string, unknown>> {
-  readonly columns3Icon = Columns3;
-  readonly lockIcon = Lock;
-  readonly eyeIcon = Eye;
-  readonly eyeOffIcon = EyeOff;
-  readonly rotateCcwIcon = RotateCcw;
-
-  // Inputs
   readonly columns = input.required<ColumnDefinition<T>[]>();
   readonly visibilityState = input.required<Map<string, boolean>>();
   readonly alwaysVisibleColumns = input<Set<string>>(new Set());

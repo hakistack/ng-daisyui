@@ -13,7 +13,7 @@
       (keydown.enter)="onToastClick(toast)"
     >
       <!-- Icon -->
-      <lucide-icon [img]="getIcon(toast.severity)" [size]="20" class="toast-icon" />
+      <svg [lucideIcon]="getIcon(toast.severity)" [size]="20" class="toast-icon"></svg>
 
       <!-- Content -->
       <div class="toast-content">
@@ -41,7 +41,7 @@
         aria-label="Dismiss notification"
         (click)="dismiss(toast.id); $event.stopPropagation()"
       >
-        <lucide-icon [img]="xIcon" [size]="16" />
+        <svg lucideX [size]="16"></svg>
       </button>
 
       <!-- Progress bar -->
