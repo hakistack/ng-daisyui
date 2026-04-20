@@ -1,4 +1,5 @@
 import type { inView } from 'motion';
+import type { StaggerOptions } from 'motion-dom';
 
 export type EasingFunction = (progress: number) => number;
 
@@ -99,6 +100,11 @@ export type TriggerType = 'immediate' | 'scroll' | 'click';
 type InViewOptions = NonNullable<Parameters<typeof inView>[2]>;
 type MarginType = NonNullable<InViewOptions['margin']>;
 
+export interface MotionStaggerConfig extends StaggerOptions {
+  /** Delay increment between each child element (seconds) */
+  duration: number;
+}
+
 export interface MotionDirectiveOptions extends MotionAnimationOptions {
   trigger?: TriggerType;
   margin?: MarginType;
@@ -106,4 +112,8 @@ export interface MotionDirectiveOptions extends MotionAnimationOptions {
   once?: boolean;
   offset?: [string, string] | string[];
   axis?: 'x' | 'y';
+  /** Animate child elements with staggered delays. Pass a number (seconds) for simple stagger, or MotionStaggerConfig for full control. */
+  stagger?: number | MotionStaggerConfig;
+  /** CSS selector for children to stagger (default: direct children '*') */
+  staggerSelector?: string;
 }

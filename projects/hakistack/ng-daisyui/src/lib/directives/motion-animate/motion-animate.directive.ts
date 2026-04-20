@@ -1,5 +1,5 @@
 import { Directive, ElementRef, input, OnInit, OnDestroy, OnChanges, SimpleChanges, inject, PLATFORM_ID } from '@angular/core';
-import { inView, animate } from 'motion';
+import { inView, animate, stagger } from 'motion';
 import {
   type AnimationControls,
   type AnimationPreset,
@@ -13,14 +13,14 @@ import { prefersReducedMotion, safeStopAnimation } from '../motion.utils';
 type InViewOptions = NonNullable<Parameters<typeof inView>[2]>;
 
 @Directive({
-  selector: '[motionAnimate]',
+  selector: '[hkAnimate]',
 })
 export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
 
-  readonly motionAnimate = input<AnimationPreset | Record<string, unknown>>('fadeIn');
-  readonly motionOptions = input<MotionDirectiveOptions>({});
+  readonly hkAnimate = input<AnimationPreset | Record<string, unknown>>('fadeIn');
+  readonly hkAnimateOptions = input<MotionDirectiveOptions>({});
 
   private element!: HTMLElement;
   private cleanupFunctions: (() => void)[] = [];
@@ -34,7 +34,7 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['motionAnimate'] || changes['motionOptions']) {
+    if (changes['hkAnimate'] || changes['hkAnimateOptions']) {
       this.cleanup();
       this.hasAnimated = false;
       this.setupAnimation();
@@ -47,7 +47,7 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
 
   private setupAnimation(): void {
     if (!this.element) return;
-    const trigger: TriggerType = this.motionOptions().trigger || 'immediate';
+    const trigger: TriggerType = this.hkAnimateOptions().trigger || 'immediate';
 
     switch (trigger) {
       case 'scroll':
@@ -65,7 +65,7 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
 
   private setupScrollAnimation(): void {
     const options: InViewOptions = {};
-    const motionOpts = this.motionOptions();
+    const motionOpts = this.hkAnimateOptions();
 
     if (motionOpts.margin) options.margin = motionOpts.margin;
     if (motionOpts.amount !== undefined) options.amount = motionOpts.amount;
@@ -106,15 +106,35 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
     }
 
     safeStopAnimation(this.animationControls);
+
+    const opts = this.hkAnimateOptions();
+    const staggerConfig = opts.stagger;
+
     try {
-      this.animationControls = animate(this.element, this.getKeyframes(), this.getAnimationOptions()) as AnimationControls;
+      if (staggerConfig) {
+        const selector = opts.staggerSelector || ':scope > *';
+        const children = Array.from(this.element.querySelectorAll(selector));
+        if (children.length === 0) return;
+
+        const { duration: staggerDuration, ...staggerOpts } =
+          typeof staggerConfig === 'number' ? { duration: staggerConfig } : staggerConfig;
+        const staggerDelay = stagger(staggerDuration, staggerOpts);
+
+        this.animationControls = animate(
+          children as Element[],
+          this.getKeyframes() as Record<string, string | number | (string | number)[]>,
+          { ...this.getAnimationOptions(), delay: staggerDelay } as never,
+        ) as AnimationControls;
+      } else {
+        this.animationControls = animate(this.element, this.getKeyframes(), this.getAnimationOptions()) as AnimationControls;
+      }
     } catch {
       this.animationControls = null;
     }
   }
 
   private getKeyframes(): Record<string, unknown> {
-    const anim = this.motionAnimate();
+    const anim = this.hkAnimate();
     if (typeof anim === 'string') {
       return ANIMATION_PRESETS[anim] || ANIMATION_PRESETS.fadeIn;
     }
@@ -122,7 +142,16 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private getAnimationOptions(): MotionAnimationOptions {
-    const { trigger, margin, amount, once, offset, axis, ...animationOptions } = this.motionOptions();
+    const opts = this.hkAnimateOptions();
+    const { trigger, margin, amount, once, offset, axis, stagger, staggerSelector, ...animationOptions } = opts;
+    void trigger;
+    void margin;
+    void amount;
+    void once;
+    void offset;
+    void axis;
+    void stagger;
+    void staggerSelector;
     return { duration: 0.6, ease: 'easeOut' as const, ...animationOptions };
   }
 

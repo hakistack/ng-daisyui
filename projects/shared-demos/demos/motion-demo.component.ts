@@ -40,29 +40,29 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               @if (showLoadDemo()) {
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div
-                    [motionAnimate]="'fadeIn'"
-                    [motionOptions]="{ trigger: 'immediate', duration: 0.5 }"
+                    [hkAnimate]="'fadeIn'"
+                    [hkAnimateOptions]="{ trigger: 'immediate', duration: 0.5 }"
                     class="p-6 bg-primary text-primary-content rounded-lg text-center"
                   >
                     Fade In
                   </div>
                   <div
-                    [motionAnimate]="'fadeInUp'"
-                    [motionOptions]="{ trigger: 'immediate', duration: 0.5, delay: 0.1 }"
+                    [hkAnimate]="'fadeInUp'"
+                    [hkAnimateOptions]="{ trigger: 'immediate', duration: 0.5, delay: 0.1 }"
                     class="p-6 bg-secondary text-secondary-content rounded-lg text-center"
                   >
                     Fade In Up
                   </div>
                   <div
-                    [motionAnimate]="'fadeInDown'"
-                    [motionOptions]="{ trigger: 'immediate', duration: 0.5, delay: 0.2 }"
+                    [hkAnimate]="'fadeInDown'"
+                    [hkAnimateOptions]="{ trigger: 'immediate', duration: 0.5, delay: 0.2 }"
                     class="p-6 bg-accent text-accent-content rounded-lg text-center"
                   >
                     Fade In Down
                   </div>
                   <div
-                    [motionAnimate]="'zoomIn'"
-                    [motionOptions]="{ trigger: 'immediate', duration: 0.5, delay: 0.3 }"
+                    [hkAnimate]="'zoomIn'"
+                    [hkAnimateOptions]="{ trigger: 'immediate', duration: 0.5, delay: 0.3 }"
                     class="p-6 bg-info text-info-content rounded-lg text-center"
                   >
                     Zoom In
@@ -73,23 +73,23 @@ type MotionTab = 'animate' | 'hover' | 'presets';
 
             <app-doc-section title="Click Animations" description="Triggered by user click" [codeExample]="clickCode">
               <div class="flex flex-wrap gap-4">
-                <button [motionAnimate]="'bounceIn'" [motionOptions]="{ trigger: 'click', duration: 0.5 }" class="btn btn-primary">
+                <button [hkAnimate]="'bounceIn'" [hkAnimateOptions]="{ trigger: 'click', duration: 0.5 }" class="btn btn-primary">
                   Bounce
                 </button>
                 <button
-                  [motionAnimate]="{ scale: [1, 1.2, 1] }"
-                  [motionOptions]="{ trigger: 'click', duration: 0.3 }"
+                  [hkAnimate]="{ scale: [1, 1.2, 1] }"
+                  [hkAnimateOptions]="{ trigger: 'click', duration: 0.3 }"
                   class="btn btn-secondary"
                 >
                   Pulse
                 </button>
-                <button [motionAnimate]="{ rotate: [0, 360] }" [motionOptions]="{ trigger: 'click', duration: 0.5 }" class="btn btn-accent">
+                <button [hkAnimate]="{ rotate: [0, 360] }" [hkAnimateOptions]="{ trigger: 'click', duration: 0.5 }" class="btn btn-accent">
                   <lucide-icon [img]="refreshCwIcon" [size]="18" />
                   Spin
                 </button>
                 <button
-                  [motionAnimate]="{ x: [0, -10, 10, -10, 10, 0] }"
-                  [motionOptions]="{ trigger: 'click', duration: 0.4 }"
+                  [hkAnimate]="{ x: [0, -10, 10, -10, 10, 0] }"
+                  [hkAnimateOptions]="{ trigger: 'click', duration: 0.4 }"
                   class="btn btn-warning"
                 >
                   Shake
@@ -104,8 +104,8 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                 <div class="space-y-2">
                   @for (item of staggerItems; track item; let i = $index) {
                     <div
-                      [motionAnimate]="'fadeInLeft'"
-                      [motionOptions]="{ trigger: 'immediate', duration: 0.4, delay: i * 0.1 }"
+                      [hkAnimate]="'fadeInLeft'"
+                      [hkAnimateOptions]="{ trigger: 'immediate', duration: 0.4, delay: i * 0.1 }"
                       class="p-4 bg-base-200 rounded-lg flex items-center gap-3"
                     >
                       <lucide-icon [img]="iconMap[item.icon]" [size]="20" class="text-primary" />
@@ -123,28 +123,28 @@ type MotionTab = 'animate' | 'hover' | 'presets';
             <app-doc-section title="Basic Hover Effects" description="Interactive hover effects" [codeExample]="hoverCode">
               <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div
-                  [motionHover]="{ scale: [1, 1.1] }"
+                  [hkHover]="{ scale: [1, 1.1] }"
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-primary text-primary-content rounded-lg text-center cursor-pointer"
                 >
                   Scale Up
                 </div>
                 <div
-                  [motionHover]="{ scale: [1, 0.95] }"
+                  [hkHover]="{ scale: [1, 0.95] }"
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-secondary text-secondary-content rounded-lg text-center cursor-pointer"
                 >
                   Scale Down
                 </div>
                 <div
-                  [motionHover]="{ rotate: [0, 5] }"
+                  [hkHover]="{ rotate: [0, 5] }"
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-accent text-accent-content rounded-lg text-center cursor-pointer"
                 >
                   Rotate
                 </div>
                 <div
-                  [motionHover]="{ y: [0, -8] }"
+                  [hkHover]="{ y: [0, -8] }"
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-info text-info-content rounded-lg text-center cursor-pointer"
                 >
@@ -160,7 +160,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
             >
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div
-                  [motionHover]="{
+                  [hkHover]="{
                     scale: [1, 1.05],
                     y: [0, -4],
                     boxShadow: ['0 4px 6px -1px rgba(0,0,0,0.1)', '0 20px 25px -5px rgba(0,0,0,0.15)'],
@@ -174,7 +174,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                 </div>
 
                 <div
-                  [motionHover]="{ scale: [1, 1.02], rotate: [0, 1] }"
+                  [hkHover]="{ scale: [1, 1.02], rotate: [0, 1] }"
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-xl cursor-pointer"
                 >
@@ -184,7 +184,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
                 </div>
 
                 <div
-                  [motionHover]="{ x: [0, 4], scale: [1, 1.02] }"
+                  [hkHover]="{ x: [0, 4], scale: [1, 1.02] }"
                   [animationOptions]="{ duration: 0.2 }"
                   class="p-6 bg-base-200 rounded-xl cursor-pointer border-l-4 border-accent"
                 >
@@ -206,7 +206,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
             >
               <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 @for (preset of presets; track preset) {
-                  <button [motionAnimate]="preset" [motionOptions]="{ trigger: 'click', duration: 0.6 }" class="btn btn-outline btn-sm">
+                  <button [hkAnimate]="preset" [hkAnimateOptions]="{ trigger: 'click', duration: 0.6 }" class="btn btn-outline btn-sm">
                     {{ preset }}
                   </button>
                 }
@@ -216,16 +216,16 @@ type MotionTab = 'animate' | 'hover' | 'presets';
             <app-doc-section title="Custom Keyframes" description="Define your own animation keyframes" [codeExample]="customCode">
               <div class="flex flex-wrap gap-6">
                 <div
-                  [motionAnimate]="{ opacity: [0, 1], y: [30, 0], rotate: [-10, 0] }"
-                  [motionOptions]="{ trigger: 'scroll', duration: 0.8, ease: 'easeOut' }"
+                  [hkAnimate]="{ opacity: [0, 1], y: [30, 0], rotate: [-10, 0] }"
+                  [hkAnimateOptions]="{ trigger: 'scroll', duration: 0.8, ease: 'easeOut' }"
                   class="p-6 bg-gradient-to-r from-primary to-secondary text-white rounded-xl"
                 >
                   Custom: Fade + Slide + Rotate
                 </div>
 
                 <div
-                  [motionAnimate]="{ scale: [0.8, 1.1, 1], opacity: [0, 1] }"
-                  [motionOptions]="{ trigger: 'scroll', duration: 0.6 }"
+                  [hkAnimate]="{ scale: [0.8, 1.1, 1], opacity: [0, 1] }"
+                  [hkAnimateOptions]="{ trigger: 'scroll', duration: 0.6 }"
                   class="p-6 bg-gradient-to-r from-secondary to-accent text-white rounded-xl"
                 >
                   Custom: Bounce Scale In
@@ -263,7 +263,7 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">Available Presets</h3>
                 <p class="text-sm text-base-content/70">
-                  Built-in animation presets that can be passed as a string to the <code>[motionAnimate]</code> input. Each preset defines a
+                  Built-in animation presets that can be passed as a string to the <code>[hkAnimate]</code> input. Each preset defines a
                   complete set of keyframes for common animation patterns.
                 </p>
                 <app-code-block [code]="presetsListCode" />
@@ -312,8 +312,8 @@ type MotionTab = 'animate' | 'hover' | 'presets';
               <div class="card-body gap-3">
                 <h3 class="card-title text-lg">AnimationPreset</h3>
                 <p class="text-sm text-base-content/70">
-                  Union type of all built-in preset animation names. Pass one of these strings to the <code>[motionAnimate]</code> input to
-                  use a pre-defined animation.
+                  Union type of all built-in preset animation names. Pass one of these strings to the <code>[hkAnimate]</code> input to use
+                  a pre-defined animation.
                 </p>
                 <app-code-block [code]="typeAnimationPreset" />
               </div>
@@ -402,8 +402,8 @@ loadAnimation: MotionDirectiveOptions = {
 
 // Template
 <div
-  [motionAnimate]="'fadeInUp'"
-  [motionOptions]="loadAnimation">
+  [hkAnimate]="'fadeInUp'"
+  [hkAnimateOptions]="loadAnimation">
   Content
 </div>`;
 
@@ -415,15 +415,15 @@ pulseOptions: MotionDirectiveOptions = { trigger: 'click', duration: 0.3 };
 // Template
 <!-- Preset animation -->
 <button
-  [motionAnimate]="'bounceIn'"
-  [motionOptions]="bounceOptions">
+  [hkAnimate]="'bounceIn'"
+  [hkAnimateOptions]="bounceOptions">
   Bounce
 </button>
 
 <!-- Custom keyframes -->
 <button
-  [motionAnimate]="pulseKeyframes"
-  [motionOptions]="pulseOptions">
+  [hkAnimate]="pulseKeyframes"
+  [hkAnimateOptions]="pulseOptions">
   Pulse
 </button>`;
 
@@ -440,8 +440,8 @@ staggerOptions(index: number): MotionDirectiveOptions {
 // Template
 @for (item of items; track item; let i = $index) {
   <div
-    [motionAnimate]="'fadeInLeft'"
-    [motionOptions]="staggerOptions(i)">
+    [hkAnimate]="'fadeInLeft'"
+    [hkAnimateOptions]="staggerOptions(i)">
     {{ item.label }}
   </div>
 }`;
@@ -452,7 +452,7 @@ hoverAnimOptions: HoverAnimationOptions = { duration: 0.2 };
 
 // Template
 <div
-  [motionHover]="scaleHover"
+  [hkHover]="scaleHover"
   [animationOptions]="hoverAnimOptions">
   Hover me
 </div>`;
@@ -467,7 +467,7 @@ cardLiftOptions: HoverAnimationOptions = { duration: 0.3, ease: 'easeOut' };
 
 // Template
 <div
-  [motionHover]="cardLiftHover"
+  [hkHover]="cardLiftHover"
   [animationOptions]="cardLiftOptions">
   Card content
 </div>`;
@@ -477,8 +477,8 @@ presetOptions: MotionDirectiveOptions = { trigger: 'click', duration: 0.6 };
 
 // Template
 <button
-  [motionAnimate]="'bounceIn'"
-  [motionOptions]="presetOptions">
+  [hkAnimate]="'bounceIn'"
+  [hkAnimateOptions]="presetOptions">
   Click me
 </button>`;
 
@@ -492,8 +492,8 @@ customOptions: MotionDirectiveOptions = {
 
 // Template
 <div
-  [motionAnimate]="customKeyframes"
-  [motionOptions]="customOptions">
+  [hkAnimate]="customKeyframes"
+  [hkAnimateOptions]="customOptions">
   Custom animation
 </div>`;
 
@@ -512,8 +512,8 @@ customOptions: MotionDirectiveOptions = {
   template: \`
     <!-- Animate directive -->
     <div
-      [motionAnimate]="'fadeInUp'"
-      [motionOptions]="{
+      [hkAnimate]="'fadeInUp'"
+      [hkAnimateOptions]="{
         trigger: 'immediate',  // 'immediate' | 'click' | 'scroll'
         duration: 0.5,
         delay: 0,
@@ -524,7 +524,7 @@ customOptions: MotionDirectiveOptions = {
 
     <!-- Hover directive -->
     <div
-      [motionHover]="{ scale: [1, 1.1] }"
+      [hkHover]="{ scale: [1, 1.1] }"
       [animationOptions]="{ duration: 0.2 }">
       Hover effect
     </div>
@@ -534,12 +534,17 @@ customOptions: MotionDirectiveOptions = {
   // --- API docs ---
   animateDocs: ApiDocEntry[] = [
     {
-      name: '[motionAnimate]',
+      name: '[hkAnimate]',
       type: 'AnimationPreset | Record<string, unknown>',
       default: "'fadeIn'",
       description: "Preset name (e.g. 'fadeIn', 'bounceIn') or custom keyframes object",
     },
-    { name: '[motionOptions]', type: 'MotionDirectiveOptions', default: '{}', description: 'Animation and trigger configuration options' },
+    {
+      name: '[hkAnimateOptions]',
+      type: 'MotionDirectiveOptions',
+      default: '{}',
+      description: 'Animation and trigger configuration options',
+    },
   ];
 
   animateMethodDocs: ApiDocEntry[] = [
@@ -549,7 +554,7 @@ customOptions: MotionDirectiveOptions = {
   ];
 
   hoverDocs: ApiDocEntry[] = [
-    { name: '[motionHover]', type: 'HoverKeyframes', description: 'Required. Keyframes to animate on hover (e.g. { scale: [1, 1.1] })' },
+    { name: '[hkHover]', type: 'HoverKeyframes', description: 'Required. Keyframes to animate on hover (e.g. { scale: [1, 1.1] })' },
     { name: '[hoverOptions]', type: 'HoverOptions', default: '-', description: 'Hover listener options (passive, once)' },
     {
       name: '[animationOptions]',

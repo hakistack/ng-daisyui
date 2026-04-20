@@ -86,10 +86,6 @@ export interface TableInstance<T extends object> {
  * }
  * ```
  *
- * When multiple `<hk-table>`s bind the same controller (e.g. child grids, master-detail),
- * top-level methods target the first attached instance; use `.instances()` to target
- * a specific one.
- *
  * `TableController<T>` is a semantic alias for `FieldConfiguration<T>` — both names
  * refer to the same shape.
  */
@@ -102,13 +98,11 @@ export interface FieldConfiguration<T extends object> {
   readonly childGrid?: ChildGridConfig<T>;
   readonly masterDetail?: MasterDetailConfig<T>;
 
-  // --- Instance tracking ---
-  /** All live <hk-table> components currently bound to this controller. */
-  readonly instances: Signal<readonly TableInstance<T>[]>;
-  /** Convenience for the first attached instance. `undefined` when none are attached. */
-  readonly primary: Signal<TableInstance<T> | undefined>;
+  // --- Named instance access (optional) ---
+  /** Get a table instance by its config `id`. Returns `undefined` if not found. */
+  readonly get: (id: string) => TableInstance<T> | undefined;
 
-  // --- Imperative API (forwards to the primary instance) ---
+  // --- Imperative API (forwards to the bound <hk-table>) ---
   readonly applyColumnFilter: (field: string, value: unknown, operator: FilterOperator) => void;
   readonly removeFilter: (field: string) => void;
   readonly clearAllFilters: () => void;
@@ -276,6 +270,8 @@ export interface ColumnVisibilityConfig {
 
 // Improved field configuration with better type constraints
 export interface FieldConfig<T> {
+  /** Optional controller ID for named instance access via `controller.get(id)` */
+  id?: string;
   visible: StringKey<T>[];
   hidden?: StringKey<T>[];
   headers?: Partial<Record<StringKey<T>, string>>;

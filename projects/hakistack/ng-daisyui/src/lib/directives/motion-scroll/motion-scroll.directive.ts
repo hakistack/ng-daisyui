@@ -28,13 +28,13 @@ interface ScrollAnimationOptions {
 }
 
 @Directive({
-  selector: '[motionScroll]',
+  selector: '[hkScroll]',
 })
 export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
 
-  readonly motionScroll = input<ScrollAnimationKeyframes | boolean | undefined>(undefined);
+  readonly hkScroll = input<ScrollAnimationKeyframes | boolean | undefined>(undefined);
   readonly scrollOptions = input<ScrollOptions>({});
   readonly scrollContainer = input<HTMLElement | undefined>();
   readonly scrollTarget = input<HTMLElement | undefined>();
@@ -56,7 +56,7 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (
-      changes['motionScroll'] ||
+      changes['hkScroll'] ||
       changes['scrollOptions'] ||
       changes['scrollContainer'] ||
       changes['scrollTarget'] ||
@@ -73,7 +73,7 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private setupScrollAnimation(): void {
-    const anim = this.motionScroll();
+    const anim = this.hkScroll();
     if (!anim || prefersReducedMotion(this.platformId)) return;
 
     const options = this.buildScrollOptions();

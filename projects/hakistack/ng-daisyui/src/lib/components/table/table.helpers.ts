@@ -1,4 +1,4 @@
-import { computed, inject, isDevMode, signal, WritableSignal } from '@angular/core';
+import { inject, isDevMode, signal, WritableSignal } from '@angular/core';
 
 import { PipeRegistryService } from '../../services';
 import { AGGREGATE_LABELS, AggregateFunction, computeAggregate } from './table-aggregates';
@@ -97,8 +97,8 @@ const headerFormatCache = new Map<string, string>();
  */
 interface InternalControllerState<T extends object> {
   readonly instances: WritableSignal<TableInstance<T>[]>;
+  readonly namedInstances: Map<string, TableInstance<T>>;
   warnedEmpty: boolean;
-  warnedMulti: boolean;
 }
 
 // Keyed by the controller object itself. WeakMap → no leaks when a controller is GC'd.
@@ -114,34 +114,34 @@ function warnEmpty<T extends object>(state: InternalControllerState<T>): void {
   );
 }
 
-function warnMulti<T extends object>(state: InternalControllerState<T>, count: number): void {
-  if (state.warnedMulti || !isDevMode()) return;
-  state.warnedMulti = true;
-  console.warn(
-    `[ng-daisyui] TableController is bound to ${count} <hk-table> instances. ` +
-      'Top-level methods target the primary (first attached) instance. ' +
-      'Use controller.instances()[i] to target a specific one.',
-  );
-}
-
 /**
  * @internal — called by TableComponent lifecycle hooks. Do not call from application code.
  * Not re-exported from public-api.ts.
  */
-export function _attachTableInstance<T extends object>(cfg: FieldConfiguration<T> | null | undefined, instance: TableInstance<T>): void {
+export function _attachTableInstance<T extends object>(
+  cfg: FieldConfiguration<T> | null | undefined,
+  instance: TableInstance<T>,
+  id?: string,
+): void {
   const state = cfg && controllerRegistry.get(cfg);
   if (!state) return;
-  state.instances.update((list) => [...list, instance]);
+  state.instances.update((list) => (list.includes(instance) ? list : [...list, instance]));
+  if (id) state.namedInstances.set(id, instance);
 }
 
 /**
  * @internal — called by TableComponent lifecycle hooks. Do not call from application code.
  * Not re-exported from public-api.ts.
  */
-export function _detachTableInstance<T extends object>(cfg: FieldConfiguration<T> | null | undefined, instance: TableInstance<T>): void {
+export function _detachTableInstance<T extends object>(
+  cfg: FieldConfiguration<T> | null | undefined,
+  instance: TableInstance<T>,
+  id?: string,
+): void {
   const state = cfg && controllerRegistry.get(cfg);
   if (!state) return;
   state.instances.update((list) => list.filter((x) => x !== instance));
+  if (id) state.namedInstances.delete(id);
 }
 
 // ============================================================================
@@ -167,23 +167,18 @@ export function createTable<T extends object>(config: FieldConfig<T>): FieldConf
   // --- Controller state ---
   const state: InternalControllerState<T> = {
     instances: signal<TableInstance<T>[]>([]),
+    namedInstances: new Map(),
     warnedEmpty: false,
-    warnedMulti: false,
   };
-  const instances = computed(() => state.instances() as readonly TableInstance<T>[]);
-  const primary = computed(() => state.instances()[0]);
 
-  // Forwarder: dispatch to primary() with dev-mode warnings for 0 / >1 attached instances.
   const forward =
     <K extends keyof TableInstance<T>>(method: K) =>
     (...args: unknown[]): void => {
-      const list = state.instances();
-      if (list.length === 0) {
+      const target = state.instances()[0];
+      if (!target) {
         warnEmpty(state);
         return;
       }
-      if (list.length > 1) warnMulti(state, list.length);
-      const target = list[0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (target[method] as (...a: any[]) => unknown).apply(target, args);
     };
@@ -196,8 +191,7 @@ export function createTable<T extends object>(config: FieldConfig<T>): FieldConf
     childGrid: normalizedConfig.childGrid,
     masterDetail: normalizedConfig.masterDetail,
 
-    instances,
-    primary,
+    get: (id: string) => state.namedInstances.get(id),
 
     applyColumnFilter: forward('applyColumnFilter') as FieldConfiguration<T>['applyColumnFilter'],
     removeFilter: forward('removeFilter') as FieldConfiguration<T>['removeFilter'],

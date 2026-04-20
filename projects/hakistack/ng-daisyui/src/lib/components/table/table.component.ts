@@ -1026,6 +1026,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
    * Used to detach from the previous controller if `[config]` changes identity at runtime.
    */
   private attachedConfig: FieldConfiguration<T> | null = null;
+  private attachedId: string | null = null;
 
   constructor() {
     this.dataSource = new SignalDataSource(this.currentDataSignal);
@@ -1036,32 +1037,25 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       const next = this.config();
       const prev = this.attachedConfig;
       if (next === prev) return;
-      if (prev) _detachTableInstance(prev, this);
-      if (next) _attachTableInstance(next, this);
+      if (prev) _detachTableInstance(prev, this, this.attachedId ?? undefined);
+      const id = next?.config?.id;
+      if (next) _attachTableInstance(next, this, id);
       this.attachedConfig = next ?? null;
+      this.attachedId = id ?? null;
     });
   }
 
-  ngAfterViewInit(): void {
-    // First attach. The constructor effect has likely already attached at creation time,
-    // but if [config] was set after view init (rare), this covers that case.
-    const cfg = this.config();
-    if (cfg && this.attachedConfig !== cfg) {
-      _attachTableInstance(cfg, this);
-      this.attachedConfig = cfg;
-    }
-  }
+  ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
-    // Clean up debounce timeout to prevent memory leaks
     if (this.searchDebounceTimeout) {
       clearTimeout(this.searchDebounceTimeout);
     }
 
-    // Detach from the controller so controller.instances() stays accurate.
     if (this.attachedConfig) {
-      _detachTableInstance(this.attachedConfig, this);
+      _detachTableInstance(this.attachedConfig, this, this.attachedId ?? undefined);
       this.attachedConfig = null;
+      this.attachedId = null;
     }
   }
 

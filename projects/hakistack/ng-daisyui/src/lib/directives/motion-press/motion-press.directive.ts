@@ -1,32 +1,35 @@
 import { Directive, ElementRef, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { animate, hover } from 'motion';
+import { animate, press } from 'motion';
 import type { AnimationControls, MotionAnimationOptions } from '../motion.types';
 import { prefersReducedMotion, safeStopAnimation } from '../motion.utils';
 
-export interface HoverOptions {
+export type PressKeyframes = Record<string, unknown> | Record<string, unknown[]>;
+
+export interface PressOptions {
   passive?: boolean;
   once?: boolean;
 }
 
-export type HoverAnimationOptions = MotionAnimationOptions;
-export type HoverKeyframes = Record<string, unknown> | Record<string, unknown[]>;
+export interface PressEndInfo {
+  success: boolean;
+}
 
 @Directive({
-  selector: '[hkHover]',
+  selector: '[hkPress]',
 })
-export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
+export class MotionPressDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
 
-  readonly hoverKeyframes = input.required<HoverKeyframes>({ alias: 'hkHover' });
-  readonly hoverOptions = input<HoverOptions | undefined>();
-  readonly animationOptions = input<HoverAnimationOptions | undefined>();
-  readonly restoreOnLeave = input<boolean>(true);
-  readonly customRestoreKeyframes = input<HoverKeyframes | undefined>();
+  readonly pressKeyframes = input.required<PressKeyframes>({ alias: 'hkPress' });
+  readonly pressOptions = input<PressOptions | undefined>();
+  readonly animationOptions = input<MotionAnimationOptions | undefined>();
+  readonly restoreOnRelease = input<boolean>(true);
+  readonly customRestoreKeyframes = input<PressKeyframes | undefined>();
 
-  readonly hoverStart = output<PointerEvent>();
-  readonly hoverEnd = output<PointerEvent>();
+  readonly pressStart = output<PointerEvent>();
+  readonly pressEnd = output<{ event: PointerEvent; success: boolean }>();
 
   private element!: HTMLElement;
   private cleanup?: () => void;
@@ -37,25 +40,25 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
   ngOnInit(): void {
     this.element = this.elementRef.nativeElement;
     this.captureInitialValues();
-    this.setupHoverAnimation();
+    this.setupPressAnimation();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['hoverKeyframes'] || changes['hoverOptions'] || changes['animationOptions']) {
-      this.cleanupHover();
+    if (changes['pressKeyframes'] || changes['pressOptions'] || changes['animationOptions']) {
+      this.cleanupPress();
       this.captureInitialValues();
-      this.setupHoverAnimation();
+      this.setupPressAnimation();
     }
   }
 
   ngOnDestroy(): void {
-    this.cleanupHover();
+    this.cleanupPress();
   }
 
   private captureInitialValues(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    const keyframes = this.hoverKeyframes();
+    const keyframes = this.pressKeyframes();
     if (!keyframes) return;
 
     const computedStyle = window.getComputedStyle(this.element);
@@ -81,9 +84,6 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
         case 'opacity':
           this.initialValues[prop] = computedStyle.opacity || 1;
           break;
-        case 'backgroundColor':
-          this.initialValues[prop] = computedStyle.backgroundColor || 'transparent';
-          break;
         default: {
           const value = computedStyle.getPropertyValue(prop);
           if (value) this.initialValues[prop] = value;
@@ -92,26 +92,26 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  private setupHoverAnimation(): void {
+  private setupPressAnimation(): void {
     if (prefersReducedMotion(this.platformId)) return;
 
-    const keyframes = this.hoverKeyframes();
+    const keyframes = this.pressKeyframes();
     if (!keyframes) return;
 
     try {
-      this.cleanup = hover(
+      this.cleanup = press(
         this.element,
         (element: Element, startEvent: PointerEvent) => {
-          this.hoverStart.emit(startEvent);
+          this.pressStart.emit(startEvent);
           this.stopAnimations();
           this.currentAnimation = animate(element, keyframes, this.getAnimationOptions()) as AnimationControls;
 
-          return (endEvent: PointerEvent) => {
-            this.hoverEnd.emit(endEvent);
-            if (this.restoreOnLeave()) this.animateRestore();
+          return (endEvent: PointerEvent, info: PressEndInfo) => {
+            this.pressEnd.emit({ event: endEvent, success: info.success });
+            if (this.restoreOnRelease()) this.animateRestore();
           };
         },
-        this.hoverOptions() || {},
+        this.pressOptions() || {},
       );
     } catch {
       this.cleanup = undefined;
@@ -124,16 +124,21 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
     if (!restoreKeyframes || Object.keys(restoreKeyframes).length === 0) return;
 
     try {
-      this.restoreAnimation = animate(this.element, restoreKeyframes, this.getRestoreOptions()) as AnimationControls;
+      const opts = this.getAnimationOptions();
+      this.restoreAnimation = animate(this.element, restoreKeyframes, {
+        ...opts,
+        duration: (opts.duration || 0.2) * 0.6,
+        ease: 'easeOut' as const,
+      }) as AnimationControls;
     } catch {
       this.restoreAnimation = null;
     }
   }
 
-  private createRestoreKeyframes(): HoverKeyframes {
+  private createRestoreKeyframes(): PressKeyframes {
     if (!this.initialValues) return {};
-    const keyframes = this.hoverKeyframes();
-    const restore: HoverKeyframes = {};
+    const keyframes = this.pressKeyframes();
+    const restore: PressKeyframes = {};
     for (const prop of Object.keys(keyframes)) {
       if (Object.prototype.hasOwnProperty.call(this.initialValues, prop)) {
         restore[prop] = this.initialValues[prop];
@@ -142,13 +147,8 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
     return restore;
   }
 
-  private getAnimationOptions(): HoverAnimationOptions {
-    return { duration: 0.3, ease: 'easeOut' as const, type: 'tween', ...this.animationOptions() };
-  }
-
-  private getRestoreOptions(): HoverAnimationOptions {
-    const opts = this.getAnimationOptions();
-    return { ...opts, duration: (opts.duration || 0.3) * 0.8, ease: 'easeOut' as const };
+  private getAnimationOptions(): MotionAnimationOptions {
+    return { duration: 0.15, ease: 'easeOut' as const, ...this.animationOptions() };
   }
 
   private stopAnimations(): void {
@@ -158,27 +158,16 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
     this.restoreAnimation = null;
   }
 
-  private cleanupHover(): void {
+  private cleanupPress(): void {
     this.stopAnimations();
     if (this.cleanup) {
       try {
         this.cleanup();
       } catch {
-        /* element may already be removed */
+        /* already disposed */
       }
       this.cleanup = undefined;
     }
-  }
-
-  triggerHover(): void {
-    const keyframes = this.hoverKeyframes();
-    if (!keyframes) return;
-    this.stopAnimations();
-    this.currentAnimation = animate(this.element, keyframes, this.getAnimationOptions()) as AnimationControls;
-  }
-
-  triggerRestore(): void {
-    if (this.restoreOnLeave()) this.animateRestore();
   }
 
   stop(): void {

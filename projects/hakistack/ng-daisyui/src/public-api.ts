@@ -296,24 +296,31 @@ export { InputMaskDirective } from './lib/directives/input-mask/input-mask.direc
 export type { MaskDefinition, MaskSlot, MaskChar } from './lib/directives/input-mask/input-mask.types';
 export { MotionAnimateDirective } from './lib/directives/motion-animate/motion-animate.directive';
 export { MotionHoverDirective } from './lib/directives/motion-hover/motion-hover.directive';
+export { MotionPressDirective } from './lib/directives/motion-press/motion-press.directive';
+export { MotionResizeDirective } from './lib/directives/motion-resize/motion-resize.directive';
 export { MotionScrollDirective } from './lib/directives/motion-scroll/motion-scroll.directive';
+export { animateSequence } from './lib/directives/motion-sequence';
 
 // Motion shared types
 export type {
   Easing,
   EasingFunction,
   AnimationPreset,
+  MotionStaggerConfig,
   TriggerType,
   MotionAnimationOptions,
   MotionDirectiveOptions,
 } from './lib/directives/motion.types';
 export type { HoverKeyframes, HoverOptions } from './lib/directives/motion-hover/motion-hover.directive';
+export type { PressKeyframes, PressOptions } from './lib/directives/motion-press/motion-press.directive';
+export type { ResizeInfo } from './lib/directives/motion-resize/motion-resize.directive';
 export type {
   ScrollAnimationKeyframes,
   ScrollOptions,
   ScrollAxis,
   ScrollOffset,
 } from './lib/directives/motion-scroll/motion-scroll.directive';
+export type { SequenceSegment, SequenceOptions } from './lib/directives/motion-sequence';
 
 // ============================================================================
 // THEME
