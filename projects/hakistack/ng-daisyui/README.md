@@ -6,15 +6,39 @@ Reusable Angular UI components built with DaisyUI v5 and Tailwind CSS v4.
 
 ## Installation
 
+### Recommended: `ng add`
+
+```bash
+ng add @hakistack/ng-daisyui
+```
+
+This sets everything up for you:
+
+- Adds `@angular/cdk` and `@angular/aria` to `dependencies`
+- Adds `tailwindcss`, `@tailwindcss/postcss`, and `daisyui` to `devDependencies`
+- Ensures your project's `styles.css` contains (in order):
+  ```css
+  @import "tailwindcss";
+  @plugin "daisyui";
+  @import "@hakistack/ng-daisyui";
+  ```
+- Runs `npm install`
+
+Flags: `--skip-install`, `--skip-style-import`, `--project <name>`.
+
+### Manual install
+
 ```bash
 npm install @hakistack/ng-daisyui
 ```
 
-### Required Dependencies
+Tailwind and DaisyUI are set up at the consumer level; `@angular/cdk` and `@angular/aria` share Angular's injector and must be installed alongside the library:
 
 ```bash
-npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk @lucide/angular sweetalert2 fuse.js motion
+npm install tailwindcss@^4.0.0 daisyui@^5.0.0 @angular/cdk @angular/aria
 ```
+
+Runtime deps used internally (`@lucide/angular`, `fuse.js`, `motion`, `libphonenumber-js`) are installed automatically with the library.
 
 ### Configure Tailwind CSS
 

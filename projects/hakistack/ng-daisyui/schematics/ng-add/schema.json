@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "HakistackNgDaisyuiNgAdd",
+  "title": "Hakistack ng-daisyui ng-add schematic",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "Target project in angular.json. Defaults to the first application project.",
+      "$default": { "$source": "projectName" }
+    },
+    "skipInstall": {
+      "type": "boolean",
+      "default": false,
+      "description": "Skip running npm install after adding peer dependencies."
+    },
+    "skipStyleImport": {
+      "type": "boolean",
+      "default": false,
+      "description": "Skip adding the library CSS import to the project's styles."
+    }
+  },
+  "required": []
+}
