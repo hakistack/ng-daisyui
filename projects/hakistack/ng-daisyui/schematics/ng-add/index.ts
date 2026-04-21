@@ -2,21 +2,63 @@ import { chain, Rule, SchematicContext, Tree } from '@angular-devkit/schematics'
 import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { Schema } from './schema';
+import { Schema, Toolchain } from './schema';
 
 const DEFAULT_ANGULAR_MAJOR = 21;
-const DEFAULT_TAILWIND_RANGE = '^4.0.0';
-const DEFAULT_DAISYUI_RANGE = '^5.0.0';
+const DEFAULT_TAILWIND_V5_RANGE = '^4.0.0';
+const DEFAULT_DAISYUI_V5_RANGE = '^5.0.0';
 
-const TAILWIND_IMPORT = '@import "tailwindcss";';
-const DAISYUI_PLUGIN = '@plugin "daisyui";';
-const LIBRARY_IMPORT = '@import "@hakistack/ng-daisyui";';
+const LEGACY_DEPS: Record<string, string> = {
+  tailwindcss: '^3.4.0',
+  daisyui: '^4.12.0',
+  postcss: '^8.4.0',
+  autoprefixer: '^10.4.0',
+};
+
+const TAILWIND_V5_IMPORT = '@import "tailwindcss";';
+const DAISYUI_V5_PLUGIN = '@plugin "daisyui";';
+const LIBRARY_V5_IMPORT = '@import "@hakistack/ng-daisyui";';
+
+const LEGACY_STYLE_IMPORT = '@import "@hakistack/ng-daisyui/themes/daisyui-v4.css";';
+const LEGACY_TAILWIND_DIRECTIVES = '@tailwind base;\n@tailwind components;\n@tailwind utilities;';
+
+const LEGACY_TAILWIND_CONFIG = `const ngDaisyuiPreset = require('@hakistack/ng-daisyui/themes/daisyui-v4-preset');
+
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  presets: [ngDaisyuiPreset],
+  content: [
+    './src/**/*.{html,ts}',
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [require('daisyui')],
+  daisyui: {
+    themes: ['light', 'dark'],
+    darkTheme: 'dark',
+    base: true,
+    styled: true,
+    utils: true,
+    logs: false,
+  },
+};
+`;
+
+const LEGACY_POSTCSS_CONFIG = `module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+`;
 
 export function ngAdd(options: Schema): Rule {
-  return chain([addDependencies(), addStyleImport(options), scheduleInstall(options)]);
+  const target: Toolchain = options.target ?? 'v5';
+  return chain([addDependencies(target), addStyleSetup(options, target), scheduleInstall(options)]);
 }
 
-function addDependencies(): Rule {
+function addDependencies(target: Toolchain): Rule {
   return (tree: Tree, context: SchematicContext) => {
     const pkgPath = '/package.json';
     const pkgBuffer = tree.read(pkgPath);
@@ -29,19 +71,12 @@ function addDependencies(): Rule {
     pkgJson.devDependencies = pkgJson.devDependencies ?? {};
 
     const angularMajor = detectAngularMajor(pkgJson);
-    const libraryPeers = readLibraryPeerDependencies();
-    const tailwindRange = libraryPeers['tailwindcss'] ?? DEFAULT_TAILWIND_RANGE;
-    const daisyuiRange = libraryPeers['daisyui'] ?? DEFAULT_DAISYUI_RANGE;
-
     const runtimeDeps: Record<string, string> = {
       '@angular/cdk': `^${angularMajor}.0.0`,
       '@angular/aria': `^${angularMajor}.0.0`,
     };
-    const buildDeps: Record<string, string> = {
-      tailwindcss: tailwindRange,
-      '@tailwindcss/postcss': tailwindRange,
-      daisyui: daisyuiRange,
-    };
+
+    const buildDeps = target === 'v5' ? resolveV5BuildDeps() : LEGACY_DEPS;
 
     let mutated = false;
     mutated = mergeDeps(pkgJson.dependencies, pkgJson.devDependencies, runtimeDeps, 'dependencies', context) || mutated;
@@ -51,6 +86,17 @@ function addDependencies(): Rule {
       tree.overwrite(pkgPath, JSON.stringify(pkgJson, null, 2) + '\n');
     }
     return tree;
+  };
+}
+
+function resolveV5BuildDeps(): Record<string, string> {
+  const libraryPeers = readLibraryPeerDependencies();
+  const tailwindRange = libraryPeers['tailwindcss'] ?? DEFAULT_TAILWIND_V5_RANGE;
+  const daisyuiRange = libraryPeers['daisyui'] ?? DEFAULT_DAISYUI_V5_RANGE;
+  return {
+    tailwindcss: tailwindRange,
+    '@tailwindcss/postcss': tailwindRange,
+    daisyui: daisyuiRange,
   };
 }
 
@@ -94,7 +140,11 @@ function mergeDeps(
   return mutated;
 }
 
-function addStyleImport(options: Schema): Rule {
+function addStyleSetup(options: Schema, target: Toolchain): Rule {
+  return target === 'v5' ? wireV5Styles(options) : wireLegacyStyles(options);
+}
+
+function wireV5Styles(options: Schema): Rule {
   return (tree: Tree, context: SchematicContext) => {
     if (options.skipStyleImport) {
       return tree;
@@ -104,7 +154,7 @@ function addStyleImport(options: Schema): Rule {
     if (!stylesPath) {
       context.logger.warn(
         '  Could not locate a root CSS styles file — add the following manually to styles.css:\n' +
-          `    ${TAILWIND_IMPORT}\n    ${DAISYUI_PLUGIN}\n    ${LIBRARY_IMPORT}`,
+          `    ${TAILWIND_V5_IMPORT}\n    ${DAISYUI_V5_PLUGIN}\n    ${LIBRARY_V5_IMPORT}`,
       );
       return tree;
     }
@@ -118,21 +168,21 @@ function addStyleImport(options: Schema): Rule {
     let mutated = false;
 
     if (!/@import\s+["']tailwindcss["']/.test(contents)) {
-      contents = `${TAILWIND_IMPORT}\n${contents}`;
+      contents = `${TAILWIND_V5_IMPORT}\n${contents}`;
       mutated = true;
-      context.logger.info(`  Added ${TAILWIND_IMPORT} to ${stylesPath}`);
+      context.logger.info(`  Added ${TAILWIND_V5_IMPORT} to ${stylesPath}`);
     }
 
     if (!/@plugin\s+["']daisyui["']/.test(contents)) {
-      contents = insertAfter(contents, /@import\s+["']tailwindcss["'];?\s*\n?/, `${DAISYUI_PLUGIN}\n`);
+      contents = insertAfter(contents, /@import\s+["']tailwindcss["'];?\s*\n?/, `${DAISYUI_V5_PLUGIN}\n`);
       mutated = true;
-      context.logger.info(`  Added ${DAISYUI_PLUGIN} to ${stylesPath}`);
+      context.logger.info(`  Added ${DAISYUI_V5_PLUGIN} to ${stylesPath}`);
     }
 
     if (!contents.includes('@hakistack/ng-daisyui')) {
-      contents = insertAfter(contents, /@plugin\s+["']daisyui["'][^;]*;?\s*\n?/, `${LIBRARY_IMPORT}\n`);
+      contents = insertAfter(contents, /@plugin\s+["']daisyui["'][^;]*;?\s*\n?/, `${LIBRARY_V5_IMPORT}\n`);
       mutated = true;
-      context.logger.info(`  Added ${LIBRARY_IMPORT} to ${stylesPath}`);
+      context.logger.info(`  Added ${LIBRARY_V5_IMPORT} to ${stylesPath}`);
     }
 
     if (mutated) {
@@ -142,6 +192,63 @@ function addStyleImport(options: Schema): Rule {
     }
     return tree;
   };
+}
+
+function wireLegacyStyles(options: Schema): Rule {
+  return (tree: Tree, context: SchematicContext) => {
+    if (!options.skipStyleImport) {
+      wireLegacyStylesFile(tree, options, context);
+    }
+    ensureFile(tree, '/tailwind.config.js', LEGACY_TAILWIND_CONFIG, context);
+    ensureFile(tree, '/postcss.config.js', LEGACY_POSTCSS_CONFIG, context);
+    return tree;
+  };
+}
+
+function wireLegacyStylesFile(tree: Tree, options: Schema, context: SchematicContext): void {
+  const stylesPath = findStylesFile(tree, options.project);
+  if (!stylesPath) {
+    context.logger.warn(
+      '  Could not locate a root CSS styles file — add the following manually to styles.css:\n' +
+        `    ${LEGACY_STYLE_IMPORT}\n    ${LEGACY_TAILWIND_DIRECTIVES}`,
+    );
+    return;
+  }
+
+  const stylesBuffer = tree.read(stylesPath);
+  if (!stylesBuffer) {
+    return;
+  }
+
+  let contents = stylesBuffer.toString('utf-8');
+  let mutated = false;
+
+  if (!contents.includes('@hakistack/ng-daisyui/themes/daisyui-v4.css')) {
+    contents = `${LEGACY_STYLE_IMPORT}\n${contents}`;
+    mutated = true;
+    context.logger.info(`  Added ${LEGACY_STYLE_IMPORT} to ${stylesPath}`);
+  }
+
+  if (!/@tailwind\s+base/.test(contents)) {
+    contents = `${contents}\n${LEGACY_TAILWIND_DIRECTIVES}\n`;
+    mutated = true;
+    context.logger.info(`  Added @tailwind directives to ${stylesPath}`);
+  }
+
+  if (mutated) {
+    tree.overwrite(stylesPath, contents);
+  } else {
+    context.logger.info(`  ${stylesPath} already wired up — skipped`);
+  }
+}
+
+function ensureFile(tree: Tree, path: string, contents: string, context: SchematicContext): void {
+  if (tree.exists(path)) {
+    context.logger.info(`  ${path} already exists — skipped`);
+    return;
+  }
+  tree.create(path, contents);
+  context.logger.info(`  Created ${path}`);
 }
 
 function insertAfter(source: string, anchor: RegExp, insertion: string): string {

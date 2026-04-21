@@ -2,7 +2,7 @@
 
 Reusable Angular UI components built with DaisyUI v5 and Tailwind CSS v4.
 
-> **Note:** This library targets **DaisyUI v5 + Tailwind CSS v4**. For DaisyUI v4 + Tailwind CSS v3, use `@hakistack/ng-daisyui-v3`.
+> **Note:** Primary support is **Tailwind v4 + DaisyUI v5**. A legacy **Tailwind v3 + DaisyUI v4** path is available from the same package via subpath imports (`@hakistack/ng-daisyui/themes/daisyui-v4.css` + `@hakistack/ng-daisyui/themes/daisyui-v4-preset`). `ng add` will prompt you to pick.
 
 ## Installation
 
@@ -12,19 +12,25 @@ Reusable Angular UI components built with DaisyUI v5 and Tailwind CSS v4.
 ng add @hakistack/ng-daisyui
 ```
 
-This sets everything up for you:
+You'll be prompted to pick a toolchain:
 
-- Adds `@angular/cdk` and `@angular/aria` to `dependencies`
-- Adds `tailwindcss`, `@tailwindcss/postcss`, and `daisyui` to `devDependencies`
-- Ensures your project's `styles.css` contains (in order):
+**Tailwind v4 + DaisyUI v5 (recommended)** — `--target v5`
+- Adds `@angular/cdk` + `@angular/aria` to `dependencies`
+- Adds `tailwindcss` + `@tailwindcss/postcss` + `daisyui` to `devDependencies`
+- Ensures `styles.css` contains (in order):
   ```css
   @import "tailwindcss";
   @plugin "daisyui";
   @import "@hakistack/ng-daisyui";
   ```
-- Runs `npm install`
 
-Flags: `--skip-install`, `--skip-style-import`, `--project <name>`.
+**Tailwind v3 + DaisyUI v4 (legacy)** — `--target v4-legacy`
+- Adds `@angular/cdk` + `@angular/aria` to `dependencies`
+- Adds `tailwindcss@^3`, `daisyui@^4`, `postcss`, `autoprefixer` to `devDependencies`
+- Scaffolds `tailwind.config.js` (extending `@hakistack/ng-daisyui/themes/daisyui-v4-preset`) and `postcss.config.js`
+- Ensures `styles.css` contains `@import "@hakistack/ng-daisyui/themes/daisyui-v4.css"` plus the classic `@tailwind base/components/utilities` directives
+
+Flags: `--target <v5|v4-legacy>`, `--skip-install`, `--skip-style-import`, `--project <name>`.
 
 ### Manual install
 

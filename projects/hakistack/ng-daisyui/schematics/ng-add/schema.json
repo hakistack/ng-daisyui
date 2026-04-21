@@ -4,6 +4,20 @@
   "title": "Hakistack ng-daisyui ng-add schematic",
   "type": "object",
   "properties": {
+    "target": {
+      "type": "string",
+      "description": "Which toolchain to set up.",
+      "enum": ["v5", "v4-legacy"],
+      "default": "v5",
+      "x-prompt": {
+        "message": "Which toolchain do you want to set up?",
+        "type": "list",
+        "items": [
+          { "value": "v5", "label": "Tailwind v4 + DaisyUI v5 (recommended)" },
+          { "value": "v4-legacy", "label": "Tailwind v3 + DaisyUI v4 (legacy)" }
+        ]
+      }
+    },
     "project": {
       "type": "string",
       "description": "Target project in angular.json. Defaults to the first application project.",
