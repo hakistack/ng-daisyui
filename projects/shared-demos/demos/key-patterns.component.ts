@@ -1,55 +1,10 @@
 import { Component } from '@angular/core';
-import {
-  LucideDynamicIcon,
-  provideLucideIcons,
-  LucideHammer,
-  LucideX,
-  LucideCheck,
-  LucideToggleRight,
-  LucideLayoutList,
-  LucidePanelBottom,
-  LucidePanelTop,
-  LucideSave,
-  LucideTable,
-  LucideCode,
-  LucideColumns3,
-  LucideGitBranch,
-  LucideDatabase,
-  LucideBell,
-  LucideSettings,
-  LucideUnplug,
-  LucideInfo,
-  LucideZap,
-  LucideSmile,
-} from '@lucide/angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { CodeBlockComponent } from '../shared/code-block.component';
 
 @Component({
   selector: 'app-key-patterns',
   imports: [LucideDynamicIcon, CodeBlockComponent],
-  providers: [
-    provideLucideIcons(
-      LucideHammer,
-      LucideX,
-      LucideCheck,
-      LucideToggleRight,
-      LucideLayoutList,
-      LucidePanelBottom,
-      LucidePanelTop,
-      LucideSave,
-      LucideTable,
-      LucideCode,
-      LucideColumns3,
-      LucideGitBranch,
-      LucideDatabase,
-      LucideBell,
-      LucideSettings,
-      LucideUnplug,
-      LucideInfo,
-      LucideZap,
-      LucideSmile,
-    ),
-  ],
   template: `
     <div class="space-y-10 max-w-4xl">
       <!-- Hero -->

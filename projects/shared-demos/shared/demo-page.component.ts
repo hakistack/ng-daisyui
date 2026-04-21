@@ -1,59 +1,10 @@
 import { Component, input, signal } from '@angular/core';
-import {
-  LucideDynamicIcon,
-  provideLucideIcons,
-  LucideFileInput,
-  LucideListOrdered,
-  LucideTable,
-  LucideListTree,
-  LucideGitBranch,
-  LucideNetwork,
-  LucideScrollText,
-  LucideTextCursorInput,
-  LucideChevronDown,
-  LucideCalendar,
-  LucideClock,
-  LucideFileText,
-  LucidePanelTop,
-  LucideBell,
-  LucideMessageSquareWarning,
-  LucidePanelTopOpen,
-  LucideSmile,
-  LucideSparkles,
-  LucideRocket,
-  LucideDownload,
-  LucideLightbulb,
-} from '@lucide/angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { SHOW_IMPORT } from '../config';
 
 @Component({
   selector: 'app-demo-page',
   imports: [LucideDynamicIcon],
-  providers: [
-    provideLucideIcons(
-      LucideFileInput,
-      LucideListOrdered,
-      LucideTable,
-      LucideListTree,
-      LucideGitBranch,
-      LucideNetwork,
-      LucideScrollText,
-      LucideTextCursorInput,
-      LucideChevronDown,
-      LucideCalendar,
-      LucideClock,
-      LucideFileText,
-      LucidePanelTop,
-      LucideBell,
-      LucideMessageSquareWarning,
-      LucidePanelTopOpen,
-      LucideSmile,
-      LucideSparkles,
-      LucideRocket,
-      LucideDownload,
-      LucideLightbulb,
-    ),
-  ],
   template: `
     <div class="space-y-4">
       <!-- Hero header -->

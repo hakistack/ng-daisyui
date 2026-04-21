@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { LucideDynamicIcon, provideLucideIcons, LucideInfo, LucideCheck } from '@lucide/angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { CodeBlockComponent } from '../shared/code-block.component';
 
 type PkgManager = 'npm' | 'yarn' | 'pnpm';
@@ -7,7 +7,6 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
 @Component({
   selector: 'app-installation-v4',
   imports: [LucideDynamicIcon, CodeBlockComponent],
-  providers: [provideLucideIcons(LucideInfo, LucideCheck)],
   template: `
     <div class="space-y-10 max-w-4xl">
       <!-- Hero -->

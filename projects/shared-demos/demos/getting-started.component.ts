@@ -1,58 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import {
-  LucideDynamicIcon,
-  provideLucideIcons,
-  LucidePackage,
-  LucidePalette,
-  LucideZap,
-  LucidePaintbrush,
-  LucideAccessibility,
-  LucidePuzzle,
-  LucideFileInput,
-  LucideListOrdered,
-  LucideChevronDown,
-  LucideCalendar,
-  LucideFileText,
-  LucideTable,
-  LucideGitBranch,
-  LucideBell,
-  LucideMessageSquareWarning,
-  LucidePanelTopOpen,
-  LucideDownload,
-  LucidePlay,
-  LucideCheck,
-  LucideLightbulb,
-} from '@lucide/angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { CodeBlockComponent } from '../shared/code-block.component';
 
 @Component({
   selector: 'app-getting-started',
   imports: [LucideDynamicIcon, CodeBlockComponent, RouterLink],
-  providers: [
-    provideLucideIcons(
-      LucidePackage,
-      LucidePalette,
-      LucideZap,
-      LucidePaintbrush,
-      LucideAccessibility,
-      LucidePuzzle,
-      LucideFileInput,
-      LucideListOrdered,
-      LucideChevronDown,
-      LucideCalendar,
-      LucideFileText,
-      LucideTable,
-      LucideGitBranch,
-      LucideBell,
-      LucideMessageSquareWarning,
-      LucidePanelTopOpen,
-      LucideDownload,
-      LucidePlay,
-      LucideCheck,
-      LucideLightbulb,
-    ),
-  ],
   template: `
     <div class="space-y-10 max-w-4xl">
       <!-- Hero -->

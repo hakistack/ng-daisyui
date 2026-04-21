@@ -15,7 +15,6 @@ import {
 } from '@hakistack/ng-daisyui';
 import {
   LucideDynamicIcon,
-  provideLucideIcons,
   LucideInfo,
   LucideX,
   LucideMousePointerClick,
@@ -118,7 +117,6 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
     CodeBlockComponent,
     DemoPageComponent,
   ],
-  providers: [provideLucideIcons(LucideEye, LucidePencil, LucideTrash2, LucideDownload)],
   template: `
     <app-demo-page
       title="Table"

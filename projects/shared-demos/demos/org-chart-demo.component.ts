@@ -9,16 +9,6 @@ import {
   OrgChartNodeExpandEvent,
   OrgChartNodeCollapseEvent,
 } from '@hakistack/ng-daisyui';
-import {
-  provideLucideIcons,
-  LucideBuilding2,
-  LucideCode,
-  LucideMonitor,
-  LucideServer,
-  LucidePalette,
-  LucidePenTool,
-  LucideBrush,
-} from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -36,7 +26,6 @@ interface Person {
 @Component({
   selector: 'app-org-chart-demo',
   imports: [OrganizationChartComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
-  providers: [provideLucideIcons(LucideBuilding2, LucideCode, LucideMonitor, LucideServer, LucidePalette, LucidePenTool, LucideBrush)],
   template: `
     <app-demo-page
       title="Organization Chart"

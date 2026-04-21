@@ -5,7 +5,6 @@ import { map } from 'rxjs';
 import { TableComponent, createTable, ToastService, TreeNode } from '@hakistack/ng-daisyui';
 import {
   LucideDynamicIcon,
-  provideLucideIcons,
   LucideChevronsDownUp,
   LucideChevronsUpDown,
   LucideInfo,
@@ -42,7 +41,6 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
 @Component({
   selector: 'app-tree-table-demo',
   imports: [TableComponent, LucideDynamicIcon, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
-  providers: [provideLucideIcons(LucideEye, LucidePencil, LucideDownload)],
   template: `
     <app-demo-page
       title="Tree Table"

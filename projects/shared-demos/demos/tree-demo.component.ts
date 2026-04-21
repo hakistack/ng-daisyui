@@ -3,31 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 import { TreeComponent, TreeNode, ToastService, createTree, node } from '@hakistack/ng-daisyui';
-import {
-  LucideDynamicIcon,
-  provideLucideIcons,
-  LucideInfo,
-  LucideCheckCheck,
-  LucideMove,
-  LucideFileCode,
-  LucideFileText,
-  LucideImage,
-  LucideBraces,
-  LucideMonitor,
-  LucideServer,
-  LucideCloud,
-  LucideCode,
-  LucideUsers,
-  LucideLayoutGrid,
-  LucidePalette,
-  LucideShare2,
-  LucideMegaphone,
-  LucideBuilding2,
-  LucideCircle,
-  LucideListTodo,
-  LucideCircleCheckBig,
-  LucideCircleCheck,
-} from '@lucide/angular';
+import { LucideDynamicIcon, LucideInfo, LucideCheckCheck, LucideMove } from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
@@ -45,28 +21,6 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 @Component({
   selector: 'app-tree-demo',
   imports: [TreeComponent, LucideDynamicIcon, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
-  providers: [
-    provideLucideIcons(
-      LucideFileCode,
-      LucideFileText,
-      LucideImage,
-      LucideBraces,
-      LucideMonitor,
-      LucideServer,
-      LucideCloud,
-      LucideCode,
-      LucideUsers,
-      LucideLayoutGrid,
-      LucidePalette,
-      LucideShare2,
-      LucideMegaphone,
-      LucideBuilding2,
-      LucideCircle,
-      LucideListTodo,
-      LucideCircleCheckBig,
-      LucideCircleCheck,
-    ),
-  ],
   template: `
     <app-demo-page
       title="Tree"
