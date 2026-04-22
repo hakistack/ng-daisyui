@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TreeNode, TreeSelectionMode } from '../../api/treenode';
+import { TreeNode, TreeSelectionMode } from '../../api';
 import { LucideDynamicIcon, LucideSearch, LucideX, LucideChevronDown, LucideChevronRight } from '@lucide/angular';
 import {
   FlatTreeNode,

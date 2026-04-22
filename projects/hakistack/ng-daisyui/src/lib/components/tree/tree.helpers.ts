@@ -218,11 +218,10 @@ export function findNodePath<T>(nodes: TreeNode<T>[], predicate: (node: TreeNode
  */
 export function mapTree<T>(nodes: TreeNode<T>[], fn: (node: TreeNode<T>) => TreeNode<T>): TreeNode<T>[] {
   return nodes.map((n) => {
-    const mapped = fn({
+    return fn({
       ...n,
       children: n.children?.length ? mapTree(n.children, fn) : n.children,
     });
-    return mapped;
   });
 }
 
