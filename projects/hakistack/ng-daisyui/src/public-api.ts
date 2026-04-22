@@ -52,6 +52,8 @@ export type {
   ColorFieldOptions,
   FileFieldOptions,
   HiddenFieldOptions,
+  DynamicFormLabels,
+  provideDynamicFormLabels,
 } from './lib/components/dynamic-form/dynamic-form.types';
 
 // Table
@@ -274,7 +276,7 @@ export { DialogService } from './lib/services/dialog/dialog.service';
 
 // Alert Service
 export { AlertService, provideAlert } from './lib/components/alert/alert.service';
-export type { AlertConfig } from './lib/components/alert/alert.service';
+export type { AlertConfig, AlertLabels } from './lib/components/alert/alert.service';
 export type {
   AlertOptions,
   AlertResult,

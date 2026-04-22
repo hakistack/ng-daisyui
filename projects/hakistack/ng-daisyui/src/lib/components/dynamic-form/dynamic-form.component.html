@@ -19,9 +19,9 @@
       [linear]="config().stepperConfig?.linear"
       [showCard]="false"
       [showStepIndicator]="config().stepperConfig?.showStepIndicator !== false"
-      [previousButtonText]="config().stepperConfig?.previousText ?? 'Previous'"
-      [nextButtonText]="config().stepperConfig?.nextText ?? 'Next'"
-      [completeButtonText]="config().stepperConfig?.completeText ?? 'Submit'"
+      [previousButtonText]="config().stepperConfig?.previousText ?? formLabels().previousButton"
+      [nextButtonText]="config().stepperConfig?.nextText ?? formLabels().nextButton"
+      [completeButtonText]="config().stepperConfig?.completeText ?? formLabels().completeButton"
       (stepChange)="onStepperStepChange($event)"
       (completed)="onSubmit()"
     >
@@ -165,7 +165,7 @@
           <hk-editor
             [id]="field.id"
             [formControlName]="field.key"
-            [placeholder]="field.placeholder || 'Write something...'"
+            [placeholder]="field.placeholder || formLabels().editorPlaceholder"
             [editorHeight]="field.editorHeight || '200px'"
             [toolbar]="field.editorToolbar || 'basic'"
             [outputFormat]="field.editorOutputFormat || 'html'"
@@ -181,7 +181,9 @@
               [options]="getFieldOptions(field)"
               [formControlName]="field.key"
               [placeholder]="
-                isFieldOptionsLoading(field) ? field.optionsFrom?.loadingPlaceholder || 'Loading options...' : field.placeholder
+                isFieldOptionsLoading(field)
+                  ? field.optionsFrom?.loadingPlaceholder || formLabels().loadingOptionsPlaceholder
+                  : field.placeholder
               "
               [enableSearch]="field.enableSearch"
               [class.pointer-events-none]="isFieldOptionsLoading(field)"
@@ -202,7 +204,9 @@
           @if (isFieldOptionsLoading(field)) {
             <div class="flex items-center gap-2">
               <span class="loading loading-spinner loading-xs"></span>
-              <span class="text-sm text-base-content/50">{{ field.optionsFrom?.loadingPlaceholder || 'Loading options...' }}</span>
+              <span class="text-sm text-base-content/50">{{
+                field.optionsFrom?.loadingPlaceholder || formLabels().loadingOptionsPlaceholder
+              }}</span>
             </div>
           } @else {
             <div [class]="field.orientation === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col gap-2'">

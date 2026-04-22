@@ -45,6 +45,14 @@ export interface AlertConfig {
   langChange$?: Observable<unknown>;
 
   /**
+   * Flat string overrides for every user-visible alert string.
+   * - Use this instead of `translate` when you don't have a full i18n framework set up.
+   * - Resolution order: `translate(key, labels[field] ?? defaultFallback)` — so `translate`
+   *   still wins when both are provided, and `labels` acts as the new fallback source.
+   */
+  labels?: AlertLabels;
+
+  /**
    * @deprecated No longer needed — DaisyUI CSS variables handle theming automatically.
    */
   useSystemTheme?: boolean;
@@ -53,6 +61,35 @@ export interface AlertConfig {
    * @deprecated No longer needed — DaisyUI CSS variables handle theming automatically.
    */
   theme?: () => 'light' | 'dark';
+}
+
+/**
+ * Per-field text overrides for `AlertService`. Any field undefined falls back
+ * to the English default ("Confirm", "Cancel", etc.).
+ */
+export interface AlertLabels {
+  /** Confirm button. Default: "Confirm" */
+  confirm?: string;
+  /** Cancel button. Default: "Cancel" */
+  cancel?: string;
+  /** OK button (used by success/info/error/warning). Default: "OK" */
+  ok?: string;
+  /** Yes button (used by `question()`). Default: "Yes" */
+  yes?: string;
+  /** No button (used by `question()`). Default: "No" */
+  no?: string;
+  /** Delete button (used by `confirmDelete()`). Default: "Delete" */
+  delete?: string;
+  /** Title for `confirmDelete()` when no title is provided. Default: "Delete Confirmation" */
+  deleteConfirmTitle?: string;
+  /** Text for `confirmDelete()` when no `itemName` is provided. Default: "Are you sure you want to delete this?" */
+  deleteConfirmText?: string;
+  /** Text builder for `confirmDelete({ itemName })`. Receives the item name. */
+  deleteConfirmTextWithItem?: (itemName: string) => string;
+  /** Title for `showLoading()` when no title is provided. Default: "Loading..." */
+  loadingTitle?: string;
+  /** HTML shown inside the dialog when `htmlUrl` fetch fails. Default: "Failed to load content." */
+  contentLoadError?: string;
 }
 
 const ALERT_CONFIG = new InjectionToken<AlertConfig>('ALERT_CONFIG');
@@ -278,14 +315,18 @@ export class AlertService {
   async confirmDelete(options: DeleteConfirmOptions = {}): Promise<AlertResult> {
     const buttons = this.getButtons();
 
-    const title = options.title ?? this.translate('common.dialogs.deleteConfirm.title', 'Delete Confirmation');
+    const labels = this.alertConfig?.labels;
+    const title =
+      options.title ?? this.translate('common.dialogs.deleteConfirm.title', labels?.deleteConfirmTitle ?? 'Delete Confirmation');
     const text =
       options.text ??
       (options.itemName
-        ? this.translate('common.dialogs.deleteConfirm.textWithItem', `Are you sure you want to delete "${options.itemName}"?`, {
-            item: options.itemName,
-          })
-        : this.translate('common.dialogs.deleteConfirm.text', 'Are you sure you want to delete this?'));
+        ? this.translate(
+            'common.dialogs.deleteConfirm.textWithItem',
+            labels?.deleteConfirmTextWithItem?.(options.itemName) ?? `Are you sure you want to delete "${options.itemName}"?`,
+            { item: options.itemName },
+          )
+        : this.translate('common.dialogs.deleteConfirm.text', labels?.deleteConfirmText ?? 'Are you sure you want to delete this?'));
 
     return this.confirm({
       title,
@@ -310,7 +351,7 @@ export class AlertService {
 
     this.addOverlay({
       id,
-      title: options.title ?? this.translate('common.loading', 'Loading...'),
+      title: options.title ?? this.translate('common.loading', this.alertConfig?.labels?.loadingTitle ?? 'Loading...'),
       text: options.text,
       loading: true,
       showConfirmButton: false,
@@ -424,13 +465,14 @@ export class AlertService {
       });
     }
 
+    const labels = this.alertConfig?.labels;
     const buttons: ButtonTexts = {
-      confirm: this.translate(BUTTON_KEYS.confirm, FALLBACK_BUTTONS.confirm),
-      cancel: this.translate(BUTTON_KEYS.cancel, FALLBACK_BUTTONS.cancel),
-      ok: this.translate(BUTTON_KEYS.ok, FALLBACK_BUTTONS.ok),
-      yes: this.translate(BUTTON_KEYS.yes, FALLBACK_BUTTONS.yes),
-      no: this.translate(BUTTON_KEYS.no, FALLBACK_BUTTONS.no),
-      delete: this.translate(BUTTON_KEYS.delete, FALLBACK_BUTTONS.delete),
+      confirm: this.translate(BUTTON_KEYS.confirm, labels?.confirm ?? FALLBACK_BUTTONS.confirm),
+      cancel: this.translate(BUTTON_KEYS.cancel, labels?.cancel ?? FALLBACK_BUTTONS.cancel),
+      ok: this.translate(BUTTON_KEYS.ok, labels?.ok ?? FALLBACK_BUTTONS.ok),
+      yes: this.translate(BUTTON_KEYS.yes, labels?.yes ?? FALLBACK_BUTTONS.yes),
+      no: this.translate(BUTTON_KEYS.no, labels?.no ?? FALLBACK_BUTTONS.no),
+      delete: this.translate(BUTTON_KEYS.delete, labels?.delete ?? FALLBACK_BUTTONS.delete),
     };
 
     this.cachedButtons = buttons;
@@ -445,14 +487,18 @@ export class AlertService {
   }
 
   private async fetchHtml(url: string): Promise<string> {
+    const errorMessage = this.translate(
+      'common.dialogs.contentLoadError',
+      this.alertConfig?.labels?.contentLoadError ?? 'Failed to load content.',
+    );
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        return `<p class="text-error">Failed to load content.</p>`;
+        return `<p class="text-error">${errorMessage}</p>`;
       }
       return response.text();
     } catch {
-      return `<p class="text-error">Failed to load content.</p>`;
+      return `<p class="text-error">${errorMessage}</p>`;
     }
   }
 }

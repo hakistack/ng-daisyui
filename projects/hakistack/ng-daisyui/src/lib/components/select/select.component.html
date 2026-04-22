@@ -159,7 +159,7 @@
           {{ isAllSelected() ? clearAllLabel() : selectAllLabel() }}
         </button>
         @if (hasSelection()) {
-          <span class="text-base-content/60 text-xs">{{ selectionCount() }} selected</span>
+          <span class="text-base-content/60 text-xs">{{ selectionCount() }} {{ selectedSuffix() }}</span>
         }
       </div>
     }
@@ -334,8 +334,8 @@
             d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467-.881-6.072-2.327M15 17H9v-2.171A3.002 3.002 0 003 12V9a5.002 5.002 0 0110 0v3c0 .538-.112 1.05-.316 1.514L15 17z"
           />
         </svg>
-        <p>No options found</p>
-        <button type="button" (click)="clearSearch($event)" class="btn btn-sm btn-ghost mt-2">Clear search</button>
+        <p>{{ noOptionsFoundLabel() }}</p>
+        <button type="button" (click)="clearSearch($event)" class="btn btn-sm btn-ghost mt-2">{{ clearSearchLabel() }}</button>
       </div>
     }
 
@@ -352,7 +352,7 @@
         >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
         </svg>
-        <p>No options available</p>
+        <p>{{ noOptionsAvailableLabel() }}</p>
       </div>
     }
   </div>

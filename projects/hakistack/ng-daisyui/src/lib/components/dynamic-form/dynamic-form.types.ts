@@ -1,6 +1,43 @@
-import { Signal } from '@angular/core';
+import { EnvironmentProviders, InjectionToken, Signal, makeEnvironmentProviders } from '@angular/core';
 import { FormGroup, ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
+
+/**
+ * App-wide default text for every `<hk-dynamic-form>`. Per-form `stepperConfig.*Text`
+ * and per-field `placeholder` / `optionsFrom.loadingPlaceholder` still win when set.
+ */
+export interface DynamicFormLabels {
+  /** Stepper "Previous" button text. Default: "Previous" */
+  previousButton?: string;
+  /** Stepper "Next" button text. Default: "Next" */
+  nextButton?: string;
+  /** Stepper "Submit" (final step) button text. Default: "Submit" */
+  completeButton?: string;
+  /** Fallback editor placeholder when a field omits `placeholder`. Default: "Write something..." */
+  editorPlaceholder?: string;
+  /** Fallback loading placeholder for async select/radio options. Default: "Loading options..." */
+  loadingOptionsPlaceholder?: string;
+}
+
+export const DYNAMIC_FORM_LABELS = new InjectionToken<DynamicFormLabels>('DYNAMIC_FORM_LABELS');
+
+/**
+ * Register app-wide text defaults for `<hk-dynamic-form>`.
+ *
+ * @example
+ * providers: [
+ *   provideDynamicFormLabels({
+ *     previousButton: 'Anterior',
+ *     nextButton: 'Siguiente',
+ *     completeButton: 'Enviar',
+ *     editorPlaceholder: 'Escribe algo...',
+ *     loadingOptionsPlaceholder: 'Cargando opciones...',
+ *   }),
+ * ]
+ */
+export function provideDynamicFormLabels(labels: DynamicFormLabels): EnvironmentProviders {
+  return makeEnvironmentProviders([{ provide: DYNAMIC_FORM_LABELS, useValue: labels }]);
+}
 
 export type FieldType =
   | 'text'

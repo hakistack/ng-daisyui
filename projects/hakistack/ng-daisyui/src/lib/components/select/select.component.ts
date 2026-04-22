@@ -96,6 +96,10 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   readonly maxChipsVisible = input<number>(3);
   readonly selectAllLabel = input<string>('Select All');
   readonly clearAllLabel = input<string>('Clear All');
+  readonly selectedSuffix = input<string>('selected');
+  readonly noOptionsFoundLabel = input<string>('No options found');
+  readonly clearSearchLabel = input<string>('Clear search');
+  readonly noOptionsAvailableLabel = input<string>('No options available');
 
   // Size and color inputs (daisyUI variants)
   readonly size = input<SelectSize>('md');
