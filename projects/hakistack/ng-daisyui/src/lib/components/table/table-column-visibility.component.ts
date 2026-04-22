@@ -24,7 +24,7 @@ const DEFAULT_LABELS: Required<ColumnVisibilityLabels> = {
         <span>{{ resolvedLabels().trigger }}</span>
         <span class="badge badge-sm badge-neutral">{{ visibleColumnsCount() }}/{{ columns().length }}</span>
       </summary>
-      <div class="dropdown-content card card-sm bg-base-100 z-10 mt-2 w-72 shadow-xl">
+      <div class="dropdown-content card card-sm bg-base-100 z-10 mt-2 min-w-72 max-w-sm shadow-xl">
         <div class="card-body gap-3 p-4">
           <!-- Column toggles -->
           <div class="flex flex-col gap-1">
@@ -54,7 +54,7 @@ const DEFAULT_LABELS: Required<ColumnVisibilityLabels> = {
           <div class="divider my-0"></div>
 
           <!-- Quick actions -->
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <button
               type="button"
               class="btn btn-ghost btn-xs gap-1"
