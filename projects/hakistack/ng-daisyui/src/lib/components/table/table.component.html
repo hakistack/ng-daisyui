@@ -31,6 +31,7 @@
           <hk-table-global-search
             [searchTerm]="globalSearchTerm()"
             [placeholder]="globalSearchPlaceholderSignal()"
+            [clearAriaLabel]="globalSearchClearAriaSignal()"
             [showIcon]="fieldConfig()?.globalSearch?.showIcon ?? true"
             [showClearButton]="fieldConfig()?.globalSearch?.showClearButton ?? true"
             [hasSearchTerm]="hasGlobalSearchTermSignal()"
@@ -46,6 +47,7 @@
           [columns]="$any(columnDefsSignal())"
           [visibilityState]="columnVisibilityState()"
           [alwaysVisibleColumns]="alwaysVisibleColumns()"
+          [labels]="columnVisibilityLabels()"
           (toggleColumn)="toggleColumnVisibility($event)"
           (showAll)="showAllColumns()"
           (hideAll)="hideAllColumns()"
@@ -66,7 +68,7 @@
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-2">
           <svg lucideListFilter class="h-4 w-4"></svg>
-          <span class="text-sm font-semibold">Active Filters ({{ activeFiltersCountSignal() }})</span>
+          <span class="text-sm font-semibold">{{ tableLabels().activeFilters }} ({{ activeFiltersCountSignal() }})</span>
         </div>
         <div class="flex flex-wrap gap-2">
           @for (filter of activeFiltersSignal(); track filter.field) {
@@ -77,7 +79,7 @@
                 type="button"
                 class="btn btn-ghost btn-xs p-0"
                 (click)="removeFilter(filter.field)"
-                [attr.aria-label]="'Remove filter for ' + filter.field"
+                [attr.aria-label]="tableLabels().removeFilterAriaLabel(filter.field)"
               >
                 <svg lucideX class="h-3 w-3"></svg>
               </button>
@@ -85,9 +87,14 @@
           }
         </div>
       </div>
-      <button type="button" class="btn btn-sm btn-ghost hover:bg-error/50 gap-2" (click)="clearAllFilters()" aria-label="Clear all filters">
+      <button
+        type="button"
+        class="btn btn-sm btn-ghost hover:bg-error/50 gap-2"
+        (click)="clearAllFilters()"
+        [attr.aria-label]="tableLabels().clearAllFiltersAriaLabel"
+      >
         <svg lucideX class="h-4 w-4"></svg>
-        <span>Clear All</span>
+        <span>{{ tableLabels().clearAllFilters }}</span>
       </button>
     </div>
   }
@@ -106,7 +113,7 @@
         </div>
         <div class="flex flex-col gap-0.5">
           <span class="text-sm font-semibold">
-            {{ selectedSignal().size }} {{ selectedSignal().size === 1 ? 'item' : 'items' }} selected
+            {{ selectedSignal().size }} {{ selectedSignal().size === 1 ? tableLabels().itemSelected : tableLabels().itemsSelected }}
           </span>
           <span class="text-xs opacity-70">
             {{ config()?.config?.selectionHintText ?? 'Perform actions on selected items' }}
@@ -171,7 +178,7 @@
         type="button"
         class="btn btn-sm btn-ghost hover:bg-error/50 gap-2 transition-colors duration-200"
         (click)="clearSelection()"
-        aria-label="Clear selection"
+        [attr.aria-label]="tableLabels().clearSelectionAriaLabel"
       >
         <svg lucideX class="h-4 w-4"></svg>
         <span class="max-sm:hidden">{{ config()?.config?.clearSelectionText ?? 'Clear' }}</span>
@@ -186,7 +193,7 @@
     } @else {
       <div class="flex flex-col items-center justify-center gap-4 py-16">
         <span class="loading loading-spinner loading-lg text-primary"></span>
-        <p class="text-base-content/50 text-sm">Loading data...</p>
+        <p class="text-base-content/50 text-sm">{{ tableLabels().loading }}</p>
       </div>
     }
   }
@@ -230,7 +237,7 @@
                     class="checkbox"
                     [checked]="isAllSelected()"
                     (change)="toggleSelectAll($any($event.target).checked)"
-                    [attr.aria-label]="isAllSelected() ? 'Deselect all rows on this page' : 'Select all rows on this page'"
+                    [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                   />
                 </label>
               </th>
@@ -310,7 +317,7 @@
                       class="checkbox"
                       [checked]="isSelected(row)"
                       (change)="toggleRow(row, $any($event.target).checked)"
-                      [attr.aria-label]="isSelected(row) ? 'Deselect row' : 'Select row'"
+                      [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
                     />
                   </label>
                 </td>
@@ -417,7 +424,7 @@
                           class="tree-toggle-btn btn btn-ghost btn-xs btn-square"
                           (click)="toggleRowExpand(row, $event)"
                           [attr.aria-expanded]="isRowExpanded(row)"
-                          [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
+                          [attr.aria-label]="isRowExpanded(row) ? tableLabels().collapseRowAriaLabel : tableLabels().expandRowAriaLabel"
                         >
                           @if (isRowExpanded(row)) {
                             <svg lucideChevronDown class="h-4 w-4"></svg>
@@ -563,7 +570,7 @@
                     class="checkbox"
                     [checked]="isAllSelected()"
                     (change)="toggleSelectAll($any($event.target).checked)"
-                    [attr.aria-label]="isAllSelected() ? 'Deselect all' : 'Select all'"
+                    [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                   />
                 </label>
               </th>
@@ -662,7 +669,9 @@
                         class="btn btn-ghost btn-xs btn-square"
                         (click)="toggleDetailExpand(displayRow.row, $event)"
                         [attr.aria-expanded]="isDetailExpanded(displayRow.row)"
-                        [attr.aria-label]="isDetailExpanded(displayRow.row) ? 'Collapse details' : 'Expand details'"
+                        [attr.aria-label]="
+                          isDetailExpanded(displayRow.row) ? tableLabels().collapseDetailsAriaLabel : tableLabels().expandDetailsAriaLabel
+                        "
                       >
                         @if (isDetailExpanded(displayRow.row)) {
                           <svg lucideChevronDown class="h-4 w-4"></svg>
@@ -952,7 +961,7 @@
                   class="checkbox"
                   [checked]="isAllSelected()"
                   (change)="toggleSelectAll($any($event.target).checked)"
-                  [attr.aria-label]="isAllSelected() ? 'Deselect all rows on this page' : 'Select all rows on this page'"
+                  [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                 />
               </label>
             </th>
@@ -973,7 +982,7 @@
                   [checked]="isSelected(row)"
                   [indeterminate]="isIndeterminate(row)"
                   (change)="toggleRow(row, $any($event.target).checked)"
-                  [attr.aria-label]="isSelected(row) ? 'Deselect row' : 'Select row'"
+                  [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
                 />
               </label>
             </td>
@@ -1001,7 +1010,7 @@
                 class="btn btn-ghost btn-xs btn-square"
                 (click)="toggleDetailExpand(row, $event)"
                 [attr.aria-expanded]="isDetailExpanded(row)"
-                [attr.aria-label]="isDetailExpanded(row) ? 'Collapse details' : 'Expand details'"
+                [attr.aria-label]="isDetailExpanded(row) ? tableLabels().collapseDetailsAriaLabel : tableLabels().expandDetailsAriaLabel"
               >
                 @if (isDetailExpanded(row)) {
                   <svg lucideChevronDown class="h-4 w-4"></svg>
@@ -1102,7 +1111,7 @@
                     class="btn btn-ghost btn-xs"
                     [class.btn-primary]="getActiveFilterForColumn(column.field)"
                     (click)="$event.stopPropagation()"
-                    [attr.aria-label]="'Filter ' + column.header"
+                    [attr.aria-label]="tableLabels().filterButtonAriaLabel(column.header)"
                     [attr.popovertarget]="'filter-popover-' + column.field"
                     [style.anchor-name]="'--filter-anchor-' + column.field"
                   >
@@ -1122,6 +1131,7 @@
                         [column]="column"
                         [filterConfig]="getFilterForColumn(column.field)!"
                         [activeFilter]="getActiveFilterForColumn(column.field)"
+                        [labels]="filterLabels()"
                         (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
                         (closeFilter)="closeAllFilterDropdowns()"
                       />
@@ -1230,7 +1240,7 @@
                       class="tree-toggle-btn btn btn-ghost btn-xs btn-square"
                       (click)="toggleRowExpand(row, $event)"
                       [attr.aria-expanded]="isRowExpanded(row)"
-                      [attr.aria-label]="isRowExpanded(row) ? 'Collapse row' : 'Expand row'"
+                      [attr.aria-label]="isRowExpanded(row) ? tableLabels().collapseRowAriaLabel : tableLabels().expandRowAriaLabel"
                     >
                       @if (isRowExpanded(row)) {
                         <svg lucideChevronDown class="h-4 w-4"></svg>

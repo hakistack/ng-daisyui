@@ -19,40 +19,65 @@ export const AGGREGATE_LABELS: Record<AggregateFunction, string> = {
 export function computeAggregate<T>(data: readonly T[], field: Extract<keyof T, string>, fn: AggregateFunction): number {
   if (data.length === 0) return 0;
 
-  const rawValues = data.map((row) => (row as Record<string, unknown>)[field]);
+  if (fn === 'count') return data.length;
 
-  switch (fn) {
-    case 'count':
-      return data.length;
-    case 'trueCount':
-      return rawValues.filter((v) => Boolean(v)).length;
-    case 'falseCount':
-      return rawValues.filter((v) => !Boolean(v)).length;
-    case 'distinctCount':
-      return new Set(rawValues).size;
-    default:
-      break;
+  if (fn === 'trueCount' || fn === 'falseCount' || fn === 'distinctCount') {
+    return aggregateRaw(data, field, fn);
   }
 
-  const values = rawValues.map((v) => Number(v)).filter((v) => !isNaN(v));
-  if (values.length === 0) return 0;
+  return aggregateNumeric(data, field, fn);
+}
+
+function aggregateRaw<T>(data: readonly T[], field: Extract<keyof T, string>, fn: 'trueCount' | 'falseCount' | 'distinctCount'): number {
+  if (fn === 'distinctCount') {
+    const seen = new Set<unknown>();
+    for (const row of data) seen.add((row as Record<string, unknown>)[field]);
+    return seen.size;
+  }
+
+  let count = 0;
+  const truthy = fn === 'trueCount';
+  for (const row of data) {
+    const v = (row as Record<string, unknown>)[field];
+    if (truthy ? !!v : !v) count++;
+  }
+  return count;
+}
+
+function aggregateNumeric<T>(data: readonly T[], field: Extract<keyof T, string>, fn: 'sum' | 'avg' | 'min' | 'max' | 'median'): number {
+  let sum = 0;
+  let count = 0;
+  let min = Infinity;
+  let max = -Infinity;
+  const needsValues = fn === 'median';
+  const values: number[] = needsValues ? [] : (undefined as unknown as number[]);
+
+  for (const row of data) {
+    const n = Number((row as Record<string, unknown>)[field]);
+    if (Number.isNaN(n)) continue;
+    sum += n;
+    count++;
+    if (n < min) min = n;
+    if (n > max) max = n;
+    if (needsValues) values.push(n);
+  }
+
+  if (count === 0) return 0;
 
   switch (fn) {
     case 'sum':
-      return values.reduce((a, b) => a + b, 0);
+      return sum;
     case 'avg':
-      return values.reduce((a, b) => a + b, 0) / values.length;
+      return sum / count;
     case 'min':
-      return Math.min(...values);
+      return min;
     case 'max':
-      return Math.max(...values);
+      return max;
     case 'median': {
-      const sorted = [...values].sort((a, b) => a - b);
-      const mid = Math.floor(sorted.length / 2);
-      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      values.sort((a, b) => a - b);
+      const mid = Math.floor(values.length / 2);
+      return values.length % 2 !== 0 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
     }
-    default:
-      return 0;
   }
 }
 

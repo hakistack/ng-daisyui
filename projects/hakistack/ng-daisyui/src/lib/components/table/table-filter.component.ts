@@ -4,12 +4,76 @@ import { FormsModule } from '@angular/forms';
 import { LucideX, LucideCheck } from '@lucide/angular';
 import { SelectComponent, SelectOption } from '../select/select.component';
 import { DatepickerComponent } from '../datepicker/datepicker.component';
-import { ColumnDefinition, ColumnFilter, FilterConfig, FilterOperator } from './table.types';
+import { ColumnDefinition, ColumnFilter, FilterConfig, FilterLabels, FilterOperator, FilterOperatorLabels } from './table.types';
 
 export interface FilterApplyEvent {
   value: unknown;
   operator: FilterOperator;
 }
+
+type ResolvedFilterLabels = {
+  title: (columnHeader: string) => string;
+  closeAriaLabel: string;
+  textPlaceholder: string;
+  numberPlaceholder: string;
+  selectPlaceholder: string;
+  multiSelectPlaceholder: string;
+  datePlaceholder: string;
+  dateRangePlaceholder: string;
+  rangeMinPlaceholder: string;
+  rangeMaxPlaceholder: string;
+  rangeSeparator: string;
+  apply: string;
+  clear: string;
+  booleanTrue: string;
+  booleanFalse: string;
+  operators: Required<FilterOperatorLabels>;
+};
+
+const DEFAULT_OPERATOR_LABELS: Required<FilterOperatorLabels> = {
+  equals: 'Equals',
+  notEquals: 'Not Equals',
+  contains: 'Contains',
+  notContains: 'Does Not Contain',
+  startsWith: 'Starts With',
+  endsWith: 'Ends With',
+  gt: 'Greater Than',
+  lt: 'Less Than',
+  gte: 'Greater or Equal',
+  lte: 'Less or Equal',
+  between: 'Between',
+  in: 'In',
+  notIn: 'Not In',
+  isEmpty: 'Is Empty',
+  isNotEmpty: 'Is Not Empty',
+};
+
+const DATE_OPERATOR_OVERRIDES: Partial<Record<FilterOperator, string>> = {
+  equals: 'On',
+  gt: 'After',
+  lt: 'Before',
+  gte: 'On or After',
+  lte: 'On or Before',
+};
+
+const DEFAULT_LABELS: ResolvedFilterLabels = {
+  title: (header) => `Filter ${header}`,
+  closeAriaLabel: 'Close filter',
+  textPlaceholder: 'Enter value...',
+  numberPlaceholder: 'Enter number...',
+  selectPlaceholder: '-- Select --',
+  multiSelectPlaceholder: 'Select values...',
+  datePlaceholder: 'Select date',
+  dateRangePlaceholder: 'Select date range',
+  rangeMinPlaceholder: 'Min',
+  rangeMaxPlaceholder: 'Max',
+  rangeSeparator: 'to',
+  apply: 'Apply',
+  clear: 'Clear',
+  booleanTrue: 'Yes',
+  booleanFalse: 'No',
+  operators: DEFAULT_OPERATOR_LABELS,
+};
 
 @Component({
   selector: 'hk-table-filter',
@@ -18,8 +82,13 @@ export interface FilterApplyEvent {
   template: `
     <div class="flex flex-col gap-3">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold">Filter {{ column().header }}</h3>
-        <button type="button" class="btn btn-ghost btn-xs btn-circle" (click)="onCancel()" aria-label="Close filter">
+        <h3 class="text-sm font-semibold">{{ resolvedLabels().title(column().header) }}</h3>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-circle"
+          (click)="onCancel()"
+          [attr.aria-label]="resolvedLabels().closeAriaLabel"
+        >
           <svg lucideX [size]="14"></svg>
         </button>
       </div>
@@ -38,7 +107,7 @@ export interface FilterApplyEvent {
               type="text"
               class="input input-sm"
               [(ngModel)]="textValue"
-              [placeholder]="filterConfig().placeholder ?? 'Enter value...'"
+              [placeholder]="filterConfig().placeholder ?? resolvedLabels().textPlaceholder"
               (keydown.enter)="onApply()"
             />
           }
@@ -59,7 +128,7 @@ export interface FilterApplyEvent {
               type="number"
               class="input input-sm"
               [(ngModel)]="numberValue"
-              [placeholder]="filterConfig().placeholder ?? 'Enter number...'"
+              [placeholder]="filterConfig().placeholder ?? resolvedLabels().numberPlaceholder"
               (keydown.enter)="onApply()"
             />
           }
@@ -72,7 +141,7 @@ export interface FilterApplyEvent {
           [options]="selectOptionsSignal()"
           [ngModel]="selectValueString()"
           (ngModelChange)="onSelectChange($event)"
-          placeholder="-- Select --"
+          [placeholder]="resolvedLabels().selectPlaceholder"
           size="sm"
           [allowClear]="true"
           [enableSearch]="selectOptionsSignal().length > 6"
@@ -82,10 +151,10 @@ export interface FilterApplyEvent {
       <!-- Boolean Filter -->
       @if (filterConfig().type === 'boolean') {
         <hk-select
-          [options]="booleanOptions"
+          [options]="booleanOptionsSignal()"
           [ngModel]="booleanValueString()"
           (ngModelChange)="onBooleanChange($event)"
-          placeholder="-- Select --"
+          [placeholder]="resolvedLabels().selectPlaceholder"
           size="sm"
           [allowClear]="true"
         />
@@ -98,7 +167,7 @@ export interface FilterApplyEvent {
           [multiple]="true"
           [ngModel]="multiSelectStrings()"
           (ngModelChange)="onMultiSelectChange($event)"
-          placeholder="Select values..."
+          [placeholder]="resolvedLabels().multiSelectPlaceholder"
           size="sm"
           [enableSearch]="selectOptionsSignal().length > 6"
           [showSelectAll]="true"
@@ -119,7 +188,7 @@ export interface FilterApplyEvent {
           <hk-datepicker
             [ngModel]="dateValueAsDate()"
             (ngModelChange)="onDateChange($event)"
-            placeholder="Select date"
+            [placeholder]="resolvedLabels().datePlaceholder"
             [showClearButton]="true"
             [showTodayButton]="true"
           />
@@ -130,9 +199,19 @@ export interface FilterApplyEvent {
       @if (filterConfig().type === 'numberRange') {
         <div class="flex flex-col gap-2">
           <div class="flex gap-2">
-            <input type="number" class="input input-sm flex-1" [(ngModel)]="rangeMin" placeholder="Min" />
-            <span class="self-center text-sm">to</span>
-            <input type="number" class="input input-sm flex-1" [(ngModel)]="rangeMax" placeholder="Max" />
+            <input
+              type="number"
+              class="input input-sm flex-1"
+              [(ngModel)]="rangeMin"
+              [placeholder]="resolvedLabels().rangeMinPlaceholder"
+            />
+            <span class="self-center text-sm">{{ resolvedLabels().rangeSeparator }}</span>
+            <input
+              type="number"
+              class="input input-sm flex-1"
+              [(ngModel)]="rangeMax"
+              [placeholder]="resolvedLabels().rangeMaxPlaceholder"
+            />
           </div>
         </div>
       }
@@ -143,7 +222,7 @@ export interface FilterApplyEvent {
           [range]="true"
           [ngModel]="dateRangeAsObject()"
           (ngModelChange)="onDateRangeChange($event)"
-          placeholder="Select date range"
+          [placeholder]="resolvedLabels().dateRangePlaceholder"
           [showClearButton]="true"
         />
       }
@@ -152,9 +231,9 @@ export interface FilterApplyEvent {
       <div class="mt-1 flex gap-2">
         <button type="button" class="btn btn-primary btn-sm flex-1" (click)="onApply()">
           <svg lucideCheck [size]="14"></svg>
-          Apply
+          {{ resolvedLabels().apply }}
         </button>
-        <button type="button" class="btn btn-ghost btn-sm" (click)="onClear()">Clear</button>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="onClear()">{{ resolvedLabels().clear }}</button>
       </div>
     </div>
   `,
@@ -163,6 +242,8 @@ export class TableFilterComponent<T extends object> implements OnInit {
   column = input.required<ColumnDefinition<T>>();
   filterConfig = input.required<ColumnFilter<T>>();
   activeFilter = input<FilterConfig<T>>();
+  /** Inherited filter labels (from `FieldConfig.filterLabels`). Per-column overrides via `ColumnFilter.labels` win. */
+  labels = input<FilterLabels>({});
 
   readonly apply = output<FilterApplyEvent>();
   readonly closeFilter = output<void>();
@@ -180,10 +261,17 @@ export class TableFilterComponent<T extends object> implements OnInit {
 
   selectedOperator = signal<FilterOperator>('contains');
 
-  readonly booleanOptions: SelectOption[] = [
-    { value: 'true', label: 'Yes' },
-    { value: 'false', label: 'No' },
-  ];
+  readonly resolvedLabels = computed<ResolvedFilterLabels>(() => {
+    const inherited: FilterLabels = this.labels() ?? {};
+    const perColumn: FilterLabels = this.filterConfig().labels ?? {};
+    const operators = { ...DEFAULT_OPERATOR_LABELS, ...(inherited.operators ?? {}), ...(perColumn.operators ?? {}) };
+    return { ...DEFAULT_LABELS, ...inherited, ...perColumn, operators };
+  });
+
+  readonly booleanOptionsSignal = computed<SelectOption[]>(() => [
+    { value: 'true', label: this.resolvedLabels().booleanTrue },
+    { value: 'false', label: this.resolvedLabels().booleanFalse },
+  ]);
 
   /** Convert filter config options to SelectOption[] for hk-select */
   readonly selectOptionsSignal = computed<SelectOption[]>(() => {
@@ -380,41 +468,28 @@ export class TableFilterComponent<T extends object> implements OnInit {
   }
 
   getTextOperators(): { value: FilterOperator; label: string }[] {
-    const all: { value: FilterOperator; label: string }[] = [
-      { value: 'contains', label: 'Contains' },
-      { value: 'equals', label: 'Equals' },
-      { value: 'notEquals', label: 'Not Equals' },
-      { value: 'startsWith', label: 'Starts With' },
-      { value: 'endsWith', label: 'Ends With' },
-      { value: 'isEmpty', label: 'Is Empty' },
-      { value: 'isNotEmpty', label: 'Is Not Empty' },
-    ];
-    return this.filterAllowedOperators(all);
+    const labels = this.resolvedLabels().operators;
+    const ops: FilterOperator[] = ['contains', 'equals', 'notEquals', 'startsWith', 'endsWith', 'isEmpty', 'isNotEmpty'];
+    return this.filterAllowedOperators(ops.map((value) => ({ value, label: labels[value] })));
   }
 
   getNumberOperators(): { value: FilterOperator; label: string }[] {
-    const all: { value: FilterOperator; label: string }[] = [
-      { value: 'equals', label: 'Equals' },
-      { value: 'notEquals', label: 'Not Equals' },
-      { value: 'gt', label: 'Greater Than' },
-      { value: 'lt', label: 'Less Than' },
-      { value: 'gte', label: 'Greater or Equal' },
-      { value: 'lte', label: 'Less or Equal' },
-      { value: 'isEmpty', label: 'Is Empty' },
-      { value: 'isNotEmpty', label: 'Is Not Empty' },
-    ];
-    return this.filterAllowedOperators(all);
+    const labels = this.resolvedLabels().operators;
+    const ops: FilterOperator[] = ['equals', 'notEquals', 'gt', 'lt', 'gte', 'lte', 'isEmpty', 'isNotEmpty'];
+    return this.filterAllowedOperators(ops.map((value) => ({ value, label: labels[value] })));
   }
 
   getDateOperators(): { value: FilterOperator; label: string }[] {
-    const all: { value: FilterOperator; label: string }[] = [
-      { value: 'equals', label: 'On' },
-      { value: 'gt', label: 'After' },
-      { value: 'lt', label: 'Before' },
-      { value: 'gte', label: 'On or After' },
-      { value: 'lte', label: 'On or Before' },
-    ];
-    return this.filterAllowedOperators(all);
+    const labels = this.resolvedLabels().operators;
+    const ops: FilterOperator[] = ['equals', 'gt', 'lt', 'gte', 'lte'];
+    // Override generic labels with date-specific variants (e.g. "On", "After") unless user customized operators.
+    const userOperators = this.filterConfig().labels?.operators ?? this.labels()?.operators ?? {};
+    return this.filterAllowedOperators(
+      ops.map((value) => ({
+        value,
+        label: userOperators[value] ?? DATE_OPERATOR_OVERRIDES[value] ?? labels[value],
+      })),
+    );
   }
 
   private filterAllowedOperators(operators: { value: FilterOperator; label: string }[]): { value: FilterOperator; label: string }[] {

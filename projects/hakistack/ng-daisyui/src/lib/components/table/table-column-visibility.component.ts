@@ -1,7 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 
 import { LucideColumns3, LucideLock, LucideEye, LucideEyeOff, LucideRotateCcw } from '@lucide/angular';
-import { ColumnDefinition } from './table.types';
+import { ColumnDefinition, ColumnVisibilityLabels } from './table.types';
+
+const DEFAULT_LABELS: Required<ColumnVisibilityLabels> = {
+  trigger: 'Columns',
+  showAll: 'Show All',
+  hideAll: 'Hide All',
+  reset: 'Reset',
+  showAllAriaLabel: 'Show all columns',
+  hideAllAriaLabel: 'Hide optional columns',
+  resetAriaLabel: 'Reset to default columns',
+};
 
 @Component({
   selector: 'hk-table-column-visibility',
@@ -11,7 +21,7 @@ import { ColumnDefinition } from './table.types';
     <details class="dropdown dropdown-end">
       <summary class="btn btn-sm btn-ghost gap-2">
         <svg lucideColumns3 [size]="16"></svg>
-        <span>Columns</span>
+        <span>{{ resolvedLabels().trigger }}</span>
         <span class="badge badge-sm badge-neutral">{{ visibleColumnsCount() }}/{{ columns().length }}</span>
       </summary>
       <div class="dropdown-content card card-sm bg-base-100 z-10 mt-2 w-72 shadow-xl">
@@ -50,10 +60,10 @@ import { ColumnDefinition } from './table.types';
               class="btn btn-ghost btn-xs gap-1"
               [disabled]="allColumnsVisible()"
               (click)="onShowAll()"
-              aria-label="Show all columns"
+              [attr.aria-label]="resolvedLabels().showAllAriaLabel"
             >
               <svg lucideEye [size]="14"></svg>
-              Show All
+              {{ resolvedLabels().showAll }}
             </button>
 
             <button
@@ -61,15 +71,20 @@ import { ColumnDefinition } from './table.types';
               class="btn btn-ghost btn-xs gap-1"
               [disabled]="onlyRequiredColumnsVisible()"
               (click)="onHideAll()"
-              aria-label="Hide optional columns"
+              [attr.aria-label]="resolvedLabels().hideAllAriaLabel"
             >
               <svg lucideEyeOff [size]="14"></svg>
-              Hide All
+              {{ resolvedLabels().hideAll }}
             </button>
 
-            <button type="button" class="btn btn-ghost btn-xs gap-1" (click)="onReset()" aria-label="Reset to default columns">
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs gap-1"
+              (click)="onReset()"
+              [attr.aria-label]="resolvedLabels().resetAriaLabel"
+            >
               <svg lucideRotateCcw [size]="14"></svg>
-              Reset
+              {{ resolvedLabels().reset }}
             </button>
           </div>
         </div>
@@ -81,6 +96,7 @@ export class TableColumnVisibilityComponent<T extends Record<string, unknown>> {
   readonly columns = input.required<ColumnDefinition<T>[]>();
   readonly visibilityState = input.required<Map<string, boolean>>();
   readonly alwaysVisibleColumns = input<Set<string>>(new Set());
+  readonly labels = input<ColumnVisibilityLabels>({});
 
   // Outputs using new output() function
   readonly toggleColumn = output<string>();
@@ -88,7 +104,11 @@ export class TableColumnVisibilityComponent<T extends Record<string, unknown>> {
   readonly hideAll = output<void>();
   readonly resetEmitter = output<void>();
 
-  // Computed signals
+  readonly resolvedLabels = computed<Required<ColumnVisibilityLabels>>(() => ({
+    ...DEFAULT_LABELS,
+    ...this.labels(),
+  }));
+
   readonly visibleColumnsCount = computed(() => {
     return this.columns().filter((c) => this.isColumnVisible(c.field)).length;
   });

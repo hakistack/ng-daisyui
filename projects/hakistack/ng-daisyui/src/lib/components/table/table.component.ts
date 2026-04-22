@@ -501,6 +501,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly hasGlobalSearchSignal = computed(() => this.fieldConfig()?.globalSearch?.enabled ?? false);
   readonly globalSearchModeSignal = computed(() => this.fieldConfig()?.globalSearch?.mode ?? 'contains');
   readonly globalSearchPlaceholderSignal = computed(() => this.fieldConfig()?.globalSearch?.placeholder ?? 'Search all columns...');
+  readonly globalSearchClearAriaSignal = computed(() => this.fieldConfig()?.globalSearch?.labels?.clearAriaLabel ?? 'Clear search');
   readonly hasGlobalSearchTermSignal = computed(() => this.debouncedSearchTerm().length > 0);
 
   // Enhanced pagination state
@@ -578,6 +579,34 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly columnVisibilityConfig = computed(() => this.fieldConfig()?.columnVisibility);
   readonly isColumnVisibilityEnabled = computed(() => this.columnVisibilityConfig()?.enabled ?? false);
   readonly alwaysVisibleColumns = computed(() => new Set(this.columnVisibilityConfig()?.alwaysVisible ?? []));
+  readonly columnVisibilityLabels = computed(() => this.columnVisibilityConfig()?.labels ?? {});
+
+  // Label resolution for the main table template. `tableLabels()` returns a
+  // merged object (defaults + user overrides) so templates can `{{ tableLabels().foo }}`
+  // without `?? 'default'` sprinkled everywhere.
+  readonly tableLabels = computed(() => {
+    const overrides = this.fieldConfig()?.labels ?? {};
+    return {
+      loading: overrides.loading ?? 'Loading data...',
+      itemSelected: overrides.itemSelected ?? 'item selected',
+      itemsSelected: overrides.itemsSelected ?? 'items selected',
+      activeFilters: overrides.activeFilters ?? 'Active Filters',
+      clearAllFilters: overrides.clearAllFilters ?? 'Clear All',
+      clearAllFiltersAriaLabel: overrides.clearAllFiltersAriaLabel ?? 'Clear all filters',
+      removeFilterAriaLabel: overrides.removeFilterAriaLabel ?? ((field: string) => `Remove filter for ${field}`),
+      filterButtonAriaLabel: overrides.filterButtonAriaLabel ?? ((col: string) => `Filter ${col}`),
+      selectRowAriaLabel: overrides.selectRowAriaLabel ?? 'Select row',
+      deselectRowAriaLabel: overrides.deselectRowAriaLabel ?? 'Deselect row',
+      selectAllAriaLabel: overrides.selectAllAriaLabel ?? 'Select all rows on this page',
+      deselectAllAriaLabel: overrides.deselectAllAriaLabel ?? 'Deselect all rows on this page',
+      clearSelectionAriaLabel: overrides.clearSelectionAriaLabel ?? 'Clear selection',
+      expandRowAriaLabel: overrides.expandRowAriaLabel ?? 'Expand row',
+      collapseRowAriaLabel: overrides.collapseRowAriaLabel ?? 'Collapse row',
+      expandDetailsAriaLabel: overrides.expandDetailsAriaLabel ?? 'Expand details',
+      collapseDetailsAriaLabel: overrides.collapseDetailsAriaLabel ?? 'Collapse details',
+    };
+  });
+  readonly filterLabels = computed(() => this.fieldConfig()?.filterLabels ?? {});
 
   // Get filter configuration for a specific column
   readonly columnFiltersMapSignal = computed(() => {
@@ -900,27 +929,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   readonly actionListSignal = computed(() => {
     const actions = this.fieldConfig()?.actions ?? [];
-
-    // Sort actions based on ACTION_ORDER, putting known types first
-    const actionOrder: readonly string[] = TableComponent.ACTION_ORDER;
-    return actions
-      .map((config) => ({
-        key: config.type,
-        config,
-      }))
-      .sort((a, b) => {
-        const indexA = actionOrder.indexOf(a.key);
-        const indexB = actionOrder.indexOf(b.key);
-
-        // If both are in the order list, sort by their position
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        // If only A is in the order list, it comes first
-        if (indexA !== -1) return -1;
-        // If only B is in the order list, it comes first
-        if (indexB !== -1) return 1;
-        // If neither are in the order list, maintain original order
-        return 0;
-      });
+    return actions.map((config) => ({ key: config.type, config })).sort(TableComponent.compareByActionOrder);
   });
 
   readonly startActionListSignal = computed(() => {
@@ -936,27 +945,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   readonly bulkActionListSignal = computed<BulkActionItem<T>[]>(() => {
     const bulkActions = this.fieldConfig()?.bulkActions ?? [];
-
-    // Sort bulk actions based on ACTION_ORDER, putting known types first
-    const actionOrder: readonly string[] = TableComponent.ACTION_ORDER;
-    return bulkActions
-      .map((config) => ({
-        key: config.type,
-        config,
-      }))
-      .sort((a, b) => {
-        const indexA = actionOrder.indexOf(a.key);
-        const indexB = actionOrder.indexOf(b.key);
-
-        // If both are in the order list, sort by their position
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        // If only A is in the order list, it comes first
-        if (indexA !== -1) return -1;
-        // If only B is in the order list, it comes first
-        if (indexB !== -1) return 1;
-        // If neither are in the order list, maintain original order
-        return 0;
-      });
+    return bulkActions.map((config) => ({ key: config.type, config })).sort(TableComponent.compareByActionOrder);
   });
 
   readonly selectedArraySignal = computed(() => [...this.selectedSignal()]);
@@ -975,13 +964,18 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // Apply column order override (from column reordering)
     const orderOverride = this.columnOrderOverride();
     if (orderOverride) {
+      const dataSet = new Set<string>(dataColumns as string[]);
       const ordered: StringKey<T>[] = [];
+      const seen = new Set<string>();
       for (const col of orderOverride) {
-        if ((dataColumns as string[]).includes(col)) ordered.push(col as StringKey<T>);
+        if (dataSet.has(col)) {
+          ordered.push(col as StringKey<T>);
+          seen.add(col);
+        }
       }
       // Append any columns not in the override (newly added columns)
       for (const col of dataColumns) {
-        if (!(ordered as string[]).includes(col)) ordered.push(col);
+        if (!seen.has(col)) ordered.push(col);
       }
       dataColumns = ordered;
     }
@@ -1035,6 +1029,24 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   // Static properties
   private static readonly ACTION_ORDER: readonly ActionType[] = ['view', 'edit', 'delete', 'upload', 'download', 'print'] as const;
+  private static readonly ACTION_ORDER_INDEX: ReadonlyMap<string, number> = new Map(
+    TableComponent.ACTION_ORDER.map((type, index) => [type as string, index]),
+  );
+
+  /**
+   * Shared comparator: sorts action-like items by ACTION_ORDER_INDEX, putting
+   * known types first in declared order and leaving unknown types in their
+   * original relative order (stable sort).
+   */
+  private static compareByActionOrder<K extends { key: string }>(a: K, b: K): number {
+    const order = TableComponent.ACTION_ORDER_INDEX;
+    const indexA = order.get(a.key);
+    const indexB = order.get(b.key);
+    if (indexA !== undefined && indexB !== undefined) return indexA - indexB;
+    if (indexA !== undefined) return -1;
+    if (indexB !== undefined) return 1;
+    return 0;
+  }
 
   private static readonly ACTION_CLASSES: Readonly<Record<string, string>> = {
     view: 'btn btn-sm btn-secondary',
@@ -2385,38 +2397,45 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       }
     });
 
-    // Initialize pagination state from options
+    // Pagination state is driven by three disjoint triggers. Each effect owns
+    // exactly one input — reads of other signals are `untracked()` so an update
+    // to one source never fires the other effects (prevents e.g. a server-side
+    // `totalItems` update from yanking pageIndex back to 0).
+
+    // Trigger: paginationOptions / showFirstLastButtons / disabled change
     effect(() => {
       const options = this.paginationOptions();
-      if (options) {
+      const showFirstLast = this.showFirstLastButtons();
+      const disabled = this.disabled();
+      if (!options) return;
+      this.paginationState.update((state) => ({
+        ...state,
+        pageSize: options.pageSize ?? 10,
+        showFirstLastButtons: showFirstLast,
+        disabled,
+      }));
+    });
+
+    // Trigger: data() changes — reset pageIndex, clear caches and selection
+    effect(() => {
+      this.data();
+      untracked(() => {
+        this.htmlCache.clear();
         this.paginationState.update((state) => ({
           ...state,
-          pageSize: options.pageSize ?? 10, // Use explicit default of 10
-          showFirstLastButtons: this.showFirstLastButtons(),
-          disabled: this.disabled(),
+          pageIndex: 0,
+          totalItems: this.totalItemsSignal(),
         }));
-      }
+        this.selectedSignal.set(new Set());
+      });
     });
 
-    // Reset pagination when data changes
-    effect(() => {
-      this.data(); // Subscribe to data changes
-      this.htmlCache.clear();
-      this.paginationState.update((state) => ({
-        ...state,
-        pageIndex: 0,
-        totalItems: this.totalItemsSignal(),
-      }));
-      this.selectedSignal.set(new Set());
-    });
-
-    // Update total items when it changes
+    // Trigger: totalItems changes independently (server-side pagination)
     effect(() => {
       const totalItems = this.totalItemsSignal();
-      this.paginationState.update((state) => ({
-        ...state,
-        totalItems,
-      }));
+      untracked(() => {
+        this.paginationState.update((state) => ({ ...state, totalItems }));
+      });
     });
 
     // Note: Sorting now works for both offset and cursor modes

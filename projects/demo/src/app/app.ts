@@ -331,6 +331,7 @@ export class App implements OnInit {
             { id: 'hierarchy', label: 'Hierarchy' },
             { id: 'masterDetail', label: 'Master-Detail' },
             { id: 'nestedMasterDetail', label: 'Nested Master-Detail' },
+            { id: 'cellTemplate', label: 'Cell Template' },
           ],
         },
         {

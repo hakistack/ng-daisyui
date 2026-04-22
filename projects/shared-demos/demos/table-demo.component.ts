@@ -9,6 +9,7 @@ import {
   createTable,
   ToastService,
   HkFooterDirective,
+  HkCellTemplateDirective,
   CellEditEvent,
   RowReorderEvent,
   ColumnReorderEvent,
@@ -23,6 +24,9 @@ import {
   LucidePencil,
   LucideTrash2,
   LucideDownload,
+  LucideShield,
+  LucidePencilLine,
+  LucideUser,
 } from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
@@ -101,7 +105,8 @@ type TableTab =
   | 'hierarchy'
   | 'masterDetail'
   | 'nestedMasterDetail'
-  | 'actionsPosition';
+  | 'actionsPosition'
+  | 'cellTemplate';
 type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'types';
 
 @Component({
@@ -112,6 +117,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
     TableComponent,
     LucideDynamicIcon,
     HkFooterDirective,
+    HkCellTemplateDirective,
     DocSectionComponent,
     ApiTableComponent,
     CodeBlockComponent,
@@ -463,6 +469,83 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             <hk-table [data]="employees()" [config]="nestedMasterDetailConfig" />
           </app-doc-section>
         }
+
+        @if (activeTab() === 'cellTemplate') {
+          <app-doc-section
+            title="Custom Cell Templates (hkCellTemplate)"
+            description="Project Angular templates per column to render rich content with directives, pipes, and event bindings — beyond what string formatters can do. Match by column field name; unmatched columns fall back to the default renderer."
+            [codeExample]="cellTemplateCode"
+          >
+            <hk-table [data]="users()" [config]="cellTemplateConfig">
+              <!-- Avatar + name stacked cell -->
+              <ng-template hkCellTemplate="name" let-row>
+                <div class="flex items-center gap-3">
+                  <div class="avatar avatar-placeholder">
+                    <div class="bg-primary text-primary-content w-9 rounded-full">
+                      <span class="text-xs font-semibold">{{ initials(row.name) }}</span>
+                    </div>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-medium leading-tight">{{ row.name }}</span>
+                    <span class="text-xs text-base-content/50">ID #{{ row.id }}</span>
+                  </div>
+                </div>
+              </ng-template>
+
+              <!-- Email with mailto link -->
+              <ng-template hkCellTemplate="email" let-row>
+                <a [href]="'mailto:' + row.email" class="link link-primary link-hover text-sm">{{ row.email }}</a>
+              </ng-template>
+
+              <!-- Role badge with icon -->
+              <ng-template hkCellTemplate="role" let-row>
+                <span
+                  class="badge badge-soft badge-sm gap-1 capitalize"
+                  [class.badge-error]="row.role === 'admin'"
+                  [class.badge-info]="row.role === 'editor'"
+                  [class.badge-ghost]="row.role === 'viewer'"
+                >
+                  <svg [lucideIcon]="roleIcon(row.role)" [size]="12"></svg>
+                  {{ row.role }}
+                </span>
+              </ng-template>
+
+              <!-- Salary as progress bar relative to max -->
+              <ng-template hkCellTemplate="salary" let-row>
+                <div class="flex items-center gap-2 min-w-[140px]">
+                  <progress
+                    class="progress progress-success w-20"
+                    [value]="row.salary"
+                    [max]="salaryMax()"
+                    [attr.aria-label]="'Salary ' + row.name"
+                  ></progress>
+                  <span class="text-xs font-mono tabular-nums">{{ row.salary | currency: 'USD' : 'symbol' : '1.0-0' }}</span>
+                </div>
+              </ng-template>
+
+              <!-- Status with colored dot -->
+              <ng-template hkCellTemplate="status" let-row>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="inline-block w-2 h-2 rounded-full"
+                    [class.bg-success]="row.status === 'active'"
+                    [class.bg-error]="row.status === 'inactive'"
+                    [class.bg-warning]="row.status === 'pending'"
+                  ></span>
+                  <span class="text-sm capitalize">{{ row.status }}</span>
+                </div>
+              </ng-template>
+
+              <!-- Join date relative formatting + column context usage -->
+              <ng-template hkCellTemplate="joinDate" let-row let-column="column">
+                <div class="flex flex-col" [title]="column.header">
+                  <span class="text-sm">{{ row.joinDate | date: 'mediumDate' }}</span>
+                  <span class="text-xs text-base-content/50">{{ yearsSince(row.joinDate) }}y tenure</span>
+                </div>
+              </ng-template>
+            </hk-table>
+          </app-doc-section>
+        }
       </div>
       <div api class="space-y-6">
         <!-- API Sub-tabs -->
@@ -689,6 +772,9 @@ export class TableDemoComponent {
   readonly xIcon = LucideX;
   readonly mousePointerClickIcon = LucideMousePointerClick;
   readonly usersIcon = LucideUsers;
+  readonly adminIcon = LucideShield;
+  readonly editorIcon = LucidePencilLine;
+  readonly viewerIcon = LucideUser;
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private featureParam = toSignal(this.route.params.pipe(map((p) => p['feature'])));
@@ -809,6 +895,40 @@ export class TableDemoComponent {
       },
     },
   });
+
+  cellTemplateConfig = createTable<User>({
+    visible: ['name', 'email', 'role', 'salary', 'status', 'joinDate'],
+    headers: {
+      name: 'Employee',
+      email: 'Email',
+      role: 'Role',
+      salary: 'Salary',
+      status: 'Status',
+      joinDate: 'Joined',
+    },
+  });
+
+  salaryMax = computed(() => Math.max(...this.users().map((u) => u.salary)));
+
+  initials(name: string): string {
+    return name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  roleIcon(role: User['role']) {
+    if (role === 'admin') return this.adminIcon;
+    if (role === 'editor') return this.editorIcon;
+    return this.viewerIcon;
+  }
+
+  yearsSince(date: Date): number {
+    const diff = Date.now() - new Date(date).getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
+  }
 
   selectableRowConfig = createTable<User>({
     visible: ['id', 'name', 'email', 'role', 'department', 'status'],
@@ -2296,6 +2416,49 @@ const config = createTable<User>({
 
 // Template
 <hk-table [data]="users()" [config]="config" />`;
+
+  cellTemplateCode = `// TypeScript
+import { TableComponent, HkCellTemplateDirective, createTable } from '@hakistack/ng-daisyui';
+
+@Component({
+  imports: [TableComponent, HkCellTemplateDirective],
+  template: \`
+    <hk-table [data]="users()" [config]="config">
+      <!-- Match by column field. $implicit = row, column = ColumnDefinition -->
+      <ng-template hkCellTemplate="name" let-row>
+        <div class="avatar avatar-placeholder">
+          <div class="bg-primary text-primary-content w-9 rounded-full">
+            <span>{{ initials(row.name) }}</span>
+          </div>
+        </div>
+        {{ row.name }}
+      </ng-template>
+
+      <ng-template hkCellTemplate="email" let-row>
+        <a [href]="'mailto:' + row.email" class="link link-primary">{{ row.email }}</a>
+      </ng-template>
+
+      <ng-template hkCellTemplate="salary" let-row>
+        <progress class="progress" [value]="row.salary" [max]="salaryMax()"></progress>
+        {{ row.salary | currency }}
+      </ng-template>
+
+      <!-- column context exposes the ColumnDefinition for that cell -->
+      <ng-template hkCellTemplate="joinDate" let-row let-column="column">
+        <span [title]="column.header">{{ row.joinDate | date: 'mediumDate' }}</span>
+      </ng-template>
+    </hk-table>
+  \`,
+})
+export class MyTableComponent {
+  config = createTable<User>({
+    visible: ['name', 'email', 'role', 'salary', 'status', 'joinDate'],
+    headers: { name: 'Employee', joinDate: 'Joined' },
+  });
+
+  salaryMax = computed(() => Math.max(...this.users().map((u) => u.salary)));
+  initials(name: string) { return name.split(' ').map(p => p[0]).join('').slice(0, 2); }
+}`;
 
   selectableRowCode = `// TypeScript
 const config = createTable<User>({

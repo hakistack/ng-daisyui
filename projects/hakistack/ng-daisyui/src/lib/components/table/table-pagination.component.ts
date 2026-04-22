@@ -2,7 +2,59 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal, Tr
 import { CommonModule } from '@angular/common';
 
 import { LucideChevronsLeft, LucideChevronLeft, LucideChevronRight, LucideChevronsRight } from '@lucide/angular';
-import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.types';
+import { CursorPageChange, PageSizeChange, PaginationLabels, PaginationOptions } from './table.types';
+
+type ResolvedPaginationLabels = {
+  itemsPerPage: string;
+  cursorModeText: string;
+  goTo: string;
+  go: string;
+  previous: string;
+  next: string;
+  navigationAriaLabel: string;
+  pageNavigationAriaLabel: string;
+  cursorNavigationAriaLabel: string;
+  firstPageAriaLabel: string;
+  firstPageTitle: string;
+  previousPageAriaLabel: string;
+  previousPageTitle: string;
+  nextPageAriaLabel: string;
+  nextPageTitle: string;
+  lastPageAriaLabel: string;
+  lastPageTitle: string;
+  pageSizeSelectAriaLabel: (currentSize: number) => string;
+  currentPageAriaLabel: (page: number) => string;
+  goToPageAriaLabel: (page: number) => string;
+  quickJumperInputAriaLabel: (totalPages: number) => string;
+  quickJumperSubmitAriaLabel: string;
+  emptyTotal: string;
+};
+
+const DEFAULT_LABELS: ResolvedPaginationLabels = {
+  itemsPerPage: 'Items per page:',
+  cursorModeText: 'Cursor-based pagination',
+  goTo: 'Go to',
+  go: 'Go',
+  previous: 'Previous',
+  next: 'Next',
+  navigationAriaLabel: 'Table pagination navigation',
+  pageNavigationAriaLabel: 'Page navigation',
+  cursorNavigationAriaLabel: 'Cursor navigation',
+  firstPageAriaLabel: 'Go to first page',
+  firstPageTitle: 'First page',
+  previousPageAriaLabel: 'Go to previous page',
+  previousPageTitle: 'Previous page',
+  nextPageAriaLabel: 'Go to next page',
+  nextPageTitle: 'Next page',
+  lastPageAriaLabel: 'Go to last page',
+  lastPageTitle: 'Last page',
+  pageSizeSelectAriaLabel: (size) => `Select number of items per page, currently ${size}`,
+  currentPageAriaLabel: (page) => `Current page, page ${page}`,
+  goToPageAriaLabel: (page) => `Go to page ${page}`,
+  quickJumperInputAriaLabel: (total) => `Enter page number between 1 and ${total}`,
+  quickJumperSubmitAriaLabel: 'Go to entered page',
+  emptyTotal: '0 of 0',
+};
 
 @Component({
   selector: 'hk-table-pagination',
@@ -15,14 +67,14 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
         <!-- Page Size Selector -->
         @if (!hidePageSizeComputed() && showPageSizeOptions()) {
           <div class="flex items-center gap-2">
-            <label for="page-size-select" class="text-sm font-medium whitespace-nowrap"> Items per page: </label>
+            <label for="page-size-select" class="text-sm font-medium whitespace-nowrap"> {{ resolvedLabels().itemsPerPage }} </label>
             <select
               id="page-size-select"
               class="select select-sm w-auto min-w-16"
               [value]="pageSizeSignal()"
               (change)="onPageSizeChange(+$any($event.target).value)"
               [disabled]="disabled()"
-              [attr.aria-label]="'Select number of items per page, currently ' + pageSizeSignal()"
+              [attr.aria-label]="resolvedLabels().pageSizeSelectAriaLabel(pageSizeSignal())"
             >
               @for (pageSize of pageSizeOptionsSignal(); track trackByPageSize($index, pageSize)) {
                 <option [value]="pageSize" [selected]="pageSize === pageSizeSignal()">{{ pageSize }}</option>
@@ -33,18 +85,18 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
       </div>
 
       <!-- Bottom section: Navigation controls -->
-      <nav class="flex items-center justify-center sm:justify-end" [attr.aria-label]="'Table pagination navigation'">
+      <nav class="flex items-center justify-center sm:justify-end" [attr.aria-label]="resolvedLabels().navigationAriaLabel">
         <!-- Pagination Info -->
         <div class="flex items-center gap-3">
           <div class="text-base-content/70 text-sm whitespace-nowrap">
             @if (modeSignal() === 'offset') {
               @if (totalItemsSignal() === 0) {
-                <span>0 of 0</span>
+                <span>{{ resolvedLabels().emptyTotal }}</span>
               } @else {
                 <span>{{ totalDisplayText() }}</span>
               }
             } @else {
-              <span>Cursor-based pagination</span>
+              <span>{{ resolvedLabels().cursorModeText }}</span>
             }
           </div>
         </div>
@@ -53,7 +105,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
 
         @if (modeSignal() === 'offset') {
           <!-- Offset Pagination - All buttons in join for connected styling -->
-          <div class="join" role="group" [attr.aria-label]="'Page navigation'">
+          <div class="join" role="group" [attr.aria-label]="resolvedLabels().pageNavigationAriaLabel">
             <!-- First Page Button -->
             @if (showFirstLastButtons()) {
               <button
@@ -61,8 +113,8 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
                 class="join-item btn btn-sm"
                 (click)="onFirstPage()"
                 [disabled]="isFirstPageSignal() || disabled()"
-                [attr.aria-label]="'Go to first page'"
-                title="First page"
+                [attr.aria-label]="resolvedLabels().firstPageAriaLabel"
+                [title]="resolvedLabels().firstPageTitle"
               >
                 <svg lucideChevronsLeft></svg>
               </button>
@@ -74,8 +126,8 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               class="join-item btn btn-sm"
               (click)="onPreviousPage()"
               [disabled]="!hasPreviousPageSignal() || disabled()"
-              [attr.aria-label]="'Go to previous page'"
-              title="Previous page"
+              [attr.aria-label]="resolvedLabels().previousPageAriaLabel"
+              [title]="resolvedLabels().previousPageTitle"
             >
               <svg lucideChevronLeft></svg>
             </button>
@@ -87,7 +139,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
                 <button
                   type="button"
                   class="join-item btn btn-sm btn-active"
-                  [attr.aria-label]="'Current page, page ' + pageNum"
+                  [attr.aria-label]="resolvedLabels().currentPageAriaLabel(pageNum)"
                   [attr.aria-current]="'page'"
                 >
                   {{ pageNum }}
@@ -99,7 +151,7 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
                   class="join-item btn btn-sm"
                   (click)="onGotoPage(pageNum)"
                   [disabled]="disabled()"
-                  [attr.aria-label]="'Go to page ' + pageNum"
+                  [attr.aria-label]="resolvedLabels().goToPageAriaLabel(pageNum)"
                 >
                   {{ pageNum }}
                 </button>
@@ -112,8 +164,8 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               class="join-item btn btn-sm"
               (click)="onNextPage()"
               [disabled]="!hasNextPageSignal() || disabled()"
-              [attr.aria-label]="'Go to next page'"
-              title="Next page"
+              [attr.aria-label]="resolvedLabels().nextPageAriaLabel"
+              [title]="resolvedLabels().nextPageTitle"
             >
               <svg lucideChevronRight></svg>
             </button>
@@ -125,8 +177,8 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
                 class="join-item btn btn-sm"
                 (click)="onLastPage()"
                 [disabled]="isLastPageSignal() || disabled()"
-                [attr.aria-label]="'Go to last page'"
-                title="Last page"
+                [attr.aria-label]="resolvedLabels().lastPageAriaLabel"
+                [title]="resolvedLabels().lastPageTitle"
               >
                 <svg lucideChevronsRight></svg>
               </button>
@@ -134,17 +186,17 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
           </div>
         } @else {
           <!-- Cursor Pagination -->
-          <div class="join" role="group" [attr.aria-label]="'Cursor navigation'">
+          <div class="join" role="group" [attr.aria-label]="resolvedLabels().cursorNavigationAriaLabel">
             <button
               type="button"
               class="join-item btn btn-sm"
               (click)="onPrevCursorPage()"
               [disabled]="!prevCursorSignal() || disabled()"
-              [attr.aria-label]="'Go to previous page'"
-              title="Previous page"
+              [attr.aria-label]="resolvedLabels().previousPageAriaLabel"
+              [title]="resolvedLabels().previousPageTitle"
             >
               <svg lucideChevronLeft></svg>
-              Previous
+              {{ resolvedLabels().previous }}
             </button>
 
             <button
@@ -152,10 +204,10 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               class="join-item btn btn-sm"
               (click)="onNextCursorPage()"
               [disabled]="!nextCursorSignal() || disabled()"
-              [attr.aria-label]="'Go to next page'"
-              title="Next page"
+              [attr.aria-label]="resolvedLabels().nextPageAriaLabel"
+              [title]="resolvedLabels().nextPageTitle"
             >
-              Next
+              {{ resolvedLabels().next }}
               <svg lucideChevronRight></svg>
             </button>
           </div>
@@ -164,8 +216,8 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
         <!-- Quick Jumper -->
         @if (showQuickJumperSignal() && modeSignal() === 'offset') {
           <div class="divider divider-horizontal"></div>
-          <form class="flex items-center gap-1" (submit)="onQuickJump($event)" aria-label="Go to page">
-            <label for="quick-jumper-input" class="text-sm whitespace-nowrap">Go to</label>
+          <form class="flex items-center gap-1" (submit)="onQuickJump($event)" [attr.aria-label]="resolvedLabels().goTo">
+            <label for="quick-jumper-input" class="text-sm whitespace-nowrap">{{ resolvedLabels().goTo }}</label>
             <input
               id="quick-jumper-input"
               type="number"
@@ -175,10 +227,15 @@ import { CursorPageChange, PageSizeChange, PaginationOptions } from './table.typ
               [value]="quickJumperValue()"
               (input)="quickJumperValue.set(+$any($event.target).value)"
               [disabled]="disabled()"
-              [attr.aria-label]="'Enter page number between 1 and ' + totalPagesSignal()"
+              [attr.aria-label]="resolvedLabels().quickJumperInputAriaLabel(totalPagesSignal())"
             />
-            <button type="submit" class="btn btn-sm" [disabled]="disabled() || !isValidQuickJumperValue()" aria-label="Go to entered page">
-              Go
+            <button
+              type="submit"
+              class="btn btn-sm"
+              [disabled]="disabled() || !isValidQuickJumperValue()"
+              [attr.aria-label]="resolvedLabels().quickJumperSubmitAriaLabel"
+            >
+              {{ resolvedLabels().go }}
             </button>
           </form>
         }
@@ -212,6 +269,11 @@ export class TablePaginationComponent {
   readonly prevCursorSignal = computed(() => this.paginationOptions()?.prevCursor ?? null);
   readonly totalItemsSignal = computed(() => this.paginationOptions()?.totalItems ?? this.totalItems());
 
+  readonly resolvedLabels = computed<ResolvedPaginationLabels>(() => {
+    const overrides: PaginationLabels = this.paginationOptions()?.labels ?? {};
+    return { ...DEFAULT_LABELS, ...overrides } as ResolvedPaginationLabels;
+  });
+
   // showSizeChanger: hide page size selector when explicitly set to false
   readonly hidePageSizeComputed = computed(() => this.hidePageSize() || this.paginationOptions()?.showSizeChanger === false);
 
@@ -236,7 +298,7 @@ export class TablePaginationComponent {
     }
 
     // Default format for true, false, or undefined
-    return `${start}\u2013${end} of ${total}`;
+    return `${start}–${end} of ${total}`;
   });
 
   // Navigation state

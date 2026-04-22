@@ -247,6 +247,15 @@ export interface GlobalSearchConfig<T> {
 
   // Fuse.js options for fuzzy search mode
   fuseOptions?: IFuseOptions<T>;
+
+  // Text overrides for the global-search input
+  labels?: GlobalSearchLabels;
+}
+
+// Customizable text for the global-search input. Any field undefined falls back to the English default.
+export interface GlobalSearchLabels {
+  /** aria-label for the clear-search button. Default: "Clear search" */
+  clearAriaLabel?: string;
 }
 
 // Global search change event
@@ -268,6 +277,28 @@ export interface ColumnVisibilityConfig {
 
   // Columns that cannot be hidden (always visible)
   alwaysVisible?: string[];
+
+  // Text overrides for the column-visibility dropdown UI
+  labels?: ColumnVisibilityLabels;
+}
+
+// Customizable text for the column-visibility dropdown. Any field left undefined
+// falls back to the English default.
+export interface ColumnVisibilityLabels {
+  /** Trigger button label. Default: "Columns" */
+  trigger?: string;
+  /** "Show all" button label. Default: "Show All" */
+  showAll?: string;
+  /** "Hide all" button label. Default: "Hide All" */
+  hideAll?: string;
+  /** "Reset" button label. Default: "Reset" */
+  reset?: string;
+  /** aria-label for the "Show all" button. Default: "Show all columns" */
+  showAllAriaLabel?: string;
+  /** aria-label for the "Hide all" button. Default: "Hide optional columns" */
+  hideAllAriaLabel?: string;
+  /** aria-label for the "Reset" button. Default: "Reset to default columns" */
+  resetAriaLabel?: string;
 }
 
 // Improved field configuration with better type constraints
@@ -371,6 +402,61 @@ export interface FieldConfig<T> {
   // Master-Detail Grid
   /** Master-detail grid configuration for stacked master/detail tables */
   masterDetail?: MasterDetailConfig<T>;
+
+  /** Table-wide text overrides (loading/empty/selection/filter-bar/ARIA). */
+  labels?: TableLabels;
+  /** Default filter dropdown text used for every column that doesn't override in its own `ColumnFilter.labels`. */
+  filterLabels?: FilterLabels;
+}
+
+/**
+ * Customizable text for the main table UI surfaces (excluding the dedicated
+ * sub-component configs like pagination/column-visibility/global-search). Any
+ * field undefined falls back to the English default.
+ */
+export interface TableLabels {
+  /** Loading state message. Default: "Loading data..." */
+  loading?: string;
+
+  // Selection bar
+  /** Selection count suffix for 1 item. Default: "item selected" */
+  itemSelected?: string;
+  /** Selection count suffix for N items. Default: "items selected" */
+  itemsSelected?: string;
+
+  // Active-filters bar
+  /** Label shown with the active-filters count. Default: "Active Filters" */
+  activeFilters?: string;
+  /** "Clear all filters" button text. Default: "Clear All" */
+  clearAllFilters?: string;
+  /** aria-label for the "Clear all filters" button. Default: "Clear all filters" */
+  clearAllFiltersAriaLabel?: string;
+  /** aria-label for the per-filter remove button. Default: row => `Remove filter for ${row}` */
+  removeFilterAriaLabel?: (field: string) => string;
+  /** aria-label for the filter-open button in column headers. Default: col => `Filter ${col}` */
+  filterButtonAriaLabel?: (columnHeader: string) => string;
+
+  // Row-level a11y
+  /** aria-label for "select row" checkboxes. Default: "Select row" */
+  selectRowAriaLabel?: string;
+  /** aria-label for "deselect row" checkboxes. Default: "Deselect row" */
+  deselectRowAriaLabel?: string;
+  /** aria-label for "select all" header checkbox. Default: "Select all rows on this page" */
+  selectAllAriaLabel?: string;
+  /** aria-label for "deselect all" header checkbox. Default: "Deselect all rows on this page" */
+  deselectAllAriaLabel?: string;
+  /** aria-label for the "clear selection" button. Default: "Clear selection" */
+  clearSelectionAriaLabel?: string;
+
+  // Expand/collapse
+  /** aria-label for "expand row" tree toggle. Default: "Expand row" */
+  expandRowAriaLabel?: string;
+  /** aria-label for "collapse row" tree toggle. Default: "Collapse row" */
+  collapseRowAriaLabel?: string;
+  /** aria-label for "expand details" button. Default: "Expand details" */
+  expandDetailsAriaLabel?: string;
+  /** aria-label for "collapse details" button. Default: "Collapse details" */
+  collapseDetailsAriaLabel?: string;
 }
 
 // Enhanced column definition with better type safety
@@ -423,6 +509,58 @@ export interface PaginationOptions {
   showQuickJumper?: boolean;
   showSizeChanger?: boolean;
   showTotal?: boolean | ((total: number, range: [number, number]) => string);
+  /** Text overrides for the pagination footer */
+  labels?: PaginationLabels;
+}
+
+/**
+ * Customizable text for the pagination footer. Any field undefined falls back to
+ * the English default. Function-valued labels receive context so the string can
+ * interpolate page/size info naturally.
+ */
+export interface PaginationLabels {
+  /** "Items per page" label. Default: "Items per page:" */
+  itemsPerPage?: string;
+  /** Text shown when pagination is in cursor mode. Default: "Cursor-based pagination" */
+  cursorModeText?: string;
+  /** Quick-jumper "Go to" prefix. Default: "Go to" */
+  goTo?: string;
+  /** Quick-jumper submit button. Default: "Go" */
+  go?: string;
+  /** Previous button text (cursor mode). Default: "Previous" */
+  previous?: string;
+  /** Next button text (cursor mode). Default: "Next" */
+  next?: string;
+  /** aria-label for the overall nav. Default: "Table pagination navigation" */
+  navigationAriaLabel?: string;
+  /** aria-label for the page-button group. Default: "Page navigation" */
+  pageNavigationAriaLabel?: string;
+  /** aria-label for the cursor-button group. Default: "Cursor navigation" */
+  cursorNavigationAriaLabel?: string;
+  /** First-page button aria + tooltip. */
+  firstPageAriaLabel?: string;
+  firstPageTitle?: string;
+  /** Previous-page button aria + tooltip. */
+  previousPageAriaLabel?: string;
+  previousPageTitle?: string;
+  /** Next-page button aria + tooltip. */
+  nextPageAriaLabel?: string;
+  nextPageTitle?: string;
+  /** Last-page button aria + tooltip. */
+  lastPageAriaLabel?: string;
+  lastPageTitle?: string;
+  /** Page-size select aria-label. Default: "Select number of items per page, currently {size}" */
+  pageSizeSelectAriaLabel?: (currentSize: number) => string;
+  /** Current-page button aria-label. Default: "Current page, page {page}" */
+  currentPageAriaLabel?: (page: number) => string;
+  /** Numbered-page button aria-label. Default: "Go to page {page}" */
+  goToPageAriaLabel?: (page: number) => string;
+  /** Quick-jumper input aria-label. Default: "Enter page number between 1 and {total}" */
+  quickJumperInputAriaLabel?: (totalPages: number) => string;
+  /** Quick-jumper submit aria-label. Default: "Go to entered page" */
+  quickJumperSubmitAriaLabel?: string;
+  /** Empty-results total. Default: "0 of 0" */
+  emptyTotal?: string;
 }
 
 export interface CursorPageChange {
@@ -485,7 +623,52 @@ export interface ColumnFilter<T> {
   options?: FilterOption[]; // For select/multiselect
   placeholder?: string;
   defaultOperator?: FilterOperator;
+  /** Per-column text overrides for the filter dropdown (falls back to table-wide filter labels). */
+  labels?: FilterLabels;
 }
+
+/**
+ * Customizable text for the filter dropdown. Per-column overrides win over the
+ * table-level filter labels (on `FieldConfig.filterLabels`). Any field undefined
+ * falls back to the English default.
+ */
+export interface FilterLabels {
+  /** Title template receiving the column header. Default: row => `Filter ${row}` */
+  title?: (columnHeader: string) => string;
+  /** aria-label for the close button. Default: "Close filter" */
+  closeAriaLabel?: string;
+  /** Text input placeholder. Default: "Enter value..." */
+  textPlaceholder?: string;
+  /** Number input placeholder. Default: "Enter number..." */
+  numberPlaceholder?: string;
+  /** Select placeholder. Default: "-- Select --" */
+  selectPlaceholder?: string;
+  /** Multi-select placeholder. Default: "Select values..." */
+  multiSelectPlaceholder?: string;
+  /** Single date placeholder. Default: "Select date" */
+  datePlaceholder?: string;
+  /** Date range placeholder. Default: "Select date range" */
+  dateRangePlaceholder?: string;
+  /** Range-min placeholder. Default: "Min" */
+  rangeMinPlaceholder?: string;
+  /** Range-max placeholder. Default: "Max" */
+  rangeMaxPlaceholder?: string;
+  /** Range separator. Default: "to" */
+  rangeSeparator?: string;
+  /** Apply button. Default: "Apply" */
+  apply?: string;
+  /** Clear button. Default: "Clear" */
+  clear?: string;
+  /** Boolean "true" option label. Default: "Yes" */
+  booleanTrue?: string;
+  /** Boolean "false" option label. Default: "No" */
+  booleanFalse?: string;
+  /** Operator label overrides. Undefined keys keep the English default. */
+  operators?: FilterOperatorLabels;
+}
+
+/** Map of operator → label. All keys optional. */
+export type FilterOperatorLabels = Partial<Record<FilterOperator, string>>;
 
 // Filter option for select/multiselect
 export interface FilterOption {

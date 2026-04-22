@@ -23,7 +23,7 @@ import { LucideSearch, LucideX } from '@lucide/angular';
         />
 
         @if (showClearButton() && hasSearchTerm()) {
-          <button type="button" class="btn btn-ghost btn-sm btn-circle" (click)="onClear()" aria-label="Clear search">
+          <button type="button" class="btn btn-ghost btn-sm btn-circle" (click)="onClear()" [attr.aria-label]="clearAriaLabel()">
             <svg lucideX [size]="20"></svg>
           </button>
         }
@@ -37,6 +37,7 @@ export class TableGlobalSearchComponent {
   readonly showIcon = input<boolean>(true);
   readonly showClearButton = input<boolean>(true);
   readonly hasSearchTerm = input<boolean>(false);
+  readonly clearAriaLabel = input<string>('Clear search');
 
   readonly searchChange = output<string>();
   readonly clear = output<void>();
