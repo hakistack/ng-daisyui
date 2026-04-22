@@ -299,9 +299,10 @@ export class ToastService {
   }
 
   networkStatus(status: 'online' | 'offline'): string {
+    const labels = this.config.labels ?? {};
     return this.show({
       severity: status === 'online' ? 'success' : 'error',
-      summary: status === 'online' ? 'You are back online!' : 'You are offline!',
+      summary: status === 'online' ? (labels.onlineMessage ?? 'You are back online!') : (labels.offlineMessage ?? 'You are offline!'),
       life: 5000,
     });
   }

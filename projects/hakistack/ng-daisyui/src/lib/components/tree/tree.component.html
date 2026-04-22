@@ -15,7 +15,7 @@
           type="button"
           class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2"
           (click)="onFilterTextChange('')"
-          aria-label="Clear filter"
+          [attr.aria-label]="config().labels?.clearFilterAriaLabel ?? 'Clear filter'"
         >
           <svg lucideX [size]="14"></svg>
         </button>
@@ -84,7 +84,11 @@
                 type="button"
                 class="btn btn-ghost btn-xs btn-square"
                 (click)="onToggleClick($event, flatNode.node)"
-                [attr.aria-label]="isExpanded(flatNode.node) ? 'Collapse' : 'Expand'"
+                [attr.aria-label]="
+                  isExpanded(flatNode.node)
+                    ? (config().labels?.collapseAriaLabel ?? 'Collapse')
+                    : (config().labels?.expandAriaLabel ?? 'Expand')
+                "
               >
                 @if (isExpanded(flatNode.node)) {
                   <svg lucideChevronDown [size]="16"></svg>

@@ -64,6 +64,22 @@ export interface TreeConfig<T = unknown> {
 
   /** ARIA labelledby for accessibility */
   ariaLabelledBy?: string;
+
+  /** Text overrides for the tree's control UI (filter + toggle aria-labels). */
+  labels?: TreeLabels;
+}
+
+/**
+ * Text overrides for `<hk-tree>` UI controls. Any field undefined falls back
+ * to the English default. (Node labels come from the tree data itself, not from here.)
+ */
+export interface TreeLabels {
+  /** aria-label for the "clear filter" button. Default: "Clear filter" */
+  clearFilterAriaLabel?: string;
+  /** aria-label for the "expand node" toggle. Default: "Expand" */
+  expandAriaLabel?: string;
+  /** aria-label for the "collapse node" toggle. Default: "Collapse" */
+  collapseAriaLabel?: string;
 }
 
 /**

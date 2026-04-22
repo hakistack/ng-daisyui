@@ -59,7 +59,7 @@ import { CurrencyConfig, InputColor, InputSize, InputVariant, PasswordConfig, Pe
             <button
               type="button"
               class="btn btn-ghost btn-xs btn-circle"
-              [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+              [attr.aria-label]="passwordVisible() ? hidePasswordAriaLabel() : showPasswordAriaLabel()"
               (click)="togglePasswordVisibility()"
             >
               @if (passwordVisible()) {
@@ -96,6 +96,10 @@ export class InputComponent implements ControlValueAccessor {
   readonly suffixText = input<string>('');
   readonly prefixIcon = input<string>('');
   readonly suffixIcon = input<string>('');
+
+  // Aria-labels for the password-visibility toggle (only used when variant === 'password')
+  readonly showPasswordAriaLabel = input<string>('Show password');
+  readonly hidePasswordAriaLabel = input<string>('Hide password');
 
   readonly currencyConfig = input<CurrencyConfig>({});
   readonly phoneConfig = input<PhoneConfig>({});

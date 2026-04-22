@@ -61,6 +61,15 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
 
   // --- Inputs ---
   readonly placeholder = input<string>('Select Time');
+  readonly hourLabel = input<string>('Hr');
+  readonly minuteLabel = input<string>('Min');
+  readonly secondLabel = input<string>('Sec');
+  readonly nowLabel = input<string>('Now');
+  readonly clearLabel = input<string>('Clear');
+  readonly closeLabel = input<string>('Close');
+  readonly requiredError = input<string>('This field is required.');
+  readonly minTimeError = input<string>('Time must be after');
+  readonly maxTimeError = input<string>('Time must be before');
   readonly disabled = input<boolean>(false);
   readonly use24Hour = input<boolean>(true);
   readonly showSeconds = input<boolean>(false);

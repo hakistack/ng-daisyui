@@ -18,6 +18,7 @@ import { generateUniqueId } from '../../utils/generate-uuid';
 import {
   DatepickerConfig,
   DatepickerEvent,
+  DatepickerLabels,
   DatepickerPosition,
   DayCell,
   MonthInfo,
@@ -86,6 +87,37 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   readonly placeholder = input<string>('Select Date');
   readonly disabled = input<boolean>(false);
   readonly locale = input<string>('en-US');
+  /** Text overrides for every visible string in the dropdown. See `DatepickerLabels`. */
+  readonly labels = input<DatepickerLabels>({});
+
+  /** Merged labels with defaults — use `resolvedLabels().x` in the template. */
+  readonly resolvedLabels = computed<Required<DatepickerLabels>>(() => ({
+    placeholder: 'Select Date',
+    selectMonth: 'Select Month',
+    selectYear: 'Select Year',
+    backToCalendar: 'Back to Calendar',
+    backToMonths: 'Back to Months',
+    timeLabel: 'Time',
+    hourLabel: 'Hr',
+    minuteLabel: 'Min',
+    amLabel: 'AM',
+    pmLabel: 'PM',
+    todayLabel: 'Today',
+    clearLabel: 'Clear',
+    selectEndDateHint: 'Select end date',
+    closeLabel: 'Close',
+    requiredError: 'This field is required.',
+    minError: 'Date must be after',
+    maxError: 'Date must be before',
+    selectYearAriaLabel: 'Select year',
+    previousMonthAriaLabel: 'Previous month',
+    nextMonthAriaLabel: 'Next month',
+    previousYearsAriaLabel: 'Previous years',
+    nextYearsAriaLabel: 'Next years',
+    backToCalendarAriaLabel: 'Back to calendar',
+    backToMonthsAriaLabel: 'Back to months',
+    ...this.labels(),
+  }));
 
   // Date constraints
   readonly minDate = input<Date | undefined>();

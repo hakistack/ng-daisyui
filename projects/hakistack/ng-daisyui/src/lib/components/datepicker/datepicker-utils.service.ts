@@ -51,7 +51,8 @@ export class DatepickerUtilsService {
     return this.isSameDay(date, new Date());
   }
 
-  /** @param firstDayOfWeek 0 = Sunday, 1 = Monday, etc. */
+  /** @param date
+   @param firstDayOfWeek 0 = Sunday, 1 = Monday, etc. */
   getAdjustedWeekday(date: Date, firstDayOfWeek: number): number {
     const day = date.getDay();
     return (day - firstDayOfWeek + 7) % 7;

@@ -85,13 +85,13 @@
   @if (isTouched() && validationErrors()) {
     <div class="text-error mt-1 text-xs" [id]="inputId() + '-error'" role="alert" aria-live="polite">
       @if (validationErrors()!['required']) {
-        <span>This field is required.</span>
+        <span>{{ requiredError() }}</span>
       }
       @if (validationErrors()!['minTime']) {
-        <span>Time must be after {{ validationErrors()!['minTime'].min }}</span>
+        <span>{{ minTimeError() }} {{ validationErrors()!['minTime'].min }}</span>
       }
       @if (validationErrors()!['maxTime']) {
-        <span>Time must be before {{ validationErrors()!['maxTime'].max }}</span>
+        <span>{{ maxTimeError() }} {{ validationErrors()!['maxTime'].max }}</span>
       }
     </div>
   }
@@ -198,7 +198,7 @@
           <div class="flex items-start justify-center gap-1">
             <!-- Hours Column -->
             <div class="flex flex-col items-center">
-              <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">Hr</span>
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">{{ hourLabel() }}</span>
               <div #hourCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Hours">
                 @for (hour of hourOptions(); track hour) {
                   <button
@@ -220,7 +220,7 @@
 
             <!-- Minutes Column -->
             <div class="flex flex-col items-center">
-              <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">Min</span>
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">{{ minuteLabel() }}</span>
               <div #minCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Minutes">
                 @for (minute of minuteOptions(); track minute) {
                   <button
@@ -242,7 +242,7 @@
             @if (showSeconds()) {
               <span class="text-base-content/30 text-lg font-mono mt-7">:</span>
               <div class="flex flex-col items-center">
-                <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">Sec</span>
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">{{ secondLabel() }}</span>
                 <div #secCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Seconds">
                   @for (second of secondOptions(); track second) {
                     <button
@@ -297,13 +297,15 @@
       <div class="border-base-300 mt-4 flex items-center justify-between border-t pt-3">
         <div class="flex items-center space-x-2">
           @if (showNowButton()) {
-            <button type="button" class="btn btn-ghost btn-sm" (click)="selectNow()">Now</button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="selectNow()">{{ nowLabel() }}</button>
           }
           @if (showClearButton()) {
-            <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()" [disabled]="!hasSelection()">Clear</button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()" [disabled]="!hasSelection()">
+              {{ clearLabel() }}
+            </button>
           }
         </div>
-        <button type="button" class="btn btn-ghost btn-sm" (click)="closePicker()">Close</button>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="closePicker()">{{ closeLabel() }}</button>
       </div>
     </div>
   }

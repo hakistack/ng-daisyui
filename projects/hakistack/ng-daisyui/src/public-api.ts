@@ -149,6 +149,7 @@ export { DatepickerComponent } from './lib/components/datepicker/datepicker.comp
 export { DatepickerUtilsService } from './lib/components/datepicker/datepicker-utils.service';
 export type {
   DatepickerConfig,
+  DatepickerLabels,
   DateSelection,
   DateRangeSelection,
   DatepickerEvent,
@@ -176,7 +177,7 @@ export { TabPanelComponent } from './lib/components/tab/tab-panel/tab-panel.comp
 export { ToastComponent } from './lib/components/toast/toast.component';
 export { ToastService } from './lib/components/toast/toast.service';
 export { TOAST_CONFIG, DEFAULT_TOAST_CONFIG, provideToast } from './lib/components/toast/toast.config';
-export type { ToastGlobalConfig } from './lib/components/toast/toast.config';
+export type { ToastGlobalConfig, ToastLabels } from './lib/components/toast/toast.config';
 export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } from './lib/components/toast/toast.types';
 
 // Dialog Wrapper
@@ -212,6 +213,7 @@ export {
 } from './lib/components/tree/tree.helpers';
 export type {
   TreeConfig,
+  TreeLabels,
   TreeNodeTemplateContext,
   TreeFilterEvent,
   TreeLazyLoadEvent,

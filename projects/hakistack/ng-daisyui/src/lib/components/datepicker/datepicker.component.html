@@ -79,13 +79,13 @@
   @if (isTouched() && validationErrors()) {
     <div class="text-error mt-1 text-xs" [id]="inputId() + '-error'" role="alert" aria-live="polite">
       @if (validationErrors()!['required']) {
-        <span>This field is required.</span>
+        <span>{{ resolvedLabels().requiredError }}</span>
       }
       @if (validationErrors()!['min']) {
-        <span>Date must be after {{ validationErrors()!['min'].min | date }}</span>
+        <span>{{ resolvedLabels().minError }} {{ validationErrors()!['min'].min | date }}</span>
       }
       @if (validationErrors()!['max']) {
-        <span>Date must be before {{ validationErrors()!['max'].max | date }}</span>
+        <span>{{ resolvedLabels().maxError }} {{ validationErrors()!['max'].max | date }}</span>
       }
     </div>
   }
@@ -112,7 +112,7 @@
               (click)="navigateMonth('prev')"
               [disabled]="currentView() !== 'days'"
               [class.invisible]="currentView() !== 'days'"
-              aria-label="Previous month"
+              [attr.aria-label]="resolvedLabels().previousMonthAriaLabel"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -141,14 +141,19 @@
                 }
                 @case ('months') {
                   <!-- Year button and current month indicator -->
-                  <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToYearView()" aria-label="Select year">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm hover:btn-primary"
+                    (click)="goToYearView()"
+                    [attr.aria-label]="resolvedLabels().selectYearAriaLabel"
+                  >
                     {{ yearLabel() }}
                   </button>
-                  <span class="text-base-content/70 ml-2 text-sm font-medium">Select Month</span>
+                  <span class="text-base-content/70 ml-2 text-sm font-medium">{{ resolvedLabels().selectMonth }}</span>
                 }
                 @case ('years') {
                   <!-- Years range display -->
-                  <span class="text-base-content/70 text-sm font-medium">Select Year</span>
+                  <span class="text-base-content/70 text-sm font-medium">{{ resolvedLabels().selectYear }}</span>
                 }
               }
             </div>
@@ -160,7 +165,7 @@
               (click)="navigateMonth('next')"
               [disabled]="currentView() !== 'days'"
               [class.invisible]="currentView() !== 'days'"
-              aria-label="Next month"
+              [attr.aria-label]="resolvedLabels().nextMonthAriaLabel"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -220,11 +225,16 @@
                 <div class="months-view">
                   <!-- Back to days button -->
                   <div class="mb-3 flex items-center">
-                    <button type="button" class="btn btn-ghost btn-sm" (click)="goToDayView()" aria-label="Back to calendar">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      (click)="goToDayView()"
+                      [attr.aria-label]="resolvedLabels().backToCalendarAriaLabel"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                       </svg>
-                      Back to Calendar
+                      {{ resolvedLabels().backToCalendar }}
                     </button>
                   </div>
 
@@ -252,11 +262,16 @@
                 <div class="years-view">
                   <!-- Back to months button -->
                   <div class="mb-3 flex items-center">
-                    <button type="button" class="btn btn-ghost btn-sm" (click)="goToMonthView()" aria-label="Back to months">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      (click)="goToMonthView()"
+                      [attr.aria-label]="resolvedLabels().backToMonthsAriaLabel"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                       </svg>
-                      Back to Months
+                      {{ resolvedLabels().backToMonths }}
                     </button>
                   </div>
 
@@ -266,7 +281,7 @@
                       type="button"
                       class="btn btn-ghost btn-sm btn-square"
                       (click)="navigateYears('prev')"
-                      aria-label="Previous years"
+                      [attr.aria-label]="resolvedLabels().previousYearsAriaLabel"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -275,7 +290,12 @@
 
                     <span class="text-sm font-medium">{{ yearsRange() }}</span>
 
-                    <button type="button" class="btn btn-ghost btn-sm btn-square" (click)="navigateYears('next')" aria-label="Next years">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm btn-square"
+                      (click)="navigateYears('next')"
+                      [attr.aria-label]="resolvedLabels().nextYearsAriaLabel"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                       </svg>
@@ -310,12 +330,12 @@
         <!-- Time Panel (shown beside calendar when showTime is true) -->
         @if (showTime()) {
           <div class="border-base-300 flex flex-col border-l pl-3">
-            <div class="text-base-content/70 mb-2 text-center text-xs font-medium">Time</div>
+            <div class="text-base-content/70 mb-2 text-center text-xs font-medium">{{ resolvedLabels().timeLabel }}</div>
 
             <div class="flex gap-1">
               <!-- Hours column -->
               <div class="flex flex-col items-center">
-                <span class="text-base-content/50 mb-1 text-xs">Hr</span>
+                <span class="text-base-content/50 mb-1 text-xs">{{ resolvedLabels().hourLabel }}</span>
                 <div class="max-h-52 w-10 overflow-auto rounded">
                   @for (hour of hourOptions(); track hour) {
                     <button
@@ -333,7 +353,7 @@
 
               <!-- Minutes column -->
               <div class="flex flex-col items-center">
-                <span class="text-base-content/50 mb-1 text-xs">Min</span>
+                <span class="text-base-content/50 mb-1 text-xs">{{ resolvedLabels().minuteLabel }}</span>
                 <div class="max-h-52 w-10 overflow-auto rounded">
                   @for (minute of minuteOptions(); track minute) {
                     <button
@@ -360,7 +380,7 @@
                   [class.btn-ghost]="selectedPeriod() !== 'AM'"
                   (click)="selectedPeriod() !== 'AM' && togglePeriod()"
                 >
-                  AM
+                  {{ resolvedLabels().amLabel }}
                 </button>
                 <button
                   type="button"
@@ -369,7 +389,7 @@
                   [class.btn-ghost]="selectedPeriod() !== 'PM'"
                   (click)="selectedPeriod() !== 'PM' && togglePeriod()"
                 >
-                  PM
+                  {{ resolvedLabels().pmLabel }}
                 </button>
               </div>
             }
@@ -382,19 +402,23 @@
       <div class="datepicker-footer border-base-300 mt-4 flex items-center justify-between border-t pt-3">
         <div class="flex items-center space-x-2">
           @if (showTodayButton()) {
-            <button type="button" class="btn btn-ghost btn-sm" (click)="selectToday()" [disabled]="isTodayDisabled()">Today</button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="selectToday()" [disabled]="isTodayDisabled()">
+              {{ resolvedLabels().todayLabel }}
+            </button>
           }
           @if (showClearButton()) {
-            <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()" [disabled]="!hasSelection()">Clear</button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()" [disabled]="!hasSelection()">
+              {{ resolvedLabels().clearLabel }}
+            </button>
           }
         </div>
 
         <div class="flex items-center space-x-2">
           @if (range() && rangeStart() && !rangeEnd()) {
-            <span class="text-base-content/70 text-xs">Select end date</span>
+            <span class="text-base-content/70 text-xs">{{ resolvedLabels().selectEndDateHint }}</span>
           }
 
-          <button type="button" class="btn btn-ghost btn-sm" (click)="closePicker()">Close</button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="closePicker()">{{ resolvedLabels().closeLabel }}</button>
         </div>
       </div>
     </div>

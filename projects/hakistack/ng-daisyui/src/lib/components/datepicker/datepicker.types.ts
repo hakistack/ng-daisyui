@@ -127,3 +127,59 @@ export interface YearInfo {
   /** Unique identifier for the year element */
   id: string;
 }
+
+/**
+ * Text overrides for `hk-datepicker`. Any field undefined falls back to the
+ * English default. Month/weekday names are not here — they're generated from
+ * `Intl.DateTimeFormat` via the component's `locale` input.
+ */
+export interface DatepickerLabels {
+  /** Input placeholder (only used when the component's `placeholder` input is unset). Default: "Select Date" */
+  placeholder?: string;
+  /** Header text in the month picker view. Default: "Select Month" */
+  selectMonth?: string;
+  /** Header text in the year picker view. Default: "Select Year" */
+  selectYear?: string;
+  /** "Back to calendar" button in month picker. Default: "Back to Calendar" */
+  backToCalendar?: string;
+  /** "Back to months" button in year picker. Default: "Back to Months" */
+  backToMonths?: string;
+  /** Heading above the time panel. Default: "Time" */
+  timeLabel?: string;
+  /** "Hours" column label. Default: "Hr" */
+  hourLabel?: string;
+  /** "Minutes" column label. Default: "Min" */
+  minuteLabel?: string;
+  /** AM period button. Default: "AM" */
+  amLabel?: string;
+  /** PM period button. Default: "PM" */
+  pmLabel?: string;
+  /** Footer "Today" button. Default: "Today" */
+  todayLabel?: string;
+  /** Footer "Clear" button. Default: "Clear" */
+  clearLabel?: string;
+  /** Hint shown in range mode when waiting for the end date. Default: "Select end date" */
+  selectEndDateHint?: string;
+  /** Footer "Close" button. Default: "Close" */
+  closeLabel?: string;
+  /** Validation error for required fields. Default: "This field is required." */
+  requiredError?: string;
+  /** Prefix for the min-date validation error (the formatted min date is appended). Default: "Date must be after" */
+  minError?: string;
+  /** Prefix for the max-date validation error (the formatted max date is appended). Default: "Date must be before" */
+  maxError?: string;
+  /** aria-label for the "select year" header button. Default: "Select year" */
+  selectYearAriaLabel?: string;
+  /** aria-label for the "previous month" navigation. Default: "Previous month" */
+  previousMonthAriaLabel?: string;
+  /** aria-label for the "next month" navigation. Default: "Next month" */
+  nextMonthAriaLabel?: string;
+  /** aria-label for the "previous years" navigation. Default: "Previous years" */
+  previousYearsAriaLabel?: string;
+  /** aria-label for the "next years" navigation. Default: "Next years" */
+  nextYearsAriaLabel?: string;
+  /** aria-label for the "back to calendar" button. Default: "Back to calendar" */
+  backToCalendarAriaLabel?: string;
+  /** aria-label for the "back to months" button. Default: "Back to months" */
+  backToMonthsAriaLabel?: string;
+}

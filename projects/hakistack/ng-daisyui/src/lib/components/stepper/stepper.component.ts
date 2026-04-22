@@ -20,6 +20,7 @@ export class StepperComponent extends CdkStepper {
   readonly previousButtonText = input<string>('Previous');
   readonly nextButtonText = input<string>('Next');
   readonly completeButtonText = input<string>('Complete');
+  readonly optionalLabel = input<string>('(Optional)');
 
   readonly completed = output<void>();
   readonly stepChange = output<{ previousIndex: number; currentIndex: number }>();

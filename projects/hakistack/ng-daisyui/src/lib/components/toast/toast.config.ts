@@ -34,6 +34,20 @@ export interface ToastGlobalConfig {
 
   /** Automatically dismiss oldest toast when maxToasts limit is reached */
   autoDismiss: boolean;
+
+  /** Text overrides for built-in toast helpers (e.g. `networkStatus()`). */
+  labels: ToastLabels;
+}
+
+/**
+ * Text overrides for built-in toast helpers. Any field undefined falls back
+ * to the English default.
+ */
+export interface ToastLabels {
+  /** Summary shown by `networkStatus('online')`. Default: "You are back online!" */
+  onlineMessage?: string;
+  /** Summary shown by `networkStatus('offline')`. Default: "You are offline!" */
+  offlineMessage?: string;
 }
 
 /**
@@ -50,6 +64,7 @@ export const DEFAULT_TOAST_CONFIG: ToastGlobalConfig = {
   extendedTimeOut: 1000,
   tapToDismiss: false,
   autoDismiss: true,
+  labels: {},
 };
 
 /**
