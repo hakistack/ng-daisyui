@@ -1,8 +1,8 @@
-import type { EChartsOption, LineConfig, NullPolicy } from '../chart.types';
+import type { AreaConfig, EChartsOption, NullPolicy } from '../chart.types';
 import type { ThemeTokens } from '../themes/theme-bridge';
 import { aggregateLong } from '../data/data-contract';
 
-const LINE_DEFAULT_NULL_POLICY: NullPolicy = 'gap';
+const AREA_DEFAULT_NULL_POLICY: NullPolicy = 'zero';
 
 function applyNullPolicy(values: readonly (number | null)[], policy: NullPolicy): (number | null)[] {
   switch (policy) {
@@ -16,8 +16,17 @@ function applyNullPolicy(values: readonly (number | null)[], policy: NullPolicy)
   }
 }
 
-export function buildLineOption<T>(config: LineConfig<T>, _tokens: ThemeTokens): EChartsOption {
-  const { data, x, y, series: seriesKey, aggregate = 'sum', nullPolicy = LINE_DEFAULT_NULL_POLICY, smooth = false, area = false } = config;
+export function buildAreaOption<T>(config: AreaConfig<T>, _tokens: ThemeTokens): EChartsOption {
+  const {
+    data,
+    x,
+    y,
+    series: seriesKey,
+    aggregate = 'sum',
+    nullPolicy = AREA_DEFAULT_NULL_POLICY,
+    smooth = false,
+    stacked = false,
+  } = config;
 
   const agg = aggregateLong(data, x, y, seriesKey, aggregate);
   const connectNulls = nullPolicy === 'connect';
@@ -26,14 +35,12 @@ export function buildLineOption<T>(config: LineConfig<T>, _tokens: ThemeTokens):
     name: agg.singleSeries ? undefined : name,
     type: 'line' as const,
     smooth,
-    areaStyle: area ? {} : undefined,
+    areaStyle: { opacity: stacked ? 0.85 : 0.35 },
     symbolSize: 8,
+    stack: stacked ? 'total' : undefined,
     connectNulls,
-    // Hover state explicitly disabled — ECharts v6 has a regression where
-    // the emphasis state on line series with palette colors (no explicit
-    // itemStyle.color) can render the line or symbol with an unset fill.
-    // Tooltips still work via the axis pointer; this just stops the bad
-    // visual state change on the series itself.
+    // Same reasoning as line.ts — ECharts v6 line-series emphasis is buggy
+    // with palette colors. Disable entirely; tooltips still work.
     emphasis: { disabled: true },
     data: applyNullPolicy(agg.matrix[name], nullPolicy),
   }));

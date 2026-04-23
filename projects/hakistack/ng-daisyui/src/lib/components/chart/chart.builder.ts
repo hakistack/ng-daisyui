@@ -1,14 +1,22 @@
-import { computed, Signal, signal } from '@angular/core';
+import { computed, inject, Signal, signal } from '@angular/core';
 import type { ChartConfig, ChartKind, EChartsOption } from './chart.types';
+import type { ThemeTokens } from './themes/theme-bridge';
+import { DaisyUIThemeService } from './themes/daisyui-theme.service';
 import { buildLineOption } from './kinds/line';
 import { buildColumnOption } from './kinds/column';
+import { buildBarOption } from './kinds/bar';
+import { buildAreaOption } from './kinds/area';
+import { buildPieOption } from './kinds/pie';
 
 type AnyConfig = ChartConfig<Record<string, unknown>>;
-type KindBuilder = (config: AnyConfig) => EChartsOption;
+type KindBuilder = (config: AnyConfig, tokens: ThemeTokens) => EChartsOption;
 
 const BUILDERS: Record<ChartKind, KindBuilder> = {
-  line: (c) => buildLineOption(c as Extract<AnyConfig, { kind: 'line' }>),
-  column: (c) => buildColumnOption(c as Extract<AnyConfig, { kind: 'column' }>),
+  line: (c, t) => buildLineOption(c as Extract<AnyConfig, { kind: 'line' }>, t),
+  column: (c, t) => buildColumnOption(c as Extract<AnyConfig, { kind: 'column' }>, t),
+  bar: (c, t) => buildBarOption(c as Extract<AnyConfig, { kind: 'bar' }>, t),
+  area: (c, t) => buildAreaOption(c as Extract<AnyConfig, { kind: 'area' }>, t),
+  pie: (c, t) => buildPieOption(c as Extract<AnyConfig, { kind: 'pie' }>, t),
 };
 
 /** Controller returned by `createChart()` — mirrors the `FormController` shape. */
@@ -29,11 +37,15 @@ export interface ChartController<T> {
  * `stacked` only exists on `ColumnConfig`.
  */
 export function createChart<T>(initial: ChartConfig<T>): ChartController<T> {
+  // Inject here so the computed below can read live theme tokens — radius
+  // values flow into kind builders and update on theme switch.
+  const theme = inject(DaisyUIThemeService);
   const cfg = signal<ChartConfig<T>>(initial);
 
   const option = computed<EChartsOption>(() => {
     const current = cfg() as AnyConfig;
-    const base = BUILDERS[current.kind](current);
+    const tokens = theme.tokens();
+    const base = BUILDERS[current.kind](current, tokens);
     return current.optionsOverride ? current.optionsOverride(base) : base;
   });
 

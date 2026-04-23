@@ -1,6 +1,6 @@
-import { computed, DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { EChartsThemeFragment, readThemeTokens, ThemeTokens, tokensEqual, tokensToEChartsTheme } from './theme-bridge';
+import { readThemeTokens, ThemeTokens, tokensEqual } from './theme-bridge';
 
 const SSR_TOKENS: ThemeTokens = {
   colors: {
@@ -18,14 +18,17 @@ const SSR_TOKENS: ThemeTokens = {
     baseContent: 'rgb(23, 23, 23)',
   },
   fontFamily: 'system-ui, sans-serif',
+  radius: { box: 8, field: 6, selector: 4 },
 };
 
 /**
  * Singleton service that owns a single `MutationObserver` on `<html[data-theme]>`
- * and exposes theme tokens + an ECharts theme fragment as signals.
+ * and exposes live DaisyUI theme tokens as a signal. The ECharts option
+ * fragment is assembled downstream (in `chart.component.ts`) with per-chart
+ * palette selection — keeping that concern out of this service.
  *
  * Zoneless-native: propagation flows through the signal graph only
- * (`MutationObserver` → `tokens.set()` → `computed` → consumer `effect`).
+ * (`MutationObserver` → `tokens.set()` → consumer `computed` / `effect`).
  * Reads are rAF-batched so rapid theme toggles coalesce to one read per frame,
  * and the signal is equality-checked to avoid redundant downstream updates.
  *
@@ -37,7 +40,6 @@ export class DaisyUIThemeService {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly tokens = signal<ThemeTokens>(SSR_TOKENS, { equal: tokensEqual });
-  readonly echartsTheme = computed<EChartsThemeFragment>(() => tokensToEChartsTheme(this.tokens()));
 
   private observer: MutationObserver | null = null;
   private rafHandle = 0;

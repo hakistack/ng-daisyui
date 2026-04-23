@@ -502,8 +502,8 @@ export class App implements OnInit {
       title: 'Charts',
       items: [
         {
-          path: '/chart-spike',
-          label: 'Phase 0 Spike',
+          path: '/dashboard',
+          label: 'Live Dashboard',
           icon: 'chart-line',
         },
       ],

@@ -192,14 +192,22 @@ export type {
   ChartConfig,
   LineConfig,
   ColumnConfig,
+  BarConfig,
+  AreaConfig,
+  PieConfig,
   AggregateFn,
   NullPolicy,
   Renderer,
+  Palette,
   TooltipConfig,
   LegendConfig,
   EChartsOption,
 } from './lib/components/chart/chart.types';
 export { pivotWide } from './lib/components/chart/data/data-contract';
+
+// KPI Card (Phase 1)
+export { KpiCardComponent } from './lib/components/kpi-card/kpi-card.component';
+export type { KpiDelta, KpiValueFormatter } from './lib/components/kpi-card/kpi-card.types';
 
 // Organization Chart
 export { OrganizationChartComponent } from './lib/components/organization-chart/organization-chart.component';
