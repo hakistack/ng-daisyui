@@ -70,4 +70,6 @@ export const routes: Routes = [
   // Utilities
   { path: 'motion', redirectTo: 'motion/animate', pathMatch: 'full' },
   { path: 'motion/:feature', loadComponent: () => import('@shared-demos/demos/motion-demo.component').then((m) => m.MotionDemoComponent) },
+  // Charts (Phase 0 spike — temporary)
+  { path: 'chart-spike', loadComponent: () => import('@shared-demos/demos/chart-spike.component').then((m) => m.ChartSpikeComponent) },
 ];

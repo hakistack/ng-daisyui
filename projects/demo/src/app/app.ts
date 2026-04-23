@@ -499,6 +499,16 @@ export class App implements OnInit {
       ],
     },
     {
+      title: 'Charts',
+      items: [
+        {
+          path: '/chart-spike',
+          label: 'Phase 0 Spike',
+          icon: 'chart-line',
+        },
+      ],
+    },
+    {
       title: 'Utilities',
       items: [
         {

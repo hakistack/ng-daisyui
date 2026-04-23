@@ -3,16 +3,15 @@
  *
  * Maps --hk-* CSS custom properties to DaisyUI v4 (Tailwind v3) hsl color functions.
  *
- * Usage:
+ * Usage — in styles.css:
  *   @import "@hakistack/ng-daisyui/themes/daisyui-v4";
  *
- * Also add in tailwind.config.js:
- *   const { safelist } = require('@hakistack/ng-daisyui/themes/daisyui-v4-safelist');
- *   const plugin = require('@hakistack/ng-daisyui/themes/daisyui-v4-plugin');
- *
+ * And in tailwind.config.js, extend the shipped preset (which scans the
+ * library's compiled bundle; no manual safelist needed):
  *   module.exports = {
- *     safelist,
- *     plugins: [require('daisyui'), plugin],
+ *     presets: [require('@hakistack/ng-daisyui/themes/daisyui-v4-preset')],
+ *     content: ['./src/**\/*.{html,ts}'],
+ *     plugins: [require('daisyui')],
  *   }
  */
 

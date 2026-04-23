@@ -183,6 +183,24 @@ export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } f
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
 
+// Chart (Phase 0 — line + column; full catalog lands in Phases 1 / 1.5 / 2)
+export { ChartComponent } from './lib/components/chart/chart.component';
+export { createChart } from './lib/components/chart/chart.builder';
+export type { ChartController } from './lib/components/chart/chart.builder';
+export type {
+  ChartKind,
+  ChartConfig,
+  LineConfig,
+  ColumnConfig,
+  AggregateFn,
+  NullPolicy,
+  Renderer,
+  TooltipConfig,
+  LegendConfig,
+  EChartsOption,
+} from './lib/components/chart/chart.types';
+export { pivotWide } from './lib/components/chart/data/data-contract';
+
 // Organization Chart
 export { OrganizationChartComponent } from './lib/components/organization-chart/organization-chart.component';
 export type {
