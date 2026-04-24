@@ -209,19 +209,6 @@ export { pivotWide } from './lib/components/chart/data/data-contract';
 export { KpiCardComponent } from './lib/components/kpi-card/kpi-card.component';
 export type { KpiDelta, KpiValueFormatter } from './lib/components/kpi-card/kpi-card.types';
 
-// Organization Chart
-export { OrganizationChartComponent } from './lib/components/organization-chart/organization-chart.component';
-export type {
-  OrgChartSelectionMode,
-  OrgChartNodeSelectEvent,
-  OrgChartNodeUnselectEvent,
-  OrgChartNodeExpandEvent,
-  OrgChartNodeCollapseEvent,
-  OrgChartNodeTemplateContext,
-  OrgChartOrientation,
-  OrgChartNodeColor,
-} from './lib/components/organization-chart/organization-chart.types';
-
 // Tree
 export { TreeComponent } from './lib/components/tree/tree.component';
 export {

@@ -35,11 +35,6 @@ export const routes: Routes = [
   },
   { path: 'tree', redirectTo: 'tree/basic', pathMatch: 'full' },
   { path: 'tree/:feature', loadComponent: () => import('@shared-demos/demos/tree-demo.component').then((m) => m.TreeDemoComponent) },
-  { path: 'org-chart', redirectTo: 'org-chart/basic', pathMatch: 'full' },
-  {
-    path: 'org-chart/:feature',
-    loadComponent: () => import('@shared-demos/demos/org-chart-demo.component').then((m) => m.OrgChartDemoComponent),
-  },
   // Inputs
   { path: 'input', redirectTo: 'input/basic', pathMatch: 'full' },
   { path: 'input/:feature', loadComponent: () => import('@shared-demos/demos/input-demo.component').then((m) => m.InputDemoComponent) },

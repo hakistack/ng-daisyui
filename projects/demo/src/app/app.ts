@@ -361,17 +361,6 @@ export class App implements OnInit {
           ],
         },
         {
-          path: '/org-chart',
-          label: 'Organization Chart',
-          icon: 'network',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'selection', label: 'Selection' },
-            { id: 'templates', label: 'Templates' },
-            { id: 'colors', label: 'Colors' },
-          ],
-        },
-        {
           path: '/virtual-scroller',
           label: 'Virtual Scroller',
           icon: 'scroll-text',
