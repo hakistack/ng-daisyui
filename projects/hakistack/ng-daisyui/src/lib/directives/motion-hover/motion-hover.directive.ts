@@ -28,14 +28,17 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
   readonly hoverStart = output<PointerEvent>();
   readonly hoverEnd = output<PointerEvent>();
 
-  private element!: HTMLElement;
+  // Resolved from elementRef lazily so it's safe during `ngOnChanges`
+  // (which fires before `ngOnInit`).
+  private get element(): HTMLElement {
+    return this.elementRef.nativeElement;
+  }
   private cleanup?: () => void;
   private currentAnimation: AnimationControls | null = null;
   private restoreAnimation: AnimationControls | null = null;
   private initialValues?: Record<string, unknown>;
 
   ngOnInit(): void {
-    this.element = this.elementRef.nativeElement;
     this.captureInitialValues();
     this.setupHoverAnimation();
   }

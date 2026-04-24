@@ -179,6 +179,22 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly hasLocalStorage = this.isBrowser && typeof localStorage !== 'undefined';
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Typed event-target helpers
+  // Replace `$any($event.target).value/.checked` in templates — same runtime
+  // cost, but the template type checker sees `string` / `boolean` / `number`
+  // so we don't leak `any` into component APIs.
+  // ───────────────────────────────────────────────────────────────────────
+  inputValue(event: Event): string {
+    return (event.target as HTMLInputElement).value;
+  }
+  inputChecked(event: Event): boolean {
+    return (event.target as HTMLInputElement).checked;
+  }
+  inputNumber(event: Event): number {
+    return Number((event.target as HTMLInputElement).value);
+  }
+
   // Handle click outside to close dropdowns
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;

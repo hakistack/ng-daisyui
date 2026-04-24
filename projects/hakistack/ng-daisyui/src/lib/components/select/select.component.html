@@ -231,9 +231,8 @@
                   <button
                     type="button"
                     class="flex w-full cursor-pointer items-center justify-between px-3"
-                    [class]="menuItemClasses()"
+                    [class]="getOptionClasses(getFlatIndex(option))"
                     (click)="selectOption(option)"
-                    [class]="isHighlighted(getFlatIndex(option)) ? menuActiveClass : ''"
                     [class.bg-primary]="isSelected(option) && !multiple()"
                     [class.text-primary-content]="isSelected(option) && !multiple()"
                     [class.opacity-50]="isOptionDisabled(option)"
@@ -277,9 +276,8 @@
                 <button
                   type="button"
                   class="flex w-full cursor-pointer items-center justify-between px-3"
-                  [class]="menuItemClasses()"
+                  [class]="getOptionClasses(i)"
                   (click)="selectOption(option)"
-                  [class]="isHighlighted(i) ? menuActiveClass : ''"
                   [class.bg-primary]="isSelected(option) && !multiple()"
                   [class.text-primary-content]="isSelected(option) && !multiple()"
                   [class.opacity-50]="isOptionDisabled(option)"

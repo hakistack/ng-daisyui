@@ -236,7 +236,7 @@
                     type="checkbox"
                     class="checkbox"
                     [checked]="isAllSelected()"
-                    (change)="toggleSelectAll($any($event.target).checked)"
+                    (change)="toggleSelectAll(inputChecked($event))"
                     [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                   />
                 </label>
@@ -316,7 +316,7 @@
                       type="checkbox"
                       class="checkbox"
                       [checked]="isSelected(row)"
-                      (change)="toggleRow(row, $any($event.target).checked)"
+                      (change)="toggleRow(row, inputChecked($event))"
                       [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
                     />
                   </label>
@@ -362,15 +362,11 @@
                             type="checkbox"
                             class="toggle toggle-sm"
                             [checked]="editingValue()"
-                            (change)="editingValue.set($any($event.target).checked)"
+                            (change)="editingValue.set(inputChecked($event))"
                           />
                         }
                         @case ('select') {
-                          <select
-                            class="select select-sm w-full"
-                            [value]="editingValue()"
-                            (change)="editingValue.set($any($event.target).value)"
-                          >
+                          <select class="select select-sm w-full" [value]="editingValue()" (change)="editingValue.set(inputValue($event))">
                             @for (opt of column.editOptions; track opt.value) {
                               <option [value]="opt.value">{{ opt.label }}</option>
                             }
@@ -381,7 +377,7 @@
                             type="number"
                             class="input input-sm w-full"
                             [value]="editingValue()"
-                            (input)="editingValue.set(+$any($event.target).value)"
+                            (input)="editingValue.set(inputNumber($event))"
                             appAutoFocus
                           />
                         }
@@ -390,7 +386,7 @@
                             type="date"
                             class="input input-sm w-full"
                             [value]="editingValue()"
-                            (input)="editingValue.set($any($event.target).value)"
+                            (input)="editingValue.set(inputValue($event))"
                             appAutoFocus
                           />
                         }
@@ -399,7 +395,7 @@
                             type="text"
                             class="input input-sm w-full"
                             [value]="editingValue()"
-                            (input)="editingValue.set($any($event.target).value)"
+                            (input)="editingValue.set(inputValue($event))"
                             appAutoFocus
                           />
                         }
@@ -569,7 +565,7 @@
                     type="checkbox"
                     class="checkbox"
                     [checked]="isAllSelected()"
-                    (change)="toggleSelectAll($any($event.target).checked)"
+                    (change)="toggleSelectAll(inputChecked($event))"
                     [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                   />
                 </label>
@@ -656,7 +652,7 @@
                         type="checkbox"
                         class="checkbox"
                         [checked]="isSelected(displayRow.row)"
-                        (change)="toggleRow(displayRow.row, $any($event.target).checked)"
+                        (change)="toggleRow(displayRow.row, inputChecked($event))"
                       />
                     </label>
                   </td>
@@ -960,7 +956,7 @@
                   type="checkbox"
                   class="checkbox"
                   [checked]="isAllSelected()"
-                  (change)="toggleSelectAll($any($event.target).checked)"
+                  (change)="toggleSelectAll(inputChecked($event))"
                   [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                 />
               </label>
@@ -981,7 +977,7 @@
                   class="checkbox"
                   [checked]="isSelected(row)"
                   [indeterminate]="isIndeterminate(row)"
-                  (change)="toggleRow(row, $any($event.target).checked)"
+                  (change)="toggleRow(row, inputChecked($event))"
                   [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
                 />
               </label>
@@ -1177,15 +1173,11 @@
                         type="checkbox"
                         class="toggle toggle-sm"
                         [checked]="editingValue()"
-                        (change)="editingValue.set($any($event.target).checked)"
+                        (change)="editingValue.set(inputChecked($event))"
                       />
                     }
                     @case ('select') {
-                      <select
-                        class="select select-sm w-full"
-                        [value]="editingValue()"
-                        (change)="editingValue.set($any($event.target).value)"
-                      >
+                      <select class="select select-sm w-full" [value]="editingValue()" (change)="editingValue.set(inputValue($event))">
                         @for (opt of column.editOptions; track opt.value) {
                           <option [value]="opt.value">{{ opt.label }}</option>
                         }
@@ -1196,7 +1188,7 @@
                         type="number"
                         class="input input-sm w-full"
                         [value]="editingValue()"
-                        (input)="editingValue.set(+$any($event.target).value)"
+                        (input)="editingValue.set(inputNumber($event))"
                         appAutoFocus
                       />
                     }
@@ -1205,7 +1197,7 @@
                         type="date"
                         class="input input-sm w-full"
                         [value]="editingValue()"
-                        (input)="editingValue.set($any($event.target).value)"
+                        (input)="editingValue.set(inputValue($event))"
                         appAutoFocus
                       />
                     }
@@ -1214,7 +1206,7 @@
                         type="text"
                         class="input input-sm w-full"
                         [value]="editingValue()"
-                        (input)="editingValue.set($any($event.target).value)"
+                        (input)="editingValue.set(inputValue($event))"
                         appAutoFocus
                       />
                     }

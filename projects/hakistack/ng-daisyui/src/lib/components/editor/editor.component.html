@@ -1,149 +1,49 @@
-<div class="hk-editor-wrapper" [class.hk-editor-focused]="isFocused()" [class.hk-editor-disabled]="disabled()">
-  <!-- Custom DaisyUI Toolbar -->
-  @if (!isLoading()) {
-    <div #toolbarContainer class="hk-editor-toolbar">
-      @for (group of resolvedToolbar(); track $index) {
-        <div class="hk-toolbar-group">
-          @for (item of group; track $index) {
-            @if (isStringItem(item)) {
-              @switch (item) {
-                @case ('bold') {
-                  <button type="button" class="ql-bold btn btn-ghost btn-xs btn-square" aria-label="Bold">
-                    <svg lucideBold [size]="15"></svg>
-                  </button>
-                }
-                @case ('italic') {
-                  <button type="button" class="ql-italic btn btn-ghost btn-xs btn-square" aria-label="Italic">
-                    <svg lucideItalic [size]="15"></svg>
-                  </button>
-                }
-                @case ('underline') {
-                  <button type="button" class="ql-underline btn btn-ghost btn-xs btn-square" aria-label="Underline">
-                    <svg lucideUnderline [size]="15"></svg>
-                  </button>
-                }
-                @case ('strike') {
-                  <button type="button" class="ql-strike btn btn-ghost btn-xs btn-square" aria-label="Strikethrough">
-                    <svg lucideStrikethrough [size]="15"></svg>
-                  </button>
-                }
-                @case ('blockquote') {
-                  <button type="button" class="ql-blockquote btn btn-ghost btn-xs btn-square" aria-label="Blockquote">
-                    <svg lucideQuote [size]="15"></svg>
-                  </button>
-                }
-                @case ('code-block') {
-                  <button type="button" class="ql-code-block btn btn-ghost btn-xs btn-square" aria-label="Code block">
-                    <svg lucideCode [size]="15"></svg>
-                  </button>
-                }
-                @case ('link') {
-                  <button type="button" class="ql-link btn btn-ghost btn-xs btn-square" aria-label="Link">
-                    <svg lucideLink [size]="15"></svg>
-                  </button>
-                }
-                @case ('image') {
-                  <button type="button" class="ql-image btn btn-ghost btn-xs btn-square" aria-label="Image">
-                    <svg lucideImage [size]="15"></svg>
-                  </button>
-                }
-                @case ('video') {
-                  <button type="button" class="ql-video btn btn-ghost btn-xs btn-square" aria-label="Video">
-                    <svg lucideVideo [size]="15"></svg>
-                  </button>
-                }
-                @case ('clean') {
-                  <button type="button" class="ql-clean btn btn-ghost btn-xs btn-square" aria-label="Clear formatting">
-                    <svg lucideRemoveFormatting [size]="15"></svg>
-                  </button>
-                }
-              }
-            } @else {
-              @switch (getItemKey(item)) {
-                @case ('header') {
-                  <button
-                    type="button"
-                    class="ql-header btn btn-ghost btn-xs btn-square"
-                    [attr.value]="getItemValue(item)"
-                    [attr.aria-label]="'Heading ' + getItemValue(item)"
-                  >
-                    @switch (getItemValue(item)) {
-                      @case (1) {
-                        <svg lucideHeading1 [size]="15"></svg>
-                      }
-                      @case (2) {
-                        <svg lucideHeading2 [size]="15"></svg>
-                      }
-                      @case (3) {
-                        <svg lucideHeading3 [size]="15"></svg>
-                      }
-                      @default {
-                        <span class="text-xs font-semibold">H{{ getItemValue(item) }}</span>
-                      }
-                    }
-                  </button>
-                }
-                @case ('list') {
-                  @if (getItemValue(item) === 'ordered') {
-                    <button type="button" class="ql-list btn btn-ghost btn-xs btn-square" value="ordered" aria-label="Ordered list">
-                      <svg lucideListOrdered [size]="15"></svg>
-                    </button>
-                  }
-                  @if (getItemValue(item) === 'bullet') {
-                    <button type="button" class="ql-list btn btn-ghost btn-xs btn-square" value="bullet" aria-label="Bullet list">
-                      <svg lucideList [size]="15"></svg>
-                    </button>
-                  }
-                }
-                @case ('indent') {
-                  @if (getItemValue(item) === '-1') {
-                    <button type="button" class="ql-indent btn btn-ghost btn-xs btn-square" value="-1" aria-label="Decrease indent">
-                      <svg lucideListIndentDecrease [size]="15"></svg>
-                    </button>
-                  }
-                  @if (getItemValue(item) === '+1') {
-                    <button type="button" class="ql-indent btn btn-ghost btn-xs btn-square" value="+1" aria-label="Increase indent">
-                      <svg lucideListIndentIncrease [size]="15"></svg>
-                    </button>
-                  }
-                }
-                @case ('align') {
-                  @switch (getItemValue(item)) {
-                    @case ('') {
-                      <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="" aria-label="Align left">
-                        <svg lucideTextAlignStart [size]="15"></svg>
-                      </button>
-                    }
-                    @case ('center') {
-                      <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="center" aria-label="Align center">
-                        <svg lucideTextAlignCenter [size]="15"></svg>
-                      </button>
-                    }
-                    @case ('right') {
-                      <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="right" aria-label="Align right">
-                        <svg lucideTextAlignEnd [size]="15"></svg>
-                      </button>
-                    }
-                    @case ('justify') {
-                      <button type="button" class="ql-align btn btn-ghost btn-xs btn-square" value="justify" aria-label="Justify">
-                        <svg lucideTextAlignJustify [size]="15"></svg>
-                      </button>
-                    }
-                  }
-                }
-              }
-            }
-          }
-        </div>
-      }
-    </div>
-  }
-
-  <!-- Editor Container -->
-  <div #editorContainer [style]="'--editor-height:' + editorHeight()"></div>
-
-  <!-- Character Counter -->
-  @if (maxLength() !== null && !isLoading()) {
-    <div class="hk-editor-footer">{{ characterCount() }} / {{ maxLength() }}</div>
-  }
+<div
+  class="hk-editor flex flex-col overflow-hidden rounded-md border border-base-content/25 bg-base-100 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
+  [class.opacity-60]="effectiveDisabled()"
+  [class.pointer-events-none]="effectiveDisabled()"
+>
+  <hk-editor-toolbar
+    [config]="toolbar()"
+    [isActive]="isActiveCheck"
+    [canRun]="canRunCheck"
+    [disabled]="effectiveDisabled()"
+    (toolbarCommand)="runCommand($event)"
+  />
+  <div
+    #host
+    class="hk-editor__surface px-4 py-3 cursor-text overflow-y-auto text-base-content selection:bg-primary/30 selection:text-inherit"
+    [style.min-height]="editorHeight()"
+    [attr.aria-label]="ariaLabel() || placeholder() || 'Rich text editor'"
+  ></div>
 </div>
+
+@if (textPromptOpen()) {
+  <dialog class="modal modal-open" role="dialog" aria-labelledby="hk-text-prompt-title" aria-modal="true">
+    <div class="modal-box max-w-md">
+      <h3 id="hk-text-prompt-title" class="font-semibold text-base mb-1">{{ textPromptTitle() }}</h3>
+      @if (textPromptDescription()) {
+        <p class="text-xs text-base-content/60 mb-3">{{ textPromptDescription() }}</p>
+      }
+      <input
+        #textPromptInput
+        type="text"
+        class="input input-bordered w-full"
+        autofocus
+        [value]="textPromptValue()"
+        [placeholder]="textPromptPlaceholder()"
+        (input)="textPromptValue.set(textPromptInput.value)"
+        (keydown.enter)="resolveTextPrompt('confirm')"
+        (keydown.escape)="resolveTextPrompt('cancel')"
+      />
+      <div class="modal-action mt-4">
+        <button type="button" class="btn btn-ghost btn-sm" (click)="resolveTextPrompt('cancel')">Cancel</button>
+        @if (textPromptShowSkip()) {
+          <button type="button" class="btn btn-ghost btn-sm" (click)="resolveTextPrompt('skip')">{{ textPromptSkipLabel() }}</button>
+        }
+        <button type="button" class="btn btn-primary btn-sm" (click)="resolveTextPrompt('confirm')">{{ textPromptConfirmLabel() }}</button>
+      </div>
+    </div>
+    <button type="button" class="modal-backdrop" aria-label="Close" (click)="resolveTextPrompt('cancel')"></button>
+  </dialog>
+}

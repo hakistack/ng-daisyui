@@ -153,3 +153,15 @@ export { ToastService } from './toast/toast.service';
 export { TOAST_CONFIG, DEFAULT_TOAST_CONFIG } from './toast/toast.config';
 export type { ToastGlobalConfig } from './toast/toast.config';
 export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } from './toast/toast.types';
+
+// Editor (TipTap-backed <hk-editor>; see docs/plans/editor.md)
+export { EditorComponent } from './editor/editor.component';
+export { EditorToolbarComponent } from './editor/editor-toolbar.component';
+export { TOOLBAR_PRESETS, TOOLBAR_ICONS, TOOLBAR_LABELS } from './editor/editor.defaults';
+export type {
+  EditorToolbarConfig,
+  EditorToolbarItem,
+  EditorToolbarPreset,
+  EditorTextChangeEvent,
+  EditorImageUploader,
+} from './editor/editor.types';

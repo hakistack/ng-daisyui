@@ -72,7 +72,7 @@ const DEFAULT_LABELS: ResolvedPaginationLabels = {
               id="page-size-select"
               class="select select-sm w-auto min-w-16"
               [value]="pageSizeSignal()"
-              (change)="onPageSizeChange(+$any($event.target).value)"
+              (change)="onPageSizeChange(inputNumber($event))"
               [disabled]="disabled()"
               [attr.aria-label]="resolvedLabels().pageSizeSelectAriaLabel(pageSizeSignal())"
             >
@@ -225,7 +225,7 @@ const DEFAULT_LABELS: ResolvedPaginationLabels = {
               [min]="1"
               [max]="totalPagesSignal()"
               [value]="quickJumperValue()"
-              (input)="quickJumperValue.set(+$any($event.target).value)"
+              (input)="quickJumperValue.set(inputNumber($event))"
               [disabled]="disabled()"
               [attr.aria-label]="resolvedLabels().quickJumperInputAriaLabel(totalPagesSignal())"
             />
@@ -244,6 +244,11 @@ const DEFAULT_LABELS: ResolvedPaginationLabels = {
   `,
 })
 export class TablePaginationComponent {
+  /** Typed event-target helper — template uses this to avoid `$any` casts. */
+  inputNumber(event: Event): number {
+    return Number((event.target as HTMLInputElement).value);
+  }
+
   // Inputs
   readonly paginationOptions = input<PaginationOptions | null>(null);
   readonly totalItems = input<number>(0);

@@ -70,4 +70,6 @@ export const routes: Routes = [
   // Utilities
   { path: 'motion', redirectTo: 'motion/animate', pathMatch: 'full' },
   { path: 'motion/:feature', loadComponent: () => import('@shared-demos/demos/motion-demo.component').then((m) => m.MotionDemoComponent) },
+  // Charts
+  { path: 'dashboard', loadComponent: () => import('@shared-demos/demos/dashboard-demo.component').then((m) => m.DashboardDemoComponent) },
 ];

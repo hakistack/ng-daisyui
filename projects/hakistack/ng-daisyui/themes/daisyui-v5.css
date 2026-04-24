@@ -34,14 +34,19 @@
 :root {
   --hk-color-base-100: var(--color-base-100);
   --hk-color-base-200: var(--color-base-200);
+  --hk-color-base-300: var(--color-base-300);
   --hk-color-base-content: var(--color-base-content);
   --hk-color-primary: var(--color-primary);
   --hk-color-error: var(--color-error);
   --hk-color-base-content-85: oklch(from var(--color-base-content) l c h / 0.85);
+  --hk-color-base-content-70: color-mix(in oklch, var(--color-base-content) 70%, transparent);
+  --hk-color-base-content-45: color-mix(in oklch, var(--color-base-content) 45%, transparent);
   --hk-color-base-content-20: color-mix(in oklch, var(--color-base-content) 20%, transparent);
   --hk-color-base-content-15: color-mix(in oklch, var(--color-base-content) 15%, transparent);
   --hk-color-base-content-10: color-mix(in oklch, var(--color-base-content) 10%, transparent);
   --hk-color-base-content-5: color-mix(in oklch, var(--color-base-content) 5%, transparent);
+  --hk-radius-field: var(--radius-field, 0.25rem);
+  --hk-radius-box: var(--radius-box, 1rem);
   --hk-color-primary-30: color-mix(in oklch, var(--color-primary) 30%, transparent);
   --hk-color-primary-20: color-mix(in oklch, var(--color-primary) 20%, transparent);
   --hk-color-primary-15: color-mix(in oklch, var(--color-primary) 15%, transparent);
