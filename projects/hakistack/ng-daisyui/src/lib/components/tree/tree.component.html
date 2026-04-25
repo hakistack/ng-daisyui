@@ -5,7 +5,7 @@
       <input
         type="text"
         class="input input-sm w-full pl-9"
-        [placeholder]="config().filterPlaceholder ?? 'Filter...'"
+        [placeholder]="resolvedConfig().filterPlaceholder ?? 'Filter...'"
         [ngModel]="filterText()"
         (ngModelChange)="onFilterTextChange($event)"
       />
@@ -15,7 +15,7 @@
           type="button"
           class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2"
           (click)="onFilterTextChange('')"
-          [attr.aria-label]="config().labels?.clearFilterAriaLabel ?? 'Clear filter'"
+          [attr.aria-label]="resolvedConfig().labels?.clearFilterAriaLabel ?? 'Clear filter'"
         >
           <svg lucideX [size]="14"></svg>
         </button>
@@ -41,19 +41,24 @@
       <div
         class="app-tree-node"
         [class.app-tree-node-selected]="flatNode.state.selected"
-        [class.app-tree-node-focused]="flatNode.state.focused"
-        [class.app-tree-node-dragging]="flatNode.state.dragging"
+        [class.app-tree-node-focused]="isFocused(flatNode.node)"
+        [class.app-tree-node-dragging]="isDragging(flatNode.node)"
         [class.app-tree-node-drop-target]="isDropTarget(flatNode.node) && getDropPosition() === 'inside'"
         [class.app-tree-node-drop-before]="isDropTarget(flatNode.node) && getDropPosition() === 'before'"
         [class.app-tree-node-drop-after]="isDropTarget(flatNode.node) && getDropPosition() === 'after'"
         [class.app-tree-node-first]="flatNode.first"
         [class.app-tree-node-last]="flatNode.last"
         [attr.data-level]="flatNode.level"
+        [attr.data-node-key]="flatNode.node.key"
+        [style.--level]="flatNode.level"
         [attr.aria-selected]="flatNode.state.selected"
-        [attr.aria-expanded]="hasChildren(flatNode.node) ? isExpanded(flatNode.node) : null"
-        [attr.tabindex]="flatNode.state.focused ? 0 : -1"
+        [attr.aria-expanded]="flatNode.hasChildren ? flatNode.state.expanded : null"
+        [attr.tabindex]="isFocused(flatNode.node) ? 0 : -1"
         role="treeitem"
         [draggable]="isDragDropEnabled() && flatNode.node.draggable !== false"
+        (click)="onNodeClick($event, flatNode.node)"
+        (keydown.enter)="onRowActivate($event, flatNode.node)"
+        (keydown.space)="onRowActivate($event, flatNode.node)"
         (dragstart)="onDragStart($event, flatNode.node)"
         (dragend)="onDragEnd($event, flatNode.node)"
         (dragover)="onDragOver($event, flatNode.node)"
@@ -61,13 +66,13 @@
         (drop)="onDropOnNode($event, flatNode.node)"
       >
         <!-- Indentation & Lines -->
-        <div class="app-tree-node-indent" [style]="getIndentStyle(flatNode.level)">
+        <div class="app-tree-node-indent" [style.padding-left.px]="flatNode.indentPx">
           <!-- Connecting lines (rendered via CSS) -->
           @if (showLines()) {
-            @for (i of flatNode.path; track $index; let lineLevel = $index) {
+            @for (_ of flatNode.path; track $index; let lineLevel = $index) {
               <span
                 class="app-tree-line"
-                [class.app-tree-line-last]="isLastAtLevel(flatNode, lineLevel)"
+                [class.app-tree-line-last]="flatNode.ancestorIsLastMask[lineLevel]"
                 [style.left.px]="lineLevel * indentSize() + 12"
               ></span>
             }
@@ -76,8 +81,8 @@
 
         <!-- Toggle Button -->
         <div class="app-tree-node-toggle w-6 shrink-0">
-          @if (hasChildren(flatNode.node)) {
-            @if (isNodeLoading(flatNode.node)) {
+          @if (flatNode.hasChildren) {
+            @if (flatNode.state.loading) {
               <span class="loading loading-spinner loading-xs"></span>
             } @else {
               <button
@@ -85,12 +90,12 @@
                 class="btn btn-ghost btn-xs btn-square"
                 (click)="onToggleClick($event, flatNode.node)"
                 [attr.aria-label]="
-                  isExpanded(flatNode.node)
-                    ? (config().labels?.collapseAriaLabel ?? 'Collapse')
-                    : (config().labels?.expandAriaLabel ?? 'Expand')
+                  flatNode.state.expanded
+                    ? (resolvedConfig().labels?.collapseAriaLabel ?? 'Collapse')
+                    : (resolvedConfig().labels?.expandAriaLabel ?? 'Expand')
                 "
               >
-                @if (isExpanded(flatNode.node)) {
+                @if (flatNode.state.expanded) {
                   <svg lucideChevronDown [size]="16"></svg>
                 } @else {
                   <svg lucideChevronRight [size]="16"></svg>
@@ -120,12 +125,8 @@
           class="app-tree-node-content flex-1 flex items-center gap-2 py-1 px-2 rounded cursor-pointer hover:bg-base-200 transition-colors"
           [class.bg-primary]="flatNode.state.selected && selectionMode() !== 'checkbox'"
           [class.text-primary-content]="flatNode.state.selected && selectionMode() !== 'checkbox'"
-          [class.ring-2]="flatNode.state.focused"
-          [class.ring-primary]="flatNode.state.focused"
-          tabindex="0"
-          (click)="onNodeClick($event, flatNode.node)"
-          (keydown.enter)="onNodeClick($event, flatNode.node)"
-          (keydown.space)="onNodeClick($event, flatNode.node)"
+          [class.ring-2]="isFocused(flatNode.node)"
+          [class.ring-primary]="isFocused(flatNode.node)"
         >
           @if (nodeTemplateRef()) {
             <!-- Custom Template -->
@@ -150,9 +151,9 @@
             @if (flatNode.node.icon) {
               <svg
                 [lucideIcon]="
-                  isExpanded(flatNode.node) && flatNode.node.expandedIcon
+                  flatNode.state.expanded && flatNode.node.expandedIcon
                     ? flatNode.node.expandedIcon
-                    : isExpanded(flatNode.node)
+                    : flatNode.state.expanded
                       ? flatNode.node.icon
                       : (flatNode.node.collapsedIcon ?? flatNode.node.icon)
                 "

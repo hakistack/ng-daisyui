@@ -89,13 +89,13 @@ export const node = {
 
   /**
    * Create a folder node (expandable, has children).
-   * Automatically sets `icon: 'Folder'` and `expandedIcon: 'FolderOpen'` unless overridden.
+   * Automatically sets `icon: 'folder'` and `expandedIcon: 'folder-open'` unless overridden.
    */
   folder<T = unknown>(label: string, children: TreeNode<T>[], opts?: Partial<TreeNode<T>>): TreeNode<T> {
     return {
       key: generateKey(),
-      icon: 'Folder',
-      expandedIcon: 'FolderOpen',
+      icon: 'folder',
+      expandedIcon: 'folder-open',
       ...opts,
       label,
       children,
@@ -121,8 +121,8 @@ export const node = {
   lazy<T = unknown>(label: string, opts?: Partial<TreeNode<T>>): TreeNode<T> {
     return {
       key: generateKey(),
-      icon: 'Folder',
-      expandedIcon: 'FolderOpen',
+      icon: 'folder',
+      expandedIcon: 'folder-open',
       ...opts,
       label,
       leaf: false,
