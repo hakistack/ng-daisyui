@@ -522,16 +522,6 @@ export class App implements OnInit {
       ],
     },
     {
-      title: 'Charts',
-      items: [
-        {
-          path: '/dashboard',
-          label: 'Live Dashboard',
-          icon: 'chart-line',
-        },
-      ],
-    },
-    {
       title: 'Utilities',
       items: [
         {

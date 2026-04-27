@@ -1,42 +1,25 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { ChartComponent } from '../chart/chart.component';
-import { DaisyUIThemeService } from '../chart/themes/daisyui-theme.service';
-import type { EChartsOption } from '../chart/chart.types';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { KpiDelta, KpiValueFormatter } from './kpi-card.types';
 
 /**
- * KPI card — big number, period-over-period delta, and an optional trend
- * sparkline that bleeds flush to the card's bottom edge for a modern
- * dashboard look. The sparkline uses `<hk-chart decorative>` so it's hidden
- * from screen readers (the number + delta carry the data) and skips the
- * chart's keyboard-nav attachment.
+ * KPI card — big number with a period-over-period delta badge. Compact,
+ * dependency-light component intended for dashboard summaries.
  */
 @Component({
   selector: 'hk-kpi-card',
-  imports: [ChartComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     .hk-kpi-card {
       display: flex;
       flex-direction: column;
       height: 100%;
-      overflow: hidden; /* clip the sparkline to the card's rounded corners */
+      overflow: hidden;
     }
     .hk-kpi-content {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
-      padding: 1rem 1rem 0.5rem;
-    }
-    .hk-kpi-sparkline {
-      flex: 1 1 auto;
-      min-height: 64px;
-      margin-top: auto; /* push to the bottom when content is short */
-    }
-    .hk-kpi-sparkline hk-chart {
-      display: block;
-      width: 100%;
-      height: 100%;
+      padding: 1rem;
     }
   `,
   template: `
@@ -58,12 +41,6 @@ import type { KpiDelta, KpiValueFormatter } from './kpi-card.types';
           <span class="text-xs text-base-content/50">{{ delta()!.label }}</span>
         }
       </div>
-
-      @if (sparklineOption(); as opt) {
-        <div class="hk-kpi-sparkline">
-          <hk-chart [option]="opt" [decorative]="true" />
-        </div>
-      }
     </div>
   `,
 })
@@ -72,59 +49,12 @@ export class KpiCardComponent {
   readonly value = input.required<number | string>();
   readonly format = input<KpiValueFormatter | undefined>(undefined);
   readonly delta = input<KpiDelta | null>(null);
-  readonly trend = input<readonly number[] | null>(null);
-
-  private readonly theme = inject(DaisyUIThemeService);
 
   readonly formattedValue = computed<string>(() => {
     const v = this.value();
     if (typeof v === 'string') return v;
     const fmt = this.format();
     return fmt ? fmt(v) : v.toLocaleString();
-  });
-
-  readonly sparklineOption = computed<EChartsOption | null>(() => {
-    const trend = this.trend();
-    if (!trend || trend.length < 2) return null;
-
-    const color = this.sparklineColor();
-
-    return {
-      // Zero margins + containLabel:false → sparkline fills the entire slot
-      // edge-to-edge. No axes, no legend, no tooltip — pure decoration.
-      grid: { left: 0, right: 0, top: 4, bottom: 0, containLabel: false },
-      xAxis: { type: 'category', show: false, boundaryGap: false, data: trend.map((_, i) => i) },
-      yAxis: { type: 'value', show: false, scale: true },
-      tooltip: { show: false },
-      legend: { show: false },
-      series: [
-        {
-          type: 'line',
-          data: trend,
-          smooth: true,
-          showSymbol: false,
-          silent: true,
-          lineStyle: { width: 2, color },
-          itemStyle: { color },
-          areaStyle: {
-            opacity: 0.3,
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color },
-                { offset: 1, color: 'transparent' },
-              ],
-            },
-          },
-          animationDuration: 500,
-          animationEasing: 'cubicOut',
-        },
-      ],
-    };
   });
 
   formatDelta(value: number): string {
@@ -155,17 +85,5 @@ export class KpiCardComponent {
     if (delta.value > 0) return 'positive';
     if (delta.value < 0) return 'negative';
     return 'neutral';
-  }
-
-  private sparklineColor(): string {
-    const c = this.theme.tokens().colors;
-    switch (this.resolveSentiment(this.delta())) {
-      case 'positive':
-        return c.success;
-      case 'negative':
-        return c.error;
-      default:
-        return c.primary;
-    }
   }
 }
