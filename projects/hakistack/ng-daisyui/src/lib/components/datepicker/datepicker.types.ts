@@ -27,7 +27,42 @@ export interface DatepickerEvent {
 }
 
 /**
- * Configuration options for the datepicker component
+ * Configuration for `<hk-datepicker>`. All format fields take
+ * `Intl.DateTimeFormatOptions` — the same shape consumed by
+ * `Intl.DateTimeFormat`. Locale is set on the component via the `locale` input;
+ * format options describe **what** to render, locale describes **how**.
+ *
+ * For UI strings (button text, aria-labels), see `DatepickerLabels` — those
+ * are separate because they're translatable strings, not format directives.
+ *
+ * @example US-style short date, two years per page
+ * config = {
+ *   dateFormat: { day: 'numeric', month: 'short', year: 'numeric' },   // "Jan 5, 2026"
+ *   monthFormat: { month: 'long', year: 'numeric' },                    // "January 2026"
+ *   weekdayFormat: { weekday: 'short' },                                // "Mon", "Tue", ...
+ *   yearBatchSize: 12,
+ *   showTodayButton: true,
+ *   showClearButton: true,
+ * };
+ *
+ * @example ISO-style + Spanish locale
+ * // template:
+ * // <hk-datepicker locale="es-ES" [config]="config" />
+ * config = {
+ *   dateFormat: { year: 'numeric', month: '2-digit', day: '2-digit' },  // "05/01/2026"
+ *   monthFormat: { month: 'long', year: 'numeric' },                    // "enero de 2026"
+ *   weekdayFormat: { weekday: 'narrow' },                               // "L", "M", "X", ...
+ *   yearBatchSize: 16,
+ * };
+ *
+ * @example Range picker (close-on-select must be false)
+ * config = {
+ *   dateFormat: { day: 'numeric', month: 'short', year: 'numeric' },
+ *   monthFormat: { month: 'long', year: 'numeric' },
+ *   weekdayFormat: { weekday: 'short' },
+ *   yearBatchSize: 12,
+ *   closeOnSelect: false,
+ * };
  */
 export interface DatepickerConfig {
   /** Format options for displaying dates (e.g., `{ day: 'numeric', month: 'short', year: 'numeric' }`) */

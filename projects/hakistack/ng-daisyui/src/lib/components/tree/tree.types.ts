@@ -2,7 +2,53 @@ import { TemplateRef } from '@angular/core';
 import { TreeNode, TreeSelectionMode } from '../../api/treenode';
 
 /**
- * Tree component configuration
+ * Configuration for `<hk-tree>`. Pass via the `config` input, or use the
+ * `createTree({ ...config, nodes })` builder which returns a `TreeInstance`
+ * with imperative APIs.
+ *
+ * **Selection** — set `selectionMode` to `'single' | 'multiple' | 'checkbox'`.
+ * In `'checkbox'` mode, `propagateSelectionDown`/`propagateSelectionUp` enable
+ * three-state checkboxes (children follow parent, parent reflects children).
+ * Set `selectionAllowParents: false` to restrict selection to leaf nodes only.
+ *
+ * **Filtering** — `filterable: true` renders a search input. `filterMode: 'lenient'`
+ * (default) keeps ancestors of matched nodes visible so context is preserved;
+ * `'strict'` hides everything that doesn't match.
+ *
+ * **Virtual scrolling** — for large trees (>500 nodes), enable `virtualScroll: true`
+ * **and** set `virtualScrollItemHeight` (required, no default — measure your row).
+ * Compatible with filtering and drag-drop.
+ *
+ * **Drag & drop** — `dragDrop: true` enables reordering. Restrict to within-parent
+ * moves with `dragDropSameLevel: true` (e.g. preserve a folder hierarchy while
+ * letting users sort siblings).
+ *
+ * @example Selection-only tree
+ * config = {
+ *   selectionMode: 'single',
+ *   keyboardNavigation: true,
+ *   ariaLabel: 'File browser',
+ * };
+ *
+ * @example Checkbox tree with cascade selection
+ * config = {
+ *   selectionMode: 'checkbox',
+ *   propagateSelectionDown: true,
+ *   propagateSelectionUp: true,
+ *   selectionAllowParents: true,
+ * };
+ *
+ * @example Large filterable tree with drag-drop
+ * config = {
+ *   filterable: true,
+ *   filterMode: 'lenient',
+ *   dragDrop: true,
+ *   dragDropSameLevel: true,
+ *   virtualScroll: true,
+ *   virtualScrollItemHeight: 32,
+ *   showLines: true,
+ *   indentSize: 20,
+ * };
  */
 export interface TreeConfig<T = unknown> {
   /** Selection mode: 'single', 'multiple', 'checkbox', or null (no selection) */
@@ -251,7 +297,12 @@ export interface BuildTreeOptions<T> {
 }
 
 /**
- * Internal type for tracking node state
+ * Internal type for tracking node state.
+ *
+ * Transient states that change on every interaction — drag, drop, focus — are
+ * intentionally NOT stored here. Keeping them out lets the flatten computation
+ * remain stable during drag operations, and they are queried per-row in the
+ * template via `isDragging()`, `isDropTarget()`, and `isFocused()`.
  */
 export interface TreeNodeState {
   /** Whether the node is expanded */
@@ -262,14 +313,8 @@ export interface TreeNodeState {
   partialSelected: boolean;
   /** Whether the node is visible (not filtered out) */
   visible: boolean;
-  /** Whether the node is being dragged */
-  dragging: boolean;
-  /** Whether the node is a valid drop target */
-  dropTarget: boolean;
   /** Whether the node is loading children */
   loading: boolean;
-  /** Whether the node is focused */
-  focused: boolean;
 }
 
 /**
@@ -289,7 +334,13 @@ export interface FlatTreeNode<T = unknown> {
   /** Index within siblings */
   index: number;
   /** Full path of indices from root */
-  path: number[];
+  path: readonly number[];
+  /** Precomputed indent in px for `padding-left` */
+  indentPx: number;
+  /** Precomputed `children.length > 0 || leaf === false` */
+  hasChildren: boolean;
+  /** For each ancestor level (0..level), whether that ancestor is last among its siblings */
+  ancestorIsLastMask: readonly boolean[];
   /** Node state */
   state: TreeNodeState;
 }

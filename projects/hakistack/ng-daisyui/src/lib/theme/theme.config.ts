@@ -11,23 +11,23 @@ export interface HkThemeConfig {
   };
 }
 
-const DAISYUI_V5: HkThemeConfig = {
+const DAISYUI_V5 = {
   id: 'daisyui-v5',
   classes: {
     tabsLift: 'tabs-lift',
     menuActive: 'menu-active',
     cardBorder: 'card-border',
   },
-};
+} as const satisfies HkThemeConfig;
 
-const DAISYUI_V4: HkThemeConfig = {
+const DAISYUI_V4 = {
   id: 'daisyui-v4',
   classes: {
     tabsLift: 'tabs-lifted',
     menuActive: 'active',
     cardBorder: 'border border-base-300',
   },
-};
+} as const satisfies HkThemeConfig;
 
 const THEME_MAP: Record<HkThemeId, HkThemeConfig> = {
   'daisyui-v5': DAISYUI_V5,

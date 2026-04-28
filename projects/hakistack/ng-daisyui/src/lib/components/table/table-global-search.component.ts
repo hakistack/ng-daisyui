@@ -14,10 +14,11 @@ import { LucideSearch, LucideX } from '@lucide/angular';
         }
 
         <input
+          #searchInput
           type="text"
           class="grow"
           [value]="searchTerm()"
-          (input)="onSearchChange($any($event.target).value)"
+          (input)="onSearchChange(searchInput.value)"
           [placeholder]="placeholder()"
           [attr.aria-label]="placeholder()"
         />

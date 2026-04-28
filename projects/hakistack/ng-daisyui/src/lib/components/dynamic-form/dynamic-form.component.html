@@ -163,13 +163,10 @@
         }
         @case ('editor') {
           <hk-editor
-            [id]="field.id"
             [formControlName]="field.key"
             [placeholder]="field.placeholder || formLabels().editorPlaceholder"
             [editorHeight]="field.editorHeight || '200px'"
             [toolbar]="field.editorToolbar || 'basic'"
-            [outputFormat]="field.editorOutputFormat || 'html'"
-            [formats]="field.editorFormats || null"
             [minLength]="field.minLength ?? null"
             [maxLength]="field.maxLength ?? null"
           />

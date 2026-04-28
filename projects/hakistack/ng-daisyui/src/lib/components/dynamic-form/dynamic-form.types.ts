@@ -94,7 +94,47 @@ export interface OptionsFromConfig<T = unknown> {
 
 // ── User-facing field option interfaces ─────────────────────────────────────
 
-export type ConditionShorthand = string | [string, unknown] | [string, (value: unknown, formValues?: Record<string, unknown>) => boolean];
+/**
+ * Condition shorthand for `showWhen` / `hideWhen` / `requiredWhen` / `disabledWhen`.
+ *
+ * Forms (most reactive → most static):
+ *
+ * - `Signal<boolean>` — pass the signal itself, **no parens**. Re-evaluates whenever
+ *   the signal changes. Best for external state (route mode, auth, feature flags).
+ *   ```ts
+ *   showWhen: this.isEditMode          // ✅ reactive
+ *   ```
+ *
+ * - `() => boolean` — predicate called on every re-eval. Reads any signals inside
+ *   the body; those reads auto-track. Equivalent to `Signal<boolean>` but lets you
+ *   compose multiple signals or external sources.
+ *   ```ts
+ *   showWhen: () => this.isEditMode() && !this.isLocked()
+ *   ```
+ *
+ * - `string` — shorthand for `[fieldKey, true]`. Show when the named form field is truthy.
+ *   ```ts
+ *   showWhen: 'hasReferral'
+ *   ```
+ *
+ * - `[fieldKey, value]` — show when the named form field equals `value`.
+ *   ```ts
+ *   showWhen: ['accountType', 'business']
+ *   ```
+ *
+ * - `[fieldKey, (value, formValues) => boolean]` — predicate over a specific form field.
+ *
+ * - `boolean` — **static**, evaluated once at form-build time. `true` is a no-op,
+ *   `false` permanently disables. Note: `showWhen: this.isEditMode()` (with parens!)
+ *   evaluates **once** — if you want reactivity, drop the parens to pass the signal.
+ */
+export type ConditionShorthand =
+  | boolean
+  | (() => boolean)
+  | Signal<boolean>
+  | string
+  | [string, unknown]
+  | [string, (value: unknown, formValues?: Record<string, unknown>) => boolean];
 
 /** Shared options available on every field type */
 export interface BaseFieldOptions {
@@ -355,21 +395,84 @@ export interface CreateFormInput {
   readonly onChange?: (values: Record<string, unknown>) => void;
 }
 
+/**
+ * Resolved configuration consumed by `<hk-dynamic-form>`. You normally don't
+ * construct this directly — call `createForm(input)` and pass `form.config()`
+ * to the component, which produces a `FormConfig` from a friendlier shape.
+ *
+ * Provide **either** `fields` (single page) **or** `steps` (wizard mode);
+ * passing both is unsupported.
+ *
+ * @example Single-page form
+ * const form = createForm({
+ *   fields: [
+ *     field.text('name', 'Name', { required: true }),
+ *     field.email('email'),
+ *   ],
+ *   layout: 'grid',
+ *   gridColumns: 2,
+ *   gap: 'md',
+ *   onSubmit: ({ values, valid }) => valid && save(values),
+ * });
+ *
+ * // template
+ * // <hk-dynamic-form [config]="form.config()" />
+ *
+ * @example Wizard with auto-save
+ * const form = createForm({
+ *   steps: [
+ *     step('details', 'Details', [field.text('name', 'Name')]),
+ *     step('billing', 'Billing', [field.text('card', 'Card #')]),
+ *   ],
+ *   autoSave: { enabled: true, formId: 'checkout-v1' },
+ *   stepperConfig: { previousButtonText: 'Back', completeButtonText: 'Pay' },
+ *   onSubmit: ({ values, completedSteps }) => finalize(values, completedSteps),
+ * });
+ */
 export interface FormConfig {
+  /** Optional heading rendered above the form. */
   readonly title?: string;
+  /** Optional supporting text rendered below the title. */
   readonly description?: string;
+  /** Field definitions for a single-page form. Mutually exclusive with `steps`. */
   readonly fields?: readonly FormFieldConfig[];
+  /**
+   * Layout mode.
+   * - `'vertical'` (default) — labels above inputs, one field per row.
+   * - `'horizontal'` — labels left, inputs right; pair with `labelWidth`.
+   * - `'grid'` — N-column grid; pair with `gridColumns`.
+   */
   readonly layout?: 'vertical' | 'horizontal' | 'grid';
+  /** Number of grid columns (1–12). Only applies when `layout === 'grid'`. Default: 12. */
   readonly gridColumns?: number;
+  /** Spacing between fields. Default: `'md'`. */
   readonly gap?: 'sm' | 'md' | 'lg';
+  /** Label column width. Only applies when `layout === 'horizontal'`. */
   readonly labelWidth?: 'sm' | 'md' | 'lg' | 'xl';
+  /**
+   * Persist form state to `FormStateService` and restore it on next mount.
+   * Pass `true` for legacy boolean opt-in (requires `formId` on the config object form),
+   * or pass an `AutoSaveConfig` with `enabled: true` and a stable `formId`.
+   * Requires `provideFormState()` in app providers.
+   */
   readonly autoSave?: boolean | AutoSaveConfig;
+  /** Run validators on every value change. Default: true. */
   readonly validateOnChange?: boolean;
+  /** Run validators when a field loses focus. Default: true. */
   readonly validateOnBlur?: boolean;
+  /** Customize stepper UI (button text, indicator visibility, etc). Wizard mode only. */
   readonly stepperConfig?: StepperConfig;
+  /** Step definitions for wizard mode. Mutually exclusive with `fields`. */
   readonly steps?: readonly FormStep[];
+  /**
+   * Called when the user submits a valid (or invalid) form.
+   * Receives `{ values, valid, errors, completedSteps?, currentStep? }`.
+   * Trigger externally via `form.submit()` from the `FormController`.
+   */
   readonly onSubmit?: (data: FormSubmissionData) => void;
+  /** Called after `form.reset()` clears the form to defaults. */
   readonly onReset?: () => void;
+  /** Called on every form value change (debounced). Receives the raw values map. */
   readonly onChange?: (values: Record<string, unknown>) => void;
   /** @internal Trigger signal for external submit calls */
   readonly _submitTrigger?: () => number;

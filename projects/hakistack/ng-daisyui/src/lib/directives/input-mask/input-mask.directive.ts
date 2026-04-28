@@ -15,6 +15,31 @@ import {
   parseMask,
 } from './input-mask.engine';
 
+/**
+ * Apply an input mask to an `<input>` (or a component wrapping one).
+ *
+ * **Mask tokens** — every other character in the mask is a literal:
+ * - `9` — single digit (0–9)
+ * - `a` — single letter (A–Z, a–z)
+ * - `*` — single alphanumeric (A–Z, a–z, 0–9)
+ *
+ * SSR-safe: parsing only runs in the browser. Works on bare `<input>` elements
+ * or on components that contain a single `<input>` (the directive walks one level deep).
+ *
+ * @example Phone number
+ * <input hkInputMask="(999) 999-9999" (maskValueChange)="phone.set($event)" />
+ *
+ * @example Date (MM/DD/YYYY)
+ * <input hkInputMask="99/99/9999" />
+ *
+ * @example Credit card
+ * <input hkInputMask="9999 9999 9999 9999" [unmask]="true"
+ *        (maskValueChange)="cardNumber = $event"
+ *        (maskComplete)="submit()" />
+ *
+ * @example Postal code (alphanumeric, e.g. Canadian)
+ * <input hkInputMask="a9a 9a9" [slotChar]="' '" />
+ */
 @Directive({
   selector: '[hkInputMask]',
   host: {
@@ -31,14 +56,29 @@ export class InputMaskDirective implements OnInit, OnChanges {
 
   // ── Inputs ─────────────────────────────────────────────────────────────
 
+  /**
+   * The mask pattern. Tokens: `9` (digit), `a` (letter), `*` (alphanumeric).
+   * Any other character is treated as a literal and inserted automatically.
+   *
+   * Examples: `(999) 999-9999`, `99/99/9999`, `a9a 9a9`.
+   */
   readonly hkInputMask = input.required<string>();
+  /** Placeholder character displayed in unfilled slots. Default: `'_'`. */
   readonly slotChar = input<string>('_');
+  /** Clear the field on blur if the mask is incomplete. Default: `true`. */
   readonly autoClear = input<boolean>(true);
+  /**
+   * If `true`, `maskValueChange` emits only the user-typed characters
+   * (e.g. `'5551234567'`); if `false`, emits the full masked display
+   * (e.g. `'(555) 123-4567'`). Default: `false`.
+   */
   readonly unmask = input<boolean>(false);
 
   // ── Outputs ────────────────────────────────────────────────────────────
 
+  /** Fires on every change. Payload format depends on `unmask`. */
   readonly maskValueChange = output<string>();
+  /** Fires once the mask is fully filled (every editable slot has a valid character). */
   readonly maskComplete = output<void>();
 
   // ── Internal State ─────────────────────────────────────────────────────

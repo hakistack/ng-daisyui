@@ -27,6 +27,44 @@ import {
   VirtualScrollerScrollEvent,
 } from './virtual-scroller.types';
 
+/**
+ * Virtualized list/grid renderer backed by `@angular/cdk/scrolling`.
+ *
+ * Renders only the rows in (or near) the viewport — use it for lists of
+ * thousands of items where rendering everything would tank performance.
+ *
+ * **Slots** — provide content via named templates:
+ * - `<ng-template #item let-item let-i="index">` — required, renders each row.
+ * - `<ng-template #loader>` — optional, shown for `null` placeholder items in `lazy` mode.
+ * - `<ng-template #header>` / `<ng-template #footer>` — optional, rendered above/below the list.
+ *
+ * **Lazy loading** — set `[lazy]="true"` and seed `items` with `null` placeholders
+ * for the un-loaded rows. As the user scrolls, `(lazyLoad)` fires with the index
+ * range that needs data — fetch and patch those slots in your `items` array.
+ * Each `{first, rows}` range is emitted **at most once** (dedup via internal cache).
+ *
+ * **Grid mode** — set `numColumns > 1` to lay items out in N-column rows.
+ * `itemSize` is the row height in this mode.
+ *
+ * @example Simple list of 10,000 items
+ * <hk-virtual-scroller [items]="rows()" [itemSize]="48" viewportHeight="600px">
+ *   <ng-template #item let-row>
+ *     <div class="p-2">{{ row.name }}</div>
+ *   </ng-template>
+ * </hk-virtual-scroller>
+ *
+ * @example Lazy-loaded grid
+ * // items() = [null, null, ...total nulls...]
+ * <hk-virtual-scroller [items]="items()" [itemSize]="120" [numColumns]="4"
+ *                      [lazy]="true" (lazyLoad)="loadPage($event)">
+ *   <ng-template #item let-item>
+ *     <img [src]="item.thumb" />
+ *   </ng-template>
+ *   <ng-template #loader>
+ *     <div class="skeleton h-full w-full"></div>
+ *   </ng-template>
+ * </hk-virtual-scroller>
+ */
 @Component({
   selector: 'hk-virtual-scroller',
   imports: [ScrollingModule, CommonModule],
@@ -41,32 +79,67 @@ export class VirtualScrollerComponent<T = any> implements OnInit {
 
   // ── Template Refs ──────────────────────────────────────────────────────
 
+  /** Row template — receives `{ $implicit: T, index, first, last, even, odd }`. Required. */
   readonly itemTemplate = contentChild<TemplateRef<VirtualScrollerItemContext<T>>>('item');
+  /** Optional placeholder template shown for `null` slots in `lazy` mode (e.g. a skeleton). */
   readonly loaderTemplate = contentChild<TemplateRef<VirtualScrollerLoaderContext>>('loader');
+  /** Optional sticky/static header rendered above the virtualized rows. */
   readonly headerTemplate = contentChild<TemplateRef<unknown>>('header');
+  /** Optional footer rendered below the virtualized rows. */
   readonly footerTemplate = contentChild<TemplateRef<unknown>>('footer');
 
   // ── Inputs ─────────────────────────────────────────────────────────────
 
+  /**
+   * Data array. In `lazy` mode, use `null` for not-yet-loaded slots and the
+   * scroller will emit `lazyLoad` for those index ranges as they become visible.
+   */
   readonly items = input<readonly (T | null)[]>([]);
+  /**
+   * Item size in px — row height for vertical, column width for horizontal.
+   * Must match the actual rendered size; mismatches break virtualization math.
+   * Required.
+   */
   readonly itemSize = input.required<number>();
+  /** Scroll axis. Default: `'vertical'`. */
   readonly orientation = input<VirtualScrollerOrientation>('vertical');
+  /** Number of columns (vertical orientation). `>1` enables grid mode. Default: `1`. */
   readonly numColumns = input<number>(1);
+  /** Viewport height (CSS value). Default: `'400px'`. */
   readonly viewportHeight = input<string>('400px');
+  /** Viewport width (CSS value). Default: `'100%'`. */
   readonly viewportWidth = input<string>('100%');
+  /** Debounce (ms) before `scrolled` / `lazyLoad` fire. Default: `0`. */
   readonly scrollDelay = input<number>(0);
+  /** Minimum off-screen buffer to render ahead, in px. Default: `100`. */
   readonly minBufferPx = input<number>(100);
+  /** Maximum off-screen buffer, in px. CDK keeps rendered range between min/max. Default: `200`. */
   readonly maxBufferPx = input<number>(200);
+  /**
+   * `TrackByFunction<T>`. Strongly recommended when items are objects — without it,
+   * Angular re-creates DOM nodes on every reference change. Default: identity (index-based).
+   */
   readonly trackByFn = input<TrackByFunction<T>>();
+  /** Enable lazy-load mode: `null` slots in `items` cause `lazyLoad` to fire. Default: `false`. */
   readonly lazy = input<boolean>(false);
+  /** Show a loading state on the viewport (e.g. while fetching the first page). Default: `false`. */
   readonly loading = input<boolean>(false);
+  /** Extra classes applied to the scroll viewport container. */
   readonly containerClass = input<string>('');
+  /** Extra classes applied to each item wrapper. */
   readonly itemClass = input<string>('');
 
   // ── Outputs ────────────────────────────────────────────────────────────
 
+  /** Fires on scroll. Emits the current scroll offset and rendered range. */
   readonly scrolled = output<VirtualScrollerScrollEvent>();
+  /**
+   * Fires when an un-loaded range becomes visible (lazy mode only).
+   * Each range is emitted at most once per session — patch `items` with real
+   * data and the same range will not re-fire.
+   */
   readonly lazyLoad = output<VirtualScrollerLazyLoadEvent>();
+  /** Fires when the topmost rendered index changes. */
   readonly scrollIndexChange = output<number>();
 
   // ── Internal State ─────────────────────────────────────────────────────

@@ -167,8 +167,8 @@ describe('Tree helper functions', () => {
         const n = node.folder('My Folder', children);
 
         expect(n.label).toBe('My Folder');
-        expect(n.icon).toBe('Folder');
-        expect(n.expandedIcon).toBe('FolderOpen');
+        expect(n.icon).toBe('folder');
+        expect(n.expandedIcon).toBe('folder-open');
         expect(n.children).toBe(children);
         expect(n.key).toBeDefined();
       });
@@ -200,8 +200,8 @@ describe('Tree helper functions', () => {
         expect(n.label).toBe('Archives');
         expect(n.leaf).toBe(false);
         expect(n.children).toBeUndefined();
-        expect(n.icon).toBe('Folder');
-        expect(n.expandedIcon).toBe('FolderOpen');
+        expect(n.icon).toBe('folder');
+        expect(n.expandedIcon).toBe('folder-open');
       });
     });
 
@@ -211,10 +211,7 @@ describe('Tree helper functions', () => {
           name: string;
           subs?: Dept[];
         }
-        const data: Dept[] = [
-          { name: 'Engineering', subs: [{ name: 'Frontend' }, { name: 'Backend' }] },
-          { name: 'Marketing' },
-        ];
+        const data: Dept[] = [{ name: 'Engineering', subs: [{ name: 'Frontend' }, { name: 'Backend' }] }, { name: 'Marketing' }];
 
         const result = node.fromData(data, {
           labelFn: (d) => d.name,
@@ -259,15 +256,7 @@ describe('Tree helper functions', () => {
         visited.push(n.key!);
       });
 
-      expect(visited).toEqual([
-        'root-1',
-        'doc-1',
-        'doc-2',
-        'root-2',
-        'img-1',
-        'img-2',
-        'root-3',
-      ]);
+      expect(visited).toEqual(['root-1', 'doc-1', 'doc-2', 'root-2', 'img-1', 'img-2', 'root-3']);
     });
 
     it('should stop traversal when callback returns false', () => {
@@ -343,9 +332,7 @@ describe('Tree helper functions', () => {
   // -------- mapTree --------
   describe('mapTree', () => {
     it('should transform all nodes', () => {
-      const tree: TreeNode[] = [
-        { key: '1', label: 'a', children: [{ key: '2', label: 'b' }] },
-      ];
+      const tree: TreeNode[] = [{ key: '1', label: 'a', children: [{ key: '2', label: 'b' }] }];
 
       const result = mapTree(tree, (n) => ({ ...n, label: n.label!.toUpperCase() }));
       expect(result[0].label).toBe('A');
@@ -390,15 +377,7 @@ describe('Tree helper functions', () => {
     it('should flatten all nodes in DFS order', () => {
       const tree = makeSimpleTree();
       const flat = flattenTree(tree);
-      expect(flat.map((n) => n.key)).toEqual([
-        'root-1',
-        'doc-1',
-        'doc-2',
-        'root-2',
-        'img-1',
-        'img-2',
-        'root-3',
-      ]);
+      expect(flat.map((n) => n.key)).toEqual(['root-1', 'doc-1', 'doc-2', 'root-2', 'img-1', 'img-2', 'root-3']);
     });
 
     it('should return empty for empty tree', () => {
@@ -424,9 +403,7 @@ describe('Tree helper functions', () => {
   // -------- ensureKeys --------
   describe('ensureKeys', () => {
     it('should assign keys to nodes without keys', () => {
-      const tree: TreeNode[] = [
-        { label: 'A', children: [{ label: 'B' }] },
-      ];
+      const tree: TreeNode[] = [{ label: 'A', children: [{ label: 'B' }] }];
       ensureKeys(tree);
 
       expect(tree[0].key).toBeDefined();
@@ -558,11 +535,7 @@ describe('TreeComponent', () => {
 
       const labels = queryAll(fixture, '.app-tree-node-label');
       // Only root-level visible (collapsed by default)
-      expect(labels.map((el) => el.textContent!.trim())).toEqual([
-        'Documents',
-        'Images',
-        'ReadMe.md',
-      ]);
+      expect(labels.map((el) => el.textContent!.trim())).toEqual(['Documents', 'Images', 'ReadMe.md']);
     });
 
     it('should render children when node is expanded', () => {
@@ -572,13 +545,7 @@ describe('TreeComponent', () => {
       fixture.detectChanges();
 
       const labels = queryAll(fixture, '.app-tree-node-label');
-      expect(labels.map((el) => el.textContent!.trim())).toEqual([
-        'Documents',
-        'Resume.pdf',
-        'Cover Letter.docx',
-        'Images',
-        'ReadMe.md',
-      ]);
+      expect(labels.map((el) => el.textContent!.trim())).toEqual(['Documents', 'Resume.pdf', 'Cover Letter.docx', 'Images', 'ReadMe.md']);
     });
 
     it('should render treeitem role on each node', () => {
@@ -1284,26 +1251,31 @@ describe('TreeComponent', () => {
     });
   });
 
-  // -------- getIndentStyle --------
-  describe('getIndentStyle', () => {
-    it('should return correct padding for level 0', () => {
+  // -------- FlatTreeNode.indentPx --------
+  describe('FlatTreeNode.indentPx', () => {
+    it('should be 0 for root nodes', () => {
+      const nodes = makeSimpleTree();
+      fixture.componentRef.setInput('nodes', nodes);
       fixture.detectChanges();
-      const style = component.getIndentStyle(0);
-      expect(style['padding-left']).toBe('0px');
+      expect(component.flatNodes()[0].indentPx).toBe(0);
     });
 
-    it('should return correct padding for level 2', () => {
+    it('should be level * indentSize for nested nodes', () => {
+      const nodes = makeSimpleTree();
+      fixture.componentRef.setInput('nodes', nodes);
+      fixture.componentRef.setInput('config', { expandAll: true } as TreeConfig);
       fixture.detectChanges();
-      const style = component.getIndentStyle(2);
-      expect(style['padding-left']).toBe('48px'); // 2 * 24
+      const child = component.flatNodes().find((fn) => fn.level === 1);
+      expect(child?.indentPx).toBe(24);
     });
 
-    it('should use custom indentSize', () => {
-      fixture.componentRef.setInput('config', { indentSize: 32 } as TreeConfig);
+    it('should honor custom indentSize', () => {
+      const nodes = makeSimpleTree();
+      fixture.componentRef.setInput('nodes', nodes);
+      fixture.componentRef.setInput('config', { expandAll: true, indentSize: 32 } as TreeConfig);
       fixture.detectChanges();
-
-      const style = component.getIndentStyle(3);
-      expect(style['padding-left']).toBe('96px'); // 3 * 32
+      const child = component.flatNodes().find((fn) => fn.level === 1);
+      expect(child?.indentPx).toBe(32);
     });
   });
 
@@ -1474,7 +1446,7 @@ describe('TreeComponent', () => {
       });
 
       component.onDragStart(mockDragEvent('dragstart'), nodes[2]); // drag ReadMe.md
-      component.onDrop(mockDragEvent('drop'), nodes[0], 'inside'); // drop into Documents
+      component.onDropOnNode(mockDragEvent('drop'), nodes[0]); // drop onto Documents (position defaults to 'after')
 
       expect(dropEvent).toBeTruthy();
       expect(dropEvent!.dragNode).toBe(nodes[2]);
@@ -1493,7 +1465,7 @@ describe('TreeComponent', () => {
       });
 
       component.onDragStart(mockDragEvent('dragstart'), nodes[0]);
-      component.onDrop(mockDragEvent('drop'), nodes[0], 'inside');
+      component.onDropOnNode(mockDragEvent('drop'), nodes[0]);
       expect(called).toBe(false);
     });
 
@@ -1623,54 +1595,36 @@ describe('TreeComponent', () => {
 
   // -------- trackByNode --------
   describe('trackByNode', () => {
+    const flatOf = (node: TreeNode, index: number) => ({
+      node,
+      level: 0,
+      parent: null,
+      first: true,
+      last: true,
+      index,
+      path: [index],
+      indentPx: 0,
+      hasChildren: false,
+      ancestorIsLastMask: [true],
+      state: {
+        expanded: false,
+        selected: false,
+        partialSelected: false,
+        visible: true,
+        loading: false,
+      },
+    });
+
     it('should return node key', () => {
       fixture.detectChanges();
       const n: TreeNode = { key: 'k1', label: 'A' };
-      const result = component.trackByNode(0, {
-        node: n,
-        level: 0,
-        parent: null,
-        first: true,
-        last: true,
-        index: 0,
-        path: [0],
-        state: {
-          expanded: false,
-          selected: false,
-          partialSelected: false,
-          visible: true,
-          dragging: false,
-          dropTarget: false,
-          loading: false,
-          focused: false,
-        },
-      });
-      expect(result).toBe('k1');
+      expect(component.trackByNode(0, flatOf(n, 0))).toBe('k1');
     });
 
     it('should fall back to index when no key', () => {
       fixture.detectChanges();
       const n: TreeNode = { label: 'No Key' };
-      const result = component.trackByNode(5, {
-        node: n,
-        level: 0,
-        parent: null,
-        first: true,
-        last: true,
-        index: 5,
-        path: [5],
-        state: {
-          expanded: false,
-          selected: false,
-          partialSelected: false,
-          visible: true,
-          dragging: false,
-          dropTarget: false,
-          loading: false,
-          focused: false,
-        },
-      });
-      expect(result).toBe('5');
+      expect(component.trackByNode(5, flatOf(n, 5))).toBe('5');
     });
   });
 });

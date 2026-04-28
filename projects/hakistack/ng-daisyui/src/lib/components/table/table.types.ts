@@ -460,41 +460,89 @@ export interface TableLabels {
 }
 
 // Enhanced column definition with better type safety
+/**
+ * Per-column configuration for `<hk-table>`. Pass an array of these to the
+ * table's `columns` input (or via `createTable({ columns: [...] })`).
+ *
+ * Type parameter `T` is the row type — `field` is constrained to keys of `T`,
+ * giving you autocomplete and type-safe `format`/`editValidator` callbacks.
+ *
+ * @example Basic columns + custom formatter
+ * const columns: ColumnDefinition<User>[] = [
+ *   { field: 'name', header: 'Name' },
+ *   { field: 'email', header: 'Email', fallback: '—' },
+ *   {
+ *     field: 'createdAt',
+ *     header: 'Joined',
+ *     format: (value) => new Date(value as string).toLocaleDateString(),
+ *   },
+ * ];
+ *
+ * @example Inline editing + footer aggregate
+ * {
+ *   field: 'price',
+ *   header: 'Price',
+ *   editable: true,
+ *   editType: 'number',
+ *   editValidator: (v) => Number(v) >= 0 || 'Must be ≥ 0',
+ *   footer: (rows) => `Total: ${rows.reduce((s, r) => s + r.price, 0)}`,
+ * }
+ *
+ * @example Pinned + resizable column
+ * { field: 'id', header: 'ID', sticky: 'start', minWidth: 80, maxWidth: 200 }
+ */
 export interface ColumnDefinition<T> {
+  /** Property name on the row to render. Constrained to `keyof T`. */
   field: StringKey<T>;
+  /** Column heading text. */
   header: string;
+  /**
+   * Custom cell formatter. Receives the raw value and the full row.
+   * May return a string synchronously or an `Observable<string>` for async values.
+   * If omitted, the raw value is rendered via `String(value)`.
+   */
   format?: (value: unknown, row: T) => string | Observable<string>;
+  /** Text to show when the cell value is `null` / `undefined` / `''`. */
   fallback?: string;
-  filter?: ColumnFilter<T>; // Filter configuration for this column
+  /** Per-column filter (operator + UI). See `ColumnFilter`. */
+  filter?: ColumnFilter<T>;
 
   // Sticky columns
-  /** Pin column to start or end of table during horizontal scroll */
+  /** Pin this column to the start or end of the table during horizontal scroll. */
   sticky?: 'start' | 'end';
 
   // Column resizing
-  /** Whether this column can be resized. Default: true when resizing enabled */
+  /** Whether this column can be resized by dragging. Default: `true` when table-level resizing is enabled. */
   resizable?: boolean;
-  /** Minimum column width in px */
+  /** Minimum column width in px. Enforced during resize. */
   minWidth?: number;
-  /** Maximum column width in px */
+  /** Maximum column width in px. Enforced during resize. */
   maxWidth?: number;
 
   // Inline editing
-  /** Whether this column supports inline editing */
+  /** Enable inline editing for this column. Double-click a cell to edit. */
   editable?: boolean;
-  /** Editor type for this column */
+  /** Editor input type. Default: `'text'`. */
   editType?: 'text' | 'number' | 'select' | 'date' | 'toggle';
-  /** Options for select editor */
+  /** Options for `editType: 'select'`. Ignored for other editor types. */
   editOptions?: { label: string; value: unknown }[];
-  /** Validation function — return true for valid, string for error message */
+  /**
+   * Validates the proposed value. Return `true` to accept, or a string error message to reject.
+   * Called on edit commit (Enter / blur). The cell stays in edit mode if rejected.
+   */
   editValidator?: (value: unknown, row: T) => boolean | string;
 
   // Summary footer
-  /** Footer aggregate function for this column */
+  /**
+   * Aggregate function for the column footer (sum, avg, count, etc).
+   * Receives all rows currently visible after filters/search are applied.
+   *
+   * @example footer: (rows) => rows.reduce((s, r) => s + r.amount, 0)
+   */
   footer?: (data: readonly T[]) => string | number;
 
   // Column reordering
-  /** Whether this column can be reordered. Default: true when reorder enabled */
+  /** Whether this column can be reordered by drag-drop. Default: `true` when table-level reorder is enabled. */
   reorderable?: boolean;
 }
 

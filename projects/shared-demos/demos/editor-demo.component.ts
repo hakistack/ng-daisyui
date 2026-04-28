@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { map } from 'rxjs';
 import { createForm, field, DynamicFormComponent } from '@hakistack/ng-daisyui';
-import { EditorComponent } from '../../hakistack/ng-daisyui/src/lib/components/editor/editor.component';
+import { EditorComponent } from '../../hakistack/ng-daisyui/src/lib/components';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { DemoPageComponent } from '../shared/demo-page.component';
 
@@ -16,7 +16,7 @@ type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic';
   template: `
     <app-demo-page
       title="Editor"
-      description="Rich text editor powered by Quill.js with full DaisyUI theming"
+      description="Rich text editor powered by TipTap (ProseMirror) with native DaisyUI theming"
       icon="file-text"
       category="Inputs"
       importName="EditorComponent"

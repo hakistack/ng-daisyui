@@ -1,6 +1,6 @@
 /**
  * TreeNode interface for hierarchical data structures.
- * Used by OrganizationChart, Tree, TreeTable, and other tree-based components.
+ * Used by Tree, TreeTable, and other tree-based components.
  * Compatible with PrimeNG TreeNode structure.
  */
 export interface TreeNode<T = unknown> {

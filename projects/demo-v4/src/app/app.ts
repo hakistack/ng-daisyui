@@ -65,13 +65,13 @@ interface NavSection {
       <div class="drawer-content flex flex-col">
         <!-- Desktop header -->
         <header
-          class="glass-header sticky top-0 z-30 hidden lg:flex items-center justify-between px-12 h-14 border-b border-base-content/10"
+          class="glass-header sticky top-0 z-30 hidden lg:flex items-center justify-between px-12 h-14 border-b border-base-content/5"
         >
-          <div class="flex items-center gap-2 text-sm text-base-content/50">
+          <div class="flex items-center gap-2 text-sm text-base-content/40">
             <span>{{ currentSection() }}</span>
             @if (currentPageLabel()) {
-              <span class="text-base-content/20">/</span>
-              <span class="text-base-content/80 font-medium">{{ currentPageLabel() }}</span>
+              <span class="text-base-content/15">/</span>
+              <span class="text-base-content/70 font-medium">{{ currentPageLabel() }}</span>
             }
           </div>
 
@@ -79,7 +79,7 @@ interface NavSection {
             <!-- Version switcher → v5 -->
             <a
               href="/"
-              class="btn btn-ghost btn-sm gap-2 border border-base-content/10 font-normal text-xs h-8 min-h-0 normal-case"
+              class="btn btn-ghost btn-sm gap-2 border border-base-content/8 font-normal text-xs h-8 min-h-0 normal-case"
               aria-label="Switch to DaisyUI 5 demo"
             >
               <span class="badge badge-primary badge-outline badge-sm font-mono">v5</span>
@@ -87,30 +87,42 @@ interface NavSection {
               <svg lucideIcon="arrow-right" [size]="12"></svg>
             </a>
 
-            <!-- Theme dropdown -->
+            <!-- Theme dropdown with color swatch preview per theme -->
             <div class="dropdown dropdown-end">
               <div
                 tabindex="0"
                 role="button"
-                class="btn btn-ghost btn-sm gap-2 border border-base-content/10 font-normal text-xs h-8 min-h-0 normal-case"
+                class="btn btn-ghost btn-sm gap-2 border border-base-content/8 font-normal text-xs h-8 min-h-0 normal-case"
               >
-                <svg lucideIcon="palette" [size]="13"></svg>
+                <span class="inline-flex -space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-primary ring-1 ring-base-100"></span>
+                  <span class="w-2 h-2 rounded-full bg-secondary ring-1 ring-base-100"></span>
+                  <span class="w-2 h-2 rounded-full bg-accent ring-1 ring-base-100"></span>
+                </span>
                 <span class="capitalize">{{ currentTheme() }}</span>
                 <svg lucideIcon="chevrons-up-down" [size]="12"></svg>
               </div>
               <ul
                 tabindex="0"
-                class="dropdown-content menu menu-sm bg-base-300 rounded-box z-50 w-52 max-h-72 overflow-y-auto p-2 shadow-2xl mt-2 flex-nowrap"
+                class="dropdown-content menu menu-sm bg-base-300 rounded-box z-50 w-56 max-h-80 overflow-y-auto p-2 shadow-2xl mt-2 flex-nowrap"
               >
                 @for (theme of themes; track theme) {
                   <li>
                     <button
                       type="button"
-                      class="capitalize justify-start text-xs"
+                      class="flex items-center gap-2 justify-start text-xs"
                       [class.active]="currentTheme() === theme"
                       (click)="setTheme(theme)"
                     >
-                      {{ theme }}
+                      <span [attr.data-theme]="theme" class="inline-flex -space-x-1 shrink-0">
+                        <span class="w-3 h-3 rounded-full bg-primary ring-1 ring-base-100"></span>
+                        <span class="w-3 h-3 rounded-full bg-secondary ring-1 ring-base-100"></span>
+                        <span class="w-3 h-3 rounded-full bg-accent ring-1 ring-base-100"></span>
+                      </span>
+                      <span class="capitalize flex-1 truncate">{{ theme }}</span>
+                      @if (currentTheme() === theme) {
+                        <svg lucideIcon="check" [size]="12"></svg>
+                      }
                     </button>
                   </li>
                 }
@@ -120,9 +132,7 @@ interface NavSection {
         </header>
 
         <!-- Mobile header -->
-        <header
-          class="glass-header sticky top-0 z-30 flex lg:hidden items-center justify-between px-4 h-14 border-b border-base-content/10"
-        >
+        <header class="glass-header sticky top-0 z-30 flex lg:hidden items-center justify-between px-4 h-14 border-b border-base-content/5">
           <div class="flex items-center gap-3">
             <label for="sidebar" class="btn btn-ghost btn-sm btn-square">
               <svg lucideIcon="menu" [size]="20"></svg>
@@ -135,24 +145,29 @@ interface NavSection {
             <a href="/" class="btn btn-ghost btn-sm btn-square" aria-label="Switch to DaisyUI 5 demo">
               <svg lucideIcon="arrow-right" [size]="16"></svg>
             </a>
-            <!-- Theme dropdown -->
+            <!-- Theme dropdown with swatches -->
             <div class="dropdown dropdown-end">
               <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square">
                 <svg lucideIcon="palette" [size]="16"></svg>
               </div>
               <ul
                 tabindex="0"
-                class="dropdown-content menu menu-sm bg-base-300 rounded-box z-50 w-52 max-h-80 overflow-y-auto p-2 shadow-2xl flex-nowrap"
+                class="dropdown-content menu menu-sm bg-base-300 rounded-box z-50 w-56 max-h-80 overflow-y-auto p-2 shadow-2xl flex-nowrap"
               >
                 @for (theme of themes; track theme) {
                   <li>
                     <button
                       type="button"
-                      class="capitalize justify-start text-xs"
+                      class="flex items-center gap-2 justify-start text-xs"
                       [class.active]="currentTheme() === theme"
                       (click)="setTheme(theme)"
                     >
-                      {{ theme }}
+                      <span [attr.data-theme]="theme" class="inline-flex -space-x-1 shrink-0">
+                        <span class="w-3 h-3 rounded-full bg-primary ring-1 ring-base-100"></span>
+                        <span class="w-3 h-3 rounded-full bg-secondary ring-1 ring-base-100"></span>
+                        <span class="w-3 h-3 rounded-full bg-accent ring-1 ring-base-100"></span>
+                      </span>
+                      <span class="capitalize flex-1 truncate">{{ theme }}</span>
                     </button>
                   </li>
                 }
@@ -169,8 +184,8 @@ interface NavSection {
         </main>
 
         <!-- Footer -->
-        <footer class="px-4 lg:px-8 py-4 border-t border-base-content/10">
-          <div class="max-w-6xl mx-auto flex items-center justify-between text-[11px] text-base-content/40 font-mono">
+        <footer class="px-4 lg:px-8 py-4 border-t border-base-content/5">
+          <div class="max-w-6xl mx-auto flex items-center justify-between text-[11px] text-base-content/25 font-mono">
             <span>ng-daisyui &middot; Angular 21 &middot; DaisyUI 4 &middot; Tailwind 3</span>
             <span>OnPush &middot; Signals &middot; Standalone</span>
           </div>
@@ -180,17 +195,17 @@ interface NavSection {
       <!-- ══ Sidebar ══ -->
       <div class="drawer-side z-40">
         <label for="sidebar" class="drawer-overlay"></label>
-        <aside class="bg-base-100 w-72 min-h-full border-r border-base-content/10 flex flex-col">
+        <aside class="bg-base-100 w-72 min-h-full border-r border-base-content/5 flex flex-col">
           <!-- Brand -->
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3">
               <span
-                class="w-9 h-9 rounded-lg bg-primary text-primary-content flex items-center justify-center text-sm font-black tracking-tight shrink-0 shadow-sm"
+                class="w-9 h-9 rounded-lg bg-primary text-primary-content flex items-center justify-center text-sm font-black tracking-tight shrink-0 shadow-sm shadow-primary/20"
                 >hk</span
               >
               <div class="min-w-0 flex-1">
                 <div class="font-serif text-base leading-tight">ng-daisyui</div>
-                <div class="text-[10px] text-base-content/50 font-mono tracking-wide flex items-center gap-1.5">
+                <div class="text-[10px] text-base-content/40 font-mono tracking-wide flex items-center gap-1.5">
                   <span class="badge badge-outline badge-xs font-mono">v4</span>
                   <span>DaisyUI 4 · TW 3</span>
                 </div>
@@ -198,7 +213,7 @@ interface NavSection {
             </div>
           </div>
 
-          <div class="h-px bg-base-content/10 mx-4"></div>
+          <div class="h-px bg-base-content/5 mx-4"></div>
 
           <!-- Navigation -->
           <nav class="sidebar-menu flex-1 overflow-y-auto sidebar-scroll px-3 py-3">
@@ -238,8 +253,8 @@ interface NavSection {
           </nav>
 
           <!-- Sidebar footer -->
-          <div class="px-5 py-3 border-t border-base-content/10">
-            <div class="text-[10px] text-base-content/40 font-mono">Built with DaisyUI 4 &middot; Tailwind 3</div>
+          <div class="px-5 py-3 border-t border-base-content/5">
+            <div class="text-[10px] text-base-content/25 font-mono">Built with DaisyUI 4 &middot; Tailwind 3</div>
           </div>
         </aside>
       </div>
@@ -251,6 +266,23 @@ export class App implements OnInit {
   readonly themes = THEMES;
   readonly currentTheme = signal<string>('dark');
   readonly currentPath = signal('');
+
+  /** DaisyUI v4 themes that read as visually dark — used for system-pref fallback. */
+  private readonly DARK_THEMES = new Set([
+    'dark',
+    'synthwave',
+    'halloween',
+    'forest',
+    'black',
+    'luxury',
+    'dracula',
+    'business',
+    'night',
+    'coffee',
+    'dim',
+    'sunset',
+    'hacienda',
+  ]);
 
   readonly currentPageLabel = computed(() => {
     const path = this.currentPath();
@@ -360,17 +392,6 @@ export class App implements OnInit {
             { id: 'dragdrop', label: 'Drag & Drop' },
             { id: 'lazy', label: 'Lazy Loading' },
             { id: 'filter', label: 'Filter' },
-          ],
-        },
-        {
-          path: '/org-chart',
-          label: 'Organization Chart',
-          icon: 'network',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'selection', label: 'Selection' },
-            { id: 'templates', label: 'Templates' },
-            { id: 'colors', label: 'Colors' },
           ],
         },
         {
@@ -522,7 +543,9 @@ export class App implements OnInit {
     if (saved) {
       this.setTheme(saved);
     } else {
-      this.setTheme(this.currentTheme());
+      // Respect `prefers-color-scheme` on first visit instead of defaulting to dark.
+      const prefersDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      this.setTheme(prefersDark ? 'dark' : 'light');
     }
 
     this.currentPath.set('/' + this.router.url.split('/').filter(Boolean)[0]);

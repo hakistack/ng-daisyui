@@ -12,6 +12,34 @@ import { prefersReducedMotion, safeStopAnimation } from '../motion.utils';
 
 type InViewOptions = NonNullable<Parameters<typeof inView>[2]>;
 
+/**
+ * Animate an element using `motion` (Framer Motion's vanilla port).
+ *
+ * Pick a preset (`'fadeIn'`, `'zoomIn'`, `'slideInUp'`, etc.) or pass a custom
+ * keyframes object. Honors `prefers-reduced-motion`: if the user has it enabled,
+ * the final keyframe values are applied instantly with no animation.
+ *
+ * **Trigger modes** (`hkAnimateOptions.trigger`):
+ * - `'immediate'` (default) — plays on init.
+ * - `'scroll'` — plays when the element scrolls into view (uses `inView`).
+ *   Pair with `once: true` to fire only the first time, plus `margin` / `amount` for thresholds.
+ * - `'click'` — plays on each click of the host element.
+ *
+ * Imperative methods are exposed: `play()`, `stop()`, `reset()` — grab the directive
+ * via `viewChild` if you need to drive it manually.
+ *
+ * @example Preset, immediate
+ * <div hkAnimate="fadeInUp">Hello</div>
+ *
+ * @example Scroll-triggered, fire once
+ * <section hkAnimate="zoomIn" [hkAnimateOptions]="{ trigger: 'scroll', once: true, amount: 0.3 }">
+ *
+ * @example Custom keyframes + stagger over children
+ * <ul [hkAnimate]="{ opacity: [0, 1], y: [20, 0] }"
+ *     [hkAnimateOptions]="{ trigger: 'scroll', stagger: 0.1, staggerSelector: 'li' }">
+ *   <li>...</li>
+ * </ul>
+ */
 @Directive({
   selector: '[hkAnimate]',
 })
@@ -19,7 +47,16 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
 
+  /**
+   * Animation to play. Pass a preset name (see `AnimationPreset`) or a raw
+   * keyframes object (e.g. `{ opacity: [0, 1], y: [20, 0] }`).
+   * Default: `'fadeIn'`.
+   */
   readonly hkAnimate = input<AnimationPreset | Record<string, unknown>>('fadeIn');
+  /**
+   * Trigger, timing, easing, scroll thresholds, and optional child stagger.
+   * See `MotionDirectiveOptions` for the full shape.
+   */
   readonly hkAnimateOptions = input<MotionDirectiveOptions>({});
 
   private element!: HTMLElement;

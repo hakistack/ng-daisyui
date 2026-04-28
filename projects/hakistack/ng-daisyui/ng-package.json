@@ -17,7 +17,6 @@
     "motion",
     "tslib",
     "uuid",
-    "libphonenumber-js",
-    "quill"
+    "libphonenumber-js"
   ]
 }

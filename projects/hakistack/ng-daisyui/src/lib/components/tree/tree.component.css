@@ -1,7 +1,6 @@
 /* Tree Component Styles */
 
 .app-tree {
-  /* CSS custom properties for theming */
   --tree-line-color: var(--hk-color-base-content-20);
   --tree-line-width: 1px;
   --tree-node-height: 32px;
@@ -40,10 +39,14 @@
 }
 
 /* Horizontal line to node */
+.app-tree-lines .app-tree-node {
+  --indent: calc(var(--level, 0) * 24px);
+}
+
 .app-tree-lines .app-tree-node::before {
   content: '';
   position: absolute;
-  left: calc(var(--indent, 0) - 12px);
+  left: calc(var(--indent, 0px) - 12px);
   top: 50%;
   width: 12px;
   height: var(--tree-line-width);
@@ -53,11 +56,6 @@
 /* Hide horizontal line for root nodes */
 .app-tree-lines .app-tree-node[data-level="0"]::before {
   display: none;
-}
-
-/* Vertical line styling */
-.app-tree-lines .app-tree-node-indent {
-  position: relative;
 }
 
 /* Last node at level - shorter vertical line */
@@ -98,41 +96,15 @@
   outline: none;
 }
 
+/* Remove default focus outline on the row itself — focus ring is rendered via
+   ring-primary utility classes on the inner content when focused. */
+.app-tree-node:focus {
+  outline: none;
+}
+
 /* Loading spinner in toggle area */
 .app-tree-node-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-/* Animation for expand/collapse */
-.app-tree-node {
-  animation: tree-node-appear 0.15s ease-out;
-}
-
-@keyframes tree-node-appear {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Lines implementation using pseudo-elements */
-.app-tree-lines .app-tree-node {
-  --indent: calc(var(--level, 0) * 24px);
-}
-
-.app-tree-lines .app-tree-node[data-level="1"] { --level: 1; }
-.app-tree-lines .app-tree-node[data-level="2"] { --level: 2; }
-.app-tree-lines .app-tree-node[data-level="3"] { --level: 3; }
-.app-tree-lines .app-tree-node[data-level="4"] { --level: 4; }
-.app-tree-lines .app-tree-node[data-level="5"] { --level: 5; }
-.app-tree-lines .app-tree-node[data-level="6"] { --level: 6; }
-.app-tree-lines .app-tree-node[data-level="7"] { --level: 7; }
-.app-tree-lines .app-tree-node[data-level="8"] { --level: 8; }
-.app-tree-lines .app-tree-node[data-level="9"] { --level: 9; }
-.app-tree-lines .app-tree-node[data-level="10"] { --level: 10; }

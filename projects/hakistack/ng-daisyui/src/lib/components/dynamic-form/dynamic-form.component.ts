@@ -237,35 +237,16 @@ export class DynamicFormComponent {
     return this.savedStateResource.hasValue() && this.savedStateResource.value() !== null;
   });
 
-  // Optimized field visibility tracking without signal updates in computed
-  private visibilityCache = new Map<string, boolean>();
-  private lastFormValuesHash = '';
-
-  // Computed signals with optimized calculations
+  // Computed signals with optimized calculations.
+  // Re-runs when form values change OR when any signal read inside a user
+  // condition predicate (showWhen/hideWhen () => boolean) changes.
   readonly visibleFields = computed(() => {
     const fields = this.config().fields ?? [];
-    // Use context-enriched values for conditional logic (includes step info)
     const values = this.formValuesWithContext();
-    const currentHash = this.getFormValuesHash(values);
-
-    // Clear cache when form values change
-    if (this.lastFormValuesHash !== currentHash) {
-      this.visibilityCache.clear();
-      this.lastFormValuesHash = currentHash;
-    }
-
     const visibleFields: FormFieldConfig[] = [];
 
     for (const field of fields) {
-      const cacheKey = `${field.key}-${currentHash}`;
-      let isVisible = this.visibilityCache.get(cacheKey);
-
-      if (isVisible === undefined) {
-        isVisible = this.shouldShowField(field, values);
-        this.visibilityCache.set(cacheKey, isVisible);
-      }
-
-      if (isVisible) {
+      if (this.shouldShowField(field, values)) {
         visibleFields.push(field);
       }
     }
@@ -995,6 +976,17 @@ export class DynamicFormComponent {
         });
       }
     });
+
+    // Re-evaluate requiredWhen / disabledWhen on form value changes AND on any
+    // external signal a user predicate reads. The effect tracks `formValues`
+    // (kept in sync from form.valueChanges) plus any signal accessed inside
+    // user-supplied (() => boolean) or (value, formValues) => boolean predicates.
+    // No untracked wrapper: predicate signal reads must propagate as deps.
+    // No feedback loop risk: updateConditionalValidation only mutates form
+    // controls with { emitEvent: false }, so formValues is not re-set here.
+    effect(() => {
+      this.updateConditionalValidation(this.formValues());
+    });
   }
 
   /** Get normalized auto-save config */
@@ -1060,8 +1052,6 @@ export class DynamicFormComponent {
 
         // Call config callback if provided
         this.config().onChange?.(values);
-
-        this.updateConditionalValidation(values);
 
         // Trigger auto-save if enabled (only after restoration is complete)
         const autoSaveConfig = this.getAutoSaveConfig();

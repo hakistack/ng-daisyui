@@ -1,39 +1,39 @@
-export type EditorOutputFormat = 'html' | 'delta';
+/**
+ * Public types for `<hk-editor>`. See docs/plans/editor.md.
+ */
 
-export type EditorToolbarPreset = 'full' | 'basic' | 'minimal';
+export type EditorToolbarPreset = 'full' | 'basic' | 'minimal' | 'none';
 
-export type EditorToolbarItem = string | Record<string, unknown>;
-export type EditorToolbarGroup = EditorToolbarItem[];
-export type EditorToolbarConfig = EditorToolbarPreset | EditorToolbarGroup[];
+export type EditorToolbarItem =
+  | 'bold'
+  | 'italic'
+  | 'underline'
+  | 'strike'
+  | 'code'
+  | 'link'
+  | 'image'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'bulletList'
+  | 'orderedList'
+  | 'blockquote'
+  | 'codeBlock'
+  | 'horizontalRule'
+  | 'undo'
+  | 'redo'
+  | 'divider';
+
+/**
+ * Callback the editor invokes when the consumer wants to insert an image via
+ * file picker. Return the URL the image should be inserted at. Library
+ * doesn't ship a storage backend — consumer chooses (S3, Cloudinary, etc.).
+ */
+export type EditorImageUploader = (file: File) => Promise<string>;
+
+export type EditorToolbarConfig = EditorToolbarPreset | readonly EditorToolbarItem[];
 
 export interface EditorTextChangeEvent {
-  readonly htmlValue: string;
-  readonly textValue: string;
-  readonly delta: unknown;
-  readonly source: 'user' | 'api' | 'silent';
+  readonly html: string;
+  readonly text: string;
 }
-
-export interface EditorSelectionChangeEvent {
-  readonly range: { index: number; length: number } | null;
-  readonly oldRange: { index: number; length: number } | null;
-  readonly source: 'user' | 'api' | 'silent';
-}
-
-export interface EditorModules {
-  readonly toolbar?: EditorToolbarConfig;
-  readonly [key: string]: unknown;
-}
-
-export const TOOLBAR_PRESETS: Record<EditorToolbarPreset, EditorToolbarGroup[]> = {
-  minimal: [['bold', 'italic', 'underline'], ['link']],
-  basic: [['bold', 'italic', 'underline', 'strike'], [{ list: 'ordered' }, { list: 'bullet' }], ['link', 'image'], ['clean']],
-  full: [
-    [{ header: 1 }, { header: 2 }, { header: 3 }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
-    [{ align: '' }, { align: 'center' }, { align: 'right' }, { align: 'justify' }],
-    ['blockquote', 'code-block'],
-    ['link', 'image', 'video'],
-    ['clean'],
-  ],
-};
