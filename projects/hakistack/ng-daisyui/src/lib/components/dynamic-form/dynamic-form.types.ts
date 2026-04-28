@@ -397,8 +397,8 @@ export interface CreateFormInput<T = Record<string, any>> {
   readonly gap?: 'sm' | 'md' | 'lg';
   readonly labelWidth?: 'sm' | 'md' | 'lg' | 'xl';
   readonly autoSave?: boolean | AutoSaveConfig;
-  readonly fields?: FormFieldConfig<Extract<keyof T, string>>[];
-  readonly steps?: FormStep<T>[];
+  readonly fields?: NoInfer<FormFieldConfig<Extract<keyof T, string>>[]>;
+  readonly steps?: NoInfer<FormStep<T>[]>;
   readonly stepperConfig?: Partial<StepperConfig>;
   readonly onSubmit?: (data: FormSubmissionData<T>) => void;
   readonly onReset?: () => void;

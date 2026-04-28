@@ -563,7 +563,7 @@ export const step = {
   create: <T = Record<string, any>>(
     name: string,
     label: string,
-    fields: FormFieldConfig<Extract<keyof T, string>>[],
+    fields: NoInfer<FormFieldConfig<Extract<keyof T, string>>[]>,
     options?: {
       description?: string;
       optional?: boolean;
