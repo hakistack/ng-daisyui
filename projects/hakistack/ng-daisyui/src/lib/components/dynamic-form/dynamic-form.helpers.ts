@@ -61,11 +61,11 @@ import {
  * <button (click)="form.reset()">Reset</button>
  * ```
  */
-export function createForm(input: CreateFormInput): FormController {
+export function createForm<T = Record<string, any>>(input: CreateFormInput<T>): FormController<T> {
   const submitTrigger = signal(0);
   const resetTrigger = signal(0);
 
-  const config = computed<FormConfig>(() => ({
+  const config = computed<FormConfig<T>>(() => ({
     title: input.title,
     description: input.description,
     layout: input.layout || 'vertical',
@@ -172,7 +172,7 @@ interface InternalFieldInput extends BaseFieldOptions {
   editorFormats?: string[];
 }
 
-function createField(key: string, type: FieldType, label: string, input: InternalFieldInput = {}): FormFieldConfig {
+function createField<K extends string>(key: K, type: FieldType, label: string, input: InternalFieldInput = {}): FormFieldConfig<K> {
   return {
     id: generateUniqueId(),
     key,
@@ -259,13 +259,13 @@ export const field = {
    * Text input. Single-line free-form string.
    * @see TextFieldOptions for `minLength` / `maxLength` / `pattern`.
    */
-  text: (key: string, label?: string, options?: TextFieldOptions) => createField(key, 'text', autoLabel(key, label), options),
+  text: <K extends string>(key: K, label?: string, options?: TextFieldOptions) => createField(key, 'text', autoLabel(key, label), options),
 
   /**
    * Email input. Auto-applies the email validator and a sensible placeholder.
    * @see EmailFieldOptions
    */
-  email: (key: string, label?: string, options?: EmailFieldOptions) =>
+  email: <K extends string>(key: K, label?: string, options?: EmailFieldOptions) =>
     createField(key, 'email', autoLabel(key, label), {
       email: true,
       placeholder: `Enter ${(label || 'email').toLowerCase()}`,
@@ -276,23 +276,23 @@ export const field = {
    * Password input. Renders with a built-in show/hide toggle.
    * @see PasswordFieldOptions for `minLength` / `pattern`.
    */
-  password: (key: string, label?: string, options?: PasswordFieldOptions) =>
+  password: <K extends string>(key: K, label?: string, options?: PasswordFieldOptions) =>
     createField(key, 'password', autoLabel(key, label), {
       placeholder: `Enter ${(label || 'password').toLowerCase()}`,
       ...options,
     }),
 
   /** Telephone input. Use `pattern` in options to enforce a format. */
-  tel: (key: string, label?: string, options?: TelFieldOptions) => createField(key, 'tel', autoLabel(key, label), options),
+  tel: <K extends string>(key: K, label?: string, options?: TelFieldOptions) => createField(key, 'tel', autoLabel(key, label), options),
 
   /** URL input. Browsers apply native URL validation. */
-  url: (key: string, label?: string, options?: UrlFieldOptions) => createField(key, 'url', autoLabel(key, label), options),
+  url: <K extends string>(key: K, label?: string, options?: UrlFieldOptions) => createField(key, 'url', autoLabel(key, label), options),
 
   /**
    * Multi-line text input. Defaults to 3 rows.
    * @see TextareaFieldOptions for `rows` / `cols` / `maxLength`.
    */
-  textarea: (key: string, label?: string, options?: TextareaFieldOptions) =>
+  textarea: <K extends string>(key: K, label?: string, options?: TextareaFieldOptions) =>
     createField(key, 'textarea', autoLabel(key, label), {
       rows: 3,
       placeholder: `Enter ${(label || key).toLowerCase()}...`,
@@ -305,13 +305,14 @@ export const field = {
    * Numeric input. Use `min` / `max` / `step` in options for bounds.
    * @see NumberFieldOptions
    */
-  number: (key: string, label?: string, options?: NumberFieldOptions) => createField(key, 'number', autoLabel(key, label), options),
+  number: <K extends string>(key: K, label?: string, options?: NumberFieldOptions) =>
+    createField(key, 'number', autoLabel(key, label), options),
 
   /**
    * Range slider. Defaults to `min: 0`, `max: 100`. Initial value defaults to `min`.
    * @see RangeFieldOptions
    */
-  range: (key: string, label?: string, options?: RangeFieldOptions) =>
+  range: <K extends string>(key: K, label?: string, options?: RangeFieldOptions) =>
     createField(key, 'range', autoLabel(key, label), {
       min: 0,
       max: 100,
@@ -332,7 +333,7 @@ export const field = {
    *   optionsFrom: { field: 'country', loadFn: (country) => fetchCities(country) },
    * })
    */
-  select: (key: string, label?: string, options?: SelectFieldOptions) =>
+  select: <K extends string>(key: K, label?: string, options?: SelectFieldOptions) =>
     createField(key, 'select', autoLabel(key, label), {
       placeholder: `Select ${(label || key).toLowerCase()}`,
       ...options,
@@ -342,7 +343,7 @@ export const field = {
    * Multi-select dropdown. Value is `unknown[]` (defaults to `[]`).
    * Same `choices` / `optionsFrom` semantics as `select`.
    */
-  multiSelect: (key: string, label?: string, options?: MultiSelectFieldOptions) =>
+  multiSelect: <K extends string>(key: K, label?: string, options?: MultiSelectFieldOptions) =>
     createField(key, 'multiselect', autoLabel(key, label), {
       defaultValue: [],
       placeholder: `Select ${(label || key).toLowerCase()}`,
@@ -353,19 +354,20 @@ export const field = {
    * Radio group. Provide `choices` for the options.
    * Use `orientation: 'horizontal' | 'vertical'` to lay them out.
    */
-  radio: (key: string, label?: string, options?: RadioFieldOptions) => createField(key, 'radio', autoLabel(key, label), options),
+  radio: <K extends string>(key: K, label?: string, options?: RadioFieldOptions) =>
+    createField(key, 'radio', autoLabel(key, label), options),
 
   // Boolean fields
 
   /** Checkbox. Defaults to `false`. */
-  checkbox: (key: string, label?: string, options?: CheckboxFieldOptions) =>
+  checkbox: <K extends string>(key: K, label?: string, options?: CheckboxFieldOptions) =>
     createField(key, 'checkbox', autoLabel(key, label), {
       defaultValue: false,
       ...options,
     }),
 
   /** Toggle switch. Visually different from checkbox; same boolean semantics. */
-  toggle: (key: string, label?: string, options?: ToggleFieldOptions) =>
+  toggle: <K extends string>(key: K, label?: string, options?: ToggleFieldOptions) =>
     createField(key, 'toggle', autoLabel(key, label), {
       defaultValue: false,
       ...options,
@@ -377,29 +379,30 @@ export const field = {
    * Date picker. Pass `isRange: true` to get a date-range picker (value becomes `[start, end]`).
    * @see DateFieldOptions
    */
-  date: (key: string, label?: string, options?: DateFieldOptions) =>
+  date: <K extends string>(key: K, label?: string, options?: DateFieldOptions) =>
     createField(key, 'date', autoLabel(key, label), {
       isRangeDate: options?.isRange,
       ...options,
     }),
 
   /** Time picker (HH:mm). */
-  time: (key: string, label?: string, options?: TimeFieldOptions) => createField(key, 'time', autoLabel(key, label), options),
+  time: <K extends string>(key: K, label?: string, options?: TimeFieldOptions) => createField(key, 'time', autoLabel(key, label), options),
 
   /** Combined date + time picker (`datetime-local` semantics). */
-  datetime: (key: string, label?: string, options?: DatetimeFieldOptions) =>
+  datetime: <K extends string>(key: K, label?: string, options?: DatetimeFieldOptions) =>
     createField(key, 'datetime-local', autoLabel(key, label), options),
 
   // Other fields
 
   /** Color picker. Value is a hex string (e.g. `#ff0000`). */
-  color: (key: string, label?: string, options?: ColorFieldOptions) => createField(key, 'color', autoLabel(key, label), options),
+  color: <K extends string>(key: K, label?: string, options?: ColorFieldOptions) =>
+    createField(key, 'color', autoLabel(key, label), options),
 
   /**
    * File upload. Defaults `accept` to all MIME types. Pass `multiple: true` for multi-file.
    * Value is `File | File[]` depending on `multiple`.
    */
-  file: (key: string, label?: string, options?: FileFieldOptions) =>
+  file: <K extends string>(key: K, label?: string, options?: FileFieldOptions) =>
     createField(key, 'file', autoLabel(key, label), {
       accept: '*/*',
       ...options,
@@ -410,7 +413,7 @@ export const field = {
    * Configure `toolbar: 'full' | 'basic' | 'minimal'` and `outputFormat: 'html' | 'delta'`.
    * @see EditorFieldOptions
    */
-  editor: (key: string, label?: string, options?: EditorFieldOptions) =>
+  editor: <K extends string>(key: K, label?: string, options?: EditorFieldOptions) =>
     createField(key, 'editor', autoLabel(key, label), {
       placeholder: `Enter ${(label || key).toLowerCase()}...`,
       editorHeight: options?.editorHeight,
@@ -427,7 +430,7 @@ export const field = {
    * @example
    * field.hidden('userId', { defaultValue: currentUser.id })
    */
-  hidden: (key: string, options?: HiddenFieldOptions) =>
+  hidden: <K extends string>(key: K, options?: HiddenFieldOptions) =>
     createField(key, 'hidden', '', {
       hidden: true,
       defaultValue: options?.defaultValue,
@@ -548,23 +551,26 @@ export const layout = {
  */
 export const step = {
   /**
-   * Create a step with fields and optional metadata.
+   * Create a step with fields and optional metadata. Generic on `T` so wizard
+   * forms typed as `createForm<T>(...)` constrain step field keys against
+   * `keyof T`.
+   *
    * @param name unique step id (used in stepper events).
    * @param label display label on the stepper indicator.
    * @param fields field configs for this step (use `field.*()`).
    * @param options `description`, `optional`, `nextText`, `previousText` overrides.
    */
-  create: (
+  create: <T = Record<string, any>>(
     name: string,
     label: string,
-    fields: FormFieldConfig[],
+    fields: FormFieldConfig<Extract<keyof T, string>>[],
     options?: {
       description?: string;
       optional?: boolean;
       nextText?: string;
       previousText?: string;
     },
-  ): FormStep => ({
+  ): FormStep<T> => ({
     name,
     label,
     description: options?.description,
@@ -578,7 +584,7 @@ export const step = {
    * Empty review step — typically the last step before submit. `fields` is `[]`,
    * so the form's review template renders a summary of prior steps.
    */
-  review: (name: string, label: string, description?: string): FormStep => ({
+  review: <T = Record<string, any>>(name: string, label: string, description?: string): FormStep<T> => ({
     name,
     label,
     description: description ?? 'Review your information before submitting',
