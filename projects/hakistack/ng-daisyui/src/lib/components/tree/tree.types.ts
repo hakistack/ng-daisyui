@@ -2,7 +2,53 @@ import { TemplateRef } from '@angular/core';
 import { TreeNode, TreeSelectionMode } from '../../api/treenode';
 
 /**
- * Tree component configuration
+ * Configuration for `<hk-tree>`. Pass via the `config` input, or use the
+ * `createTree({ ...config, nodes })` builder which returns a `TreeInstance`
+ * with imperative APIs.
+ *
+ * **Selection** — set `selectionMode` to `'single' | 'multiple' | 'checkbox'`.
+ * In `'checkbox'` mode, `propagateSelectionDown`/`propagateSelectionUp` enable
+ * three-state checkboxes (children follow parent, parent reflects children).
+ * Set `selectionAllowParents: false` to restrict selection to leaf nodes only.
+ *
+ * **Filtering** — `filterable: true` renders a search input. `filterMode: 'lenient'`
+ * (default) keeps ancestors of matched nodes visible so context is preserved;
+ * `'strict'` hides everything that doesn't match.
+ *
+ * **Virtual scrolling** — for large trees (>500 nodes), enable `virtualScroll: true`
+ * **and** set `virtualScrollItemHeight` (required, no default — measure your row).
+ * Compatible with filtering and drag-drop.
+ *
+ * **Drag & drop** — `dragDrop: true` enables reordering. Restrict to within-parent
+ * moves with `dragDropSameLevel: true` (e.g. preserve a folder hierarchy while
+ * letting users sort siblings).
+ *
+ * @example Selection-only tree
+ * config = {
+ *   selectionMode: 'single',
+ *   keyboardNavigation: true,
+ *   ariaLabel: 'File browser',
+ * };
+ *
+ * @example Checkbox tree with cascade selection
+ * config = {
+ *   selectionMode: 'checkbox',
+ *   propagateSelectionDown: true,
+ *   propagateSelectionUp: true,
+ *   selectionAllowParents: true,
+ * };
+ *
+ * @example Large filterable tree with drag-drop
+ * config = {
+ *   filterable: true,
+ *   filterMode: 'lenient',
+ *   dragDrop: true,
+ *   dragDropSameLevel: true,
+ *   virtualScroll: true,
+ *   virtualScrollItemHeight: 32,
+ *   showLines: true,
+ *   indentSize: 20,
+ * };
  */
 export interface TreeConfig<T = unknown> {
   /** Selection mode: 'single', 'multiple', 'checkbox', or null (no selection) */

@@ -4,14 +4,44 @@ import { animate, hover } from 'motion';
 import type { AnimationControls, MotionAnimationOptions } from '../motion.types';
 import { prefersReducedMotion, safeStopAnimation } from '../motion.utils';
 
+/** Options forwarded to `motion`'s `hover()` function. */
 export interface HoverOptions {
+  /** Use passive event listeners (cannot call `preventDefault`). */
   passive?: boolean;
+  /** Only trigger once, then auto-remove the listener. */
   once?: boolean;
 }
 
+/** Animation options for the hover transition (duration, easing, etc). */
 export type HoverAnimationOptions = MotionAnimationOptions;
+/** Keyframes object — same format as `motion`'s `animate()` (e.g. `{ scale: 1.05 }`). */
 export type HoverKeyframes = Record<string, unknown> | Record<string, unknown[]>;
 
+/**
+ * Animate an element on hover, then restore it when the cursor leaves.
+ *
+ * On hover-start, animates **to** the target keyframes. On hover-end, by default
+ * animates **back** to the element's initial computed style (snapshot taken in
+ * `ngOnInit`). Pass `customRestoreKeyframes` to override the restore target, or
+ * set `[restoreOnLeave]="false"` to leave the hovered state in place.
+ *
+ * Honors `prefers-reduced-motion`: if enabled, the directive does nothing.
+ *
+ * @example Lift on hover
+ * <button [hkHover]="{ y: -4, scale: 1.02 }">Hover me</button>
+ *
+ * @example Custom timing + restore target
+ * <div [hkHover]="{ scale: 1.1, backgroundColor: '#3b82f6' }"
+ *      [animationOptions]="{ duration: 0.4, ease: 'easeInOut' }"
+ *      [customRestoreKeyframes]="{ scale: 1, backgroundColor: '#1f2937' }">
+ * </div>
+ *
+ * @example Hover-start/end events
+ * <div [hkHover]="{ scale: 1.05 }"
+ *      (hoverStart)="trackEnter()"
+ *      (hoverEnd)="trackLeave()">
+ * </div>
+ */
 @Directive({
   selector: '[hkHover]',
 })
@@ -19,13 +49,29 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
 
+  /**
+   * Keyframes to animate **to** on hover. Aliased as `[hkHover]`.
+   * Use shorthand transform props like `x`, `y`, `scale`, `rotate`.
+   */
   readonly hoverKeyframes = input.required<HoverKeyframes>({ alias: 'hkHover' });
+  /** Forwarded to `motion`'s `hover()`: `{ passive?, once? }`. */
   readonly hoverOptions = input<HoverOptions | undefined>();
+  /** Animation timing/easing for the hover transition. Default: `{ duration: 0.3, ease: 'easeOut' }`. */
   readonly animationOptions = input<HoverAnimationOptions | undefined>();
+  /**
+   * If `true` (default), animate back to the captured initial style on hover-end.
+   * Set `false` to leave the hovered state applied.
+   */
   readonly restoreOnLeave = input<boolean>(true);
+  /**
+   * Override the restore target. Useful when the captured initial style isn't
+   * what you want to return to (e.g. when the element starts hidden).
+   */
   readonly customRestoreKeyframes = input<HoverKeyframes | undefined>();
 
+  /** Fires when hover begins. Payload is the originating `PointerEvent`. */
   readonly hoverStart = output<PointerEvent>();
+  /** Fires when hover ends. Payload is the originating `PointerEvent`. */
   readonly hoverEnd = output<PointerEvent>();
 
   // Resolved from elementRef lazily so it's safe during `ngOnChanges`

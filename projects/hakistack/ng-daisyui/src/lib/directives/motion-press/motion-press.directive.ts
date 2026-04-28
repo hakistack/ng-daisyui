@@ -4,17 +4,42 @@ import { animate, press } from 'motion';
 import type { AnimationControls, MotionAnimationOptions } from '../motion.types';
 import { prefersReducedMotion, safeStopAnimation } from '../motion.utils';
 
+/** Keyframes object — same format as `motion`'s `animate()` (e.g. `{ scale: 0.95 }`). */
 export type PressKeyframes = Record<string, unknown> | Record<string, unknown[]>;
 
+/** Options forwarded to `motion`'s `press()` function. */
 export interface PressOptions {
+  /** Use passive event listeners (cannot call `preventDefault`). */
   passive?: boolean;
+  /** Only trigger once, then auto-remove the listener. */
   once?: boolean;
 }
 
+/** Info passed to `pressEnd`. `success` is `true` if the press was released over the element (i.e. a successful tap). */
 export interface PressEndInfo {
   success: boolean;
 }
 
+/**
+ * Animate an element while pressed (mouse/touch), then restore on release.
+ *
+ * On press-start, animates **to** the target keyframes. On release, by default
+ * animates **back** to the element's initial computed style. The restore is
+ * faster than the press-down (60% of duration) for a snappier feel.
+ *
+ * `pressEnd` emits `{ event, success }` — `success` is `true` if released over
+ * the element (a true tap), `false` if the pointer dragged off before release.
+ *
+ * Honors `prefers-reduced-motion`.
+ *
+ * @example Tap-to-shrink button
+ * <button [hkPress]="{ scale: 0.95 }">Click</button>
+ *
+ * @example Detect successful tap vs. drag-off
+ * <button [hkPress]="{ scale: 0.9 }"
+ *         (pressEnd)="$event.success && handleTap()">
+ * </button>
+ */
 @Directive({
   selector: '[hkPress]',
 })
@@ -22,13 +47,20 @@ export class MotionPressDirective implements OnInit, OnDestroy, OnChanges {
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
 
+  /** Keyframes to animate **to** on press-start. Aliased as `[hkPress]`. */
   readonly pressKeyframes = input.required<PressKeyframes>({ alias: 'hkPress' });
+  /** Forwarded to `motion`'s `press()`: `{ passive?, once? }`. */
   readonly pressOptions = input<PressOptions | undefined>();
+  /** Animation timing/easing for the press transition. Default: `{ duration: 0.15, ease: 'easeOut' }`. */
   readonly animationOptions = input<MotionAnimationOptions | undefined>();
+  /** Animate back to the captured initial style on release. Default: `true`. */
   readonly restoreOnRelease = input<boolean>(true);
+  /** Override the restore target instead of using the captured initial style. */
   readonly customRestoreKeyframes = input<PressKeyframes | undefined>();
 
+  /** Fires when press begins. */
   readonly pressStart = output<PointerEvent>();
+  /** Fires on release. `success: true` means released over the element (tap); `false` means dragged off. */
   readonly pressEnd = output<{ event: PointerEvent; success: boolean }>();
 
   private element!: HTMLElement;

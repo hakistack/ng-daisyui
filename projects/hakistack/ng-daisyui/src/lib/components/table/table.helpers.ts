@@ -148,6 +148,51 @@ export function _detachTableInstance<T extends object>(
 // createTable
 // ============================================================================
 
+/**
+ * Build a `<hk-table>` configuration with sensible defaults applied.
+ *
+ * Pass the result to the table component's `config` input. The return value also
+ * exposes a `controller` signal — pass it to `[controller]` and you get
+ * imperative APIs (sort, paginate, filter, select) plus access to grouped /
+ * footer / master-detail state.
+ *
+ * @example Basic table
+ * tableConfig = createTable<User>({
+ *   columns: [
+ *     { field: 'name', header: 'Name' },
+ *     { field: 'email', header: 'Email' },
+ *     { field: 'role', header: 'Role' },
+ *   ],
+ *   data: this.users(),
+ *   pagination: { mode: 'offset', pageSize: 25 },
+ * });
+ *
+ * @example With sorting, search, inline editing
+ * tableConfig = createTable<Product>({
+ *   columns: [
+ *     { field: 'name', header: 'Name' },
+ *     { field: 'price', header: 'Price', editable: true, editType: 'number' },
+ *     { field: 'stock', header: 'Stock', editable: true, editType: 'number',
+ *       footer: (rows) => rows.reduce((s, r) => s + r.stock, 0) },
+ *   ],
+ *   data: this.products(),
+ *   sortable: true,
+ *   globalSearch: { enabled: true },
+ *   enableInlineEditing: true,
+ *   showFooter: true,
+ * });
+ *
+ * @example Tree table with bulk actions
+ * tableConfig = createTable<Folder>({
+ *   columns: [{ field: 'name', header: 'Folder' }],
+ *   data: this.folders(),
+ *   treeTable: { enabled: true, childrenProperty: 'children', expandAll: false },
+ *   bulkActions: [{ id: 'delete', label: 'Delete', handler: this.deleteMany }],
+ * });
+ *
+ * @returns A `FieldConfiguration` containing the resolved config plus a
+ *          `controller` signal to forward to the table component.
+ */
 export function createTable<T extends object>(config: FieldConfig<T>): FieldConfiguration<T> {
   const normalizedConfig = createFieldConfig(config);
 
