@@ -42,13 +42,25 @@ export class TabGroupComponent implements AfterContentInit {
 
   readonly isVertical = computed(() => this.orientation() === 'vertical');
 
-  /** Outer container — flex-row in vertical mode so tab list and panels sit side-by-side. */
-  readonly containerClass = computed(() => (this.isVertical() ? 'flex flex-row gap-3' : ''));
+  /**
+   * Outer container.
+   * - Vertical: a single `card card-border` wrapping both the tab sidebar and
+   *   the panel content area, so they read as one unified component (tab list
+   *   on the left with a right-border separator, panel content on the right).
+   * - Horizontal: bare wrapper; tab list and panel are styled independently.
+   */
+  readonly containerClass = computed(() =>
+    this.isVertical() ? `card ${this.theme.classes.cardBorder} bg-base-100 flex flex-row overflow-hidden` : '',
+  );
 
-  /** Tab list (role=tablist). Vertical always uses tabs-box; horizontal uses the chosen variant. */
+  /**
+   * Tab list (role=tablist).
+   * - Vertical: column sidebar with a right border separator inside the outer card.
+   * - Horizontal: daisyUI tabs container with the chosen variant style.
+   */
   readonly tabsStyleClass = computed(() => {
     if (this.isVertical()) {
-      return `tabs ${this.theme.classes.tabsBox} flex-col items-stretch min-w-fit h-fit`;
+      return 'flex flex-col gap-1 p-2 border-r border-base-300 min-w-fit';
     }
     return `tabs ${this.variantClass()}`;
   });
@@ -65,25 +77,30 @@ export class TabGroupComponent implements AfterContentInit {
     }
   });
 
-  /** Per-tab button class. Both orientations use daisyUI's `tab` styling. */
-  readonly tabClass = computed(() => (this.isVertical() ? 'tab justify-start text-left whitespace-nowrap' : 'tab'));
-
-  /** Active-tab class — daisyUI's `tab-active` works in both orientations with the box variant. */
-  readonly activeTabClass = computed(() => 'tab-active');
+  /**
+   * Per-tab button base class.
+   * - Vertical: `btn btn-ghost btn-sm` for sidebar-style buttons.
+   * - Horizontal: daisyUI's `tab` class (works with all three variants).
+   */
+  readonly tabClass = computed(() => (this.isVertical() ? 'btn btn-ghost btn-sm justify-start text-left whitespace-nowrap' : 'tab'));
 
   /**
-   * Panel container — uses daisyUI's `card` + theme-bridged `cardBorder` so
-   * v4 / v5 class-name renames are handled by `HK_THEME`. Border / corner
-   * treatment is adjusted per orientation and variant on top of the card
-   * primitive (e.g. lift removes the top border so the panel attaches to
-   * the lifted tabs).
+   * Active-tab class.
+   * - Vertical: `btn-active` (daisyUI button active state).
+   * - Horizontal: `tab-active` (daisyUI tab active state).
+   */
+  readonly activeTabClass = computed(() => (this.isVertical() ? 'btn-active' : 'tab-active'));
+
+  /**
+   * Panel content area.
+   * - Vertical: takes remaining width inside the outer card with internal padding.
+   * - Horizontal: standalone card with theme-bridged border, treatment varies by variant.
    */
   readonly panelContainerClass = computed(() => {
-    const cardBase = `card ${this.theme.classes.cardBorder} bg-base-100`;
     if (this.isVertical()) {
-      // Vertical: card panel beside the box-styled tab list.
-      return `${cardBase} flex-1 p-4`;
+      return 'flex-1 p-4';
     }
+    const cardBase = `card ${this.theme.classes.cardBorder} bg-base-100`;
     // Horizontal lift: panel attaches to bottom of lifted tabs (flat top, no top border).
     if (this.variant() === 'lift') {
       return `${cardBase} rounded-t-none border-t-0 p-4`;
@@ -96,7 +113,7 @@ export class TabGroupComponent implements AfterContentInit {
   tabButtonClass(panel: TabPanelComponent): string {
     const base = this.tabClass();
     const active = this.selectedTab() === panel.value() ? ` ${this.activeTabClass()}` : '';
-    const disabled = panel.disabled() ? ' tab-disabled' : '';
+    const disabled = panel.disabled() ? (this.isVertical() ? ' btn-disabled' : ' tab-disabled') : '';
     return `${base}${active}${disabled}`;
   }
 
