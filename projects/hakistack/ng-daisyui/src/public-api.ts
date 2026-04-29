@@ -183,10 +183,6 @@ export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } f
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
 
-// KPI Card
-export { KpiCardComponent } from './lib/components/kpi-card/kpi-card.component';
-export type { KpiDelta, KpiValueFormatter } from './lib/components/kpi-card/kpi-card.types';
-
 // Tree
 export { TreeComponent } from './lib/components/tree/tree.component';
 export {
