@@ -24,6 +24,16 @@ export class TabGroupComponent implements AfterContentInit {
   /** Orientation of the tab list */
   orientation = input<'horizontal' | 'vertical'>('horizontal');
 
+  /**
+   * Visual variant of the tab list (horizontal mode only):
+   * - `'lift'` (default) — tabs attach to a content panel below, with the active tab "lifted" visually.
+   * - `'box'` — pill/box-style tabs, panel sits in a bordered card below.
+   * - `'border'` — minimal underline-style tabs with a panel below.
+   *
+   * Ignored when `orientation === 'vertical'` (vertical uses a custom sidebar layout).
+   */
+  variant = input<'lift' | 'box' | 'border'>('lift');
+
   /** Whether keyboard navigation should wrap */
   wrap = input(true);
 
@@ -32,10 +42,24 @@ export class TabGroupComponent implements AfterContentInit {
   /** Outer container — flex-row in vertical mode so tab list and panels sit side-by-side. */
   readonly containerClass = computed(() => (this.isVertical() ? 'flex flex-row gap-0' : ''));
 
-  /** Tab list (role=tablist). Horizontal uses daisyUI tabs-lift; vertical stacks via flex-col. */
-  readonly tabsStyleClass = computed(() =>
-    this.isVertical() ? 'flex flex-col items-stretch min-w-fit' : `tabs ${this.theme.classes.tabsLift}`,
-  );
+  /** Tab list (role=tablist). Horizontal applies the chosen variant; vertical stacks via flex-col. */
+  readonly tabsStyleClass = computed(() => {
+    if (this.isVertical()) return 'flex flex-col items-stretch min-w-fit';
+    const variantClass = this.variantClass();
+    return `tabs ${variantClass}`;
+  });
+
+  private readonly variantClass = computed(() => {
+    switch (this.variant()) {
+      case 'box':
+        return this.theme.classes.tabsBox;
+      case 'border':
+        return this.theme.classes.tabsBorder;
+      case 'lift':
+      default:
+        return this.theme.classes.tabsLift;
+    }
+  });
 
   /** Per-tab button class. Vertical tabs lose the daisyUI `tab` lift visual. */
   readonly tabClass = computed(() =>
@@ -45,12 +69,18 @@ export class TabGroupComponent implements AfterContentInit {
   /** Active-tab class — switches by orientation since `tab-active` only styles the lift visual. */
   readonly activeTabClass = computed(() => (this.isVertical() ? 'bg-base-200 border-primary text-primary' : 'tab-active'));
 
-  /** Panel container — border treatment differs by orientation. */
-  readonly panelContainerClass = computed(() =>
-    this.isVertical()
-      ? 'bg-base-100 border-base-300 rounded-box flex-1 border border-l-0 rounded-l-none p-4'
-      : 'bg-base-100 border-base-300 rounded-b-box border border-t-0 p-4',
-  );
+  /** Panel container — border treatment differs by orientation and variant. */
+  readonly panelContainerClass = computed(() => {
+    if (this.isVertical()) {
+      return 'bg-base-100 border-base-300 rounded-box flex-1 border border-l-0 rounded-l-none p-4';
+    }
+    // Lift variant: panel attaches to bottom of lifted tabs (no top border, bottom-rounded).
+    if (this.variant() === 'lift') {
+      return 'bg-base-100 border-base-300 rounded-b-box border border-t-0 p-4';
+    }
+    // Box / border variants: panel is a separate bordered card with a small gap above.
+    return 'bg-base-100 border-base-300 rounded-box border p-4 mt-2';
+  });
 
   /** Compose tab button classes for a given panel — base + active + disabled state. */
   tabButtonClass(panel: TabPanelComponent): string {

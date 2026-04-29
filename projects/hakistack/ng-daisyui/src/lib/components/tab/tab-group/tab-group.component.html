@@ -14,8 +14,8 @@
         {{ panel.label() }}
       </button>
     }
-    @if (!isVertical()) {
-      <!-- Filler to complete the lifted-tab border (horizontal only) -->
+    @if (!isVertical() && variant() === 'lift') {
+      <!-- Filler to complete the lifted-tab border (horizontal lift variant only) -->
       <div class="tab tab-border-none flex-1 cursor-default"></div>
     }
   </div>

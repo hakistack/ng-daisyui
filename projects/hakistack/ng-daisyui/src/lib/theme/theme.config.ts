@@ -6,6 +6,8 @@ export interface HkThemeConfig {
   readonly id: HkThemeId;
   readonly classes: {
     readonly tabsLift: string;
+    readonly tabsBox: string;
+    readonly tabsBorder: string;
     readonly menuActive: string;
     readonly cardBorder: string;
   };
@@ -15,6 +17,8 @@ const DAISYUI_V5 = {
   id: 'daisyui-v5',
   classes: {
     tabsLift: 'tabs-lift',
+    tabsBox: 'tabs-box',
+    tabsBorder: 'tabs-border',
     menuActive: 'menu-active',
     cardBorder: 'card-border',
   },
@@ -24,6 +28,8 @@ const DAISYUI_V4 = {
   id: 'daisyui-v4',
   classes: {
     tabsLift: 'tabs-lifted',
+    tabsBox: 'tabs-boxed',
+    tabsBorder: 'tabs-bordered',
     menuActive: 'active',
     cardBorder: 'border border-base-300',
   },
