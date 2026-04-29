@@ -269,14 +269,10 @@ export interface HiddenFieldOptions {
 
 // ── Internal field config (consumed by the component) ───────────────────────
 
-/**
- * Resolved field configuration. The `K` type parameter narrows `key` to a
- * literal type (e.g. `'userName'`) when produced by a `field.*` builder, so
- * `createForm<T>(...)` can validate keys against `keyof T`.
- */
-export interface FormFieldConfig<K extends string = string> {
+/** Resolved field configuration consumed by `<hk-dynamic-form>`. */
+export interface FormFieldConfig {
   readonly id: string;
-  readonly key: K;
+  readonly key: string;
   readonly type: FieldType;
   readonly label: string;
   readonly placeholder?: string;
@@ -342,7 +338,7 @@ export type FieldWidth = 'full' | '1/2' | '1/3' | '1/4' | '2/3' | '3/4' | 'auto'
 
 // ── Stepper / Wizard types ──────────────────────────────────────────────────
 
-export interface FormStep<T = Record<string, any>> {
+export interface FormStep {
   readonly name: string;
   readonly label: string;
   readonly description?: string;
@@ -350,7 +346,7 @@ export interface FormStep<T = Record<string, any>> {
   readonly optional?: boolean;
   readonly completed?: boolean;
   readonly editable?: boolean;
-  readonly fields: readonly FormFieldConfig<Extract<keyof T, string>>[];
+  readonly fields: readonly FormFieldConfig[];
   readonly nextText?: string;
   readonly previousText?: string;
 }
@@ -383,13 +379,8 @@ export interface AutoSaveConfig {
 
 // ── Form config & controller ────────────────────────────────────────────────
 
-/**
- * Input configuration for `createForm`. The `T` type parameter shapes the
- * form's value type — defaults to `Record<string, any>` so untyped usage
- * works exactly like before, but pass `<MyShape>` to constrain field keys
- * against `keyof MyShape` and get a typed `values` in `onSubmit` / `onChange`.
- */
-export interface CreateFormInput<T = Record<string, any>> {
+/** Input configuration for `createForm`. */
+export interface CreateFormInput {
   readonly title?: string;
   readonly description?: string;
   readonly layout?: 'vertical' | 'horizontal' | 'grid';
@@ -397,12 +388,12 @@ export interface CreateFormInput<T = Record<string, any>> {
   readonly gap?: 'sm' | 'md' | 'lg';
   readonly labelWidth?: 'sm' | 'md' | 'lg' | 'xl';
   readonly autoSave?: boolean | AutoSaveConfig;
-  readonly fields?: NoInfer<FormFieldConfig<Extract<keyof T, string>>[]>;
-  readonly steps?: NoInfer<FormStep<T>[]>;
+  readonly fields?: FormFieldConfig[];
+  readonly steps?: FormStep[];
   readonly stepperConfig?: Partial<StepperConfig>;
-  readonly onSubmit?: (data: FormSubmissionData<T>) => void;
+  readonly onSubmit?: (data: FormSubmissionData) => void;
   readonly onReset?: () => void;
-  readonly onChange?: (values: T) => void;
+  readonly onChange?: (values: Record<string, any>) => void;
 }
 
 /**
@@ -413,28 +404,9 @@ export interface CreateFormInput<T = Record<string, any>> {
  * Provide **either** `fields` (single page) **or** `steps` (wizard mode);
  * passing both is unsupported.
  *
- * The `T` type parameter shapes the form's value type. It defaults to
- * `Record<string, any>` (loose, no migration needed for existing code), but
- * pass `<MyShape>` to constrain field keys against `keyof MyShape` and get
- * a fully typed `values` in `onSubmit` / `onChange` — no casting required.
- *
- * @example Strictly typed (no casts at the consumer)
- * interface UserForm {
- *   userName: string;
- *   email: string;
- *   middleName?: string;
- * }
- * const form = createForm<UserForm>({
- *   fields: [
- *     field.text('userName', 'Username'),    // ✅ key constrained to keyof UserForm
- *     field.email('email'),
- *     // field.text('userrName', ...)         // ❌ TS error: typo caught at compile time
- *   ],
- *   onSubmit: ({ values }) => {
- *     // values: UserForm — direct destructure, no casts
- *     const { userName, email, middleName } = values;
- *   },
- * });
+ * `values` in `onSubmit` / `onChange` is typed as `Record<string, any>`. If
+ * you want strong typing at the consumer, cast at the boundary:
+ * `const data = values as MyForm`.
  *
  * @example Single-page form
  * const form = createForm({
@@ -462,13 +434,13 @@ export interface CreateFormInput<T = Record<string, any>> {
  *   onSubmit: ({ values, completedSteps }) => finalize(values, completedSteps),
  * });
  */
-export interface FormConfig<T = Record<string, any>> {
+export interface FormConfig {
   /** Optional heading rendered above the form. */
   readonly title?: string;
   /** Optional supporting text rendered below the title. */
   readonly description?: string;
   /** Field definitions for a single-page form. Mutually exclusive with `steps`. */
-  readonly fields?: readonly FormFieldConfig<Extract<keyof T, string>>[];
+  readonly fields?: readonly FormFieldConfig[];
   /**
    * Layout mode.
    * - `'vertical'` (default) — labels above inputs, one field per row.
@@ -496,25 +468,25 @@ export interface FormConfig<T = Record<string, any>> {
   /** Customize stepper UI (button text, indicator visibility, etc). Wizard mode only. */
   readonly stepperConfig?: StepperConfig;
   /** Step definitions for wizard mode. Mutually exclusive with `fields`. */
-  readonly steps?: readonly FormStep<T>[];
+  readonly steps?: readonly FormStep[];
   /**
    * Called when the user submits a valid (or invalid) form.
    * Receives `{ values, valid, errors, completedSteps?, currentStep? }`.
    * Trigger externally via `form.submit()` from the `FormController`.
    */
-  readonly onSubmit?: (data: FormSubmissionData<T>) => void;
+  readonly onSubmit?: (data: FormSubmissionData) => void;
   /** Called after `form.reset()` clears the form to defaults. */
   readonly onReset?: () => void;
   /** Called on every form value change (debounced). Receives the raw values map. */
-  readonly onChange?: (values: T) => void;
+  readonly onChange?: (values: Record<string, any>) => void;
   /** @internal Trigger signal for external submit calls */
   readonly _submitTrigger?: () => number;
   /** @internal Trigger signal for external reset calls */
   readonly _resetTrigger?: () => number;
 }
 
-export interface FormSubmissionData<T = Record<string, any>> {
-  readonly values: T;
+export interface FormSubmissionData {
+  readonly values: Record<string, any>;
   readonly valid: boolean;
   readonly errors: Record<string, string[]>;
   readonly completedSteps?: string[];
@@ -548,12 +520,9 @@ export interface StepValidationResult {
   readonly errors: Record<string, string[]>;
 }
 
-/**
- * Controller object returned by `createForm`. The `T` type parameter flows
- * from `createForm<T>(...)` so `config()` returns a typed `FormConfig<T>`.
- */
-export interface FormController<T = Record<string, any>> {
-  readonly config: Signal<FormConfig<T>>;
+/** Controller object returned by `createForm`. */
+export interface FormController {
+  readonly config: Signal<FormConfig>;
   readonly submit: () => void;
   readonly reset: () => void;
 }
