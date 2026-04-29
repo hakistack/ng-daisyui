@@ -1,9 +1,20 @@
 import { signal, computed, Signal, WritableSignal } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
-import { CursorPage } from '../models/paged-response';
-
 
 export type SortDirection = 'Ascending' | 'Descending';
+
+/**
+ * Cursor-based page of data returned by the server
+ * Used for: /api/users, /api/audits, /api/logs
+ */
+export interface CursorPage<T> {
+  items: T[];
+  pageSize: number;
+  nextCursor: string | null;
+  previousCursor: string | null;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
 
 /**
  * Configuration for cursor-based pagination
@@ -143,12 +154,10 @@ export interface OffsetPaginationState {
   getHttpParams: () => HttpParams;
 }
 
-
 const DEFAULT_PAGE_SIZE = 10;
 const DEFAULT_PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 const DEFAULT_SORT_FIELD = 'createdAt';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'Descending';
-
 
 /**
  * Creates a cursor-based pagination state manager
@@ -204,7 +213,7 @@ export function createCursorPagination(options: CursorPaginationOptions = {}): C
     isLoading,
 
     updateFromResponse<T>(response: CursorPage<T>): void {
-      config.update(c => ({
+      config.update((c) => ({
         ...c,
         nextCursor: response.nextCursor,
         prevCursor: response.previousCursor,
@@ -217,7 +226,7 @@ export function createCursorPagination(options: CursorPaginationOptions = {}): C
     goNext(): string | null {
       const nextCursor = config().nextCursor;
       if (nextCursor) {
-        config.update(c => ({ ...c, cursor: nextCursor }));
+        config.update((c) => ({ ...c, cursor: nextCursor }));
       }
       return nextCursor;
     },
@@ -225,13 +234,13 @@ export function createCursorPagination(options: CursorPaginationOptions = {}): C
     goPrev(): string | null {
       const prevCursor = config().prevCursor;
       if (prevCursor) {
-        config.update(c => ({ ...c, cursor: prevCursor }));
+        config.update((c) => ({ ...c, cursor: prevCursor }));
       }
       return prevCursor;
     },
 
     changePageSize(size: number): void {
-      config.update(c => ({
+      config.update((c) => ({
         ...c,
         pageSize: size,
         cursor: null, // Reset to first page
@@ -243,7 +252,7 @@ export function createCursorPagination(options: CursorPaginationOptions = {}): C
     },
 
     changeSort(field: string, direction: SortDirection): void {
-      config.update(c => ({
+      config.update((c) => ({
         ...c,
         sortField: field,
         sortDirection: direction,
@@ -256,7 +265,7 @@ export function createCursorPagination(options: CursorPaginationOptions = {}): C
     },
 
     setLoading(loading: boolean): void {
-      config.update(c => ({ ...c, loading }));
+      config.update((c) => ({ ...c, loading }));
     },
 
     reset(): void {
@@ -278,7 +287,6 @@ export function createCursorPagination(options: CursorPaginationOptions = {}): C
     },
   };
 }
-
 
 /**
  * Creates an offset-based pagination state manager
@@ -335,37 +343,37 @@ export function createOffsetPagination(options: OffsetPaginationOptions = {}): O
     offset,
 
     updateTotalItems(total: number): void {
-      config.update(c => ({ ...c, totalItems: total, loading: false }));
+      config.update((c) => ({ ...c, totalItems: total, loading: false }));
     },
 
     goToPage(page: number): void {
       const maxPage = totalPages();
       const validPage = Math.max(1, Math.min(page, maxPage));
-      config.update(c => ({ ...c, page: validPage }));
+      config.update((c) => ({ ...c, page: validPage }));
     },
 
     goNext(): void {
       if (canGoNext()) {
-        config.update(c => ({ ...c, page: c.page + 1 }));
+        config.update((c) => ({ ...c, page: c.page + 1 }));
       }
     },
 
     goPrev(): void {
       if (canGoPrev()) {
-        config.update(c => ({ ...c, page: c.page - 1 }));
+        config.update((c) => ({ ...c, page: c.page - 1 }));
       }
     },
 
     goFirst(): void {
-      config.update(c => ({ ...c, page: 1 }));
+      config.update((c) => ({ ...c, page: 1 }));
     },
 
     goLast(): void {
-      config.update(c => ({ ...c, page: totalPages() }));
+      config.update((c) => ({ ...c, page: totalPages() }));
     },
 
     changePageSize(size: number): void {
-      config.update(c => ({
+      config.update((c) => ({
         ...c,
         pageSize: size,
         page: 1, // Reset to first page
@@ -373,7 +381,7 @@ export function createOffsetPagination(options: OffsetPaginationOptions = {}): O
     },
 
     changeSort(field: string, direction: SortDirection): void {
-      config.update(c => ({
+      config.update((c) => ({
         ...c,
         sortField: field,
         sortDirection: direction,
@@ -382,7 +390,7 @@ export function createOffsetPagination(options: OffsetPaginationOptions = {}): O
     },
 
     setLoading(loading: boolean): void {
-      config.update(c => ({ ...c, loading }));
+      config.update((c) => ({ ...c, loading }));
     },
 
     reset(): void {
@@ -402,7 +410,6 @@ export function createOffsetPagination(options: OffsetPaginationOptions = {}): O
     },
   };
 }
-
 
 import { PaginationOptions } from '../components';
 
@@ -437,17 +444,11 @@ export function toOffsetTablePaginationOptions(state: OffsetPaginationState): Pa
   };
 }
 
-
 /**
  * Creates HTTP params for cursor pagination (standalone function)
  * For use when you don't need the full state manager
  */
-export function getCursorHttpParams(
-  cursor: string | null,
-  pageSize: number,
-  sortField: string,
-  sortDirection: SortDirection,
-): HttpParams {
+export function getCursorHttpParams(cursor: string | null, pageSize: number, sortField: string, sortDirection: SortDirection): HttpParams {
   let params = new HttpParams();
 
   if (cursor) {
@@ -464,12 +465,7 @@ export function getCursorHttpParams(
  * Creates HTTP params for offset pagination (standalone function)
  * For use when you don't need the full state manager
  */
-export function getOffsetHttpParams(
-  limit: number,
-  offset: number,
-  sortField: string,
-  sortDirection: SortDirection,
-): HttpParams {
+export function getOffsetHttpParams(limit: number, offset: number, sortField: string, sortDirection: SortDirection): HttpParams {
   let params = new HttpParams();
 
   params = params.set('limit', limit.toString());

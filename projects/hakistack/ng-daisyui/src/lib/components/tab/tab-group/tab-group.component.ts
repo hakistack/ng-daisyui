@@ -25,15 +25,16 @@ export class TabGroupComponent implements AfterContentInit {
   orientation = input<'horizontal' | 'vertical'>('horizontal');
 
   /**
-   * Visual variant of the tab list (horizontal mode):
+   * Visual variant of the tab list (horizontal mode only):
    * - `'lift'` (default) — tabs attach to a content panel below, with the active tab "lifted" visually.
    * - `'box'` — pill/box-style tabs, panel sits in a bordered card below.
    * - `'border'` — minimal underline-style tabs with a panel below.
    *
-   * In **vertical** mode, the variant is ignored — vertical tabs always use
-   * the `tabs-box` style (the only daisyUI variant that translates cleanly
-   * to a stacked layout). `lift` is horizontal-only by design; `border`
-   * doesn't have a clean vertical analog.
+   * In **vertical** mode, the variant is ignored — vertical renders as a
+   * unified card with a sidebar tab list and a content panel area. The
+   * daisyUI tab variants (lift / box / border) are all horizontal-by-design
+   * and don't translate cleanly to a side-by-side layout, so the vertical
+   * mode uses its own sidebar pattern.
    */
   variant = input<'lift' | 'box' | 'border'>('lift');
 
