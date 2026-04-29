@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { HK_THEME } from '../../theme/theme.config';
 import type { KpiDelta, KpiValueFormatter } from './kpi-card.types';
 
 /**
@@ -23,7 +24,7 @@ import type { KpiDelta, KpiValueFormatter } from './kpi-card.types';
     }
   `,
   template: `
-    <div class="hk-kpi-card card card-border border-base-300 bg-base-200 shadow-sm">
+    <div [class]="containerClass()">
       <div class="hk-kpi-content">
         <div class="flex items-center justify-between gap-2 text-sm text-base-content/60">
           <span class="truncate">{{ label() }}</span>
@@ -45,10 +46,15 @@ import type { KpiDelta, KpiValueFormatter } from './kpi-card.types';
   `,
 })
 export class KpiCardComponent {
+  private readonly theme = inject(HK_THEME);
+
   readonly label = input.required<string>();
   readonly value = input.required<number | string>();
   readonly format = input<KpiValueFormatter | undefined>(undefined);
   readonly delta = input<KpiDelta | null>(null);
+
+  /** Card container — theme-bridged so daisyUI v4 / v5 class names resolve correctly. */
+  readonly containerClass = computed(() => `hk-kpi-card card ${this.theme.classes.cardBorder} bg-base-200 shadow-sm`);
 
   readonly formattedValue = computed<string>(() => {
     const v = this.value();

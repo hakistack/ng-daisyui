@@ -71,18 +71,25 @@ export class TabGroupComponent implements AfterContentInit {
   /** Active-tab class — daisyUI's `tab-active` works in both orientations with the box variant. */
   readonly activeTabClass = computed(() => 'tab-active');
 
-  /** Panel container — border treatment differs by orientation and variant. */
+  /**
+   * Panel container — uses daisyUI's `card` + theme-bridged `cardBorder` so
+   * v4 / v5 class-name renames are handled by `HK_THEME`. Border / corner
+   * treatment is adjusted per orientation and variant on top of the card
+   * primitive (e.g. lift removes the top border so the panel attaches to
+   * the lifted tabs).
+   */
   readonly panelContainerClass = computed(() => {
+    const cardBase = `card ${this.theme.classes.cardBorder} bg-base-100`;
     if (this.isVertical()) {
-      // Vertical: panel sits beside the box-styled tab list.
-      return 'bg-base-100 border-base-300 rounded-box flex-1 border p-4';
+      // Vertical: card panel beside the box-styled tab list.
+      return `${cardBase} flex-1 p-4`;
     }
-    // Horizontal lift: panel attaches to bottom of lifted tabs (no top border, bottom-rounded).
+    // Horizontal lift: panel attaches to bottom of lifted tabs (flat top, no top border).
     if (this.variant() === 'lift') {
-      return 'bg-base-100 border-base-300 rounded-b-box border border-t-0 p-4';
+      return `${cardBase} rounded-t-none border-t-0 p-4`;
     }
-    // Horizontal box / border: separate bordered card with a small gap above.
-    return 'bg-base-100 border-base-300 rounded-box border p-4 mt-2';
+    // Horizontal box / border: card with a small gap above the tabs.
+    return `${cardBase} mt-2 p-4`;
   });
 
   /** Compose tab button classes for a given panel — base + active + disabled state. */
