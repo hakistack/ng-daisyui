@@ -61,11 +61,14 @@ import {
  * <button (click)="form.reset()">Reset</button>
  * ```
  */
-export function createForm(input: CreateFormInput): FormController {
+// Overload signatures: untyped (default) and typed (opt-in)
+export function createForm(input: CreateFormInput): FormController;
+export function createForm<T>(input: CreateFormInput<T>): FormController<T>;
+export function createForm<T = Record<string, any>>(input: CreateFormInput<T>): FormController<T> {
   const submitTrigger = signal(0);
   const resetTrigger = signal(0);
 
-  const config = computed<FormConfig>(() => ({
+  const config = computed<FormConfig<T>>(() => ({
     title: input.title,
     description: input.description,
     layout: input.layout || 'vertical',
