@@ -33,6 +33,18 @@ export interface PdfViewerConfig {
   /** Which sidebar tab is active by default. Default: `'thumbnails'`. */
   readonly defaultSidebarTab?: PdfSidebarTab;
 
+  /**
+   * Override the PDF.js worker URL. By default the lib **inlines** the worker
+   * source into its own JS bundle and creates a Blob URL at runtime —
+   * consumers don't have to configure anything.
+   *
+   * Set this only if your CSP forbids `worker-src 'blob:'`, or if you want
+   * to share a single worker URL across multiple viewers / serve from a CDN.
+   *
+   * @example workerSrc: '/assets/pdfjs/pdf.worker.min.mjs'
+   */
+  readonly workerSrc?: string;
+
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 
   /** Fires once the document is parsed and ready to render. */

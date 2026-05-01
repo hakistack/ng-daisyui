@@ -60,6 +60,7 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     showToolbar: input.showToolbar ?? true,
     showSidebar: input.showSidebar ?? true,
     defaultSidebarTab: input.defaultSidebarTab ?? DEFAULT_SIDEBAR_TAB,
+    workerSrc: input.workerSrc,
     onLoaded: input.onLoaded,
     onPageChange: input.onPageChange,
     onError: input.onError,
