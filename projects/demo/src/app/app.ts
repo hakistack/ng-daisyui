@@ -371,6 +371,16 @@ export class App implements OnInit {
             { id: 'lazy', label: 'Lazy Loading' },
           ],
         },
+        {
+          path: '/pdf-viewer',
+          label: 'PDF Viewer',
+          icon: 'file-text',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'controller', label: 'Controller API' },
+            { id: 'config', label: 'Config Variants' },
+          ],
+        },
       ],
     },
     {

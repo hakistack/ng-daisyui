@@ -35,6 +35,11 @@ export const routes: Routes = [
   },
   { path: 'tree', redirectTo: 'tree/basic', pathMatch: 'full' },
   { path: 'tree/:feature', loadComponent: () => import('@shared-demos/demos/tree-demo.component').then((m) => m.TreeDemoComponent) },
+  { path: 'pdf-viewer', redirectTo: 'pdf-viewer/basic', pathMatch: 'full' },
+  {
+    path: 'pdf-viewer/:feature',
+    loadComponent: () => import('@shared-demos/demos/pdf-viewer-demo.component').then((m) => m.PdfViewerDemoComponent),
+  },
   // Inputs
   { path: 'input', redirectTo: 'input/basic', pathMatch: 'full' },
   { path: 'input/:feature', loadComponent: () => import('@shared-demos/demos/input-demo.component').then((m) => m.InputDemoComponent) },
