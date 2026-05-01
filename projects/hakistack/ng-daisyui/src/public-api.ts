@@ -183,6 +183,24 @@ export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } f
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
 
+// PDF Viewer
+export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
+export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';
+export { HK_PDF_LABELS, provideHkPdfLabels, DEFAULT_PDF_VIEWER_LABELS } from './lib/components/pdf-viewer/pdf-viewer.labels';
+export type { PdfViewerLabels, ResolvedPdfViewerLabels } from './lib/components/pdf-viewer/pdf-viewer.labels';
+export type {
+  PdfDocumentSource,
+  PdfZoom,
+  PdfDisplayMode,
+  PdfSidebarTab,
+  PdfViewerConfig,
+  PdfViewerController,
+  PdfViewerState,
+  PdfLoadedInfo,
+  PdfViewerError,
+  PdfSearchResult,
+} from './lib/components/pdf-viewer/pdf-viewer.types';
+
 // Tree
 export { TreeComponent } from './lib/components/tree/tree.component';
 export {

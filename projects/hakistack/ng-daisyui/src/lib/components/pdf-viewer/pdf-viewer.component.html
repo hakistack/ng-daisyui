@@ -1,0 +1,10 @@
+<div [class]="containerClass()">
+  <!-- TODO Phase 1: toolbar slot, sidebar, page renderer, search bar.
+       This commit lands the architecture; rendering wiring is the next commit. -->
+  <div class="flex items-center justify-center p-12">
+    <div class="flex flex-col items-center gap-3 text-base-content/60">
+      <span class="loading loading-spinner loading-md"></span>
+      <span>{{ labels().loading }}</span>
+    </div>
+  </div>
+</div>

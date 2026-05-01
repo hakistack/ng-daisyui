@@ -1,0 +1,4 @@
+/* PDF viewer custom styles. Most of the layout is Tailwind utility classes
+   in the template; this file is reserved for things that don't fit utilities
+   well — primarily the PDF.js text layer + annotation layer styling that
+   gets added in the next commit. */
