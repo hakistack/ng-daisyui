@@ -658,28 +658,13 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
     const predicate = (row: T) => filters.every((filter) => this.applyFilter(row, filter));
 
-    // Use hierarchy-aware filtering for tree tables
+    // Use hierarchy-aware filtering for tree tables. Pure return — the
+    // ancestor auto-expand side effect lives in setupEffects() so this
+    // computed stays free of signal writes (avoids NG0103).
     if (this.isTreeTableSignal()) {
       const hierarchyMode = this.filterHierarchyModeSignal();
       const childrenProp = this.childrenPropertySignal();
-      const filtered = filterTreeData(data as T[], predicate, childrenProp, hierarchyMode);
-
-      // Auto-expand ancestors of matching nodes
-      if (filtered.length > 0 && hierarchyMode !== 'none') {
-        const treeConfig = this.treeTableConfigSignal();
-        const customGetKey = treeConfig?.getRowKey;
-        const ancestorKeys = collectAncestorKeys(filtered, (row, index) => generateRowKey(row, customGetKey, index), childrenProp);
-        if (ancestorKeys.size > 0) {
-          // Merge with existing expanded keys
-          const current = this.expandedRowKeys();
-          const merged = new Set([...current, ...ancestorKeys]);
-          if (merged.size !== current.size) {
-            this.expandedRowKeys.set(merged);
-          }
-        }
-      }
-
-      return filtered;
+      return filterTreeData(data as T[], predicate, childrenProp, hierarchyMode);
     }
 
     return data.filter(predicate);
@@ -737,27 +722,12 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       };
     }
 
-    // Use hierarchy-aware search for tree tables
+    // Use hierarchy-aware search for tree tables. Pure return — see
+    // filteredDataSignal: ancestor auto-expand is handled in setupEffects().
     if (this.isTreeTableSignal()) {
       const hierarchyMode = this.filterHierarchyModeSignal();
       const childrenProp = this.childrenPropertySignal();
-      const filtered = filterTreeData(data as T[], searchPredicate, childrenProp, hierarchyMode);
-
-      // Auto-expand ancestors of matching nodes
-      if (filtered.length > 0 && hierarchyMode !== 'none') {
-        const treeConfig = this.treeTableConfigSignal();
-        const customGetKey = treeConfig?.getRowKey;
-        const ancestorKeys = collectAncestorKeys(filtered, (row, index) => generateRowKey(row, customGetKey, index), childrenProp);
-        if (ancestorKeys.size > 0) {
-          const current = this.expandedRowKeys();
-          const merged = new Set([...current, ...ancestorKeys]);
-          if (merged.size !== current.size) {
-            this.expandedRowKeys.set(merged);
-          }
-        }
-      }
-
-      return filtered;
+      return filterTreeData(data as T[], searchPredicate, childrenProp, hierarchyMode);
     }
 
     return data.filter(searchPredicate);
@@ -2511,6 +2481,50 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
         this.masterDetailSelectedRow.set(data[0]);
         this.masterDetailRowChange.emit(data[0]);
       }
+    });
+
+    // Auto-expand ancestors of matching nodes when a tree-table column-filter
+    // or global-search is active. This used to live inside filteredDataSignal /
+    // globalSearchedDataSignal, but performing the signal write inside those
+    // computeds created an NG0103 cycle (the computed registered itself as a
+    // consumer of expandedRowKeys, which it then wrote to → re-trigger →
+    // re-write → ...). Moving the side effect into a dedicated effect()
+    // keeps the data computeds pure and breaks the cycle.
+    //
+    // Tracked deps: tree-table flag, hierarchy mode, filter state, debounced
+    // search term, and the post-filter+search data. None of them are
+    // expandedRowKeys — so writing to it does NOT re-trigger this effect.
+    effect(() => {
+      if (!this.isTreeTableSignal()) return;
+
+      const hierarchyMode = this.filterHierarchyModeSignal();
+      if (hierarchyMode === 'none') return;
+
+      // Only auto-expand when filtering or search is actually active.
+      const hasFilters = this.filterState().length > 0;
+      const hasSearch = !!this.debouncedSearchTerm();
+      if (!hasFilters && !hasSearch) return;
+
+      // Read the post-filter+search output (covers both column filters and
+      // global search). Pure read — no signal writes inside this computed.
+      const filtered = this.globalSearchedDataSignal();
+      if (filtered.length === 0) return;
+
+      const childrenProp = this.childrenPropertySignal();
+      const treeConfig = this.treeTableConfigSignal();
+      const customGetKey = treeConfig?.getRowKey;
+      const ancestorKeys = collectAncestorKeys(filtered as T[], (row, index) => generateRowKey(row, customGetKey, index), childrenProp);
+      if (ancestorKeys.size === 0) return;
+
+      // Wrap the read+write of expandedRowKeys in untracked() so this effect
+      // doesn't register as a consumer of the signal it's about to update.
+      untracked(() => {
+        const current = this.expandedRowKeys();
+        const merged = new Set([...current, ...ancestorKeys]);
+        if (merged.size !== current.size) {
+          this.expandedRowKeys.set(merged);
+        }
+      });
     });
   }
 
