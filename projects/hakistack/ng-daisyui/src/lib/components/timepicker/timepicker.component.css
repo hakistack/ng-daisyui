@@ -304,8 +304,22 @@
   border-radius: var(--radius-field, 0.375rem);
   overflow: hidden;
   margin-left: 0.5rem;
-  margin-bottom: 1.625rem;
-  align-self: center;
+}
+
+/* Input-variant AM/PM: stretch to match the segment input height and align the
+   block's TOP with the segment input's top (skip the step-up button area).
+   Result: AM/PM occupies exactly the same vertical space as the editable boxes. */
+.tp-input-period {
+  align-self: flex-start;
+  margin-top: 1.75rem;     /* step-up button (1.5rem) + gap (0.25rem) */
+  height: 4.5rem;          /* match segment input height (72px) */
+}
+.tp-input-period .tp-period-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.75rem;
 }
 .tp-period-btn {
   padding: 0.4rem 0.75rem;
