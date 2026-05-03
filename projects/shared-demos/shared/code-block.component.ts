@@ -1,4 +1,4 @@
-import { Component, effect, input, signal } from '@angular/core';
+import { Component, effect, inject, input, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { highlightCode } from './syntax-highlighter';
 
@@ -73,8 +73,9 @@ export class CodeBlockComponent {
   lang = input<'typescript' | 'angular-html'>('typescript');
   copied = signal(false);
   highlightedHtml = signal<SafeHtml>('');
+  private sanitizer = inject(DomSanitizer);
 
-  constructor(private sanitizer: DomSanitizer) {
+  constructor() {
     effect(() => {
       const code = this.code();
       const lang = this.lang();
