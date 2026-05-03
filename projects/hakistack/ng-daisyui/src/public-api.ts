@@ -188,11 +188,17 @@ export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.compo
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';
 export { HK_PDF_LABELS, provideHkPdfLabels, DEFAULT_PDF_VIEWER_LABELS } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export type { PdfViewerLabels, ResolvedPdfViewerLabels } from './lib/components/pdf-viewer/pdf-viewer.labels';
+export { HK_PDF_DEFAULTS, provideHkPdfDefaults } from './lib/components/pdf-viewer/pdf-viewer.defaults';
+export type { HkPdfDefaults } from './lib/components/pdf-viewer/pdf-viewer.defaults';
+export { HkPdfService } from './lib/components/pdf-viewer/pdf.service';
+export { HkPdfToolbarDirective } from './lib/components/pdf-viewer/pdf-viewer.directives';
+export type { HkPdfToolbarContext } from './lib/components/pdf-viewer/pdf-viewer.directives';
 export type {
   PdfDocumentSource,
   PdfZoom,
   PdfDisplayMode,
   PdfSidebarTab,
+  PdfViewerLayout,
   PdfViewerConfig,
   PdfViewerController,
   PdfViewerState,

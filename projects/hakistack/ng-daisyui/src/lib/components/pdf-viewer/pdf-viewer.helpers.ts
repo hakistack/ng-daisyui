@@ -5,6 +5,8 @@ import {
   PdfSidebarTab,
   PdfViewerConfig,
   PdfViewerController,
+  PdfViewerInternalApi,
+  PdfViewerInternalHandlers,
   PdfViewerState,
   PdfZoom,
 } from './pdf-viewer.types';
@@ -33,7 +35,7 @@ const ZOOM_MAX = 5;
  *   onLoaded: (info) => console.log(`${info.numPages} pages`),
  * });
  *
- * pdfUrl = signal<string>('document.pdf');
+ * pdfUrl = signal<string>('https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf');
  *
  * // template:
  * // <hk-pdf-viewer [src]="pdfUrl()" [config]="viewer.config()" />
@@ -51,13 +53,57 @@ const ZOOM_MAX = 5;
  * });
  */
 export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerController {
-  // Merged config — defaults applied for the public-facing config signal.
+  const layout = input.layout ?? 'default';
+  // Preview layout's idiomatic defaults: single-page focus + fit-page so the
+  // whole page is visible inside its card. Caller can still override either.
+  const initialZoom = input.zoom ?? (layout === 'preview' ? 'fit-page' : DEFAULT_ZOOM);
+  const initialMode = input.mode ?? (layout === 'preview' ? 'single' : DEFAULT_MODE);
+  const initialSidebarOpen = input.showSidebar ?? true;
+  const initialSidebarTab = input.defaultSidebarTab ?? DEFAULT_SIDEBAR_TAB;
+
+  // Writable state lives in this closure. The component reads/writes it via
+  // the internal API; the controller exposes it read-only via state.asReadonly().
+  const state = signal<PdfViewerState>({
+    page: 0,
+    numPages: 0,
+    zoom: 1,
+    zoomMode: initialZoom,
+    mode: initialMode,
+    loaded: false,
+    error: null,
+    searchMatches: 0,
+    currentMatchIndex: -1,
+    searchQuery: '',
+    sidebarOpen: initialSidebarOpen,
+    sidebarTab: initialSidebarTab,
+  });
+
+  // Handler bag. Component fills this in on init via internal.bind(); until
+  // then, every imperative method is a no-op so calls before mount don't crash.
+  let handlers: PdfViewerInternalHandlers = {};
+
+  const internal: PdfViewerInternalApi = {
+    state,
+    bind(next) {
+      handlers = next;
+      return () => {
+        handlers = {};
+      };
+    },
+  };
+
+  // Public config signal. The user's options ride alongside the hidden
+  // _internal channel so the component (which only sees [config]) can
+  // reach back to the controller.
   const config = computed<PdfViewerConfig>(() => ({
     page: input.page ?? DEFAULT_PAGE,
-    zoom: input.zoom ?? DEFAULT_ZOOM,
-    mode: input.mode ?? DEFAULT_MODE,
+    zoom: initialZoom,
+    mode: initialMode,
+    layout,
     password: input.password ?? '',
-    showToolbar: input.showToolbar ?? true,
+    // Preview layout hides the toolbar by default (the bottom prev/next/download
+    // is the primary chrome). Caller can opt back in with `showToolbar: true`.
+    showToolbar: input.showToolbar ?? layout !== 'preview',
     showSidebar: input.showSidebar ?? true,
     defaultSidebarTab: input.defaultSidebarTab ?? DEFAULT_SIDEBAR_TAB,
     workerSrc: input.workerSrc,
@@ -65,69 +111,48 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     onPageChange: input.onPageChange,
     onError: input.onError,
     onPasswordRequired: input.onPasswordRequired,
+    _internal: internal,
   }));
 
-  // Runtime state. The component will write to this via an internal contract;
-  // consumers read it via controller.state(). Exposed as a writable signal
-  // here, narrowed to a read-only Signal in the public type.
-  const state = signal<PdfViewerState>({
-    page: 0,
-    numPages: 0,
-    zoom: 1,
-    zoomMode: input.zoom ?? DEFAULT_ZOOM,
-    mode: input.mode ?? DEFAULT_MODE,
-    loaded: false,
-    error: null,
-    searchMatches: 0,
-    currentMatchIndex: -1,
-    searchQuery: '',
-    sidebarOpen: input.showSidebar ?? true,
-    sidebarTab: input.defaultSidebarTab ?? DEFAULT_SIDEBAR_TAB,
-  });
-
-  const noop = () => {
-    /* TODO Phase 1: wire to component. Stub during scaffolding. */
+  const clampPage = (p: number): number => {
+    const total = state().numPages;
+    if (total <= 0) return 0;
+    return Math.max(1, Math.min(total, Math.floor(p)));
   };
 
-  const noopAsync = (): Promise<PdfSearchResult> => {
-    return Promise.resolve({ totalMatches: 0, query: '' });
-  };
-
-  // The controller. All imperative methods are no-ops until the component
-  // is wired up in the next commit (basic rendering). Keeping them on the
-  // surface now so the public API is stable from day one.
+  // Imperative methods delegate to the component-registered handlers.
+  // We compute targets here (e.g. nextPage = current + 1) so the component
+  // only has to implement the primitive ops (goToPage, setZoom, setMode).
   const controller: PdfViewerController = {
     config,
     state: state.asReadonly(),
 
-    // Navigation
-    goToPage: noop,
-    nextPage: noop,
-    previousPage: noop,
-    firstPage: noop,
-    lastPage: noop,
+    goToPage: (page) => handlers.goToPage?.(clampPage(page)),
+    nextPage: () => handlers.goToPage?.(clampPage(state().page + 1)),
+    previousPage: () => handlers.goToPage?.(clampPage(state().page - 1)),
+    firstPage: () => handlers.goToPage?.(clampPage(1)),
+    lastPage: () => handlers.goToPage?.(clampPage(state().numPages)),
 
-    // Zoom
-    setZoom: noop,
-    zoomIn: noop,
-    zoomOut: noop,
-    resetZoom: noop,
+    setZoom: (zoom) => handlers.setZoom?.(zoom),
+    zoomIn: () => handlers.setZoom?.(nextZoomStep(state().zoom)),
+    zoomOut: () => handlers.setZoom?.(previousZoomStep(state().zoom)),
+    resetZoom: () => handlers.setZoom?.(initialZoom),
 
-    // Display
-    setMode: noop,
-    toggleSidebar: noop,
-    toggleFullscreen: noop,
+    setMode: (mode) => handlers.setMode?.(mode),
+    toggleSidebar: () => handlers.toggleSidebar?.(),
+    toggleFullscreen: () => handlers.toggleFullscreen?.(),
 
-    // Search
-    search: noopAsync,
-    nextMatch: noop,
-    previousMatch: noop,
-    clearSearch: noop,
+    search: (query) => handlers.search?.(query) ?? Promise.resolve({ totalMatches: 0, query }),
+    nextMatch: () => handlers.nextMatch?.(),
+    previousMatch: () => handlers.previousMatch?.(),
+    clearSearch: () => handlers.clearSearch?.(),
 
-    // Document operations
-    print: noop,
-    download: noop,
-    reload: noop,
+    print: () => handlers.print?.(),
+    download: (filename) => handlers.download?.(filename),
+    reload: () => handlers.reload?.(),
+
+    save: () => handlers.save?.() ?? Promise.reject(new Error('Viewer not mounted')),
+    saveAndDownload: (filename) => handlers.saveAndDownload?.(filename) ?? Promise.reject(new Error('Viewer not mounted')),
   };
 
   return controller;

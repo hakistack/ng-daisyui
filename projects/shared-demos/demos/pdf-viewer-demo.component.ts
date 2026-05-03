@@ -2,17 +2,17 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { createPdfViewer, PdfViewerComponent } from '@hakistack/ng-daisyui';
+import { createPdfViewer, HkPdfToolbarDirective, PdfViewerComponent } from '@hakistack/ng-daisyui';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 
-type PdfViewerTab = 'basic' | 'controller' | 'config';
+type PdfViewerTab = 'basic' | 'controller' | 'preview' | 'config';
 
 const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
 
 @Component({
   selector: 'app-pdf-viewer-demo',
-  imports: [PdfViewerComponent, DocSectionComponent, DemoPageComponent],
+  imports: [PdfViewerComponent, HkPdfToolbarDirective, DocSectionComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="PDF Viewer"
@@ -91,6 +91,57 @@ const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemon
           </div>
         }
 
+        @if (activeTab() === 'preview') {
+          <div class="grid gap-6">
+            <app-doc-section
+              title="Document preview"
+              description="Pass layout: 'preview' to swap the chrome — title, subtitle, page indicator, page card, then prev/next plus a centered download. Defaults to single-page mode at fit-page zoom."
+              [codeExample]="previewBasicCode"
+            >
+              <hk-pdf-viewer
+                [src]="pdfUrl()"
+                [config]="previewViewer.config()"
+                title="Preview"
+                subtitle="Part I — Financial Documents · Cash Flow Reports"
+              />
+            </app-doc-section>
+
+            <app-doc-section
+              title="Preview with full toolbar"
+              description="Set showToolbar: true and the preview layout renders the full reader toolbar above the page card — page input, zoom select, mode toggle, print/download/fullscreen — together with the bottom prev/next/download. Use this when the embedded preview still benefits from power-user controls."
+              [codeExample]="previewToolbarCode"
+            >
+              <hk-pdf-viewer
+                [src]="pdfUrl()"
+                [config]="previewWithToolbarViewer.config()"
+                title="Q3 board pack"
+                subtitle="Reviewed by Finance · pending sign-off"
+              />
+            </app-doc-section>
+
+            <app-doc-section
+              title="Continuous preview"
+              description="Override mode: 'continuous' to keep the preview chrome (title + page link + bottom actions) but let the user scroll through every page inside the card. Prev/Next still jump page-to-page; the page link tracks the most-visible page."
+              [codeExample]="previewContinuousCode"
+            >
+              <hk-pdf-viewer
+                [src]="pdfUrl()"
+                [config]="previewContinuousViewer.config()"
+                title="Onboarding handbook"
+                subtitle="Read top-to-bottom — confirm each page is reviewed"
+              />
+            </app-doc-section>
+
+            <app-doc-section
+              title="Minimal embedded preview"
+              description="Skip title and subtitle for a card-only preview — just the page card and the three buttons. Drop it into a list, modal, or signing flow where the surrounding UI already provides context."
+              [codeExample]="previewMinimalCode"
+            >
+              <hk-pdf-viewer [src]="pdfUrl()" [config]="previewViewer.config()" />
+            </app-doc-section>
+          </div>
+        }
+
         @if (activeTab() === 'config') {
           <div class="grid gap-6">
             <app-doc-section
@@ -107,6 +158,77 @@ const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemon
               [codeExample]="minimalCode"
             >
               <hk-pdf-viewer [src]="pdfUrl()" [config]="minimalViewer.config()" />
+            </app-doc-section>
+
+            <app-doc-section
+              title="Fillable forms + save"
+              description="Bind [(formValues)] to the viewer and PDF form widgets sync both ways: pre-fill values flow into the doc's annotationStorage, and user edits stream back through the binding. controller.saveAndDownload() bakes the current values into a fresh PDF."
+              [codeExample]="formFillCode"
+            >
+              <div class="flex flex-col gap-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <input
+                    #formUrlInput
+                    type="url"
+                    class="input input-sm input-bordered grow min-w-64"
+                    placeholder="Fillable PDF URL"
+                    [value]="formPdfUrl()"
+                    (change)="formPdfUrl.set(formUrlInput.value)"
+                  />
+                  <button class="btn btn-sm btn-primary" (click)="onSaveFormDemo()">Save filled PDF</button>
+                  <button class="btn btn-sm btn-ghost" (click)="resetFormFillDemo()">Clear values</button>
+                </div>
+                <hk-pdf-viewer [src]="formPdfUrl()" [config]="formViewer.config()" [(formValues)]="formFillValues" />
+                @if (hasFormValues()) {
+                  <div class="text-xs">
+                    <div class="font-semibold mb-1">Bound formValues snapshot:</div>
+                    <pre class="bg-base-200 p-2 rounded text-xs overflow-x-auto">{{ formValuesJson() }}</pre>
+                  </div>
+                }
+                <div class="text-xs text-base-content/60">
+                  Default URL points at the IRS W-9 form. Paste any fillable PDF URL with permissive CORS to try your own.
+                </div>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section
+              title="Custom toolbar via slot"
+              description="Drop an <ng-template hkPdfToolbar> inside <hk-pdf-viewer> to replace the built-in toolbar with your own markup. The viewer keeps its rendering, page tracking, zoom, and download/print plumbing — you just own the chrome."
+              [codeExample]="customToolbarCode"
+            >
+              <hk-pdf-viewer [src]="pdfUrl()" [config]="customToolbarViewer.config()">
+                <ng-template hkPdfToolbar let-state="state">
+                  <div class="flex items-center gap-3 px-3 py-2 bg-primary text-primary-content">
+                    <span class="font-semibold">Annual report</span>
+                    <div class="badge badge-soft badge-sm">Read-only</div>
+                    <div class="grow"></div>
+                    <button
+                      class="btn btn-sm btn-circle btn-ghost"
+                      [disabled]="!state || state.page <= 1"
+                      (click)="customToolbarViewer.previousPage()"
+                      aria-label="Previous"
+                    >
+                      ‹
+                    </button>
+                    <span class="text-sm tabular-nums">{{ state?.page }} / {{ state?.numPages }}</span>
+                    <button
+                      class="btn btn-sm btn-circle btn-ghost"
+                      [disabled]="!state || state.page >= state.numPages"
+                      (click)="customToolbarViewer.nextPage()"
+                      aria-label="Next"
+                    >
+                      ›
+                    </button>
+                    <button
+                      class="btn btn-sm btn-soft"
+                      [disabled]="!state?.loaded"
+                      (click)="customToolbarViewer.download('annual-report.pdf')"
+                    >
+                      Download PDF
+                    </button>
+                  </div>
+                </ng-template>
+              </hk-pdf-viewer>
             </app-doc-section>
           </div>
         }
@@ -141,6 +263,52 @@ export class PdfViewerDemoComponent {
     showSidebar: false,
   });
 
+  readonly previewViewer = createPdfViewer({
+    layout: 'preview',
+    onPageChange: (p) => console.log('[pdf-viewer-demo] preview page →', p),
+  });
+
+  readonly previewWithToolbarViewer = createPdfViewer({
+    layout: 'preview',
+    showToolbar: true,
+    onLoaded: (info) => console.log('[pdf-viewer-demo] preview+toolbar loaded:', info),
+    onPageChange: (p) => console.log('[pdf-viewer-demo] preview+toolbar page →', p),
+  });
+
+  readonly previewContinuousViewer = createPdfViewer({
+    layout: 'preview',
+    mode: 'continuous',
+    zoom: 'fit-width',
+  });
+
+  readonly customToolbarViewer = createPdfViewer({
+    page: 1,
+    zoom: 'fit-width',
+    mode: 'continuous',
+  });
+
+  // ── Form-fill demo state ────────────────────────────────────────────────
+
+  readonly formPdfUrl = signal<string>('https://www.irs.gov/pub/irs-pdf/fw9.pdf');
+  readonly formFillValues = signal<Record<string, unknown>>({});
+
+  readonly formViewer = createPdfViewer({
+    page: 1,
+    zoom: 'fit-width',
+    mode: 'continuous',
+  });
+
+  readonly formValuesJson = computed(() => JSON.stringify(this.formFillValues(), null, 2));
+  readonly hasFormValues = computed(() => Object.keys(this.formFillValues()).length > 0);
+
+  onSaveFormDemo(): void {
+    void this.formViewer.saveAndDownload('filled-form.pdf');
+  }
+
+  resetFormFillDemo(): void {
+    this.formFillValues.set({});
+  }
+
   loadSampleUrl(): void {
     this.pdfUrl.set(SAMPLE_PDF_URL);
   }
@@ -158,7 +326,7 @@ export class PdfViewerDemoComponent {
   template: \`<hk-pdf-viewer [src]="pdfUrl()" [config]="viewer.config()" />\`,
 })
 export class MyComponent {
-  pdfUrl = signal<string>('document.pdf');
+  pdfUrl = signal<string>('https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf');
 
   viewer = createPdfViewer({
     page: 1,
@@ -190,4 +358,107 @@ viewer = createPdfViewer({
   showToolbar: false,
   showSidebar: false,
 });`;
+
+  readonly previewBasicCode = `// Preview layout: title + page indicator + page card + prev/next + download.
+// No top toolbar. Defaults to mode: 'single' + zoom: 'fit-page'.
+viewer = createPdfViewer({
+  layout: 'preview',
+});
+
+// template:
+<hk-pdf-viewer
+  [src]="pdfUrl()"
+  [config]="viewer.config()"
+  title="Preview"
+  subtitle="Part I — Financial Documents · Cash Flow Reports"
+/>`;
+
+  readonly previewToolbarCode = `// Preview chrome + full reader toolbar — best of both worlds when the
+// embedded preview still benefits from page input, zoom, and mode controls.
+viewer = createPdfViewer({
+  layout: 'preview',
+  showToolbar: true,
+});`;
+
+  readonly previewContinuousCode = `// Preview chrome but continuous scroll inside the card. Prev/Next snap
+// page-by-page; the page link tracks the most-visible page automatically.
+viewer = createPdfViewer({
+  layout: 'preview',
+  mode: 'continuous',
+  zoom: 'fit-width',
+});`;
+
+  readonly previewMinimalCode = `// Embedded preview without a title/subtitle — the surrounding UI provides
+// context. Dropping into a modal, signing flow, or file picker.
+viewer = createPdfViewer({ layout: 'preview' });
+
+// template (no title/subtitle inputs):
+<hk-pdf-viewer [src]="pdfUrl()" [config]="viewer.config()" />`;
+
+  readonly formFillCode = `import { createPdfViewer, PdfViewerComponent } from '@hakistack/ng-daisyui';
+
+@Component({
+  imports: [PdfViewerComponent],
+  template: \`
+    <hk-pdf-viewer
+      [src]="formPdfUrl()"
+      [config]="viewer.config()"
+      [(formValues)]="filled"
+    />
+    <button (click)="viewer.saveAndDownload('filled.pdf')">Save filled PDF</button>
+  \`,
+})
+export class MyComponent {
+  formPdfUrl = signal('/assets/forms/agreement.pdf');
+  // Pre-fill some fields by name; bind to a form/store/whatever.
+  filled = signal<Record<string, unknown>>({
+    'topmostSubform[0].Page1[0].f1_1[0]': 'Acme Inc.',
+  });
+
+  viewer = createPdfViewer({ /* page, zoom, mode... */ });
+}
+
+// Programmatic save (returns Uint8Array — no download triggered):
+const bytes = await viewer.save();
+await fetch('/api/store-pdf', { method: 'POST', body: bytes });`;
+
+  readonly customToolbarCode = `import {
+  createPdfViewer,
+  HkPdfToolbarDirective,
+  PdfViewerComponent,
+} from '@hakistack/ng-daisyui';
+
+@Component({
+  imports: [PdfViewerComponent, HkPdfToolbarDirective],
+  template: \`
+    <hk-pdf-viewer [src]="pdfUrl()" [config]="viewer.config()">
+      <ng-template hkPdfToolbar let-state="state">
+        <div class="flex items-center gap-3 px-3 py-2 bg-primary text-primary-content">
+          <span class="font-semibold">Annual report</span>
+          <div class="badge badge-soft badge-sm">Read-only</div>
+          <div class="grow"></div>
+          <button
+            class="btn btn-sm btn-circle btn-ghost"
+            [disabled]="(state.page ?? 0) <= 1"
+            (click)="viewer.previousPage()"
+          >‹</button>
+          <span>{{ state.page }} / {{ state.numPages }}</span>
+          <button
+            class="btn btn-sm btn-circle btn-ghost"
+            [disabled]="(state.page ?? 0) >= (state.numPages ?? 0)"
+            (click)="viewer.nextPage()"
+          >›</button>
+          <button
+            class="btn btn-sm btn-soft"
+            (click)="viewer.download('annual-report.pdf')"
+          >Download PDF</button>
+        </div>
+      </ng-template>
+    </hk-pdf-viewer>
+  \`,
+})
+export class MyComponent {
+  pdfUrl = signal('https://...');
+  viewer = createPdfViewer({ /* page, zoom, mode... */ });
+}`;
 }

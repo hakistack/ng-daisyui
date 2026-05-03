@@ -378,6 +378,7 @@ export class App implements OnInit {
           children: [
             { id: 'basic', label: 'Basic' },
             { id: 'controller', label: 'Controller API' },
+            { id: 'preview', label: 'Preview Layout' },
             { id: 'config', label: 'Config Variants' },
           ],
         },

@@ -1,4 +1,4 @@
-import { Signal } from '@angular/core';
+import { Signal, WritableSignal } from '@angular/core';
 
 /** A PDF document source. The component accepts a URL string, an in-memory byte array, or a Blob. */
 export type PdfDocumentSource = string | Uint8Array | Blob;
@@ -13,6 +13,16 @@ export type PdfDisplayMode = 'single' | 'continuous';
 export type PdfSidebarTab = 'thumbnails' | 'bookmarks';
 
 /**
+ * Visual chrome variant. `'default'` is the full reader (top toolbar with
+ * page input, zoom, mode, download/print/fullscreen). `'preview'` is a
+ * single-page document-preview layout — no toolbar, just a centered page
+ * card with prev/next + download buttons underneath. Use preview when the
+ * viewer is embedded in a flow where the surrounding UI already provides
+ * navigation context (signing flows, document approval, file previews).
+ */
+export type PdfViewerLayout = 'default' | 'preview';
+
+/**
  * Configuration passed to `createPdfViewer({...})`. Stable per-instance —
  * volatile state (the document source itself) lives on `<hk-pdf-viewer>`'s
  * `[src]` input so it can react to route changes / file uploads naturally.
@@ -20,10 +30,16 @@ export type PdfSidebarTab = 'thumbnails' | 'bookmarks';
 export interface PdfViewerConfig {
   /** Initial page number (1-indexed). Default: `1`. */
   readonly page?: number;
-  /** Initial zoom level. Default: `'fit-width'`. */
+  /** Initial zoom level. Default: `'fit-width'` (`'fit-page'` when `layout` is `'preview'`). */
   readonly zoom?: PdfZoom;
-  /** Initial display mode. Default: `'continuous'`. */
+  /** Initial display mode. Default: `'continuous'` (`'single'` when `layout` is `'preview'`). */
   readonly mode?: PdfDisplayMode;
+  /**
+   * Visual chrome variant. Default `'default'`. Use `'preview'` for a
+   * minimal single-page-with-prev/next/download layout — useful when the
+   * viewer is embedded in a flow that provides its own context.
+   */
+  readonly layout?: PdfViewerLayout;
   /** Pre-supply a password for encrypted PDFs. If unset and the doc is encrypted, `onPasswordRequired` fires. */
   readonly password?: string;
   /** Render the default toolbar above the canvas. Default: `true`. */
@@ -61,6 +77,43 @@ export interface PdfViewerConfig {
 
   /** @internal Trigger signal for external state mutations. */
   readonly _stateTrigger?: Signal<number>;
+
+  /** @internal Hidden bridge between the controller (created in user code) and the component instance. */
+  readonly _internal?: PdfViewerInternalApi;
+}
+
+/**
+ * @internal — Component-side handlers the controller dispatches imperative
+ * calls to. The component fills these in on init; before that, controller
+ * methods are no-ops (so `viewer.nextPage()` before the view mounts is safe).
+ */
+export interface PdfViewerInternalHandlers {
+  goToPage?: (page: number) => void;
+  setZoom?: (zoom: PdfZoom) => void;
+  setMode?: (mode: PdfDisplayMode) => void;
+  toggleSidebar?: () => void;
+  toggleFullscreen?: () => void;
+  search?: (query: string) => Promise<PdfSearchResult>;
+  nextMatch?: () => void;
+  previousMatch?: () => void;
+  clearSearch?: () => void;
+  print?: () => void;
+  download?: (filename?: string) => void;
+  reload?: () => void;
+  save?: () => Promise<Uint8Array>;
+  saveAndDownload?: (filename?: string) => Promise<void>;
+}
+
+/**
+ * @internal — Hidden channel attached to the config object so the component
+ * and the controller can share a writable state signal and a handler bag.
+ * Not part of the public API; consumers should never read from this.
+ */
+export interface PdfViewerInternalApi {
+  /** Writable view of the runtime state — controller exposes the read-only view publicly. */
+  readonly state: WritableSignal<PdfViewerState>;
+  /** Component calls this on init to register imperative handlers. Returns an unbind function. */
+  bind(handlers: PdfViewerInternalHandlers): () => void;
 }
 
 /** Payload of the `onLoaded` callback. */
@@ -186,4 +239,23 @@ export interface PdfViewerController {
   download(filename?: string): void;
   /** Reload the current document. */
   reload(): void;
+
+  // ── Persistence (Phase 4 — forms + annotations) ─────────────────────────
+
+  /**
+   * Serialize the current document — including any form edits from the
+   * `formValues` two-way binding and any AnnotationEditor changes — back to
+   * a `Uint8Array`. Resolves to fresh PDF bytes the consumer can upload to
+   * a server, store, or pass to another PDF tool. Built on PDF.js's
+   * `pdfDoc.saveDocument()`; falls back to the original bytes if the
+   * pdfjs-dist version doesn't expose that method.
+   */
+  save(): Promise<Uint8Array>;
+
+  /**
+   * Convenience wrapper around `save()` that also triggers a browser download
+   * of the resulting bytes. Use this when the consumer just wants a "Save"
+   * button that hands the user the filled / annotated PDF.
+   */
+  saveAndDownload(filename?: string): Promise<void>;
 }

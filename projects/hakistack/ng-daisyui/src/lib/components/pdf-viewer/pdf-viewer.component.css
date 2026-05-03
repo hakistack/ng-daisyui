@@ -1,4 +1,215 @@
-/* PDF viewer custom styles. Most of the layout is Tailwind utility classes
+/* PDF viewer custom styles. Most of layout is Tailwind utility classes
    in the template; this file is reserved for things that don't fit utilities
-   well — primarily the PDF.js text layer + annotation layer styling that
-   gets added in the next commit. */
+   well — primarily the PDF.js text layer + annotation layer styling.
+
+   IMPORTANT: PDF.js's TextLayer/AnnotationLayer create DOM elements at
+   runtime (spans, sections, anchors). Those nodes are NOT decorated with
+   Angular's view-encapsulation attribute (`_ngcontent-xxx`), so plain
+   `.hk-pdf-text-layer span { ... }` rules from a CSS-encapsulated component
+   never match them. We use `:host ::ng-deep` to pierce encapsulation while
+   still scoping the rules to the component's DOM subtree. */
+
+:host .hk-pdf-viewport {
+  /* min-height to keep the viewport visible even before pages load */
+  min-height: 24rem;
+  /* max-height bounds the scrollable region so the inner viewport actually
+     overflows + becomes a scroll container — without it, the viewport
+     stretches to fit every page and `scrollIntoView` ends up scrolling the
+     outer document instead of the viewer's content. Consumers who want a
+     different cap (e.g. fill a flex container) can override `.hk-pdf-viewport`
+     in their app stylesheet. */
+  max-height: 75vh;
+}
+
+/* Preview layout's viewport caps page height so the bottom controls stay
+   visible without forcing the consumer to constrain the host. */
+:host .hk-pdf-preview-viewport {
+  max-height: 70vh;
+}
+
+/* ── Thumbnails ─────────────────────────────────────────────────────────────
+   Sidebar thumbnail buttons. The canvas inside is sized inline by the
+   renderer; the wrapper provides the click target + selected-state outline. */
+:host .hk-pdf-thumbnail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem;
+  border: 2px solid transparent;
+  border-radius: 0.375rem;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+:host .hk-pdf-thumbnail:hover {
+  background-color: hsl(var(--bc) / 0.05);
+}
+
+:host .hk-pdf-thumbnail:focus-visible {
+  outline: 2px solid hsl(var(--p));
+  outline-offset: 2px;
+}
+
+:host .hk-pdf-thumbnail-active {
+  border-color: hsl(var(--p));
+  background-color: hsl(var(--p) / 0.08);
+}
+
+:host .hk-pdf-thumbnail canvas {
+  display: block;
+  max-width: 100%;
+  background: white;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
+:host .hk-pdf-page {
+  display: block;
+  position: relative;
+  /* canvas dimensions are set inline by the renderer (high-DPI aware) — the
+     wrapper just hugs them and provides the page shadow. */
+}
+
+:host .hk-pdf-page canvas {
+  display: block;
+  position: relative;
+  z-index: 0;
+}
+
+/* ── Text layer ────────────────────────────────────────────────────────────
+   Adapted from pdfjs-dist's `web/pdf_viewer.css`. The text layer overlays the
+   canvas with transparent absolute-positioned spans so users can select +
+   copy text. PDF.js sizes spans via `var(--scale-factor)`, which we set on
+   the container right before rendering. */
+:host ::ng-deep .hk-pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  text-align: initial;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  line-height: 1;
+  z-index: 1;
+  user-select: text;
+  /* PDF.js's renderer sets --scale-factor on the container. Default to 1 so
+     the cascade has a value if rendering hasn't happened yet. */
+  --scale-factor: 1;
+}
+
+:host ::ng-deep .hk-pdf-text-layer span,
+:host ::ng-deep .hk-pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+:host ::ng-deep .hk-pdf-text-layer ::selection {
+  background-color: rgb(0 100 255 / 25%);
+}
+
+/* Search hit highlight — overlays the matching text spans without changing
+   their bounding boxes. The "active" variant marks the currently focused
+   match (one at a time, driven by next/prev navigation). */
+:host ::ng-deep .hk-pdf-text-layer .hk-pdf-text-match {
+  background-color: rgb(255 220 0 / 35%);
+  border-radius: 2px;
+}
+
+:host ::ng-deep .hk-pdf-text-layer .hk-pdf-text-match-active {
+  background-color: rgb(255 140 0 / 55%);
+  outline: 2px solid rgb(255 140 0 / 80%);
+  outline-offset: 1px;
+}
+
+/* PDF.js inserts these helper elements; size + position via class hooks. */
+:host ::ng-deep .hk-pdf-text-layer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: -1;
+  cursor: default;
+  user-select: none;
+}
+
+:host ::ng-deep .hk-pdf-text-layer.selecting .endOfContent {
+  inset: 0;
+}
+
+/* ── Annotation layer ──────────────────────────────────────────────────────
+   PDF.js renders link / form / popup annotations as positioned <section>
+   elements. We just need them clickable and styled to match the canvas. */
+:host ::ng-deep .hk-pdf-annotation-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  --scale-factor: 1;
+}
+
+:host ::ng-deep .hk-pdf-annotation-layer section {
+  position: absolute;
+  pointer-events: auto;
+}
+
+:host ::ng-deep .hk-pdf-annotation-layer .linkAnnotation > a {
+  position: absolute;
+  inset: 0;
+  font-size: 1em;
+  /* keep the link transparent — visible only on hover for affordance */
+  background: transparent;
+  border-radius: 2px;
+  transition: background-color 120ms ease;
+}
+
+:host ::ng-deep .hk-pdf-annotation-layer .linkAnnotation > a:hover {
+  background: rgb(255 220 0 / 12%);
+  outline: 1px solid rgb(255 220 0 / 50%);
+}
+
+:host ::ng-deep .hk-pdf-annotation-layer .linkAnnotation > a:focus-visible {
+  background: rgb(255 220 0 / 16%);
+  outline: 2px solid rgb(255 200 0 / 70%);
+  outline-offset: 1px;
+}
+
+/* Form widgets — rendered when renderForms: true. PDF.js places them
+   absolutely with the right size; we just ensure they're visually
+   discoverable (subtle tint when empty) and styled consistently. */
+:host ::ng-deep .hk-pdf-annotation-layer input,
+:host ::ng-deep .hk-pdf-annotation-layer textarea,
+:host ::ng-deep .hk-pdf-annotation-layer select {
+  font: inherit;
+  color: inherit;
+  background-color: rgb(0 100 255 / 6%);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 0 2px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  cursor: text;
+}
+
+:host ::ng-deep .hk-pdf-annotation-layer input:focus-visible,
+:host ::ng-deep .hk-pdf-annotation-layer textarea:focus-visible,
+:host ::ng-deep .hk-pdf-annotation-layer select:focus-visible {
+  outline: 2px solid hsl(var(--p));
+  outline-offset: -1px;
+  background-color: rgb(255 255 255 / 95%);
+}
+
+:host ::ng-deep .hk-pdf-annotation-layer input[type='checkbox'],
+:host ::ng-deep .hk-pdf-annotation-layer input[type='radio'] {
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+:host ::ng-deep .hk-pdf-annotation-layer button {
+  cursor: pointer;
+}

@@ -1,10 +1,540 @@
 <div [class]="containerClass()">
-  <!-- TODO Phase 1: toolbar slot, sidebar, page renderer, search bar.
-       This commit lands the architecture; rendering wiring is the next commit. -->
-  <div class="flex items-center justify-center p-12">
-    <div class="flex flex-col items-center gap-3 text-base-content/60">
-      <span class="loading loading-spinner loading-md"></span>
-      <span>{{ labels().loading }}</span>
+  <!-- ── TOOLBAR (shared across layouts) ─────────────────────────────────── -->
+  @if (config().showToolbar !== false) {
+    @if (customToolbar(); as ct) {
+      <!-- Consumer-supplied toolbar via <ng-template hkPdfToolbar>. -->
+      <ng-container [ngTemplateOutlet]="ct.templateRef" [ngTemplateOutletContext]="toolbarContext()" />
+    } @else {
+      <!-- Default toolbar. The wrapper enables container queries (Tailwind v4
+           `@container`) so the visible button set adapts to the toolbar's own
+           width — not the viewport. Buttons drop progressively at narrower
+           widths; print / download / fullscreen / first / last collapse into
+           the overflow ⋯ menu so they're still reachable everywhere. -->
+      <div class="@container flex items-center gap-1 px-2 py-1.5 border-b border-base-300 bg-base-200/50 text-sm flex-wrap">
+        <!-- Toggle sidebar — only when showSidebar is enabled. -->
+        @if (config().showSidebar !== false && layout() === 'default') {
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs btn-square"
+            [attr.aria-label]="labels().toggleSidebar"
+            [title]="labels().toggleSidebar"
+            [class.btn-active]="state()?.sidebarOpen"
+            [attr.aria-pressed]="state()?.sidebarOpen ? 'true' : 'false'"
+            (click)="toggleSidebar()"
+          >
+            <span aria-hidden="true">☰</span>
+          </button>
+          <div class="divider divider-horizontal mx-0.5 my-0 hidden @sm:flex"></div>
+        }
+        <!-- First page — ≥ @sm. -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square hidden @sm:inline-flex"
+          [attr.aria-label]="labels().firstPage"
+          [title]="labels().firstPage"
+          [disabled]="!showPages() || (state()?.page ?? 0) <= 1"
+          (click)="toolbarFirst()"
+        >
+          <span aria-hidden="true">«</span>
+        </button>
+        <!-- Previous — always. -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square"
+          [attr.aria-label]="labels().previousPage"
+          [title]="labels().previousPage"
+          [disabled]="!showPages() || (state()?.page ?? 0) <= 1"
+          (click)="toolbarPrev()"
+        >
+          <span aria-hidden="true">‹</span>
+        </button>
+
+        <!-- Page input + total — input always visible; "/ N" suffix from @xs. -->
+        <div class="flex items-center gap-1 px-1">
+          <input
+            #pageInput
+            type="number"
+            class="input input-xs input-bordered w-14 text-center"
+            [attr.aria-label]="labels().pageInputAriaLabel"
+            [value]="state()?.page ?? 0"
+            [min]="1"
+            [max]="state()?.numPages ?? 1"
+            [disabled]="!showPages()"
+            (change)="onPageInput(pageInput.value)"
+          />
+          <span class="text-xs text-base-content/60 hidden @xs:inline">/ {{ state()?.numPages ?? 0 }}</span>
+        </div>
+
+        <!-- Next — always. -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square"
+          [attr.aria-label]="labels().nextPage"
+          [title]="labels().nextPage"
+          [disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
+          (click)="toolbarNext()"
+        >
+          <span aria-hidden="true">›</span>
+        </button>
+        <!-- Last page — ≥ @sm. -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square hidden @sm:inline-flex"
+          [attr.aria-label]="labels().lastPage"
+          [title]="labels().lastPage"
+          [disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
+          (click)="toolbarLast()"
+        >
+          <span aria-hidden="true">»</span>
+        </button>
+
+        <!-- Divider before zoom controls — ≥ @md. -->
+        <div class="divider divider-horizontal mx-1 my-0 hidden @md:flex"></div>
+
+        <!-- Zoom out — always. -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square"
+          [attr.aria-label]="labels().zoomOut"
+          [title]="labels().zoomOut"
+          [disabled]="!showPages()"
+          (click)="toolbarZoomOut()"
+        >
+          <span aria-hidden="true">−</span>
+        </button>
+        <!-- Zoom select — ≥ @md. -->
+        <select
+          #zoomSelect
+          class="select select-xs select-bordered w-28 hidden @md:inline-flex"
+          [disabled]="!showPages()"
+          [value]="state()?.zoomMode ?? 'fit-width'"
+          (change)="onZoomSelect(zoomSelect.value)"
+        >
+          <option value="fit-width">{{ labels().fitWidth }}</option>
+          <option value="fit-page">{{ labels().fitPage }}</option>
+          <option value="auto">Auto</option>
+          <option value="0.5">50%</option>
+          <option value="0.75">75%</option>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+          <option value="2">200%</option>
+          <option value="3">300%</option>
+        </select>
+        <!-- Zoom in — always. -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square"
+          [attr.aria-label]="labels().zoomIn"
+          [title]="labels().zoomIn"
+          [disabled]="!showPages()"
+          (click)="toolbarZoomIn()"
+        >
+          <span aria-hidden="true">+</span>
+        </button>
+        <!-- Zoom percent display — ≥ @md. -->
+        <span class="text-xs text-base-content/60 w-12 text-right tabular-nums hidden @md:inline">{{ zoomPercent() }}</span>
+
+        <!-- Divider before mode toggle — ≥ @md. -->
+        <div class="divider divider-horizontal mx-1 my-0 hidden @md:flex"></div>
+
+        <!-- Mode toggle — ≥ @md. -->
+        <div class="join hidden @md:inline-flex">
+          <button
+            type="button"
+            class="btn btn-xs join-item"
+            [class.btn-active]="state()?.mode === 'continuous'"
+            [disabled]="!showPages()"
+            (click)="toolbarMode('continuous')"
+          >
+            Scroll
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs join-item"
+            [class.btn-active]="state()?.mode === 'single'"
+            [disabled]="!showPages()"
+            (click)="toolbarMode('single')"
+          >
+            Single
+          </button>
+        </div>
+
+        <div class="grow"></div>
+
+        <!-- Document ops INLINE — ≥ @lg. -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs hidden @lg:inline-flex"
+          [attr.aria-label]="labels().print"
+          [title]="labels().print"
+          [disabled]="!showPages()"
+          (click)="toolbarPrint()"
+        >
+          {{ labels().print }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs hidden @lg:inline-flex"
+          [attr.aria-label]="labels().download"
+          [title]="labels().download"
+          [disabled]="!showPages()"
+          (click)="toolbarDownload()"
+        >
+          {{ labels().download }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs hidden @lg:inline-flex"
+          [attr.aria-label]="labels().fullscreen"
+          [title]="labels().fullscreen"
+          [disabled]="!showPages()"
+          (click)="toolbarFullscreen()"
+        >
+          ⛶
+        </button>
+
+        <!-- Overflow ⋯ — < @lg. Houses anything that drops out of the inline
+             toolbar at narrow widths so it stays reachable everywhere. The
+             <details> element handles open/close state natively; setting
+             `.open = false` on click closes the menu after each action. -->
+        <details #overflowMenu class="dropdown dropdown-end @lg:hidden">
+          <summary class="btn btn-ghost btn-xs btn-square" [attr.aria-label]="'More options'" [title]="'More options'">
+            <span aria-hidden="true">⋯</span>
+          </summary>
+          <ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] w-48 p-2 shadow">
+            <!-- First / last — only appear in overflow when hidden inline (< @sm). -->
+            <li class="@sm:hidden">
+              <a [class.menu-disabled]="!showPages() || (state()?.page ?? 0) <= 1" (click)="toolbarFirst(); overflowMenu.open = false">
+                {{ labels().firstPage }}
+              </a>
+            </li>
+            <li class="@sm:hidden">
+              <a
+                [class.menu-disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
+                (click)="toolbarLast(); overflowMenu.open = false"
+              >
+                {{ labels().lastPage }}
+              </a>
+            </li>
+            <!-- Mode toggle — only in overflow when hidden inline (< @md). -->
+            <li class="@md:hidden">
+              <a
+                [class.menu-disabled]="!showPages()"
+                (click)="toolbarMode(state()?.mode === 'continuous' ? 'single' : 'continuous'); overflowMenu.open = false"
+              >
+                {{ state()?.mode === 'continuous' ? 'Single page mode' : 'Continuous scroll' }}
+              </a>
+            </li>
+            <!-- Find — always available in overflow (no inline button). -->
+            <li>
+              <a [class.menu-disabled]="!showPages()" (click)="toolbarFind(); overflowMenu.open = false">
+                {{ labels().searchAriaLabel }}
+              </a>
+            </li>
+            <!-- Document ops — always available in overflow at < @lg. -->
+            <li>
+              <a [class.menu-disabled]="!showPages()" (click)="toolbarPrint(); overflowMenu.open = false">
+                {{ labels().print }}
+              </a>
+            </li>
+            <li>
+              <a [class.menu-disabled]="!showPages()" (click)="toolbarDownload(); overflowMenu.open = false">
+                {{ labels().download }}
+              </a>
+            </li>
+            <li>
+              <a [class.menu-disabled]="!showPages()" (click)="toolbarFullscreen(); overflowMenu.open = false">
+                {{ labels().fullscreen }}
+              </a>
+            </li>
+          </ul>
+        </details>
+      </div>
+    }
+  }
+
+  <!-- ── FIND BAR (shared across layouts) ────────────────────────────────── -->
+  @if (findBarOpen()) {
+    <div class="flex items-center gap-2 px-3 py-2 border-b border-base-300 bg-base-200/40 text-sm">
+      <input
+        #findInput
+        type="text"
+        class="hk-pdf-find-input input input-sm input-bordered grow max-w-xs"
+        [placeholder]="labels().searchPlaceholder"
+        [attr.aria-label]="labels().searchAriaLabel"
+        [value]="state()?.searchQuery ?? ''"
+        (input)="onFindInput(findInput.value)"
+        (keydown.enter)="onFindEnter(findInput.value)"
+        (keydown.escape)="closeFindBar()"
+      />
+      <span class="text-xs text-base-content/60 tabular-nums whitespace-nowrap min-w-16 text-right">
+        @if (state()?.searchQuery) {
+          @if ((state()?.searchMatches ?? 0) > 0) {
+            {{ matchCounterText() }}
+          } @else {
+            {{ labels().noMatches }}
+          }
+        }
+      </span>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        [attr.aria-label]="labels().previousMatch"
+        [title]="labels().previousMatch"
+        [disabled]="(state()?.searchMatches ?? 0) === 0"
+        (click)="searchPreviousMatchPublic()"
+      >
+        <span aria-hidden="true">‹</span>
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        [attr.aria-label]="labels().nextMatch"
+        [title]="labels().nextMatch"
+        [disabled]="(state()?.searchMatches ?? 0) === 0"
+        (click)="searchNextMatchPublic()"
+      >
+        <span aria-hidden="true">›</span>
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        [attr.aria-label]="labels().clearSearch"
+        [title]="labels().clearSearch"
+        (click)="closeFindBar()"
+      >
+        <span aria-hidden="true">✕</span>
+      </button>
     </div>
-  </div>
+  }
+
+  @if (layout() === 'preview') {
+    <!-- ── PREVIEW LAYOUT ────────────────────────────────────────────────── -->
+    <div class="flex flex-col gap-3 p-4 sm:p-6">
+      @if (title()) {
+        <h2 class="card-title text-xl">{{ title() }}</h2>
+      }
+      @if (subtitle()) {
+        <p class="text-sm text-base-content/70 -mt-2">{{ subtitle() }}</p>
+      }
+      @if (showPages()) {
+        <a class="link link-primary text-sm w-fit" tabindex="0"> Page {{ state()?.page }} </a>
+      }
+
+      <div
+        #viewport
+        class="hk-pdf-viewport hk-pdf-preview-viewport relative overflow-auto bg-base-200/30 rounded-box border border-base-300 p-4"
+      >
+        @if (state()?.error; as err) {
+          <div class="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span class="text-error text-sm font-medium">{{ labels().errorGeneric }}</span>
+            <span class="text-xs text-base-content/60 max-w-md">{{ err.message }}</span>
+          </div>
+        } @else {
+          @if (pageNumbers().length > 0) {
+            <!-- Pages are mounted into the DOM as soon as we know the page count
+                 so viewChildren picks up the canvases — but kept invisible until
+                 the first paint completes, otherwise the brief gap between
+                 default-sized blank canvases and the painted result reads as a
+                 layout flash. -->
+            <div
+              class="flex flex-col items-center gap-4"
+              role="document"
+              aria-label="PDF document"
+              [class.invisible]="!firstRenderComplete()"
+            >
+              @for (n of pageNumbers(); track n) {
+                <div
+                  #pageWrapper
+                  class="hk-pdf-page bg-base-100 shadow-md"
+                  role="region"
+                  [attr.aria-label]="'Page ' + n"
+                  [attr.aria-current]="state()?.page === n ? 'page' : null"
+                  [attr.data-page-number]="n"
+                  [hidden]="pageHidden(n)"
+                >
+                  <canvas></canvas>
+                  <div class="hk-pdf-text-layer"></div>
+                  <div class="hk-pdf-annotation-layer"></div>
+                </div>
+              }
+            </div>
+          }
+          <div class="sr-only" aria-live="polite" aria-atomic="true">{{ ariaPageAnnouncement() }}</div>
+          @if (!firstRenderComplete()) {
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="flex flex-col items-center gap-3 text-base-content/60">
+                <span class="loading loading-spinner loading-md"></span>
+                <span class="text-sm">{{ labels().loading }}</span>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <div class="flex items-center justify-between gap-3 mt-2">
+        <button
+          type="button"
+          class="btn btn-soft btn-primary"
+          [attr.aria-label]="labels().previousPage"
+          [disabled]="!showPages() || (state()?.page ?? 0) <= 1"
+          (click)="toolbarPrev()"
+        >
+          {{ labels().previousPage }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-soft btn-primary"
+          [attr.aria-label]="labels().nextPage"
+          [disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
+          (click)="toolbarNext()"
+        >
+          {{ labels().nextPage }}
+        </button>
+      </div>
+
+      <div class="flex justify-center mt-1">
+        <button
+          type="button"
+          class="btn btn-outline btn-primary"
+          [attr.aria-label]="labels().download"
+          [disabled]="!showPages()"
+          (click)="toolbarDownload()"
+        >
+          {{ labels().download }}
+        </button>
+      </div>
+    </div>
+  } @else {
+    <!-- ── DEFAULT LAYOUT ────────────────────────────────────────────────── -->
+    <!-- Sidebar + viewport sit in a flex row inside the remaining space.
+         Sidebar collapses via state.sidebarOpen; opting out entirely is via
+         config.showSidebar = false (no toggle, no panel). -->
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+      @if (config().showSidebar !== false && state()?.sidebarOpen) {
+        <aside class="hk-pdf-sidebar w-60 shrink-0 border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+          <!-- Tabs: thumbnails | bookmarks -->
+          <div role="tablist" class="tabs tabs-lift">
+            <a
+              role="tab"
+              class="tab"
+              [class.tab-active]="(state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+              [attr.aria-selected]="(state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+              (click)="setSidebarTab('thumbnails')"
+            >
+              {{ labels().thumbnailsTab }}
+            </a>
+            <a
+              role="tab"
+              class="tab"
+              [class.tab-active]="state()?.sidebarTab === 'bookmarks'"
+              [attr.aria-selected]="state()?.sidebarTab === 'bookmarks'"
+              (click)="setSidebarTab('bookmarks')"
+            >
+              {{ labels().bookmarksTab }}
+            </a>
+          </div>
+          <div #thumbnailPanel class="flex-1 overflow-auto p-2" role="tabpanel">
+            @switch (state()?.sidebarTab ?? 'thumbnails') {
+              @case ('thumbnails') {
+                @if (pageNumbers().length > 0) {
+                  <ul class="flex flex-col gap-2 items-center">
+                    @for (n of pageNumbers(); track n) {
+                      <li>
+                        <button
+                          type="button"
+                          class="hk-pdf-thumbnail"
+                          [class.hk-pdf-thumbnail-active]="state()?.page === n"
+                          [attr.aria-label]="thumbnailAriaLabel(n)"
+                          [attr.aria-current]="state()?.page === n ? 'page' : null"
+                          (click)="goToPagePublic(n)"
+                        >
+                          <canvas [attr.data-thumb-page]="n"></canvas>
+                          <span class="text-xs text-base-content/70 mt-1">{{ n }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <div class="text-xs text-base-content/40 italic p-4 text-center">{{ labels().loading }}</div>
+                }
+              }
+              @case ('bookmarks') {
+                @if (outline() === null) {
+                  <div class="text-xs text-base-content/40 italic p-4 text-center">{{ labels().loading }}</div>
+                } @else if (outline()!.length === 0) {
+                  <div class="text-xs text-base-content/60 italic p-4 text-center">{{ labels().noBookmarks }}</div>
+                } @else {
+                  <ul class="menu menu-sm w-full p-0">
+                    @for (node of outline()!; track $index) {
+                      <ng-container [ngTemplateOutlet]="outlineNode" [ngTemplateOutletContext]="{ $implicit: node }" />
+                    }
+                  </ul>
+                }
+              }
+            }
+          </div>
+        </aside>
+      }
+      <!-- Viewport: scrollable area holding the page canvases. Toolbar (if any) is rendered above by the shared block. -->
+      <div #viewport class="hk-pdf-viewport relative flex-1 min-h-0 overflow-auto bg-base-200 p-4">
+        @if (state()?.error; as err) {
+          <div class="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span class="text-error text-sm font-medium">{{ labels().errorGeneric }}</span>
+            <span class="text-xs text-base-content/60 max-w-md">{{ err.message }}</span>
+          </div>
+        } @else {
+          @if (pageNumbers().length > 0) {
+            <div
+              class="flex flex-col items-center gap-4"
+              role="document"
+              aria-label="PDF document"
+              [class.invisible]="!firstRenderComplete()"
+            >
+              @for (n of pageNumbers(); track n) {
+                <div
+                  #pageWrapper
+                  class="hk-pdf-page bg-base-100 shadow-md"
+                  role="region"
+                  [attr.aria-label]="'Page ' + n"
+                  [attr.aria-current]="state()?.page === n ? 'page' : null"
+                  [attr.data-page-number]="n"
+                  [hidden]="pageHidden(n)"
+                >
+                  <canvas></canvas>
+                  <div class="hk-pdf-text-layer"></div>
+                  <div class="hk-pdf-annotation-layer"></div>
+                </div>
+              }
+            </div>
+          }
+          <div class="sr-only" aria-live="polite" aria-atomic="true">{{ ariaPageAnnouncement() }}</div>
+          @if (!firstRenderComplete()) {
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="flex flex-col items-center gap-3 text-base-content/60">
+                <span class="loading loading-spinner loading-md"></span>
+                <span class="text-sm">{{ labels().loading }}</span>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
 </div>
+
+<!-- Recursive outline-tree template — used by the bookmarks tab to render
+     the PDF's outline as a daisyUI menu. Each node may have children. -->
+<ng-template #outlineNode let-node>
+  <li>
+    <a (click)="outlineGoto(node)">{{ node.title || '(untitled)' }}</a>
+    @if (node.items?.length) {
+      <ul>
+        @for (child of node.items; track $index) {
+          <ng-container [ngTemplateOutlet]="outlineNode" [ngTemplateOutletContext]="{ $implicit: child }" />
+        }
+      </ul>
+    }
+  </li>
+</ng-template>
