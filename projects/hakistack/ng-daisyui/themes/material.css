@@ -1,0 +1,301 @@
+/**
+ * @hakistack/ng-daisyui - "Material" Theme (Dark)
+ *
+ * Material Design 3 baseline palette (purple) for DaisyUI v5, dark scheme.
+ * Implements the M3 two-tier token system:
+ *   - DaisyUI tokens map to M3 color roles for component compatibility.
+ *   - Full M3 system tokens (--md-sys-color-*, --md-sys-shape-*, --md-sys-elevation-*)
+ *     are exposed for M3-faithful consumer code.
+ *
+ * References:
+ *   - https://m3.material.io/foundations
+ *   - https://m3.material.io/styles/color/roles
+ *   - github.com/material-components/material-web (token names)
+ *
+ * Usage (DaisyUI v5 / Tailwind v4):
+ *
+ *   @import "tailwindcss";
+ *   @plugin "daisyui";
+ *   @import "@hakistack/ng-daisyui/themes/daisyui-v5";
+ *   @import "@hakistack/ng-daisyui/themes/material";
+ *
+ *   <html data-theme="material">
+ */
+
+@plugin "daisyui/theme" {
+  name: "material";
+  default: false;
+  prefersdark: false;
+  color-scheme: dark;
+
+  /* ── DaisyUI base surfaces (mapped from M3 dark surface containers) ── */
+  --color-base-100: #141218;          /* M3 surface (dark) */
+  --color-base-200: #1d1b20;          /* M3 surface-container-low */
+  --color-base-300: #2b2930;          /* M3 surface-container-high */
+  --color-base-content: #e6e0e9;      /* M3 on-surface */
+
+  /* ── M3 primary (dark scheme uses lighter tint of key color) ── */
+  --color-primary: #d0bcff;
+  --color-primary-content: #381e72;
+
+  /* ── M3 secondary ── */
+  --color-secondary: #ccc2dc;
+  --color-secondary-content: #332d41;
+
+  /* ── M3 tertiary mapped to DaisyUI accent ── */
+  --color-accent: #efb8c8;
+  --color-accent-content: #492532;
+
+  /* ── M3 inverse-surface mapped to DaisyUI neutral ── */
+  --color-neutral: #e6e0e9;
+  --color-neutral-content: #322f35;
+
+  /* ── Status colors (M3-style hues for dark surface) ── */
+  --color-info: #4fd8eb;
+  --color-info-content: #00363d;
+
+  --color-success: #76dc8b;
+  --color-success-content: #00390f;
+
+  --color-warning: #ffb953;
+  --color-warning-content: #452b00;
+
+  --color-error: #f2b8b5;             /* M3 error (dark) */
+  --color-error-content: #601410;
+
+  /* ── M3 shape system (per DaisyUI v5 token spec) ──
+       - selector → checkbox / toggle / badge   → 8dp (M3 small)
+       - field    → button / input / select / tab → 4dp (M3 extra-small / input baseline)
+       - box      → card / modal / alert        → 12dp (M3 card medium)                 */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.75rem;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* =====================================================
+   M3 SYSTEM TOKENS — full --md-sys-color-* palette (dark)
+   ===================================================== */
+[data-theme="material"] {
+  /* Primary */
+  --md-sys-color-primary: #d0bcff;
+  --md-sys-color-on-primary: #381e72;
+  --md-sys-color-primary-container: #4f378b;
+  --md-sys-color-on-primary-container: #eaddff;
+
+  /* Secondary */
+  --md-sys-color-secondary: #ccc2dc;
+  --md-sys-color-on-secondary: #332d41;
+  --md-sys-color-secondary-container: #4a4458;
+  --md-sys-color-on-secondary-container: #e8def8;
+
+  /* Tertiary */
+  --md-sys-color-tertiary: #efb8c8;
+  --md-sys-color-on-tertiary: #492532;
+  --md-sys-color-tertiary-container: #633b48;
+  --md-sys-color-on-tertiary-container: #ffd8e4;
+
+  /* Error */
+  --md-sys-color-error: #f2b8b5;
+  --md-sys-color-on-error: #601410;
+  --md-sys-color-error-container: #8c1d18;
+  --md-sys-color-on-error-container: #f9dedc;
+
+  /* Background / surface */
+  --md-sys-color-background: #141218;
+  --md-sys-color-on-background: #e6e0e9;
+  --md-sys-color-surface: #141218;
+  --md-sys-color-on-surface: #e6e0e9;
+  --md-sys-color-surface-variant: #49454e;
+  --md-sys-color-on-surface-variant: #cac4cf;
+  --md-sys-color-surface-bright: #3b383e;
+  --md-sys-color-surface-dim: #141218;
+
+  /* Surface containers */
+  --md-sys-color-surface-container-lowest: #0f0d13;
+  --md-sys-color-surface-container-low: #1d1b20;
+  --md-sys-color-surface-container: #211f26;
+  --md-sys-color-surface-container-high: #2b2930;
+  --md-sys-color-surface-container-highest: #36343b;
+
+  /* Outlines */
+  --md-sys-color-outline: #938f99;
+  --md-sys-color-outline-variant: #49454e;
+
+  /* Inverse */
+  --md-sys-color-inverse-surface: #e6e0e9;
+  --md-sys-color-inverse-on-surface: #322f35;
+  --md-sys-color-inverse-primary: #6750a4;
+
+  /* Scrim / shadow */
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-shadow: #000000;
+
+  /* Surface tint */
+  --md-sys-color-surface-tint: #d0bcff;
+
+  /* ── M3 shape corners ── */
+  --md-sys-shape-corner-none: 0;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full: 9999px;
+
+  /* ── M3 elevation (dark uses heavier shadows) ── */
+  --md-sys-elevation-level0: none;
+  --md-sys-elevation-level1:
+    0 1px 2px 0 rgb(0 0 0 / 0.45),
+    0 1px 3px 1px rgb(0 0 0 / 0.30);
+  --md-sys-elevation-level2:
+    0 1px 2px 0 rgb(0 0 0 / 0.45),
+    0 2px 6px 2px rgb(0 0 0 / 0.30);
+  --md-sys-elevation-level3:
+    0 4px 8px 3px rgb(0 0 0 / 0.30),
+    0 1px 3px 0 rgb(0 0 0 / 0.45);
+  --md-sys-elevation-level4:
+    0 6px 10px 4px rgb(0 0 0 / 0.30),
+    0 2px 3px 0 rgb(0 0 0 / 0.45);
+  --md-sys-elevation-level5:
+    0 8px 12px 6px rgb(0 0 0 / 0.30),
+    0 4px 4px 0 rgb(0 0 0 / 0.45);
+
+  /* ── M3 state layer opacities (dark uses slightly stronger overlays) ── */
+  --md-sys-state-hover-state-layer-opacity: 0.08;
+  --md-sys-state-focus-state-layer-opacity: 0.12;
+  --md-sys-state-pressed-state-layer-opacity: 0.12;
+  --md-sys-state-dragged-state-layer-opacity: 0.16;
+
+  /* ── M3 typescale (Roboto baseline) ──
+     Identical to light theme — typescale is theme-independent. */
+  --md-sys-typescale-font: 'Roboto', system-ui, sans-serif;
+  --md-sys-typescale-plain-font: 'Roboto', system-ui, sans-serif;
+  --md-sys-typescale-brand-font: 'Roboto', system-ui, sans-serif;
+
+  --md-sys-typescale-display-large-font: var(--md-sys-typescale-brand-font);
+  --md-sys-typescale-display-large-size: 3.5625rem;
+  --md-sys-typescale-display-large-line-height: 4rem;
+  --md-sys-typescale-display-large-weight: 400;
+  --md-sys-typescale-display-large-tracking: -0.015625rem;
+
+  --md-sys-typescale-display-medium-font: var(--md-sys-typescale-brand-font);
+  --md-sys-typescale-display-medium-size: 2.8125rem;
+  --md-sys-typescale-display-medium-line-height: 3.25rem;
+  --md-sys-typescale-display-medium-weight: 400;
+  --md-sys-typescale-display-medium-tracking: 0;
+
+  --md-sys-typescale-display-small-font: var(--md-sys-typescale-brand-font);
+  --md-sys-typescale-display-small-size: 2.25rem;
+  --md-sys-typescale-display-small-line-height: 2.75rem;
+  --md-sys-typescale-display-small-weight: 400;
+  --md-sys-typescale-display-small-tracking: 0;
+
+  --md-sys-typescale-headline-large-font: var(--md-sys-typescale-brand-font);
+  --md-sys-typescale-headline-large-size: 2rem;
+  --md-sys-typescale-headline-large-line-height: 2.5rem;
+  --md-sys-typescale-headline-large-weight: 400;
+  --md-sys-typescale-headline-large-tracking: 0;
+
+  --md-sys-typescale-headline-medium-font: var(--md-sys-typescale-brand-font);
+  --md-sys-typescale-headline-medium-size: 1.75rem;
+  --md-sys-typescale-headline-medium-line-height: 2.25rem;
+  --md-sys-typescale-headline-medium-weight: 400;
+  --md-sys-typescale-headline-medium-tracking: 0;
+
+  --md-sys-typescale-headline-small-font: var(--md-sys-typescale-brand-font);
+  --md-sys-typescale-headline-small-size: 1.5rem;
+  --md-sys-typescale-headline-small-line-height: 2rem;
+  --md-sys-typescale-headline-small-weight: 400;
+  --md-sys-typescale-headline-small-tracking: 0;
+
+  --md-sys-typescale-title-large-font: var(--md-sys-typescale-brand-font);
+  --md-sys-typescale-title-large-size: 1.375rem;
+  --md-sys-typescale-title-large-line-height: 1.75rem;
+  --md-sys-typescale-title-large-weight: 400;
+  --md-sys-typescale-title-large-tracking: 0;
+
+  --md-sys-typescale-title-medium-font: var(--md-sys-typescale-plain-font);
+  --md-sys-typescale-title-medium-size: 1rem;
+  --md-sys-typescale-title-medium-line-height: 1.5rem;
+  --md-sys-typescale-title-medium-weight: 500;
+  --md-sys-typescale-title-medium-tracking: 0.009375rem;
+
+  --md-sys-typescale-title-small-font: var(--md-sys-typescale-plain-font);
+  --md-sys-typescale-title-small-size: 0.875rem;
+  --md-sys-typescale-title-small-line-height: 1.25rem;
+  --md-sys-typescale-title-small-weight: 500;
+  --md-sys-typescale-title-small-tracking: 0.00625rem;
+
+  --md-sys-typescale-body-large-font: var(--md-sys-typescale-plain-font);
+  --md-sys-typescale-body-large-size: 1rem;
+  --md-sys-typescale-body-large-line-height: 1.5rem;
+  --md-sys-typescale-body-large-weight: 400;
+  --md-sys-typescale-body-large-tracking: 0.03125rem;
+
+  --md-sys-typescale-body-medium-font: var(--md-sys-typescale-plain-font);
+  --md-sys-typescale-body-medium-size: 0.875rem;
+  --md-sys-typescale-body-medium-line-height: 1.25rem;
+  --md-sys-typescale-body-medium-weight: 400;
+  --md-sys-typescale-body-medium-tracking: 0.015625rem;
+
+  --md-sys-typescale-body-small-font: var(--md-sys-typescale-plain-font);
+  --md-sys-typescale-body-small-size: 0.75rem;
+  --md-sys-typescale-body-small-line-height: 1rem;
+  --md-sys-typescale-body-small-weight: 400;
+  --md-sys-typescale-body-small-tracking: 0.025rem;
+
+  --md-sys-typescale-label-large-font: var(--md-sys-typescale-plain-font);
+  --md-sys-typescale-label-large-size: 0.875rem;
+  --md-sys-typescale-label-large-line-height: 1.25rem;
+  --md-sys-typescale-label-large-weight: 500;
+  --md-sys-typescale-label-large-tracking: 0.00625rem;
+
+  --md-sys-typescale-label-medium-font: var(--md-sys-typescale-plain-font);
+  --md-sys-typescale-label-medium-size: 0.75rem;
+  --md-sys-typescale-label-medium-line-height: 1rem;
+  --md-sys-typescale-label-medium-weight: 500;
+  --md-sys-typescale-label-medium-tracking: 0.03125rem;
+
+  --md-sys-typescale-label-small-font: var(--md-sys-typescale-plain-font);
+  --md-sys-typescale-label-small-size: 0.6875rem;
+  --md-sys-typescale-label-small-line-height: 1rem;
+  --md-sys-typescale-label-small-weight: 500;
+  --md-sys-typescale-label-small-tracking: 0.03125rem;
+
+  /* ── M3 motion — easings (theme-independent) ── */
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+  --md-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --md-sys-motion-easing-legacy: cubic-bezier(0.4, 0, 0.2, 1);
+  --md-sys-motion-easing-legacy-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --md-sys-motion-easing-legacy-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --md-sys-motion-easing-linear: cubic-bezier(0, 0, 1, 1);
+
+  /* ── M3 motion — durations (theme-independent) ── */
+  --md-sys-motion-duration-short1: 50ms;
+  --md-sys-motion-duration-short2: 100ms;
+  --md-sys-motion-duration-short3: 150ms;
+  --md-sys-motion-duration-short4: 200ms;
+  --md-sys-motion-duration-medium1: 250ms;
+  --md-sys-motion-duration-medium2: 300ms;
+  --md-sys-motion-duration-medium3: 350ms;
+  --md-sys-motion-duration-medium4: 400ms;
+  --md-sys-motion-duration-long1: 450ms;
+  --md-sys-motion-duration-long2: 500ms;
+  --md-sys-motion-duration-long3: 550ms;
+  --md-sys-motion-duration-long4: 600ms;
+  --md-sys-motion-duration-extra-long1: 700ms;
+  --md-sys-motion-duration-extra-long2: 800ms;
+  --md-sys-motion-duration-extra-long3: 900ms;
+  --md-sys-motion-duration-extra-long4: 1000ms;
+}

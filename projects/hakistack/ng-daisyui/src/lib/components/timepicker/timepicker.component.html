@@ -109,187 +109,357 @@
       <!-- Views -->
       <div class="timepicker-content">
         @if (clockFace()) {
-          <!-- Clock Face Header -->
-          <div class="mb-4 flex items-center justify-center gap-1">
-            <button
-              type="button"
-              class="btn btn-sm font-mono text-lg"
-              [class.btn-primary]="currentView() === 'hours'"
-              [class.btn-ghost]="currentView() !== 'hours'"
-              (click)="setView('hours')"
-              aria-label="Select hour"
-            >
-              {{ displayHour() }}
-            </button>
-            <span class="text-base-content/50 text-lg font-mono">:</span>
-            <button
-              type="button"
-              class="btn btn-sm font-mono text-lg"
-              [class.btn-primary]="currentView() === 'minutes'"
-              [class.btn-ghost]="currentView() !== 'minutes'"
-              (click)="setView('minutes')"
-              aria-label="Select minute"
-            >
-              {{ displayMinute() }}
-            </button>
-            @if (showSeconds()) {
-              <span class="text-base-content/50 text-lg font-mono">:</span>
+          <!-- Clock Face Header: unified large display -->
+          <div class="tp-clock-header">
+            <div class="tp-clock-display">
               <button
                 type="button"
-                class="btn btn-sm font-mono text-lg"
-                [class.btn-primary]="currentView() === 'seconds'"
-                [class.btn-ghost]="currentView() !== 'seconds'"
-                (click)="setView('seconds')"
-                aria-label="Select second"
+                class="tp-clock-segment"
+                [class.tp-clock-segment-active]="currentView() === 'hours'"
+                (click)="setView('hours')"
+                [attr.aria-label]="hourLabel()"
+                [attr.aria-pressed]="currentView() === 'hours'"
               >
-                {{ displaySecond() }}
+                {{ displayHour() }}
               </button>
-            }
-            @if (!use24Hour()) {
+              <span class="tp-clock-separator">:</span>
               <button
                 type="button"
-                class="btn btn-sm btn-outline ml-2"
-                (click)="togglePeriod()"
-                [disabled]="isDisabled()"
-                aria-label="Toggle AM/PM"
+                class="tp-clock-segment"
+                [class.tp-clock-segment-active]="currentView() === 'minutes'"
+                (click)="setView('minutes')"
+                [attr.aria-label]="minuteLabel()"
+                [attr.aria-pressed]="currentView() === 'minutes'"
               >
-                {{ period() }}
+                {{ displayMinute() }}
               </button>
-            }
-          </div>
-
-          <!-- Clock Dial -->
-          <div
-            class="relative mx-auto cursor-pointer"
-            style="width: 256px; height: 256px"
-            (click)="onClockDialClick($event)"
-            (keydown.enter)="onClockDialClick($event)"
-            (keydown.space)="onClockDialClick($event)"
-            role="group"
-            [attr.aria-label]="
-              currentView() === 'hours' ? 'Hour selector' : currentView() === 'minutes' ? 'Minute selector' : 'Second selector'
-            "
-          >
-            <div class="bg-base-200 absolute inset-0 rounded-full"></div>
-            <svg class="absolute inset-0 pointer-events-none" width="256" height="256" aria-hidden="true">
-              <circle cx="128" cy="128" r="3" style="fill: var(--color-primary)" />
-              @if (showClockHand()) {
-                <g class="clock-hand" [style.transform]="'rotate(' + clockHandAngle() + 'deg)'" style="transform-origin: 128px 128px">
-                  <line x1="128" y1="128" x2="128" [attr.y2]="128 - handRadius()" style="stroke: var(--color-primary)" stroke-width="2" />
-                  <circle cx="128" [attr.cy]="128 - handRadius()" r="18" style="fill: var(--color-primary); opacity: 0.15" />
-                </g>
+              @if (showSeconds()) {
+                <span class="tp-clock-separator">:</span>
+                <button
+                  type="button"
+                  class="tp-clock-segment"
+                  [class.tp-clock-segment-active]="currentView() === 'seconds'"
+                  (click)="setView('seconds')"
+                  [attr.aria-label]="secondLabel()"
+                  [attr.aria-pressed]="currentView() === 'seconds'"
+                >
+                  {{ displaySecond() }}
+                </button>
               }
-            </svg>
-            @for (pos of clockPositions(); track pos.value) {
-              <button
-                type="button"
-                [class]="getClockNumberClasses(pos)"
-                [style.left.px]="pos.x - getClockNumberOffset(pos)"
-                [style.top.px]="pos.y - getClockNumberOffset(pos)"
-                (click)="$event.stopPropagation(); onClockNumberClick(pos)"
-                [attr.aria-pressed]="isClockValueSelected(pos.value)"
-              >
-                {{ pos.display }}
-              </button>
-            }
-          </div>
-        } @else {
-          <!-- Scrollable Columns -->
-          <div class="flex items-start justify-center gap-1">
-            <!-- Hours Column -->
-            <div class="flex flex-col items-center">
-              <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">{{ hourLabel() }}</span>
-              <div #hourCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Hours">
-                @for (hour of hourOptions(); track hour) {
+              @if (!use24Hour()) {
+                <div class="tp-period-group tp-clock-period" role="radiogroup" aria-label="AM or PM">
                   <button
                     type="button"
-                    role="option"
-                    class="btn btn-ghost btn-sm w-full font-mono"
-                    [class.btn-active]="isHourSelected(hour)"
-                    [disabled]="isHourDisabled(hour)"
-                    [attr.aria-selected]="isHourSelected(hour)"
-                    (click)="selectHour(hour)"
-                  >
-                    {{ formatNumber(hour) }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            <span class="text-base-content/30 text-lg font-mono mt-7">:</span>
-
-            <!-- Minutes Column -->
-            <div class="flex flex-col items-center">
-              <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">{{ minuteLabel() }}</span>
-              <div #minCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Minutes">
-                @for (minute of minuteOptions(); track minute) {
-                  <button
-                    type="button"
-                    role="option"
-                    class="btn btn-ghost btn-sm w-full font-mono"
-                    [class.btn-active]="isMinuteSelected(minute)"
-                    [disabled]="isMinuteDisabled(minute)"
-                    [attr.aria-selected]="isMinuteSelected(minute)"
-                    (click)="selectMinute(minute)"
-                  >
-                    {{ formatNumber(minute) }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            <!-- Seconds Column -->
-            @if (showSeconds()) {
-              <span class="text-base-content/30 text-lg font-mono mt-7">:</span>
-              <div class="flex flex-col items-center">
-                <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">{{ secondLabel() }}</span>
-                <div #secCol class="tp-scroll-col h-48 w-14 overflow-y-auto rounded-lg bg-base-200/50" role="listbox" aria-label="Seconds">
-                  @for (second of secondOptions(); track second) {
-                    <button
-                      type="button"
-                      role="option"
-                      class="btn btn-ghost btn-sm w-full font-mono"
-                      [class.btn-active]="isSecondSelected(second)"
-                      [disabled]="isSecondDisabled(second)"
-                      [attr.aria-selected]="isSecondSelected(second)"
-                      (click)="selectSecond(second)"
-                    >
-                      {{ formatNumber(second) }}
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- AM/PM Column -->
-            @if (!use24Hour()) {
-              <div class="flex flex-col items-center ml-1">
-                <span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-1">&nbsp;</span>
-                <div class="flex flex-col gap-1 mt-1">
-                  <button
-                    type="button"
-                    class="btn btn-sm w-14 font-mono text-xs"
-                    [class.btn-primary]="period() === 'AM'"
-                    [class.btn-ghost]="period() !== 'AM'"
+                    role="radio"
+                    class="tp-period-btn"
+                    [class.tp-period-active]="period() === 'AM'"
+                    [attr.aria-checked]="period() === 'AM'"
+                    [disabled]="isDisabled()"
                     (click)="setPeriod('AM')"
-                    aria-label="AM"
                   >
                     AM
                   </button>
                   <button
                     type="button"
-                    class="btn btn-sm w-14 font-mono text-xs"
-                    [class.btn-primary]="period() === 'PM'"
-                    [class.btn-ghost]="period() !== 'PM'"
+                    role="radio"
+                    class="tp-period-btn"
+                    [class.tp-period-active]="period() === 'PM'"
+                    [attr.aria-checked]="period() === 'PM'"
+                    [disabled]="isDisabled()"
                     (click)="setPeriod('PM')"
-                    aria-label="PM"
                   >
                     PM
                   </button>
                 </div>
+              }
+            </div>
+          </div>
+
+          <!-- Clock Dial -->
+          <div
+            class="tp-clock-dial"
+            [class.tp-clock-dragging]="isDragging()"
+            [attr.data-view]="currentView()"
+            (pointerdown)="onClockPointerDown($event)"
+            (keydown.enter)="onClockDialClick($event)"
+            (keydown.space)="onClockDialClick($event)"
+            role="group"
+            tabindex="0"
+            [attr.aria-label]="
+              currentView() === 'hours' ? 'Hour selector' : currentView() === 'minutes' ? 'Minute selector' : 'Second selector'
+            "
+          >
+            <!-- Dial surface with subtle inner ring marker (24h hours only) -->
+            <div class="tp-clock-surface"></div>
+            @if (use24Hour() && currentView() === 'hours') {
+              <div class="tp-clock-inner-ring" aria-hidden="true"></div>
+            }
+
+            <!-- Hand & center hub -->
+            <svg class="tp-clock-svg" width="256" height="256" aria-hidden="true">
+              @if (showClockHand()) {
+                <g class="tp-clock-hand" [style.transform]="'rotate(' + clockHandAngle() + 'deg)'">
+                  <line x1="128" y1="128" x2="128" [attr.y2]="128 - handRadius() + 18" class="tp-clock-hand-line" />
+                  <circle cx="128" [attr.cy]="128 - handRadius()" r="18" class="tp-clock-hand-target" />
+                </g>
+              }
+              <circle cx="128" cy="128" r="4" class="tp-clock-hub-outer" />
+              <circle cx="128" cy="128" r="2.5" class="tp-clock-hub-inner" />
+            </svg>
+
+            <!-- Number tokens -->
+            <div class="tp-clock-numbers" [class.tp-clock-numbers-anim]="viewTransitioning()">
+              @for (pos of clockPositions(); track pos.value) {
+                <button
+                  type="button"
+                  class="tp-clock-number"
+                  [class.tp-clock-number-inner]="pos.inner"
+                  [class.tp-clock-number-selected]="isClockValueSelected(pos.value)"
+                  [class.tp-clock-number-on-hand]="showClockHand() && isClockValueSelected(pos.value)"
+                  [style.left.px]="pos.x - getClockNumberOffset(pos)"
+                  [style.top.px]="pos.y - getClockNumberOffset(pos)"
+                  (click)="$event.stopPropagation(); onClockNumberClick(pos)"
+                  [attr.aria-pressed]="isClockValueSelected(pos.value)"
+                >
+                  {{ pos.display }}
+                </button>
+              }
+            </div>
+          </div>
+        } @else {
+          <!-- Editable segments with steppers -->
+          <div class="flex items-end justify-center gap-2 py-2">
+            <!-- Hour segment -->
+            <div class="tp-segment-group">
+              <button
+                type="button"
+                class="tp-step-btn"
+                (click)="stepHour(1)"
+                [disabled]="isDisabled()"
+                aria-label="Increment hour"
+                tabindex="-1"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+              </button>
+              <input
+                #hourSegment
+                type="text"
+                inputmode="numeric"
+                maxlength="2"
+                class="tp-segment"
+                [class.tp-segment-focus]="focusedSegment() === 'hour'"
+                [value]="displayHour()"
+                [disabled]="isDisabled()"
+                [attr.aria-label]="hourLabel()"
+                (focus)="onSegmentFocus('hour', $event)"
+                (blur)="onSegmentBlur('hour', $event)"
+                (input)="onSegmentInput('hour', $event)"
+                (keydown)="onSegmentKeydown('hour', $event)"
+                (wheel)="onSegmentWheel('hour', $event)"
+              />
+              <button
+                type="button"
+                class="tp-step-btn"
+                (click)="stepHour(-1)"
+                [disabled]="isDisabled()"
+                aria-label="Decrement hour"
+                tabindex="-1"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <span class="tp-segment-label">{{ hourLabel() }}</span>
+            </div>
+
+            <span class="tp-separator">:</span>
+
+            <!-- Minute segment -->
+            <div class="tp-segment-group">
+              <button
+                type="button"
+                class="tp-step-btn"
+                (click)="stepMinute(1)"
+                [disabled]="isDisabled()"
+                aria-label="Increment minute"
+                tabindex="-1"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+              </button>
+              <input
+                #minuteSegment
+                type="text"
+                inputmode="numeric"
+                maxlength="2"
+                class="tp-segment"
+                [class.tp-segment-focus]="focusedSegment() === 'minute'"
+                [value]="displayMinute()"
+                [disabled]="isDisabled()"
+                [attr.aria-label]="minuteLabel()"
+                (focus)="onSegmentFocus('minute', $event)"
+                (blur)="onSegmentBlur('minute', $event)"
+                (input)="onSegmentInput('minute', $event)"
+                (keydown)="onSegmentKeydown('minute', $event)"
+                (wheel)="onSegmentWheel('minute', $event)"
+              />
+              <button
+                type="button"
+                class="tp-step-btn"
+                (click)="stepMinute(-1)"
+                [disabled]="isDisabled()"
+                aria-label="Decrement minute"
+                tabindex="-1"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <span class="tp-segment-label">{{ minuteLabel() }}</span>
+            </div>
+
+            <!-- Seconds segment -->
+            @if (showSeconds()) {
+              <span class="tp-separator">:</span>
+              <div class="tp-segment-group">
+                <button
+                  type="button"
+                  class="tp-step-btn"
+                  (click)="stepSecond(1)"
+                  [disabled]="isDisabled()"
+                  aria-label="Increment second"
+                  tabindex="-1"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                </button>
+                <input
+                  #secondSegment
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="2"
+                  class="tp-segment"
+                  [class.tp-segment-focus]="focusedSegment() === 'second'"
+                  [value]="displaySecond()"
+                  [disabled]="isDisabled()"
+                  [attr.aria-label]="secondLabel()"
+                  (focus)="onSegmentFocus('second', $event)"
+                  (blur)="onSegmentBlur('second', $event)"
+                  (input)="onSegmentInput('second', $event)"
+                  (keydown)="onSegmentKeydown('second', $event)"
+                  (wheel)="onSegmentWheel('second', $event)"
+                />
+                <button
+                  type="button"
+                  class="tp-step-btn"
+                  (click)="stepSecond(-1)"
+                  [disabled]="isDisabled()"
+                  aria-label="Decrement second"
+                  tabindex="-1"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <span class="tp-segment-label">{{ secondLabel() }}</span>
+              </div>
+            }
+
+            <!-- AM/PM segmented toggle -->
+            @if (!use24Hour()) {
+              <div class="tp-period-group" role="radiogroup" aria-label="AM or PM">
+                <button
+                  type="button"
+                  role="radio"
+                  class="tp-period-btn"
+                  [class.tp-period-active]="period() === 'AM'"
+                  [attr.aria-checked]="period() === 'AM'"
+                  [disabled]="isDisabled()"
+                  (click)="setPeriod('AM')"
+                >
+                  AM
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  class="tp-period-btn"
+                  [class.tp-period-active]="period() === 'PM'"
+                  [attr.aria-checked]="period() === 'PM'"
+                  [disabled]="isDisabled()"
+                  (click)="setPeriod('PM')"
+                >
+                  PM
+                </button>
               </div>
             }
           </div>
+
+          <!-- Hint -->
+          <p class="text-base-content/50 mt-1 text-center text-[11px]">Type, scroll, or use ↑ ↓ keys</p>
         }
       </div>
 

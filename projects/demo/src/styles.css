@@ -10,6 +10,8 @@
 @import "../../../projects/hakistack/ng-daisyui/themes/kaizen-light.css";
 @import "../../../projects/hakistack/ng-daisyui/themes/obsidian.css";
 @import "../../../projects/hakistack/ng-daisyui/themes/obsidian-light.css";
+@import "../../../projects/hakistack/ng-daisyui/themes/material.css";
+@import "../../../projects/hakistack/ng-daisyui/themes/material-light.css";
 
 /* ── Custom font families ── */
 @theme {

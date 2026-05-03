@@ -38,6 +38,9 @@ import { ClockPosition, TimepickerEvent, TimepickerPosition, TimepickerView } fr
 export class TimepickerComponent implements ControlValueAccessor, Validator, OnDestroy {
   private readonly tpRoot = viewChild.required<ElementRef<HTMLElement>>('tpRoot');
   private readonly timeInputRef = viewChild<ElementRef<HTMLInputElement>>('timeInput');
+  private readonly hourSegmentRef = viewChild<ElementRef<HTMLInputElement>>('hourSegment');
+  private readonly minuteSegmentRef = viewChild<ElementRef<HTMLInputElement>>('minuteSegment');
+  private readonly secondSegmentRef = viewChild<ElementRef<HTMLInputElement>>('secondSegment');
 
   private boundDocumentClick = this.onClickOutside.bind(this);
   private boundDocumentKeydown = this.onDocumentKeydown.bind(this);
@@ -95,6 +98,10 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   // --- State ---
   readonly isOpen = signal(false);
   readonly currentView = signal<TimepickerView>('hours');
+  readonly focusedSegment = signal<'hour' | 'minute' | 'second' | null>(null);
+  readonly isDragging = signal(false);
+  readonly viewTransitioning = signal(false);
+  private viewTransitionTimer: ReturnType<typeof setTimeout> | null = null;
   readonly selectedHour = signal<number | null>(null);
   readonly selectedMinute = signal<number | null>(null);
   readonly selectedSecond = signal<number | null>(null);
@@ -241,7 +248,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
         const angleRad = ((i * 30 - 90) * Math.PI) / 180;
         return {
           value: hour,
-          display: hour.toString(),
+          display: hour.toString().padStart(2, '0'),
           x: center + outer * Math.cos(angleRad),
           y: center + outer * Math.sin(angleRad),
           inner: false,
@@ -265,7 +272,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
       const angleRad = ((i * 30 - 90) * Math.PI) / 180;
       return {
         value: hour,
-        display: hour.toString(),
+        display: hour.toString().padStart(2, '0'),
         x: center + outer * Math.cos(angleRad),
         y: center + outer * Math.sin(angleRad),
         inner: false,
@@ -467,15 +474,8 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   private scrollToSelected(): void {
-    requestAnimationFrame(() => {
-      const root = this.tpRoot().nativeElement;
-      root.querySelectorAll('.tp-scroll-col').forEach((col: Element) => {
-        const active = col.querySelector('.btn-active');
-        if (active) {
-          active.scrollIntoView({ block: 'center', behavior: 'instant' });
-        }
-      });
-    });
+    if (this.clockFace()) return;
+    requestAnimationFrame(() => this.hourSegmentRef()?.nativeElement.focus());
   }
 
   markAsTouched(): void {
@@ -735,10 +735,161 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   setView(view: TimepickerView): void {
+    if (this.currentView() === view) return;
     this.currentView.set(view);
+    this.triggerViewTransition();
+  }
+
+  private triggerViewTransition(): void {
+    this.viewTransitioning.set(true);
+    if (this.viewTransitionTimer) clearTimeout(this.viewTransitionTimer);
+    this.viewTransitionTimer = setTimeout(() => {
+      this.viewTransitioning.set(false);
+      this.viewTransitionTimer = null;
+    }, 220);
   }
 
   // --- Selection ---
+
+  // --- Editable segment handlers ---
+
+  onSegmentFocus(segment: 'hour' | 'minute' | 'second', event: FocusEvent): void {
+    if (this.isDisabled()) return;
+    this.focusedSegment.set(segment);
+    requestAnimationFrame(() => (event.target as HTMLInputElement)?.select());
+  }
+
+  onSegmentBlur(segment: 'hour' | 'minute' | 'second', event: FocusEvent): void {
+    this.focusedSegment.set(null);
+    const target = event.target as HTMLInputElement;
+    const raw = target.value.trim();
+    if (raw === '' || raw === '--') {
+      target.value = this.segmentDisplay(segment);
+      return;
+    }
+    const n = parseInt(raw, 10);
+    if (isNaN(n)) {
+      target.value = this.segmentDisplay(segment);
+      return;
+    }
+    this.applySegmentValue(segment, n);
+    target.value = this.segmentDisplay(segment);
+  }
+
+  onSegmentInput(segment: 'hour' | 'minute' | 'second', event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const cleaned = target.value.replace(/\D/g, '').slice(0, 2);
+    if (cleaned !== target.value) target.value = cleaned;
+
+    if (cleaned.length === 2) {
+      const n = parseInt(cleaned, 10);
+      this.applySegmentValue(segment, n);
+      if (segment === 'hour') {
+        this.minuteSegmentRef()?.nativeElement.focus();
+      } else if (segment === 'minute' && this.showSeconds()) {
+        this.secondSegmentRef()?.nativeElement.focus();
+      }
+    }
+  }
+
+  onSegmentKeydown(segment: 'hour' | 'minute' | 'second', event: KeyboardEvent): void {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.stepSegment(segment, 1);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.stepSegment(segment, -1);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      (event.target as HTMLInputElement).blur();
+      if (this.closeOnSelect() && this.hasSelection()) this.closePicker();
+    } else if (event.key === 'Tab' || event.key === 'Escape') {
+      // let default behavior handle these
+    }
+  }
+
+  onSegmentWheel(segment: 'hour' | 'minute' | 'second', event: WheelEvent): void {
+    if (this.focusedSegment() !== segment) return;
+    event.preventDefault();
+    this.stepSegment(segment, event.deltaY < 0 ? 1 : -1);
+  }
+
+  stepSegment(segment: 'hour' | 'minute' | 'second', delta: number): void {
+    if (this.isDisabled()) return;
+    if (segment === 'hour') this.stepHour(delta);
+    else if (segment === 'minute') this.stepMinute(delta);
+    else this.stepSecond(delta);
+  }
+
+  stepHour(delta: number): void {
+    if (this.isDisabled()) return;
+    if (this.use24Hour()) {
+      const cur = this.selectedHour() ?? 0;
+      let next = cur + delta;
+      if (next > 23) next = 0;
+      if (next < 0) next = 23;
+      this.selectedHour.set(next);
+    } else {
+      const cur24 = this.selectedHour();
+      const cur12 = cur24 === null ? 12 : cur24 === 0 ? 12 : cur24 > 12 ? cur24 - 12 : cur24;
+      let next = cur12 + delta;
+      if (next > 12) next = 1;
+      if (next < 1) next = 12;
+      this.applySegmentValue('hour', next);
+    }
+    this.emitIfComplete();
+  }
+
+  stepMinute(delta: number): void {
+    if (this.isDisabled()) return;
+    const step = Math.max(1, this.minuteStep());
+    const cur = this.selectedMinute() ?? 0;
+    let next = cur + delta * step;
+    if (next >= 60) next -= 60;
+    if (next < 0) next += 60;
+    this.selectedMinute.set(next);
+    this.emitIfComplete();
+  }
+
+  stepSecond(delta: number): void {
+    if (this.isDisabled()) return;
+    const step = Math.max(1, this.secondStep());
+    const cur = this.selectedSecond() ?? 0;
+    let next = cur + delta * step;
+    if (next >= 60) next -= 60;
+    if (next < 0) next += 60;
+    this.selectedSecond.set(next);
+    this.emitIfComplete();
+  }
+
+  segmentDisplay(segment: 'hour' | 'minute' | 'second'): string {
+    if (segment === 'hour') return this.displayHour();
+    if (segment === 'minute') return this.displayMinute();
+    return this.displaySecond();
+  }
+
+  private applySegmentValue(segment: 'hour' | 'minute' | 'second', value: number): void {
+    if (segment === 'hour') {
+      if (this.use24Hour()) {
+        this.selectedHour.set(Math.max(0, Math.min(23, value)));
+      } else {
+        const v = Math.max(1, Math.min(12, value));
+        const p = this.period();
+        this.selectedHour.set(p === 'AM' ? (v === 12 ? 0 : v) : v === 12 ? 12 : v + 12);
+      }
+    } else if (segment === 'minute') {
+      const step = Math.max(1, this.minuteStep());
+      let snapped = Math.round(Math.max(0, Math.min(59, value)) / step) * step;
+      if (snapped >= 60) snapped = 60 - step;
+      this.selectedMinute.set(snapped);
+    } else {
+      const step = Math.max(1, this.secondStep());
+      let snapped = Math.round(Math.max(0, Math.min(59, value)) / step) * step;
+      if (snapped >= 60) snapped = 60 - step;
+      this.selectedSecond.set(snapped);
+    }
+    this.emitIfComplete();
+  }
 
   selectHour(hour: number): void {
     if (this.isDisabled()) return;
@@ -938,16 +1089,91 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     }
   }
 
-  getClockNumberClasses(pos: ClockPosition): string {
-    const base = 'absolute z-10 flex items-center justify-center rounded-full font-medium transition-colors';
-    const size = pos.inner ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-sm';
-    const selected = this.isClockValueSelected(pos.value);
-    const selectedClass = selected ? 'text-primary-content font-bold' : 'hover:bg-base-300';
-    return `${base} ${size} ${selectedClass}`;
-  }
-
   getClockNumberOffset(pos: ClockPosition): number {
     return pos.inner ? 14 : 18;
+  }
+
+  // --- Clock dial pointer-drag (continuous selection) ---
+
+  private boundDialPointerMove = this.onClockPointerMove.bind(this);
+  private boundDialPointerUp = this.onClockPointerUp.bind(this);
+  private dialEl: HTMLElement | null = null;
+
+  onClockPointerDown(event: PointerEvent): void {
+    if (this.isDisabled()) return;
+    this.dialEl = event.currentTarget as HTMLElement;
+    this.dialEl.setPointerCapture(event.pointerId);
+    this.isDragging.set(true);
+    this.applyDialFromEvent(event);
+    document.addEventListener('pointermove', this.boundDialPointerMove);
+    document.addEventListener('pointerup', this.boundDialPointerUp, { once: true });
+  }
+
+  private onClockPointerMove(event: PointerEvent): void {
+    if (!this.isDragging() || !this.dialEl) return;
+    this.applyDialFromEvent(event);
+  }
+
+  private onClockPointerUp(event: PointerEvent): void {
+    document.removeEventListener('pointermove', this.boundDialPointerMove);
+    if (this.dialEl?.hasPointerCapture(event.pointerId)) {
+      this.dialEl.releasePointerCapture(event.pointerId);
+    }
+    this.isDragging.set(false);
+    this.dialEl = null;
+
+    // Auto-advance view on release (hours → minutes → seconds), matching M3/Mat behavior
+    const view = this.currentView();
+    if (view === 'hours') {
+      this.setView('minutes');
+    } else if (view === 'minutes' && this.showSeconds()) {
+      this.setView('seconds');
+    } else if (this.closeOnSelect() && this.hasSelection()) {
+      this.closePicker();
+    }
+  }
+
+  private applyDialFromEvent(event: PointerEvent): void {
+    if (!this.dialEl) return;
+    const rect = this.dialEl.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const x = event.clientX - rect.left - centerX;
+    const y = event.clientY - rect.top - centerY;
+
+    const distance = Math.sqrt(x * x + y * y);
+    if (distance < 12) return;
+
+    let angle = (Math.atan2(x, -y) * 180) / Math.PI;
+    if (angle < 0) angle += 360;
+
+    const view = this.currentView();
+    if (view === 'hours') {
+      const hourIndex = Math.round(angle / 30) % 12;
+      if (this.use24Hour()) {
+        const threshold = centerX * 0.65;
+        const value = distance < threshold ? (hourIndex === 0 ? 0 : hourIndex + 12) : hourIndex === 0 ? 12 : hourIndex;
+        if (this.selectedHour() !== value) this.selectedHour.set(value);
+      } else {
+        const display12 = hourIndex === 0 ? 12 : hourIndex;
+        this.applySegmentValue('hour', display12);
+      }
+      this.emitIfComplete();
+    } else if (view === 'minutes') {
+      const step = Math.max(1, this.minuteStep());
+      const rawMinute = Math.round(angle / 6) % 60;
+      const minute = Math.round(rawMinute / step) * step;
+      const final = minute >= 60 ? 0 : minute;
+      if (this.selectedMinute() !== final) this.selectedMinute.set(final);
+      this.emitIfComplete();
+    } else {
+      const step = Math.max(1, this.secondStep());
+      const rawSecond = Math.round(angle / 6) % 60;
+      const second = Math.round(rawSecond / step) * step;
+      const final = second >= 60 ? 0 : second;
+      if (this.selectedSecond() !== final) this.selectedSecond.set(final);
+      this.emitIfComplete();
+    }
   }
 
   onClockNumberClick(pos: ClockPosition): void {

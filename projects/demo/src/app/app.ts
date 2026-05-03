@@ -9,6 +9,8 @@ const THEMES = [
   'kaizen-light',
   'obsidian',
   'obsidian-light',
+  'material',
+  'material-light',
   'reportforge',
   'light',
   'dark',
