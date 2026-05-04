@@ -68,6 +68,11 @@ export const routes: Routes = [
   // Feedback
   { path: 'toast', redirectTo: 'toast/basic', pathMatch: 'full' },
   { path: 'toast/:feature', loadComponent: () => import('@shared-demos/demos/toast-demo.component').then((m) => m.ToastDemoComponent) },
+  { path: 'notification', redirectTo: 'notification/basic', pathMatch: 'full' },
+  {
+    path: 'notification/:feature',
+    loadComponent: () => import('@shared-demos/demos/notification-demo.component').then((m) => m.NotificationDemoComponent),
+  },
   { path: 'alert', redirectTo: 'alert/basic', pathMatch: 'full' },
   { path: 'alert/:feature', loadComponent: () => import('@shared-demos/demos/alert-demo.component').then((m) => m.AlertDemoComponent) },
   { path: 'dialog', redirectTo: 'dialog/basic', pathMatch: 'full' },

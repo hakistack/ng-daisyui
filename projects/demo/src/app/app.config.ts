@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideToast, provideAlert, provideHkTheme, provideFormState } from '@hakistack/ng-daisyui';
+import { provideToast, provideAlert, provideHkTheme, provideFormState, provideNotification } from '@hakistack/ng-daisyui';
 import {
   provideLucideIcons,
   provideLucideConfig,
@@ -145,6 +145,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideToast(),
     provideAlert(),
+    provideNotification({ position: 'top-right', maxStack: 5, pauseOnHover: true }),
     provideFormState({ mode: 'localStorage' }),
     provideLucideConfig({ size: 20, strokeWidth: 1.75 }),
     provideLucideIcons(

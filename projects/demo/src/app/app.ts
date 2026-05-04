@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { filter } from 'rxjs';
+import { NotificationHostComponent } from '@hakistack/ng-daisyui';
 import { SHOW_OVERVIEW } from '@shared-demos/config';
 
 const THEMES = [
@@ -68,7 +69,7 @@ interface NavSection {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideDynamicIcon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideDynamicIcon, NotificationHostComponent],
   template: `
     <div class="drawer lg:drawer-open min-h-screen bg-base-100">
       <input id="sidebar" type="checkbox" class="drawer-toggle" />
@@ -178,6 +179,9 @@ interface NavSection {
             <span>OnPush &middot; Signals &middot; Standalone</span>
           </div>
         </footer>
+
+        <!-- Notification overlay host — singleton, app-wide. -->
+        <hk-notification-host />
       </div>
 
       <!-- ══ Sidebar ══ -->
@@ -485,6 +489,16 @@ export class App implements OnInit {
             { id: 'features', label: 'Features' },
             { id: 'styles', label: 'Styles' },
             { id: 'advanced', label: 'Advanced' },
+          ],
+        },
+        {
+          path: '/notification',
+          label: 'Notification',
+          icon: 'message-square',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'variants', label: 'Layout Variants' },
+            { id: 'interactions', label: 'Interactions' },
           ],
         },
         {
