@@ -8,8 +8,9 @@ import { DocSectionComponent } from '../shared/doc-section.component';
 
 type CommandPaletteTab = 'basic' | 'modes' | 'hotkey';
 
-interface ProjectMeta {
-  readonly slug: string;
+/** Context passed to every modes-palette item — demonstrates the typed-context generic. */
+interface PaletteContext {
+  readonly workspaceSlug: string;
 }
 
 @Component({
@@ -135,7 +136,6 @@ export class CommandPaletteDemoComponent {
         id: 'new-project',
         label: 'New project',
         description: 'Start a fresh project',
-        icon: 'folder-plus',
         onSelect: () => this.lastSelection.set('New project'),
       },
       {
@@ -153,7 +153,9 @@ export class CommandPaletteDemoComponent {
 
   // ── Modes palette ───────────────────────────────────────────────────────
 
-  readonly modes = createCommandPalette<ProjectMeta>({
+  readonly modes = createCommandPalette<PaletteContext>({
+    // Real context — every onSelect callback receives this typed object.
+    context: { workspaceSlug: 'demo-workspace' },
     items: [
       // Projects
       {
@@ -162,14 +164,14 @@ export class CommandPaletteDemoComponent {
         description: 'Workflow Inc.',
         group: 'projects',
         keywords: ['site', 'frontend'],
-        onSelect: () => this.lastModeSelection.set('project: Website Redesign'),
+        onSelect: (ctx) => this.lastModeSelection.set(`project: Website Redesign — ${ctx?.workspaceSlug}`),
       },
       {
         id: 'p-mobile',
         label: 'Mobile App',
         description: 'Conglomerate Inc.',
         group: 'projects',
-        onSelect: () => this.lastModeSelection.set('project: Mobile App'),
+        onSelect: (ctx) => this.lastModeSelection.set(`project: Mobile App — ${ctx?.workspaceSlug}`),
       },
       {
         id: 'p-logo',
@@ -177,14 +179,14 @@ export class CommandPaletteDemoComponent {
         description: 'Workflow Inc.',
         group: 'projects',
         keywords: ['branding'],
-        onSelect: () => this.lastModeSelection.set('project: Logo Design'),
+        onSelect: (ctx) => this.lastModeSelection.set(`project: Logo Design — ${ctx?.workspaceSlug}`),
       },
       {
         id: 'p-tv',
         label: 'TV Ad Campaign',
         description: 'Conglomerate Inc.',
         group: 'projects',
-        onSelect: () => this.lastModeSelection.set('project: TV Ad Campaign'),
+        onSelect: (ctx) => this.lastModeSelection.set(`project: TV Ad Campaign — ${ctx?.workspaceSlug}`),
       },
       // Users
       {
@@ -193,7 +195,7 @@ export class CommandPaletteDemoComponent {
         description: 'leslie@example.com',
         group: 'users',
         avatar: 'https://i.pravatar.cc/64?img=49',
-        onSelect: () => this.lastModeSelection.set('user: Leslie Alexander'),
+        onSelect: (ctx) => this.lastModeSelection.set(`user: Leslie Alexander — ${ctx?.workspaceSlug}`),
       },
       {
         id: 'u-michael',
@@ -201,7 +203,7 @@ export class CommandPaletteDemoComponent {
         description: 'michael@example.com',
         group: 'users',
         avatar: 'https://i.pravatar.cc/64?img=11',
-        onSelect: () => this.lastModeSelection.set('user: Michael Foster'),
+        onSelect: (ctx) => this.lastModeSelection.set(`user: Michael Foster — ${ctx?.workspaceSlug}`),
       },
       {
         id: 'u-courtney',
@@ -209,7 +211,7 @@ export class CommandPaletteDemoComponent {
         description: 'courtney@example.com',
         group: 'users',
         avatar: 'https://i.pravatar.cc/64?img=23',
-        onSelect: () => this.lastModeSelection.set('user: Courtney Henry'),
+        onSelect: (ctx) => this.lastModeSelection.set(`user: Courtney Henry — ${ctx?.workspaceSlug}`),
       },
       {
         id: 'u-tom',
@@ -217,7 +219,7 @@ export class CommandPaletteDemoComponent {
         description: 'tom@example.com',
         group: 'users',
         avatar: 'https://i.pravatar.cc/64?img=15',
-        onSelect: () => this.lastModeSelection.set('user: Tom Cook'),
+        onSelect: (ctx) => this.lastModeSelection.set(`user: Tom Cook — ${ctx?.workspaceSlug}`),
       },
     ],
     groups: [

@@ -42,34 +42,21 @@ const IMPLICIT_GROUP_ID = '__default';
  * `@tailwindplus/elements` runtime, no commercial license).
  *
  * Configuration is **builder-only** (matching `createForm` / `createTable`
- * / `createPdfViewer`):
- * - `[config]` — pass `controller.config()` from a `createCommandPalette({...})`
- *   call. All items, groups, modes, hotkey, and callbacks live there.
- * - Imperative actions (`open`, `close`, `toggle`, `setQuery`, `clear`)
- *   live on the controller — no `@ViewChild` needed.
+ * / `createPdfViewer`). Pass `controller.config()` from a
+ * `createCommandPalette({...})` call to `[config]`. Imperative actions
+ * (`open` / `close` / `toggle` / `setQuery` / `clear`) live on the
+ * controller — no `@ViewChild` needed.
  *
  * @example
- * // class:
  * palette = createCommandPalette({
  *   items: [
- *     { id: 'p1', label: 'Website Redesign', group: 'projects', onSelect: () => goto('/p1') },
- *     { id: 'u1', label: 'Leslie Alexander', avatar: '/leslie.jpg', group: 'users', onSelect: () => goto('/u1') },
+ *     { id: 'p1', label: 'Website', group: 'projects', onSelect: () => goto('/p1') },
  *   ],
- *   groups: [{ id: 'projects', label: 'Projects' }, { id: 'users', label: 'Users' }],
- *   modes: [
- *     { prefix: '#', filterGroups: ['projects'], indicatorLabel: 'Projects' },
- *     { prefix: '>', filterGroups: ['users'], indicatorLabel: 'Users' },
- *     { prefix: '?', layout: 'help', helpText: 'Use # for projects, > for users.' },
- *   ],
+ *   groups: [{ id: 'projects', label: 'Projects' }],
+ *   modes: [{ prefix: '#', filterGroups: ['projects'], indicatorLabel: 'Projects' }],
  * });
- *
- * // template:
  * // <hk-command-palette [config]="palette.config()" />
- * // <button (click)="palette.open()">Open</button>
- *
- * // anywhere:
  * // this.palette.open();
- * // this.palette.setQuery('#design');
  */
 @Component({
   selector: 'hk-command-palette',
@@ -89,23 +76,80 @@ export class CommandPaletteComponent implements OnInit {
   /** Configuration object — pass `controller.config()` from a `createCommandPalette({...})` call. */
   readonly config = input.required<CommandPaletteConfig>();
 
-  // ── Refs ─────────────────────────────────────────────────────────────────
+  // ── View refs ────────────────────────────────────────────────────────────
 
   private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialog');
   private readonly searchInputRef = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
-  // ── State ────────────────────────────────────────────────────────────────
+  // ── Primitive state — separate signals so derived state can use computeds
+  //    without triggering itself. The previous design wrapped a single
+  //    `localState` signal whose every update ran a recompute effect that
+  //    also wrote back — classic infinite loop. ────────────────────────────
 
-  /** Local writable mirror of the controller's state signal — kept in sync via the internal bridge. */
-  private readonly localState = signal<CommandPaletteState>({
-    open: false,
-    query: '',
-    mode: null,
-    selectedIndex: -1,
-    filtered: [],
+  private readonly openSignal = signal<boolean>(false);
+  private readonly querySignal = signal<string>('');
+  private readonly selectedIndexSignal = signal<number>(-1);
+
+  // ── Derived state (computed — no self-triggering) ────────────────────────
+
+  /** Active mode resolved by query prefix; first-match-wins. */
+  private readonly modeSignal = computed<CommandPaletteMode | null>(() => {
+    const cfg = this.config();
+    const query = this.querySignal();
+    for (const m of cfg.modes ?? []) {
+      if (query.startsWith(m.prefix)) return m;
+    }
+    return null;
   });
 
-  readonly state = this.localState.asReadonly();
+  /** Query with mode prefix stripped, ready for the filter strategy. */
+  private readonly strippedQuerySignal = computed<string>(() => {
+    const mode = this.modeSignal();
+    const raw = this.querySignal();
+    return mode ? raw.slice(mode.prefix.length).trimStart() : raw;
+  });
+
+  /**
+   * Items eligible for filtering — restricted by the active mode's
+   * `filterGroups` whitelist when set.
+   */
+  private readonly scopedItemsSignal = computed<readonly CommandPaletteItem[]>(() => {
+    const cfg = this.config();
+    const mode = this.modeSignal();
+    if (mode?.filterGroups) {
+      return cfg.items.filter((it) => it.group && mode.filterGroups!.includes(it.group));
+    }
+    return cfg.items;
+  });
+
+  /** Filter result. Computed from scoped items + stripped query + filter strategy. */
+  private readonly filteredSignal = computed<readonly CommandPaletteItem[]>(() => {
+    const mode = this.modeSignal();
+
+    // Help mode renders the help panel — no filter work needed.
+    if (mode?.layout === 'help') return [];
+
+    const items = this.scopedItemsSignal();
+    const stripped = this.strippedQuerySignal().trim();
+
+    if (!stripped) {
+      // Empty query: with a prefix, show everything in scope; without, show nothing.
+      return mode ? items : [];
+    }
+
+    return this.runFilter(stripped, items, mode, this.config().filter ?? 'fuzzy');
+  });
+
+  /** Public-facing combined state — what the controller exposes via `state()`. */
+  readonly state = computed<CommandPaletteState>(() => ({
+    open: this.openSignal(),
+    query: this.querySignal(),
+    mode: this.modeSignal(),
+    selectedIndex: this.selectedIndexSignal(),
+    filtered: this.filteredSignal(),
+  }));
+
+  // ── Render-derived data ──────────────────────────────────────────────────
 
   /** Labels with consumer overrides applied; falls back to English defaults. */
   readonly labels = computed<ResolvedCommandPaletteLabels>(() => ({
@@ -113,21 +157,12 @@ export class CommandPaletteComponent implements OnInit {
     ...this.userLabels,
   }));
 
-  // ── Derived render data ──────────────────────────────────────────────────
-
-  /**
-   * Items grouped for rendering. Each item carries its `flatIndex` (position
-   * in `state().filtered`) so the template can mark the active row via
-   * `selectedIndex` without nested loops.
-   */
+  /** Items grouped for rendering. Each item carries its `flatIndex` for keyboard nav. */
   readonly groupedResults = computed<readonly RenderedGroup[]>(() => {
-    const filtered = this.state().filtered;
+    const filtered = this.filteredSignal();
     if (filtered.length === 0) return [];
 
     const groupDefs = this.config().groups ?? [];
-    const groupLabel = new Map<string, string>();
-    for (const g of groupDefs) groupLabel.set(g.id, g.label);
-
     const buckets = new Map<string, { item: CommandPaletteItem; flatIndex: number }[]>();
     filtered.forEach((item, flatIndex) => {
       const id = item.group ?? IMPLICIT_GROUP_ID;
@@ -136,7 +171,6 @@ export class CommandPaletteComponent implements OnInit {
       buckets.set(id, bucket);
     });
 
-    // Preserve declared group order; append the implicit group last.
     const result: RenderedGroup[] = [];
     for (const g of groupDefs) {
       const items = buckets.get(g.id);
@@ -147,11 +181,13 @@ export class CommandPaletteComponent implements OnInit {
     return result;
   });
 
-  /** True when the help panel should render instead of the result list. */
-  readonly showHelp = computed(() => this.state().mode?.layout === 'help');
+  readonly showHelp = computed(() => this.modeSignal()?.layout === 'help');
+  readonly showEmpty = computed(() => !this.showHelp() && this.filteredSignal().length === 0 && this.querySignal().length > 0);
 
-  /** True when neither help nor results render — empty state. */
-  readonly showEmpty = computed(() => !this.showHelp() && this.state().filtered.length === 0 && this.state().query.length > 0);
+  /** Theme-bridged class for the modal-box card. */
+  readonly panelClass = computed(
+    () => `modal-box w-full max-w-2xl p-0 max-h-[80vh] overflow-hidden flex flex-col ${this.theme.classes.cardBorder}`,
+  );
 
   // ── Internals ────────────────────────────────────────────────────────────
 
@@ -159,19 +195,14 @@ export class CommandPaletteComponent implements OnInit {
   private unbindController: (() => void) | null = null;
 
   constructor() {
-    // Sync our local state up to the controller's writable signal so
-    // consumers reading `palette.state()` get the live values.
+    // Bridge: copy the public `state()` signal up to the controller's writable
+    // bridge signal whenever it changes. Single direction — controller never
+    // writes back through this path, so no loop. The component reads only
+    // primitive signals + own computeds; nothing here tracks `_internal.state`.
     effect(() => {
       const cfg = this.config();
-      const state = this.localState();
+      const state = this.state();
       cfg._internal?.state.set(state);
-    });
-
-    // Recompute filtered + mode whenever query or config changes.
-    effect(() => {
-      const cfg = this.config();
-      const query = this.localState().query;
-      untracked(() => this.recomputeFiltered(cfg, query));
     });
   }
 
@@ -205,11 +236,11 @@ export class CommandPaletteComponent implements OnInit {
         break;
       case 'End':
         event.preventDefault();
-        this.setSelectedIndex(this.state().filtered.length - 1);
+        this.setSelectedIndex(this.filteredSignal().length - 1);
         break;
       case 'Enter':
         event.preventDefault();
-        this.invokeItem(this.state().selectedIndex);
+        this.invokeItem(this.selectedIndexSignal());
         break;
       case 'Escape':
         event.preventDefault();
@@ -219,7 +250,7 @@ export class CommandPaletteComponent implements OnInit {
   }
 
   invokeItem(flatIndex: number): void {
-    const item = this.state().filtered[flatIndex];
+    const item = this.filteredSignal()[flatIndex];
     if (!item || item.disabled) return;
 
     const cfg = this.config();
@@ -236,48 +267,57 @@ export class CommandPaletteComponent implements OnInit {
   }
 
   setSelectedIndex(index: number): void {
-    const max = this.state().filtered.length - 1;
-    const clamped = Math.max(-1, Math.min(max, index));
-    this.localState.update((s) => ({ ...s, selectedIndex: clamped }));
+    const max = this.filteredSignal().length - 1;
+    this.selectedIndexSignal.set(Math.max(-1, Math.min(max, index)));
   }
 
-  // ── Controller-side actions (also called via the internal bridge) ────────
+  // ── Controller-side actions ──────────────────────────────────────────────
 
   open(): void {
-    if (this.localState().open) return;
+    if (this.openSignal()) return;
     const dialog = this.dialogRef()?.nativeElement;
     if (dialog && !dialog.open) dialog.showModal();
-    this.localState.update((s) => ({ ...s, open: true }));
+    this.openSignal.set(true);
     this.config().onOpen?.();
-    // Focus the search input on next frame so the dialog has time to render.
     queueMicrotask(() => this.searchInputRef()?.nativeElement.focus());
   }
 
   close(): void {
-    if (!this.localState().open) return;
+    if (!this.openSignal()) return;
     const dialog = this.dialogRef()?.nativeElement;
     if (dialog?.open) dialog.close();
-    this.localState.update((s) => ({ ...s, open: false }));
+    this.openSignal.set(false);
     this.config().onClose?.();
   }
 
   toggle(): void {
-    this.localState().open ? this.close() : this.open();
+    this.openSignal() ? this.close() : this.open();
   }
 
   setQuery(query: string): void {
-    if (query === this.localState().query) return;
-    this.localState.update((s) => ({ ...s, query }));
+    if (query === this.querySignal()) return;
+    this.querySignal.set(query);
+
+    // Reset selection to the first non-disabled item after the filter recomputes.
+    // `untracked` since this is a write context; we just need to read the
+    // (now-stale-but-fine) filteredSignal value lazily via Angular's signal
+    // equality model — computeds re-evaluate on read.
+    untracked(() => {
+      const filtered = this.filteredSignal();
+      const firstSelectable = filtered.findIndex((it) => !it.disabled);
+      this.selectedIndexSignal.set(firstSelectable);
+      this.config().onQueryChange?.(query, this.modeSignal());
+    });
   }
 
   clear(): void {
     this.setQuery('');
   }
 
-  /** Fires when the native `<dialog>` closes (Esc key, backdrop click, etc.). */
+  /** Fires when the native `<dialog>` closes (Esc, backdrop click, etc.). */
   onDialogClose(): void {
-    if (this.localState().open) {
-      this.localState.update((s) => ({ ...s, open: false }));
+    if (this.openSignal()) {
+      this.openSignal.set(false);
       this.config().onClose?.();
     }
   }
@@ -315,62 +355,12 @@ export class CommandPaletteComponent implements OnInit {
       .subscribe((event) => {
         if (!matchesHotkey(event, parsed)) return;
 
-        // Always intercept when the palette is already focused (user could
-        // be in our own search input and presses Mod+K to close).
         const ownTarget = this.host.nativeElement.contains(event.target as Node);
-
-        // Otherwise skip if the user is typing in some other field — don't
-        // hijack typing.
         if (!ownTarget && isInTextEntry(event.target)) return;
 
         event.preventDefault();
         this.toggle();
       });
-  }
-
-  private recomputeFiltered(cfg: CommandPaletteConfig, rawQuery: string): void {
-    const items = cfg.items;
-    const modes = cfg.modes ?? [];
-
-    // Resolve mode by prefix.
-    let mode: CommandPaletteMode | null = null;
-    let strippedQuery = rawQuery;
-    for (const m of modes) {
-      if (rawQuery.startsWith(m.prefix)) {
-        mode = m;
-        strippedQuery = rawQuery.slice(m.prefix.length).trimStart();
-        break;
-      }
-    }
-
-    // Help mode always renders the help panel — no filter work needed.
-    if (mode?.layout === 'help') {
-      this.localState.update((s) => ({ ...s, mode, filtered: [], selectedIndex: -1 }));
-      cfg.onQueryChange?.(rawQuery, mode);
-      return;
-    }
-
-    // Restrict by mode's group whitelist.
-    const groupScoped = mode?.filterGroups ? items.filter((it) => it.group && mode.filterGroups!.includes(it.group)) : items;
-
-    let filtered: readonly CommandPaletteItem[];
-
-    if (!strippedQuery.trim()) {
-      // Empty query: with a prefix, show everything in scope; without, show nothing.
-      filtered = mode ? groupScoped : [];
-    } else {
-      filtered = this.runFilter(strippedQuery.trim(), groupScoped, mode, cfg.filter ?? 'fuzzy');
-    }
-
-    // Reset selection — first non-disabled item, or -1.
-    const firstSelectable = filtered.findIndex((it) => !it.disabled);
-    this.localState.update((s) => ({
-      ...s,
-      mode,
-      filtered,
-      selectedIndex: firstSelectable,
-    }));
-    cfg.onQueryChange?.(rawQuery, mode);
   }
 
   private runFilter(
@@ -385,26 +375,18 @@ export class CommandPaletteComponent implements OnInit {
     if (strategy === 'substring') {
       return substringFilter(query, items);
     }
-    // Fuzzy via the shared FuseCache helper. Keys cover the searchable surface;
-    // the cache invalidates automatically when items ref or keys change.
     return this.fuseCache.search(query, items, ['label', 'description', 'keywords']);
   }
 
   private moveSelection(delta: number): void {
-    const filtered = this.state().filtered;
+    const filtered = this.filteredSignal();
     if (filtered.length === 0) return;
 
-    let next = this.state().selectedIndex;
-    // Skip disabled items in either direction.
+    let next = this.selectedIndexSignal();
     for (let attempts = 0; attempts < filtered.length; attempts++) {
       next = (next + delta + filtered.length) % filtered.length;
       if (!filtered[next].disabled) break;
     }
     this.setSelectedIndex(next);
   }
-
-  /** Theme-bridged class for the modal-box card — public so the template can read it. */
-  readonly panelClass = computed(
-    () => `modal-box w-full max-w-2xl p-0 max-h-[80vh] overflow-hidden flex flex-col ${this.theme.classes.cardBorder}`,
-  );
 }

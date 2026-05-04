@@ -4,7 +4,7 @@ import { Signal, WritableSignal } from '@angular/core';
  * A single selectable entry in the command palette. `id` is required for
  * tracking + keyboard navigation; everything else is presentation/behavior.
  */
-export interface CommandPaletteItem<TContext = unknown> {
+export interface CommandPaletteItem<TContext = any> {
   /** Stable identifier — used as the trackBy key. */
   readonly id: string;
   /** Visible label (the primary searchable text). */
@@ -67,7 +67,7 @@ export interface CommandPaletteMode {
  * already a dep). `'substring'` is a simple case-insensitive `includes()`.
  * A function gives full custom control.
  */
-export type CommandPaletteFilter<TContext = unknown> =
+export type CommandPaletteFilter<TContext = any> =
   | 'fuzzy'
   | 'substring'
   | ((
@@ -83,7 +83,7 @@ export type CommandPaletteHotkey = string | false;
  * Configuration passed to `createCommandPalette({...})`. Stable per-instance —
  * the imperative actions live on the returned controller.
  */
-export interface CommandPaletteConfig<TContext = unknown> {
+export interface CommandPaletteConfig<TContext = any> {
   /** All items rendered in the palette. Group via the `group` field. */
   readonly items: readonly CommandPaletteItem<TContext>[];
   /** Group definitions. Items reference groups by `id`. Empty groups are hidden in the rendered list. */
@@ -166,7 +166,7 @@ export interface CommandPaletteState {
  * `controller.config()` to `<hk-command-palette [config]="..." />` and call
  * methods directly from your component class — no `@ViewChild` needed.
  */
-export interface CommandPaletteController<TContext = unknown> {
+export interface CommandPaletteController<TContext = any> {
   /** Reactive view of the merged config (defaults applied). */
   readonly config: Signal<CommandPaletteConfig<TContext>>;
   /** Reactive runtime state — open/closed, query, mode, selection, filtered list. */
