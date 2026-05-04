@@ -64,6 +64,18 @@ export class NotificationService {
   /** Per-id dismiss callbacks — keyed by id, fired on dismiss with the reason. */
   private readonly dismissCallbacks = new Map<string, ((reason: NotificationDismissReason) => void)[]>();
 
+  /**
+   * Two-stage dismiss timing — the service marks `dismissing: true` first
+   * (component plays exit animation), then removes the notification from
+   * the stack after this many ms. Tuned to the per-item CSS transition
+   * (currently 220ms ease-out + a tiny safety margin so the node isn't
+   * removed mid-frame).
+   */
+  private static readonly EXIT_ANIMATION_MS = 240;
+
+  /** Pending removals — id → timeout. Used to no-op duplicate dismiss() calls. */
+  private readonly pendingRemoval = new Map<string, ReturnType<typeof setTimeout>>();
+
   // ── Public API ──────────────────────────────────────────────────────────
 
   /**
@@ -75,13 +87,13 @@ export class NotificationService {
 
     this.stack.update((current) => {
       const next = [notification, ...current];
-      // Cap the stack — drop oldest when over the limit.
+      // Cap the stack — overflow gets the same exit-animation treatment as
+      // user-initiated dismisses: mark `dismissing: true` so the component
+      // plays the exit transition, then schedule the actual removal.
       if (next.length > this.config.maxStack) {
-        const overflow = next.slice(this.config.maxStack);
-        // Schedule overflow dismiss callbacks asynchronously so the call
-        // returns the ref before any onDismiss hooks fire.
-        queueMicrotask(() => overflow.forEach((n) => this.fireDismissCallbacks(n.id, 'overflow')));
-        return next.slice(0, this.config.maxStack);
+        const overflowIds = next.slice(this.config.maxStack).map((n) => n.id);
+        for (const id of overflowIds) this.scheduleRemoval(id, 'overflow');
+        return next.map((n) => (overflowIds.includes(n.id) ? { ...n, dismissing: true, dismissReason: 'overflow' as const } : n));
       }
       return next;
     });
@@ -109,27 +121,35 @@ export class NotificationService {
     return this.show({ ...config, severity: 'error' });
   }
 
-  /** Dismiss a single notification by id. No-op if it's already gone. */
+  /**
+   * Dismiss a single notification by id. Two-stage: marks the notification
+   * as `dismissing: true` so the per-item component plays its exit
+   * animation, then removes from the stack after `EXIT_ANIMATION_MS`.
+   * Calling dismiss() again on the same id while exit is in flight is a
+   * safe no-op.
+   */
   dismiss(id: string, reason: NotificationDismissReason = 'manual'): void {
-    let removed = false;
-    this.stack.update((current) => {
-      const next = current.filter((n) => {
-        if (n.id === id) {
-          removed = true;
-          return false;
-        }
-        return true;
-      });
-      return removed ? next : current;
-    });
-    if (removed) this.fireDismissCallbacks(id, reason);
+    if (this.pendingRemoval.has(id)) return; // already exiting
+    const target = this.stack().find((n) => n.id === id);
+    if (!target) return;
+
+    // Stage 1: flag the exit so the component runs its CSS transition.
+    this.stack.update((current) => current.map((n) => (n.id === id ? { ...n, dismissing: true, dismissReason: reason } : n)));
+
+    // Stage 2: schedule the actual removal once the exit animation finishes.
+    this.scheduleRemoval(id, reason);
   }
 
-  /** Dismiss every notification in the stack. */
+  /**
+   * Dismiss every notification in the stack. Each entry plays its exit
+   * animation; actual removal staggers per the standard exit timing.
+   */
   dismissAll(): void {
     const ids = this.stack().map((n) => n.id);
-    this.stack.set([]);
-    ids.forEach((id) => this.fireDismissCallbacks(id, 'all'));
+    this.stack.update((current) => current.map((n) => (n.dismissing ? n : { ...n, dismissing: true, dismissReason: 'all' as const })));
+    for (const id of ids) {
+      if (!this.pendingRemoval.has(id)) this.scheduleRemoval(id, 'all');
+    }
   }
 
   /**
@@ -186,6 +206,21 @@ export class NotificationService {
         this.dismissCallbacks.set(id, list);
       },
     };
+  }
+
+  /**
+   * Schedule the second stage of a dismiss — actual stack removal +
+   * dismiss-callback firing — after the exit animation completes. Idempotent:
+   * if a removal is already pending for the id, this is a no-op.
+   */
+  private scheduleRemoval(id: string, reason: NotificationDismissReason): void {
+    if (this.pendingRemoval.has(id)) return;
+    const timeoutId = setTimeout(() => {
+      this.pendingRemoval.delete(id);
+      this.stack.update((current) => current.filter((n) => n.id !== id));
+      this.fireDismissCallbacks(id, reason);
+    }, NotificationService.EXIT_ANIMATION_MS);
+    this.pendingRemoval.set(id, timeoutId);
   }
 
   private fireDismissCallbacks(id: string, reason: NotificationDismissReason): void {

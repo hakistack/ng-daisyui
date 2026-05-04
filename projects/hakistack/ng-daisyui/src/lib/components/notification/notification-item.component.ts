@@ -34,6 +34,8 @@ import { Notification, NotificationAction, NotificationDismissReason } from './n
     class: 'hk-notification-item pointer-events-auto block w-full',
     '[attr.role]': '"alert"',
     '[attr.aria-atomic]': '"true"',
+    '[attr.aria-hidden]': 'notification().dismissing ? "true" : null',
+    '[class.is-exiting]': 'notification().dismissing',
     '(mouseenter)': 'onHoverEnter()',
     '(mouseleave)': 'onHoverLeave()',
   },
@@ -87,10 +89,12 @@ export class NotificationItemComponent {
   constructor() {
     // Schedule auto-dismiss on mount (or whenever the notification's duration
     // changes via update()). Re-runs cleanly because we read both the id and
-    // duration as tracked deps.
+    // duration as tracked deps. Once `dismissing` flips true the timer stays
+    // cancelled — no more attempts to dismiss something already on its way out.
     effect(() => {
       const n = this.notification();
       this.cancelTimer();
+      if (n.dismissing) return;
       if (n.duration && n.duration > 0) {
         this.remainingMs = n.duration;
         this.startTimer();
@@ -110,11 +114,13 @@ export class NotificationItemComponent {
   // ── Hover handlers ───────────────────────────────────────────────────────
 
   protected onHoverEnter(): void {
+    if (this.notification().dismissing) return;
     this.hovering = true;
     if (this.shouldPauseOnHover()) this.pauseTimer();
   }
 
   protected onHoverLeave(): void {
+    if (this.notification().dismissing) return;
     this.hovering = false;
     if (this.shouldPauseOnHover() && this.remainingMs > 0) this.startTimer();
   }

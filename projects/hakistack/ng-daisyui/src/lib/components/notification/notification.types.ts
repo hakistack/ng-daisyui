@@ -123,6 +123,22 @@ export interface Notification extends NotificationConfig {
   readonly position: NotificationPosition;
   /** Wall-clock time the notification was added — useful for sorting / animations. */
   readonly createdAt: number;
+
+  /**
+   * @internal
+   * Set to `true` by the service while the exit animation plays. The per-item
+   * component watches this and toggles its `is-exiting` class so the same
+   * CSS transition that runs on entrance plays in reverse on dismiss.
+   * Removed from the stack ~220ms after this flips true.
+   */
+  readonly dismissing?: boolean;
+
+  /**
+   * @internal
+   * Reason the dismissal was triggered — captured at flip-time so the
+   * `onDismiss` callbacks fire with the correct reason after the exit animation.
+   */
+  readonly dismissReason?: NotificationDismissReason;
 }
 
 /** Reason a notification was dismissed — passed to the `onDismiss` callback. */
