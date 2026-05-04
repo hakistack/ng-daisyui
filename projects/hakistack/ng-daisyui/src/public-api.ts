@@ -183,6 +183,26 @@ export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } f
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
 
+// Command Palette
+export { CommandPaletteComponent } from './lib/components/command-palette/command-palette.component';
+export { createCommandPalette } from './lib/components/command-palette/command-palette.helpers';
+export {
+  HK_COMMAND_PALETTE_LABELS,
+  provideHkCommandPaletteLabels,
+  DEFAULT_COMMAND_PALETTE_LABELS,
+} from './lib/components/command-palette/command-palette.labels';
+export type { CommandPaletteLabels, ResolvedCommandPaletteLabels } from './lib/components/command-palette/command-palette.labels';
+export type {
+  CommandPaletteItem,
+  CommandPaletteGroup,
+  CommandPaletteMode,
+  CommandPaletteFilter,
+  CommandPaletteHotkey,
+  CommandPaletteConfig,
+  CommandPaletteController,
+  CommandPaletteState,
+} from './lib/components/command-palette/command-palette.types';
+
 // PDF Viewer
 export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';

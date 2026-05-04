@@ -1,0 +1,4 @@
+/* Command palette custom styles. Most of layout is Tailwind utility
+   classes in the template; this file is reserved for things that don't
+   fit utilities well — primarily the native `<dialog>` backdrop styling
+   and any focus-management edge cases that land in follow-up commits. */

@@ -1,0 +1,9 @@
+<!-- Phase 1 scaffolding: the component renders nothing visible until mounted.
+     The modal + search + mode prefixes + keyboard nav land in follow-up
+     commits. For now we just take the config input + expose the controller
+     surface so the public API is locked from day one. -->
+<ng-container *ngIf="false">
+  <div [class]="panelClass()">
+    <span aria-hidden="true">{{ labels().searchPlaceholder }}</span>
+  </div>
+</ng-container>
