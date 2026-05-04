@@ -1,0 +1,49 @@
+/* Slide-in entrance — uses CSS @starting-style so we don't need Angular
+   animations or a JS-driven library. The host wrapper sets the data-position
+   attribute (or the panel inherits it) so the slide direction matches the
+   anchor: from the right when stack is right-anchored, etc.
+
+   For Phase 1 we use a single neutral entrance (translateY + fade) that
+   reads cleanly regardless of position. Per-edge variants can land later
+   when the host exposes the position to descendants via custom property. */
+
+:host {
+  /* opacity + transform transition for both the entrance (via @starting-style)
+     and the exit (handled by Angular's removal — instantaneous unless we
+     defer; deferred removal is Phase 2 polish). */
+  transition:
+    opacity 220ms ease-out,
+    transform 220ms ease-out;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@starting-style {
+  :host {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* Reduced-motion: no transform, just a quick opacity fade so the appearance
+   isn't jarring but doesn't include any motion. */
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    transition: opacity 120ms linear;
+    transform: none;
+  }
+  @starting-style {
+    :host {
+      opacity: 0;
+      transform: none;
+    }
+  }
+}
+
+/* The card has its own border via theme.classes.cardBorder; we add a soft
+   ring on focus-within so action buttons get a visible focus indicator
+   without conflicting with the panel's own outline. */
+:host .hk-notification-panel:focus-within {
+  outline: 2px solid hsl(var(--p) / 0.4);
+  outline-offset: 2px;
+}

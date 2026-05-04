@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HK_THEME } from '../../theme/theme.config';
 import { DEFAULT_NOTIFICATION_LABELS, HK_NOTIFICATION_LABELS, ResolvedNotificationLabels } from './notification.labels';
+import { NotificationItemComponent } from './notification-item.component';
 import { NotificationService } from './notification.service';
 import { NotificationPosition } from './notification.types';
 
@@ -10,11 +10,11 @@ import { NotificationPosition } from './notification.types';
  * persists across route changes) so `NotificationService` notifications
  * appear in a consistent location.
  *
- * **Phase 1 status (current):** scaffolding only — accepts the service stack,
- * renders a placeholder for each notification (title + close). Layout
- * variants (`default` / `side-action` / `stacked-action`), severity icons,
- * action buttons, slide-in animations, and pause-on-hover land in the next
- * commit.
+ * Iterates `NotificationService.notifications()` and delegates rendering
+ * to `<hk-notification-item>` per entry. Manages only stack-level layout
+ * (position anchor, column alignment, ARIA live region) — per-item
+ * lifecycle (timer, hover-pause, autofocus, action handling) lives in
+ * `NotificationItemComponent`.
  *
  * @example
  * // app.config.ts:
@@ -31,13 +31,12 @@ import { NotificationPosition } from './notification.types';
  */
 @Component({
   selector: 'hk-notification-host',
-  imports: [CommonModule],
+  imports: [CommonModule, NotificationItemComponent],
   templateUrl: './notification-host.component.html',
   styleUrl: './notification-host.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NotificationHostComponent {
-  private readonly theme = inject(HK_THEME);
   private readonly userLabels = inject(HK_NOTIFICATION_LABELS, { optional: true });
   protected readonly service = inject(NotificationService);
 
@@ -47,19 +46,21 @@ export class NotificationHostComponent {
     ...this.userLabels,
   }));
 
-  /** Container alignment classes — derived from the configured position. */
+  /** Outer wrapper alignment classes — derived from the configured position. */
   readonly containerClass = computed(() => this.containerClassFor(this.service.config.position));
 
-  /** Per-panel theme-bridged card class (used in the next commit's template fill-in). */
-  readonly panelClass = computed(() => `card ${this.theme.classes.cardBorder} bg-base-100 shadow-lg w-full max-w-sm pointer-events-auto`);
-
-  protected dismiss(id: string): void {
-    this.service.dismiss(id, 'manual');
-  }
+  /**
+   * Inner stack alignment. For bottom anchors we reverse the column so the
+   * newest notification sits closest to the bottom edge (where the user's
+   * eye lands on a stacking-from-the-bottom UI).
+   */
+  readonly stackClass = computed(() => {
+    const isBottom = this.service.config.position.startsWith('bottom-');
+    return `flex flex-col gap-3 max-w-md w-full ${isBottom ? 'flex-col-reverse' : ''}`;
+  });
 
   /** Map a `NotificationPosition` to Tailwind alignment classes. */
   private containerClassFor(position: NotificationPosition): string {
-    // Fixed full-screen wrapper is shared; only the inner stack alignment changes.
     const base = 'pointer-events-none fixed inset-0 z-50 flex p-4 sm:p-6';
     switch (position) {
       case 'top-right':
