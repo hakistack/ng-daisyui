@@ -180,6 +180,29 @@ export { TOAST_CONFIG, DEFAULT_TOAST_CONFIG, provideToast } from './lib/componen
 export type { ToastGlobalConfig, ToastLabels } from './lib/components/toast/toast.config';
 export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } from './lib/components/toast/toast.types';
 
+// Notification (richer overlay-events component, complementary to Toast)
+export { NotificationHostComponent } from './lib/components/notification/notification-host.component';
+export { NotificationService } from './lib/components/notification/notification.service';
+export { NOTIFICATION_CONFIG, DEFAULT_NOTIFICATION_CONFIG, provideNotification } from './lib/components/notification/notification.config';
+export {
+  HK_NOTIFICATION_LABELS,
+  provideHkNotificationLabels,
+  DEFAULT_NOTIFICATION_LABELS,
+} from './lib/components/notification/notification.labels';
+export type { NotificationLabels, ResolvedNotificationLabels } from './lib/components/notification/notification.labels';
+export type {
+  Notification,
+  NotificationConfig,
+  NotificationAction,
+  NotificationSeverity,
+  NotificationLayout,
+  NotificationPosition,
+  NotificationDismissReason,
+  NotificationRef,
+  NotificationGlobalConfig,
+  ResolvedNotificationGlobalConfig,
+} from './lib/components/notification/notification.types';
+
 // Dialog Wrapper
 export { DialogWrapperComponent } from './lib/components/dialog-wrapper/dialog-wrapper.component';
 

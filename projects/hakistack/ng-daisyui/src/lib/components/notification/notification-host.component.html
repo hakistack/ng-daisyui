@@ -1,0 +1,32 @@
+<!-- Phase 1 scaffolding: minimal stack rendering. Severity icons, layout variants,
+     action buttons, and slide-in animations land in the next commit. -->
+<div [class]="containerClass()" aria-live="assertive" role="region">
+  <div class="flex w-full flex-col gap-3 max-w-sm">
+    @for (notification of service.notifications(); track notification.id) {
+      <div [class]="panelClass()" role="alert">
+        <div class="card-body p-4 flex-row items-start gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium">{{ notification.title }}</p>
+            @if (notification.message) {
+              <p class="mt-1 text-sm text-base-content/60">{{ notification.message }}</p>
+            }
+          </div>
+          @if (notification.closable) {
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square -mr-2 -mt-2 shrink-0"
+              [attr.aria-label]="labels().closeAriaLabel"
+              (click)="dismiss(notification.id)"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-4">
+                <path
+                  d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+                />
+              </svg>
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>
