@@ -1,4 +1,31 @@
-/* Command palette custom styles. Most of layout is Tailwind utility
-   classes in the template; this file is reserved for things that don't
-   fit utilities well — primarily the native `<dialog>` backdrop styling
-   and any focus-management edge cases that land in follow-up commits. */
+/* Command palette positions higher in the viewport than a centered modal —
+   matches the convention for spotlight/launcher UIs (VS Code, Linear, etc).
+   The user expects results below the input, not centered in the screen. */
+:host dialog.modal {
+  align-items: flex-start;
+  padding-top: clamp(2rem, 12vh, 8rem);
+}
+
+/* Subtle slide-in for the panel on open. daisyUI's modal handles the
+   backdrop fade automatically via the `[open]` attribute. */
+:host dialog.modal[open] .modal-box {
+  animation: hk-cmd-slide-in 180ms ease-out;
+}
+
+@keyframes hk-cmd-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Honor reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  :host dialog.modal[open] .modal-box {
+    animation: none;
+  }
+}
