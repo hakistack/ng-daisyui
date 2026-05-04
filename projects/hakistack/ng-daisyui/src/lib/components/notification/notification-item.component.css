@@ -2,33 +2,42 @@
    The host element has its `is-exiting` class toggled by the service when it
    starts the two-stage dismiss; the same `transition` rule plays in either
    direction (mount via @starting-style for entrance, removal via the
-   class-driven state change for exit). */
+   class-driven state change for exit).
+
+   Slide direction is position-aware via two CSS custom properties bound on
+   the host:
+     --hk-enter-from  small offset toward the anchor edge (entrance)
+     --hk-exit-to     full-width offset off-screen along the anchor (exit)
+   Right-anchored stacks slide right, left-anchored slide left, top-center
+   slides up, bottom-center slides down. The fallback values handle any
+   notifications rendered before Angular sets the host inline styles. */
 
 :host {
   /* Idle state: fully visible, no offset. */
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(0) translateY(0);
   transition:
     opacity 220ms ease-out,
     transform 220ms ease-out;
 }
 
-/* Entrance — initial paint state lerped to idle by the transition above. */
+/* Entrance — initial paint state lerped to idle by the transition above.
+   Uses --hk-enter-from set on the host (e.g. translateX(12px) for right-anchored). */
 @starting-style {
   :host {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: var(--hk-enter-from, translateY(-12px));
   }
 }
 
 /* Exit — set when the service marks `dismissing: true`. The same transition
-   rule on `:host` smoothly animates from the idle state back to this. The
-   service removes the node from the DOM ~240ms later (see EXIT_ANIMATION_MS
-   in notification.service.ts). Pointer events are killed during exit so the
-   user can't click an action button on a panel that's already on its way out. */
+   on `:host` smoothly animates from the idle state to this. The service
+   removes the node from the DOM ~240ms later (see EXIT_ANIMATION_MS in
+   notification.service.ts). pointer-events:none while exiting prevents
+   clicks on a panel that's already on its way out. */
 :host.is-exiting {
   opacity: 0;
-  transform: translateY(-8px) scale(0.98);
+  transform: var(--hk-exit-to, translateX(120%));
   pointer-events: none;
 }
 

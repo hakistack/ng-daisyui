@@ -40,6 +40,12 @@ import { Notification, NotificationAction, NotificationDismissReason } from './n
     // that still owns focus (the close button the user just clicked).
     '[attr.inert]': 'notification().dismissing ? "" : null',
     '[class.is-exiting]': 'notification().dismissing',
+    // CSS custom properties drive the position-aware slide direction.
+    // Both entrance (@starting-style) and exit (.is-exiting) reference these
+    // via var(...) so right-anchored stacks slide right, left-anchored slide
+    // left, etc. Set as inline styles so they're available at first paint.
+    '[style.--hk-enter-from]': 'enterFrom()',
+    '[style.--hk-exit-to]': 'exitTo()',
     '(mouseenter)': 'onHoverEnter()',
     '(mouseleave)': 'onHoverLeave()',
   },
@@ -82,6 +88,37 @@ export class NotificationItemComponent {
   readonly panelClass = computed(
     () => `card ${this.theme.classes.cardBorder} bg-base-100 shadow-lg w-full overflow-hidden hk-notification-panel`,
   );
+
+  /**
+   * Initial transform for the entrance animation — read by `@starting-style`.
+   * A small offset (12px) toward the anchor edge reads as a subtle slide-in.
+   */
+  readonly enterFrom = computed(() => this.transformForPosition('12px'));
+
+  /**
+   * Final transform for the exit animation — applied when `.is-exiting` is set.
+   * Slides the panel fully out of the viewport along its own width/height
+   * toward the anchored edge.
+   */
+  readonly exitTo = computed(() => this.transformForPosition('120%'));
+
+  /** Map the resolved position to a translate() that slides toward the anchor edge. */
+  private transformForPosition(distance: string): string {
+    switch (this.notification().position) {
+      case 'top-right':
+      case 'bottom-right':
+        return `translateX(${distance})`;
+      case 'top-left':
+      case 'bottom-left':
+        return `translateX(-${distance})`;
+      case 'top-center':
+        return `translateY(-${distance})`;
+      case 'bottom-center':
+        return `translateY(${distance})`;
+      default:
+        return `translateY(-${distance})`;
+    }
+  }
 
   // ── Auto-dismiss timer ───────────────────────────────────────────────────
 
