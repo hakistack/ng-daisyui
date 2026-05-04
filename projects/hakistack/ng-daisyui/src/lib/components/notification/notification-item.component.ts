@@ -34,7 +34,11 @@ import { Notification, NotificationAction, NotificationDismissReason } from './n
     class: 'hk-notification-item pointer-events-auto block w-full',
     '[attr.role]': '"alert"',
     '[attr.aria-atomic]': '"true"',
-    '[attr.aria-hidden]': 'notification().dismissing ? "true" : null',
+    // `inert` while exiting: kicks focus out of the subtree, blocks pointer +
+    // keyboard interaction, and hides from assistive tech. We can't use
+    // `aria-hidden` here — the browser warns when it's applied to an element
+    // that still owns focus (the close button the user just clicked).
+    '[attr.inert]': 'notification().dismissing ? "" : null',
     '[class.is-exiting]': 'notification().dismissing',
     '(mouseenter)': 'onHoverEnter()',
     '(mouseleave)': 'onHoverLeave()',
