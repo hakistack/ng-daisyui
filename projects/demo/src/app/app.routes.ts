@@ -60,6 +60,11 @@ export const routes: Routes = [
   // Navigation
   { path: 'tabs', redirectTo: 'tabs/basic', pathMatch: 'full' },
   { path: 'tabs/:feature', loadComponent: () => import('@shared-demos/demos/tabs-demo.component').then((m) => m.TabsDemoComponent) },
+  { path: 'command-palette', redirectTo: 'command-palette/basic', pathMatch: 'full' },
+  {
+    path: 'command-palette/:feature',
+    loadComponent: () => import('@shared-demos/demos/command-palette-demo.component').then((m) => m.CommandPaletteDemoComponent),
+  },
   // Feedback
   { path: 'toast', redirectTo: 'toast/basic', pathMatch: 'full' },
   { path: 'toast/:feature', loadComponent: () => import('@shared-demos/demos/toast-demo.component').then((m) => m.ToastDemoComponent) },

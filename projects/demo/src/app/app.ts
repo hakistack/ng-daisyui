@@ -461,6 +461,16 @@ export class App implements OnInit {
             { id: 'vertical', label: 'Vertical' },
           ],
         },
+        {
+          path: '/command-palette',
+          label: 'Command Palette',
+          icon: 'search',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'modes', label: 'Mode Prefixes' },
+            { id: 'hotkey', label: 'Hotkey & Filters' },
+          ],
+        },
       ],
     },
     {
