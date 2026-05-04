@@ -15,7 +15,7 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
-import Fuse, { IFuseOptions } from 'fuse.js';
+import { createFuseCache, FuseCache } from '../../utils/fuse-cache';
 import { HK_THEME } from '../../theme/theme.config';
 
 export interface SelectOption {
@@ -148,9 +148,9 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     const opts = this.effectiveOptions();
 
     if (!term) return opts;
-    if (!this.fuse) return this.fallbackFilter(opts, term);
+    if (opts.length === 0) return this.fallbackFilter(opts, term);
 
-    return this.fuse.search(term).map((result) => result.item);
+    return this.fuseCache.search(term, opts, SelectComponent.FUSE_KEYS);
   });
 
   readonly displayValue = computed(() => {
@@ -259,27 +259,10 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     return heightMap[size];
   });
 
-  // Fuse search configuration
-  private readonly fuseConfig: IFuseOptions<SelectOption> = {
-    threshold: 0.3,
-    ignoreLocation: true,
-    isCaseSensitive: false,
-    keys: ['label', 'value'],
-    includeScore: true,
-    minMatchCharLength: 1,
-  };
-
-  private _fuse?: Fuse<SelectOption>;
-  private get fuse(): Fuse<SelectOption> | undefined {
-    if (!this.enableSearch()) {
-      return undefined;
-    }
-
-    if (!this._fuse && this.effectiveOptions().length > 0) {
-      this._fuse = new Fuse(this.effectiveOptions(), this.fuseConfig);
-    }
-    return this._fuse;
-  }
+  // Fuzzy-search cache. Auto-invalidates on data ref or keys change.
+  // No `includeScore` — we don't read scores; computing them is wasted work.
+  private readonly fuseCache: FuseCache<SelectOption> = createFuseCache<SelectOption>();
+  private static readonly FUSE_KEYS: readonly string[] = ['label', 'value'];
 
   // Keyboard event handlers map
   private readonly keyboardHandlers: KeyboardEventHandler = {
@@ -301,11 +284,13 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   private setupEffects(): void {
-    // Reset Fuse cache when options change or search is enabled/disabled
+    // Free the Fuse index when search is disabled — its data-ref / keys
+    // invalidation is automatic, but the index still holds memory we can
+    // release. Re-enabling search will rebuild lazily on next query.
     effect(() => {
-      this.effectiveOptions();
-      this.enableSearch();
-      this._fuse = undefined;
+      if (!this.enableSearch()) {
+        this.fuseCache.reset();
+      }
     });
   }
 

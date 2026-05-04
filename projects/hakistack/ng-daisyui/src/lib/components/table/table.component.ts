@@ -26,7 +26,8 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
-import Fuse, { IFuseOptions } from 'fuse.js';
+import { IFuseOptions } from 'fuse.js';
+import { createFuseCache, FuseCache } from '../../utils/fuse-cache';
 
 import { AutoFocusDirective } from '../../directives';
 import { HkCellTemplateDirective } from './table-cell-template.directive';
@@ -501,17 +502,11 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   private readonly debouncedSearchTerm = signal<string>('');
   private searchDebounceTimeout?: ReturnType<typeof setTimeout>;
 
-  // Fuse.js instance for fuzzy search (cached — only rebuilt when data changes)
-  private _fuseInstance?: Fuse<T>;
-  private _fuseDataRef: readonly T[] | null = null;
-  private readonly defaultFuseConfig: IFuseOptions<T> = {
-    threshold: 0.3,
-    ignoreLocation: true,
-    isCaseSensitive: false,
-    includeScore: true,
-    minMatchCharLength: 1,
-    keys: [], // Will be populated dynamically with searchable fields
-  };
+  // Fuzzy-search cache — auto-invalidates on data-ref OR keys change.
+  // No `includeScore` (was a 0.1.76- defect — score computed but never read).
+  // Recreated when consumer passes a *different* `fuseOptions` object reference.
+  private fuseCache: FuseCache<T> = createFuseCache<T>();
+  private _fuseOptionsRef: IFuseOptions<T> | undefined;
 
   // Global search computed signals
   readonly hasGlobalSearchSignal = computed(() => this.fieldConfig()?.globalSearch?.enabled ?? false);
@@ -2676,8 +2671,10 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   /**
-   * Performs fuzzy search using Fuse.js
-   * Handles instance creation/update and search execution
+   * Performs fuzzy search via the shared FuseCache helper. The cache
+   * invalidates on data-ref OR keys change — so toggling column visibility
+   * or `excludeFields` correctly rebuilds the index, which the previous
+   * data-only invalidation missed.
    */
   private performFuzzySearch(data: readonly T[], searchTerm: string, config: NonNullable<GlobalSearchConfig<T>>): readonly T[] {
     const excludeFields = new Set(config.excludeFields ?? []);
@@ -2686,28 +2683,31 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
         ?.map((col) => col.field)
         .filter((f) => !excludeFields.has(f)) ?? [];
 
-    // If no searchable fields, return empty
     if (searchableFields.length === 0) return [];
 
-    // Build Fuse.js configuration
-    const fuseOptions: IFuseOptions<T> = {
-      ...this.defaultFuseConfig,
-      keys: searchableFields.map((field) => String(field)),
-      threshold: config.fuseOptions?.threshold ?? this.defaultFuseConfig.threshold,
-      ignoreLocation: config.fuseOptions?.ignoreLocation ?? this.defaultFuseConfig.ignoreLocation,
-      minMatchCharLength: config.fuseOptions?.minMatchCharLength ?? this.defaultFuseConfig.minMatchCharLength,
-      includeScore: config.fuseOptions?.includeScore ?? this.defaultFuseConfig.includeScore,
-    };
+    const searchableKeys = searchableFields.map((f) => String(f));
 
-    // Only rebuild Fuse index when data reference changes (avoids O(n) rebuild per keystroke)
-    if (this._fuseDataRef !== data || !this._fuseInstance) {
-      this._fuseInstance = new Fuse([...data], fuseOptions);
-      this._fuseDataRef = data;
+    // Recreate the cache only when the consumer's `fuseOptions` reference
+    // changes — not on every keystroke. This honors consumer overrides
+    // (threshold, ignoreLocation, etc.) without thrashing the cache.
+    const consumerOptions = config.fuseOptions;
+    if (consumerOptions !== this._fuseOptionsRef) {
+      this._fuseOptionsRef = consumerOptions;
+      this.fuseCache = createFuseCache<T>(consumerOptions ? this.extractFuseOverrides(consumerOptions) : undefined);
     }
 
-    // Perform search and return matched items
-    const results = this._fuseInstance.search(searchTerm);
-    return results.map((result) => result.item);
+    return this.fuseCache.search(searchTerm, data, searchableKeys);
+  }
+
+  /** Whitelist Fuse options that are safe to override per-instance. */
+  private extractFuseOverrides(opts: IFuseOptions<T>): Omit<IFuseOptions<T>, 'keys'> {
+    return {
+      threshold: opts.threshold,
+      ignoreLocation: opts.ignoreLocation,
+      minMatchCharLength: opts.minMatchCharLength,
+      includeScore: opts.includeScore,
+      isCaseSensitive: opts.isCaseSensitive,
+    };
   }
 
   // Apply a single filter to a row
