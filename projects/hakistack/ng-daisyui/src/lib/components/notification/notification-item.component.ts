@@ -84,10 +84,26 @@ export class NotificationItemComponent {
   /** True when severity icon should render — fallback when no avatar / iconTemplate is set. */
   readonly showSeverityIcon = computed(() => !this.notification().iconTemplate && !this.notification().avatar);
 
-  /** Theme-bridged panel class; mirrors the host's panel styling for consistency. */
-  readonly panelClass = computed(
-    () => `card ${this.theme.classes.cardBorder} bg-base-100 shadow-lg w-full overflow-hidden hk-notification-panel`,
-  );
+  /**
+   * daisyUI-native panel class. Builds on the `alert` component so notifications
+   * inherit the same look-and-feel as the rest of the lib (toast / inline alerts):
+   *
+   * - **Severity-driven** (no avatar, no iconTemplate): `alert alert-soft alert-{severity}`
+   *   — soft-tinted background matching the semantic color, stroke-current
+   *   icons inherit color automatically.
+   * - **Avatar-driven** (user notifications): `alert bg-base-100` — neutral panel
+   *   so the avatar reads as the dominant element.
+   *
+   * Always adds `shadow-lg` (overlay convention) and the theme-bridged border
+   * via `cardBorder` so v4 / v5 consumers stay aligned.
+   */
+  readonly panelClass = computed(() => {
+    const base = `alert ${this.theme.classes.cardBorder} shadow-lg w-full hk-notification-panel`;
+    if (this.notification().avatar || this.notification().iconTemplate) {
+      return `${base} bg-base-100`;
+    }
+    return `${base} alert-soft alert-${this.notification().severity}`;
+  });
 
   /**
    * Initial transform for the entrance animation — read by `@starting-style`.
