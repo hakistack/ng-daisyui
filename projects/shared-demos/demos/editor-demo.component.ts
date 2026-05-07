@@ -3,12 +3,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { map } from 'rxjs';
+import { LucideFileText, LucidePencil } from '@lucide/angular';
 import { createForm, field, DynamicFormComponent } from '@hakistack/ng-daisyui';
-import { EditorComponent } from '../../hakistack/ng-daisyui/src/lib/components';
+import { EditorComponent, slash, createSlashCommands } from '../../hakistack/ng-daisyui/src/lib/components';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { DemoPageComponent } from '../shared/demo-page.component';
 
-type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic';
+type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic' | 'slash';
 
 @Component({
   selector: 'app-editor-demo',
@@ -94,6 +95,26 @@ type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic';
             </app-doc-section>
           </div>
         }
+
+        @if (activeTab() === 'slash') {
+          <div class="grid gap-6">
+            <app-doc-section
+              title="Slash Commands (Built-ins)"
+              description="Type '/' on a new line to open the command palette. Built-in set covers headings, lists, blockquote, code block, and divider."
+              [codeExample]="slashBuiltinCode"
+            >
+              <hk-editor placeholder="Type '/' to open the slash menu…" [slashCommands]="true" editorHeight="220px" />
+            </app-doc-section>
+
+            <app-doc-section
+              title="Slash Commands (Custom Items)"
+              description="Pass an array of EditorSlashCommand to replace the built-ins, or { items, append: true } to extend them."
+              [codeExample]="slashCustomCode"
+            >
+              <hk-editor placeholder="Try /signature or /heading…" [slashCommands]="customSlashCommands" editorHeight="220px" />
+            </app-doc-section>
+          </div>
+        }
       </div>
     </app-demo-page>
   `,
@@ -143,6 +164,78 @@ export class EditorDemoComponent {
   reactiveCode = `contentControl = new FormControl('');
 
 <hk-editor [formControl]="contentControl" />`;
+
+  customSlashCommands = createSlashCommands({
+    append: true, // keep the built-ins, add ours after
+    items: [
+      // Inline snippet — string literal
+      slash.snippet({
+        id: 'signature',
+        label: 'Signature',
+        description: 'Insert your saved signature block',
+        icon: LucidePencil,
+        keywords: ['sign', 'sig'],
+        group: 'Snippets',
+        html: '<p>—<br/><strong>Jose Rios</strong><br/><em>Hakistack</em></p>',
+      }),
+      // File-loaded snippet — fetched from /snippets/meeting-notes.html on commit
+      slash.snippetFromUrl({
+        id: 'meeting-notes',
+        label: 'Meeting notes template',
+        description: 'Load the saved template from a remote .html file',
+        icon: LucideFileText,
+        keywords: ['meeting', 'notes', 'template'],
+        group: 'Snippets',
+        url: 'snippets/meeting-notes.html',
+      }),
+    ],
+  });
+
+  slashBuiltinCode = `<hk-editor
+  placeholder="Type '/' to open the slash menu…"
+  [slashCommands]="true"
+/>`;
+
+  slashCustomCode = `import { LucideFileText, LucidePencil } from '@lucide/angular';
+import { slash, createSlashCommands } from '@hakistack/ng-daisyui';
+
+customSlashCommands = createSlashCommands({
+  append: true,
+  items: [
+    // 1) Inline string — bundled into your code
+    slash.snippet({
+      id: 'signature',
+      label: 'Signature',
+      icon: LucidePencil,
+      group: 'Snippets',
+      html: '<p>— <strong>Jose</strong></p>',
+    }),
+
+    // 2) Loaded from a remote .html file at commit-time
+    slash.snippetFromUrl({
+      id: 'meeting-notes',
+      label: 'Meeting notes template',
+      icon: LucideFileText,
+      group: 'Snippets',
+      url: 'snippets/meeting-notes.html',
+    }),
+
+    // 3) Sync function — useful when the HTML depends on runtime state
+    slash.snippet({
+      id: 'today',
+      label: "Today's date",
+      html: () => \`<p>\${new Date().toDateString()}</p>\`,
+    }),
+
+    // 4) Chain command — use for editor commands like toggleTaskList()
+    // slash.command({ id, label, run: (chain) => chain.toggleTaskList() })
+
+    // 5) Full-power escape hatch
+    // slash.custom({ id, label, action: ({ editor, range }) => /* ... */ })
+  ],
+});
+
+<hk-editor [slashCommands]="customSlashCommands" />`;
 
   dynamicCode = `editorForm = createForm({
   fields: [

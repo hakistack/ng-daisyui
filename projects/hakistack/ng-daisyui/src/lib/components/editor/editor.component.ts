@@ -19,7 +19,16 @@ import { isPlatformBrowser } from '@angular/common';
 import { AbstractControl, ControlValueAccessor, NG_VALIDATORS, NG_VALUE_ACCESSOR, ValidationErrors, Validator } from '@angular/forms';
 import type { Editor } from '@tiptap/core';
 import { EditorToolbarComponent } from './editor-toolbar.component';
-import type { EditorImageUploader, EditorTextChangeEvent, EditorToolbarConfig, EditorToolbarItem } from './editor.types';
+import { EditorSlashMenuComponent } from './editor-slash-menu.component';
+import type {
+  EditorImageUploader,
+  EditorSlashCommand,
+  EditorSlashCommandConfig,
+  EditorTextChangeEvent,
+  EditorToolbarConfig,
+  EditorToolbarItem,
+} from './editor.types';
+import { BUILT_IN_SLASH_COMMANDS } from './slash-command.extension';
 
 /**
  * Rich text editor — TipTap (ProseMirror) backed, DaisyUI-native.
@@ -37,7 +46,7 @@ import type { EditorImageUploader, EditorTextChangeEvent, EditorToolbarConfig, E
  */
 @Component({
   selector: 'hk-editor',
-  imports: [EditorToolbarComponent],
+  imports: [EditorToolbarComponent, EditorSlashMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './editor.component.html',
@@ -78,6 +87,13 @@ export class EditorComponent implements ControlValueAccessor, Validator {
    */
   readonly onImageUpload = input<EditorImageUploader | undefined>(undefined);
 
+  /**
+   * Notion-style slash-command popup. `false` (default) disables the feature.
+   * `true` enables the built-in command set. An array replaces the built-ins
+   * with the consumer's own list. `{ items, append: true }` extends built-ins.
+   */
+  readonly slashCommands = input<EditorSlashCommandConfig>(false);
+
   readonly textChange = output<EditorTextChangeEvent>();
   readonly editorFocus = output<void>();
   readonly editorBlur = output<void>();
@@ -86,6 +102,17 @@ export class EditorComponent implements ControlValueAccessor, Validator {
   readonly ready = signal(false);
   /** Bumped on every ProseMirror transaction — toolbar closures read this reactively. */
   readonly tick = signal(0);
+
+  // ── Slash command popup state ────────────────────────────────────────────
+  // Driven by the suggestion plugin's render hooks. `slashOpen` toggles the
+  // popup; `slashItems` holds the filtered list; `slashActiveIdx` tracks
+  // keyboard selection; `slashStyle` positions the popup near the trigger.
+  readonly slashOpen = signal(false);
+  readonly slashItems = signal<readonly EditorSlashCommand[]>([]);
+  readonly slashActiveIdx = signal(0);
+  readonly slashStyle = signal<{ top: string; left: string } | null>(null);
+  readonly slashActiveId = computed(() => this.slashItems()[this.slashActiveIdx()]?.id ?? null);
+  private slashCommit: ((item: EditorSlashCommand) => void) | null = null;
 
   // Text-prompt modal state — used by both the link URL and image alt/URL
   // flows. `openTextPrompt()` returns a Promise that resolves with the input
@@ -150,6 +177,37 @@ export class EditorComponent implements ControlValueAccessor, Validator {
         import('@tiptap/extension-file-handler'),
       ]);
 
+    const slashItems = this.resolveSlashItems();
+    const slashExtension = slashItems
+      ? await (
+          await import('./slash-command.extension')
+        ).createSlashCommandExtension({
+          items: slashItems,
+          renderer: {
+            onStart: (state) => {
+              this.slashItems.set(state.items);
+              this.slashActiveIdx.set(0);
+              this.slashCommit = state.commit;
+              this.slashStyle.set(this.computeSlashStyle(state.clientRect));
+              this.slashOpen.set(true);
+            },
+            onUpdate: (state) => {
+              this.slashItems.set(state.items);
+              // Clamp active index when the filtered list shrinks below it.
+              this.slashActiveIdx.update((i) => Math.min(i, Math.max(0, state.items.length - 1)));
+              this.slashCommit = state.commit;
+              this.slashStyle.set(this.computeSlashStyle(state.clientRect));
+            },
+            onKeyDown: (event) => this.handleSlashKey(event),
+            onExit: () => {
+              this.slashOpen.set(false);
+              this.slashItems.set([]);
+              this.slashCommit = null;
+            },
+          },
+        })
+      : null;
+
     const extraClass = this.contentClass().trim();
     this.instance = new Editor({
       element: this.hostRef().nativeElement,
@@ -172,6 +230,7 @@ export class EditorComponent implements ControlValueAccessor, Validator {
             for (const file of files) this.uploadAndInsertImage(editor, file, { promptAlt: false });
           },
         }),
+        ...(slashExtension ? [slashExtension] : []),
       ],
       content: this.pendingValue ?? '',
       editable: !this.effectiveDisabled(),
@@ -335,6 +394,86 @@ export class EditorComponent implements ControlValueAccessor, Validator {
       confirmLabel: 'OK',
       showSkip: false,
     });
+  }
+
+  // ── Slash command helpers ─────────────────────────────────────────────
+
+  /** Resolve the configured slash-command list, or `null` when disabled. */
+  private resolveSlashItems(): readonly EditorSlashCommand[] | null {
+    const cfg = this.slashCommands();
+    if (cfg === false) return null;
+    if (cfg === true) return BUILT_IN_SLASH_COMMANDS;
+    if (Array.isArray(cfg)) return cfg as readonly EditorSlashCommand[];
+    // { items, append? } — append=true merges built-ins ahead of custom items.
+    const obj = cfg as { items: readonly EditorSlashCommand[]; append?: boolean };
+    return obj.append ? [...BUILT_IN_SLASH_COMMANDS, ...obj.items] : obj.items;
+  }
+
+  /**
+   * Convert the suggestion plugin's viewport-space `clientRect` into a host-
+   * relative `top/left` style for the popup. Falls back to caret-coords of
+   * the editor selection when the rect is missing (rare — happens during
+   * teardown / before first layout).
+   */
+  private computeSlashStyle(rect: DOMRect | null): { top: string; left: string } | null {
+    // Popup uses `position: fixed`, so the suggestion plugin's `clientRect`
+    // (already viewport-relative) maps straight to inline `top` / `left`.
+    // No wrapper-offset math, and the popup escapes the editor card's
+    // `overflow:hidden` boundary cleanly. Flips above the trigger when there
+    // isn't enough room below — keeps the menu visible on tall lists near
+    // the bottom of the viewport.
+    if (!rect) return null;
+    const popupHeight = 320; // matches max-h-80
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placeAbove = spaceBelow < popupHeight && rect.top > popupHeight;
+    const top = placeAbove ? rect.top - popupHeight - 4 : rect.bottom + 4;
+    return {
+      top: `${top}px`,
+      left: `${rect.left}px`,
+    };
+  }
+
+  /**
+   * Keyboard handler for the slash popup. Returns `true` when the event was
+   * handled (suggestion plugin then suppresses default editor behavior).
+   */
+  private handleSlashKey(event: KeyboardEvent): boolean {
+    if (!this.slashOpen()) return false;
+    const items = this.slashItems();
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.slashActiveIdx.update((i) => (items.length === 0 ? 0 : (i + 1) % items.length));
+      return true;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.slashActiveIdx.update((i) => (items.length === 0 ? 0 : (i - 1 + items.length) % items.length));
+      return true;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const item = items[this.slashActiveIdx()];
+      if (item && this.slashCommit) this.slashCommit(item);
+      return true;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      // Suggestion plugin handles dismiss after we return true; just clear.
+      this.slashOpen.set(false);
+      return true;
+    }
+    return false;
+  }
+
+  /** Template handler — clicking an item in the popup commits it. */
+  onSlashCommit(item: EditorSlashCommand): void {
+    this.slashCommit?.(item);
+  }
+
+  /** Template handler — mouse hover sets the active row. */
+  onSlashHover(id: string): void {
+    const idx = this.slashItems().findIndex((i) => i.id === id);
+    if (idx >= 0) this.slashActiveIdx.set(idx);
   }
 
   /** Called from the modal template. */

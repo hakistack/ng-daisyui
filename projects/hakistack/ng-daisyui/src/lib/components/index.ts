@@ -144,11 +144,16 @@ export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } f
 // Editor (TipTap-backed <hk-editor>; see docs/plans/editor.md)
 export { EditorComponent } from './editor/editor.component';
 export { EditorToolbarComponent } from './editor/editor-toolbar.component';
+export { EditorSlashMenuComponent } from './editor/editor-slash-menu.component';
 export { TOOLBAR_PRESETS, TOOLBAR_ICONS, TOOLBAR_LABELS } from './editor/editor.defaults';
+export { BUILT_IN_SLASH_COMMANDS, filterSlashCommands, slash, createSlashCommands } from './editor/slash-command.extension';
+export type { SlashSnippetOptions, SlashSnippetFromUrlOptions, SlashChainCommandOptions } from './editor/slash-command.extension';
 export type {
   EditorToolbarConfig,
   EditorToolbarItem,
   EditorToolbarPreset,
   EditorTextChangeEvent,
   EditorImageUploader,
+  EditorSlashCommand,
+  EditorSlashCommandConfig,
 } from './editor/editor.types';

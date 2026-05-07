@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 
 import { createTable } from './table.helpers';
 import { FieldConfiguration, SortChange } from './table.types';
@@ -1099,6 +1100,110 @@ describe('TableComponent', () => {
       fixture.detectChanges();
 
       expect(component.globalSearchTerm()).toBe('');
+    });
+
+    // Regression: mounting a cursor-paginated table used to fire a phantom
+    // `globalSearchChange` event with an empty term during the initial debounce
+    // tick. Server-side consumers that also load data in `ngOnInit` ended up
+    // making two duplicate first-load HTTP calls. The emit is now gated on
+    // the term actually changing.
+    it('does not emit globalSearchChange on initial mount in cursor mode', () => {
+      vi.useFakeTimers();
+      try {
+        const config = buildConfig({
+          visible: ['name', 'email'],
+          globalSearch: { enabled: true },
+        });
+        fixture.componentRef.setInput('config', config);
+        fixture.componentRef.setInput('data', SAMPLE_DATA);
+        fixture.componentRef.setInput('paginationOptions', { mode: 'cursor', pageSize: 10 });
+
+        const emits: unknown[] = [];
+        component.globalSearchChange.subscribe((event) => emits.push(event));
+
+        fixture.detectChanges();
+        vi.advanceTimersByTime(500); // flush the debounce timeout
+
+        expect(emits).toEqual([]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('emits globalSearchChange exactly once per debounced user keystroke in cursor mode', () => {
+      vi.useFakeTimers();
+      try {
+        const config = buildConfig({
+          visible: ['name', 'email'],
+          globalSearch: { enabled: true, debounceTime: 100 },
+        });
+        fixture.componentRef.setInput('config', config);
+        fixture.componentRef.setInput('data', SAMPLE_DATA);
+        fixture.componentRef.setInput('paginationOptions', { mode: 'cursor', pageSize: 10 });
+
+        const emits: { searchTerm: string }[] = [];
+        component.globalSearchChange.subscribe((event) => emits.push(event));
+
+        fixture.detectChanges();
+        vi.advanceTimersByTime(200); // flush initial debounce — should not emit
+
+        component.onGlobalSearchChange('Alice');
+        fixture.detectChanges();
+        vi.advanceTimersByTime(200);
+
+        expect(emits.length).toBe(1);
+        expect(emits[0].searchTerm).toBe('Alice');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('clearGlobalSearch emits when called from a non-empty term in cursor mode', () => {
+      vi.useFakeTimers();
+      try {
+        const config = buildConfig({
+          visible: ['name', 'email'],
+          globalSearch: { enabled: true, debounceTime: 50 },
+        });
+        fixture.componentRef.setInput('config', config);
+        fixture.componentRef.setInput('data', SAMPLE_DATA);
+        fixture.componentRef.setInput('paginationOptions', { mode: 'cursor', pageSize: 10 });
+        fixture.detectChanges();
+        vi.advanceTimersByTime(100);
+
+        component.onGlobalSearchChange('Alice');
+        fixture.detectChanges();
+        vi.advanceTimersByTime(100);
+
+        const emits: { searchTerm: string }[] = [];
+        component.globalSearchChange.subscribe((event) => emits.push(event));
+
+        component.clearGlobalSearch();
+        fixture.detectChanges();
+
+        expect(emits.length).toBe(1);
+        expect(emits[0].searchTerm).toBe('');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('clearGlobalSearch is a no-op when the term is already empty', () => {
+      const config = buildConfig({
+        visible: ['name', 'email'],
+        globalSearch: { enabled: true },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.componentRef.setInput('paginationOptions', { mode: 'cursor', pageSize: 10 });
+      fixture.detectChanges();
+
+      const emits: unknown[] = [];
+      component.globalSearchChange.subscribe((event) => emits.push(event));
+
+      component.clearGlobalSearch();
+
+      expect(emits).toEqual([]);
     });
   });
 

@@ -10,12 +10,24 @@
     [disabled]="effectiveDisabled()"
     (toolbarCommand)="runCommand($event)"
   />
-  <div
-    #host
-    class="hk-editor__surface px-4 py-3 cursor-text overflow-y-auto text-base-content selection:bg-primary/30 selection:text-inherit"
-    [style.min-height]="editorHeight()"
-    [attr.aria-label]="ariaLabel() || placeholder() || 'Rich text editor'"
-  ></div>
+  <div class="relative">
+    <div
+      #host
+      class="hk-editor__surface px-4 py-3 cursor-text overflow-y-auto text-base-content selection:bg-primary/30 selection:text-inherit"
+      [style.min-height]="editorHeight()"
+      [attr.aria-label]="ariaLabel() || placeholder() || 'Rich text editor'"
+    ></div>
+    @if (slashOpen() && slashItems().length > 0) {
+      <hk-editor-slash-menu
+        [items]="slashItems()"
+        [activeId]="slashActiveId()"
+        [style.top]="slashStyle()?.top"
+        [style.left]="slashStyle()?.left"
+        (commit)="onSlashCommit($event)"
+        (hoverId)="onSlashHover($event)"
+      />
+    }
+  </div>
 </div>
 
 @if (textPromptOpen()) {

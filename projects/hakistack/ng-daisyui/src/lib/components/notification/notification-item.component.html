@@ -58,20 +58,30 @@
   }
 </ng-template>
 
-<!-- Text block — daisyUI's alert title/description convention. -->
+<!-- Text block — daisyUI's alert title/description convention. Title and body
+     are explicitly neutral (`text-base-content`) so they don't inherit the
+     `alert-{severity}` color the way the icon does — only the leading icon
+     carries the severity tint, matching Tailwind Plus's notification pattern. -->
 <ng-template #textBlock>
   <div class="min-w-0 flex-1">
-    <h3 class="font-bold text-sm truncate">{{ notification().title }}</h3>
+    <h3 class="font-bold text-sm truncate text-base-content">{{ notification().title }}</h3>
     @if (notification().message) {
-      <div class="text-xs opacity-80">{{ notification().message }}</div>
+      <div class="text-xs text-base-content/70">{{ notification().message }}</div>
     }
   </div>
 </ng-template>
 
-<!-- Reusable close button — daisyUI's btn-ghost btn-sm btn-square pattern. -->
+<!-- Reusable close button — daisyUI's btn-ghost btn-sm btn-square pattern.
+     Forced to `text-base-content/60` so it reads as a neutral affordance
+     instead of picking up the alert's severity color. -->
 <ng-template #closeButton>
   @if (notification().closable) {
-    <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0" [attr.aria-label]="labels().closeAriaLabel" (click)="onClose()">
+    <button
+      type="button"
+      class="btn btn-ghost btn-sm btn-square shrink-0 text-base-content/60 hover:text-base-content"
+      [attr.aria-label]="labels().closeAriaLabel"
+      (click)="onClose()"
+    >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="h-4 w-4 stroke-current">
         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
       </svg>
@@ -107,29 +117,36 @@
     <ng-container *ngTemplateOutlet="closeButton" />
   </div>
 } @else if (isSideAction()) {
-  <!-- SIDE-ACTION — daisyUI alert horizontal with the single action button at
-       the end of the row, matching the alert-with-buttons pattern. -->
+  <!-- SIDE-ACTION — alert horizontal with a vertical divider before the
+       single action button, matching the Tailwind Plus pattern: content on
+       the left, hairline divider, action on the right. The negative margin +
+       padding lets the border span the alert's full height. -->
   <div role="alert" [class]="panelClass()">
     <ng-container *ngTemplateOutlet="iconBlock" />
     <ng-container *ngTemplateOutlet="textBlock" />
     @if (notification().actions?.[0]; as action) {
-      <button type="button" [class]="actionClass(action)" [attr.aria-label]="action.label" (click)="onActionClick(action)" #firstAction>
-        {{ action.label }}
-      </button>
+      <div class="self-stretch flex items-center border-l border-base-content/10 pl-3 -my-3 py-3 shrink-0">
+        <button type="button" [class]="actionClass(action)" [attr.aria-label]="action.label" (click)="onActionClick(action)" #firstAction>
+          {{ action.label }}
+        </button>
+      </div>
     }
     <ng-container *ngTemplateOutlet="closeButton" />
   </div>
 } @else if (isStackedAction()) {
   <!-- STACKED-ACTION — alert horizontal, action buttons stacked vertically at
-       the end. Uses join-vertical so the buttons read as a connected pair. -->
+       the end with a vertical divider on the left and horizontal dividers
+       between buttons. Mirrors Tailwind Plus's stacked-action notification:
+       primary CTA on top, neutral action below, both reading as text-only
+       buttons against the panel rather than filled blocks. -->
   <div role="alert" [class]="panelClass()">
     <ng-container *ngTemplateOutlet="iconBlock" />
     <ng-container *ngTemplateOutlet="textBlock" />
-    <div class="join join-vertical shrink-0">
+    <div class="self-stretch flex flex-col border-l border-base-content/10 divide-y divide-base-content/10 -my-3 shrink-0">
       @for (action of notification().actions; track action.label; let first = $first) {
         <button
           type="button"
-          [class]="actionClass(action) + ' join-item'"
+          [class]="actionClass(action) + ' flex-1 rounded-none border-0 px-4'"
           [attr.aria-label]="action.label"
           (click)="onActionClick(action)"
           #firstAction

@@ -237,7 +237,13 @@ export class NotificationItemComponent {
 
   // ── Action button class — daisyUI variant mapping ────────────────────────
 
+  /**
+   * Default-layout buttons render as standard daisyUI `btn` variants — filled
+   * primary, outlined, soft, or ghost — sitting in the inline action row below
+   * the body text.
+   */
   protected actionClass(action: NotificationAction): string {
+    if (this.isSideAction() || this.isStackedAction()) return this.panelActionClass(action);
     const base = 'btn btn-sm';
     switch (action.variant ?? 'ghost') {
       case 'primary':
@@ -249,6 +255,25 @@ export class NotificationItemComponent {
       case 'ghost':
       default:
         return `${base} btn-ghost`;
+    }
+  }
+
+  /**
+   * Side-action / stacked-action buttons sit inside the divider-bounded action
+   * column on the right of the panel and need to read as text-only buttons —
+   * Tailwind Plus's pattern. Primary keeps its emphasis via `text-primary`,
+   * everything else falls through to neutral panel-content text.
+   */
+  private panelActionClass(action: NotificationAction): string {
+    const base = 'btn btn-sm btn-ghost font-semibold';
+    switch (action.variant ?? 'ghost') {
+      case 'primary':
+        return `${base} text-primary hover:text-primary`;
+      case 'outline':
+      case 'soft':
+      case 'ghost':
+      default:
+        return base;
     }
   }
 }

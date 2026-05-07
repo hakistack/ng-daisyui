@@ -24,6 +24,7 @@
     "@tiptap/extension-placeholder",
     "@tiptap/extension-image",
     "@tiptap/extension-file-handler",
+    "@tiptap/suggestion",
     "pdfjs-dist"
   ]
 }

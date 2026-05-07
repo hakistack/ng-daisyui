@@ -1,6 +1,6 @@
 {
   "name": "@hakistack/ng-daisyui",
-  "version": "0.1.76",
+  "version": "0.1.77",
   "description": "Angular UI components built with DaisyUI and Tailwind CSS",
   "author": "Hakistack",
   "license": "UNLICENSED",
@@ -76,6 +76,7 @@
     "@tiptap/extension-link": "^3.0.0",
     "@tiptap/extension-placeholder": "^3.0.0",
     "@tiptap/starter-kit": "^3.0.0",
+    "@tiptap/suggestion": "^3.0.0",
     "fuse.js": "^7.0.0",
     "libphonenumber-js": "^1.12.42",
     "motion": "^12.0.0",

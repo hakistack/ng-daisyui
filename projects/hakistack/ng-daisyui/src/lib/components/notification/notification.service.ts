@@ -209,7 +209,7 @@ export class NotificationService {
   }
 
   /**
-   * Schedule the second stage of a dismiss — actual stack removal +
+   * Schedule the second stage of a dismissing — actual stack removal and
    * dismiss-callback firing — after the exit animation completes. Idempotent:
    * if a removal is already pending for the id, this is a no-op.
    */

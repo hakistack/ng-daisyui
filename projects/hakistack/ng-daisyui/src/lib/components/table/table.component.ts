@@ -1421,6 +1421,13 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   clearGlobalSearch(): void {
+    // Skip the whole flow when there's nothing to clear — prevents a phantom
+    // emit/firstPage when the user clicks the clear affordance with an
+    // already-empty term (or when consumers programmatically call clear on
+    // an empty state).
+    const wasEmpty = this.globalSearchTerm() === '' && this.debouncedSearchTerm() === '';
+    if (wasEmpty) return;
+
     this.globalSearchTerm.set('');
     this.debouncedSearchTerm.set('');
 
@@ -2422,7 +2429,13 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // Note: Sorting now works for both offset and cursor modes
     // Cursor mode emits events for server-side sorting
 
-    // Debounce global search term
+    // Debounce global search term.
+    // The effect runs once on creation with the initial empty `searchTerm`,
+    // so emitting unconditionally produced a phantom `globalSearchChange`
+    // event on first paint. Server-side cursor consumers that load data both
+    // in `ngOnInit` and in `(globalSearchChange)` ended up making two
+    // identical first-load HTTP calls. Both the emit and `firstPage()` now
+    // gate on the term actually changing.
     effect(() => {
       const searchTerm = this.globalSearchTerm();
       const config = this.fieldConfig()?.globalSearch;
@@ -2436,11 +2449,14 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
       // Set new timeout to update debounced term
       this.searchDebounceTimeout = setTimeout(() => {
+        const changed = searchTerm !== previousSearchTerm;
         this.debouncedSearchTerm.set(searchTerm);
 
-        // For cursor/server-side pagination, emit event
+        // For cursor/server-side pagination, emit event — but only when the
+        // term genuinely changed. The initial empty-string emit on mount is
+        // not a user action and would race with consumer-side initial loads.
         const mode = this.modeSignal();
-        if (mode === 'cursor' && config?.enabled) {
+        if (changed && mode === 'cursor' && config?.enabled) {
           const searchMode = config.mode ?? 'contains';
           this.globalSearchChange.emit({
             searchTerm,
@@ -2449,7 +2465,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
         }
 
         // Reset to first page when search changes
-        if (searchTerm !== previousSearchTerm) {
+        if (changed) {
           this.firstPage();
         }
       }, debounceTime);

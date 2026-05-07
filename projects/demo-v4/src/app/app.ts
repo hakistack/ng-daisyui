@@ -465,6 +465,7 @@ export class App implements OnInit {
             { id: 'toolbars', label: 'Toolbars' },
             { id: 'forms', label: 'Reactive Forms' },
             { id: 'dynamic', label: 'Dynamic Form' },
+            { id: 'slash', label: 'Slash Commands' },
           ],
         },
       ],
