@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
@@ -13,7 +14,15 @@ type TabsTab = 'basic' | 'features' | 'vertical';
 
 @Component({
   selector: 'app-tabs-demo',
-  imports: [TabGroupComponent, TabPanelComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [
+    TabGroupComponent,
+    TabPanelComponent,
+    DocSectionComponent,
+    ApiTableComponent,
+    ApiDocsForComponent,
+    CodeBlockComponent,
+    DemoPageComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-demo-page
@@ -227,8 +236,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
         <!-- TabGroup sub-tab -->
         @if (apiTab() === 'tab-group') {
           <div class="space-y-6">
-            <app-api-table title="TabGroup Inputs" [entries]="groupInputDocs" />
-            <app-api-table title="TabGroup Outputs" [entries]="groupOutputDocs" />
+            <app-api-docs-for component="TabGroupComponent" />
             <app-api-table title="TabGroup Methods" [entries]="groupMethodDocs" />
 
             <div class="card card-border card-bordered bg-base-100">
@@ -247,7 +255,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
         <!-- TabPanel sub-tab -->
         @if (apiTab() === 'tab-panel') {
           <div class="space-y-6">
-            <app-api-table title="TabPanel Inputs" [entries]="panelInputDocs" />
+            <app-api-docs-for component="TabPanelComponent" />
 
             <div class="card card-border card-bordered bg-base-100">
               <div class="card-body gap-3">
@@ -410,75 +418,11 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 })`;
 
   // --- API docs ---
-  groupInputDocs: ApiDocEntry[] = [
-    {
-      name: 'selectedTab',
-      type: 'model<string | undefined>',
-      default: 'undefined',
-      description: 'Two-way binding for the currently active tab value. Use [(selectedTab)] for two-way binding.',
-    },
-    {
-      name: 'activeIndex',
-      type: 'number',
-      default: '0',
-      description: 'The index of the initially active tab. Used only when selectedTab is not provided.',
-    },
-    {
-      name: 'selectionMode',
-      type: "'follow' | 'explicit'",
-      default: "'explicit'",
-      description: "Selection mode. 'follow' activates a tab on keyboard focus, 'explicit' requires a click or Enter key.",
-    },
-    { name: 'orientation', type: "'horizontal' | 'vertical'", default: "'horizontal'", description: 'Layout orientation of the tab list' },
-    {
-      name: 'wrap',
-      type: 'boolean',
-      default: 'true',
-      description: 'Whether keyboard navigation wraps from the last tab back to the first (and vice versa)',
-    },
-  ];
-
-  groupOutputDocs: ApiDocEntry[] = [
-    {
-      name: 'selectedTabChange',
-      type: 'string | undefined',
-      description: 'Emitted when the selected tab changes. This is the output side of the selectedTab model for two-way binding.',
-    },
-  ];
-
   groupMethodDocs: ApiDocEntry[] = [
     {
       name: 'ngAfterContentInit()',
       type: 'void',
       description: 'Lifecycle hook that sets the initial selected tab based on activeIndex if selectedTab was not explicitly provided.',
-    },
-  ];
-
-  panelInputDocs: ApiDocEntry[] = [
-    {
-      name: 'value',
-      type: 'string',
-      description:
-        'Unique identifier for this tab panel (required). Must be unique within the tab group. Used for two-way binding with selectedTab.',
-    },
-    {
-      name: 'label',
-      type: 'string',
-      default: "''",
-      description: 'Display text shown on the tab button in the tab list. Rendered alongside the optional icon.',
-    },
-    {
-      name: 'icon',
-      type: 'IconName | undefined',
-      default: 'undefined',
-      description: 'Optional Lucide icon name displayed before the label text on the tab button. Accepts any valid Lucide icon string.',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Whether this tab is disabled. Disabled tabs cannot be selected via click or keyboard navigation and are visually dimmed.',
     },
   ];
 

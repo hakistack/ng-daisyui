@@ -7,6 +7,7 @@ import { JsonPipe } from '@angular/common';
 import { SelectComponent, SelectOption } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
@@ -16,7 +17,16 @@ type ApiSubTab = 'component' | 'configuration' | 'multi-select' | 'keyboard-a11y
 
 @Component({
   selector: 'app-select-demo',
-  imports: [SelectComponent, ReactiveFormsModule, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [
+    SelectComponent,
+    ReactiveFormsModule,
+    JsonPipe,
+    DocSectionComponent,
+    ApiTableComponent,
+    ApiDocsForComponent,
+    CodeBlockComponent,
+    DemoPageComponent,
+  ],
   template: `
     <app-demo-page
       title="Select"
@@ -288,8 +298,7 @@ type ApiSubTab = 'component' | 'configuration' | 'multi-select' | 'keyboard-a11y
         <!-- Component sub-tab -->
         @if (apiTab() === 'component') {
           <div class="space-y-6">
-            <app-api-table title="Inputs" [entries]="inputDocs" />
-            <app-api-table title="Outputs" [entries]="outputDocs" />
+            <app-api-docs-for component="SelectComponent" />
             <app-api-table title="Public Methods" [entries]="methodDocs" />
 
             <div class="card card-border card-bordered bg-base-100">
@@ -747,139 +756,6 @@ options: SelectOption[] = [
   placeholder="Select fruits"
   (selectionChange)="onMultiSelect($event)"
 />`;
-
-  // --- API docs: Component sub-tab ---
-  inputDocs: ApiDocEntry[] = [
-    {
-      name: 'id',
-      type: 'string',
-      default: "''",
-      description: 'Custom HTML id attribute for the select element. Auto-generated if not provided.',
-    },
-    {
-      name: 'options',
-      type: 'SelectOption[]',
-      default: '[]',
-      description:
-        'Array of selectable options. Each option must have a value and label. Optionally include disabled, id, or group properties.',
-    },
-    {
-      name: 'placeholder',
-      type: 'string',
-      default: "'Select an option'",
-      description: 'Placeholder text shown in the trigger when no option is selected.',
-    },
-    {
-      name: 'enableSearch',
-      type: 'boolean',
-      default: 'false',
-      description: 'When true, displays a search input inside the dropdown that filters options using fuzzy matching (powered by Fuse.js).',
-    },
-    {
-      name: 'searchPlaceholder',
-      type: 'string',
-      default: "'Search options...'",
-      description: 'Placeholder text shown inside the search input when enableSearch is true.',
-    },
-    {
-      name: 'allowClear',
-      type: 'boolean',
-      default: 'true',
-      description: 'When true, shows a clear (x) button that resets the selection to null. Appears only when a value is selected.',
-    },
-    {
-      name: 'virtualScroll',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Enables CDK virtual scrolling for efficiently rendering large option lists. Options are rendered on demand as the user scrolls. Activates when the list exceeds 100 items.',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: 'When true, prevents all user interaction with the select. Also controlled via ControlValueAccessor setDisabledState.',
-    },
-    {
-      name: 'multiple',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Enables multi-select mode. Users can select multiple options displayed as chips. The form value becomes a string[] instead of a string.',
-    },
-    {
-      name: 'maxSelectedItems',
-      type: 'number | null',
-      default: 'null',
-      description:
-        'Maximum number of items that can be selected in multi-select mode. When the limit is reached, remaining unselected options become disabled. Set to null for unlimited.',
-    },
-    {
-      name: 'showSelectAll',
-      type: 'boolean',
-      default: 'true',
-      description: 'When true, shows a "Select All / Clear All" toggle at the top of the dropdown in multi-select mode.',
-    },
-    {
-      name: 'chipDisplay',
-      type: 'boolean',
-      default: 'true',
-      description:
-        'When true, selected items appear as removable chip badges inside the trigger (multi-select mode). When false, selected items are shown as a comma-separated text list.',
-    },
-    {
-      name: 'maxChipsVisible',
-      type: 'number',
-      default: '3',
-      description: 'Maximum number of chip badges visible in the trigger. Additional selections are shown as a "+N" overflow counter.',
-    },
-    {
-      name: 'selectAllLabel',
-      type: 'string',
-      default: "'Select All'",
-      description: 'Custom label for the "Select All" action shown in the dropdown header when showSelectAll is true.',
-    },
-    {
-      name: 'clearAllLabel',
-      type: 'string',
-      default: "'Clear All'",
-      description:
-        'Custom label for the "Clear All" action shown in the dropdown header when all options are selected and showSelectAll is true.',
-    },
-    {
-      name: 'size',
-      type: 'SelectSize',
-      default: "'md'",
-      description: 'Controls the size of the select trigger and menu items. Maps to daisyUI size classes: xs, sm, md, lg, or xl.',
-    },
-    {
-      name: 'color',
-      type: 'SelectColor | null',
-      default: 'null',
-      description:
-        'Applies a daisyUI color variant to the select trigger border. Options: neutral, primary, secondary, accent, info, success, warning, or error.',
-    },
-  ];
-
-  outputDocs: ApiDocEntry[] = [
-    {
-      name: 'selectionChange',
-      type: 'SelectOption | SelectOption[] | null',
-      description:
-        'Emits the selected option(s) whenever the selection changes. Emits a single SelectOption in single-select mode, a SelectOption[] in multi-select mode, or null when the selection is cleared.',
-    },
-    {
-      name: 'searchChange',
-      type: 'string',
-      description:
-        'Emits the current search string each time the user types in the search input. Useful for implementing server-side filtering or analytics.',
-    },
-    {
-      name: 'dropdownToggle',
-      type: 'boolean',
-      description: 'Emits true when the dropdown opens and false when it closes. Useful for coordinating UI state with other components.',
-    },
-  ];
 
   methodDocs: ApiDocEntry[] = [
     {

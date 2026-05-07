@@ -28,6 +28,11 @@
       />
     }
   </div>
+
+  <!-- Visually-hidden SR-only announcer. Updates trigger an `aria-live`
+       reading so screen-reader users hear formatting state changes
+       triggered from the toolbar (e.g. "Bold on", "Heading 2 applied"). -->
+  <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveAnnouncement() }}</div>
 </div>
 
 @if (textPromptOpen()) {

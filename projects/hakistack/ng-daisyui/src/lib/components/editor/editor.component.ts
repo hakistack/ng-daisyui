@@ -20,6 +20,7 @@ import { AbstractControl, ControlValueAccessor, NG_VALIDATORS, NG_VALUE_ACCESSOR
 import type { Editor } from '@tiptap/core';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EditorSlashMenuComponent } from './editor-slash-menu.component';
+import { TOOLBAR_LABELS } from './editor.defaults';
 import type {
   EditorImageUploader,
   EditorSlashCommand,
@@ -113,6 +114,16 @@ export class EditorComponent implements ControlValueAccessor, Validator {
   readonly slashStyle = signal<{ top: string; left: string } | null>(null);
   readonly slashActiveId = computed(() => this.slashItems()[this.slashActiveIdx()]?.id ?? null);
   private slashCommit: ((item: EditorSlashCommand) => void) | null = null;
+
+  // ── Screen-reader announcer ──────────────────────────────────────────────
+  // Visually-hidden `aria-live="polite"` region. Updated on every toolbar
+  // command so SR users hear "Bold on", "Heading 2 applied", "Undo", etc.
+  // when they activate the corresponding button. Keyboard shortcuts (Cmd+B
+  // etc.) don't currently announce — TipTap routes them straight through
+  // ProseMirror without firing our handler. Add later if a SR tester asks.
+  readonly liveAnnouncement = signal('');
+  private announceTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastAnnouncementText = '';
 
   // Text-prompt modal state — used by both the link URL and image alt/URL
   // flows. `openTextPrompt()` returns a Promise that resolves with the input
@@ -267,6 +278,66 @@ export class EditorComponent implements ControlValueAccessor, Validator {
       return;
     }
     runCommand(this.instance, item);
+    this.announceToolbarStateChange(item);
+  }
+
+  /**
+   * Push a new value into the SR-only `aria-live` region. If the same text
+   * is announced twice in a row (e.g. user toggles bold on / off / on),
+   * we briefly clear and re-set so screen readers re-read it instead of
+   * deduping. Cancels any previous pending re-set.
+   */
+  private announce(text: string): void {
+    if (this.announceTimer) clearTimeout(this.announceTimer);
+    if (this.lastAnnouncementText === text) {
+      this.liveAnnouncement.set('');
+      this.announceTimer = setTimeout(() => {
+        this.liveAnnouncement.set(text);
+        this.lastAnnouncementText = text;
+        this.announceTimer = null;
+      }, 50);
+      return;
+    }
+    this.liveAnnouncement.set(text);
+    this.lastAnnouncementText = text;
+  }
+
+  /**
+   * Translate a toolbar command into a short SR message. Toggleable marks
+   * (bold / italic / etc.) and headings emit "<Label> on/off"; one-shot
+   * actions (divider, undo, redo) emit a verb.
+   */
+  private announceToolbarStateChange(item: EditorToolbarItem): void {
+    if (item === 'divider' || item === 'image' || item === 'link') return;
+
+    const TOGGLE_ITEMS: readonly EditorToolbarItem[] = [
+      'bold',
+      'italic',
+      'underline',
+      'strike',
+      'code',
+      'bulletList',
+      'orderedList',
+      'blockquote',
+      'codeBlock',
+      'heading1',
+      'heading2',
+      'heading3',
+    ];
+
+    if (TOGGLE_ITEMS.includes(item)) {
+      const active = isActive(this.instance, item);
+      this.announce(`${TOOLBAR_LABELS[item]} ${active ? 'on' : 'off'}`);
+      return;
+    }
+
+    if (item === 'horizontalRule') {
+      this.announce('Divider inserted');
+    } else if (item === 'undo') {
+      this.announce('Undid');
+    } else if (item === 'redo') {
+      this.announce('Redid');
+    }
   }
 
   /**

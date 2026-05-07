@@ -16,6 +16,7 @@ import {
 } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { ApiDocEntry } from '../shared/api-table.types';
@@ -25,7 +26,15 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
 
 @Component({
   selector: 'app-forms-demo',
-  imports: [DynamicFormComponent, JsonPipe, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [
+    DynamicFormComponent,
+    JsonPipe,
+    DocSectionComponent,
+    ApiTableComponent,
+    ApiDocsForComponent,
+    CodeBlockComponent,
+    DemoPageComponent,
+  ],
   template: `
     <app-demo-page
       title="Dynamic Forms"
@@ -155,8 +164,7 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
         <!-- Component sub-tab -->
         @if (apiTab() === 'component') {
           <div class="space-y-6">
-            <app-api-table title="hk-dynamic-form Inputs" [entries]="componentInputDocs" />
-            <app-api-table title="Outputs" [entries]="componentOutputDocs" />
+            <app-api-docs-for component="DynamicFormComponent" />
             <app-api-table title="Methods" [entries]="componentMethodDocs" />
 
             <div class="card card-border card-bordered bg-base-100">
@@ -705,68 +713,6 @@ form.submit()    // Trigger submission
 form.reset()     // Reset form values`;
 
   // --- API tab: Component sub-tab ---
-  componentInputDocs: ApiDocEntry[] = [
-    {
-      name: 'config',
-      type: 'FormConfig',
-      description:
-        'The form configuration object, typically produced by createForm(). Contains field definitions, layout settings, stepper configuration, callbacks, and internal trigger signals. Pass the signal value: [config]="form.config()".',
-    },
-    {
-      name: 'initialValues',
-      type: 'Record<string, unknown>',
-      default: '{}',
-      description:
-        'A record of key-value pairs used to pre-populate form fields when the component initializes. Keys must match field keys defined in the config. Useful for edit forms where you load existing data from an API.',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'When set to true, disables every field in the form and prevents submission. The entire form group becomes read-only. Useful for showing form data in a non-editable preview state.',
-    },
-  ];
-
-  componentOutputDocs: ApiDocEntry[] = [
-    {
-      name: 'formSubmit',
-      type: 'FormSubmissionData',
-      description:
-        'Emitted when the form is submitted (either programmatically via FormController.submit() or the internal onSubmit() method). The payload includes the current values, whether the form is valid, a record of validation errors keyed by field, and step-related metadata if in wizard mode.',
-    },
-    {
-      name: 'formChange',
-      type: 'Record<string, unknown>',
-      description:
-        'Emitted every time any form value changes. The payload is the entire form values object. This fires on every keystroke, selection change, or toggle, so use debouncing if performing expensive operations in the handler.',
-    },
-    {
-      name: 'formReset',
-      type: 'void',
-      description:
-        'Emitted when the form is reset (either programmatically via FormController.reset() or the internal onReset() method). No payload is emitted. Use this to clear related UI state like submission confirmations or error banners.',
-    },
-    {
-      name: 'fieldChange',
-      type: '{ field: string; value: unknown; formValues: Record<string, unknown> }',
-      description:
-        'Emitted when a single field changes. The payload includes the field key that changed, its new value, and a snapshot of all current form values. More granular than formChange and useful for reacting to specific field updates without checking which field changed.',
-    },
-    {
-      name: 'formRestored',
-      type: 'Record<string, unknown>',
-      description:
-        'Emitted when auto-saved form data is restored from storage (localStorage or API). The payload is the restored values record. Only fires when autoSave is configured and previously saved data exists. Use this to show a "draft restored" notification to the user.',
-    },
-    {
-      name: 'stepChange',
-      type: 'StepChangeEvent',
-      description:
-        'Emitted when the active wizard step changes in stepper mode. The payload includes the previous step name (null on initial load), the current step name, the new step index, and a snapshot of all form values at the time of the transition.',
-    },
-  ];
-
   componentMethodDocs: ApiDocEntry[] = [
     {
       name: 'onSubmit()',

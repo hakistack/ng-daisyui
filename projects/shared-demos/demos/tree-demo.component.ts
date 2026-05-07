@@ -6,6 +6,7 @@ import { TreeComponent, TreeNode, ToastService, createTree, node } from '@hakist
 import { LucideDynamicIcon, LucideInfo, LucideCheckCheck, LucideMove } from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
@@ -20,7 +21,15 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
 
 @Component({
   selector: 'app-tree-demo',
-  imports: [TreeComponent, LucideDynamicIcon, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [
+    TreeComponent,
+    LucideDynamicIcon,
+    DocSectionComponent,
+    ApiTableComponent,
+    ApiDocsForComponent,
+    CodeBlockComponent,
+    DemoPageComponent,
+  ],
   template: `
     <app-demo-page
       title="Tree"
@@ -202,8 +211,7 @@ type DemoTab = 'basic' | 'selection' | 'checkbox' | 'dragdrop' | 'lazy' | 'filte
         <!-- Component sub-tab -->
         @if (apiTab() === 'component') {
           <div class="space-y-6">
-            <app-api-table title="Inputs" [entries]="inputDocs" />
-            <app-api-table title="Outputs" [entries]="outputDocs" />
+            <app-api-docs-for component="TreeComponent" />
             <app-api-table title="Methods" [entries]="methodDocs" />
           </div>
         }
@@ -544,37 +552,6 @@ onSelectionChange(nodes: TreeNode | TreeNode[] | null) {
 />`;
 
   // API documentation
-  inputDocs: ApiDocEntry[] = [
-    {
-      name: 'tree',
-      type: 'TreeSetup<T> | null',
-      default: 'null',
-      description:
-        'Combined tree setup object returned by createTree(). Pass this single input instead of separate [nodes] and [config] inputs. When set, [nodes] and [config] inputs are ignored.',
-    },
-    {
-      name: 'nodes',
-      type: 'TreeNode<T>[]',
-      default: '[]',
-      description:
-        'Array of tree node data to render. Each node can have children, an icon, a label, a key, and custom data. Ignored if the [tree] input is provided.',
-    },
-    {
-      name: 'config',
-      type: 'TreeConfig<T>',
-      default: '{}',
-      description:
-        'Tree configuration object controlling selection mode, drag & drop, filtering, visual options, and accessibility settings. Ignored if the [tree] input is provided.',
-    },
-    {
-      name: 'selection',
-      type: 'TreeNode<T> | TreeNode<T>[] | null',
-      default: 'null',
-      description:
-        'Currently selected node(s) for two-way binding. Pass a single TreeNode for single/multiple selection modes, or an array for checkbox mode. The component syncs its internal selection state from this input.',
-    },
-  ];
-
   configDocs: ApiDocEntry[] = [
     {
       name: 'selectionMode',
@@ -695,68 +672,6 @@ onSelectionChange(nodes: TreeNode | TreeNode[] | null) {
       type: 'string',
       default: '-',
       description: 'ID of the element that labels the tree (sets the aria-labelledby attribute on the host element).',
-    },
-  ];
-
-  outputDocs: ApiDocEntry[] = [
-    {
-      name: 'selectionChange',
-      type: 'TreeNode<T> | TreeNode<T>[] | null',
-      description:
-        'Emitted whenever the selection state changes. In single mode emits a single TreeNode or null. In multiple/checkbox mode emits an array of selected TreeNode objects.',
-    },
-    {
-      name: 'nodeSelect',
-      type: 'TreeNodeSelectEvent<T>',
-      description:
-        'Emitted when a node is selected. The event contains the original DOM event and the selected node. Fires for each individual selection action.',
-    },
-    {
-      name: 'nodeUnselect',
-      type: 'TreeNodeUnselectEvent<T>',
-      description: 'Emitted when a node is unselected (deselected). The event contains the original DOM event and the unselected node.',
-    },
-    {
-      name: 'nodeExpand',
-      type: 'TreeNodeExpandEvent<T>',
-      description:
-        'Emitted when a node is expanded (children become visible). The event contains the original DOM event and the expanded node.',
-    },
-    {
-      name: 'nodeCollapse',
-      type: 'TreeNodeCollapseEvent<T>',
-      description:
-        'Emitted when a node is collapsed (children become hidden). The event contains the original DOM event and the collapsed node.',
-    },
-    {
-      name: 'lazyLoad',
-      type: 'TreeLazyLoadEvent<T>',
-      description:
-        'Emitted when a lazy-loading node (leaf: false, no children) is expanded and needs its children fetched. Call completeLoading(node) after setting node.children to finish loading and expand the node.',
-    },
-    {
-      name: 'nodeDragStart',
-      type: 'TreeNodeDragStartEvent<T>',
-      description:
-        'Emitted when a drag operation begins on a node. The event contains the original DragEvent and the node being dragged. Only fires when dragDrop is enabled.',
-    },
-    {
-      name: 'nodeDragEnd',
-      type: 'TreeNodeDragEndEvent<T>',
-      description:
-        'Emitted when a drag operation ends (regardless of whether a drop occurred). The event contains the original DragEvent and the node that was dragged.',
-    },
-    {
-      name: 'nodeDrop',
-      type: 'TreeNodeDropEvent<T>',
-      description:
-        "Emitted when a node is dropped onto a valid target. The event contains dragNode, dropNode, both parents, the drop position ('before' | 'after' | 'inside'), and the drag/drop indices. Use this to update your data source.",
-    },
-    {
-      name: 'filterChange',
-      type: 'TreeFilterEvent',
-      description:
-        'Emitted when the filter input text changes (only when filterable is true). The event contains the filter string and the number of matching nodes.',
     },
   ];
 

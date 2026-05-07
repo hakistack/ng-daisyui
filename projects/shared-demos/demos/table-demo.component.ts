@@ -30,6 +30,7 @@ import {
 } from '@lucide/angular';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { ApiDocEntry } from '../shared/api-table.types';
@@ -120,6 +121,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
     HkCellTemplateDirective,
     DocSectionComponent,
     ApiTableComponent,
+    ApiDocsForComponent,
     CodeBlockComponent,
     DemoPageComponent,
   ],
@@ -562,8 +564,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
         <!-- hk-table sub-tab -->
         @if (apiTab() === 'hk-table') {
           <div class="space-y-6">
-            <app-api-table title="hk-table Inputs" [entries]="tableInputDocs" />
-            <app-api-table title="Outputs" [entries]="tableOutputDocs" />
+            <app-api-docs-for component="TableComponent" />
             <app-api-table title="Public Methods" [entries]="tableMethodDocs" />
             <app-api-table title="Content Projection" [entries]="tableContentDocs" />
           </div>

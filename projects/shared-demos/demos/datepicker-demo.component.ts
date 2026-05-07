@@ -7,6 +7,7 @@ import { JsonPipe, DatePipe } from '@angular/common';
 import { DatepickerComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
@@ -23,6 +24,7 @@ type ApiSubTab = 'component' | 'configuration' | 'time-mode' | 'types';
     DatePipe,
     DocSectionComponent,
     ApiTableComponent,
+    ApiDocsForComponent,
     CodeBlockComponent,
     DemoPageComponent,
   ],
@@ -205,8 +207,7 @@ type ApiSubTab = 'component' | 'configuration' | 'time-mode' | 'types';
         <!-- Component sub-tab -->
         @if (apiTab() === 'component') {
           <div class="space-y-6">
-            <app-api-table title="Inputs" [entries]="inputDocs" />
-            <app-api-table title="Outputs" [entries]="outputDocs" />
+            <app-api-docs-for component="DatepickerComponent" />
             <app-api-table title="Methods" [entries]="methodDocs" />
 
             <div class="card card-border card-bordered bg-base-100">
@@ -489,209 +490,6 @@ datetimeControl = new FormControl<Date | null>(null);
 // e.g., 2026-03-26T14:30:00.000Z`;
 
   // --- API docs: Component sub-tab ---
-  inputDocs: ApiDocEntry[] = [
-    {
-      name: 'range',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Enable date range selection mode. When true, the user picks a start and end date, and the form value becomes { start: Date; end: Date } instead of a single Date. Clicking the same date as the start resets the range.',
-    },
-    {
-      name: 'showTime',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Show a time selection panel alongside the calendar. Allows the user to pick both a date and a time. The picker stays open after date selection so the user can also set the time. The form value is a Date with hours and minutes set.',
-    },
-    {
-      name: 'use24Hour',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Use 24-hour format for the time display instead of the default 12-hour AM/PM format. When enabled, the hour options range from 0 to 23 and the AM/PM toggle is hidden. Only applies when showTime is true.',
-    },
-    {
-      name: 'minuteStep',
-      type: 'number',
-      default: '1',
-      description:
-        'Minute step interval for time selection. Controls the granularity of available minute options (e.g., 15 shows :00, :15, :30, :45). Only applies when showTime is true.',
-    },
-    {
-      name: 'placeholder',
-      type: 'string',
-      default: "'Select Date'",
-      description:
-        'Placeholder text displayed in the input when no date is selected. Appears as grayed-out text inside the trigger input field.',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Disable the datepicker. Prevents opening the picker and any user interaction. Also respects the disabled state set via reactive forms through setDisabledState.',
-    },
-    {
-      name: 'locale',
-      type: 'string',
-      default: "'en-US'",
-      description:
-        'BCP 47 locale string used for formatting dates, month labels, and weekday headers via Intl.DateTimeFormat. Affects all text rendering in the calendar. Examples: "en-US", "de-DE", "ja-JP".',
-    },
-    {
-      name: 'minDate',
-      type: 'Date | undefined',
-      default: 'undefined',
-      description:
-        'Minimum selectable date. Dates before this are visually disabled and cannot be selected. Also used for form validation, producing a "min" validation error if violated.',
-    },
-    {
-      name: 'maxDate',
-      type: 'Date | undefined',
-      default: 'undefined',
-      description:
-        'Maximum selectable date. Dates after this are visually disabled and cannot be selected. Also used for form validation, producing a "max" validation error if violated.',
-    },
-    {
-      name: 'disabledDates',
-      type: 'Date[]',
-      default: '[]',
-      description:
-        'Array of specific dates to disable. These dates are grayed out and cannot be selected, regardless of the min/max range. Comparison is day-level only (time is ignored).',
-    },
-    {
-      name: 'disabledDaysOfWeek',
-      type: 'number[]',
-      default: '[]',
-      description:
-        'Array of day-of-week indices to disable. 0 = Sunday, 1 = Monday, ..., 6 = Saturday. For example, [0, 6] disables all weekends across every month.',
-    },
-    {
-      name: 'showWeekNumbers',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Show ISO week numbers in an additional column on the left side of the calendar grid. Useful for business contexts where week numbers are commonly referenced.',
-    },
-    {
-      name: 'firstDayOfWeek',
-      type: 'number',
-      default: '0',
-      description:
-        'First day of the week displayed in the calendar. 0 = Sunday, 1 = Monday, etc. Affects both the weekday header order and the calendar grid layout.',
-    },
-    {
-      name: 'closeOnSelect',
-      type: 'boolean',
-      default: 'true',
-      description:
-        'Automatically close the picker dropdown after a date is selected. In range mode, the picker closes after both start and end dates are chosen. Ignored when showTime is true, since the picker stays open for time selection.',
-    },
-    {
-      name: 'showClearButton',
-      type: 'boolean',
-      default: 'true',
-      description:
-        'Show a clear (X) button inside the input that resets the selection to null when clicked. The button only appears when there is an active selection.',
-    },
-    {
-      name: 'showTodayButton',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Show a "Today" shortcut button in the calendar footer. Clicking it selects and navigates to the current date. The button is disabled if today falls outside the min/max range or on a disabled day of week.',
-    },
-    {
-      name: 'dropdownPosition',
-      type: 'DatepickerPosition',
-      default: "'bottom-left'",
-      description:
-        "Position of the calendar dropdown relative to the input. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right'. Controls which corner of the input the dropdown anchors to.",
-    },
-    {
-      name: 'minWidth',
-      type: 'string',
-      default: "'20rem'",
-      description:
-        'Minimum width of the calendar dropdown as a CSS value. Useful for ensuring the calendar fits its content, especially when showWeekNumbers adds an extra column.',
-    },
-    {
-      name: 'required',
-      type: 'boolean',
-      default: 'false',
-      description:
-        'Mark the datepicker as required for form validation. When true and no date is selected, a "required" validation error is produced. Works with both reactive forms and standalone usage.',
-    },
-    {
-      name: 'name',
-      type: 'string',
-      default: "''",
-      description:
-        'Name attribute for the datepicker input, used for form submission and generating the unique input ID. Also used as part of the ARIA labeling.',
-    },
-    {
-      name: 'formControlName',
-      type: 'string',
-      default: "''",
-      description:
-        'Alternative to [formControl]. Links the datepicker to a FormGroup control by name. Also used to generate the input ID when no name input is provided.',
-    },
-    {
-      name: 'customDateFormatter',
-      type: '(date: Date) => string',
-      default: 'undefined',
-      description:
-        'Custom function to format the selected date for display in the input field. Receives the selected Date and should return a display string. Overrides the default locale-based formatting.',
-    },
-    {
-      name: 'customRangeFormatter',
-      type: '(start: Date, end: Date) => string',
-      default: 'undefined',
-      description:
-        'Custom function to format the selected date range for display in the input field. Receives the start and end Date objects. Only used when range mode is enabled.',
-    },
-  ];
-
-  outputDocs: ApiDocEntry[] = [
-    {
-      name: 'selectionChange',
-      type: 'DatepickerEvent',
-      description:
-        'Emitted whenever the date selection changes (single date or range). The event payload includes a type field ("date" or "date-range") and a value field containing the selected date(s). This is the most general-purpose output for responding to any selection change.',
-    },
-    {
-      name: 'dateSelected',
-      type: 'Date',
-      description:
-        'Emitted when a single date is selected in non-range mode. Fires immediately on click, before closeOnSelect takes effect. Useful for responding to date picks without subscribing to the form control.',
-    },
-    {
-      name: 'rangeSelected',
-      type: '{ start: Date; end: Date }',
-      description:
-        'Emitted when a complete date range is selected (both start and end dates chosen). Only fires in range mode after the second date click completes the range. The start date is always the earlier of the two selected dates.',
-    },
-    {
-      name: 'pickerOpened',
-      type: 'void',
-      description:
-        'Emitted when the calendar dropdown opens, whether by clicking the input or calling openPicker()/togglePicker() programmatically. Useful for tracking dropdown state or pausing external interactions.',
-    },
-    {
-      name: 'pickerClosed',
-      type: 'void',
-      description:
-        'Emitted when the calendar dropdown closes, whether by selecting a date, clicking outside, pressing Escape, or calling closePicker()/togglePicker() programmatically. The control is marked as touched when this fires.',
-    },
-    {
-      name: 'viewChanged',
-      type: 'ViewMode',
-      description:
-        "Emitted when the calendar view mode changes between 'days', 'months', and 'years'. Fires when the user navigates between the day grid, month picker, and year picker views, or when setView() is called programmatically.",
-    },
-  ];
-
   methodDocs: ApiDocEntry[] = [
     {
       name: 'togglePicker()',

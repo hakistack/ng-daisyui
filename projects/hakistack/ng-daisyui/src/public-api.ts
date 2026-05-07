@@ -180,6 +180,27 @@ export { TOAST_CONFIG, DEFAULT_TOAST_CONFIG, provideToast } from './lib/componen
 export type { ToastGlobalConfig, ToastLabels } from './lib/components/toast/toast.config';
 export type { Toast, ToastOptions, ToastAction, ToastSeverity, ToastPosition } from './lib/components/toast/toast.types';
 
+// Editor (TipTap-backed rich text editor; see docs/plans/editor.md)
+export { EditorComponent } from './lib/components/editor/editor.component';
+export { EditorToolbarComponent } from './lib/components/editor/editor-toolbar.component';
+export { EditorSlashMenuComponent } from './lib/components/editor/editor-slash-menu.component';
+export { TOOLBAR_PRESETS, TOOLBAR_ICONS, TOOLBAR_LABELS } from './lib/components/editor/editor.defaults';
+export { BUILT_IN_SLASH_COMMANDS, filterSlashCommands, slash, createSlashCommands } from './lib/components/editor/slash-command.extension';
+export type {
+  EditorToolbarConfig,
+  EditorToolbarItem,
+  EditorToolbarPreset,
+  EditorTextChangeEvent,
+  EditorImageUploader,
+  EditorSlashCommand,
+  EditorSlashCommandConfig,
+} from './lib/components/editor/editor.types';
+export type {
+  SlashSnippetOptions,
+  SlashSnippetFromUrlOptions,
+  SlashChainCommandOptions,
+} from './lib/components/editor/slash-command.extension';
+
 // Notification (richer overlay-events component, complementary to Toast)
 export { NotificationHostComponent } from './lib/components/notification/notification-host.component';
 export { NotificationService } from './lib/components/notification/notification.service';

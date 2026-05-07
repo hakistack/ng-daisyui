@@ -7,6 +7,7 @@ import { JsonPipe } from '@angular/common';
 import { TimepickerComponent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { DemoPageComponent } from '../shared/demo-page.component';
@@ -22,6 +23,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
     JsonPipe,
     DocSectionComponent,
     ApiTableComponent,
+    ApiDocsForComponent,
     CodeBlockComponent,
     DemoPageComponent,
   ],
@@ -226,8 +228,7 @@ type ApiSubTab = 'component' | 'configuration' | 'clock-face' | 'types';
         <!-- Component sub-tab -->
         @if (apiTab() === 'component') {
           <div class="space-y-6">
-            <app-api-table title="hk-timepicker Inputs" [entries]="inputDocs" />
-            <app-api-table title="Outputs" [entries]="outputDocs" />
+            <app-api-docs-for component="TimepickerComponent" />
             <app-api-table title="Methods" [entries]="methodDocs" />
 
             <div class="card card-border card-bordered bg-base-100">
@@ -447,124 +448,6 @@ timeControl = new FormControl<string | null>('14:30');
 />`;
 
   // --- API docs: Component sub-tab ---
-  readonly inputDocs: ApiDocEntry[] = [
-    { name: 'placeholder', type: 'string', default: "'Select Time'", description: 'Placeholder text shown when no time is selected' },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: 'Disable the timepicker input and prevent the dropdown from opening',
-    },
-    {
-      name: 'use24Hour',
-      type: 'boolean',
-      default: 'true',
-      description:
-        'Use 24-hour format for display. When false, shows AM/PM toggle. The underlying value is always stored in 24-hour format',
-    },
-    {
-      name: 'showSeconds',
-      type: 'boolean',
-      default: 'false',
-      description: 'Include seconds in time selection. Changes the value format from "HH:MM" to "HH:MM:SS"',
-    },
-    {
-      name: 'minuteStep',
-      type: 'number',
-      default: '1',
-      description: 'Minute step interval for the minute selector (e.g. 5, 15, 30). Values are snapped to the nearest step',
-    },
-    {
-      name: 'secondStep',
-      type: 'number',
-      default: '1',
-      description: 'Second step interval for the second selector. Works identically to minuteStep but for seconds',
-    },
-    {
-      name: 'closeOnSelect',
-      type: 'boolean',
-      default: 'true',
-      description:
-        'Automatically close the picker dropdown after a complete time selection (hour + minute, or hour + minute + second when showSeconds is enabled)',
-    },
-    {
-      name: 'showClearButton',
-      type: 'boolean',
-      default: 'true',
-      description: 'Show a clear button in the dropdown footer to reset the selection to null',
-    },
-    {
-      name: 'showNowButton',
-      type: 'boolean',
-      default: 'true',
-      description:
-        'Show a "Now" button in the dropdown footer that sets the time to the current system time, snapped to configured step intervals',
-    },
-    {
-      name: 'dropdownPosition',
-      type: 'TimepickerPosition',
-      default: "'bottom-left'",
-      description: 'Position of the dropdown panel relative to the input field',
-    },
-    {
-      name: 'minWidth',
-      type: 'string',
-      default: "'16rem'",
-      description: 'CSS minimum width of the dropdown panel (e.g. "16rem", "250px")',
-    },
-    {
-      name: 'required',
-      type: 'boolean',
-      default: 'false',
-      description: 'Mark the field as required. Adds validation that emits a "required" error when the value is null',
-    },
-    {
-      name: 'name',
-      type: 'string',
-      default: "''",
-      description: 'Name attribute for the underlying input element. Also used to generate a unique input ID',
-    },
-    {
-      name: 'formControlName',
-      type: 'string',
-      default: "''",
-      description: 'FormControlName for reactive form binding inside a FormGroup. Alternative to [formControl]',
-    },
-    {
-      name: 'minTime',
-      type: 'string | undefined',
-      default: 'undefined',
-      description: 'Minimum selectable time in "HH:MM" or "HH:MM:SS" format. Hours outside the valid range are visually disabled',
-    },
-    {
-      name: 'maxTime',
-      type: 'string | undefined',
-      default: 'undefined',
-      description: 'Maximum selectable time in "HH:MM" or "HH:MM:SS" format. Hours outside the valid range are visually disabled',
-    },
-    {
-      name: 'clockFace',
-      type: 'boolean',
-      default: 'false',
-      description: 'Use a Material Design-style analog clock face instead of the default grid selector',
-    },
-  ];
-
-  readonly outputDocs: ApiDocEntry[] = [
-    {
-      name: 'timeChange',
-      type: 'TimepickerEvent',
-      description:
-        'Emitted when the time value changes. Provides the formatted string value along with individual hours, minutes, and seconds fields',
-    },
-    { name: 'pickerOpened', type: 'void', description: 'Emitted when the picker dropdown opens (either by click or programmatically)' },
-    {
-      name: 'pickerClosed',
-      type: 'void',
-      description: 'Emitted when the picker dropdown closes (by selection, click outside, Escape key, or programmatically)',
-    },
-  ];
-
   readonly methodDocs: ApiDocEntry[] = [
     { name: 'togglePicker()', type: 'void', description: 'Toggle the picker dropdown open or closed' },
     { name: 'openPicker()', type: 'void', description: 'Programmatically open the picker dropdown' },

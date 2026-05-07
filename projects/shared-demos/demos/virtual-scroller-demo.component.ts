@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { VirtualScrollerComponent, VirtualScrollerLazyLoadEvent, VirtualScrollerScrollEvent } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
@@ -17,7 +18,7 @@ interface Product {
 }
 
 type ExampleTab = 'basic' | 'horizontal' | 'grid' | 'lazy';
-type ApiTab = 'component' | 'events' | 'templates' | 'types';
+type ApiTab = 'component' | 'templates' | 'types';
 
 function generateProducts(count: number): Product[] {
   const categories = ['Electronics', 'Clothing', 'Books', 'Home', 'Sports'];
@@ -31,7 +32,7 @@ function generateProducts(count: number): Product[] {
 
 @Component({
   selector: 'app-virtual-scroller-demo',
-  imports: [VirtualScrollerComponent, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [VirtualScrollerComponent, DocSectionComponent, ApiTableComponent, ApiDocsForComponent, CodeBlockComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="Virtual Scroller"
@@ -206,20 +207,15 @@ function generateProducts(count: number): Product[] {
       <div api class="space-y-6">
         <div role="tablist" class="tabs tabs-box tabs-boxed">
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'component'" (click)="apiTab.set('component')">Component</button>
-          <button role="tab" class="tab" [class.tab-active]="apiTab() === 'events'" (click)="apiTab.set('events')">Events</button>
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'templates'" (click)="apiTab.set('templates')">Templates</button>
           <button role="tab" class="tab" [class.tab-active]="apiTab() === 'types'" (click)="apiTab.set('types')">Types</button>
         </div>
 
         @if (apiTab() === 'component') {
           <div class="space-y-6">
-            <app-api-table title="Inputs" [entries]="inputDocs" />
+            <app-api-docs-for component="VirtualScrollerComponent" />
             <app-api-table title="Methods" [entries]="methodDocs" />
           </div>
-        }
-
-        @if (apiTab() === 'events') {
-          <app-api-table title="Outputs" [entries]="outputDocs" />
         }
 
         @if (apiTab() === 'templates') {
@@ -426,57 +422,6 @@ interface VirtualScrollerLoaderContext {
 }`;
 
   // ── API Documentation ──────────────────────────────────────────────────
-
-  inputDocs: ApiDocEntry[] = [
-    {
-      name: 'items',
-      type: 'readonly (T | null)[]',
-      default: '[]',
-      description: 'Array of items to display. Use null entries for unloaded items in lazy mode.',
-    },
-    { name: 'itemSize', type: 'number', description: 'Height (vertical) or width (horizontal) of each item in pixels. Required.' },
-    {
-      name: 'orientation',
-      type: 'VirtualScrollerOrientation',
-      default: "'vertical'",
-      description: "Scroll direction: 'vertical', 'horizontal', or 'both' (grid).",
-    },
-    { name: 'numColumns', type: 'number', default: '1', description: 'Number of columns in grid mode. Values > 1 activate grid layout.' },
-    { name: 'viewportHeight', type: 'string', default: "'400px'", description: 'CSS height of the scroll viewport.' },
-    { name: 'viewportWidth', type: 'string', default: "'100%'", description: 'CSS width of the scroll viewport.' },
-    { name: 'scrollDelay', type: 'number', default: '0', description: 'Debounce delay in milliseconds for scroll events.' },
-    { name: 'minBufferPx', type: 'number', default: '100', description: 'Minimum pixels of content to render beyond the viewport.' },
-    { name: 'maxBufferPx', type: 'number', default: '200', description: 'Maximum pixels of content to render beyond the viewport.' },
-    {
-      name: 'trackByFn',
-      type: 'TrackByFunction<T>',
-      default: '-',
-      description: 'Custom trackBy function for cdkVirtualFor rendering optimization.',
-    },
-    {
-      name: 'lazy',
-      type: 'boolean',
-      default: 'false',
-      description: 'Enable lazy loading mode. Emits lazyLoad events for null items in view.',
-    },
-    { name: 'loading', type: 'boolean', default: 'false', description: 'Show a loading spinner below the viewport.' },
-    { name: 'containerClass', type: 'string', default: "''", description: 'Additional CSS class applied to the viewport element.' },
-    { name: 'itemClass', type: 'string', default: "''", description: 'Additional CSS class applied to each item wrapper.' },
-  ];
-
-  outputDocs: ApiDocEntry[] = [
-    {
-      name: 'scrolled',
-      type: 'VirtualScrollerScrollEvent',
-      description: 'Emits first and last visible indices on scroll (respects scrollDelay).',
-    },
-    {
-      name: 'lazyLoad',
-      type: 'VirtualScrollerLazyLoadEvent',
-      description: 'Emits when unloaded items (null) enter the viewport. Contains first index and rows count.',
-    },
-    { name: 'scrollIndexChange', type: 'number', description: 'Emits the first visible item index on each scroll event.' },
-  ];
 
   methodDocs: ApiDocEntry[] = [
     {

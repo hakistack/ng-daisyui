@@ -8,12 +8,13 @@ import { createForm, field, DynamicFormComponent } from '@hakistack/ng-daisyui';
 import { EditorComponent, slash, createSlashCommands } from '../../hakistack/ng-daisyui/src/lib/components';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { DemoPageComponent } from '../shared/demo-page.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 
 type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic' | 'slash';
 
 @Component({
   selector: 'app-editor-demo',
-  imports: [EditorComponent, DynamicFormComponent, ReactiveFormsModule, DocSectionComponent, DemoPageComponent],
+  imports: [EditorComponent, DynamicFormComponent, ReactiveFormsModule, DocSectionComponent, DemoPageComponent, ApiDocsForComponent],
   template: `
     <app-demo-page
       title="Editor"
@@ -115,6 +116,9 @@ type ExampleTab = 'basic' | 'toolbars' | 'forms' | 'dynamic' | 'slash';
             </app-doc-section>
           </div>
         }
+      </div>
+      <div api>
+        <app-api-docs-for component="EditorComponent" />
       </div>
     </app-demo-page>
   `,

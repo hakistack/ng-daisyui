@@ -7,6 +7,7 @@ import { JsonPipe } from '@angular/common';
 import { InputComponent, InputColor, InputMaskDirective } from '@hakistack/ng-daisyui';
 import { DocSectionComponent } from '../shared/doc-section.component';
 import { ApiTableComponent } from '../shared/api-table.component';
+import { ApiDocsForComponent } from '../shared/api-docs-for.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
@@ -23,6 +24,7 @@ type ApiTab = 'component' | 'configs' | 'types';
     JsonPipe,
     DocSectionComponent,
     ApiTableComponent,
+    ApiDocsForComponent,
     CodeBlockComponent,
     DemoPageComponent,
   ],
@@ -375,10 +377,7 @@ type ApiTab = 'component' | 'configs' | 'types';
         </div>
 
         @if (apiTab() === 'component') {
-          <div class="space-y-6">
-            <app-api-table title="Inputs" [entries]="inputDocs" />
-            <app-api-table title="Outputs" [entries]="outputDocs" />
-          </div>
+          <app-api-docs-for component="InputComponent" />
         }
 
         @if (apiTab() === 'configs') {
@@ -592,43 +591,6 @@ interface PasswordConfig {
 }`;
 
   // ── API Documentation ──────────────────────────────────────────────────
-
-  inputDocs: ApiDocEntry[] = [
-    {
-      name: 'variant',
-      type: 'InputVariant',
-      default: "'text'",
-      description: 'Input variant that determines formatting behavior and input type.',
-    },
-    { name: 'size', type: 'InputSize', default: "'md'", description: 'DaisyUI size variant.' },
-    { name: 'color', type: 'InputColor | null', default: 'null', description: 'DaisyUI color variant.' },
-    { name: 'placeholder', type: 'string', default: "''", description: 'Placeholder text shown when empty.' },
-    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables the input.' },
-    { name: 'readonly', type: 'boolean', default: 'false', description: 'Makes the input read-only.' },
-    { name: 'prefixText', type: 'string', default: "''", description: 'Text shown as a prefix adornment (e.g., "URL").' },
-    { name: 'suffixText', type: 'string', default: "''", description: 'Text shown as a suffix adornment.' },
-    { name: 'prefixIcon', type: 'string', default: "''", description: 'Lucide icon name for prefix adornment.' },
-    { name: 'suffixIcon', type: 'string', default: "''", description: 'Lucide icon name for suffix adornment.' },
-    { name: 'currencyConfig', type: 'CurrencyConfig', default: '{}', description: 'Configuration for the currency variant.' },
-    { name: 'phoneConfig', type: 'PhoneConfig', default: '{}', description: 'Configuration for the phone variant.' },
-    { name: 'percentageConfig', type: 'PercentageConfig', default: '{}', description: 'Configuration for the percentage variant.' },
-    { name: 'passwordConfig', type: 'PasswordConfig', default: '{}', description: 'Configuration for the password variant.' },
-    { name: 'maxlength', type: 'number | null', default: 'null', description: 'Maximum character length.' },
-    { name: 'minlength', type: 'number | null', default: 'null', description: 'Minimum character length.' },
-    { name: 'autocomplete', type: 'string', default: "''", description: 'HTML autocomplete attribute.' },
-    { name: 'name', type: 'string', default: "''", description: 'HTML name attribute.' },
-    { name: 'ariaLabel', type: 'string', default: "''", description: 'Accessible label. Falls back to placeholder.' },
-    { name: 'ariaDescribedBy', type: 'string', default: "''", description: 'ID of the element that describes this input.' },
-    { name: 'ariaInvalid', type: 'boolean', default: 'false', description: 'Sets aria-invalid for error states.' },
-  ];
-
-  outputDocs: ApiDocEntry[] = [
-    {
-      name: 'valueChange',
-      type: 'string | number | null',
-      description: 'Emits the raw parsed value on each input event. For currency, emits a number; for phone, emits digits-only string.',
-    },
-  ];
 
   currencyConfigDocs: ApiDocEntry[] = [
     {
