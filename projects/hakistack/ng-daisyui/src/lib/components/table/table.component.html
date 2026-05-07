@@ -20,8 +20,10 @@
   }
 </ng-template>
 
-<!-- Main Table Container -->
-<div class="border-base-content/5 bg-base-100 rounded-box overflow-hidden border">
+<!-- Main Table Container — `border-base-300` keeps the wrapper visible against
+     cards, dialogs, or page backgrounds. `shadow-sm` lifts it slightly so the
+     table doesn't merge visually when nested inside an elevated panel. -->
+<div class="border-base-300 bg-base-100 rounded-box overflow-hidden border shadow-sm">
   <!-- Toolbar: Search + Column Visibility -->
   @if (hasGlobalSearchSignal() || isColumnVisibilityEnabled()) {
     <div class="bg-base-200/50 flex flex-wrap items-center justify-between gap-3 border-b border-base-content/10 px-4 py-3">

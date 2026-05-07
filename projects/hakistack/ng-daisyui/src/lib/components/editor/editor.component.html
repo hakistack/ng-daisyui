@@ -1,5 +1,13 @@
+<!-- Editor wrapper. Color rules follow daisyUI's elevation contract:
+       base-100 (canvas) → base-200 (panel) → base-300 (deeper panel / borders).
+     The wrapper itself is bg-base-100 so it reads as an input surface; the
+     border uses base-300 (daisyUI's canonical "darkest base" shade) so it
+     stays visible against cards, dialogs, or pages — anywhere the editor
+     might be nested. `shadow-sm` adds a subtle lift so the editor doesn't
+     visually merge with surrounding elevated panels. Focus ring switches
+     to primary as soon as anything inside is focused. -->
 <div
-  class="hk-editor flex flex-col overflow-hidden rounded-md border border-base-content/25 bg-base-100 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
+  class="hk-editor flex flex-col overflow-hidden rounded-md border border-base-300 bg-base-100 shadow-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
   [class.opacity-60]="effectiveDisabled()"
   [class.pointer-events-none]="effectiveDisabled()"
 >

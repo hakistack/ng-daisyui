@@ -17,7 +17,11 @@ import type { EditorToolbarConfig, EditorToolbarItem } from './editor.types';
   imports: [LucideDynamicIcon, ...TOOLBAR_ICON_COMPONENTS],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div role="toolbar" aria-label="Formatting" class="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-base-content/25">
+    <div
+      role="toolbar"
+      aria-label="Formatting"
+      class="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-base-300/70 border-b border-base-300"
+    >
       @for (item of resolvedItems(); track $index) {
         @if (item === 'divider') {
           <div class="inline-block w-px h-5 mx-1.5 bg-base-content/20 shrink-0" role="separator" aria-hidden="true"></div>

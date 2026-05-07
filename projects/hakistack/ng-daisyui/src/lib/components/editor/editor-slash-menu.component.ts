@@ -20,7 +20,7 @@ import type { EditorSlashCommand } from './editor.types';
     // `fixed` (not `absolute`) so the popup escapes any `overflow:hidden`
     // ancestor — notably the outer `.hk-editor` card that clips its rounded
     // corners. Coords are viewport-relative (set by the parent component).
-    class: 'hk-editor-slash-menu fixed z-50 w-72 max-h-80 overflow-y-auto rounded-md border border-base-content/15 bg-base-100 shadow-lg',
+    class: 'hk-editor-slash-menu fixed z-50 w-72 max-h-80 overflow-y-auto rounded-md border border-base-300 bg-base-100 shadow-lg',
     role: 'listbox',
     '[attr.aria-label]': '"Slash commands"',
   },

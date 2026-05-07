@@ -100,7 +100,12 @@
 
 <ng-template #fieldTemplate let-field="field" let-formGroup="formGroup">
   <div [formGroup]="formGroup" [class]="isHorizontalLayout() ? 'form-field-container flex items-start gap-4' : 'form-field-container'">
-    @if (field.type !== 'hidden') {
+    <!-- Skip the outer top-label for field types that own their own inline
+         label (the label sits to the right of the control inside the case
+         block). Otherwise we'd render the same label twice — once on top
+         and once next to the control. Radio keeps the outer label since
+         that labels the whole option group, not a single control. -->
+    @if (field.type !== 'hidden' && field.type !== 'checkbox' && field.type !== 'toggle') {
       <label [for]="field.id" [class]="isHorizontalLayout() ? 'flex items-center pt-2 shrink-0 ' + labelWidthClass() : 'mb-1 block'">
         <span class="text-sm">
           {{ field.label }}
@@ -192,9 +197,14 @@
           </div>
         }
         @case ('checkbox') {
-          <label class="flex cursor-pointer items-center gap-2">
+          <label [for]="field.id" class="flex cursor-pointer items-center gap-2">
             <input [id]="field.id" [formControlName]="field.key" type="checkbox" class="checkbox" />
-            <span class="text-sm">{{ field.label }}</span>
+            <span class="text-sm">
+              {{ field.label }}
+              @if (isFieldRequired(field)) {
+                <span class="text-error ml-1">*</span>
+              }
+            </span>
           </label>
         }
         @case ('radio') {
@@ -223,9 +233,14 @@
           }
         }
         @case ('toggle') {
-          <label class="flex cursor-pointer items-center gap-2">
+          <label [for]="field.id" class="flex cursor-pointer items-center gap-2">
             <input [id]="field.id" [formControlName]="field.key" type="checkbox" class="toggle" />
-            <span class="text-sm">{{ field.label }}</span>
+            <span class="text-sm">
+              {{ field.label }}
+              @if (isFieldRequired(field)) {
+                <span class="text-error ml-1">*</span>
+              }
+            </span>
           </label>
         }
         @case ('date') {
