@@ -18,6 +18,23 @@
  *   }
  */
 import plugin from 'tailwindcss/plugin';
+import path from 'path';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Absolute path to the lib's compiled FESM bundle.
+const FESM_GLOB = path.join(__dirname, '..', 'fesm2022', '*.mjs');
+
+// Auto-generated list of Tailwind class candidates extracted from the
+// FESM at build time. See the .cjs sibling for the full rationale.
+const require = createRequire(import.meta.url);
+let generatedClasses = [];
+try {
+  generatedClasses = require('./fesm-classes.cjs');
+} catch {
+  // Pre-build state — fall back to empty.
+}
 
 export default plugin(function ({ addBase, addComponents }) {
   // =====================================================
@@ -275,4 +292,22 @@ export default plugin(function ({ addBase, addComponents }) {
       opacity: '1 !important',
     },
   });
+}, {
+  // Plugin config merged into the user's resolved Tailwind config.
+  // Mirrors the .cjs sibling — see comment there for the full
+  // explanation of why we contribute both content AND safelist.
+  content: { files: [FESM_GLOB] },
+  safelist: [
+    ...generatedClasses,
+    { pattern: /^grid-cols-(1|2|3|4|5|6|7|8|9|10|11|12)$/ },
+    { pattern: /^col-span-(1|2|3|4|5|6|7|8|9|10|11|12)$/ },
+    { pattern: /^(sm|md|lg|xl):col-span-(1|2|3|4|5|6|7|8|9|10|11|12)$/ },
+    { pattern: /^(bg|border)-base-(100|200|300)$/ },
+    { pattern: /^bg-base-(200|300)\/(30|50|60|70|80)$/ },
+    { pattern: /^(bg|border|text)-base-content\/(5|10|15|20|25|30|40|45|50|60|70|80|85)$/ },
+    { pattern: /^(bg|text|border)-primary\/(5|10|15|20|30)$/ },
+    'focus-within:border-primary',
+    'focus-within:ring-2',
+    'focus-within:ring-primary/20',
+  ],
 });

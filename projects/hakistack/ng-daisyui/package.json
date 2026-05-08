@@ -1,6 +1,6 @@
 {
   "name": "@hakistack/ng-daisyui",
-  "version": "0.1.83",
+  "version": "0.1.90",
   "description": "Angular UI components built with DaisyUI and Tailwind CSS",
   "author": "Hakistack",
   "license": "UNLICENSED",
@@ -43,7 +43,7 @@
       "import": "./themes/daisyui-v4-plugin.mjs",
       "require": "./themes/daisyui-v4-plugin.cjs"
     },
-    "./themes/daisyui-v4-preset": "./themes/daisyui-v4-preset.js",
+    "./themes/daisyui-v4-preset": "./themes/daisyui-v4-preset.cjs",
     "./themes/daisyui-v4.css": "./themes/daisyui-v4.css",
     "./themes/daisyui-v5.css": "./themes/daisyui-v5.css"
   },

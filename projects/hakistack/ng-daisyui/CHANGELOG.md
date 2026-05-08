@@ -1,5 +1,119 @@
 # Changelog
 
+## 0.1.90
+
+### Fixes
+
+- **fix(daisyui-v4-plugin)**: the v4 plugin's safelist is now
+  **auto-generated** at lib build time. A new `extract-fesm-classes`
+  script (run as part of `npm run build`) walks the compiled FESM and
+  emits every Tailwind-class-like token to a generated module
+  (`themes/fesm-classes.cjs`) which the plugin spreads into its
+  safelist. This replaces the previous narrow, hand-curated regex
+  patterns and gives consumers scan-equivalent coverage without
+  needing to touch their `content` array. Currently extracts ~3,900
+  candidate tokens; Tailwind silently drops entries that don't match
+  any utility, so over-matching is harmless.
+- The hand-curated regex patterns (grid-cols, col-span, base shades
+  with opacity, focus rings) remain as a backstop for classes built
+  dynamically via string concatenation in component TS — anything the
+  static-string extractor would miss.
+
+## 0.1.89
+
+### Fixes
+
+- **fix(daisyui-v4-plugin)**: the v4 Tailwind plugin now contributes a
+  defensive `safelist` (layout + elevation classes) via the plugin's
+  second-argument config. Per the [Tailwind v3 presets docs](https://v3.tailwindcss.com/docs/presets),
+  a consumer's top-level `content: [array]` REPLACES (not concatenates
+  with) the preset's content — by design — so a preset can never
+  reliably contribute scan paths when the consumer also sets `content`.
+  The Content Configuration docs confirm: "no built-in mechanism for
+  libraries to automatically contribute content paths." Plugin-
+  contributed `safelist` IS reliably merged in every Tailwind v3 minor
+  version, making it the canonical lib-side workaround.
+  **Datepicker `grid-cols-7`, dynamic-form `col-span-N`, and the
+  editor / table / dropdown elevation classes (`bg-base-300`, `bg-base-300/70`,
+  `shadow-sm`, focus / hover variants) are now guaranteed to land in
+  compiled CSS regardless of the consumer's `content` shape.** No
+  consumer-side config changes required.
+
+## 0.1.88
+
+### Docs
+
+- **docs(daisyui-v4-preset)**: documented the Tailwind v3 `content`-merge
+  quirk where a top-level `content: [array]` in the consumer's config
+  overrides (rather than concatenates with) the preset's content. The
+  preset's JSDoc now explicitly recommends consumers include the FESM
+  path in their own `content` array:
+  ```js
+  content: [
+    './src/**/*.{html,ts}',
+    './node_modules/@hakistack/ng-daisyui/fesm2022/*.mjs',
+  ],
+  ```
+  This is the actual root-cause workaround for the recurring "lib classes
+  missing from compiled CSS" reports.
+
+## 0.1.87
+
+### Fixes
+
+- **fix(daisyui-v4-preset)**: renamed `daisyui-v4-preset.js` →
+  `daisyui-v4-preset.cjs` and updated the `exports` map. The `.js`
+  extension combined with the package's `"type": "module"` was making
+  Node 22+ load the preset as ESM, which crashed at the inner
+  `require('./daisyui-v4-plugin.cjs')`. Tailwind v3 silently caught the
+  error and fell back to scanning ONLY the consumer's own source paths —
+  so any class only used in the lib's templates (datepicker
+  `grid-cols-7`, dynamic-form `col-span-N`, editor surface tokens, etc.)
+  never made it into the compiled CSS. **This is the root cause of the
+  recurring "lib looks unstyled in my v4 consumer app" reports.**
+  Renaming forces CommonJS load semantics regardless of the package
+  type field. No consumer-side change required — the import path
+  `@hakistack/ng-daisyui/themes/daisyui-v4-preset` resolves to the
+  renamed file via the updated `exports`.
+
+## 0.1.86
+
+### Reverts
+
+- Reverted the `@source inline(...)` block in `styles.css` (added in 0.1.84)
+  and the `safelist:` array in `daisyui-v4-preset.js` (added in 0.1.85).
+  The existing FESM `@source` scanning was already picking up every class
+  the lib uses; the safelists were redundant maintenance overhead. Keeping
+  the lib's Tailwind footprint to a single `@source` line + the daisyUI
+  plugin.
+
+## 0.1.85
+
+### Fixes
+
+- **fix(daisyui-v4-preset)**: extended the v4 Tailwind preset with an
+  explicit `safelist` covering the same critical container / elevation
+  classes that the v5 `styles.css` safelists via `@source inline()`.
+  v4 consumers (Tailwind v3 + daisyUI v4) now get the same defensive
+  guarantee — `border-base-300`, `bg-base-300/70`, `shadow-sm`, focus
+  ring tokens, hover variants, etc. are always in the compiled output.
+  This fixes the original "editor looks ugly on daisyUI v4" report
+  which was caused by v3's content scanner missing classes embedded
+  in the FESM strings.
+
+## 0.1.84
+
+### Fixes
+
+- **fix(styles)**: added a defensive `@source inline(...)` safelist in the
+  shipped `styles.css`. The lib's container / elevation classes
+  (`border-base-300`, `bg-base-300/70`, `shadow-sm`, focus-ring tokens,
+  hover variants, etc.) are now guaranteed to be in the compiled CSS
+  regardless of whether the consumer's Tailwind pipeline successfully
+  scans the FESM bundle. Mitigates "lib looks unstyled in my app" issues
+  caused by stale Tailwind cache, minified bundle scanning quirks, or
+  consumer apps that override `@source` directives.
+
 ## 0.1.83
 
 ### Fixes

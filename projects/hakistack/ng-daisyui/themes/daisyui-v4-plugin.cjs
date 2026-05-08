@@ -12,6 +12,32 @@
  *   }
  */
 const plugin = require('tailwindcss/plugin');
+const path = require('path');
+
+// Absolute path to the lib's compiled FESM bundle. Plugin-contributed
+// `content.files` is merged into the resolved Tailwind v3 config in
+// some minor versions but not all — kept here as belt-and-suspenders.
+const FESM_GLOB = path.join(__dirname, '..', 'fesm2022', '*.mjs');
+
+// Auto-generated list of every Tailwind-class-like token extracted from
+// the FESM at build time (see scripts/extract-fesm-classes.mjs). This
+// is the canonical lib-side workaround for the documented Tailwind v3
+// behavior where a consumer's top-level `content: [array]` REPLACES
+// the preset's content — there is no other way for the lib to ensure
+// its classes reach compiled CSS without consumer config changes.
+//
+// Tailwind v3 silently drops safelist entries that don't match any
+// utility, so over-matching is harmless; the safelist itself is
+// config-time only and doesn't add to compiled CSS bytes for
+// non-matching entries.
+let generatedClasses = [];
+try {
+  generatedClasses = require('./fesm-classes.cjs');
+} catch {
+  // First-run before build script has executed, or running from a
+  // checkout that hasn't built yet. Fall back to empty — the curated
+  // safelist below still covers the most critical classes.
+}
 
 module.exports = plugin(function ({ addBase, addComponents }) {
   // =====================================================
@@ -250,4 +276,38 @@ module.exports = plugin(function ({ addBase, addComponents }) {
       opacity: '1 !important',
     },
   });
+}, {
+  // Plugin config merged into the user's resolved Tailwind config.
+  //
+  // Why both `content.files` AND `safelist`:
+  //   - `content` should make Tailwind scan the FESM. But Tailwind v3
+  //     has a merge quirk where a consumer's top-level `content: [array]`
+  //     can override the preset's content path entirely. Plugin-contributed
+  //     content is sometimes (but not always) merged depending on the
+  //     consumer's Tailwind v3 minor version.
+  //   - `safelist` is the bulletproof fallback. Plugin safelists ARE
+  //     reliably merged into the resolved config in every Tailwind v3
+  //     version. So even if scanning fails entirely, the classes the
+  //     library DEFINITELY uses (datepicker grid, dynamic-form spans,
+  //     editor surface tokens) still make it into the output.
+  content: { files: [FESM_GLOB] },
+  safelist: [
+    // Auto-generated: every Tailwind-class-like token in the FESM.
+    // Re-extracted on every `npm run build` so it stays in sync with
+    // the lib's actual class usage.
+    ...generatedClasses,
+    // Static curated patterns kept as a backstop for shapes the
+    // extractor's heuristics might miss (e.g. theme-bridged classes
+    // built dynamically via string concatenation in component TS).
+    { pattern: /^grid-cols-(1|2|3|4|5|6|7|8|9|10|11|12)$/ },
+    { pattern: /^col-span-(1|2|3|4|5|6|7|8|9|10|11|12)$/ },
+    { pattern: /^(sm|md|lg|xl):col-span-(1|2|3|4|5|6|7|8|9|10|11|12)$/ },
+    { pattern: /^(bg|border)-base-(100|200|300)$/ },
+    { pattern: /^bg-base-(200|300)\/(30|50|60|70|80)$/ },
+    { pattern: /^(bg|border|text)-base-content\/(5|10|15|20|25|30|40|45|50|60|70|80|85)$/ },
+    { pattern: /^(bg|text|border)-primary\/(5|10|15|20|30)$/ },
+    'focus-within:border-primary',
+    'focus-within:ring-2',
+    'focus-within:ring-primary/20',
+  ],
 });
