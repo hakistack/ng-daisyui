@@ -6,22 +6,30 @@
  * surface for the WASM engine wiring: filtering and sorting route through
  * the engine when it has loaded; otherwise the JS pipeline runs.
  *
- * Two diagnostics surfaced in the UI:
+ * Three diagnostics surfaced in the UI:
  *
- * - **Engine status badge** — `loading` / `active` / `fallback`, driven by
- *   `TableEngineService.ready`.
- * - **Last filter latency** — `performance.now()` between a filter input
- *   change and the next paint, so users can compare row counts side-by-side.
+ * - **Engine status badge** — `loading` / `active` / `fallback`.
+ * - **Last filter latency** — wall-clock from input change to next paint.
+ * - **Microbenchmark** — runs N iterations of `handle.filter()` and the
+ *   equivalent JS reduce side-by-side, reports avg/p99 + speedup ratio.
  *
- * No instrumentation hooks into the table; we measure from the outside, the
- * way a user perceives the lag.
+ * The microbenchmark uses its OWN `TableHandle`, separate from the table
+ * component's internal one, so it measures pure kernel cost — no DOM
+ * paint, no signal propagation, no Angular change-detection overhead.
  */
 
 import { Component, computed, effect, inject, signal, untracked, type WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { TableComponent, TableEngineService, createTable } from '@hakistack/ng-daisyui';
+import {
+  TableComponent,
+  TableEngineService,
+  TableHandle,
+  createTable,
+  type EngineColumnSchema,
+  type EngineFilterDef,
+} from '@hakistack/ng-daisyui';
 
 interface StressRow {
   id: number;
@@ -69,6 +77,17 @@ function generate(rowCount: number): StressRow[] {
     };
   }
   return rows;
+}
+
+interface BenchResult {
+  rowCount: number;
+  iterations: number;
+  jsAvgMs: number;
+  jsP99Ms: number;
+  engineAvgMs: number;
+  engineP99Ms: number;
+  speedupAvg: number;
+  speedupP99: number;
 }
 
 @Component({
@@ -132,8 +151,76 @@ function generate(rowCount: number): StressRow[] {
             <div class="text-3xl font-mono tabular-nums">
               {{ lastLatencyMs() != null ? lastLatencyMs()!.toFixed(1) + ' ms' : '—' }}
             </div>
-            <p class="text-xs text-base-content/60 mt-1">Wall-clock from filter input to next paint. Lower is better.</p>
+            <p class="text-xs text-base-content/60 mt-1">
+              Wall-clock from filter input to next paint. Includes DOM render, not just the kernel.
+            </p>
           </div>
+        </div>
+      </div>
+
+      <!-- Microbenchmark -->
+      <div class="card bg-base-100 border border-base-300">
+        <div class="card-body p-4">
+          <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h3 class="card-title text-sm">Microbenchmark — kernel cost only</h3>
+              <p class="text-xs text-base-content/60 mt-1 max-w-2xl">
+                Runs <strong>{{ benchIterations }}</strong> iterations of <code>name contains "a"</code> against the current dataset,
+                alternating JS reduce vs <code>handle.filter()</code>. No DOM, no Angular change detection — pure kernel time.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              [disabled]="benchRunning() || engineState() !== 'active'"
+              (click)="runBenchmark()"
+            >
+              @if (benchRunning()) {
+                <span class="loading loading-spinner loading-xs"></span>
+                Running…
+              } @else {
+                Run benchmark
+              }
+            </button>
+          </div>
+
+          @if (benchResult(); as r) {
+            <div class="overflow-x-auto mt-4">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Path</th>
+                    <th class="text-right">Avg / call</th>
+                    <th class="text-right">p99</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>JS reduce</td>
+                    <td class="text-right font-mono tabular-nums">{{ r.jsAvgMs.toFixed(2) }} ms</td>
+                    <td class="text-right font-mono tabular-nums">{{ r.jsP99Ms.toFixed(2) }} ms</td>
+                  </tr>
+                  <tr>
+                    <td>WASM engine</td>
+                    <td class="text-right font-mono tabular-nums">{{ r.engineAvgMs.toFixed(2) }} ms</td>
+                    <td class="text-right font-mono tabular-nums">{{ r.engineP99Ms.toFixed(2) }} ms</td>
+                  </tr>
+                  <tr class="font-semibold">
+                    <td>Speedup</td>
+                    <td class="text-right font-mono tabular-nums" [class.text-success]="r.speedupAvg >= 1.5">
+                      {{ r.speedupAvg.toFixed(1) }}×
+                    </td>
+                    <td class="text-right font-mono tabular-nums" [class.text-success]="r.speedupP99 >= 1.5">
+                      {{ r.speedupP99.toFixed(1) }}×
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="text-xs text-base-content/60 mt-2">
+                Measured on {{ r.rowCount.toLocaleString() }} rows · higher speedup at larger datasets.
+              </p>
+            </div>
+          }
         </div>
       </div>
 
@@ -206,7 +293,7 @@ export class EngineStressDemoComponent {
     mode: 'offset' as const,
     pageSize: 50,
     pageSizeOptions: [50, 100, 250],
-    totalItems: 0, // computed from data length by the table
+    totalItems: 0,
   };
 
   // ── Diagnostics ──────────────────────────────────────────────────────
@@ -232,6 +319,20 @@ export class EngineStressDemoComponent {
 
   readonly lastLatencyMs = signal<number | null>(null);
 
+  // ── Microbenchmark ───────────────────────────────────────────────────
+
+  /** How many iterations to run per path. Enough to smooth out GC noise. */
+  readonly benchIterations = 200;
+  readonly benchRunning = signal(false);
+  readonly benchResult = signal<BenchResult | null>(null);
+
+  /** Schema for the benchmark's standalone TableHandle. */
+  private readonly benchSchema: EngineColumnSchema<StressRow>[] = [
+    { field: 'name', kind: 'text' },
+    { field: 'email', kind: 'text' },
+    { field: 'score', kind: 'number' },
+  ];
+
   constructor() {
     // Pre-warm the engine so the first filter doesn't pay the WASM-load cost.
     this.engineService
@@ -240,10 +341,13 @@ export class EngineStressDemoComponent {
       .then((v) => this.engineVersion.set(v))
       .catch(() => this.engineVersion.set(null));
 
-    // Switching dataset size invalidates the cached latency.
+    // Switching dataset size invalidates cached latency + benchmark.
     effect(() => {
       this.rowCount();
-      untracked(() => this.lastLatencyMs.set(null));
+      untracked(() => {
+        this.lastLatencyMs.set(null);
+        this.benchResult.set(null);
+      });
     });
   }
 
@@ -253,9 +357,7 @@ export class EngineStressDemoComponent {
 
   /**
    * Stamp the start time when a column-filter change fires, then read the
-   * end time after the next two animation frames — that's roughly when the
-   * paint has flushed. Not surgical, but consistent enough to compare row
-   * counts and engine on/off.
+   * end time after two animation frames — roughly when the paint has flushed.
    */
   onFilterStart(): void {
     const t0 = performance.now();
@@ -266,4 +368,71 @@ export class EngineStressDemoComponent {
       });
     });
   }
+
+  /**
+   * Run the side-by-side benchmark. Creates its own `TableHandle` (separate
+   * from `<hk-table>`'s) so timings are uncontaminated by Angular signal
+   * propagation or DOM render. Iterates JS-then-engine alternately to
+   * minimize systematic drift from CPU thermal / GC patterns over the run.
+   */
+  async runBenchmark(): Promise<void> {
+    this.benchRunning.set(true);
+    try {
+      const data = this.rows();
+      const handle = await this.engineService.createDataset(data, this.benchSchema);
+
+      const filterDef: EngineFilterDef<StressRow>[] = [{ kind: 'text', field: 'name', op: { kind: 'contains', needle: 'a' } }];
+
+      const jsTimes = new Float64Array(this.benchIterations);
+      const engineTimes = new Float64Array(this.benchIterations);
+
+      // Interleave JS / engine iterations so neither path benefits
+      // disproportionately from CPU warm-up or cooler thermal state.
+      for (let i = 0; i < this.benchIterations; i++) {
+        // JS path
+        const t0 = performance.now();
+        let count = 0;
+        for (const row of data) {
+          if (row.name.toLowerCase().includes('a')) count++;
+        }
+        jsTimes[i] = performance.now() - t0;
+        // Prevent V8 from optimizing the loop away — read `count` somewhere
+        // observable. The if guard makes the read live without slowing the loop.
+        if (count < 0) console.log(count);
+
+        // Engine path
+        const t1 = performance.now();
+        const indices = handle.filter(filterDef);
+        engineTimes[i] = performance.now() - t1;
+        if (indices.length < 0) console.log(indices.length);
+      }
+
+      handle.dispose();
+
+      this.benchResult.set({
+        rowCount: data.length,
+        iterations: this.benchIterations,
+        jsAvgMs: mean(jsTimes),
+        jsP99Ms: percentile(jsTimes, 0.99),
+        engineAvgMs: mean(engineTimes),
+        engineP99Ms: percentile(engineTimes, 0.99),
+        speedupAvg: mean(jsTimes) / mean(engineTimes),
+        speedupP99: percentile(jsTimes, 0.99) / percentile(engineTimes, 0.99),
+      });
+    } finally {
+      this.benchRunning.set(false);
+    }
+  }
+}
+
+function mean(values: ArrayLike<number>): number {
+  let sum = 0;
+  for (let i = 0; i < values.length; i++) sum += values[i] as number;
+  return sum / values.length;
+}
+
+function percentile(values: ArrayLike<number>, p: number): number {
+  const sorted = Array.from(values).sort((a, b) => a - b);
+  const idx = Math.floor(sorted.length * p);
+  return sorted[Math.min(idx, sorted.length - 1)];
 }

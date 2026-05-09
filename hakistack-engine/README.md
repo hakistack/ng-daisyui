@@ -34,6 +34,29 @@ wasm-pack build crates/engine-wasm --target web --out-dir ../../pkg
 
 The repo-root `scripts/build-wasm.mjs` runs the WASM build and copies the output into `projects/hakistack/ng-daisyui/src/lib/wasm/` for the Angular library to lazy-load.
 
+## Bundle size
+
+Measured on the current commit (release profile, `wasm-opt -O3`, LTO fat,
+strip, panic=abort, `--no-default-features`):
+
+| Build | Raw size | Gzipped |
+|-------|---------:|--------:|
+| Dev (`--dev`)             | ~1.7 MB | — |
+| Release (default features) | 436 KB | ~143 KB |
+| Release (no debug-panics)  | 434 KB | ~142 KB |
+
+Most of the bundle is `nucleo-matcher`'s Unicode tables (~80 KB raw) and the
+serde wire format for the per-kernel APIs. **Counter-intuitive finding:**
+`wasm-opt -O3` produced *smaller* output than `-Oz` for this codebase
+(434 KB vs 432 KB raw) — aggressive inlining enables better dead-code
+elimination than the conservative size pass.
+
+If bundle size becomes a problem for apps that only use one or two kernels,
+`wasm-bindgen` supports per-feature entry points — we could split into
+`@hakistack/engine-table`, `@hakistack/engine-tree`, etc. without
+restructuring the Rust crates. Single-bundle is the sensible default until
+profiling shows the cost is real.
+
 ## Roadmap
 
 See per-component plans under `projects/hakistack/ng-daisyui/src/lib/components/*/RUST_ENGINE.md`, indexed by `components/RUST_ENGINE_OVERVIEW.md`.

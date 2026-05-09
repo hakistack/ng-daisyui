@@ -40,9 +40,14 @@ try {
   process.exit(1);
 }
 
-console.log(`▶ wasm-pack build  (${profile})`);
+// Release builds drop `console_error_panic_hook` (saves ~5 KB) — wasm-pack
+// understands `--no-default-features` to mean "skip the `default` feature
+// set," which for engine-wasm is just the `debug-panics` feature.
+const featureFlags = profile === '--release' ? '--no-default-features' : '';
+
+console.log(`▶ wasm-pack build  (${profile}${featureFlags ? ` ${featureFlags}` : ''})`);
 execSync(
-  `wasm-pack build crates/engine-wasm --target web --out-dir ../../pkg ${profile}`,
+  `wasm-pack build crates/engine-wasm --target web --out-dir ../../pkg ${profile} ${featureFlags}`.trim(),
   { stdio: 'inherit', cwd: ENGINE },
 );
 
