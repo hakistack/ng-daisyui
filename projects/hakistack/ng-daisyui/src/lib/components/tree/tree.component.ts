@@ -18,6 +18,7 @@ import { FormsModule } from '@angular/forms';
 import { TreeNode, TreeSelectionMode } from '../../api';
 import { LucideDynamicIcon, LucideSearch, LucideX, LucideChevronDown, LucideChevronRight } from '@lucide/angular';
 import { ensureKeys } from './tree.helpers';
+import { TreeEngineService, TreeHandle, buildTreeIndex, indicesToKeys, keysToIndices, type TreeIndex } from './engine';
 import {
   FlatTreeNode,
   TreeConfig,
@@ -39,11 +40,17 @@ import {
 interface FilterState {
   /** Keys of nodes that should be rendered while filtering, or `null` when no filter is active. */
   visibleKeys: Set<string> | null;
+  /**
+   * DFS-preorder indices for the same node set. Populated only when the
+   * engine ran the filter — `flatNodes` uses it directly to skip the
+   * Set→indices round-trip on the hot path.
+   */
+  visibleIndices: Uint32Array | null;
   /** Count of nodes whose label directly matches the filter text. */
   matchCount: number;
 }
 
-const NO_FILTER: FilterState = { visibleKeys: null, matchCount: 0 };
+const NO_FILTER: FilterState = { visibleKeys: null, visibleIndices: null, matchCount: 0 };
 
 @Component({
   selector: 'hk-tree',
@@ -62,6 +69,7 @@ const NO_FILTER: FilterState = { visibleKeys: null, matchCount: 0 };
 })
 export class TreeComponent<T = unknown> {
   private readonly hostRef: ElementRef<HTMLElement> = inject(ElementRef);
+  private readonly engineService = inject(TreeEngineService);
 
   /** Combined tree setup from createTree() — pass a single object instead of separate nodes + config */
   readonly tree = input<TreeSetup<T> | null>(null);
@@ -141,6 +149,17 @@ export class TreeComponent<T = unknown> {
   /** Computed drop position within the target node */
   private readonly dropPositionSignal = signal<'before' | 'after' | 'inside' | null>(null);
 
+  // ───────────────────────────────────────────────────────────────────────
+  // WASM engine state
+  //
+  // The handle holds a flat (labels, depths) view of the tree. We always
+  // hold a precomputed `treeIndex` for the current `resolvedNodes` — the JS
+  // fallback uses it too (for parent / sibling / ancestor-mask reconstruction
+  // when decoding engine results back to FlatTreeNode<T>).
+  // ───────────────────────────────────────────────────────────────────────
+  protected readonly treeIndex = computed<TreeIndex<T>>(() => buildTreeIndex(this.resolvedNodes()));
+  private readonly engineHandleSignal = signal<TreeHandle | null>(null);
+
   /** Parent lookup built once per `resolvedNodes` change. */
   private readonly parentByNode = computed(() => {
     const map = new WeakMap<TreeNode<T>, TreeNode<T> | null>();
@@ -167,15 +186,46 @@ export class TreeComponent<T = unknown> {
     return map;
   });
 
-  /** Single-pass filter visibility + match count. */
+  /**
+   * Single-pass filter visibility + match count.
+   *
+   * Engine path (when WASM is loaded): `handle.filter()` returns visible
+   * arena indices; we map back to node keys for the existing
+   * `Set<string>`-based pipeline. Match count comes from a per-keystroke
+   * count of nodes whose label contains the filter text — same definition
+   * the JS path uses.
+   *
+   * JS fallback (when handle isn't ready or hasn't been built yet): the
+   * original recursive walk runs unchanged.
+   */
   private readonly filterState = computed<FilterState>(() => {
     const filterText = this.filterText().toLowerCase().trim();
     if (!filterText) return NO_FILTER;
 
     const mode = this.resolvedConfig()?.filterMode ?? 'lenient';
+
+    // Engine path.
+    const handle = this.engineHandleSignal();
+    if (handle) {
+      const idx = this.treeIndex();
+      const visibleIndices = handle.filter({
+        term: filterText,
+        mode: mode === 'strict' ? 'strict' : 'lenient',
+        caseSensitive: false,
+      });
+      const visibleKeys = indicesToKeys(visibleIndices, idx.keys);
+      // Match count = nodes whose own label directly contains the term.
+      // Single linear scan on the precomputed labels.
+      let matchCount = 0;
+      for (const label of idx.labels) {
+        if (label.toLowerCase().includes(filterText)) matchCount++;
+      }
+      return { visibleKeys, visibleIndices, matchCount };
+    }
+
+    // JS fallback — unchanged recursive walk.
     const visibleKeys = new Set<string>();
     let matchCount = 0;
-
     const walk = (list: TreeNode<T>[]): boolean => {
       let subtreeHasMatch = false;
       for (const n of list) {
@@ -190,7 +240,7 @@ export class TreeComponent<T = unknown> {
     };
     walk(this.resolvedNodes());
 
-    return { visibleKeys, matchCount };
+    return { visibleKeys, visibleIndices: null, matchCount };
   });
 
   /** Whether same-level-only drag is enforced */
@@ -222,13 +272,72 @@ export class TreeComponent<T = unknown> {
 
   /** Flattened visible nodes for rendering. Intentionally does NOT read drag/focus/drop signals. */
   readonly flatNodes = computed<FlatTreeNode<T>[]>(() => {
-    const nodes = this.resolvedNodes();
-    const visibleKeys = this.filterState().visibleKeys;
     const indent = this.indentSize();
     const expanded = this.expandedKeys();
     const selected = this.selectedKeys();
     const partial = this.partialSelectedKeys();
     const loading = this.loadingKeys();
+    const fState = this.filterState();
+
+    // Engine path: route through the WASM `flatten` kernel and decode the
+    // packed `(node, depth, has_children)` triples back into FlatTreeNode<T>
+    // using the precomputed parent/sibling/ancestor metadata.
+    const handle = this.engineHandleSignal();
+    if (handle) {
+      const idx = this.treeIndex();
+
+      // Build the visible-indices array. Three cases:
+      //   1. Filter ran via engine ⇒ reuse its result directly.
+      //   2. Filter ran via JS fallback (handle wasn't ready then but now
+      //      is — race) ⇒ translate keys → indices.
+      //   3. No filter ⇒ pass an array of all indices.
+      let visible: Uint32Array;
+      if (fState.visibleIndices) {
+        visible = fState.visibleIndices;
+      } else if (fState.visibleKeys) {
+        visible = keysToIndices(fState.visibleKeys, idx.keyToIdx);
+      } else {
+        visible = new Uint32Array(idx.nodes.length);
+        for (let i = 0; i < idx.nodes.length; i++) visible[i] = i;
+      }
+
+      const expandedIndices = keysToIndices(expanded, idx.keyToIdx);
+      const flattened = handle.flatten(visible, expandedIndices);
+
+      const result: FlatTreeNode<T>[] = new Array(flattened.length);
+      for (let i = 0; i < flattened.length; i++) {
+        const row = flattened[i];
+        const node = idx.nodes[row.node];
+        const key = node.key;
+        const hasChildren = row.hasChildren || node.leaf === false;
+        const state: TreeNodeState = {
+          expanded: !!key && expanded.has(key),
+          selected: !!key && selected.has(key),
+          partialSelected: !!key && partial.has(key),
+          visible: true,
+          loading: !!key && loading.has(key),
+        };
+        const sibIdx = idx.siblingIndex[row.node];
+        result[i] = {
+          node,
+          level: row.depth,
+          parent: idx.parents[row.node],
+          first: sibIdx === 0,
+          last: idx.isLastSibling[row.node],
+          index: sibIdx,
+          path: idx.path[row.node],
+          indentPx: row.depth * indent,
+          hasChildren,
+          ancestorIsLastMask: idx.ancestorIsLastMask[row.node],
+          state,
+        };
+      }
+      return result;
+    }
+
+    // ── JS fallback ────────────────────────────────────────────────────
+    const nodes = this.resolvedNodes();
+    const visibleKeys = fState.visibleKeys;
 
     const result: FlatTreeNode<T>[] = [];
     const EMPTY_MASK: readonly boolean[] = [];
@@ -299,6 +408,8 @@ export class TreeComponent<T = unknown> {
       ensureKeys(this.resolvedNodes());
     });
 
+    this.setupEngineLifecycle();
+
     // Initialize expanded state. Only runs when the nodes array identity actually changes,
     // so a parent re-emitting the same reference (common when piping data) doesn't wipe
     // user-driven expand/collapse state.
@@ -355,6 +466,51 @@ export class TreeComponent<T = unknown> {
         el?.focus({ preventScroll: false });
       });
     });
+  }
+
+  /**
+   * Build a `TreeHandle` whenever the precomputed `treeIndex` changes (which
+   * tracks `resolvedNodes` reference identity). The previous handle is
+   * disposed; in-flight ingests are cancelled if the data changes again
+   * before the WASM module finishes loading.
+   */
+  private setupEngineLifecycle(): void {
+    effect((onCleanup) => {
+      const idx = this.treeIndex();
+      if (idx.nodes.length === 0) {
+        this.disposeEngineHandle();
+        return;
+      }
+
+      let cancelled = false;
+      onCleanup(() => {
+        cancelled = true;
+        this.disposeEngineHandle();
+      });
+
+      this.engineService
+        .createTree(idx.labels, idx.depths)
+        .then((handle) => {
+          if (cancelled) {
+            handle.dispose();
+            return;
+          }
+          this.disposeEngineHandle();
+          this.engineHandleSignal.set(handle);
+        })
+        .catch(() => {
+          // WASM failed to load — service has logged. Stay on JS path.
+          this.disposeEngineHandle();
+        });
+    });
+  }
+
+  private disposeEngineHandle(): void {
+    const old = this.engineHandleSignal();
+    if (old) {
+      old.dispose();
+      this.engineHandleSignal.set(null);
+    }
   }
 
   onFilterTextChange(text: string): void {
@@ -827,11 +983,10 @@ export class TreeComponent<T = unknown> {
   private updateDescendantKeys(node: TreeNode<T>, selectedOp: 'add' | 'delete'): void {
     if (!node.children) return;
 
-    const descendantKeys: string[] = [];
-    this.forEachDescendant(node, (n) => {
-      const k = this.getNodeKey(n);
-      if (k) descendantKeys.push(k);
-    });
+    // Engine path. When the WASM handle is loaded, replace the recursive
+    // `forEachDescendant` walk with `handle.selectDescendants(idx)` and decode
+    // the returned indices to keys.
+    const descendantKeys = this.engineDescendantKeys(node) ?? this.jsDescendantKeys(node);
 
     this.selectedKeys.update((keys) => {
       const newKeys = new Set(keys);
@@ -846,7 +1001,50 @@ export class TreeComponent<T = unknown> {
     });
   }
 
+  /**
+   * Engine-backed descendant collection. Returns `null` when the handle isn't
+   * ready, the node has no key, or the key isn't in the precomputed index
+   * (newly-loaded subtree from a lazy-load that hasn't re-ingested yet).
+   * Callers fall back to the JS recursion in that case.
+   */
+  private engineDescendantKeys(node: TreeNode<T>): string[] | null {
+    const handle = this.engineHandleSignal();
+    if (!handle) return null;
+    const key = this.getNodeKey(node);
+    if (!key) return null;
+    const idx = this.treeIndex();
+    const nodeIdx = idx.keyToIdx.get(key);
+    if (nodeIdx === undefined) return null;
+
+    const indices = handle.selectDescendants(nodeIdx);
+    // Skip the root itself (callers add it via the explicit toggle); collect
+    // only descendants. selectDescendants includes the root at position 0.
+    const out: string[] = [];
+    for (let i = 1; i < indices.length; i++) {
+      const k = idx.keys[indices[i]];
+      if (k !== undefined) out.push(k);
+    }
+    return out;
+  }
+
+  private jsDescendantKeys(node: TreeNode<T>): string[] {
+    const out: string[] = [];
+    this.forEachDescendant(node, (n) => {
+      const k = this.getNodeKey(n);
+      if (k) out.push(k);
+    });
+    return out;
+  }
+
   private updateParentSelection(node: TreeNode<T>): void {
+    // Engine path: when both propagation flags are on (the standard
+    // "checkbox tree" UX), the engine's leaf-based cascade matches the
+    // JS impl exactly. When `propagateDown` is off, the JS impl uses the
+    // "look at children's states" semantic — divergent from the engine's
+    // "look at all leaves" — so we fall back to JS.
+    if (this.propagateDown() && this.engineCascadeUp(node)) return;
+
+    // ── JS fallback ────────────────────────────────────────────────────
     const parentMap = this.parentByNode();
     let parent = parentMap.get(node) ?? null;
 
@@ -890,6 +1088,68 @@ export class TreeComponent<T = unknown> {
 
       parent = parentMap.get(parent) ?? null;
     }
+  }
+
+  /**
+   * Engine-backed parent-state cascade. Returns `true` if the engine ran
+   * (caller skips the JS fallback), `false` to defer to JS.
+   *
+   * The engine's `cascadeUp` recomputes each ancestor's tri-state from the
+   * leaf selection of its subtree, so the result is consistent regardless
+   * of the order of toggles. We translate the (ancestor_idx, state) pairs
+   * back to key-based updates.
+   */
+  private engineCascadeUp(node: TreeNode<T>): boolean {
+    const handle = this.engineHandleSignal();
+    if (!handle) return false;
+    const key = this.getNodeKey(node);
+    if (!key) return false;
+    const idx = this.treeIndex();
+    const nodeIdx = idx.keyToIdx.get(key);
+    if (nodeIdx === undefined) return false;
+
+    const selectedIndices = keysToIndices(this.selectedKeys(), idx.keyToIdx);
+    const entries = handle.cascadeUp(selectedIndices, nodeIdx);
+    if (entries.length === 0) return true; // No ancestors; nothing to update — engine still ran.
+
+    const setSelected: string[] = [];
+    const clearSelected: string[] = [];
+    const setPartial: string[] = [];
+    const clearPartial: string[] = [];
+
+    for (const e of entries) {
+      const k = idx.keys[e.node];
+      if (k === undefined) continue;
+      switch (e.state) {
+        case 'selected':
+          setSelected.push(k);
+          clearPartial.push(k);
+          break;
+        case 'indeterminate':
+          clearSelected.push(k);
+          setPartial.push(k);
+          break;
+        case 'clear':
+          clearSelected.push(k);
+          clearPartial.push(k);
+          break;
+      }
+    }
+
+    this.selectedKeys.update((keys) => {
+      const next = new Set(keys);
+      for (const k of clearSelected) next.delete(k);
+      for (const k of setSelected) next.add(k);
+      return next;
+    });
+    this.partialSelectedKeys.update((keys) => {
+      const next = new Set(keys);
+      for (const k of clearPartial) next.delete(k);
+      for (const k of setPartial) next.add(k);
+      return next;
+    });
+
+    return true;
   }
 
   private forEachDescendant(node: TreeNode<T>, fn: (n: TreeNode<T>) => void): void {
@@ -941,7 +1201,29 @@ export class TreeComponent<T = unknown> {
     }
   }
 
+  /**
+   * Strict-descendant test (`ancestor === node` returns false).
+   *
+   * Engine path: `handle.isDescendant(rootIdx, candIdx)` is O(1) using the
+   * arena's pre-computed Euler-tour intervals. JS fallback walks the
+   * `parentByNode` chain (O(depth)).
+   */
   private isDescendant(ancestor: TreeNode<T>, node: TreeNode<T>): boolean {
+    const handle = this.engineHandleSignal();
+    if (handle) {
+      const aKey = this.getNodeKey(ancestor);
+      const nKey = this.getNodeKey(node);
+      if (aKey && nKey) {
+        const idx = this.treeIndex();
+        const aIdx = idx.keyToIdx.get(aKey);
+        const nIdx = idx.keyToIdx.get(nKey);
+        if (aIdx !== undefined && nIdx !== undefined) {
+          return handle.isDescendant(aIdx, nIdx);
+        }
+      }
+      // Stale keys (lazy-load added a node not yet re-ingested) ⇒ JS fallback.
+    }
+
     const parentMap = this.parentByNode();
     let current: TreeNode<T> | null | undefined = node;
     while (current) {

@@ -941,17 +941,18 @@ export interface RowReorderEvent<T = unknown> {
 
 // Row grouping configuration
 export interface GroupConfig<T> {
-  /** Field to group rows by */
-  groupBy: StringKey<T>;
+  /** Field(s) to group rows by. Pass an array for nested multi-level grouping
+   *  (e.g. `['country', 'state']` produces a country → state hierarchy). */
+  groupBy: StringKey<T> | readonly StringKey<T>[];
   /** Aggregate functions per column to display in group footer */
   aggregates?: Partial<Record<StringKey<T>, AggregateFunction>>;
   /** Whether groups are initially expanded. Default: true */
   initiallyExpanded?: boolean;
   /** Show aggregate footer row per group */
   showGroupFooter?: boolean;
-  /** Custom label for group header */
+  /** Custom label for group header. Called per node in multi-level grouping. */
   groupHeaderLabel?: (groupValue: unknown, rows: T[]) => string;
-  /** Custom sort function for group ordering */
+  /** Custom sort function for group ordering. Applied at every level. */
   groupSortFn?: (a: unknown, b: unknown) => number;
   /** Caption aggregates shown inline in the group header row */
   captionAggregates?: FooterRowDef<T>;
@@ -960,11 +961,28 @@ export interface GroupConfig<T> {
   groupFooterRows?: FooterRowDef<T>[];
 }
 
-// Internal: a single row group
+/**
+ * One node in a (possibly nested) group tree.
+ *
+ * For single-level grouping: `path = [groupValue]`, `depth = 0`,
+ * `children = []`. For multi-level: `path` is the chain of keys from the root
+ * to this node, and `children` holds sub-groups one level deeper. `rows`
+ * always represents the union of every descendant row, so per-level footer
+ * aggregates work uniformly at any depth.
+ */
 export interface RowGroup<T> {
+  /** This node's key value at its level. Equals the last element of `path`. */
   groupValue: unknown;
+  /** Human-readable label rendered in the group-header row. */
   groupLabel: string;
+  /** Chain of keys from root to this node. `[groupValue]` for top-level. */
+  path: readonly unknown[];
+  /** Depth in the tree. 0 = top-level. */
+  depth: number;
+  /** Union of every descendant row, in source order. */
   rows: T[];
+  /** Sub-groups one level deeper. Empty for leaf nodes. */
+  children: RowGroup<T>[];
   aggregates: Record<string, number>;
   expanded: boolean;
   resolvedCaptionCells?: Partial<Record<StringKey<T>, (data: readonly T[]) => string>>;
@@ -973,7 +991,10 @@ export interface RowGroup<T> {
 
 // Group expand/collapse event
 export interface GroupExpandEvent {
+  /** The leaf-level value that was toggled (last element of `path`). */
   groupValue: unknown;
+  /** Full path from root to this group. Distinguishes "US → CA" from "UK → CA". */
+  path: readonly unknown[];
   expanded: boolean;
 }
 

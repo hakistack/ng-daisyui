@@ -535,6 +535,16 @@ export class App implements OnInit {
         },
       ],
     },
+    {
+      title: 'Lab',
+      items: [
+        {
+          path: '/engine-stress',
+          label: 'Engine Stress',
+          icon: 'zap',
+        },
+      ],
+    },
   ];
 
   ngOnInit(): void {

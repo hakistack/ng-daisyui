@@ -47,6 +47,10 @@ __screenshots__/
 # Rust / WASM engine output
 # (hakistack-engine/.gitignore handles its own target/ and pkg/)
 /projects/hakistack/ng-daisyui/src/lib/wasm/
+/projects/demo/public/engine_wasm.js
+/projects/demo/public/engine_wasm_bg.wasm
+/projects/demo-v4/public/engine_wasm.js
+/projects/demo-v4/public/engine_wasm_bg.wasm
 
 # System files
 .DS_Store

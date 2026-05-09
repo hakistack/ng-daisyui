@@ -22,6 +22,7 @@ import { HK_THEME } from '../../theme/theme.config';
 import { HkPdfToolbarContext, HkPdfToolbarDirective } from './pdf-viewer.directives';
 import { DEFAULT_PDF_VIEWER_LABELS, HK_PDF_LABELS, ResolvedPdfViewerLabels } from './pdf-viewer.labels';
 import { HkPdfService } from './pdf.service';
+import { PdfSearchHandle, PdfSearchService } from '../../services';
 import {
   PdfDisplayMode,
   PdfDocumentSource,
@@ -136,6 +137,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly hostRef: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly pdfService = inject(HkPdfService);
+  private readonly engineService = inject(PdfSearchService);
+
+  /**
+   * WASM search handle for the currently loaded document. Built lazily after
+   * `loadDocument` resolves the page count; replaces the per-page `indexOf`
+   * loop in `runSearch`. Pages are mirrored into it as `populateTextIndex`
+   * builds them. `null` when WASM isn't loaded — `runSearch` falls back to
+   * the existing JS scan in that case.
+   */
+  private engineHandle: PdfSearchHandle | null = null;
 
   /**
    * The PDF document source. Accepts a URL string, a `Uint8Array` of bytes,
@@ -664,6 +675,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     this.visibleEntries.set(new Map());
     this.renderedPages.clear();
     this.inFlightPages.clear();
+    this.disposeEngineHandle();
     await this.destroyDocument();
 
     if (!src || (typeof src === 'string' && src.length === 0)) {
@@ -734,6 +746,30 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       }
       this.pages = pages;
       this.pageNumbers.set(pages.map((p) => p.pageNumber));
+
+      // Kick off the WASM search index. Page text gets mirrored into it as
+      // `populateTextIndex` runs (lazy per text-layer render or per first
+      // search call). Failure is non-fatal — `runSearch` falls back to JS.
+      const expectedDoc = this.pdfDoc;
+      this.engineService
+        .createIndex(doc.numPages)
+        .then((handle) => {
+          // Doc may have been swapped during load; bind the handle only if
+          // we're still on the same document.
+          if (this.pdfDoc !== expectedDoc) {
+            handle.dispose();
+            return;
+          }
+          this.engineHandle = handle;
+          // If text was already populated before the handle arrived, push it
+          // into the engine now.
+          for (const [pageNum, idx] of this.pageTextIndex.entries()) {
+            this.mirrorPageToEngine(pageNum, idx);
+          }
+        })
+        .catch(() => {
+          this.engineHandle = null;
+        });
 
       // Metadata for onLoaded
       let title = '';
@@ -1111,12 +1147,52 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private populateTextIndex(pageNumber: number, items: Array<{ str?: string }>): void {
     if (this.pageTextIndex.has(pageNumber)) return;
     const itemOffsets: number[] = [];
+    const strings: string[] = new Array(items.length);
     let text = '';
-    for (const item of items) {
+    for (let i = 0; i < items.length; i++) {
+      const s = items[i].str ?? '';
       itemOffsets.push(text.length);
-      text += item.str ?? '';
+      strings[i] = s;
+      text += s;
     }
-    this.pageTextIndex.set(pageNumber, { text, itemOffsets });
+    const idx: PdfPageTextIndex = { text, itemOffsets };
+    this.pageTextIndex.set(pageNumber, idx);
+
+    // Mirror to the engine. The handle may not be loaded yet — the
+    // post-create catch-up loop in `loadDocument` flushes any pages we
+    // populated before the handle arrived.
+    this.mirrorPageToEngine(pageNumber, idx, strings);
+  }
+
+  /**
+   * Push a page's text items into the engine handle. Re-entrant-safe: the
+   * engine's `add_page` is an idempotent overwrite. When called from the
+   * loadDocument catch-up loop we don't have the original `string[]`, so we
+   * reconstruct from the cached `text` + `itemOffsets`.
+   */
+  private mirrorPageToEngine(pageNumber: number, idx: PdfPageTextIndex, items?: readonly string[]): void {
+    if (!this.engineHandle) return;
+    let strings: readonly string[];
+    if (items) {
+      strings = items;
+    } else {
+      // Reconstruct from offsets — the cache from a prior populate.
+      const out = new Array<string>(idx.itemOffsets.length);
+      for (let i = 0; i < idx.itemOffsets.length; i++) {
+        const start = idx.itemOffsets[i];
+        const end = i + 1 < idx.itemOffsets.length ? idx.itemOffsets[i + 1] : idx.text.length;
+        out[i] = idx.text.slice(start, end);
+      }
+      strings = out;
+    }
+    this.engineHandle.addPage(pageNumber - 1, strings); // engine uses 0-based page indices
+  }
+
+  private disposeEngineHandle(): void {
+    if (this.engineHandle) {
+      this.engineHandle.dispose();
+      this.engineHandle = null;
+    }
   }
 
   /**
@@ -1560,20 +1636,42 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       return { totalMatches: 0, query: '' };
     }
 
-    const normalized = q.toLowerCase();
-    const hits: PdfSearchHit[] = [];
-
-    // Iterate pages in document order so hits are naturally ordered.
+    // Make sure every page's text is loaded. We always populate the JS
+    // index here because the highlight painter still consults it for
+    // text-layer span resolution. The engine, when present, has been
+    // mirrored in lockstep via `populateTextIndex`.
     for (const page of this.pages) {
-      const idx = await this.ensurePageTextIndex(page.pageNumber);
-      if (!idx) continue;
-      const haystack = idx.text.toLowerCase();
-      let from = 0;
-      while (from <= haystack.length) {
-        const found = haystack.indexOf(normalized, from);
-        if (found === -1) break;
-        hits.push({ pageNumber: page.pageNumber, charStart: found, length: q.length });
-        from = found + Math.max(1, q.length);
+      await this.ensurePageTextIndex(page.pageNumber);
+    }
+
+    let hits: PdfSearchHit[];
+    if (this.engineHandle) {
+      // Engine path — single WASM call across every ingested page.
+      const engineHits = this.engineHandle.search(q, { caseSensitive: false });
+      hits = new Array(engineHits.length);
+      for (let i = 0; i < engineHits.length; i++) {
+        const h = engineHits[i];
+        hits[i] = {
+          pageNumber: h.page + 1, // engine uses 0-based; component uses 1-based
+          charStart: h.charStart,
+          length: h.charLen,
+        };
+      }
+    } else {
+      // JS fallback — per-page indexOf loop.
+      const normalized = q.toLowerCase();
+      hits = [];
+      for (const page of this.pages) {
+        const idx = this.pageTextIndex.get(page.pageNumber);
+        if (!idx) continue;
+        const haystack = idx.text.toLowerCase();
+        let from = 0;
+        while (from <= haystack.length) {
+          const found = haystack.indexOf(normalized, from);
+          if (found === -1) break;
+          hits.push({ pageNumber: page.pageNumber, charStart: found, length: q.length });
+          from = found + Math.max(1, q.length);
+        }
       }
     }
 
@@ -1972,6 +2070,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
   private teardown(): void {
     this.cancelInflightRenders();
+    this.disposeEngineHandle();
     this.intersectionObserver?.disconnect();
     this.intersectionObserver = null;
     this.thumbnailObserver?.disconnect();

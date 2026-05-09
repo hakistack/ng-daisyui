@@ -82,10 +82,48 @@ function aggregateNumeric<T>(data: readonly T[], field: Extract<keyof T, string>
 }
 
 /**
+ * Marker key on aggregate-builder output. The table component reads it to
+ * detect "this footer is a known aggregate I can route through the WASM
+ * engine," falling back to invoking the function directly otherwise.
+ *
+ * Hidden via a `Symbol` so user-supplied custom footer functions never
+ * collide with it.
+ */
+const AGGREGATE_SPEC_KEY = Symbol('hk.aggregate.spec');
+
+/** Spec attached to the function returned by [`aggregate`]. */
+export interface AggregateSpec<T> {
+  readonly field: Extract<keyof T, string>;
+  readonly fn: AggregateFunction;
+}
+
+/**
  * Builder helper for ColumnDefinition.footer — returns a function
  * that computes an aggregate over the displayed data.
- * For advanced use when you need a fully custom footer function.
+ *
+ * The returned function is tagged with `[AGGREGATE_SPEC_KEY]` so the table
+ * component can route the work through the WASM engine when available,
+ * skipping the per-render JS reduce. Calling the function directly still
+ * works (engine-unaware code keeps the original behavior).
  */
 export function aggregate<T>(field: Extract<keyof T, string>, fn: AggregateFunction) {
-  return (data: readonly T[]) => computeAggregate(data, field, fn);
+  const evaluator = (data: readonly T[]) => computeAggregate(data, field, fn);
+  // Attach the spec — readonly, non-enumerable to keep it out of debug logs.
+  Object.defineProperty(evaluator, AGGREGATE_SPEC_KEY, {
+    value: { field, fn } satisfies AggregateSpec<T>,
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
+  return evaluator;
+}
+
+/**
+ * Read the `AggregateSpec` attached by [`aggregate`], or `null` for
+ * user-supplied custom footer functions.
+ */
+export function getAggregateSpec<T>(fn: unknown): AggregateSpec<T> | null {
+  if (typeof fn !== 'function') return null;
+  const record = fn as unknown as Record<symbol, AggregateSpec<T>>;
+  return record[AGGREGATE_SPEC_KEY] ?? null;
 }

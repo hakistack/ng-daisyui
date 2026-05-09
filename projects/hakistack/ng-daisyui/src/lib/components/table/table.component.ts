@@ -69,11 +69,13 @@ import {
   FilterOperator,
   GlobalSearchChange,
   GlobalSearchConfig,
+  GroupConfig,
   GroupExpandEvent,
   PageSizeChange,
   PaginationOptions,
   ResolvedColspanCell,
   ResolvedFooterRow,
+  ResolvedGroupAggregates,
   RowExpandEvent,
   RowGroup,
   RowReorderEvent,
@@ -86,6 +88,7 @@ import {
   _attachTableInstance,
   _detachTableInstance,
   collectAncestorKeys,
+  encodeGroupPath,
   exportToCsv,
   exportToJson,
   filterTreeData,
@@ -96,6 +99,21 @@ import {
   sortTreeData,
 } from './table.helpers';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import {
+  TableEngineService,
+  TableHandle,
+  inferEngineSchema,
+  normalizeDirection,
+  translateAggregate,
+  translateFilter,
+  translateGroupFields,
+  translateSort,
+  type ColumnSchema,
+  type FilterDef,
+  type GroupNode as EngineGroupNode,
+  type SortDef,
+} from './engine';
+import { computeAggregate, getAggregateSpec, type AggregateFunction } from './table-aggregates';
 
 // Optimized DataSource with proper typing
 class SignalDataSource<T> extends DataSource<T> {
@@ -179,6 +197,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly hasLocalStorage = this.isBrowser && typeof localStorage !== 'undefined';
+  private readonly engineService = inject(TableEngineService);
 
   // ───────────────────────────────────────────────────────────────────────
   // Typed event-target helpers
@@ -248,6 +267,18 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly masterDetailRowChange = output<T>();
   readonly activeRowChange = output<T | null>();
   readonly activeRowsChange = output<readonly T[]>();
+
+  // ───────────────────────────────────────────────────────────────────────
+  // WASM engine state
+  //
+  // The handle is created lazily — `engineHandleSignal` stays null until the
+  // first ingest succeeds. Filter / sort signals read it; when null, they
+  // run the JS fallback. The `engineSchemaSignal` is the same schema used
+  // for the in-flight ingest, kept around so filter / sort translators can
+  // map field names → column ids without re-inferring on every keystroke.
+  // ───────────────────────────────────────────────────────────────────────
+  private readonly engineHandleSignal = signal<TableHandle<T> | null>(null);
+  private readonly engineSchemaSignal = signal<ColumnSchema<T>[] | null>(null);
 
   // Internal signals
   private readonly sortState = signal<SortState>({ field: '', direction: '' });
@@ -491,8 +522,24 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // Row Grouping
   // ============================================================================
   readonly groupConfigSignal = computed(() => this.fieldConfig()?.grouping);
-  readonly isGroupedSignal = computed(() => !!this.groupConfigSignal()?.groupBy);
-  readonly expandedGroups = signal<Set<unknown> | null>(null);
+  readonly isGroupedSignal = computed(() => {
+    const cfg = this.groupConfigSignal();
+    if (!cfg?.groupBy) return false;
+    return Array.isArray(cfg.groupBy) ? cfg.groupBy.length > 0 : true;
+  });
+  /** Group depth for nested grouping. Always ≥ 1 when grouped. */
+  readonly groupDepthSignal = computed(() => {
+    const cfg = this.groupConfigSignal();
+    if (!cfg?.groupBy) return 0;
+    return Array.isArray(cfg.groupBy) ? cfg.groupBy.length : 1;
+  });
+  /**
+   * Path-keyed expansion state. Each entry is `encodeGroupPath(path)` for an
+   * EXPANDED group. `null` sentinel = "never interacted; defer to
+   * `initiallyExpanded`". Storing expanded paths instead of collapsed ones
+   * means new groups inherit the default state correctly across data changes.
+   */
+  readonly expandedGroups = signal<Set<string> | null>(null);
   readonly resolvedGroupAggregatesSignal = computed(() => this.config()?.resolvedGroupAggregates);
   readonly hasGroupCaptionAggregatesSignal = computed(() => !!this.groupConfigSignal()?.captionAggregates);
   readonly hasGroupFooterRowsSignal = computed(() => (this.groupConfigSignal()?.groupFooterRows?.length ?? 0) > 0);
@@ -642,28 +689,58 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   private readonly originalDataSignal = computed(() => this.data() ?? []);
 
   // Filtered data signal
-  // For tree tables: hierarchy-aware filtering (child match keeps ancestors)
+  //
+  // Pipeline order:
+  //   1. Cursor mode  ⇒ skip (server handles filtering)
+  //   2. Tree mode    ⇒ JS hierarchy-aware filter (engine has no tree kernel yet)
+  //   3. Engine path  ⇒ if a handle exists and every active filter translates
+  //      cleanly, hand off to WASM and resolve indices to rows.
+  //   4. JS fallback  ⇒ same predicate-based filter as before.
   private readonly filteredDataSignal = computed(() => {
     const data = this.originalDataSignal();
     const filters = this.filterState();
     const mode = this.modeSignal();
 
-    // Skip client-side filtering for cursor pagination (server handles it)
     if (mode === 'cursor' || filters.length === 0) return data;
 
     const predicate = (row: T) => filters.every((filter) => this.applyFilter(row, filter));
 
-    // Use hierarchy-aware filtering for tree tables. Pure return — the
-    // ancestor auto-expand side effect lives in setupEffects() so this
-    // computed stays free of signal writes (avoids NG0103).
     if (this.isTreeTableSignal()) {
       const hierarchyMode = this.filterHierarchyModeSignal();
       const childrenProp = this.childrenPropertySignal();
       return filterTreeData(data as T[], predicate, childrenProp, hierarchyMode);
     }
 
+    // Engine path. We accept the engine result only if every active filter
+    // translates without ambiguity; one untranslatable filter forces JS for
+    // the whole list (rather than producing wrong results from a partial
+    // application). Hybrid per-column dispatch is a future refinement.
+    const engineFiltered = this.tryEngineFilter(data, filters);
+    if (engineFiltered) return engineFiltered;
+
     return data.filter(predicate);
   });
+
+  /**
+   * Engine-backed filter. Returns `null` to signal the caller to fall back to
+   * the JS predicate path. The handle is read off a signal so this re-runs
+   * automatically when the WASM module finishes loading.
+   */
+  private tryEngineFilter(data: readonly T[], filters: readonly FilterConfig<T>[]): readonly T[] | null {
+    const handle = this.engineHandleSignal();
+    const schema = this.engineSchemaSignal();
+    if (!handle || !schema) return null;
+
+    const wire: FilterDef<T>[] = [];
+    for (const f of filters) {
+      const translated = translateFilter<T>(f, schema);
+      if (!translated) return null;
+      wire.push(translated);
+    }
+
+    const indices = handle.filter(wire);
+    return handle.rowsAt(indices);
+  }
 
   // Apply global search to filtered data (CLIENT-SIDE ONLY)
   // For tree tables: hierarchy-aware search (child match keeps ancestors)
@@ -725,29 +802,129 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       return filterTreeData(data as T[], searchPredicate, childrenProp, hierarchyMode);
     }
 
+    // Engine path. Custom search predicates and fuzzy mode short-circuit
+    // above; only the literal contains/startsWith/exact branch reaches here,
+    // which is exactly what the engine handles. The engine receives the
+    // *full* original dataset and we then filter the result down to whatever
+    // also matched the column filters via a Set intersection.
+    const engineSearched = this.tryEngineSearch(data, searchTerm, config);
+    if (engineSearched) return engineSearched;
+
     return data.filter(searchPredicate);
   });
 
+  /**
+   * Engine-backed global search. Operates on the original dataset (the engine
+   * handle holds *all* rows) and intersects with the post-column-filter rows
+   * via a Set lookup. Returns `null` when the engine isn't ready or the search
+   * config can't be expressed in the kernel (caller falls back to JS).
+   */
+  private tryEngineSearch(
+    visible: readonly T[],
+    searchTerm: string,
+    config: NonNullable<ReturnType<TableComponent<T>['fieldConfig']>>['globalSearch'] & object,
+  ): readonly T[] | null {
+    const handle = this.engineHandleSignal();
+    const schema = this.engineSchemaSignal();
+    if (!handle || !schema) return null;
+
+    const mode = (config.mode ?? 'contains') as 'contains' | 'startsWith' | 'exact';
+    if (mode !== 'contains' && mode !== 'startsWith' && mode !== 'exact') return null;
+
+    const excludeFields = new Set(config.excludeFields ?? []);
+    const fields =
+      this.columns()
+        ?.map((c) => c.field)
+        .filter((f) => !excludeFields.has(f)) ?? [];
+
+    const engineFields = fields.filter((f) => {
+      const col = schema.find((s) => s.field === f);
+      return col?.kind === 'text';
+    }) as (keyof T & string)[];
+
+    const matchedIdx = handle.search({
+      term: searchTerm,
+      mode,
+      fields: engineFields,
+      caseSensitive: config.caseSensitive ?? false,
+    });
+
+    // Intersect with the visible set (rows that survived column filters).
+    // The handle still holds the original dataset; engine search ignores
+    // column filters, so we re-narrow here. Set lookup is O(visible).
+    const visibleSet = new Set(visible);
+    const out: T[] = [];
+    const matchedRows = handle.rowsAt(matchedIdx);
+    for (const row of matchedRows) {
+      if (visibleSet.has(row)) out.push(row);
+    }
+    return out;
+  }
+
   // Sort data - hierarchy-aware for tree tables
+  //
+  // Pipeline order matches `filteredDataSignal`: tree mode and missing sort
+  // bypass the engine; otherwise we try WASM first and fall back to the
+  // existing JS comparator if the engine can't service this column.
   private readonly sortedDataSignal = computed(() => {
-    const data = this.globalSearchedDataSignal(); // Use global searched data
+    const data = this.globalSearchedDataSignal();
     const { field, direction } = this.sortState();
 
-    // Skip sorting if no sort field or direction
     if (!field || !direction) return data;
 
     const compareFn = (a: T, b: T) =>
       this.compareValues((a as Record<string, unknown>)[field], (b as Record<string, unknown>)[field], direction);
 
-    // Use recursive sort for tree tables
     if (this.isTreeTableSignal()) {
       const childrenProp = this.childrenPropertySignal();
       return sortTreeData(data as T[], compareFn, childrenProp);
     }
 
-    // Use spread to avoid mutating original array
+    // Engine path. The engine sees the *currently visible* slice (post
+    // filter + global search) which is what `data` already is here. It
+    // ingested the original dataset, so we re-derive the index mapping.
+    const engineSorted = this.tryEngineSort(data, field, direction);
+    if (engineSorted) return engineSorted;
+
     return [...data].sort(compareFn);
   });
+
+  /**
+   * Engine-backed sort over the currently-visible row subset.
+   *
+   * The handle holds *all* rows (filter and global search ran in their own
+   * pipeline). We map the visible rows back to original indices via identity
+   * lookup, sort those indices in WASM, then resolve back to rows.
+   */
+  private tryEngineSort(data: readonly T[], field: string, direction: '' | 'Ascending' | 'Descending'): readonly T[] | null {
+    const handle = this.engineHandleSignal();
+    const schema = this.engineSchemaSignal();
+    if (!handle || !schema) return null;
+
+    const dir = normalizeDirection(direction);
+    const specs: SortDef<T>[] = translateSort<T>(field, dir, schema);
+    if (specs.length === 0) return null;
+
+    // Map the visible rows to their original indices. We rely on reference
+    // equality against the dataset the handle ingested. If the visible
+    // list has been re-allocated (search produced a fresh array), the
+    // identity map below still works because both halves point at the same
+    // row objects.
+    const original = this.originalDataSignal();
+    const indexOf = new Map<T, number>();
+    for (let i = 0; i < original.length; i++) {
+      indexOf.set(original[i], i);
+    }
+    const visibleIndices = new Uint32Array(data.length);
+    for (let i = 0; i < data.length; i++) {
+      const idx = indexOf.get(data[i]);
+      if (idx === undefined) return null; // row not in original dataset ⇒ JS path
+      visibleIndices[i] = idx;
+    }
+
+    const sorted = handle.sort(visibleIndices, specs);
+    return handle.rowsAt(sorted);
+  }
 
   // Flatten tree data after sorting (for tree tables only)
   // This creates a flat array with level/hierarchy info for display
@@ -803,36 +980,167 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // ============================================================================
   readonly groupedDataSignal = computed<RowGroup<T>[]>(() => {
     const config = this.groupConfigSignal();
-    if (!config?.groupBy) return [];
+    if (!this.isGroupedSignal()) return [];
 
     const data = this.displayDataSignal();
     const expandedGroups = this.expandedGroups();
     const resolvedGroupAggregates = this.resolvedGroupAggregatesSignal();
+    const initiallyExpanded = config?.initiallyExpanded ?? true;
 
-    const groups = groupData<T>(
-      data,
-      config.groupBy,
-      config.aggregates as Partial<Record<StringKey<T>, import('./table-aggregates').AggregateFunction>>,
-      config.groupSortFn,
-      config.groupHeaderLabel,
-      config.initiallyExpanded ?? true,
-      resolvedGroupAggregates,
-    );
+    // Engine path. Builds the tree topology in WASM and reuses the existing
+    // RowGroup<T> shape so the rest of the pipeline (template, expansion
+    // state, aggregates) is unchanged. Falls back to JS when:
+    //   - any groupBy field isn't engine-safe (date columns, missing schema)
+    //   - display rows can't be mapped to original-array indices (tree mode)
+    //   - engine handle isn't ready
+    const tree =
+      this.tryEngineGroup(data, config!, initiallyExpanded, resolvedGroupAggregates) ??
+      groupData<T>(
+        data,
+        config!.groupBy,
+        config!.aggregates as Partial<Record<StringKey<T>, AggregateFunction>>,
+        config!.groupSortFn,
+        config!.groupHeaderLabel,
+        initiallyExpanded,
+        resolvedGroupAggregates,
+      );
 
-    // Apply expansion state: null = not yet initialized (use defaults), Set = explicit user state
-    for (const group of groups) {
-      group.expanded = expandedGroups === null ? (config.initiallyExpanded ?? true) : expandedGroups.has(group.groupValue);
-    }
+    // Apply expansion state recursively. `null` ⇒ first paint, use the
+    // configured default for every node; otherwise, a path is expanded iff
+    // it appears in the Set.
+    const applyExpansion = (nodes: RowGroup<T>[]) => {
+      for (const node of nodes) {
+        node.expanded = expandedGroups === null ? initiallyExpanded : expandedGroups.has(encodeGroupPath(node.path));
+        if (node.children.length > 0) applyExpansion(node.children);
+      }
+    };
+    applyExpansion(tree);
 
-    return groups;
+    return tree;
   });
 
-  /** Flattened display rows for grouped mode: group-header, data, group-footer sentinel rows */
+  /**
+   * Engine-backed group. Returns the `RowGroup<T>` tree on success or `null`
+   * to signal a JS fallback.
+   *
+   * This wires three things in sequence:
+   *   1. **Field translation** — every `groupBy` field must be engine-safe
+   *      (text / number / bool). Date columns intentionally fall back so
+   *      `groupValue` typing matches the original JS behavior.
+   *   2. **Index mapping** — visible rows (`data`) need to map to
+   *      original-array indices for the engine's `RowSet::Indices` input.
+   *      Tree-mode synthetic rows can't, so they fall back.
+   *   3. **Tree conversion** — the engine produces a flat tree of
+   *      `EngineGroupNode { key, indices, depth, children }`. We walk it
+   *      recursively producing `RowGroup<T>`, computing per-group aggregates
+   *      via the existing TS `computeAggregate` helper (correctness over
+   *      perf — aggregate counts are typically tiny).
+   */
+  private tryEngineGroup(
+    data: readonly T[],
+    config: GroupConfig<T>,
+    initiallyExpanded: boolean,
+    resolvedGroupAggregates: ResolvedGroupAggregates<T> | undefined,
+  ): RowGroup<T>[] | null {
+    const handle = this.engineHandleSignal();
+    const schema = this.engineSchemaSignal();
+    if (!handle || !schema) return null;
+
+    const fields: readonly (keyof T & string)[] = Array.isArray(config.groupBy)
+      ? (config.groupBy as readonly (keyof T & string)[])
+      : [config.groupBy as keyof T & string];
+    const safeFields = translateGroupFields<T>(fields, schema);
+    if (!safeFields) return null;
+
+    const indices = this.displayIndicesSignal();
+    if (indices === 'unmappable') return null;
+
+    const original = this.originalDataSignal();
+    const engineNodes = handle.group(safeFields, indices);
+
+    const out = this.engineGroupsToRowGroups(engineNodes, original, [], config, initiallyExpanded, resolvedGroupAggregates);
+
+    // Optional `groupSortFn` is applied here too — kernel produces
+    // first-seen order; user-provided sort runs at every level.
+    if (config.groupSortFn) {
+      const sort = config.groupSortFn;
+      const sortRecursive = (nodes: RowGroup<T>[]) => {
+        nodes.sort((a, b) => sort(a.groupValue, b.groupValue));
+        for (const n of nodes) {
+          if (n.children.length > 0) sortRecursive(n.children);
+        }
+      };
+      sortRecursive(out);
+    }
+
+    return out;
+  }
+
+  /** Recursive RowGroup<T> builder from engine nodes. Computes labels + aggregates per node. */
+  private engineGroupsToRowGroups(
+    nodes: readonly EngineGroupNode[],
+    original: readonly T[],
+    parentPath: readonly unknown[],
+    config: GroupConfig<T>,
+    initiallyExpanded: boolean,
+    resolvedGroupAggregates: ResolvedGroupAggregates<T> | undefined,
+  ): RowGroup<T>[] {
+    const out = new Array<RowGroup<T>>(nodes.length);
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const groupValue = engineKeyToValue(node.key);
+      const path = [...parentPath, groupValue];
+      const rows = Array.from(node.indices, (idx) => original[idx]);
+
+      const groupLabel = config.groupHeaderLabel ? config.groupHeaderLabel(groupValue, rows) : String(groupValue ?? 'Unknown');
+
+      const aggregates: Record<string, number> = {};
+      if (config.aggregates) {
+        for (const [field, fn] of Object.entries(config.aggregates)) {
+          if (fn) {
+            aggregates[field] = computeAggregate(rows, field as Extract<keyof T, string>, fn as AggregateFunction);
+          }
+        }
+      }
+
+      const group: RowGroup<T> = {
+        groupValue,
+        groupLabel,
+        path,
+        depth: node.depth,
+        rows,
+        children: this.engineGroupsToRowGroups(node.children, original, path, config, initiallyExpanded, resolvedGroupAggregates),
+        aggregates,
+        expanded: initiallyExpanded,
+      };
+
+      if (resolvedGroupAggregates?.resolvedCaptionCells) {
+        group.resolvedCaptionCells = resolvedGroupAggregates.resolvedCaptionCells;
+      }
+      if (resolvedGroupAggregates?.resolvedGroupFooterRows) {
+        group.resolvedGroupFooterRows = resolvedGroupAggregates.resolvedGroupFooterRows;
+      }
+
+      out[i] = group;
+    }
+    return out;
+  }
+
+  /**
+   * Flattens the group tree into a per-row stream the template can render
+   * sequentially. A non-leaf branch emits its header, then (if expanded)
+   * recurses into its children and their headers/data/footers, then emits
+   * its own footer rows. A leaf branch (no children) emits its header,
+   * then (if expanded) the data rows, then any footer rows.
+   *
+   * The `depth` carried on each emitted entry drives indentation in the
+   * template; `path` is the stable key used by the toggle handler.
+   */
   readonly groupedDisplaySignal = computed<
     Array<
-      | { type: 'group-header'; group: RowGroup<T> }
-      | { type: 'group-footer'; group: RowGroup<T>; footerRowIndex?: number }
-      | { type: 'data'; row: T }
+      | { type: 'group-header'; group: RowGroup<T>; depth: number }
+      | { type: 'group-footer'; group: RowGroup<T>; depth: number; footerRowIndex?: number }
+      | { type: 'data'; row: T; depth: number }
     >
   >(() => {
     const groups = this.groupedDataSignal();
@@ -842,28 +1150,43 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     const showGroupFooter = config?.showGroupFooter ?? false;
     const hasGroupFooterRows = this.hasGroupFooterRowsSignal();
 
-    const result: Array<
-      | { type: 'group-header'; group: RowGroup<T> }
-      | { type: 'group-footer'; group: RowGroup<T>; footerRowIndex?: number }
-      | { type: 'data'; row: T }
-    > = [];
-    for (const group of groups) {
-      result.push({ type: 'group-header', group });
-      if (group.expanded) {
-        for (const row of group.rows) {
-          result.push({ type: 'data', row });
+    type DisplayRow =
+      | { type: 'group-header'; group: RowGroup<T>; depth: number }
+      | { type: 'group-footer'; group: RowGroup<T>; depth: number; footerRowIndex?: number }
+      | { type: 'data'; row: T; depth: number };
+
+    const result: DisplayRow[] = [];
+
+    const emitFooters = (group: RowGroup<T>, depth: number) => {
+      if (hasGroupFooterRows && group.resolvedGroupFooterRows) {
+        for (let i = 0; i < group.resolvedGroupFooterRows.length; i++) {
+          result.push({ type: 'group-footer', group, depth, footerRowIndex: i });
         }
-        if (hasGroupFooterRows && group.resolvedGroupFooterRows) {
-          // Emit one display row per group footer row (column-aligned)
-          for (let i = 0; i < group.resolvedGroupFooterRows.length; i++) {
-            result.push({ type: 'group-footer', group, footerRowIndex: i });
+      } else if (showGroupFooter) {
+        result.push({ type: 'group-footer', group, depth });
+      }
+    };
+
+    const walk = (nodes: readonly RowGroup<T>[]) => {
+      for (const node of nodes) {
+        result.push({ type: 'group-header', group: node, depth: node.depth });
+        if (!node.expanded) continue;
+
+        if (node.children.length > 0) {
+          // Non-leaf: recurse into sub-groups, then emit this level's footers.
+          walk(node.children);
+          emitFooters(node, node.depth);
+        } else {
+          // Leaf: data rows, then this level's footers.
+          for (const row of node.rows) {
+            result.push({ type: 'data', row, depth: node.depth });
           }
-        } else if (showGroupFooter) {
-          // Legacy single full-colspan footer
-          result.push({ type: 'group-footer', group });
+          emitFooters(node, node.depth);
         }
       }
-    }
+    };
+
+    walk(groups);
     return result;
   });
 
@@ -1059,6 +1382,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   constructor() {
     this.dataSource = new SignalDataSource(this.currentDataSignal);
     this.setupEffects();
+    this.setupEngineLifecycle();
 
     // Re-attach when the bound [config] identity changes (e.g. swap controllers at runtime).
     effect(() => {
@@ -1073,6 +1397,66 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     });
   }
 
+  /**
+   * Create a WASM dataset whenever the bound `data` reference changes (and
+   * the table is in a mode the engine can serve). Disposes the previous
+   * handle on every re-ingest and on component destroy. In-flight ingests
+   * are cancelled if the data ref changes again before the WASM module
+   * has finished loading.
+   */
+  private setupEngineLifecycle(): void {
+    effect((onCleanup) => {
+      const data = this.originalDataSignal();
+      const mode = this.modeSignal();
+      const isTree = this.isTreeTableSignal();
+
+      // The engine doesn't serve cursor mode (server-side) or tree tables
+      // (no tree-flatten kernel yet). JS pipeline runs as the source of truth.
+      if (mode === 'cursor' || isTree || data.length === 0) {
+        this.disposeEngineHandle();
+        return;
+      }
+
+      // Schema must be inferable for every column. Failure ⇒ JS fallback.
+      const cols = this.columnDefsSignal();
+      const schema = inferEngineSchema<T>(cols, data);
+      if (!schema) {
+        this.disposeEngineHandle();
+        return;
+      }
+
+      let cancelled = false;
+      onCleanup(() => {
+        cancelled = true;
+      });
+
+      this.engineService
+        .createDataset<T>(data, schema)
+        .then((handle) => {
+          if (cancelled) {
+            handle.dispose();
+            return;
+          }
+          this.disposeEngineHandle();
+          this.engineSchemaSignal.set(schema);
+          this.engineHandleSignal.set(handle);
+        })
+        .catch(() => {
+          // WASM failed to load — service has already logged. Stay on JS.
+          this.disposeEngineHandle();
+        });
+    });
+  }
+
+  private disposeEngineHandle(): void {
+    const old = this.engineHandleSignal();
+    if (old) {
+      old.dispose();
+      this.engineHandleSignal.set(null);
+      this.engineSchemaSignal.set(null);
+    }
+  }
+
   ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
@@ -1085,6 +1469,8 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       this.attachedConfig = null;
       this.attachedId = null;
     }
+
+    this.disposeEngineHandle();
   }
 
   firstPage(): void {
@@ -1888,15 +2274,88 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   getFooterValue(column: ColumnDefinition<T>): string {
     if (!column.footer) return '';
+    const engineResult = this.tryEngineAggregate(column.footer);
+    if (engineResult !== null) return engineResult;
+
+    // JS fallback — invoke the user-supplied / aggregate-builder function.
     const data = this.displayDataSignal();
-    const result = column.footer(data);
-    return String(result);
+    return String(column.footer(data));
   }
 
   getFooterRowCellValue(row: ResolvedFooterRow<T>, column: ColumnDefinition<T>): string {
     const fn = row.cells[column.field];
     if (!fn) return '';
+    const engineResult = this.tryEngineAggregate(fn);
+    if (engineResult !== null) return engineResult;
     return fn(this.displayDataSignal());
+  }
+
+  /**
+   * Map current visible rows back to original-array indices, cached per
+   * render. Engine aggregates accept a `Uint32Array` of indices to scope to;
+   * `null` means "all rows in the dataset" (engine sees the original ingest).
+   *
+   * Returns `null` to signal callers "use the engine but pass null indices"
+   * when the visible data IS the original (no filter / search active). When
+   * a filter or search is active, returns the indices array. Throws when a
+   * derived row isn't in the original dataset (which happens for tree-table
+   * mode and a few synthetic-row paths) — caller falls back to JS.
+   */
+  private readonly displayIndicesSignal = computed<Uint32Array | null | 'unmappable'>(() => {
+    const original = this.originalDataSignal();
+    const display = this.displayDataSignal();
+    if (display === original) return null;
+
+    const idxMap = new Map<T, number>();
+    for (let i = 0; i < original.length; i++) idxMap.set(original[i], i);
+
+    const out = new Uint32Array(display.length);
+    for (let i = 0; i < display.length; i++) {
+      const idx = idxMap.get(display[i]);
+      if (idx === undefined) return 'unmappable';
+      out[i] = idx;
+    }
+    return out;
+  });
+
+  /**
+   * Engine-backed aggregate for a footer cell. Returns the formatted string
+   * when the engine ran, `null` to signal the caller to fall back to JS.
+   *
+   * Routes through the engine only when:
+   *   1. The footer function carries an `AggregateSpec` (was built via
+   *      `aggregate(field, fn)`) — custom user functions stay on JS.
+   *   2. The handle is loaded.
+   *   3. The agg fn + column kind combination is safe (per
+   *      `translateAggregate` — see its docs for the conservative rules).
+   *   4. Visible rows can be mapped back to original-array indices (rules
+   *      out tree-table mode for now).
+   */
+  private tryEngineAggregate(fn: unknown): string | null {
+    const spec = getAggregateSpec<T>(fn);
+    if (!spec) return null;
+
+    const handle = this.engineHandleSignal();
+    const schema = this.engineSchemaSignal();
+    if (!handle || !schema) return null;
+
+    const aggFn = translateAggregate<T>(spec.field, spec.fn, schema);
+    if (!aggFn) return null;
+
+    const indices = this.displayIndicesSignal();
+    if (indices === 'unmappable') return null;
+
+    const result = handle.aggregate(spec.field, indices, aggFn);
+    switch (result.kind) {
+      case 'number':
+        return String(result.value);
+      case 'count':
+        return String(result.value);
+      case 'date':
+        return String(result.value); // ms-epoch number — matches `Number(date)` JS behavior
+      case 'none':
+        return null; // empty input: JS path returns `0`, let it.
+    }
   }
 
   /**
@@ -2239,41 +2698,75 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // Row Grouping Methods
   // ============================================================================
 
-  toggleGroupExpand(groupValue: unknown): void {
-    const groups = this.groupedDataSignal();
-    const group = groups.find((g) => g.groupValue === groupValue);
-    if (!group) return;
+  /**
+   * Toggle the expansion state of a single group, addressed by its full path.
+   *
+   * Path-based addressing is needed for multi-level grouping where two groups
+   * can share the same leaf-level value (e.g. "US → CA" and "MX → CA"); for
+   * single-level grouping `path` is just `[groupValue]`.
+   */
+  toggleGroupExpand(path: readonly unknown[]): void {
+    const node = this.findGroupByPath(path);
+    if (!node) return;
 
-    const wasExpanded = group.expanded;
+    const wasExpanded = node.expanded;
+    const key = encodeGroupPath(path);
 
     this.expandedGroups.update((set) => {
-      // Lazy-initialize: if null (never interacted), populate from current state
-      let newSet: Set<unknown>;
+      // Lazy-initialize on first interaction: snapshot current expanded paths.
+      let newSet: Set<string>;
       if (set === null) {
-        // First interaction: populate set based on current expanded state of all groups
-        newSet = new Set(groups.filter((g) => g.expanded).map((g) => g.groupValue));
+        newSet = new Set();
+        const collect = (nodes: readonly RowGroup<T>[]) => {
+          for (const n of nodes) {
+            if (n.expanded) newSet.add(encodeGroupPath(n.path));
+            if (n.children.length > 0) collect(n.children);
+          }
+        };
+        collect(this.groupedDataSignal());
       } else {
         newSet = new Set(set);
       }
 
       if (wasExpanded) {
-        newSet.delete(groupValue);
+        newSet.delete(key);
       } else {
-        newSet.add(groupValue);
+        newSet.add(key);
       }
       return newSet;
     });
 
-    this.groupExpandChange.emit({ groupValue, expanded: !wasExpanded });
+    this.groupExpandChange.emit({ groupValue: node.groupValue, path, expanded: !wasExpanded });
   }
 
+  /** Expand every group at every depth. */
   expandAllGroups(): void {
-    const groups = this.groupedDataSignal();
-    this.expandedGroups.set(new Set(groups.map((g) => g.groupValue)));
+    const all = new Set<string>();
+    const visit = (nodes: readonly RowGroup<T>[]) => {
+      for (const n of nodes) {
+        all.add(encodeGroupPath(n.path));
+        if (n.children.length > 0) visit(n.children);
+      }
+    };
+    visit(this.groupedDataSignal());
+    this.expandedGroups.set(all);
   }
 
+  /** Collapse every group at every depth. */
   collapseAllGroups(): void {
     this.expandedGroups.set(new Set());
+  }
+
+  /** Locate a group node by its path. Walks the (already-computed) tree. */
+  private findGroupByPath(path: readonly unknown[]): RowGroup<T> | undefined {
+    let nodes: readonly RowGroup<T>[] = this.groupedDataSignal();
+    let found: RowGroup<T> | undefined;
+    for (const key of path) {
+      found = nodes.find((n) => n.groupValue === key);
+      if (!found) return undefined;
+      nodes = found.children;
+    }
+    return found;
   }
 
   getGroupAggregateValue(group: RowGroup<T>, field: string): string {
@@ -2810,5 +3303,27 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       default:
         return true;
     }
+  }
+}
+
+/**
+ * Map an engine `GroupKey` (typed wire shape) to the `unknown` value the JS
+ * `RowGroup<T>` uses for `groupValue`. We never reach here for date columns —
+ * `translateGroupFields` rejects them because the engine's ms-epoch numeric
+ * key would mismatch the original `Date | string | number` types JS would
+ * have extracted.
+ */
+function engineKeyToValue(key: import('./engine').GroupKey): unknown {
+  switch (key.kind) {
+    case 'null':
+      return null;
+    case 'text':
+      return key.value;
+    case 'number':
+      return key.value;
+    case 'bool':
+      return key.value;
+    case 'date':
+      return key.value; // ms-epoch, reachable only if translateGroupFields is relaxed later
   }
 }

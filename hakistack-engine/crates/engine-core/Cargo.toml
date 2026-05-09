@@ -1,0 +1,13 @@
+[package]
+name        = "engine-core"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+authors.workspace    = true
+repository.workspace = true
+publish.workspace    = true
+description = "Shared Rust primitives (arena, bitset, string folding) for the hakistack engine crates."
+
+[dependencies]
+rustc-hash = { workspace = true }
+memchr     = { workspace = true }

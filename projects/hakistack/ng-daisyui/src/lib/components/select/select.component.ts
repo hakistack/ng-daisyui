@@ -16,6 +16,7 @@ import {
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import { createFuseCache, FuseCache } from '../../utils/fuse-cache';
+import { FuzzyEngineService, FuzzyHandle } from '../../services';
 import { HK_THEME } from '../../theme/theme.config';
 
 export interface SelectOption {
@@ -150,6 +151,17 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     if (!term) return opts;
     if (opts.length === 0) return this.fallbackFilter(opts, term);
 
+    // Engine path: WASM fuzzy when handle is loaded; matches in score order.
+    const handle = this.engineHandleSignal();
+    if (handle && handle.itemCount === opts.length) {
+      const matches = handle.search(term);
+      const out = new Array<SelectOption>(matches.length);
+      for (let i = 0; i < matches.length; i++) {
+        out[i] = opts[matches[i].index];
+      }
+      return out;
+    }
+
     return this.fuseCache.search(term, opts, SelectComponent.FUSE_KEYS);
   });
 
@@ -261,8 +273,14 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   // Fuzzy-search cache. Auto-invalidates on data ref or keys change.
   // No `includeScore` — we don't read scores; computing them is wasted work.
+  // Used as the JS fallback when the WASM fuzzy engine isn't loaded
+  // (vitest+jsdom, SSR, or first paint).
   private readonly fuseCache: FuseCache<SelectOption> = createFuseCache<SelectOption>();
   private static readonly FUSE_KEYS: readonly string[] = ['label', 'value'];
+
+  // ── Engine state ────────────────────────────────────────────────────────
+  private readonly engineService = inject(FuzzyEngineService);
+  private readonly engineHandleSignal = signal<FuzzyHandle | null>(null);
 
   // Keyboard event handlers map
   private readonly keyboardHandlers: KeyboardEventHandler = {
@@ -277,10 +295,12 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   constructor() {
     this.setupEffects();
+    this.setupFuzzyEngineLifecycle();
   }
 
   ngOnDestroy(): void {
     this.removeDocumentListeners();
+    this.disposeEngineHandle();
   }
 
   private setupEffects(): void {
@@ -292,6 +312,57 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
         this.fuseCache.reset();
       }
     });
+  }
+
+  /**
+   * Build a fuzzy handle whenever the option list reference changes (and
+   * search is enabled). On data swap or component teardown, dispose the
+   * previous handle. The Fuse cache stays as the JS fallback.
+   */
+  private setupFuzzyEngineLifecycle(): void {
+    effect((onCleanup) => {
+      if (!this.enableSearch()) {
+        this.disposeEngineHandle();
+        return;
+      }
+      const opts = this.effectiveOptions();
+      if (opts.length === 0) {
+        this.disposeEngineHandle();
+        return;
+      }
+
+      // Concatenate label + value per option — same fields Fuse.js currently
+      // searches (FUSE_KEYS).
+      const haystacks = opts.map((o) => `${o.label}\n${o.value}`);
+
+      let cancelled = false;
+      onCleanup(() => {
+        cancelled = true;
+        this.disposeEngineHandle();
+      });
+
+      this.engineService
+        .createIndex(haystacks)
+        .then((handle) => {
+          if (cancelled) {
+            handle.dispose();
+            return;
+          }
+          this.disposeEngineHandle();
+          this.engineHandleSignal.set(handle);
+        })
+        .catch(() => {
+          this.disposeEngineHandle();
+        });
+    });
+  }
+
+  private disposeEngineHandle(): void {
+    const old = this.engineHandleSignal();
+    if (old) {
+      old.dispose();
+      this.engineHandleSignal.set(null);
+    }
   }
 
   // ControlValueAccessor Implementation

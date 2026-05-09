@@ -1657,8 +1657,8 @@ describe('TableComponent', () => {
       // Initially expanded
       expect(groups[0].expanded).toBe(true);
 
-      // Toggle collapse
-      component.toggleGroupExpand(firstGroupValue);
+      // Toggle collapse — path-based API; for single-level, path is [groupValue]
+      component.toggleGroupExpand([firstGroupValue]);
       fixture.detectChanges();
 
       const updatedGroups = component.groupedDataSignal();
@@ -1686,6 +1686,255 @@ describe('TableComponent', () => {
 
       groups = component.groupedDataSignal();
       expect(groups.every((g) => !g.expanded)).toBe(true);
+    });
+
+    // ─── Multi-level grouping ────────────────────────────────────────────
+
+    it('should produce a tree when grouping by multiple fields', () => {
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: { groupBy: ['active', 'age'], initiallyExpanded: true },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      expect(component.isGroupedSignal()).toBe(true);
+      expect(component.groupDepthSignal()).toBe(2);
+
+      const tree = component.groupedDataSignal();
+      // SAMPLE_DATA has active=true (3 rows: ages 30, 35, 32) and active=false (2 rows: ages 25, 28).
+      expect(tree.length).toBe(2);
+
+      const trueGroup = tree.find((g) => g.groupValue === true)!;
+      expect(trueGroup.depth).toBe(0);
+      expect(trueGroup.path).toEqual([true]);
+      expect(trueGroup.rows.length).toBe(3); // union of descendants
+      expect(trueGroup.children.length).toBe(3); // ages 30, 35, 32
+
+      const ageGroup = trueGroup.children[0];
+      expect(ageGroup.depth).toBe(1);
+      expect(ageGroup.path.length).toBe(2);
+      expect(ageGroup.path[0]).toBe(true);
+      expect(ageGroup.children.length).toBe(0); // leaves
+      expect(ageGroup.rows.length).toBe(1);
+    });
+
+    it('flattened display walks the tree depth-first with depth metadata', () => {
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: { groupBy: ['active', 'age'], initiallyExpanded: true },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      const display = component.groupedDisplaySignal();
+      // Headers: 2 top-level + 5 leaf = 7. Data rows: 5. Total at minimum 12.
+      const headers = display.filter((d) => d.type === 'group-header');
+      const data = display.filter((d) => d.type === 'data');
+      expect(headers.length).toBe(7); // 2 outer + 5 inner
+      expect(data.length).toBe(5);
+
+      // Outer headers are depth 0; inner headers depth 1.
+      const depths = headers.map((h) => h.depth);
+      expect(depths).toContain(0);
+      expect(depths).toContain(1);
+
+      // First entry must be a top-level header (depth 0).
+      expect(display[0].type).toBe('group-header');
+      expect(display[0].depth).toBe(0);
+    });
+
+    it('collapsing a parent hides all its descendants in the flattened display', () => {
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: { groupBy: ['active', 'age'], initiallyExpanded: true },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      // Collapse the active=true parent.
+      component.toggleGroupExpand([true]);
+      fixture.detectChanges();
+
+      const display = component.groupedDisplaySignal();
+      // No descendant headers under active=true should appear.
+      const innerUnderTrue = display.filter((d) => d.type === 'group-header' && d.depth === 1 && d.group.path[0] === true);
+      expect(innerUnderTrue.length).toBe(0);
+
+      // No active=true data rows either.
+      const trueData = display.filter((d) => d.type === 'data' && (d as { row: TestRow }).row.active === true);
+      expect(trueData.length).toBe(0);
+
+      // active=false subtree is unaffected.
+      const innerUnderFalse = display.filter((d) => d.type === 'group-header' && d.depth === 1 && d.group.path[0] === false);
+      expect(innerUnderFalse.length).toBe(2); // ages 25, 28
+    });
+
+    it('per-level expansion: collapsing a child does not collapse its parent', () => {
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: { groupBy: ['active', 'age'], initiallyExpanded: true },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      // Collapse one inner age group under active=true (e.g. age 30).
+      component.toggleGroupExpand([true, 30]);
+      fixture.detectChanges();
+
+      const tree = component.groupedDataSignal();
+      const trueGroup = tree.find((g) => g.groupValue === true)!;
+      expect(trueGroup.expanded).toBe(true); // parent stays open
+
+      const age30 = trueGroup.children.find((g) => g.groupValue === 30)!;
+      expect(age30.expanded).toBe(false);
+
+      const age35 = trueGroup.children.find((g) => g.groupValue === 35)!;
+      expect(age35.expanded).toBe(true); // siblings unaffected
+    });
+
+    it('expandAllGroups expands every node at every depth', () => {
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: { groupBy: ['active', 'age'], initiallyExpanded: false },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      component.expandAllGroups();
+      fixture.detectChanges();
+
+      const tree = component.groupedDataSignal();
+      const allExpanded = (nodes: ReturnType<typeof component.groupedDataSignal>): boolean =>
+        nodes.every((n) => n.expanded && (n.children.length === 0 || allExpanded(n.children)));
+      expect(allExpanded(tree)).toBe(true);
+    });
+
+    it('groupExpandChange event emits the full path for nested groups', () => {
+      const events: { path: readonly unknown[]; expanded: boolean; groupValue: unknown }[] = [];
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: { groupBy: ['active', 'age'], initiallyExpanded: true },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      component.groupExpandChange.subscribe((e) => events.push(e));
+
+      component.toggleGroupExpand([true, 30]);
+      fixture.detectChanges();
+
+      expect(events.length).toBe(1);
+      expect(events[0].path).toEqual([true, 30]);
+      expect(events[0].groupValue).toBe(30);
+      expect(events[0].expanded).toBe(false);
+    });
+
+    it('emits a group-footer at every depth in nested grouping', () => {
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: {
+          groupBy: ['active', 'age'],
+          initiallyExpanded: true,
+          showGroupFooter: true,
+          aggregates: { age: 'sum' },
+        },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      const display = component.groupedDisplaySignal();
+      const footers = display.filter((d) => d.type === 'group-footer');
+
+      // 2 country-level (depth 0) + 5 leaf-level (depth 1) = 7 footers total
+      expect(footers.length).toBe(7);
+
+      const depth0Footers = footers.filter((f) => f.depth === 0);
+      const depth1Footers = footers.filter((f) => f.depth === 1);
+      expect(depth0Footers.length).toBe(2);
+      expect(depth1Footers.length).toBe(5);
+    });
+
+    it('a depth-0 footer aggregates across every descendant row, not just direct children', () => {
+      // active=true contains 3 rows with ages 30, 35, 32. The country-level
+      // (depth 0) footer must see ALL of them via group.rows so its sum-of-age
+      // aggregate matches 30 + 35 + 32 = 97.
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: {
+          groupBy: ['active', 'age'],
+          initiallyExpanded: true,
+          showGroupFooter: true,
+          aggregates: { age: 'sum' },
+        },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      const tree = component.groupedDataSignal();
+      const trueGroup = tree.find((g) => g.groupValue === true)!;
+
+      // Depth-0 group has all descendant rows
+      expect(trueGroup.rows.length).toBe(3);
+      expect(trueGroup.aggregates['age']).toBe(30 + 35 + 32);
+    });
+
+    it('post-order: child footers appear before their parent footer in the flattened display', () => {
+      const config = buildConfig({
+        visible: ['name', 'active', 'age'],
+        grouping: {
+          groupBy: ['active', 'age'],
+          initiallyExpanded: true,
+          showGroupFooter: true,
+          aggregates: { age: 'sum' },
+        },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      const display = component.groupedDisplaySignal();
+
+      // Find the active=true country footer (depth 0) and the last
+      // age-leaf footer that belongs to it. The leaf footer's index in the
+      // display must be smaller than the country footer's index.
+      const trueCountryFooterIdx = display.findIndex((d) => d.type === 'group-footer' && d.depth === 0 && d.group.groupValue === true);
+      const trueLeafFooters = display
+        .map((d, i) => ({ d, i }))
+        .filter(({ d }) => d.type === 'group-footer' && d.depth === 1 && d.group.path[0] === true);
+
+      expect(trueCountryFooterIdx).toBeGreaterThan(0);
+      expect(trueLeafFooters.length).toBe(3);
+      // Every leaf footer for active=true comes before the country-level footer.
+      for (const { i } of trueLeafFooters) {
+        expect(i).toBeLessThan(trueCountryFooterIdx);
+      }
+    });
+
+    it('single-field grouping still works after type widening', () => {
+      // Pure backwards-compat: passing a single string for groupBy must
+      // produce identical semantics to the previous implementation.
+      const config = buildConfig({
+        visible: ['name', 'active'],
+        grouping: { groupBy: 'active' },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      const tree = component.groupedDataSignal();
+      expect(tree.length).toBe(2);
+      expect(tree.every((g) => g.depth === 0)).toBe(true);
+      expect(tree.every((g) => g.children.length === 0)).toBe(true);
+      expect(tree[0].path).toEqual([tree[0].groupValue]);
     });
   });
 

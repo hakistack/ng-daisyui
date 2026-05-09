@@ -80,4 +80,9 @@ export const routes: Routes = [
   // Utilities
   { path: 'motion', redirectTo: 'motion/animate', pathMatch: 'full' },
   { path: 'motion/:feature', loadComponent: () => import('@shared-demos/demos/motion-demo.component').then((m) => m.MotionDemoComponent) },
+  // WASM engine validation
+  {
+    path: 'engine-stress',
+    loadComponent: () => import('@shared-demos/demos/engine-stress-demo.component').then((m) => m.EngineStressDemoComponent),
+  },
 ];

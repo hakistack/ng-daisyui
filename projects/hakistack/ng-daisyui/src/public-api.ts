@@ -66,6 +66,44 @@ export { TableGlobalSearchComponent } from './lib/components/table/table-global-
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
 export { createTable, exportToCsv, exportToJson, projectFields, clearHeaderFormatCache } from './lib/components/table/table.helpers';
 export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
+
+// Table — WASM engine bridge (lazy-loaded). Type names are prefixed with
+// `Engine` where they would clash with existing table types in this barrel.
+export {
+  TableEngineService,
+  TableHandle,
+  HK_TABLE_ENGINE_WASM_URL,
+  provideTableEngineWasmUrl,
+  type ColumnKind as EngineColumnKind,
+  type ColumnSchema as EngineColumnSchema,
+  type FilterDef as EngineFilterDef,
+  type SearchSpec as EngineSearchSpec,
+  type SearchMode as EngineSearchMode,
+  type SortDef as EngineSortDef,
+  type AggFn as EngineAggFn,
+  type AggResult as EngineAggResult,
+  type GroupNode as EngineGroupNode,
+  type GroupKey as EngineGroupKey,
+  type TextOp as EngineTextOp,
+  type NumberOp as EngineNumberOp,
+  type BoolOp as EngineBoolOp,
+  type DateOp as EngineDateOp,
+  type SortDirection as EngineSortDirection,
+  type NullsPosition as EngineNullsPosition,
+} from './lib/components/table/engine';
+
+// Tree — WASM engine bridge (lazy-loaded; shares the same engine_wasm bundle).
+// Type names prefixed with `Engine` to avoid clashes with the existing
+// `<hk-tree>` component types that are also exported from this barrel.
+export {
+  TreeEngineService,
+  TreeHandle,
+  type TreeFilterMode as EngineTreeFilterMode,
+  type TreeFilterSpec as EngineTreeFilterSpec,
+  type TreeFlatRow as EngineTreeFlatRow,
+  type TreeNodeState as EngineTreeNodeState,
+  type TreeCascadeEntry as EngineTreeCascadeEntry,
+} from './lib/components/tree/engine';
 export type {
   ChildGridConfig,
   MasterDetailConfig,
@@ -347,6 +385,12 @@ export type {
   FormStateMetadata,
 } from './lib/services/form-state.service';
 export { PipeRegistryService, providePipes } from './lib/services/pipe-registry.service';
+
+// Fuzzy search engine — WASM-backed, lazy-loaded; powers command-palette + select.
+export { FuzzyEngineService, FuzzyHandle, type FuzzyMatch, type FuzzySearchOpts } from './lib/services/fuzzy-engine';
+
+// PDF search engine — WASM-backed, lazy-loaded; powers in-document search in pdf-viewer.
+export { PdfSearchService, PdfSearchHandle, type PdfSearchHit, type PdfResolvedHit, type PdfSearchOpts } from './lib/services/pdf-search';
 
 // Dialog Service
 export { DialogService } from './lib/services/dialog/dialog.service';

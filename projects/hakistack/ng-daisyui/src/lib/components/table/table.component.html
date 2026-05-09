@@ -613,9 +613,13 @@
         <tbody>
           @for (displayRow of groupedDisplaySignal(); track $index) {
             @if (displayRow.type === 'group-header') {
-              <tr class="bg-base-200/70 group-header-row cursor-pointer" (click)="toggleGroupExpand(displayRow.group.groupValue)">
+              <tr
+                class="bg-base-200/70 group-header-row cursor-pointer"
+                [attr.data-group-depth]="displayRow.depth"
+                (click)="toggleGroupExpand(displayRow.group.path)"
+              >
                 <td [attr.colspan]="displayedColumnsSignal().length" class="py-2 px-4">
-                  <div class="flex items-center gap-2 font-semibold">
+                  <div class="flex items-center gap-2 font-semibold" [style.padding-left.rem]="displayRow.depth * 1.25">
                     @if (displayRow.group.expanded) {
                       <svg lucideChevronDown class="h-4 w-4"></svg>
                     } @else {
@@ -754,7 +758,7 @@
               @if (displayRow.footerRowIndex !== undefined) {
                 @if (displayRow.group.resolvedGroupFooterRows?.[displayRow.footerRowIndex]?.colspanCells; as colspanCells) {
                   <!-- Colspan multi-row group footer -->
-                  <tr class="bg-base-200/30 group-footer-row">
+                  <tr class="bg-base-200/30 group-footer-row" [attr.data-group-depth]="displayRow.depth">
                     @if (showDragHandleColumnSignal()) {
                       <td></td>
                     }
@@ -778,7 +782,7 @@
                   </tr>
                 } @else {
                   <!-- Column-aligned multi-row group footer -->
-                  <tr class="bg-base-200/30 group-footer-row">
+                  <tr class="bg-base-200/30 group-footer-row" [attr.data-group-depth]="displayRow.depth">
                     @if (showDragHandleColumnSignal()) {
                       <td></td>
                     }
@@ -803,9 +807,9 @@
                 }
               } @else {
                 <!-- Legacy full-colspan group footer (backward compat) -->
-                <tr class="bg-base-200/30 group-footer-row">
+                <tr class="bg-base-200/30 group-footer-row" [attr.data-group-depth]="displayRow.depth">
                   <td [attr.colspan]="displayedColumnsSignal().length" class="py-1 px-4">
-                    <div class="flex items-center gap-4 text-sm text-base-content/70">
+                    <div class="flex items-center gap-4 text-sm text-base-content/70" [style.padding-left.rem]="displayRow.depth * 1.25">
                       @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                         @if (getGroupAggregateValue(displayRow.group, column.field)) {
                           <span class="font-medium">{{ column.header }}: {{ getGroupAggregateValue(displayRow.group, column.field) }}</span>

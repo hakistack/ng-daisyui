@@ -17,6 +17,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { fromEvent } from 'rxjs';
 import { HK_THEME } from '../../theme/theme.config';
+import { FuzzyEngineService, FuzzyHandle } from '../../services';
 import { createFuseCache } from '../../utils/fuse-cache';
 import { DEFAULT_COMMAND_PALETTE_LABELS, HK_COMMAND_PALETTE_LABELS, ResolvedCommandPaletteLabels } from './command-palette.labels';
 import {
@@ -192,6 +193,13 @@ export class CommandPaletteComponent implements OnInit {
   // ── Internals ────────────────────────────────────────────────────────────
 
   private readonly fuseCache = createFuseCache<CommandPaletteItem>();
+  private readonly engineService = inject(FuzzyEngineService);
+  /**
+   * Lazily-built handle covering the *full* `cfg.items` list. Mode whitelisting
+   * happens after engine search via Set lookup, so we don't have to rebuild
+   * the handle when the user switches modes.
+   */
+  private readonly engineHandleSignal = signal<FuzzyHandle | null>(null);
   private unbindController: (() => void) | null = null;
 
   constructor() {
@@ -204,6 +212,58 @@ export class CommandPaletteComponent implements OnInit {
       const state = this.state();
       cfg._internal?.state.set(state);
     });
+
+    this.setupFuzzyEngineLifecycle();
+  }
+
+  /**
+   * Build a fuzzy handle whenever the items list reference changes. The
+   * handle replaces Fuse.js for the per-keystroke ranking work; the
+   * existing `fuseCache` stays as the JS fallback for handle-not-ready
+   * (e.g., SSR, vitest+jsdom, or first paint before WASM has loaded).
+   */
+  private setupFuzzyEngineLifecycle(): void {
+    effect((onCleanup) => {
+      const items = this.config().items;
+      if (items.length === 0) {
+        this.disposeEngineHandle();
+        return;
+      }
+
+      // Concatenate label + description + keywords per item. The engine
+      // matches across the joined string; mode-scoped post-filtering still
+      // narrows the results to the active mode's whitelist.
+      const haystacks = items.map((it) => buildHaystack(it));
+
+      let cancelled = false;
+      onCleanup(() => {
+        cancelled = true;
+        this.disposeEngineHandle();
+      });
+
+      this.engineService
+        .createIndex(haystacks)
+        .then((handle) => {
+          if (cancelled) {
+            handle.dispose();
+            return;
+          }
+          this.disposeEngineHandle();
+          this.engineHandleSignal.set(handle);
+        })
+        .catch(() => {
+          // WASM failed to load — service has logged. Stay on Fuse.js.
+          this.disposeEngineHandle();
+        });
+    });
+  }
+
+  private disposeEngineHandle(): void {
+    const old = this.engineHandleSignal();
+    if (old) {
+      old.dispose();
+      this.engineHandleSignal.set(null);
+    }
   }
 
   ngOnInit(): void {
@@ -375,6 +435,23 @@ export class CommandPaletteComponent implements OnInit {
     if (strategy === 'substring') {
       return substringFilter(query, items);
     }
+
+    // Engine path. The handle indexes the *full* items list; mode-scoped
+    // narrowing happens here via Set lookup, preserving the engine's
+    // ranking inside whatever subset the active mode allows.
+    const handle = this.engineHandleSignal();
+    if (handle) {
+      const allItems = this.config().items;
+      const allowed = items === allItems ? null : new Set(items);
+      const matches = handle.search(query);
+      const out: CommandPaletteItem[] = [];
+      for (const m of matches) {
+        const item = allItems[m.index];
+        if (allowed === null || allowed.has(item)) out.push(item);
+      }
+      return out;
+    }
+
     return this.fuseCache.search(query, items, ['label', 'description', 'keywords']);
   }
 
@@ -389,4 +466,16 @@ export class CommandPaletteComponent implements OnInit {
     }
     this.setSelectedIndex(next);
   }
+}
+
+/**
+ * Combine the searchable fields of a palette item into a single haystack the
+ * fuzzy engine can index. Newline separators discourage cross-field matching
+ * without preventing it entirely (`nucleo-matcher` skips whitespace cheaply).
+ */
+function buildHaystack(item: CommandPaletteItem): string {
+  const parts: string[] = [item.label];
+  if (item.description) parts.push(item.description);
+  if (item.keywords?.length) parts.push(item.keywords.join(' '));
+  return parts.join('\n');
 }

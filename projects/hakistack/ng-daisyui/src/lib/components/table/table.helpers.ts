@@ -736,69 +736,125 @@ export function rowHasChildren<T>(row: T, childrenProperty: string): boolean {
 // ============================================================================
 
 /**
- * Groups data by a field and computes aggregates per group.
- * Single-pass O(n) grouping.
+ * Path-encoding sentinels for multi-level group expansion state.
+ * NUL between segments + a stable representation of `null` / `undefined` so
+ * those keys round-trip cleanly through a string Set.
+ */
+const PATH_SEP = ' ';
+const PATH_NULL = 'NULL';
+const PATH_UNDEF = 'UNDEF';
+
+/** Encode a group path to a stable string key for use in Sets / Maps. */
+export function encodeGroupPath(path: readonly unknown[]): string {
+  return path.map((v) => (v === null ? PATH_NULL : v === undefined ? PATH_UNDEF : String(v))).join(PATH_SEP);
+}
+
+/**
+ * Groups data by one or more fields and computes aggregates per group.
+ *
+ * - Pass a single field for backwards-compatible single-level grouping
+ *   (every returned `RowGroup` has `children = []`).
+ * - Pass an array for nested multi-level grouping. The result is a tree:
+ *   each non-leaf node carries its sub-groups in `children`, and `rows` at
+ *   every depth holds the union of all descendant rows so per-level footer
+ *   aggregates compose without re-walking.
+ *
+ * Single-pass O(n × depth). At each level groups appear in first-seen order;
+ * an optional `groupSortFn` reorders within every level.
  */
 export function groupData<T>(
   data: readonly T[],
-  groupField: StringKey<T>,
+  groupField: StringKey<T> | readonly StringKey<T>[],
   aggregateConfig?: Partial<Record<StringKey<T>, AggregateFunction>>,
   groupSortFn?: (a: unknown, b: unknown) => number,
   groupHeaderLabel?: (groupValue: unknown, rows: T[]) => string,
   initiallyExpanded = true,
   resolvedGroupAggregates?: ResolvedGroupAggregates<T>,
 ): RowGroup<T>[] {
-  // Group rows by field value
-  const groupMap = new Map<unknown, T[]>();
+  const fields: readonly StringKey<T>[] = Array.isArray(groupField) ? groupField : [groupField as StringKey<T>];
+  if (fields.length === 0) return [];
+
+  // Working tree shape — each node carries its child bucket map alongside
+  // its child list so insertion is O(depth) hash probes per row.
+  type WorkingNode = {
+    groupValue: unknown;
+    rows: T[];
+    children: WorkingNode[];
+    bucket: Map<unknown, number>;
+  };
+
+  const roots: WorkingNode[] = [];
+  const rootBucket = new Map<unknown, number>();
+
   for (const row of data) {
-    const key = (row as Record<string, unknown>)[groupField];
-    let group = groupMap.get(key);
-    if (!group) {
-      group = [];
-      groupMap.set(key, group);
+    let nodes = roots;
+    let bucket = rootBucket;
+    for (let level = 0; level < fields.length; level++) {
+      const key = (row as Record<string, unknown>)[fields[level]];
+      let pos = bucket.get(key);
+      if (pos === undefined) {
+        pos = nodes.length;
+        bucket.set(key, pos);
+        nodes.push({
+          groupValue: key,
+          rows: [],
+          children: [],
+          bucket: new Map<unknown, number>(),
+        });
+      }
+      const node = nodes[pos];
+      node.rows.push(row);
+      nodes = node.children;
+      bucket = node.bucket;
     }
-    group.push(row);
   }
 
-  // Build RowGroup array
-  const groups: RowGroup<T>[] = [];
-  for (const [groupValue, rows] of groupMap) {
-    const aggregates: Record<string, number> = {};
-    if (aggregateConfig) {
-      for (const [field, fn] of Object.entries(aggregateConfig)) {
-        if (fn) {
-          aggregates[field] = computeAggregate(rows, field as StringKey<T>, fn as AggregateFunction);
+  // Finalize: convert WorkingNode → RowGroup with depth, path, label, aggregates.
+  const finalize = (working: readonly WorkingNode[], parentPath: readonly unknown[]): RowGroup<T>[] => {
+    const out: RowGroup<T>[] = [];
+    for (const w of working) {
+      const path: readonly unknown[] = [...parentPath, w.groupValue];
+      const depth = path.length - 1;
+
+      const aggregates: Record<string, number> = {};
+      if (aggregateConfig) {
+        for (const [field, fn] of Object.entries(aggregateConfig)) {
+          if (fn) {
+            aggregates[field] = computeAggregate(w.rows, field as StringKey<T>, fn as AggregateFunction);
+          }
         }
       }
+
+      const groupLabel = groupHeaderLabel ? groupHeaderLabel(w.groupValue, w.rows) : String(w.groupValue ?? 'Unknown');
+
+      const group: RowGroup<T> = {
+        groupValue: w.groupValue,
+        groupLabel,
+        path,
+        depth,
+        rows: w.rows,
+        children: finalize(w.children, path),
+        aggregates,
+        expanded: initiallyExpanded,
+      };
+
+      if (resolvedGroupAggregates?.resolvedCaptionCells) {
+        group.resolvedCaptionCells = resolvedGroupAggregates.resolvedCaptionCells;
+      }
+      if (resolvedGroupAggregates?.resolvedGroupFooterRows) {
+        group.resolvedGroupFooterRows = resolvedGroupAggregates.resolvedGroupFooterRows;
+      }
+
+      out.push(group);
     }
 
-    const groupLabel = groupHeaderLabel ? groupHeaderLabel(groupValue, rows) : String(groupValue ?? 'Unknown');
-
-    const group: RowGroup<T> = {
-      groupValue,
-      groupLabel,
-      rows,
-      aggregates,
-      expanded: initiallyExpanded,
-    };
-
-    // Attach resolved group aggregates
-    if (resolvedGroupAggregates?.resolvedCaptionCells) {
-      group.resolvedCaptionCells = resolvedGroupAggregates.resolvedCaptionCells;
+    if (groupSortFn) {
+      out.sort((a, b) => groupSortFn(a.groupValue, b.groupValue));
     }
-    if (resolvedGroupAggregates?.resolvedGroupFooterRows) {
-      group.resolvedGroupFooterRows = resolvedGroupAggregates.resolvedGroupFooterRows;
-    }
+    return out;
+  };
 
-    groups.push(group);
-  }
-
-  // Sort groups if custom sort provided
-  if (groupSortFn) {
-    groups.sort((a, b) => groupSortFn(a.groupValue, b.groupValue));
-  }
-
-  return groups;
+  return finalize(roots, []);
 }
 
 /**

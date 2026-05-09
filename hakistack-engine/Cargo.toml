@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/engine-core",
+    "crates/engine-wasm",
+    "crates/table-engine",
+    "crates/tree-engine",
+    "crates/search-engine",
+    "crates/form-engine",
+]
+
+[workspace.package]
+version    = "0.1.0"
+edition    = "2024"
+license    = "MIT"
+authors    = ["Hakistack contributors"]
+repository = "https://github.com/hakistack/ng-daisyui"
+publish    = false
+
+[workspace.dependencies]
+# Internal crates — referenced via { workspace = true }
+engine-core   = { path = "crates/engine-core",   version = "0.1.0" }
+table-engine  = { path = "crates/table-engine",  version = "0.1.0" }
+tree-engine   = { path = "crates/tree-engine",   version = "0.1.0" }
+search-engine = { path = "crates/search-engine", version = "0.1.0" }
+form-engine   = { path = "crates/form-engine",   version = "0.1.0" }
+
+# WASM bindings
+wasm-bindgen        = "0.2"
+js-sys              = "0.3"
+serde               = { version = "1", features = ["derive"] }
+serde-wasm-bindgen  = "0.6"
+
+# Compute primitives
+rustc-hash      = "2"          # FxHash — fast, deterministic, no DoS resistance needed
+memchr          = "2"          # SIMD substring search
+nucleo-matcher  = "0.3"        # fuzzy matching (the matcher behind helix / fzf)
+
+[profile.release]
+opt-level     = 3
+lto           = "fat"
+codegen-units = 1
+strip         = true
+panic         = "abort"
+
+# Dev profile stays at default (-O0) so iteration is fast.
