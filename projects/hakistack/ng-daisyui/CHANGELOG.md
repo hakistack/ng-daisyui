@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.1.92
+
+### Cleanup — native daisyUI v4 baseline
+
+Stripped every piece of "lib chrome" from the daisyUI-v4 Tailwind plugin.
+v4 consumers now get pure native daisyUI v4 component visuals — the lib
+adds zero global aesthetic on top.
+
+**Removed from the v4 plugin:**
+- `.toast-container` / `.toast-item` / `.toast-content` / `.toast-progress`
+  positioning + animation rules
+- `.dropdown-container` open/close animation chrome (scale, opacity,
+  max-height transitions, focus outline)
+- `.step-content-wrapper` forward/backward slide animations
+- All `hk-*` keyframes (slide-in/out, fade-in, etc.)
+- `--dropdown-*` and `--hk-transition-*` CSS variables
+- Reduced-motion overrides for the above
+
+**Why this is safe:** the toast / select-dropdown / stepper Angular
+components ALREADY own these styles in their component-scoped `.css`
+files. The plugin's versions were 100% redundant — components keep
+working visually because their own CSS travels with them.
+
+**Kept (only):**
+- v4-compat fix for disabled `.input` / `.select` / `.textarea` text
+  color (daisyUI v4's default 40% opacity is unreadable over Material
+  surfaces). This is a real v4 bug-patch, not chrome.
+- The auto-generated FESM safelist + `content.files` plumbing.
+
+### Earlier in 0.1.91 (rolled into 0.1.92)
+
+- **fix(dropdowns)**: removed `backdrop-filter: blur(8px)` glassmorphism
+  from `.dropdown-container` in both the v4 plugin and the select
+  component CSS. The brief blur on open/close didn't match native
+  daisyUI v4.
+
 ## 0.1.90
 
 ### Fixes

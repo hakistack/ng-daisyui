@@ -25,6 +25,11 @@
     "size": "size-limit",
     "size:check": "size-limit --json",
     "extract-api-docs": "node scripts/extract-api-docs.mjs",
+    "engine:check": "cargo check --manifest-path hakistack-engine/Cargo.toml --workspace --all-targets",
+    "engine:test": "cargo test --manifest-path hakistack-engine/Cargo.toml --workspace",
+    "engine:build": "node scripts/build-wasm.mjs",
+    "engine:build:dev": "node scripts/build-wasm.mjs --dev",
+    "engine:clean": "cargo clean --manifest-path hakistack-engine/Cargo.toml && rm -rf hakistack-engine/pkg projects/hakistack/ng-daisyui/src/lib/wasm",
     "prepare": "husky"
   },
   "size-limit": [

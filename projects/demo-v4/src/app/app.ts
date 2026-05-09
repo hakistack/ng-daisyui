@@ -64,9 +64,7 @@ interface NavSection {
       <!-- ══ Main content ══ -->
       <div class="drawer-content flex flex-col">
         <!-- Desktop header -->
-        <header
-          class="glass-header sticky top-0 z-30 hidden lg:flex items-center justify-between px-12 h-14 border-b border-base-content/5"
-        >
+        <header class="sticky top-0 z-30 hidden lg:flex items-center justify-between px-12 h-14 bg-base-100 border-b border-base-300">
           <div class="flex items-center gap-2 text-sm text-base-content/40">
             <span>{{ currentSection() }}</span>
             @if (currentPageLabel()) {
@@ -132,7 +130,7 @@ interface NavSection {
         </header>
 
         <!-- Mobile header -->
-        <header class="glass-header sticky top-0 z-30 flex lg:hidden items-center justify-between px-4 h-14 border-b border-base-content/5">
+        <header class="sticky top-0 z-30 flex lg:hidden items-center justify-between px-4 h-14 bg-base-100 border-b border-base-300">
           <div class="flex items-center gap-3">
             <label for="sidebar" class="btn btn-ghost btn-sm btn-square">
               <svg lucideIcon="menu" [size]="20"></svg>
@@ -216,7 +214,7 @@ interface NavSection {
           <div class="h-px bg-base-content/5 mx-4"></div>
 
           <!-- Navigation -->
-          <nav class="sidebar-menu flex-1 overflow-y-auto sidebar-scroll px-3 py-3">
+          <nav class="flex-1 overflow-y-auto px-3 py-3">
             <ul class="menu gap-0.5">
               @for (section of navSections; track section.title) {
                 <li class="menu-title mt-5 first:mt-1">

@@ -44,6 +44,10 @@ __screenshots__/
 /blob-report/
 /playwright/.cache/
 
+# Rust / WASM engine output
+# (hakistack-engine/.gitignore handles its own target/ and pkg/)
+/projects/hakistack/ng-daisyui/src/lib/wasm/
+
 # System files
 .DS_Store
 Thumbs.db

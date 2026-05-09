@@ -327,7 +327,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
 })
 export class GettingStartedComponent {
   /** Library version — bump in sync with `projects/hakistack/ng-daisyui/package.json`. */
-  readonly version = '0.1.90';
+  readonly version = '0.1.92';
   readonly updatedAt = 'May 2026';
 
   /** At-a-glance numbers for the stat strip. */
