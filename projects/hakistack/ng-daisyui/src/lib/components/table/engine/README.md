@@ -6,34 +6,54 @@ Lazy-loaded TypeScript surface for the WASM table engine. Five files:
 |------|------|
 | `table-engine.types.ts` | Public TS types (`FilterDef`, `SortDef`, `AggFn`, `GroupNode`, …) keyed on field names |
 | `table-handle.ts` | `TableHandle<T>` — wraps the WASM `WasmDataset`, translates names ↔ ids, returns indices and resolved row arrays |
-| `table-engine.service.ts` | Angular service: lazy `import()` of the wasm-pack bundle, runs `default()` initializer, exposes `createDataset` |
+| `table-engine.service.ts` | Angular service: lazy-loads the engine, exposes `createDataset` |
 | `table-engine-config.ts` | `HK_TABLE_ENGINE_WASM_URL` injection token + `provideTableEngineWasmUrl(url)` provider |
 | `table-engine-routing.ts` | Pure helpers that translate the table component's filter/sort shapes into the engine's wire format and report engine-eligibility |
 
-## Hosting the WASM bundle
+The shared module loader (`loadEngineModule()`, used by all four engine services — table / tree / fuzzy / pdf-search) lives one level up at `lib/utils/engine-loader.ts` since it isn't table-specific.
 
-The WASM glue (`engine_wasm.js`) and binary (`engine_wasm_bg.wasm`) must be served from the same URL prefix. Default is **`/engine_wasm.js`** (root-level), so consumers copy both files into Angular's `public/` folder:
+## How WASM gets to the browser
 
-```
-my-app/
-├── public/
-│   ├── engine_wasm.js          # 29 KB
-│   └── engine_wasm_bg.wasm     # 295 KB release / 1.3 MB dev
-```
+**By default the WASM is shipped inside the library.** `scripts/build-wasm.mjs`
+emits two TS files alongside the wasm-pack output:
 
-To use a different URL (e.g. CDN, sub-path):
+- `lib/wasm/engine_wasm_glue.ts` — the wasm-pack glue (`engine_wasm.js`) with `// @ts-nocheck` so ng-packagr will bundle it
+- `lib/wasm/engine_wasm_inline.ts` — `export const ENGINE_WASM_BASE64 = '...'` (the `.wasm` binary base64-encoded, ~580 KB)
+
+`utils/engine-loader.ts` dynamic-imports both at runtime, decodes the base64 → `Uint8Array`, and passes it straight to the glue's `default(bytes)` initializer. **No HTTP fetch, no `public/` folder copy, no deployment config.** Vercel / Netlify / GitHub Pages / a static `nginx` — they all just work.
+
+ng-packagr emits the inline bundle and the glue as their own FESM chunks
+(`hakistack-ng-daisyui-engine_wasm_*-<hash>.mjs`), so the consumer's bundler
+can lazy-load them. Apps that never trigger an engine-routed feature don't
+pay the ~580 KB at startup.
+
+### Opt-out: load WASM as a separate file
+
+When you'd rather have the binary as a separately cacheable HTTP asset (e.g.
+behind a CDN, content-hashed for long-term caching), set the URL token:
 
 ```ts
 import { provideTableEngineWasmUrl } from '@hakistack/ng-daisyui';
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideTableEngineWasmUrl('/static/wasm/engine_wasm.js'),
+    provideTableEngineWasmUrl('/wasm/engine_wasm.js'),
   ],
 });
 ```
 
-The `default()` initializer fetches the `.wasm` binary as a sibling of the `.js` URL, so they must live together.
+Then copy the WASM files from the package into your hosted folder:
+
+```
+my-app/
+├── public/
+│   └── wasm/
+│       ├── engine_wasm.js          # ~40 KB
+│       └── engine_wasm_bg.wasm     # ~430 KB
+```
+
+The `default()` initializer fetches the `.wasm` binary as a sibling of the
+`.js` URL, so they must live together.
 
 ## Quick start
 
@@ -84,7 +104,7 @@ The Rust kernels are exhaustively unit-tested under `hakistack-engine/`
 (`npm run engine:test`, currently 95+ tests). The wire-format conversions
 have round-trip serde tests. The full TS↔WASM integration is **not** unit
 tested in vitest because the wasm-pack `--target web` bundle uses browser-only
-APIs (`fetch`, `URL`) that don't work in jsdom.
+APIs that don't work in jsdom.
 
 End-to-end coverage of the bridge belongs in:
 
@@ -95,23 +115,3 @@ End-to-end coverage of the bridge belongs in:
 Until one of those is wired up, treat the bridge as "compiles cleanly,
 matches the documented type shapes" — the bytes-on-wire correctness is
 enforced by the Rust side's serde round-trips.
-
-## How the dynamic import works
-
-`table-engine.service.ts` loads the WASM module via a **variable URL**:
-
-```ts
-const url = inject(HK_TABLE_ENGINE_WASM_URL);  // injected at runtime
-const mod = await import(/* @vite-ignore */ /* webpackIgnore: true */ url);
-await mod.default();
-```
-
-Two reasons the URL is injected, not hardcoded:
-
-1. **ng-packagr's static analyzer.** A literal `import('./wasm/engine_wasm')` would force ng-packagr to resolve the path at library-build time, which fails when the WASM bundle hasn't been generated yet. A variable URL with the bundler-skip comments bypasses static resolution entirely.
-2. **Deployment flexibility.** Apps deploy assets in different shapes (root `public/`, sub-path, CDN, content-hashed filenames). Letting the consumer set the URL via `provideTableEngineWasmUrl(...)` is cleaner than baking a path into the published library.
-
-`scripts/build-wasm.mjs` copies the bundle into:
-
-- `projects/hakistack/ng-daisyui/src/lib/wasm/` — canonical, ships in the published package
-- `projects/demo/public/` and `projects/demo-v4/public/` — dev convenience so `ng serve` finds `/engine_wasm.js`

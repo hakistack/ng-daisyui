@@ -40,6 +40,12 @@ export interface TreeIndex<T> {
    * renderer in the template.
    */
   readonly ancestorIsLastMask: readonly (readonly boolean[])[];
+  /**
+   * Pre-built `[0, 1, …, n-1]` indices array. The engine-routed flatten path
+   * passes this whenever no filter is active — saves a per-keystroke /
+   * per-expand allocation of a fresh `Uint32Array(n)`.
+   */
+  readonly allIndices: Uint32Array;
 }
 
 /**
@@ -94,6 +100,9 @@ export function buildTreeIndex<T>(roots: readonly TreeNode<T>[]): TreeIndex<T> {
   };
   walk(roots, null, 0, [], []);
 
+  const allIndices = new Uint32Array(nodes.length);
+  for (let i = 0; i < nodes.length; i++) allIndices[i] = i;
+
   return {
     nodes,
     labels,
@@ -105,6 +114,7 @@ export function buildTreeIndex<T>(roots: readonly TreeNode<T>[]): TreeIndex<T> {
     isLastSibling,
     path,
     ancestorIsLastMask,
+    allIndices,
   };
 }
 

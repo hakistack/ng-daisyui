@@ -11,6 +11,20 @@ import type { AggregateFunction } from '../table-aggregates';
 import type { ColumnDefinition, FilterConfig } from '../table.types';
 import type { AggFn, ColumnKind, ColumnSchema, FilterDef, NumberOp, SortDef, TextOp, BoolOp, DateOp } from './table-engine.types';
 
+/**
+ * Index a schema array as `field → kind` for O(1) lookup. Both
+ * `translateAggregate` and the table component's engine-routed search
+ * call it per render — caching the Map removes the repeated linear scan.
+ *
+ * The component caches the result via a `computed` keyed on the schema
+ * reference, so this is built once per ingest, not per keystroke.
+ */
+export function buildSchemaKindMap<T>(schema: readonly ColumnSchema<T>[]): Map<string, ColumnKind> {
+  const map = new Map<string, ColumnKind>();
+  for (const c of schema) map.set(c.field, c.kind);
+  return map;
+}
+
 const SAMPLE_LIMIT = 64;
 
 /**
@@ -311,24 +325,29 @@ export function translateGroupFields<T>(
  * back to the existing `computeAggregate` JS reduce. We'd rather fall back
  * silently than emit a numerically different result from what users see today.
  */
-export function translateAggregate<T>(field: keyof T & string, fn: AggregateFunction, schema: readonly ColumnSchema<T>[]): AggFn | null {
+export function translateAggregate<T>(
+  field: keyof T & string,
+  fn: AggregateFunction,
+  /** Pre-built `field → kind` Map (call `buildSchemaKindMap` once per schema). */
+  kindMap: ReadonlyMap<string, ColumnKind>,
+): AggFn | null {
   // `count` and `distinctCount` semantically differ from JS; keep them on JS.
   if (fn === 'count' || fn === 'distinctCount') return null;
 
-  const col = schema.find((s) => s.field === field);
-  if (!col) return null;
+  const kind = kindMap.get(field);
+  if (!kind) return null;
 
   switch (fn) {
     case 'sum':
     case 'avg':
     case 'median':
-      return col.kind === 'number' ? (fn as AggFn) : null;
+      return kind === 'number' ? (fn as AggFn) : null;
     case 'min':
     case 'max':
-      return col.kind === 'number' || col.kind === 'date' ? (fn as AggFn) : null;
+      return kind === 'number' || kind === 'date' ? (fn as AggFn) : null;
     case 'trueCount':
     case 'falseCount':
-      return col.kind === 'bool' ? (fn as AggFn) : null;
+      return kind === 'bool' ? (fn as AggFn) : null;
   }
 }
 

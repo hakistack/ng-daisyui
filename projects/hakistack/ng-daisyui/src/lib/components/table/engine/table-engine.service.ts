@@ -1,27 +1,25 @@
 /**
  * Lazy-loaded gateway to the WASM table engine.
  *
- * The first call to `createDataset` triggers the dynamic import of the
- * generated `engine_wasm` bundle and runs its `default()` initializer.
- * Subsequent calls reuse the loaded module.
+ * The first call to `createDataset` triggers the engine load (inlined bytes
+ * by default, URL fetch when `HK_TABLE_ENGINE_WASM_URL` is overridden) and
+ * initializes the wasm-bindgen module. Subsequent calls reuse the loaded
+ * module — including across the other engine services (tree / fuzzy / pdf),
+ * since they all share `loadEngineModule()`.
  *
  * Apps that don't use any engine-backed table feature never trigger the
- * import and never download the .wasm.
+ * import and never download the .wasm bytes.
  */
 
 import { Injectable, inject, signal } from '@angular/core';
 
+import { loadEngineModule } from '../../../utils/engine-loader';
 import { HK_TABLE_ENGINE_WASM_URL } from './table-engine-config';
 import type { ColumnSchema } from './table-engine.types';
 import { TableHandle, type WasmDataset } from './table-handle';
 
-/**
- * Minimal shape of the wasm-pack-generated module. Declared inline so the
- * library's `.d.ts` build doesn't depend on the WASM bundle resolving at
- * compile time — the real module is loaded by dynamic import at runtime.
- */
-interface EngineModule {
-  default: (input?: unknown) => Promise<unknown>;
+/** Subset of the wasm-bindgen module the table engine consumes. */
+interface TableEngineExports {
   WasmDataset: {
     ingest(nRows: number, schema: unknown, columns: unknown[]): WasmDataset;
   };
@@ -31,9 +29,6 @@ interface EngineModule {
 @Injectable({ providedIn: 'root' })
 export class TableEngineService {
   private readonly wasmUrl = inject(HK_TABLE_ENGINE_WASM_URL);
-
-  private modPromise: Promise<EngineModule> | null = null;
-  private mod: EngineModule | null = null;
 
   /** True once the WASM module has been loaded and initialized. */
   readonly ready = signal(false);
@@ -64,34 +59,9 @@ export class TableEngineService {
     return mod.engine_version();
   }
 
-  private async load(): Promise<EngineModule> {
-    if (this.mod) return this.mod;
-    this.modPromise ??= (async () => {
-      const url = this.wasmUrl;
-      let mod: EngineModule;
-      try {
-        // Variable-URL `import()` keeps ng-packagr's static analyzer from
-        // trying (and failing) to resolve the path at library-build time.
-        // At runtime the URL is whatever the consumer provided via
-        // `HK_TABLE_ENGINE_WASM_URL` — typically `/assets/engine_wasm.js`.
-        mod = (await import(/* @vite-ignore */ /* webpackIgnore: true */ url)) as EngineModule;
-      } catch (e) {
-        throw new Error(
-          `hakistack-engine WASM failed to load from "${url}". ` +
-            `Make sure the engine_wasm.js + engine_wasm_bg.wasm files are served at that URL ` +
-            `(typically by copying node_modules/@hakistack/ng-daisyui/wasm into your assets folder, ` +
-            `or running \`npm run engine:build\` for local development). ` +
-            `Underlying error: ${(e as Error).message}`,
-        );
-      }
-      // wasm-pack `web` target requires explicit init() to fetch + instantiate
-      // the .wasm binary. The default initializer reads the .wasm next to the
-      // .js URL, so `engine_wasm_bg.wasm` must be served from the same folder.
-      await mod.default();
-      this.mod = mod;
-      this.ready.set(true);
-      return mod;
-    })();
-    return this.modPromise;
+  private async load(): Promise<TableEngineExports> {
+    const mod = (await loadEngineModule(this.wasmUrl)) as unknown as TableEngineExports;
+    this.ready.set(true);
+    return mod;
   }
 }

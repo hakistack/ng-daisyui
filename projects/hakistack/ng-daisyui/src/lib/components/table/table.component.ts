@@ -102,12 +102,14 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import {
   TableEngineService,
   TableHandle,
+  buildSchemaKindMap,
   inferEngineSchema,
   normalizeDirection,
   translateAggregate,
   translateFilter,
   translateGroupFields,
   translateSort,
+  type ColumnKind,
   type ColumnSchema,
   type FilterDef,
   type GroupNode as EngineGroupNode,
@@ -126,6 +128,53 @@ class SignalDataSource<T> extends DataSource<T> {
   }
 
   disconnect(): void {}
+}
+
+/**
+ * Lazy slice of a data array: a `source` plus an optional `indices` array
+ * into it. `indices === null` means "every row in source, in source order"
+ * — saves allocating a `[0..n]` array when no transformation has been
+ * applied yet.
+ *
+ * The data pipeline (filter / search / sort) flows views instead of
+ * materialized `T[]` arrays so the page-slice boundary can pull only the
+ * 50 rows it actually renders. This collapses the dominant per-sort-click
+ * cost on 100k-row datasets from ~90 ms to ~30 ms (no full-array
+ * `handle.rowsAt` allocation between stages).
+ *
+ * Tree mode and JS-fallback paths that produce a derived array (e.g.
+ * `data.filter(predicate)`) wrap their result as `viewOf(arr, null)`.
+ * Engine-routed paths return `{ source: original, indices: <subset> }`.
+ */
+interface IndexedView<T> {
+  readonly source: readonly T[];
+  readonly indices: Uint32Array | null;
+  readonly length: number;
+}
+
+function viewOf<T>(source: readonly T[], indices: Uint32Array | null): IndexedView<T> {
+  return { source, indices, length: indices?.length ?? source.length };
+}
+
+function materializeView<T>(view: IndexedView<T>): readonly T[] {
+  if (!view.indices) return view.source;
+  const out = new Array<T>(view.indices.length);
+  for (let i = 0; i < view.indices.length; i++) out[i] = view.source[view.indices[i]];
+  return out;
+}
+
+/** Materialize only `[start, end)` of the view — used at the page-slice boundary. */
+function materializeSlice<T>(view: IndexedView<T>, start: number, end: number): T[] {
+  const lo = Math.max(0, start);
+  const hi = Math.min(view.length, end);
+  if (hi <= lo) return [];
+  const out = new Array<T>(hi - lo);
+  if (!view.indices) {
+    for (let i = lo; i < hi; i++) out[i - lo] = view.source[i];
+  } else {
+    for (let i = lo; i < hi; i++) out[i - lo] = view.source[view.indices[i]];
+  }
+  return out;
 }
 
 // Enhanced pagination state interface
@@ -279,6 +328,18 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // ───────────────────────────────────────────────────────────────────────
   private readonly engineHandleSignal = signal<TableHandle<T> | null>(null);
   private readonly engineSchemaSignal = signal<ColumnSchema<T>[] | null>(null);
+
+  /**
+   * Cached `field → ColumnKind` lookup. Built once per schema change, then
+   * reused by `tryEngineSearch` (text-only column filtering) and
+   * `tryEngineAggregate` (numeric/date kind gating). Replaces the per-call
+   * `schema.find(s => s.field === f)` linear scans that previously ran on
+   * every search keystroke and every footer aggregation cell.
+   */
+  private readonly engineSchemaKindMapSignal = computed<ReadonlyMap<string, ColumnKind> | null>(() => {
+    const schema = this.engineSchemaSignal();
+    return schema ? buildSchemaKindMap(schema) : null;
+  });
 
   /**
    * Identity Map from original-array row → its index. Used by the engine-route
@@ -543,7 +604,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly showDragHandleColumnSignal = computed(() => this.enableRowReorderSignal() && (this.fieldConfig()?.showDragHandle ?? true));
 
   /** True when the table has no data to display and is not loading */
-  readonly isEmptySignal = computed(() => !this.loading() && !this.error() && this.displayDataSignal().length === 0);
+  readonly isEmptySignal = computed(() => !this.loading() && !this.error() && this.displayViewSignal().length === 0);
   /** True when showing error state */
   readonly hasErrorSignal = computed(() => !!this.error());
 
@@ -725,73 +786,106 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   //   3. Engine path  ⇒ if a handle exists and every active filter translates
   //      cleanly, hand off to WASM and resolve indices to rows.
   //   4. JS fallback  ⇒ same predicate-based filter as before.
-  private readonly filteredDataSignal = computed(() => {
+  /**
+   * Filtered view — never materializes a full T[] for the engine path.
+   *
+   * Tree mode and JS predicate fallback produce derived arrays and wrap them
+   * as `viewOf(arr, null)`. Engine path returns `{ source: original, indices }`,
+   * letting the rest of the pipeline (search / sort) operate on indices and
+   * the page-slice boundary materialize only what it renders.
+   */
+  private readonly filteredViewSignal = computed<IndexedView<T>>(() => {
     const data = this.originalDataSignal();
     const filters = this.filterState();
     const mode = this.modeSignal();
 
-    if (mode === 'cursor' || filters.length === 0) return data;
+    if (mode === 'cursor' || filters.length === 0) return viewOf(data, null);
 
     const predicate = (row: T) => filters.every((filter) => this.applyFilter(row, filter));
 
     if (this.isTreeTableSignal()) {
       const hierarchyMode = this.filterHierarchyModeSignal();
       const childrenProp = this.childrenPropertySignal();
-      return filterTreeData(data as T[], predicate, childrenProp, hierarchyMode);
+      return viewOf(filterTreeData(data as T[], predicate, childrenProp, hierarchyMode), null);
     }
 
     // Engine path. We accept the engine result only if every active filter
     // translates without ambiguity; one untranslatable filter forces JS for
     // the whole list (rather than producing wrong results from a partial
     // application). Hybrid per-column dispatch is a future refinement.
-    const engineFiltered = this.tryEngineFilter(data, filters);
-    if (engineFiltered) return engineFiltered;
+    const engineIndices = this.tryEngineFilterIndices(filters);
+    if (engineIndices) return viewOf(data, engineIndices);
 
-    return data.filter(predicate);
+    return viewOf(data.filter(predicate), null);
   });
 
+  /** Public materialized form. Lazy — only allocated when actually read. */
+  private readonly filteredDataSignal = computed(() => materializeView(this.filteredViewSignal()));
+
   /**
-   * Engine-backed filter. Returns `null` to signal the caller to fall back to
-   * the JS predicate path. The handle is read off a signal so this re-runs
-   * automatically when the WASM module finishes loading.
+   * Engine-backed filter. Returns the indices array (into the original
+   * dataset) or `null` for the JS fallback. The handle is read off a signal
+   * so this re-runs when the WASM module finishes loading.
    */
-  private tryEngineFilter(data: readonly T[], filters: readonly FilterConfig<T>[]): readonly T[] | null {
+  private tryEngineFilterIndices(filters: readonly FilterConfig<T>[]): Uint32Array | null {
     const handle = this.engineHandleSignal();
     const schema = this.engineSchemaSignal();
     if (!handle || !schema) return null;
 
-    const wire: FilterDef<T>[] = [];
-    for (const f of filters) {
-      const translated = translateFilter<T>(f, schema);
-      if (!translated) return null;
-      wire.push(translated);
+    // Memo: filter→wire translation. The filterState signal hands out a new
+    // array reference only on actual filter changes, so ref-equality on
+    // (filters, schema) is the right key. Reuses the cached wire on every
+    // other re-run of the filteredViewSignal computed (data updates, search
+    // text changes, etc.). Invalidated when either ref changes.
+    const memo = this.filterTranslateMemo;
+    let wire: FilterDef<T>[] | null = null;
+    if (memo && memo.filters === filters && memo.schema === schema) {
+      wire = memo.wire;
+    } else {
+      const built: FilterDef<T>[] = [];
+      for (const f of filters) {
+        const translated = translateFilter<T>(f, schema);
+        if (!translated) {
+          this.filterTranslateMemo = null;
+          return null;
+        }
+        built.push(translated);
+      }
+      wire = built;
+      this.filterTranslateMemo = { filters, schema, wire };
     }
 
-    const indices = handle.filter(wire);
-    return handle.rowsAt(indices);
+    return handle.filter(wire);
   }
 
-  // Apply global search to filtered data (CLIENT-SIDE ONLY)
-  // For tree tables: hierarchy-aware search (child match keeps ancestors)
-  private readonly globalSearchedDataSignal = computed(() => {
-    const data = this.filteredDataSignal(); // Works after column filters
+  private filterTranslateMemo: { filters: readonly FilterConfig<T>[]; schema: readonly ColumnSchema<T>[]; wire: FilterDef<T>[] } | null =
+    null;
+
+  /**
+   * Searched view — fed by `filteredViewSignal`. Engine path narrows engine
+   * search results against the post-filter index set and returns indices;
+   * tree / fuzzy / custom paths produce a derived array wrapped in a view.
+   */
+  private readonly searchedViewSignal = computed<IndexedView<T>>(() => {
+    const view = this.filteredViewSignal();
     const searchTerm = this.debouncedSearchTerm();
     const config = this.fieldConfig()?.globalSearch;
     const mode = this.modeSignal();
 
-    // Skip client-side search for cursor/server-side pagination
-    if (mode === 'cursor' || !config?.enabled || !searchTerm) return data;
+    if (mode === 'cursor' || !config?.enabled || !searchTerm) return view;
 
     const searchMode = config.mode ?? 'contains';
 
-    // Build the search predicate
+    // Build the search predicate (used by JS / fuzzy / tree fallbacks)
     let searchPredicate: (row: T) => boolean;
 
     if (config.customSearch) {
       searchPredicate = (row: T) => config.customSearch!(row, searchTerm);
     } else if (searchMode === 'fuzzy') {
-      // Fuzzy search doesn't work well with tree filtering, fall through to flat
-      return this.performFuzzySearch(data, searchTerm, config);
+      // Fuzzy doesn't combine well with the indices pipeline. Materialize
+      // the upstream view, run the JS fuzzy search, wrap the result.
+      const data = materializeView(view);
+      return viewOf(this.performFuzzySearch(data, searchTerm, config), null);
     } else {
       const caseSensitive = config.caseSensitive ?? false;
       const excludeFields = new Set(config.excludeFields ?? []);
@@ -823,39 +917,40 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       };
     }
 
-    // Use hierarchy-aware search for tree tables. Pure return — see
-    // filteredDataSignal: ancestor auto-expand is handled in setupEffects().
+    // Tree mode: hierarchy-aware search. Materialize upstream first; tree
+    // helpers expect concrete arrays. Ancestor auto-expand happens in
+    // setupEffects(), not here (cycle avoidance — see comment there).
     if (this.isTreeTableSignal()) {
       const hierarchyMode = this.filterHierarchyModeSignal();
       const childrenProp = this.childrenPropertySignal();
-      return filterTreeData(data as T[], searchPredicate, childrenProp, hierarchyMode);
+      const data = materializeView(view);
+      return viewOf(filterTreeData(data as T[], searchPredicate, childrenProp, hierarchyMode), null);
     }
 
-    // Engine path. Custom search predicates and fuzzy mode short-circuit
-    // above; only the literal contains/startsWith/exact branch reaches here,
-    // which is exactly what the engine handles. The engine receives the
-    // *full* original dataset and we then filter the result down to whatever
-    // also matched the column filters via a Set intersection.
-    const engineSearched = this.tryEngineSearch(data, searchTerm, config);
-    if (engineSearched) return engineSearched;
+    // Engine path: indices ∩ filter-indices, no row materialization.
+    const engineIndices = this.tryEngineSearchIndices(view, searchTerm, config);
+    if (engineIndices) return viewOf(view.source, engineIndices);
 
-    return data.filter(searchPredicate);
+    // JS fallback: walk the view, push surviving indices.
+    return viewOf(view.source, this.filterViewByPredicate(view, searchPredicate));
   });
 
+  /** Public materialized form. Lazy — only allocated when actually read. */
+  private readonly globalSearchedDataSignal = computed(() => materializeView(this.searchedViewSignal()));
+
   /**
-   * Engine-backed global search. Operates on the original dataset (the engine
-   * handle holds *all* rows) and intersects with the post-column-filter rows
-   * via a Set lookup. Returns `null` when the engine isn't ready or the search
-   * config can't be expressed in the kernel (caller falls back to JS).
+   * Engine-backed global search returning indices into the original dataset.
+   * Intersects the engine's match set with the post-column-filter index set.
+   * Returns `null` when the engine can't service this config.
    */
-  private tryEngineSearch(
-    visible: readonly T[],
+  private tryEngineSearchIndices(
+    view: IndexedView<T>,
     searchTerm: string,
     config: NonNullable<ReturnType<TableComponent<T>['fieldConfig']>>['globalSearch'] & object,
-  ): readonly T[] | null {
+  ): Uint32Array | null {
     const handle = this.engineHandleSignal();
-    const schema = this.engineSchemaSignal();
-    if (!handle || !schema) return null;
+    const kindMap = this.engineSchemaKindMapSignal();
+    if (!handle || !kindMap) return null;
 
     const mode = (config.mode ?? 'contains') as 'contains' | 'startsWith' | 'exact';
     if (mode !== 'contains' && mode !== 'startsWith' && mode !== 'exact') return null;
@@ -866,10 +961,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
         ?.map((c) => c.field)
         .filter((f) => !excludeFields.has(f)) ?? [];
 
-    const engineFields = fields.filter((f) => {
-      const col = schema.find((s) => s.field === f);
-      return col?.kind === 'text';
-    }) as (keyof T & string)[];
+    const engineFields = fields.filter((f) => kindMap.get(f) === 'text') as (keyof T & string)[];
 
     const matchedIdx = handle.search({
       term: searchTerm,
@@ -878,90 +970,100 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       caseSensitive: config.caseSensitive ?? false,
     });
 
-    // Intersect with the visible set (rows that survived column filters).
-    // The handle still holds the original dataset; engine search ignores
-    // column filters, so we re-narrow here. Set lookup is O(visible).
-    const visibleSet = new Set(visible);
-    const out: T[] = [];
-    const matchedRows = handle.rowsAt(matchedIdx);
-    for (const row of matchedRows) {
-      if (visibleSet.has(row)) out.push(row);
+    // Intersect with the upstream view's index set. When the view has no
+    // indices (`null`), every row is in scope and the intersection is a
+    // no-op — return the engine's result directly.
+    if (view.indices === null) return matchedIdx;
+
+    const visibleSet = new Set<number>();
+    for (let i = 0; i < view.indices.length; i++) visibleSet.add(view.indices[i]);
+
+    const out = new Uint32Array(matchedIdx.length);
+    let n = 0;
+    for (let i = 0; i < matchedIdx.length; i++) {
+      const idx = matchedIdx[i];
+      if (visibleSet.has(idx)) out[n++] = idx;
     }
-    return out;
+    return n === out.length ? out : out.slice(0, n);
   }
 
-  // Sort data - hierarchy-aware for tree tables
-  //
-  // Pipeline order matches `filteredDataSignal`: tree mode and missing sort
-  // bypass the engine; otherwise we try WASM first and fall back to the
-  // existing JS comparator if the engine can't service this column.
-  private readonly sortedDataSignal = computed(() => {
-    const data = this.globalSearchedDataSignal();
+  /** Walk a view, return the indices array for rows that pass `predicate`. */
+  private filterViewByPredicate(view: IndexedView<T>, predicate: (row: T) => boolean): Uint32Array {
+    const buf: number[] = [];
+    if (!view.indices) {
+      for (let i = 0; i < view.source.length; i++) {
+        if (predicate(view.source[i])) buf.push(i);
+      }
+    } else {
+      for (let i = 0; i < view.indices.length; i++) {
+        const idx = view.indices[i];
+        if (predicate(view.source[idx])) buf.push(idx);
+      }
+    }
+    return Uint32Array.from(buf);
+  }
+
+  /**
+   * Sorted view — fed by `searchedViewSignal`. Engine path runs entirely on
+   * indices: takes the upstream view's indices (or the cached identity array
+   * when there are none), hands them to the WASM sort kernel, returns the
+   * reordered indices. No `handle.rowsAt` allocation in the hot path.
+   *
+   * Two fast paths matter at 100k rows:
+   *
+   * 1. **No filter / search active** (`view.indices === null`) — reuse the
+   *    cached `[0..n]` `originalAllIndicesSignal` instead of allocating.
+   *    This is the common "sort the raw dataset" case.
+   * 2. **Filter / search active** — the upstream view already has the
+   *    indices we need. Pass them straight to the engine; no row→index
+   *    Map round-trip.
+   */
+  private readonly sortedViewSignal = computed<IndexedView<T>>(() => {
+    const view = this.searchedViewSignal();
     const { field, direction } = this.sortState();
 
-    if (!field || !direction) return data;
+    if (!field || !direction) return view;
 
     const compareFn = (a: T, b: T) =>
       this.compareValues((a as Record<string, unknown>)[field], (b as Record<string, unknown>)[field], direction);
 
     if (this.isTreeTableSignal()) {
       const childrenProp = this.childrenPropertySignal();
-      return sortTreeData(data as T[], compareFn, childrenProp);
+      const data = materializeView(view);
+      return viewOf(sortTreeData(data as T[], compareFn, childrenProp), null);
     }
 
-    // Engine path. The engine sees the *currently visible* slice (post
-    // filter + global search) which is what `data` already is here. It
-    // ingested the original dataset, so we re-derive the index mapping.
-    const engineSorted = this.tryEngineSort(data, field, direction);
-    if (engineSorted) return engineSorted;
+    // Engine path: indices in, indices out.
+    const engineIndices = this.tryEngineSortIndices(view, field, direction);
+    if (engineIndices) return viewOf(view.source, engineIndices);
 
-    return [...data].sort(compareFn);
+    // JS fallback. Sort indices (or materialized rows when source isn't
+    // original) so we still skip a full materialization when possible.
+    if (view.indices === null) {
+      return viewOf([...view.source].sort(compareFn), null);
+    }
+    const idx = view.indices.slice();
+    idx.sort((a, b) => compareFn(view.source[a], view.source[b]));
+    return viewOf(view.source, idx);
   });
 
-  /**
-   * Engine-backed sort over the currently-visible row subset.
-   *
-   * The handle holds *all* rows (filter and global search ran in their own
-   * pipeline). We hand the engine a `Uint32Array` of visible-row indices,
-   * it sorts them, we resolve back to row objects.
-   *
-   * Two fast paths matter at 100k rows:
-   *
-   * 1. **No filter active** (`data === original`) — skip the per-row Map
-   *    lookup entirely; reuse the cached `[0..n]` indices array. This is
-   *    the common case (sort a column on raw data) and saves the entire
-   *    O(n) loop below.
-   * 2. **Cached identity Map** — when a filter IS active, we still need
-   *    the per-row lookup, but the row→index Map itself is cached as a
-   *    computed signal keyed on `originalDataSignal`, so it rebuilds only
-   *    when the data input reference changes. Per-click cost drops from
-   *    ~50 ms (rebuild + lookup) to ~5–10 ms (lookup only).
-   */
-  private tryEngineSort(data: readonly T[], field: string, direction: '' | 'Ascending' | 'Descending'): readonly T[] | null {
+  /** Public materialized form. Lazy — only allocated when actually read. */
+  private readonly sortedDataSignal = computed(() => materializeView(this.sortedViewSignal()));
+
+  /** Engine-backed sort returning indices into the original dataset. */
+  private tryEngineSortIndices(view: IndexedView<T>, field: string, direction: '' | 'Ascending' | 'Descending'): Uint32Array | null {
     const handle = this.engineHandleSignal();
     const schema = this.engineSchemaSignal();
     if (!handle || !schema) return null;
+
+    if (view.source !== this.originalDataSignal()) return null; // JS-derived source ⇒ JS sort
 
     const dir = normalizeDirection(direction);
     const specs: SortDef<T>[] = translateSort<T>(field, dir, schema);
     if (specs.length === 0) return null;
 
-    let visibleIndices: Uint32Array;
-    if (data === this.originalDataSignal()) {
-      // No filter / search active — every row is visible, in original order.
-      visibleIndices = this.originalAllIndicesSignal();
-    } else {
-      const indexOf = this.originalIndexMapSignal();
-      visibleIndices = new Uint32Array(data.length);
-      for (let i = 0; i < data.length; i++) {
-        const idx = indexOf.get(data[i]);
-        if (idx === undefined) return null; // row not in original dataset ⇒ JS path
-        visibleIndices[i] = idx;
-      }
-    }
-
-    const sorted = handle.sort(visibleIndices, specs);
-    return handle.rowsAt(sorted);
+    const visibleIndices = view.indices ?? this.originalAllIndicesSignal();
+    return handle.sort(visibleIndices, specs);
   }
 
   // Flatten tree data after sorting (for tree tables only)
@@ -1004,14 +1106,23 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return flattened;
   });
 
-  // Get the data for display - either flattened tree data or regular sorted data
-  readonly displayDataSignal = computed(() => {
+  /**
+   * Display view — what the page-slice boundary slices. Tree mode wraps the
+   * flattened data (no indices); non-tree forwards the sorted view as-is.
+   * `currentDataSignal` reads this and only materializes the page rows.
+   */
+  private readonly displayViewSignal = computed<IndexedView<T>>(() => {
     const flattened = this.flattenedTreeDataSignal();
-    if (flattened) {
-      return flattened.map((f) => f.data);
-    }
-    return this.sortedDataSignal();
+    if (flattened)
+      return viewOf(
+        flattened.map((f) => f.data),
+        null,
+      );
+    return this.sortedViewSignal();
   });
+
+  /** Public materialized form. Lazy — only allocated when actually read. */
+  readonly displayDataSignal = computed(() => materializeView(this.displayViewSignal()));
 
   // ============================================================================
   // Row Grouping Pipeline
@@ -1235,25 +1346,32 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     if (mode === 'cursor') {
       return this.paginationOptions()?.totalItems ?? this.originalDataSignal().length;
     }
-    // For client-side pagination, use display data length (includes flattened tree rows)
-    return this.paginationOptions()?.totalItems ?? this.displayDataSignal().length;
+    // For client-side pagination, use display data length. Read the view's
+    // length directly so we don't trigger full materialization just to
+    // count rows.
+    return this.paginationOptions()?.totalItems ?? this.displayViewSignal().length;
   });
 
+  /**
+   * Page-slice boundary. Reads the lazy `displayViewSignal` and only
+   * materializes the rows actually rendered (50 in the typical offset case)
+   * — the engine-routed pipeline upstream never builds a full T[].
+   */
   private readonly currentDataSignal = computed(() => {
     const mode = this.modeSignal();
-    const data = this.displayDataSignal(); // Use display data (handles tree flattening)
+    const view = this.displayViewSignal();
 
-    // Virtual scroll: return all data (CDK handles viewport)
-    if (this.isVirtualScrollSignal()) return data;
+    // Virtual scroll: CDK reads the entire dataset. Materialize once.
+    if (this.isVirtualScrollSignal()) return materializeView(view);
 
     if (mode === 'offset') {
       const start = this.pageIndexSignal() * this.pageSizeSignal();
       const end = start + this.pageSizeSignal();
-      return data.slice(start, end);
+      return materializeSlice(view, start, end);
     }
 
-    // Cursor mode: use display data (client-side sorting on current page)
-    return data;
+    // Cursor mode: server returns the page; pass through.
+    return materializeView(view);
   });
 
   readonly columnDefsSignal = computed((): ColumnDefinition<T>[] => {
@@ -2329,29 +2447,39 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   /**
-   * Map current visible rows back to original-array indices, cached per
-   * render. Engine aggregates accept a `Uint32Array` of indices to scope to;
-   * `null` means "all rows in the dataset" (engine sees the original ingest).
+   * Map the display view back to original-array indices. With the
+   * `IndexedView<T>` pipeline this is essentially free for the engine path:
+   * the view already holds indices into `originalDataSignal()`. Tree mode
+   * and JS-derived sources (no indices, source !== original) fall back to
+   * the per-row Map lookup; tree-table flattening reports `'unmappable'`
+   * because flattened rows aren't in the original array.
    *
-   * Returns `null` to signal callers "use the engine but pass null indices"
-   * when the visible data IS the original (no filter / search active). When
-   * a filter or search is active, returns the indices array. Throws when a
-   * derived row isn't in the original dataset (which happens for tree-table
-   * mode and a few synthetic-row paths) — caller falls back to JS.
+   * Engine aggregates accept a `Uint32Array` of indices to scope to;
+   * `null` means "all rows in the dataset" (engine sees the original ingest).
    */
   private readonly displayIndicesSignal = computed<Uint32Array | null | 'unmappable'>(() => {
+    const view = this.displayViewSignal();
     const original = this.originalDataSignal();
-    const display = this.displayDataSignal();
-    if (display === original) return null;
 
-    // Reuse the cached identity Map — rebuilds only on data-ref change.
+    // Engine-routed: source is original, indices is the answer.
+    if (view.source === original) return view.indices;
+
+    // JS-derived display (tree flatten, fuzzy search, custom search).
+    // Walk and map; bail to 'unmappable' if any row isn't in the original.
     const idxMap = this.originalIndexMapSignal();
-
-    const out = new Uint32Array(display.length);
-    for (let i = 0; i < display.length; i++) {
-      const idx = idxMap.get(display[i]);
-      if (idx === undefined) return 'unmappable';
-      out[i] = idx;
+    const out = new Uint32Array(view.length);
+    if (view.indices === null) {
+      for (let i = 0; i < view.source.length; i++) {
+        const idx = idxMap.get(view.source[i]);
+        if (idx === undefined) return 'unmappable';
+        out[i] = idx;
+      }
+    } else {
+      for (let i = 0; i < view.indices.length; i++) {
+        const idx = idxMap.get(view.source[view.indices[i]]);
+        if (idx === undefined) return 'unmappable';
+        out[i] = idx;
+      }
     }
     return out;
   });
@@ -2374,10 +2502,10 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     if (!spec) return null;
 
     const handle = this.engineHandleSignal();
-    const schema = this.engineSchemaSignal();
-    if (!handle || !schema) return null;
+    const kindMap = this.engineSchemaKindMapSignal();
+    if (!handle || !kindMap) return null;
 
-    const aggFn = translateAggregate<T>(spec.field, spec.fn, schema);
+    const aggFn = translateAggregate<T>(spec.field, spec.fn, kindMap);
     if (!aggFn) return null;
 
     const indices = this.displayIndicesSignal();

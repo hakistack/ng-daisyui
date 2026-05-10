@@ -123,6 +123,17 @@ export class CommandPaletteComponent implements OnInit {
     return cfg.items;
   });
 
+  /**
+   * Cached `Set<CommandPaletteItem>` of mode-scoped items, or `null` when no
+   * narrowing is active (scoped === all). Used by the engine-routed filter
+   * path to test membership in O(1) without rebuilding the Set per keystroke.
+   */
+  private readonly scopedItemsSetSignal = computed<ReadonlySet<CommandPaletteItem> | null>(() => {
+    const items = this.scopedItemsSignal();
+    const all = this.config().items;
+    return items === all ? null : new Set(items);
+  });
+
   /** Filter result. Computed from scoped items + stripped query + filter strategy. */
   private readonly filteredSignal = computed<readonly CommandPaletteItem[]>(() => {
     const mode = this.modeSignal();
@@ -438,11 +449,12 @@ export class CommandPaletteComponent implements OnInit {
 
     // Engine path. The handle indexes the *full* items list; mode-scoped
     // narrowing happens here via Set lookup, preserving the engine's
-    // ranking inside whatever subset the active mode allows.
+    // ranking inside whatever subset the active mode allows. The Set is
+    // cached on `scopedItemsSetSignal` (rebuilt only when mode changes).
     const handle = this.engineHandleSignal();
     if (handle) {
       const allItems = this.config().items;
-      const allowed = items === allItems ? null : new Set(items);
+      const allowed = this.scopedItemsSetSignal();
       const matches = handle.search(query);
       const out: CommandPaletteItem[] = [];
       for (const m of matches) {

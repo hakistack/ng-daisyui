@@ -9,4 +9,5 @@ export {
   translateAggregate,
   translateGroupFields,
   normalizeDirection,
+  buildSchemaKindMap,
 } from './table-engine-routing';

@@ -297,8 +297,8 @@ export class TreeComponent<T = unknown> {
       } else if (fState.visibleKeys) {
         visible = keysToIndices(fState.visibleKeys, idx.keyToIdx);
       } else {
-        visible = new Uint32Array(idx.nodes.length);
-        for (let i = 0; i < idx.nodes.length; i++) visible[i] = i;
+        // No filter ⇒ reuse the cached identity array on the index.
+        visible = idx.allIndices;
       }
 
       const expandedIndices = keysToIndices(expanded, idx.keyToIdx);
