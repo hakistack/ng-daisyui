@@ -46,7 +46,15 @@ __screenshots__/
 
 # Rust / WASM engine output
 # (hakistack-engine/.gitignore handles its own target/ and pkg/)
-/projects/hakistack/ng-daisyui/src/lib/wasm/
+#
+# lib/wasm/.gitignore selectively un-ignores the two generated TS files
+# (engine_wasm_glue.ts + engine_wasm_inline.ts) — those MUST be in git
+# because the inline loader imports them and CI environments (Vercel,
+# etc.) don't have wasm-pack to regenerate them.
+/projects/hakistack/ng-daisyui/src/lib/wasm/*
+!/projects/hakistack/ng-daisyui/src/lib/wasm/.gitignore
+!/projects/hakistack/ng-daisyui/src/lib/wasm/engine_wasm_glue.ts
+!/projects/hakistack/ng-daisyui/src/lib/wasm/engine_wasm_inline.ts
 /projects/demo/public/engine_wasm.js
 /projects/demo/public/engine_wasm_bg.wasm
 /projects/demo-v4/public/engine_wasm.js

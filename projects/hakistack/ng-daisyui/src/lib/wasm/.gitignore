@@ -1,0 +1,16 @@
+# Build artifacts from `npm run engine:build` (scripts/build-wasm.mjs).
+#
+# We commit the two TS files because the inline loader imports them at
+# library-build time — Vercel and other CI environments don't have Rust /
+# wasm-pack installed, so we can't regenerate them on the fly. The files
+# are deterministic from the Rust source: rebuild locally after touching
+# the engine and re-commit.
+#
+# The raw wasm-pack output (.js, .wasm, .d.ts, package.json) stays
+# gitignored — it's only used by the URL-override fallback, which is
+# opt-in via provideTableEngineWasmUrl().
+
+*
+!.gitignore
+!engine_wasm_glue.ts
+!engine_wasm_inline.ts
