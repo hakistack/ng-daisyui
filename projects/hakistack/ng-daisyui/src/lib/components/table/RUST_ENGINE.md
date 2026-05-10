@@ -314,20 +314,68 @@ The existing `table.component.spec.ts` (2148 lines) is the ground truth. Strateg
 
 ---
 
-## 10. Performance targets
+## 10. Performance — measured
 
-Indicative on a mid-tier laptop (M2 / Chrome), versus current TS pipeline:
+The numbers below come from `/engine-stress`'s microbenchmark (200 iterations
+per row count, headless Chromium, M-series laptop). Filter operation is
+single-column text-contains, run in isolation — no DOM, no signal
+propagation, no Angular change-detection in the loop.
 
-| Operation | 10k rows | 100k rows | 1M rows |
-|-----------|---------:|----------:|--------:|
-| Filter (text contains, 1 col) | 1.3× faster | 4× faster | 8× faster |
-| Filter (3 columns mixed) | 2× | 6× | 12× |
-| Sort (string, locale) | 1.5× | 4× | 7× |
-| Fuzzy search | 3× | 6× | 10× |
-| Tree filter+flatten (depth 4) | 2× | 5× | n/a (JS OOMs) |
-| Group + aggregate | 2× | 5× | 10× |
+| Rows    | JS avg  | Engine avg | Speedup avg | JS p99  | Engine p99 | Speedup p99 |
+|---------|--------:|-----------:|------------:|--------:|-----------:|------------:|
+| 1,000   | 0.05 ms |    0.02 ms |        2.9× | 0.20 ms |    0.20 ms |        1.0× |
+| 10,000  | 0.33 ms |    0.14 ms |        2.3× | 0.50 ms |    0.30 ms |        1.7× |
+| 50,000  | 1.23 ms |    0.77 ms |        1.6× | 1.60 ms |    0.90 ms |        1.8× |
+| 100,000 | 2.64 ms |    1.51 ms |        1.8× | 3.20 ms |    1.70 ms |        1.9× |
 
-The headline case is **typing in a filter on a 100k-row table**: today this drops a few frames per keystroke; with the engine it stays under 16 ms.
+### Honest reading of these numbers
+
+**1.5–3× faster on average is real**, but smaller than earlier drafts of
+this doc projected. Two reasons:
+
+1. **V8's `String.prototype.includes` is hand-written SIMD in C++.** For
+   single-column substring search, the JS path is already nearly optimal.
+   Our Rust path uses `memchr::memmem` (also SIMD-optimized) but goes
+   through the WASM boundary, which costs a few microseconds per call.
+   The win comes from pre-folded haystacks (no per-keystroke `toLowerCase`)
+   plus the dense `Vec<f64>`-style cache locality at scale.
+2. **At sub-millisecond scale, GC noise floors p99.** The 1k-row p99 ties
+   at 0.20 ms because both paths are dominated by allocation jitter, not
+   the actual filter work.
+
+### Where the bigger wins show up (not yet measured at this granularity)
+
+The microbenchmark above runs the *simplest possible* operation. Bigger
+multipliers expected for:
+
+- **Multi-column filters** (3+ filters AND-combined) — engine ANDs bitsets
+  in a single pass; JS calls per-row predicate functions through layers
+  of property lookups
+- **Multi-tier sort with locale comparator** — engine resolves columns
+  once and uses a static-dispatch composite comparator; JS pays the
+  `localeCompare` overhead per comparison
+- **Fuzzy ranking** — `nucleo-matcher` vs Fuse.js is closer to 5-10× on
+  larger item sets, per `command-palette/RUST_ENGINE.md`
+- **Tree flatten + filter** — recursive JS clones at every level vs
+  iterative arena walk
+- **Group + per-group aggregate combined** — engine streams aggregates
+  during the group-by hash bucket walk
+
+### What this means for users
+
+- 100k-row column filter: ~1.5 ms in the engine vs ~2.5 ms in JS. Both
+  fit in a 16 ms frame; the engine just leaves more budget for DOM render.
+- The user-visible "this is finally smooth" win comes from **DOM render
+  time + Angular change detection**, which dominates the end-to-end
+  latency stat (`/engine-stress`'s "Last filter latency" widget).
+  The kernel speedup helps but isn't the sole determinant.
+- The biggest practical wins are in the **fuzzy palette/select** path,
+  where Fuse.js is the actual bottleneck and `nucleo-matcher` is
+  meaningfully faster.
+
+If you want to verify on your own hardware, `/engine-stress` runs the
+benchmark live — click "Run benchmark" once per dataset size. (First run
+includes JIT warmup; second run is steady-state.)
 
 ---
 

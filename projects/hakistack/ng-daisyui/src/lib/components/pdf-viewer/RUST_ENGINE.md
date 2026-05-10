@@ -169,7 +169,15 @@ Keep the current `runSearch` as `js-fallback.ts`. Service auto-selects when `mod
 
 ## 7. Performance targets
 
-Indicative on a mid-tier laptop (M2 / Chrome) for a typical 200-page text PDF:
+> **Projected, not measured.** Only `<hk-table>` has live measured numbers
+> (see `table/RUST_ENGINE.md` §10) — for single-column text-contains the
+> kernel speedup was a more modest 1.5–3×. The PDF-search projections below
+> are higher because (a) PDF text scans are typically over much larger
+> haystacks (10K-100K chars per page × hundreds of pages) where the WASM
+> boundary cost amortizes well, and (b) the JS path's `String.indexOf`
+> loop pays a per-page `toLowerCase` allocation that the engine's
+> pre-folded buffers avoid. But these are still projections — measure on
+> your own corpus before citing.
 
 | Operation | JS today | Rust target | Speedup |
 |-----------|---------:|------------:|--------:|

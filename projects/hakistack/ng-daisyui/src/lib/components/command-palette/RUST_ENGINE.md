@@ -143,7 +143,12 @@ Keep the current Fuse.js-based path as `engine/js-fallback.ts`. The service pick
 
 ## 7. Performance targets
 
-Indicative on a mid-tier laptop:
+> **Projected, not measured.** Only `<hk-table>` has measured numbers in
+> `/engine-stress` today (~1.5–3× kernel speedup, see `table/RUST_ENGINE.md`).
+> The fuzzy-engine numbers below are design targets based on `nucleo-matcher`'s
+> benchmarks vs Fuse.js in similar workloads. Verify on your own data before
+> citing — actual speedups depend heavily on item count, average string
+> length, and how many keys per item are searched.
 
 | Item count | Fuse.js (JS) | Rust target | Speedup |
 |-----------:|-------------:|------------:|--------:|

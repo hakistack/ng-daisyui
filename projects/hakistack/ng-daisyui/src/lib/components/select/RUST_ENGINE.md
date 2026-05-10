@@ -88,6 +88,11 @@ Stays in TS as `highlightMatch()` at `:474-482`. The engine could return char-po
 
 ## 4. Performance targets
 
+> **Projected, not measured.** See `command-palette/RUST_ENGINE.md` for the
+> same caveat — only `<hk-table>` has live measured numbers in
+> `/engine-stress` today. Numbers below are design targets; verify on your
+> own data.
+
 | Option count | Fuse.js (JS) | Rust target | Speedup |
 |-------------:|-------------:|------------:|--------:|
 | 100 | 1 ms | < 1 ms | 2× |

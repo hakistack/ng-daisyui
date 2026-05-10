@@ -170,7 +170,12 @@ Move the current implementations into `engine/js-fallback.ts` (pure functions). 
 
 ## 7. Performance targets
 
-Indicative for trees of varying size (mid-tier laptop):
+> **Projected, not measured.** Only `<hk-table>` has live measured numbers
+> in `/engine-stress` today (~1.5–3× kernel speedup at 100k rows). The
+> tree numbers below are design targets. Drag-over `is_descendant` is
+> the only entry that's algorithmically obvious — Euler-tour interval
+> check is genuinely O(1) vs O(depth) parent walk; the constant factor
+> may be similar at small depths but the engine wins as trees deepen.
 
 | Operation | 1k nodes | 10k nodes | 100k nodes |
 |-----------|---------:|----------:|-----------:|
