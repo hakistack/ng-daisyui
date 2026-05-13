@@ -580,10 +580,16 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     return this.highlightedIndex() === index;
   }
 
-  getOptionClasses(index: number): string {
+  getOptionClasses(index: number, option?: SelectOption): string {
     const classes = [this.menuItemClasses()];
     if (this.isHighlighted(index)) {
       classes.push(this.menuActiveClass);
+    }
+    // Soft-tinted selected state (single-select only — the checkbox already
+    // signals selection in multi-select). Replaces a solid bg-primary, which
+    // read as too loud against the neutral menu surface.
+    if (option && !this.multiple() && this.isSelected(option)) {
+      classes.push('bg-primary/10 text-primary font-medium');
     }
     return classes.join(' ');
   }

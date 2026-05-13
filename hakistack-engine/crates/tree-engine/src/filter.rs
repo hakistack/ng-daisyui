@@ -117,7 +117,7 @@ mod tests {
                 "Marketing".into(),
             ],
             vec![0, 1, 2, 2, 1],
-        )
+        ).unwrap()
     }
 
     fn matches(b: &Bitset) -> Vec<Idx> {

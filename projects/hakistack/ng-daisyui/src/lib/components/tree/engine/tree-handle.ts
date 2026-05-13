@@ -5,8 +5,11 @@
  * and the friendlier object shapes a TS consumer wants. The original tree
  * remains in the caller's JS heap by reference; the engine only ever sees
  * the flat (labels, depths) representation produced at ingest.
+ *
+ * Lifecycle is inherited from `DisposableHandle`.
  */
 
+import { DisposableHandle } from '../../../utils/disposable-handle';
 import type { TreeCascadeEntry, TreeFilterSpec, TreeFlatRow, TreeNodeState } from './tree-engine.types';
 
 /**
@@ -25,26 +28,37 @@ export interface WasmTree {
 }
 
 const NODE_STATE: TreeNodeState[] = ['clear', 'selected', 'indeterminate'];
+const EMPTY_U32 = new Uint32Array(0);
 
-export class TreeHandle {
-  private constructor(private readonly wasm: WasmTree) {}
+export class TreeHandle extends DisposableHandle {
+  private constructor(private readonly wasm: WasmTree) {
+    super();
+  }
 
   /** @internal — use `TreeEngineService.createTree` */
   static _create(wasm: WasmTree): TreeHandle {
     return new TreeHandle(wasm);
   }
 
+  protected override freeWasm(): void {
+    this.wasm.free();
+  }
+
   get nodeCount(): number {
-    return this.wasm.n_nodes();
+    return this.guard(() => this.wasm.n_nodes(), 0);
   }
 
   /** Returns visible-node indices in source order. */
   filter(spec: TreeFilterSpec): Uint32Array {
-    return this.wasm.filter({
-      term: spec.term,
-      mode: spec.mode,
-      caseSensitive: spec.caseSensitive ?? false,
-    });
+    return this.guard(
+      () =>
+        this.wasm.filter({
+          term: spec.term,
+          mode: spec.mode,
+          caseSensitive: spec.caseSensitive ?? false,
+        }),
+      EMPTY_U32,
+    );
   }
 
   /**
@@ -52,22 +66,24 @@ export class TreeHandle {
    * expanded. `visible` and `expanded` are arrays of node indices.
    */
   flatten(visible: Uint32Array, expanded: Uint32Array): TreeFlatRow[] {
-    const packed = this.wasm.flatten(visible, expanded);
-    // packed = (node, depth, has_children) triples
-    const out: TreeFlatRow[] = [];
-    for (let i = 0; i < packed.length; i += 3) {
-      out.push({
-        node: packed[i],
-        depth: packed[i + 1],
-        hasChildren: packed[i + 2] === 1,
-      });
-    }
-    return out;
+    return this.guard(() => {
+      const packed = this.wasm.flatten(visible, expanded);
+      // packed = (node, depth, has_children) triples
+      const out: TreeFlatRow[] = [];
+      for (let i = 0; i < packed.length; i += 3) {
+        out.push({
+          node: packed[i],
+          depth: packed[i + 1],
+          hasChildren: packed[i + 2] === 1,
+        });
+      }
+      return out;
+    }, [] as TreeFlatRow[]);
   }
 
   /** DFS-preorder list of every descendant of `root`, including `root`. */
   selectDescendants(root: number): Uint32Array {
-    return this.wasm.select_descendants(root);
+    return this.guard(() => this.wasm.select_descendants(root), EMPTY_U32);
   }
 
   /**
@@ -75,24 +91,21 @@ export class TreeHandle {
    * given `selected`. Returns the chain of `(ancestor, state)` pairs.
    */
   cascadeUp(selected: Uint32Array, changed: number): TreeCascadeEntry[] {
-    const packed = this.wasm.cascade_up(selected, changed);
-    const out: TreeCascadeEntry[] = [];
-    for (let i = 0; i < packed.length; i += 2) {
-      out.push({
-        node: packed[i],
-        state: NODE_STATE[packed[i + 1]] ?? 'clear',
-      });
-    }
-    return out;
+    return this.guard(() => {
+      const packed = this.wasm.cascade_up(selected, changed);
+      const out: TreeCascadeEntry[] = [];
+      for (let i = 0; i < packed.length; i += 2) {
+        out.push({
+          node: packed[i],
+          state: NODE_STATE[packed[i + 1]] ?? 'clear',
+        });
+      }
+      return out;
+    }, [] as TreeCascadeEntry[]);
   }
 
   /** O(1) descendant test using the arena's pre-computed Euler-tour intervals. */
   isDescendant(root: number, candidate: number): boolean {
-    return this.wasm.is_descendant(root, candidate);
-  }
-
-  /** Free the underlying WASM-heap memory. Call on component teardown. */
-  dispose(): void {
-    this.wasm.free();
+    return this.guard(() => this.wasm.is_descendant(root, candidate), false);
   }
 }

@@ -74,6 +74,8 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     searchMatches: 0,
     currentMatchIndex: -1,
     searchQuery: '',
+    searchCaseSensitive: false,
+    searchWholeWord: false,
     sidebarOpen: initialSidebarOpen,
     sidebarTab: initialSidebarTab,
   });

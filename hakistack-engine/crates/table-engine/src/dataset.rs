@@ -181,6 +181,53 @@ impl DatasetBuilder {
         self
     }
 
+    // ── Columnar (typed-array) constructors ─────────────────────────────
+    //
+    // These skip the per-row `Option<X>` wrapping that the JS↔WASM boundary
+    // would otherwise pay for. JS sends `Float64Array` + `Uint8Array`
+    // validity bytes; we receive them as bulk `Vec<X>` + a pre-built
+    // `Bitset` (constructed via `Bitset::from_bytes`). For 100k-row datasets
+    // this is the dominant ingest win — no boxed Options, no serde walk over
+    // every cell.
+
+    /// Add a number column from a pre-extracted `(values, validity)` pair.
+    /// JS contract: NaN rows must already have their validity bit cleared;
+    /// we keep a defensive scan here so a buggy caller can't poison
+    /// comparison kernels with NaN values claiming to be valid.
+    pub fn add_number_columnar(mut self, id: ColumnId, mut values: Vec<f64>, mut validity: Bitset) -> Self {
+        self.assert_len(values.len(), "number");
+        for (i, v) in values.iter_mut().enumerate() {
+            if v.is_nan() {
+                *v = 0.0;
+                validity.unset(i as Idx);
+            }
+        }
+        self.columns
+            .insert(id, Column::Number(NumberColumn { values, validity }));
+        self
+    }
+
+    /// Add a bool column from a `(0/1 bytes, validity)` pair. JS sends bool
+    /// values as a `Uint8Array` to keep the wire format typed-array-friendly;
+    /// we widen to `Vec<bool>` here to match the kernel's existing storage.
+    pub fn add_bool_columnar(mut self, id: ColumnId, values_u8: Vec<u8>, validity: Bitset) -> Self {
+        self.assert_len(values_u8.len(), "bool");
+        let values: Vec<bool> = values_u8.into_iter().map(|b| b != 0).collect();
+        self.columns
+            .insert(id, Column::Bool(BoolColumn { values, validity }));
+        self
+    }
+
+    /// Add a date column from `(i64 ms-epoch, validity)`. JS sends dates as a
+    /// `Float64Array` (since JS Numbers are f64); we narrow to `i64` here.
+    /// Values where the bit is clear are 0; the kernel never reads them.
+    pub fn add_date_columnar(mut self, id: ColumnId, values: Vec<i64>, validity: Bitset) -> Self {
+        self.assert_len(values.len(), "date");
+        self.columns
+            .insert(id, Column::Date(DateColumn { values, validity }));
+        self
+    }
+
     pub fn build(self) -> Dataset {
         Dataset {
             n_rows:  self.n_rows,

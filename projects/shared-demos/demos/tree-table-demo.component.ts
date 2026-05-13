@@ -70,13 +70,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
               <button class="btn btn-sm btn-outline" (click)="expandDeptToLevel(2)">Level 2</button>
             </div>
 
-            <hk-table
-              #deptTableRef
-              [data]="departmentTree()"
-              [config]="treeNodeConfig"
-              [paginationOptions]="paginationOptions"
-              (expansionChange)="onExpansionChange($event)"
-            />
+            <hk-table #deptTableRef [data]="departmentTree()" [config]="treeNodeConfig" (expansionChange)="onExpansionChange($event)" />
           </app-doc-section>
         }
 
@@ -87,7 +81,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
             description="Using a custom 'items' property for children instead of the default 'children'"
             [codeExample]="customChildrenCode"
           >
-            <hk-table [data]="fileSystem()" [config]="customChildrenConfig" [paginationOptions]="{ mode: 'offset', pageSize: 20 }" />
+            <hk-table [data]="fileSystem()" [config]="customChildrenConfig" />
           </app-doc-section>
         }
 
@@ -97,12 +91,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
             title="Tree Table with Selection, Sorting & Filtering"
             description="Full-featured tree table with selection, actions, hierarchy-aware sorting at every level, and global search that keeps ancestors of matching children visible"
           >
-            <hk-table
-              [data]="departmentTree()"
-              [config]="fullFeaturedConfig"
-              [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
-              (selectionChange)="onSelection($event)"
-            />
+            <hk-table [data]="departmentTree()" [config]="fullFeaturedConfig" (selectionChange)="onSelection($event)" />
           </app-doc-section>
 
           @if (selectedItems().length > 0) {
@@ -119,12 +108,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
             title="Cascade Selection"
             description="Checking a parent auto-checks all children. When all children are checked, parent is auto-checked. Shows indeterminate state when partially selected."
           >
-            <hk-table
-              [data]="departmentTree()"
-              [config]="cascadeConfig"
-              [paginationOptions]="{ mode: 'offset', pageSize: 20 }"
-              (selectionChange)="onCascadeSelection($event)"
-            />
+            <hk-table [data]="departmentTree()" [config]="cascadeConfig" (selectionChange)="onCascadeSelection($event)" />
           </app-doc-section>
 
           @if (cascadeSelectedItems().length > 0) {
@@ -141,7 +125,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
             title="Hierarchy-Aware Filtering"
             description="When a child matches a filter/search, its ancestors stay visible. Try searching for 'React' or 'API' to see ancestors preserved."
           >
-            <hk-table [data]="departmentTree()" [config]="filteringConfig" [paginationOptions]="{ mode: 'offset', pageSize: 20 }" />
+            <hk-table [data]="departmentTree()" [config]="filteringConfig" />
           </app-doc-section>
         }
 
@@ -158,12 +142,7 @@ type DemoTab = 'treenode' | 'custom' | 'features' | 'cascade' | 'filtering' | 'l
               <button class="btn btn-sm btn-outline" (click)="collapseAllLarge()">Collapse All</button>
             </div>
 
-            <hk-table
-              #largeTableRef
-              [data]="largeDataset()"
-              [config]="largeDatasetConfig"
-              [paginationOptions]="{ mode: 'offset', pageSize: 50 }"
-            />
+            <hk-table #largeTableRef [data]="largeDataset()" [config]="largeDatasetConfig" />
           </app-doc-section>
         }
       </div>
@@ -434,6 +413,7 @@ export class TreeTableDemoComponent {
 
   // TreeNode config - uses default 'children' property
   treeNodeConfig = createTable<TreeNode<Department>>({
+    pagination: { mode: 'offset', pageSize: 15 },
     visible: ['label', 'data'],
     headers: {
       label: 'Department',
@@ -459,6 +439,7 @@ export class TreeTableDemoComponent {
 
   // Custom children property config
   customChildrenConfig = createTable<FileSystemItem>({
+    pagination: { mode: 'offset', pageSize: 20 },
     visible: ['name', 'type', 'size', 'modified'],
     headers: {
       name: 'Name',
@@ -504,6 +485,7 @@ export class TreeTableDemoComponent {
 
   // Full-featured config
   fullFeaturedConfig = createTable<TreeNode<Department>>({
+    pagination: { mode: 'offset', pageSize: 20 },
     visible: ['label', 'data'],
     headers: {
       label: 'Department',
@@ -559,6 +541,7 @@ export class TreeTableDemoComponent {
 
   // Cascade selection config
   cascadeConfig = createTable<TreeNode<Department>>({
+    pagination: { mode: 'offset', pageSize: 20 },
     visible: ['label', 'data'],
     headers: {
       label: 'Department',
@@ -584,6 +567,7 @@ export class TreeTableDemoComponent {
 
   // Hierarchy filtering config
   filteringConfig = createTable<TreeNode<Department>>({
+    pagination: { mode: 'offset', pageSize: 20 },
     visible: ['label', 'data'],
     headers: {
       label: 'Department',
@@ -613,6 +597,7 @@ export class TreeTableDemoComponent {
 
   // Large dataset config
   largeDatasetConfig = createTable<{ id: string; name: string; category: string; value: number }>({
+    pagination: { mode: 'offset', pageSize: 50 },
     visible: ['name', 'category', 'value'],
     headers: {
       name: 'Name',
@@ -629,11 +614,6 @@ export class TreeTableDemoComponent {
       getRowKey: (row) => row.id,
     },
   });
-
-  paginationOptions = {
-    mode: 'offset' as const,
-    pageSize: 15,
-  };
 
   // --- API Documentation ---
 
@@ -653,11 +633,11 @@ export class TreeTableDemoComponent {
         'Table configuration object returned by createTable(). Contains column definitions, formatters, selection settings, global search config, and the treeTable option that enables hierarchical display.',
     },
     {
-      name: 'paginationOptions',
-      type: 'PaginationOptions | null',
-      default: 'null',
+      name: 'config.pagination',
+      type: 'PaginationOptions | undefined',
+      default: 'undefined',
       description:
-        "Pagination configuration. Supports offset mode ({ mode: 'offset', pageSize: number }) or cursor mode. In tree table mode, pagination applies to the flattened visible rows.",
+        "Pagination configuration declared inside createTable(). Supports offset mode ({ mode: 'offset', pageSize: number }) or cursor mode. Runtime state (totalItems / nextCursor / prevCursor) is pushed at runtime via controller.setPagination(opts).",
     },
     {
       name: 'showFirstLastButtons',

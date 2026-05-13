@@ -26,13 +26,17 @@ impl TreeDataset {
     /// depth of the i-th node (0 = root). The two arrays come from the
     /// JS side after walking its hierarchical data once — passing flat
     /// arrays is cheaper across the WASM boundary than nested objects.
-    pub fn from_dfs(labels: Vec<String>, depths: Vec<u8>) -> Self {
-        assert_eq!(
-            labels.len(),
-            depths.len(),
-            "labels and depths must have the same length"
-        );
-        let arena = TreeArena::from_dfs_depths(&depths);
+    ///
+    /// Returns an `Err(&str)` when the inputs are malformed (length
+    /// mismatch, non-root start, depth jump). Surfacing the error rather
+    /// than panicking lets the WASM bridge map it to a real JS Error
+    /// with context instead of the generic "RuntimeError: unreachable
+    /// executed" that a Rust panic produces.
+    pub fn from_dfs(labels: Vec<String>, depths: Vec<u8>) -> Result<Self, &'static str> {
+        if labels.len() != depths.len() {
+            return Err("labels and depths must have the same length");
+        }
+        let arena = TreeArena::from_dfs_depths(&depths)?;
         let mut raw  = Vec::with_capacity(labels.len());
         let mut lc   = Vec::with_capacity(labels.len());
         for label in labels {
@@ -40,11 +44,11 @@ impl TreeDataset {
             raw.push(label.into_boxed_str());
             lc.push(folded.into_boxed_str());
         }
-        Self {
+        Ok(Self {
             arena,
             labels:   raw,
             label_lc: lc,
-        }
+        })
     }
 
     pub fn n_nodes(&self) -> u32 {
@@ -61,15 +65,15 @@ mod tests {
         let ds = TreeDataset::from_dfs(
             vec!["Root".into(), "Child A".into(), "Child B".into()],
             vec![0, 1, 1],
-        );
+        ).unwrap();
         assert_eq!(ds.n_nodes(), 3);
         assert_eq!(&*ds.labels[0], "Root");
         assert_eq!(&*ds.label_lc[1], "child a");
     }
 
     #[test]
-    #[should_panic(expected = "same length")]
     fn ingest_rejects_length_mismatch() {
-        TreeDataset::from_dfs(vec!["a".into()], vec![0, 1]);
+        let err = TreeDataset::from_dfs(vec!["a".into()], vec![0, 1]).unwrap_err();
+        assert!(err.contains("same length"));
     }
 }

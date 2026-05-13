@@ -138,7 +138,7 @@ mod tests {
                 "Marketing".into(),
             ],
             vec![0, 1, 2, 2, 1],
-        )
+        ).unwrap()
     }
 
     fn all_visible(n: u32) -> Bitset {
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn empty_tree() {
-        let d = TreeDataset::from_dfs(vec![], vec![]);
+        let d = TreeDataset::from_dfs(vec![], vec![]).unwrap();
         let v = all_visible(0);
         let e = no_expanded(0);
         let out = flatten(&d, &v, &e);
@@ -262,7 +262,7 @@ mod tests {
         let d = TreeDataset::from_dfs(
             vec!["A".into(), "Aa".into(), "B".into(), "Ba".into()],
             vec![0, 1, 0, 1],
-        );
+        ).unwrap();
         let v = all_visible(d.n_nodes());
         let e = expand(&[0, 2], d.n_nodes());
         let out = flatten(&d, &v, &e);

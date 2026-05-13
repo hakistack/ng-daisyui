@@ -101,12 +101,20 @@ export class WasmDataset {
    * Arguments:
    * - `n_rows`: total row count (every column array must match)
    * - `schema`: `Array<{ id: number, kind: 'text' | 'number' | 'bool' | 'date' }>`
-   * - `columns`: `Array<Array<value | null>>` — same order and length as `schema`.
-   *   Element types per column kind:
-   *     - `text` ⇒ `(string | null)[]`
-   *     - `number` ⇒ `(number | null)[]`
-   *     - `bool` ⇒ `(boolean | null)[]`
-   *     - `date` ⇒ `(number | null)[]` (ms-epoch)
+   * - `columns`: `Array` of per-column payloads, same order and length as
+   *   `schema`. Wire shape depends on column kind:
+   *     - `text` ⇒ `(string | null)[]` (serde path — strings have no
+   *       packed typed-array form)
+   *     - `number` ⇒ `{ values: Float64Array, validity: Uint8Array }`
+   *     - `bool` ⇒ `{ values: Uint8Array (0/1), validity: Uint8Array }`
+   *     - `date` ⇒ `{ values: Float64Array (ms-epoch), validity: Uint8Array }`
+   *
+   * The typed-array pairs are bulk-copied into Rust via `TypedArray::to_vec`
+   * (one memcpy per column), then the validity `Uint8Array` is packed into
+   * a `Bitset` for word-at-a-time filter scans. This skips the per-row
+   * `Option<X>` wrapping that the prior all-serde path paid for —
+   * `serde_wasm_bindgen::from_value` allocated `N` heap Options per
+   * numeric column, dominating ingest time on large datasets.
    * @param {number} n_rows
    * @param {any} schema
    * @param {Array<any>} columns
@@ -629,6 +637,12 @@ function __wbg_get_imports() {
       const ret = getObject(arg0)[arg1 >>> 0];
       return addHeapObject(ret);
     },
+    __wbg_get_dcf82ab8aad1a593: function () {
+      return handleError(function (arg0, arg1) {
+        const ret = Reflect.get(getObject(arg0), getObject(arg1));
+        return addHeapObject(ret);
+      }, arguments);
+    },
     __wbg_get_unchecked_1dfe6d05ad91d9b7: function (arg0, arg1) {
       const ret = getObject(arg0)[arg1 >>> 0];
       return addHeapObject(ret);
@@ -641,6 +655,16 @@ function __wbg_get_imports() {
       let result;
       try {
         result = getObject(arg0) instanceof ArrayBuffer;
+      } catch (_) {
+        result = false;
+      }
+      const ret = result;
+      return ret;
+    },
+    __wbg_instanceof_Float64Array_3bb8295dc7055274: function (arg0) {
+      let result;
+      try {
+        result = getObject(arg0) instanceof Float64Array;
       } catch (_) {
         result = false;
       }
@@ -691,6 +715,10 @@ function __wbg_get_imports() {
       const ret = getObject(arg0).length;
       return ret;
     },
+    __wbg_length_c7ce929623e7a230: function (arg0) {
+      const ret = getObject(arg0).length;
+      return ret;
+    },
     __wbg_new_02d162bc6cf02f60: function () {
       const ret = new Object();
       return addHeapObject(ret);
@@ -716,6 +744,9 @@ function __wbg_get_imports() {
         const ret = getObject(arg0).next();
         return addHeapObject(ret);
       }, arguments);
+    },
+    __wbg_prototypesetcall_272875b350b1e49b: function (arg0, arg1, arg2) {
+      Float64Array.prototype.set.call(getArrayF64FromWasm0(arg0, arg1), getObject(arg2));
     },
     __wbg_prototypesetcall_303283bf37c9f014: function (arg0, arg1, arg2) {
       Uint32Array.prototype.set.call(getArrayU32FromWasm0(arg0, arg1), getObject(arg2));
@@ -873,6 +904,11 @@ function dropObject(idx) {
   heap_next = idx;
 }
 
+function getArrayF64FromWasm0(ptr, len) {
+  ptr = ptr >>> 0;
+  return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
 function getArrayU32FromWasm0(ptr, len) {
   ptr = ptr >>> 0;
   return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
@@ -893,6 +929,14 @@ function getDataViewMemory0() {
     cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
   }
   return cachedDataViewMemory0;
+}
+
+let cachedFloat64ArrayMemory0 = null;
+function getFloat64ArrayMemory0() {
+  if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
+    cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
+  }
+  return cachedFloat64ArrayMemory0;
 }
 
 function getStringFromWasm0(ptr, len) {
@@ -1042,6 +1086,7 @@ function __wbg_finalize_init(instance, module) {
   wasm = instance.exports;
   wasmModule = module;
   cachedDataViewMemory0 = null;
+  cachedFloat64ArrayMemory0 = null;
   cachedUint32ArrayMemory0 = null;
   cachedUint8ArrayMemory0 = null;
   wasm.__wbindgen_start();

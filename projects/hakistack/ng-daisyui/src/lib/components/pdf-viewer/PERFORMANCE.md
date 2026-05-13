@@ -48,18 +48,19 @@ Each phase ships independently and is reversible. Numbered roughly by ROI.
 keeps painting. Worker time is wasted, main-thread time is wasted, and the
 canvas is overwritten before the user sees it.
 
-**Change.**
-- In the `IntersectionObserver` callback at `:351`, when a wrapper *exits*
-  the viewport, look up its in-flight `RenderTask` (already returned by
-  `proxy.render(...)` at `:1017`) and call `.cancel()`.
-- Track `RenderTask` per-page in a `Map<pageNumber, RenderTask>`; clear on
-  completion or cancel.
-- Same treatment for in-flight text-layer renders (`textLayerInstances`
-  already collects them at `:303` — extend to per-page lookup).
+**Status: shipped.**
 
-**Risk.** Cancelling a task that was about to finish wastes work. Mitigate
-with a short hysteresis (200 ms) before cancelling, so brief scroll-pasts
-don't churn.
+**Change.**
+- `renderTasksByPage` / `textLayerTasksByPage` are now `Map<pageNumber, task>`
+  so `applyBufferDiff` can look up in-flight work for a specific page.
+- The eviction pass in `applyBufferDiff` was extended: pages still
+  in-flight when they leave the buffer schedule a hysteresis-cancel via
+  `pendingCancellations`. If the page comes back into buffer first, the
+  timeout is cleared; otherwise `cancelPageWork` calls `task.cancel()` on
+  both the render task and the text-layer instance.
+- Hysteresis is `RENDER_CANCEL_HYSTERESIS_MS = 200` (~12 frames) — enough
+  to ignore brief scroll-pasts without holding the worker for pages the
+  user has clearly left behind.
 
 **Win.** ~30–50% main-thread CPU reduction during fast scroll. No bundle
 cost, no API change.
@@ -274,7 +275,7 @@ rewrite, not a perf tune.
 
 | Phase | Effort | Risk | Ship independently? |
 |-------|-------:|-----:|---------------------|
-| 1. Cancel-aggressive virtualization | S | Low | Yes |
+| 1. Cancel-aggressive virtualization ✅ | S | Low | Yes |
 | 2. Tiered render quality | S | Low | Yes |
 | 3. OffscreenCanvas + worker pool | M | Medium | Yes (with feature flag) |
 | 4. Lazy text + annotation layers | M | Low | Yes |

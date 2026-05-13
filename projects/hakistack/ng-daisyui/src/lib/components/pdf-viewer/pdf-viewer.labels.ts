@@ -39,8 +39,16 @@ export interface PdfViewerLabels {
   thumbnailsTab?: string;
   /** Default: "Bookmarks" */
   bookmarksTab?: string;
+  /** Default: "Attachments" */
+  attachmentsTab?: string;
+  /** Default: "Annotations" */
+  annotationsTab?: string;
   /** Default: "No bookmarks in this document" */
   noBookmarks?: string;
+  /** Default: "No attachments in this document" */
+  noAttachments?: string;
+  /** Default: "No annotations in this document" */
+  noAnnotations?: string;
   /** Default: "Page {page} thumbnail" — `{page}` token is replaced with the page number. */
   thumbnailAriaLabel?: string;
 
@@ -55,6 +63,14 @@ export interface PdfViewerLabels {
   nextMatch?: string;
   /** Default: "Clear search" */
   clearSearch?: string;
+  /** Default: "Find" — tooltip for the toolbar find button. */
+  find?: string;
+  /** Default: "Match case" — tooltip for the case-sensitivity toggle. */
+  findCaseSensitive?: string;
+  /** Default: "Match whole word" — tooltip for the whole-word toggle. */
+  findWholeWord?: string;
+  /** Default: "More options" — tooltip on the toolbar overflow menu. */
+  moreOptions?: string;
   /**
    * Default: "{current} of {total}" — both tokens replaced with numbers.
    * Shown as a counter next to the search input.
@@ -116,13 +132,21 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   exitFullscreen: 'Exit fullscreen',
   thumbnailsTab: 'Thumbnails',
   bookmarksTab: 'Bookmarks',
+  attachmentsTab: 'Attachments',
+  annotationsTab: 'Annotations',
   noBookmarks: 'No bookmarks in this document',
+  noAttachments: 'No attachments in this document',
+  noAnnotations: 'No annotations in this document',
   thumbnailAriaLabel: 'Page {page} thumbnail',
   searchPlaceholder: 'Search the document',
   searchAriaLabel: 'Find in document',
   previousMatch: 'Previous match',
   nextMatch: 'Next match',
   clearSearch: 'Clear search',
+  find: 'Find',
+  findCaseSensitive: 'Match case',
+  findWholeWord: 'Match whole word',
+  moreOptions: 'More options',
   matchCounter: '{current} of {total}',
   noMatches: 'No matches',
   pageIndicator: 'Page {current} of {total}',

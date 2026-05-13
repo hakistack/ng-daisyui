@@ -11,7 +11,7 @@
 //! back into row objects against its original array — no per-keystroke
 //! serialization of row payloads.
 
-use js_sys::{Array, Uint32Array};
+use js_sys::{Array, Float64Array, Reflect, Uint32Array, Uint8Array};
 use wasm_bindgen::prelude::*;
 
 use engine_core::bitset::Bitset;
@@ -72,12 +72,20 @@ impl WasmDataset {
     /// Arguments:
     /// - `n_rows`: total row count (every column array must match)
     /// - `schema`: `Array<{ id: number, kind: 'text' | 'number' | 'bool' | 'date' }>`
-    /// - `columns`: `Array<Array<value | null>>` — same order and length as `schema`.
-    ///   Element types per column kind:
-    ///     - `text` ⇒ `(string | null)[]`
-    ///     - `number` ⇒ `(number | null)[]`
-    ///     - `bool` ⇒ `(boolean | null)[]`
-    ///     - `date` ⇒ `(number | null)[]` (ms-epoch)
+    /// - `columns`: `Array` of per-column payloads, same order and length as
+    ///   `schema`. Wire shape depends on column kind:
+    ///     - `text` ⇒ `(string | null)[]` (serde path — strings have no
+    ///       packed typed-array form)
+    ///     - `number` ⇒ `{ values: Float64Array, validity: Uint8Array }`
+    ///     - `bool` ⇒ `{ values: Uint8Array (0/1), validity: Uint8Array }`
+    ///     - `date` ⇒ `{ values: Float64Array (ms-epoch), validity: Uint8Array }`
+    ///
+    /// The typed-array pairs are bulk-copied into Rust via `TypedArray::to_vec`
+    /// (one memcpy per column), then the validity `Uint8Array` is packed into
+    /// a `Bitset` for word-at-a-time filter scans. This skips the per-row
+    /// `Option<X>` wrapping that the prior all-serde path paid for —
+    /// `serde_wasm_bindgen::from_value` allocated `N` heap Options per
+    /// numeric column, dominating ingest time on large datasets.
     pub fn ingest(n_rows: u32, schema: JsValue, columns: Array) -> Result<WasmDataset, JsValue> {
         let schema: Vec<WireSchemaColumn> = serde_wasm_bindgen::from_value(schema)
             .map_err(|e| JsValue::from_str(&format!("schema parse error: {e}")))?;
@@ -96,26 +104,30 @@ impl WasmDataset {
             let col_js = columns.get(i as u32);
             match col.kind {
                 wire::WireColumnKind::Text => {
+                    // Text stays on serde — strings have no efficient
+                    // typed-array form and the kernel needs owned `String`
+                    // for fold + index. The text path is rarely the ingest
+                    // bottleneck since fields are typically short.
                     let values: Vec<Option<String>> = serde_wasm_bindgen::from_value(col_js)
                         .map_err(|e| JsValue::from_str(&format!("column id {} (text): {e}", col.id)))?;
                     builder = builder.add_text(col.id, values);
                 }
                 wire::WireColumnKind::Number => {
-                    let values: Vec<Option<f64>> = serde_wasm_bindgen::from_value(col_js)
-                        .map_err(|e| JsValue::from_str(&format!("column id {} (number): {e}", col.id)))?;
-                    builder = builder.add_number(col.id, values);
+                    let (values, validity) =
+                        extract_columnar_f64(&col_js, n_rows, col.id, "number")?;
+                    builder = builder.add_number_columnar(col.id, values, validity);
                 }
                 wire::WireColumnKind::Bool => {
-                    let values: Vec<Option<bool>> = serde_wasm_bindgen::from_value(col_js)
-                        .map_err(|e| JsValue::from_str(&format!("column id {} (bool): {e}", col.id)))?;
-                    builder = builder.add_bool(col.id, values);
+                    let (values, validity) =
+                        extract_columnar_u8(&col_js, n_rows, col.id, "bool")?;
+                    builder = builder.add_bool_columnar(col.id, values, validity);
                 }
                 wire::WireColumnKind::Date => {
-                    // JS Numbers are f64; safe to narrow ms-epoch values to i64.
-                    let values_f: Vec<Option<f64>> = serde_wasm_bindgen::from_value(col_js)
-                        .map_err(|e| JsValue::from_str(&format!("column id {} (date): {e}", col.id)))?;
-                    let values: Vec<Option<i64>> = values_f.into_iter().map(|v| v.map(|f| f as i64)).collect();
-                    builder = builder.add_date(col.id, values);
+                    let (values_f, validity) =
+                        extract_columnar_f64(&col_js, n_rows, col.id, "date")?;
+                    // JS Date.getTime() returns f64 ms-epoch; narrow to i64.
+                    let values: Vec<i64> = values_f.into_iter().map(|f| f as i64).collect();
+                    builder = builder.add_date_columnar(col.id, values, validity);
                 }
             }
         }
@@ -229,15 +241,17 @@ impl WasmTree {
     /// and produces these flat arrays — much cheaper than nested objects
     /// across the boundary.
     pub fn ingest(labels: Vec<String>, depths: Vec<u8>) -> Result<WasmTree, JsValue> {
+        // Length is duplicated by `TreeDataset::from_dfs` but we keep this
+        // pre-check so the error message can include the actual lengths.
         if labels.len() != depths.len() {
             return Err(JsValue::from_str(&format!(
                 "labels.length ({}) does not match depths.length ({})",
                 labels.len(), depths.len()
             )));
         }
-        Ok(WasmTree {
-            inner: TreeDataset::from_dfs(labels, depths),
-        })
+        TreeDataset::from_dfs(labels, depths)
+            .map(|inner| WasmTree { inner })
+            .map_err(|e| JsValue::from_str(&format!("tree ingest: {}", e)))
     }
 
     pub fn n_nodes(&self) -> u32 {
@@ -437,4 +451,74 @@ fn uint32_array_from_slice(slice: &[u32]) -> Uint32Array {
     let arr = Uint32Array::new_with_length(slice.len() as u32);
     arr.copy_from(slice);
     arr
+}
+
+/// Pull `{ values: Float64Array, validity: Uint8Array }` from a JS object,
+/// bulk-copy into Rust Vecs, and pack the validity bytes into a Bitset.
+/// Used by `ingest` for `number` and `date` columns.
+fn extract_columnar_f64(
+    col_js: &JsValue,
+    n_rows: u32,
+    col_id: u32,
+    kind: &'static str,
+) -> Result<(Vec<f64>, Bitset), JsValue> {
+    let values_js = Reflect::get(col_js, &JsValue::from_str("values"))
+        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'values'")))?;
+    let validity_js = Reflect::get(col_js, &JsValue::from_str("validity"))
+        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'validity'")))?;
+
+    let values_arr: Float64Array = values_js
+        .dyn_into()
+        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): 'values' is not a Float64Array")))?;
+    let validity_arr: Uint8Array = validity_js
+        .dyn_into()
+        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): 'validity' is not a Uint8Array")))?;
+
+    if values_arr.length() != n_rows || validity_arr.length() != n_rows {
+        return Err(JsValue::from_str(&format!(
+            "column id {col_id} ({kind}): expected length {n_rows}, got values={} validity={}",
+            values_arr.length(),
+            validity_arr.length(),
+        )));
+    }
+
+    // `to_vec()` is one bulk memcpy from WASM memory into a Rust Vec.
+    let values: Vec<f64> = values_arr.to_vec();
+    let validity_bytes: Vec<u8> = validity_arr.to_vec();
+    let validity = Bitset::from_bytes(&validity_bytes, n_rows);
+    Ok((values, validity))
+}
+
+/// Pull `{ values: Uint8Array, validity: Uint8Array }`. Used for `bool`
+/// columns where JS sends 0/1 bytes.
+fn extract_columnar_u8(
+    col_js: &JsValue,
+    n_rows: u32,
+    col_id: u32,
+    kind: &'static str,
+) -> Result<(Vec<u8>, Bitset), JsValue> {
+    let values_js = Reflect::get(col_js, &JsValue::from_str("values"))
+        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'values'")))?;
+    let validity_js = Reflect::get(col_js, &JsValue::from_str("validity"))
+        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'validity'")))?;
+
+    let values_arr: Uint8Array = values_js
+        .dyn_into()
+        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): 'values' is not a Uint8Array")))?;
+    let validity_arr: Uint8Array = validity_js
+        .dyn_into()
+        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): 'validity' is not a Uint8Array")))?;
+
+    if values_arr.length() != n_rows || validity_arr.length() != n_rows {
+        return Err(JsValue::from_str(&format!(
+            "column id {col_id} ({kind}): expected length {n_rows}, got values={} validity={}",
+            values_arr.length(),
+            validity_arr.length(),
+        )));
+    }
+
+    let values: Vec<u8> = values_arr.to_vec();
+    let validity_bytes: Vec<u8> = validity_arr.to_vec();
+    let validity = Bitset::from_bytes(&validity_bytes, n_rows);
+    Ok((values, validity))
 }

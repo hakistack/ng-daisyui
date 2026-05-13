@@ -350,6 +350,7 @@ export class App implements OnInit {
             { id: 'full', label: 'Full Featured' },
             { id: 'filtering', label: 'Filtering' },
             { id: 'selectableRow', label: 'Selectable Row' },
+            { id: 'selectionLimit', label: 'Selection Limit' },
             { id: 'actionsPosition', label: 'Actions Position' },
             { id: 'sticky', label: 'Sticky' },
             { id: 'resizable', label: 'Resizable' },

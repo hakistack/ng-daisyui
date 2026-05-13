@@ -28,6 +28,7 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
 import { IFuseOptions } from 'fuse.js';
 import { createFuseCache, FuseCache } from '../../utils/fuse-cache';
+import { HK_THEME } from '../../theme/theme.config';
 
 import { AutoFocusDirective } from '../../directives';
 import { HkCellTemplateDirective } from './table-cell-template.directive';
@@ -271,6 +272,34 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     if (!dropdownContainer) {
       this.openBulkActionDropdown.set(null);
     }
+    // Close any open daisyUI v4 filter <details> dropdowns when the click
+    // lands outside them. v4 uses <details> (the v5 path is native popover
+    // which already handles light-dismiss). Native <details> doesn't auto-
+    // close on outside clicks — we do it here.
+    if (this.isDaisyV4Signal() && !target.closest('[data-hk-filter]')) {
+      const root = this.elementRef.nativeElement as HTMLElement;
+      const open = root.querySelectorAll<HTMLDetailsElement>('details[data-hk-filter][open]');
+      open.forEach((el) => {
+        el.open = false;
+      });
+    }
+  }
+
+  /**
+   * Enforce single-open behavior across filter `<details>` elements. The
+   * `name="hk-filter-group"` attribute does this natively in Chrome 120+ /
+   * Safari 17.2+ / Firefox 124+; this handler is the safety net for any
+   * browser that hasn't caught up yet. Fires only on the just-opened
+   * detail; closing siblings does fire their `toggle` event too, but they
+   * fall through the early-return so there's no loop.
+   */
+  onFilterDetailsToggle(detail: HTMLDetailsElement): void {
+    if (!detail.open) return;
+    const root = this.elementRef.nativeElement as HTMLElement;
+    const open = root.querySelectorAll<HTMLDetailsElement>('details[data-hk-filter][open]');
+    open.forEach((other) => {
+      if (other !== detail) other.open = false;
+    });
   }
 
   private readonly htmlParser = this.isBrowser && typeof DOMParser !== 'undefined' ? new DOMParser() : null;
@@ -279,7 +308,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // Inputs as signals
   readonly data = input<readonly T[] | null>(null);
   readonly config = input<FieldConfiguration<T> | null>(null);
-  readonly paginationOptions = input<PaginationOptions | null>(null);
   readonly showFirstLastButtons = input<boolean>(true);
   readonly hidePageSize = input<boolean>(false);
   readonly showPageSizeOptions = input<boolean>(true);
@@ -293,6 +321,28 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   private readonly columns = computed(() => this.config()?.columns);
   readonly fieldConfig = computed(() => this.config()?.config);
+
+  /**
+   * Runtime-overrides bag for pagination. Static configuration comes from
+   * `fieldConfig.pagination` (set via `createTable({ pagination: {...} })`);
+   * server-driven values like `totalItems`, `nextCursor`, `prevCursor`
+   * arrive through `controller.setPagination(opts)` and land here, merged
+   * on top of the static config by `paginationOptions` below.
+   */
+  private readonly dynamicPaginationOverrides = signal<Partial<PaginationOptions> | null>(null);
+
+  /**
+   * Effective pagination options — `fieldConfig.pagination` merged with any
+   * runtime overrides pushed via `setPagination()`. Returns `null` when the
+   * consumer didn't configure pagination at all, in which case the
+   * pagination footer is hidden.
+   */
+  readonly paginationOptions = computed<PaginationOptions | null>(() => {
+    const fromConfig = this.fieldConfig()?.pagination ?? null;
+    const overrides = this.dynamicPaginationOverrides();
+    if (!fromConfig && !overrides) return null;
+    return { ...(fromConfig ?? {}), ...(overrides ?? {}) } as PaginationOptions;
+  });
 
   // Outputs
   readonly selectionChange = output<readonly T[]>();
@@ -377,6 +427,23 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly activeRow = signal<T | null>(null);
   readonly activeRows = signal<Set<T>>(new Set());
   readonly openFilterField = signal<string | null>(null); // Track which filter dropdown is open
+  /**
+   * Active daisyUI version. The v5 filter popover uses native HTML popover
+   * API + CSS anchor positioning; v4 doesn't support anchor positioning AND
+   * its `.card` / `.dropdown` classes break popover's UA display:none rule.
+   * Template branches markup on this signal so v4 consumers get a focus-
+   * driven `.dropdown` instead — matches daisyUI v4's documented pattern.
+   */
+  private readonly hkTheme = inject(HK_THEME);
+  readonly isDaisyV4Signal = computed(() => this.hkTheme.id === 'daisyui-v4');
+  /**
+   * Absolute viewport coords for the currently-open filter dropdown.
+   * Computed from the trigger button's `getBoundingClientRect()` on open.
+   * Native popover + CSS anchor positioning would have been nicer, but
+   * anchor positioning is Chromium-only as of 2026 — so we compute it
+   * ourselves to work in Firefox / Safari too.
+   */
+  readonly openFilterPos = signal<{ top: number; left: number } | null>(null);
   readonly columnVisibilityState = signal<Map<string, boolean>>(new Map()); // Track column visibility
   readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
 
@@ -661,6 +728,8 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     showFirstLastButtons: true,
     disabled: false,
   });
+  /** Last `paginationOptions.pageSize` we synced into state — used to detect actual config changes vs. re-runs that just toggle `disabled` etc. */
+  private lastSeenOptionsPageSize: number | undefined;
 
   readonly sortFieldSignal = computed(() => this.sortState().field);
   readonly sortDirectionSignal = computed(() => this.sortState().direction);
@@ -677,6 +746,18 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   private readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));
 
   readonly hasSelectionSignal = computed(() => this.fieldConfig()?.hasSelection ?? false);
+
+  /** Max number of rows that can be checkbox-selected at once. `null` = unlimited (default). */
+  readonly selectionLimitSignal = computed<number | null>(() => {
+    const n = this.fieldConfig()?.selectionLimit;
+    return typeof n === 'number' && n >= 1 ? n : null;
+  });
+
+  /** True when the selection has hit `selectionLimit`. Drives disabled-checkbox state. */
+  readonly isSelectionLimitReachedSignal = computed(() => {
+    const limit = this.selectionLimitSignal();
+    return limit !== null && this.selectedSignal().size >= limit;
+  });
   readonly selectableRowsSignal = computed(() => !!this.fieldConfig()?.selectableRows);
   readonly selectableRowsModeSignal = computed(() => {
     const val = this.fieldConfig()?.selectableRows;
@@ -748,6 +829,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       selectAllAriaLabel: overrides.selectAllAriaLabel ?? 'Select all rows on this page',
       deselectAllAriaLabel: overrides.deselectAllAriaLabel ?? 'Deselect all rows on this page',
       clearSelectionAriaLabel: overrides.clearSelectionAriaLabel ?? 'Clear selection',
+      selectionLimitReachedHint: overrides.selectionLimitReachedHint ?? ((limit: number) => `Maximum of ${limit} selected`),
       expandRowAriaLabel: overrides.expandRowAriaLabel ?? 'Expand row',
       collapseRowAriaLabel: overrides.collapseRowAriaLabel ?? 'Collapse row',
       expandDetailsAriaLabel: overrides.expandDetailsAriaLabel ?? 'Expand details',
@@ -1662,6 +1744,17 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     }
   }
 
+  /**
+   * Merge `opts` into the runtime pagination override bag. Used by
+   * server-driven flows that need to push `totalItems` / `nextCursor` /
+   * `prevCursor` after each fetch resolves — the static config from
+   * `createTable({ pagination: {...} })` is the floor, this is the live
+   * delta on top.
+   */
+  setPagination(opts: Partial<PaginationOptions>): void {
+    this.dynamicPaginationOverrides.update((curr) => ({ ...(curr ?? {}), ...opts }));
+  }
+
   clearSelection(): void {
     this.selectedSignal.set(new Set());
     this.selectionChange.emit([]);
@@ -1765,6 +1858,14 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   toggleRow(row: T, checked: boolean): void {
+    // Belt-and-suspenders against programmatic callers / keyboard focus that
+    // bypass the `[disabled]` HTML attribute on the checkbox. The HTML guard
+    // is the primary UX (greyed out + tooltip); this guard ensures the
+    // model state stays consistent if a checked=true event slips through.
+    if (checked && this.isSelectionLimitReachedSignal() && !this.isSelected(row)) {
+      return;
+    }
+
     const cascade = this.checkboxCascadeSignal();
 
     this.selectedSignal.update((selectedSet) => {
@@ -1798,16 +1899,22 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   toggleSelectAll(checked: boolean): void {
     const data = this.currentDataSignal(); // Only select/deselect current page
+    const limit = this.selectionLimitSignal();
 
     this.selectedSignal.update((selectedSet) => {
       const newSet = new Set(selectedSet);
 
-      for (const row of data) {
-        if (checked) {
+      if (checked) {
+        // Cap additions at remaining capacity so a select-all click on a
+        // page that doesn't fit under the limit fills partway instead of
+        // overshooting. Already-selected rows on this page don't count
+        // against capacity — they're a no-op `add`.
+        for (const row of data) {
+          if (limit !== null && newSet.size >= limit && !newSet.has(row)) break;
           newSet.add(row);
-        } else {
-          newSet.delete(row);
         }
+      } else {
+        for (const row of data) newSet.delete(row);
       }
 
       return newSet;
@@ -1818,6 +1925,29 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   isSelected(row: T): boolean {
     return this.selectedSignal().has(row);
+  }
+
+  /**
+   * Whether this row's checkbox should render as `disabled`. True when a
+   * `selectionLimit` is configured, the limit has been reached, and this
+   * row isn't already in the selected set. Disabled rows can't be toggled
+   * on — but a checked row can still be unchecked (limit goes down → others
+   * re-enable).
+   */
+  isRowSelectDisabled(row: T): boolean {
+    return this.isSelectionLimitReachedSignal() && !this.isSelected(row);
+  }
+
+  /**
+   * Whether the header "select all on page" checkbox should render as
+   * `disabled`. Disabled only when at limit *and* clicking would try to add
+   * (i.e. not all rows on the page are currently selected — in which case
+   * the click would deselect, which is always allowed).
+   */
+  isSelectAllDisabled(): boolean {
+    if (this.selectionLimitSignal() === null) return false;
+    if (this.isAllSelected()) return false; // would deselect — always allowed
+    return this.isSelectionLimitReachedSignal();
   }
 
   isSelectedBgClass(row: T): Record<string, boolean> {
@@ -3049,31 +3179,76 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // to one source never fires the other effects (prevents e.g. a server-side
     // `totalItems` update from yanking pageIndex back to 0).
 
-    // Trigger: paginationOptions / showFirstLastButtons / disabled change
+    // Trigger: paginationOptions / showFirstLastButtons / disabled change.
+    //
+    // The previous version unconditionally overwrote `pageSize` from
+    // `options.pageSize` on every fire — so the moment `disabled` or
+    // `showFirstLastButtons` emitted, the user's dropdown choice (e.g.
+    // "100 per page") got reverted to the static initial value. We now
+    // only sync `pageSize` when `options.pageSize` *itself* changes
+    // between two reads; otherwise the user's live choice is preserved.
     effect(() => {
       const options = this.paginationOptions();
       const showFirstLast = this.showFirstLastButtons();
       const disabled = this.disabled();
       if (!options) return;
+      const optionsPageSize = options.pageSize ?? 10;
+      const seen = this.lastSeenOptionsPageSize;
+      const optionsPageSizeChanged = seen === undefined || seen !== optionsPageSize;
+      this.lastSeenOptionsPageSize = optionsPageSize;
       this.paginationState.update((state) => ({
         ...state,
-        pageSize: options.pageSize ?? 10,
+        // Only override the user's interactive choice when the *consumer-
+        // declared* page size actually changed. Re-renders that just toggle
+        // `disabled` no longer touch pageSize.
+        pageSize: optionsPageSizeChanged ? optionsPageSize : state.pageSize,
         showFirstLastButtons: showFirstLast,
         disabled,
       }));
     });
 
-    // Trigger: data() changes — reset pageIndex, clear caches and selection
+    // Trigger: data() changes — reset pageIndex, clear caches, drop dangling
+    // selection.
+    //
+    // Selection-preservation rule: when the new `data` array still contains a
+    // previously-selected row by reference, keep it. Templates routinely pass
+    // a derived array (`users().slice(0, N)`, `users().filter(...)`) inline,
+    // which produces a fresh reference every CD tick but the row refs inside
+    // are stable. Wiping the whole selection on every ref change made clicks
+    // silently dropped between renders — model and DOM drift out of sync.
     effect(() => {
-      this.data();
+      const data = this.data();
       untracked(() => {
         this.htmlCache.clear();
+        // Clamp pageIndex into the valid range instead of resetting to 0.
+        // Resetting on every data ref change made navigation feel broken:
+        // any inline derived data array (`users().slice(0, N)`, etc.) mints
+        // a fresh ref each CD pass, so clicking "next" landed back on page 1
+        // every time. Clamping only intervenes when the user's current page
+        // is genuinely out of range (e.g. row count just dropped).
+        const totalItems = this.totalItemsSignal();
+        const pageSize = this.paginationState().pageSize || 10;
+        const maxPageIndex = Math.max(0, Math.ceil(totalItems / pageSize) - 1);
         this.paginationState.update((state) => ({
           ...state,
-          pageIndex: 0,
-          totalItems: this.totalItemsSignal(),
+          pageIndex: Math.min(state.pageIndex, maxPageIndex),
+          totalItems,
         }));
-        this.selectedSignal.set(new Set());
+
+        if (!data || data.length === 0) {
+          this.selectedSignal.set(new Set());
+          return;
+        }
+        const current = this.selectedSignal();
+        if (current.size === 0) return;
+        const liveRows = new Set<T>(data);
+        let dropped = false;
+        const next = new Set<T>();
+        for (const row of current) {
+          if (liveRows.has(row)) next.add(row);
+          else dropped = true;
+        }
+        if (dropped) this.selectedSignal.set(next);
       });
     });
 

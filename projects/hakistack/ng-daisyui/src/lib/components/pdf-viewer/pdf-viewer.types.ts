@@ -9,8 +9,43 @@ export type PdfZoom = number | 'fit-page' | 'fit-width' | 'auto';
 /** Display mode. `'continuous'` is Adobe-like vertical scroll; `'single'` is one page at a time. */
 export type PdfDisplayMode = 'single' | 'continuous';
 
-/** Sidebar tab. */
-export type PdfSidebarTab = 'thumbnails' | 'bookmarks';
+/**
+ * Sidebar tab. `thumbnails` (page previews) and `bookmarks` (PDF outline)
+ * are always available. `attachments` (embedded files) and `annotations`
+ * (highlight / comment / freetext list) populate from the document at load
+ * time and show an empty state when the document has neither.
+ */
+export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annotations';
+
+/**
+ * Lightweight view-model for a PDF annotation — what the sidebar's
+ * Annotations tab needs to list it. The component scans every page's
+ * `getAnnotations()` once at document load and projects the subset of
+ * annotation types that are user-meaningful (highlights, comments,
+ * free-text, ink). Read-only at this layer; annotation *editing* is a
+ * future phase.
+ */
+export interface PdfAnnotationEntry {
+  /** 1-indexed page the annotation lives on — click navigates here. */
+  readonly pageNumber: number;
+  /** PDF annotation subtype: `'Text'`, `'Highlight'`, `'FreeText'`, `'Ink'`, etc. */
+  readonly subtype: string;
+  /** User-authored text (comment body) when available. Empty for ink / shapes. */
+  readonly contents: string;
+  /** Document author of the annotation when available. */
+  readonly author: string;
+}
+
+/**
+ * Lightweight view-model for a PDF embedded file (attachment). Populated
+ * from `pdfDoc.getAttachments()` at document load.
+ */
+export interface PdfAttachmentEntry {
+  readonly filename: string;
+  readonly description: string;
+  /** Raw bytes — provided so the sidebar can offer "download" without re-fetching. */
+  readonly content: Uint8Array;
+}
 
 /**
  * Visual chrome variant. `'default'` is the full reader (top toolbar with
@@ -162,6 +197,10 @@ export interface PdfViewerState {
   readonly currentMatchIndex: number;
   /** Active search query, or empty if no search is running. */
   readonly searchQuery: string;
+  /** Whether the search is case-sensitive. Default: `false` (Acrobat-compatible). */
+  readonly searchCaseSensitive: boolean;
+  /** Whether the search matches whole words only. Default: `false`. */
+  readonly searchWholeWord: boolean;
 
   // UI state
   /** Whether the sidebar is currently open. */

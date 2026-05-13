@@ -45,6 +45,8 @@ export interface TableInstance<T extends object> {
   nextPage(): void;
   lastPage(): void;
   gotoPage(pageNumber: number): void;
+  /** Update pagination runtime state (totalItems, nextCursor, etc.). Merges on top of `config.pagination`. */
+  setPagination(opts: Partial<PaginationOptions>): void;
 
   // Sorting
   sort(field: string): void;
@@ -124,6 +126,22 @@ export interface FieldConfiguration<T extends object> {
   readonly collapseToLevel: (level: number) => void;
   readonly expandAllDetails: () => void;
   readonly collapseAllDetails: () => void;
+  /**
+   * Update pagination runtime state (totalItems, nextCursor, prevCursor, etc.).
+   *
+   * Use this from server-driven flows where the row count or cursor only
+   * become known after a fetch resolves. The static config from `createTable
+   * ({ pagination: {...} })` provides the initial values; `setPagination`
+   * merges on top.
+   *
+   * ```ts
+   * onPageLoaded(result) {
+   *   this.users.set(result.rows);
+   *   this.table.setPagination({ totalItems: result.total, nextCursor: result.next });
+   * }
+   * ```
+   */
+  readonly setPagination: (opts: Partial<PaginationOptions>) => void;
 }
 
 /** Semantic alias for `FieldConfiguration<T>` — use whichever name reads better in context. */
@@ -311,6 +329,17 @@ export interface FieldConfig<T> {
   formatters?: Partial<Record<StringKey<T>, Formatter<T>>>;
   fallbacks?: Partial<Record<StringKey<T>, string>>;
   hasSelection?: boolean;
+  /**
+   * Maximum number of rows that can be checkbox-selected at once. When set,
+   * unchecked rows become disabled once the limit is reached, and the
+   * header "select all" caps additions at the remaining capacity (or is
+   * disabled outright if no more rows can be added). `selectionLimit: 1`
+   * gives a single-pick UX equivalent to a radio column.
+   *
+   * No effect when `hasSelection` is false or when undefined (default ⇒
+   * unlimited).
+   */
+  selectionLimit?: number;
   hasActions?: boolean;
   /** Enable click-to-select row highlighting. 'single' (or true) = one row at a time, 'multi' = toggle multiple rows */
   selectableRows?: boolean | 'single' | 'multi';
@@ -407,6 +436,15 @@ export interface FieldConfig<T> {
   labels?: TableLabels;
   /** Default filter dropdown text used for every column that doesn't override in its own `ColumnFilter.labels`. */
   filterLabels?: FilterLabels;
+  /**
+   * Pagination configuration. Static fields (mode, pageSize, pageSizeOptions,
+   * showQuickJumper, labels, …) live here. Server-driven runtime state
+   * (totalItems, nextCursor, prevCursor) is pushed at runtime via the
+   * controller's `setPagination(opts)` method.
+   *
+   * Omit to disable pagination entirely.
+   */
+  pagination?: PaginationOptions;
 }
 
 /**
@@ -447,6 +485,8 @@ export interface TableLabels {
   deselectAllAriaLabel?: string;
   /** aria-label for the "clear selection" button. Default: "Clear selection" */
   clearSelectionAriaLabel?: string;
+  /** Tooltip / title shown on disabled checkboxes when `selectionLimit` is reached. Default: count => `Maximum of ${count} selected` */
+  selectionLimitReachedHint?: (limit: number) => string;
 
   // Expand/collapse
   /** aria-label for "expand row" tree toggle. Default: "Expand row" */
@@ -557,6 +597,18 @@ export interface PaginationOptions {
   showQuickJumper?: boolean;
   showSizeChanger?: boolean;
   showTotal?: boolean | ((total: number, range: [number, number]) => string);
+  /**
+   * Navigation control style for offset mode. Default: `'compact'`.
+   *
+   * - `'compact'` — one `Page X of Y` indicator between prev/next. Constant
+   *   width regardless of total pages. Best default for most tables.
+   * - `'numbered'` — numbered page buttons (`1 2 3 ... 22 23 24 ...`). Useful
+   *   only when total page count is small (~10) and the consumer wants
+   *   direct multi-page jumps.
+   *
+   * No effect in cursor mode (which only has prev/next).
+   */
+  navStyle?: 'compact' | 'numbered';
   /** Text overrides for the pagination footer */
   labels?: PaginationLabels;
 }
@@ -609,6 +661,8 @@ export interface PaginationLabels {
   quickJumperSubmitAriaLabel?: string;
   /** Empty-results total. Default: "0 of 0" */
   emptyTotal?: string;
+  /** "Page X of Y" text shown alongside the row-count display when more than 1 page exists. Default: (cur, total) => `Page ${cur} of ${total}` */
+  pageOfTotal?: (current: number, total: number) => string;
 }
 
 export interface CursorPageChange {
@@ -761,6 +815,8 @@ export interface HkTableApi<T extends object> {
   nextPage(): void;
   lastPage(): void;
   gotoPage(pageNumber: number): void;
+  /** Update pagination runtime state (totalItems, nextCursor, etc.). Merges on top of `config.pagination`. */
+  setPagination(opts: Partial<PaginationOptions>): void;
 
   // Sorting
   sort(field: string): void;

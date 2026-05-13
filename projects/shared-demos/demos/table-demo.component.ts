@@ -94,6 +94,7 @@ type TableTab =
   | 'full'
   | 'filtering'
   | 'selectableRow'
+  | 'selectionLimit'
   | 'sticky'
   | 'resizable'
   | 'virtualScroll'
@@ -149,7 +150,6 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             <hk-table
               [data]="users()"
               [config]="fullConfig"
-              [paginationOptions]="paginationOptions"
               (selectionChange)="onSelection($event)"
               (sortChange)="onSort($event)"
               (filterChange)="onFilter($event)"
@@ -254,6 +254,38 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               <span
                 >{{ activeUsers().length }} row(s) selected: <strong>{{ activeUserNames() }}</strong></span
               >
+            </div>
+          }
+        }
+
+        @if (activeTab() === 'selectionLimit') {
+          <app-doc-section
+            title="Single-Pick (selectionLimit: 1)"
+            description="Cap checkbox selection at one row. Once a row is checked, every other row's checkbox renders as [disabled] with a 'Maximum of 1 selected' tooltip. Equivalent to a radio column — uncheck the current pick to re-enable the others. Header 'select all' is auto-disabled because it would try to add."
+            [codeExample]="selectionLimitOneCode"
+          >
+            <hk-table [data]="users().slice(0, 6)" [config]="selectionLimitOneConfig" (selectionChange)="onSelection($event)" />
+          </app-doc-section>
+
+          <app-doc-section
+            title="Capped Multi-Pick (selectionLimit: 3)"
+            description="Cap at any N. Below the limit, behaves as a normal multi-select. At the limit, unchecked rows become disabled until a slot is freed. The 'select all' header caps additions at remaining capacity — partial fill instead of overshoot."
+            [codeExample]="selectionLimitThreeCode"
+          >
+            <hk-table [data]="users().slice(0, 6)" [config]="selectionLimitThreeConfig" (selectionChange)="onSelection($event)" />
+          </app-doc-section>
+
+          @if (selectedUsers().length > 0) {
+            <div class="alert alert-info">
+              <svg [lucideIcon]="infoIcon" [size]="20"></svg>
+              <span
+                >{{ selectedUsers().length }} user(s) selected: <strong>{{ selectedUserNames() }}</strong></span
+              >
+            </div>
+          } @else {
+            <div class="alert">
+              <svg [lucideIcon]="infoIcon" [size]="20"></svg>
+              <span>Try checking rows above. When the limit is hit, other checkboxes grey out — hover one to see the tooltip.</span>
             </div>
           }
         }
@@ -435,7 +467,6 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             <hk-table
               [data]="editableUsers()"
               [config]="keyboardConfig"
-              [paginationOptions]="keyboardPaginationOptions"
               (cellEdit)="onCellEdit($event)"
               (selectionChange)="onSelection($event)"
             />
@@ -577,8 +608,8 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               <h2 class="text-2xl font-bold mb-1">TablePaginationComponent</h2>
               <p class="text-base-content/70 text-sm mb-4">
                 Selector: <code class="text-xs">hk-table-pagination</code> — Rendered automatically by
-                <code class="text-xs">hk-table</code> when <code class="text-xs">paginationOptions</code> is provided. Can also be used
-                standalone.
+                <code class="text-xs">hk-table</code> when <code class="text-xs">createTable</code> is configured with a
+                <code class="text-xs">pagination</code> field. Can also be used standalone.
               </p>
             </div>
             <app-api-table title="TablePaginationComponent — Inputs" [entries]="paginationInputDocs" />
@@ -874,6 +905,11 @@ export class TableDemoComponent {
       .map((u) => u.name)
       .join(', '),
   );
+  selectedUserNames = computed(() =>
+    this.selectedUsers()
+      .map((u) => u.name)
+      .join(', '),
+  );
 
   basicConfig = createTable<User>({
     visible: ['id', 'name', 'email', 'role', 'status'],
@@ -984,6 +1020,20 @@ export class TableDemoComponent {
     },
   });
 
+  selectionLimitOneConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'department'],
+    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', department: 'Department' },
+    hasSelection: true,
+    selectionLimit: 1,
+  });
+
+  selectionLimitThreeConfig = createTable<User>({
+    visible: ['id', 'name', 'email', 'role', 'department'],
+    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', department: 'Department' },
+    hasSelection: true,
+    selectionLimit: 3,
+  });
+
   private readonly commonActions = [
     {
       type: 'view' as const,
@@ -1068,6 +1118,7 @@ export class TableDemoComponent {
   });
 
   fullConfig = createTable<User>({
+    pagination: { mode: 'offset', pageSize: 5, pageSizeOptions: [5, 10, 25], totalItems: 8 },
     visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
     headers: {
       id: 'ID',
@@ -1173,13 +1224,6 @@ export class TableDemoComponent {
       defaultVisible: ['id', 'name', 'email', 'role', 'status'],
     },
   });
-
-  paginationOptions = {
-    mode: 'offset' as const,
-    pageSize: 5,
-    pageSizeOptions: [5, 10, 25],
-    totalItems: 8,
-  };
 
   // --- Filtering Showcase Config (one filter of every FilterType) ---
   filteringConfig = createTable<User>({
@@ -1593,6 +1637,7 @@ export class TableDemoComponent {
 
   // --- Keyboard Navigation Config ---
   keyboardConfig = createTable<User>({
+    pagination: { mode: 'offset', pageSize: 8, pageSizeOptions: [5, 8, 10], totalItems: 8 },
     visible: ['id', 'name', 'email', 'role', 'salary', 'status'],
     headers: {
       id: 'ID',
@@ -1630,13 +1675,6 @@ export class TableDemoComponent {
       },
     },
   });
-
-  keyboardPaginationOptions = {
-    mode: 'offset' as const,
-    pageSize: 8,
-    pageSizeOptions: [5, 8, 10],
-    totalItems: 8,
-  };
 
   // --- Hierarchy Grid Config (3-level: Employee → Order → OrderItem) ---
   orderItemChildConfig = createTable<OrderItem>({
@@ -2501,6 +2539,46 @@ onActiveRowsChange(users: readonly User[]) {
   console.log('Selected rows:', users);
 }`;
 
+  selectionLimitOneCode = `// TypeScript
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'department'],
+  hasSelection: true,
+  selectionLimit: 1,                  // cap at 1 — radio-like UX
+  // labels: {
+  //   selectionLimitReachedHint: (n) => \`Pick only \${n} row\`,
+  // },
+});
+
+// Template
+<hk-table
+  [data]="users()"
+  [config]="config"
+  (selectionChange)="onSelection($event)" />
+
+// Behavior
+//   - check a row     → other checkboxes auto-disable (greyed + tooltip)
+//   - uncheck         → others re-enable
+//   - header check-all → disabled (would try to add)
+//   - keyboard / programmatic toggles guarded server-side too`;
+
+  selectionLimitThreeCode = `// TypeScript
+const config = createTable<User>({
+  visible: ['id', 'name', 'email', 'role', 'department'],
+  hasSelection: true,
+  selectionLimit: 3,                  // cap at any N >= 1
+});
+
+// Template
+<hk-table
+  [data]="users()"
+  [config]="config"
+  (selectionChange)="onSelection($event)" />
+
+// Behavior
+//   - below limit       → normal multi-select
+//   - at limit          → unchecked rows disable
+//   - select-all click  → fills only up to remaining capacity (no overshoot)`;
+
   actionsPositionEndCode = `// Default: actions render as the last column
 const config = createTable<User>({
   visible: ['id', 'name', 'email', 'role', 'status'],
@@ -2558,6 +2636,7 @@ const config = createTable<User>({
   visible: ['id', 'name', 'email', 'role', 'salary', 'status'],
   hasSelection: true,
   hasActions: true,
+  pagination: { mode: 'offset', pageSize: 10 },
   actions: [
     { type: 'view', label: 'View', icon: LucideEye.icon, action: (row) => {} },
   ],
@@ -2571,11 +2650,11 @@ const config = createTable<User>({
   columnVisibility: { enabled: true },
 });
 
-// Template
+// Template — pagination flows through [config]; for server-driven flows
+// push runtime updates via controller.setPagination({ totalItems, ... }).
 <hk-table
   [data]="users()"
   [config]="config"
-  [paginationOptions]="{ mode: 'offset', pageSize: 10 }"
   (selectionChange)="onSelection($event)"
   (sortChange)="onSort($event)"
 />`;
@@ -3065,11 +3144,11 @@ const config = createTable<Employee>({
         'Table configuration object produced by the createTable() builder. Controls columns, formatters, actions, filters, grouping, and all feature flags.',
     },
     {
-      name: 'paginationOptions',
-      type: 'PaginationOptions | null',
-      default: 'null',
+      name: 'config.pagination',
+      type: 'PaginationOptions | undefined',
+      default: 'undefined',
       description:
-        'Pagination configuration. Supports offset (page number) and cursor (opaque token) modes. When null, pagination is hidden.',
+        'Pagination configuration declared inside createTable(). Supports offset (page number) and cursor (opaque token) modes. Server-driven runtime state (totalItems, nextCursor, prevCursor) is pushed via controller.setPagination(opts). Omit to hide pagination.',
     },
     {
       name: 'showFirstLastButtons',

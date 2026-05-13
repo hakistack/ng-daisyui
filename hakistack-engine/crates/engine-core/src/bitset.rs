@@ -20,6 +20,22 @@ impl Bitset {
         }
     }
 
+    /// Build a bitset from a byte-per-row validity source. `bytes[i] != 0`
+    /// sets bit `i`. Used at the WASM boundary where JS sends validity as a
+    /// `Uint8Array` (one byte per row) and we want a packed bitset for the
+    /// kernel's word-at-a-time scans.
+    pub fn from_bytes(bytes: &[u8], len: u32) -> Self {
+        let n_words = (len as usize).div_ceil(64);
+        let mut words = vec![0u64; n_words];
+        let usable = (bytes.len()).min(len as usize);
+        for (i, &b) in bytes[..usable].iter().enumerate() {
+            if b != 0 {
+                words[i / 64] |= 1u64 << (i % 64);
+            }
+        }
+        Self { words, len }
+    }
+
     pub fn len(&self) -> u32 {
         self.len
     }
@@ -47,10 +63,9 @@ impl Bitset {
     }
 
     pub fn fill(&mut self) {
-        for w in &mut self.words {
-            *w = !0;
-        }
-        // mask off the trailing bits past `len` so `count_ones` stays accurate
+        self.words.fill(!0);
+        // Mask off the trailing bits past `len` so `count_ones` and word-AND
+        // composition stay accurate.
         let extra = self.words.len() * 64 - self.len as usize;
         if extra > 0 {
             let last = self.words.len() - 1;
@@ -59,9 +74,39 @@ impl Bitset {
     }
 
     pub fn clear(&mut self) {
-        for w in &mut self.words {
-            *w = 0;
+        self.words.fill(0);
+    }
+
+    /// Raw word view. The filter kernel uses this to iterate validity 64 rows
+    /// at a time — once per word instead of `n_rows` `get` calls (each of which
+    /// does a divide + shift). Same convention as `roaring-rs`.
+    pub fn words(&self) -> &[u64] {
+        &self.words
+    }
+
+    /// Mutable raw word view. Used by the filter kernel to write 64 match bits
+    /// at a time via one `words_mut()[w] = acc` instead of `n_rows` `set` calls.
+    /// Caller is responsible for keeping bits past `len` zero — `mask_tail`
+    /// helps after a bulk write.
+    pub fn words_mut(&mut self) -> &mut [u64] {
+        &mut self.words
+    }
+
+    /// Zero out any bits past `len` in the trailing word. Run after a bulk
+    /// word-level write that ignored row count (e.g. complement of validity).
+    pub fn mask_tail(&mut self) {
+        let extra = self.words.len() * 64 - self.len as usize;
+        if extra > 0 && !self.words.is_empty() {
+            let last = self.words.len() - 1;
+            self.words[last] &= !0 >> extra;
         }
+    }
+
+    /// Copy `other`'s words into `self`. Both must have the same `len`.
+    /// Used by the filter kernel for `IsNotEmpty` (result == validity).
+    pub fn copy_from(&mut self, other: &Bitset) {
+        debug_assert_eq!(self.len, other.len);
+        self.words.copy_from_slice(&other.words);
     }
 
     pub fn and_with(&mut self, other: &Bitset) {

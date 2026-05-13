@@ -66,7 +66,9 @@ async function loadInlined(): Promise<EngineModule> {
   // for the ~400 KB base64 in the initial bundle.
   const [glue, inline] = await Promise.all([import('../wasm/engine_wasm_glue'), import('../wasm/engine_wasm_inline')]);
   const bytes = decodeBase64(inline.ENGINE_WASM_BASE64);
-  await (glue as unknown as EngineModule).default(bytes);
+  // wasm-pack >=0.13 prefers the object form; passing the buffer positionally
+  // works but logs `"using deprecated parameters for the initialization function"`.
+  await (glue as unknown as EngineModule).default({ module_or_path: bytes });
   return glue as unknown as EngineModule;
 }
 

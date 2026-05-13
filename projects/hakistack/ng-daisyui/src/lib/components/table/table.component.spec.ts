@@ -506,14 +506,96 @@ describe('TableComponent', () => {
   // =========================================================================
 
   describe('Pagination', () => {
-    it('should paginate data in offset mode', () => {
-      const config = buildConfig({ visible: ['name'] });
+    it('preserves user-chosen pageSize across re-renders, then accepts programmatic override via controller.setPagination (regression: options effect used to stomp interactive choice)', () => {
+      const config = buildConfig({
+        visible: ['name'],
+        pagination: { mode: 'offset', pageSize: 10, pageSizeOptions: [10, 100] },
+      });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', {
-        mode: 'offset',
-        pageSize: 2,
+      fixture.detectChanges();
+
+      // Simulate user picking 100 in the dropdown.
+      component.handlePaginationPageChange({ pageIndex: 0, pageSize: 100 });
+      expect(component.pageSizeSignal()).toBe(100);
+
+      // A neighbouring input toggles (e.g. disabled, showFirstLast) — the
+      // options-sync effect re-fires. PageSize MUST stay at 100.
+      fixture.componentRef.setInput('disabled', true);
+      fixture.detectChanges();
+      expect(component.pageSizeSignal()).toBe(100);
+
+      // Programmatic override via controller.setPagination still works.
+      component.setPagination({ pageSize: 25 });
+      fixture.detectChanges();
+      expect(component.pageSizeSignal()).toBe(25);
+    });
+
+    it('navStyle defaults to "compact" — single Page X of Y button instead of numbered row', () => {
+      const config = buildConfig({
+        visible: ['name'],
+        pagination: { mode: 'offset', pageSize: 2 },
       });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      // 5 rows / 2 per page = 3 pages. In compact mode we should NOT render
+      // 3 separate page-number buttons — just one indicator.
+      const navButtons = fixture.nativeElement.querySelectorAll('.join .btn');
+      // Compact: First, Prev, [Page 1 of 3], Next, Last → 5 buttons
+      // Numbered: First, Prev, 1, 2, 3, Next, Last → 7 buttons
+      expect(navButtons.length).toBe(5);
+      const indicator = fixture.nativeElement.querySelector('[aria-current="page"]');
+      expect(indicator?.textContent?.trim()).toBe('Page 1 of 3');
+    });
+
+    it('navStyle: "numbered" renders one button per page', () => {
+      const config = buildConfig({
+        visible: ['name'],
+        pagination: { mode: 'offset', pageSize: 2, navStyle: 'numbered' },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      const navButtons = fixture.nativeElement.querySelectorAll('.join .btn');
+      // First, Prev, 1, 2, 3, Next, Last → 7 buttons
+      expect(navButtons.length).toBe(7);
+      const indicator = fixture.nativeElement.querySelector('[aria-current="page"]');
+      expect(indicator?.textContent?.trim()).toBe('1');
+    });
+
+    it('clamps pageIndex into valid range on data-ref change instead of resetting to 0 (regression: navigating to page 2 jumped back to 1 when parent re-passed data())', () => {
+      const config = buildConfig({
+        visible: ['name'],
+        pagination: { mode: 'offset', pageSize: 2 },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      // User navigates to page 2.
+      component.handlePaginationPageChange({ pageIndex: 1, pageSize: 2 });
+      expect(component.pageIndexSignal()).toBe(1);
+
+      // Parent re-passes the same content with a fresh array reference
+      // (mirrors `[data]="users().slice(0, N)"` patterns).
+      fixture.componentRef.setInput('data', [...SAMPLE_DATA]);
+      fixture.detectChanges();
+      expect(component.pageIndexSignal()).toBe(1); // preserved!
+
+      // But when the dataset shrinks so the current page is out of range,
+      // clamp into the last valid page (don't strand the user past the end).
+      fixture.componentRef.setInput('data', SAMPLE_DATA.slice(0, 1));
+      fixture.detectChanges();
+      expect(component.pageIndexSignal()).toBe(0);
+    });
+
+    it('should paginate data in offset mode', () => {
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
       fixture.detectChanges();
 
       // Only 2 rows should be visible on the first page
@@ -522,13 +604,9 @@ describe('TableComponent', () => {
     });
 
     it('should navigate to next page', () => {
-      const config = buildConfig({ visible: ['name'] });
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', {
-        mode: 'offset',
-        pageSize: 2,
-      });
       fixture.detectChanges();
 
       component.nextPage();
@@ -540,13 +618,9 @@ describe('TableComponent', () => {
     });
 
     it('should navigate to previous page', () => {
-      const config = buildConfig({ visible: ['name'] });
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', {
-        mode: 'offset',
-        pageSize: 2,
-      });
       fixture.detectChanges();
 
       component.nextPage();
@@ -557,13 +631,9 @@ describe('TableComponent', () => {
     });
 
     it('should navigate to first and last page', () => {
-      const config = buildConfig({ visible: ['name'] });
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', {
-        mode: 'offset',
-        pageSize: 2,
-      });
       fixture.detectChanges();
 
       component.lastPage();
@@ -576,13 +646,9 @@ describe('TableComponent', () => {
     });
 
     it('should emit pageChange on navigation', () => {
-      const config = buildConfig({ visible: ['name'] });
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', {
-        mode: 'offset',
-        pageSize: 2,
-      });
       fixture.detectChanges();
 
       let emitted: { pageIndex: number; pageSize: number } | undefined;
@@ -593,13 +659,9 @@ describe('TableComponent', () => {
     });
 
     it('should go to a specific page', () => {
-      const config = buildConfig({ visible: ['name'] });
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', {
-        mode: 'offset',
-        pageSize: 2,
-      });
       fixture.detectChanges();
 
       component.gotoPage(3); // 1-based, so page 3 = index 2
@@ -608,13 +670,9 @@ describe('TableComponent', () => {
     });
 
     it('should not navigate beyond boundaries', () => {
-      const config = buildConfig({ visible: ['name'] });
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', {
-        mode: 'offset',
-        pageSize: 2,
-      });
       fixture.detectChanges();
 
       component.previousPage(); // Already on first page
@@ -627,13 +685,9 @@ describe('TableComponent', () => {
     });
 
     it('should show correct total items', () => {
-      const config = buildConfig({ visible: ['name'] });
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', {
-        mode: 'offset',
-        pageSize: 2,
-      });
       fixture.detectChanges();
 
       expect(component.totalItemsSignal()).toBe(5);
@@ -1113,10 +1167,10 @@ describe('TableComponent', () => {
         const config = buildConfig({
           visible: ['name', 'email'],
           globalSearch: { enabled: true },
+          pagination: { mode: 'cursor', pageSize: 10 },
         });
         fixture.componentRef.setInput('config', config);
         fixture.componentRef.setInput('data', SAMPLE_DATA);
-        fixture.componentRef.setInput('paginationOptions', { mode: 'cursor', pageSize: 10 });
 
         const emits: unknown[] = [];
         component.globalSearchChange.subscribe((event) => emits.push(event));
@@ -1136,10 +1190,10 @@ describe('TableComponent', () => {
         const config = buildConfig({
           visible: ['name', 'email'],
           globalSearch: { enabled: true, debounceTime: 100 },
+          pagination: { mode: 'cursor', pageSize: 10 },
         });
         fixture.componentRef.setInput('config', config);
         fixture.componentRef.setInput('data', SAMPLE_DATA);
-        fixture.componentRef.setInput('paginationOptions', { mode: 'cursor', pageSize: 10 });
 
         const emits: { searchTerm: string }[] = [];
         component.globalSearchChange.subscribe((event) => emits.push(event));
@@ -1164,10 +1218,10 @@ describe('TableComponent', () => {
         const config = buildConfig({
           visible: ['name', 'email'],
           globalSearch: { enabled: true, debounceTime: 50 },
+          pagination: { mode: 'cursor', pageSize: 10 },
         });
         fixture.componentRef.setInput('config', config);
         fixture.componentRef.setInput('data', SAMPLE_DATA);
-        fixture.componentRef.setInput('paginationOptions', { mode: 'cursor', pageSize: 10 });
         fixture.detectChanges();
         vi.advanceTimersByTime(100);
 
@@ -1192,10 +1246,10 @@ describe('TableComponent', () => {
       const config = buildConfig({
         visible: ['name', 'email'],
         globalSearch: { enabled: true },
+        pagination: { mode: 'cursor', pageSize: 10 },
       });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
-      fixture.componentRef.setInput('paginationOptions', { mode: 'cursor', pageSize: 10 });
       fixture.detectChanges();
 
       const emits: unknown[] = [];
@@ -2044,6 +2098,104 @@ describe('TableComponent', () => {
   // isSelectedBgClass
   // =========================================================================
 
+  describe('selectionLimit', () => {
+    it('flows through createTable into the component (regression: createFieldConfig used to drop it)', () => {
+      const config = buildConfig({ visible: ['name'], hasSelection: true, selectionLimit: 1 });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      expect(component.selectionLimitSignal()).toBe(1);
+    });
+
+    it('reports isSelectionLimitReached once the cap is hit', () => {
+      const config = buildConfig({ visible: ['name'], hasSelection: true, selectionLimit: 1 });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      expect(component.isSelectionLimitReachedSignal()).toBe(false);
+      component.toggleRow(SAMPLE_DATA[0], true);
+      expect(component.isSelectionLimitReachedSignal()).toBe(true);
+    });
+
+    it('toggleRow refuses to add a second row when limit is 1', () => {
+      const config = buildConfig({ visible: ['name'], hasSelection: true, selectionLimit: 1 });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      component.toggleRow(SAMPLE_DATA[0], true);
+      component.toggleRow(SAMPLE_DATA[1], true); // should be a no-op
+      expect(component.selectedSignal().size).toBe(1);
+      expect(component.selectedSignal().has(SAMPLE_DATA[0])).toBe(true);
+      expect(component.selectedSignal().has(SAMPLE_DATA[1])).toBe(false);
+    });
+
+    it('isRowSelectDisabled is true for unselected rows once limit is reached', () => {
+      const config = buildConfig({ visible: ['name'], hasSelection: true, selectionLimit: 1 });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      expect(component.isRowSelectDisabled(SAMPLE_DATA[1])).toBe(false);
+      component.toggleRow(SAMPLE_DATA[0], true);
+      expect(component.isRowSelectDisabled(SAMPLE_DATA[0])).toBe(false); // selected row remains uncheckable
+      expect(component.isRowSelectDisabled(SAMPLE_DATA[1])).toBe(true);
+    });
+
+    it('toggleSelectAll caps additions at remaining capacity instead of overshooting', () => {
+      const config = buildConfig({ visible: ['name'], hasSelection: true, selectionLimit: 2 });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      component.toggleSelectAll(true);
+      expect(component.selectedSignal().size).toBe(2);
+    });
+
+    it('preserves selection when data input changes reference but rows are stable (regression: inline data().slice() wiped selection between clicks)', () => {
+      const config = buildConfig({ visible: ['name'], hasSelection: true, selectionLimit: 1 });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      // Simulate first click — row 0 selected.
+      component.toggleRow(SAMPLE_DATA[0], true);
+      expect(component.selectedSignal().size).toBe(1);
+
+      // Simulate the parent template re-rendering with a fresh array (same row
+      // refs). The previous behavior wiped the selection here, so the next
+      // click would pass the limit guard and add a second row.
+      fixture.componentRef.setInput('data', SAMPLE_DATA.slice(0));
+      fixture.detectChanges();
+      expect(component.selectedSignal().size).toBe(1); // preserved!
+
+      // Now the second click is correctly rejected.
+      component.toggleRow(SAMPLE_DATA[1], true);
+      expect(component.selectedSignal().size).toBe(1);
+      expect(component.selectedSignal().has(SAMPLE_DATA[0])).toBe(true);
+      expect(component.selectedSignal().has(SAMPLE_DATA[1])).toBe(false);
+    });
+
+    it('drops selected rows that disappear from the new data array', () => {
+      const config = buildConfig({ visible: ['name'] });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      component.toggleRow(SAMPLE_DATA[0], true);
+      component.toggleRow(SAMPLE_DATA[1], true);
+      expect(component.selectedSignal().size).toBe(2);
+
+      // Swap to a data array that only contains row 1 — row 0 should drop.
+      fixture.componentRef.setInput('data', [SAMPLE_DATA[1]]);
+      fixture.detectChanges();
+      expect(component.selectedSignal().size).toBe(1);
+      expect(component.selectedSignal().has(SAMPLE_DATA[1])).toBe(true);
+    });
+  });
+
   describe('isSelectedBgClass', () => {
     it('should return bg-base-200 for selected rows', () => {
       const config = buildConfig({ visible: ['name'], hasSelection: true });
@@ -2320,7 +2472,7 @@ describe('TableComponent', () => {
       expect(rows.length).toBe(2);
     });
 
-    it('should clear selection when data changes', () => {
+    it('keeps selection across data-ref changes when the same row refs are present (e.g. inline data().slice()) and only drops rows that disappear', () => {
       const config = buildConfig({ visible: ['name'], hasSelection: true });
       fixture.componentRef.setInput('config', config);
       fixture.componentRef.setInput('data', SAMPLE_DATA);
@@ -2329,10 +2481,14 @@ describe('TableComponent', () => {
       component.toggleRow(SAMPLE_DATA[0], true);
       expect(component.selectedSignal().size).toBe(1);
 
-      // Change data reference
+      // New array, same row refs → selection preserved.
       fixture.componentRef.setInput('data', [...SAMPLE_DATA]);
       fixture.detectChanges();
+      expect(component.selectedSignal().size).toBe(1);
 
+      // Replace data with a set that excludes the selected row → it gets dropped.
+      fixture.componentRef.setInput('data', SAMPLE_DATA.slice(1));
+      fixture.detectChanges();
       expect(component.selectedSignal().size).toBe(0);
     });
   });

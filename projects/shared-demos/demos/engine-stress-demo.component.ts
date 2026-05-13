@@ -227,7 +227,7 @@ interface BenchResult {
       <!-- Table -->
       <div class="card bg-base-100 border border-base-300">
         <div class="card-body p-0">
-          <hk-table [config]="tableConfig" [data]="rows()" [paginationOptions]="paginationOptions" (filterChange)="onFilterStart()" />
+          <hk-table [config]="tableConfig" [data]="rows()" (filterChange)="onFilterStart()" />
         </div>
       </div>
     </div>
@@ -252,6 +252,7 @@ export class EngineStressDemoComponent {
   });
 
   readonly tableConfig = createTable<StressRow>({
+    pagination: { mode: 'offset', pageSize: 50, pageSizeOptions: [50, 100, 250] },
     visible: ['id', 'name', 'email', 'score', 'active', 'joined', 'region'],
     headers: {
       id: 'ID',
@@ -288,13 +289,6 @@ export class EngineStressDemoComponent {
     ],
     enableFiltering: true,
   });
-
-  readonly paginationOptions = {
-    mode: 'offset' as const,
-    pageSize: 50,
-    pageSizeOptions: [50, 100, 250],
-    totalItems: 0,
-  };
 
   // ── Diagnostics ──────────────────────────────────────────────────────
 

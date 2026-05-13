@@ -1,10 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, input, OnInit, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, linkedSignal, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { LucideX, LucideCheck } from '@lucide/angular';
-import { SelectComponent, SelectOption } from '../select/select.component';
+import { LucideCheck, LucideX } from '@lucide/angular';
 import { DatepickerComponent } from '../datepicker/datepicker.component';
-import { ColumnDefinition, ColumnFilter, FilterConfig, FilterLabels, FilterOperator, FilterOperatorLabels } from './table.types';
+import { SelectComponent, SelectOption } from '../select/select.component';
+import {
+  ColumnDefinition,
+  ColumnFilter,
+  FilterConfig,
+  FilterLabels,
+  FilterOperator,
+  FilterOperatorLabels,
+  FilterType,
+} from './table.types';
 
 export interface FilterApplyEvent {
   value: unknown;
@@ -48,14 +56,6 @@ const DEFAULT_OPERATOR_LABELS: Required<FilterOperatorLabels> = {
   isNotEmpty: 'Is Not Empty',
 };
 
-const DATE_OPERATOR_OVERRIDES: Partial<Record<FilterOperator, string>> = {
-  equals: 'On',
-  gt: 'After',
-  lt: 'Before',
-  gte: 'On or After',
-  lte: 'On or Before',
-};
-
 const DEFAULT_LABELS: ResolvedFilterLabels = {
   title: (header) => `Filter ${header}`,
   closeAriaLabel: 'Close filter',
@@ -75,6 +75,52 @@ const DEFAULT_LABELS: ResolvedFilterLabels = {
   operators: DEFAULT_OPERATOR_LABELS,
 };
 
+// ─── Filter-type strategy table ─────────────────────────────────────────
+//
+// Per-type behavior in one place: which operator is the default, whether
+// the operator is forced (no picker), what operators appear in the picker,
+// and type-specific operator label overrides (e.g. "On" instead of "Equals"
+// for dates). Adding a new filter type means adding one entry here and one
+// template branch — `onApply`, `onClear`, hydration, and operator-list
+// methods stay untouched.
+
+interface FilterStrategy {
+  /** Default operator when no `defaultOperator` is set on the column. */
+  readonly defaultOp: FilterOperator;
+  /**
+   * When set, this type has no operator picker — the operator is always
+   * `forceOp` regardless of what's in `selectedOperator`. Used by select /
+   * boolean / multiselect / range filters whose semantics are fixed by the
+   * input widget itself.
+   */
+  readonly forceOp?: FilterOperator;
+  /** Operators shown in the picker. Empty array hides the picker entirely. */
+  readonly operators: readonly FilterOperator[];
+  /** Type-specific operator label overrides (lower precedence than user labels). */
+  readonly operatorOverrides?: Partial<Record<FilterOperator, string>>;
+}
+
+const STRATEGIES: Record<FilterType, FilterStrategy> = {
+  text: {
+    defaultOp: 'contains',
+    operators: ['contains', 'equals', 'notEquals', 'startsWith', 'endsWith', 'isEmpty', 'isNotEmpty'],
+  },
+  number: {
+    defaultOp: 'equals',
+    operators: ['equals', 'notEquals', 'gt', 'lt', 'gte', 'lte', 'isEmpty', 'isNotEmpty'],
+  },
+  select: { defaultOp: 'equals', forceOp: 'equals', operators: [] },
+  boolean: { defaultOp: 'equals', forceOp: 'equals', operators: [] },
+  multiselect: { defaultOp: 'in', forceOp: 'in', operators: [] },
+  date: {
+    defaultOp: 'equals',
+    operators: ['equals', 'gt', 'lt', 'gte', 'lte'],
+    operatorOverrides: { equals: 'On', gt: 'After', lt: 'Before', gte: 'On or After', lte: 'On or Before' },
+  },
+  numberRange: { defaultOp: 'between', forceOp: 'between', operators: [] },
+  dateRange: { defaultOp: 'between', forceOp: 'between', operators: [] },
+};
+
 @Component({
   selector: 'hk-table-filter',
   imports: [FormsModule, LucideX, LucideCheck, SelectComponent, DatepickerComponent],
@@ -86,148 +132,133 @@ const DEFAULT_LABELS: ResolvedFilterLabels = {
         <button
           type="button"
           class="btn btn-ghost btn-xs btn-circle"
-          (click)="onCancel()"
+          (click)="closeFilter.emit()"
           [attr.aria-label]="resolvedLabels().closeAriaLabel"
         >
           <svg lucideX [size]="14"></svg>
         </button>
       </div>
 
-      <!-- Text Filter -->
-      @if (filterConfig().type === 'text') {
-        <div class="flex flex-col gap-2">
-          <select class="select select-sm" [(ngModel)]="selectedOperator">
-            @for (op of getTextOperators(); track op.value) {
-              <option [value]="op.value">{{ op.label }}</option>
-            }
-          </select>
+      <!-- Operator picker — hidden for types whose operator is forced (select / range / etc.) -->
+      @if (operatorOptions().length > 0) {
+        <hk-select
+          [options]="operatorOptions()"
+          [ngModel]="selectedOperator()"
+          (ngModelChange)="selectedOperator.set($event)"
+          [allowClear]="false"
+          size="sm"
+        />
+      }
 
-          @if (selectedOperator() !== 'isEmpty' && selectedOperator() !== 'isNotEmpty') {
+      <!-- Type-specific value editor -->
+      @switch (filterConfig().type) {
+        @case ('text') {
+          @if (!isUnaryOperator()) {
             <input
               type="text"
               class="input input-sm"
-              [(ngModel)]="textValue"
+              [ngModel]="textView()"
+              (ngModelChange)="value.set($event)"
               [placeholder]="filterConfig().placeholder ?? resolvedLabels().textPlaceholder"
               (keydown.enter)="onApply()"
             />
           }
-        </div>
-      }
+        }
 
-      <!-- Number Filter -->
-      @if (filterConfig().type === 'number') {
-        <div class="flex flex-col gap-2">
-          <select class="select select-sm" [(ngModel)]="selectedOperator">
-            @for (op of getNumberOperators(); track op.value) {
-              <option [value]="op.value">{{ op.label }}</option>
-            }
-          </select>
-
-          @if (selectedOperator() !== 'isEmpty' && selectedOperator() !== 'isNotEmpty') {
+        @case ('number') {
+          @if (!isUnaryOperator()) {
             <input
               type="number"
               class="input input-sm"
-              [(ngModel)]="numberValue"
+              [ngModel]="numberView()"
+              (ngModelChange)="value.set($event)"
               [placeholder]="filterConfig().placeholder ?? resolvedLabels().numberPlaceholder"
               (keydown.enter)="onApply()"
             />
           }
-        </div>
-      }
+        }
 
-      <!-- Select Filter -->
-      @if (filterConfig().type === 'select') {
-        <hk-select
-          [options]="selectOptionsSignal()"
-          [ngModel]="selectValueString()"
-          (ngModelChange)="onSelectChange($event)"
-          [placeholder]="resolvedLabels().selectPlaceholder"
-          size="sm"
-          [allowClear]="true"
-          [enableSearch]="selectOptionsSignal().length > 6"
-        />
-      }
+        @case ('select') {
+          <hk-select
+            [options]="selectOptions()"
+            [ngModel]="selectViewString()"
+            (ngModelChange)="onSelectChange($event)"
+            [placeholder]="resolvedLabels().selectPlaceholder"
+            size="sm"
+            [allowClear]="true"
+            [enableSearch]="selectOptions().length > 6"
+          />
+        }
 
-      <!-- Boolean Filter -->
-      @if (filterConfig().type === 'boolean') {
-        <hk-select
-          [options]="booleanOptionsSignal()"
-          [ngModel]="booleanValueString()"
-          (ngModelChange)="onBooleanChange($event)"
-          [placeholder]="resolvedLabels().selectPlaceholder"
-          size="sm"
-          [allowClear]="true"
-        />
-      }
+        @case ('boolean') {
+          <hk-select
+            [options]="booleanOptions()"
+            [ngModel]="booleanViewString()"
+            (ngModelChange)="onBooleanChange($event)"
+            [placeholder]="resolvedLabels().selectPlaceholder"
+            size="sm"
+            [allowClear]="true"
+          />
+        }
 
-      <!-- Multi-Select Filter -->
-      @if (filterConfig().type === 'multiselect') {
-        <hk-select
-          [options]="selectOptionsSignal()"
-          [multiple]="true"
-          [ngModel]="multiSelectStrings()"
-          (ngModelChange)="onMultiSelectChange($event)"
-          [placeholder]="resolvedLabels().multiSelectPlaceholder"
-          size="sm"
-          [enableSearch]="selectOptionsSignal().length > 6"
-          [showSelectAll]="true"
-          [chipDisplay]="true"
-          [maxChipsVisible]="2"
-        />
-      }
+        @case ('multiselect') {
+          <hk-select
+            [options]="selectOptions()"
+            [multiple]="true"
+            [ngModel]="multiSelectStrings()"
+            (ngModelChange)="onMultiSelectChange($event)"
+            [placeholder]="resolvedLabels().multiSelectPlaceholder"
+            size="sm"
+            [enableSearch]="selectOptions().length > 6"
+            [showSelectAll]="true"
+            [chipDisplay]="true"
+            [maxChipsVisible]="2"
+          />
+        }
 
-      <!-- Date Filter -->
-      @if (filterConfig().type === 'date') {
-        <div class="flex flex-col gap-2">
-          <select class="select select-sm" [(ngModel)]="selectedOperator">
-            @for (op of getDateOperators(); track op.value) {
-              <option [value]="op.value">{{ op.label }}</option>
-            }
-          </select>
-
+        @case ('date') {
           <hk-datepicker
-            [ngModel]="dateValueAsDate()"
-            (ngModelChange)="onDateChange($event)"
+            [ngModel]="dateView()"
+            (ngModelChange)="value.set($event)"
             [placeholder]="resolvedLabels().datePlaceholder"
             [showClearButton]="true"
             [showTodayButton]="true"
           />
-        </div>
-      }
+        }
 
-      <!-- Number Range Filter -->
-      @if (filterConfig().type === 'numberRange') {
-        <div class="flex flex-col gap-2">
+        @case ('numberRange') {
           <div class="flex gap-2">
             <input
               type="number"
               class="input input-sm flex-1"
-              [(ngModel)]="rangeMin"
+              [ngModel]="numberRangeMin()"
+              (ngModelChange)="setNumberRangeMin($event)"
               [placeholder]="resolvedLabels().rangeMinPlaceholder"
+              (keydown.enter)="onApply()"
             />
             <span class="self-center text-sm">{{ resolvedLabels().rangeSeparator }}</span>
             <input
               type="number"
               class="input input-sm flex-1"
-              [(ngModel)]="rangeMax"
+              [ngModel]="numberRangeMax()"
+              (ngModelChange)="setNumberRangeMax($event)"
               [placeholder]="resolvedLabels().rangeMaxPlaceholder"
+              (keydown.enter)="onApply()"
             />
           </div>
-        </div>
+        }
+
+        @case ('dateRange') {
+          <hk-datepicker
+            [range]="true"
+            [ngModel]="dateRangeView()"
+            (ngModelChange)="onDateRangeChange($event)"
+            [placeholder]="resolvedLabels().dateRangePlaceholder"
+            [showClearButton]="true"
+          />
+        }
       }
 
-      <!-- Date Range Filter -->
-      @if (filterConfig().type === 'dateRange') {
-        <hk-datepicker
-          [range]="true"
-          [ngModel]="dateRangeAsObject()"
-          (ngModelChange)="onDateRangeChange($event)"
-          [placeholder]="resolvedLabels().dateRangePlaceholder"
-          [showClearButton]="true"
-        />
-      }
-
-      <!-- Action Buttons -->
       <div class="mt-1 flex gap-2">
         <button type="button" class="btn btn-primary btn-sm flex-1" (click)="onApply()">
           <svg lucideCheck [size]="14"></svg>
@@ -238,284 +269,239 @@ const DEFAULT_LABELS: ResolvedFilterLabels = {
     </div>
   `,
 })
-export class TableFilterComponent<T extends object> implements OnInit {
-  column = input.required<ColumnDefinition<T>>();
-  filterConfig = input.required<ColumnFilter<T>>();
-  activeFilter = input<FilterConfig<T>>();
+export class TableFilterComponent<T extends object> {
+  readonly column = input.required<ColumnDefinition<T>>();
+  readonly filterConfig = input.required<ColumnFilter<T>>();
+  readonly activeFilter = input<FilterConfig<T>>();
   /** Inherited filter labels (from `FieldConfig.filterLabels`). Per-column overrides via `ColumnFilter.labels` win. */
-  labels = input<FilterLabels>({});
+  readonly labels = input<FilterLabels>({});
 
   readonly apply = output<FilterApplyEvent>();
+  /** User pressed Clear. Distinct from `apply` so the parent doesn't have to infer "value === null means remove". */
+  readonly clear = output<void>();
   readonly closeFilter = output<void>();
 
-  textValue = signal<string>('');
-  numberValue = signal<number | null>(null);
-  selectValue = signal<unknown>(null);
-  booleanValue = signal<boolean | null>(null);
-  multiSelectValue = signal<unknown[]>([]);
-  dateValue = signal<string>('');
-  rangeMin = signal<number | null>(null);
-  rangeMax = signal<number | null>(null);
-  dateRangeStart = signal<string>('');
-  dateRangeEnd = signal<string>('');
+  // ─── Form state ───────────────────────────────────────────────────────
+  //
+  // One value signal — the canonical form is whatever the current filter
+  // type natively wants (string for text, number for number, Date for date,
+  // { start, end } for dateRange, …). Wire-format coercion happens at the
+  // apply / hydrate boundary, not inside template bindings.
+  //
+  // `linkedSignal` re-syncs when `activeFilter` or `filterConfig` change but
+  // lets user input override the derived value until the next sync. This
+  // replaces the one-shot `ngOnInit` hydration that used to ignore later
+  // `activeFilter` changes.
 
-  selectedOperator = signal<FilterOperator>('contains');
+  readonly value = linkedSignal<unknown>(() => this.hydrateValue(this.activeFilter(), this.filterConfig().type));
+
+  readonly selectedOperator = linkedSignal<FilterOperator>(() => {
+    const active = this.activeFilter();
+    const config = this.filterConfig();
+    const strategy = STRATEGIES[config.type];
+    return active?.operator ?? config.defaultOperator ?? strategy.forceOp ?? strategy.defaultOp;
+  });
+
+  private hydrateValue(active: FilterConfig<T> | undefined, type: FilterType): unknown {
+    if (!active || active.value == null) return null;
+    if (type === 'date' && typeof active.value === 'string') {
+      return parseLocalIsoDate(active.value);
+    }
+    if (type === 'dateRange' && Array.isArray(active.value) && active.value.length === 2) {
+      const [s, e] = active.value as [unknown, unknown];
+      const start = typeof s === 'string' && s ? parseLocalIsoDate(s) : null;
+      const end = typeof e === 'string' && e ? parseLocalIsoDate(e) : null;
+      return start || end ? { start, end } : null;
+    }
+    return active.value;
+  }
+
+  // ─── Resolved labels (defaults → field-level → column-level) ──────────
 
   readonly resolvedLabels = computed<ResolvedFilterLabels>(() => {
     const inherited: FilterLabels = this.labels() ?? {};
     const perColumn: FilterLabels = this.filterConfig().labels ?? {};
-    const operators = { ...DEFAULT_OPERATOR_LABELS, ...(inherited.operators ?? {}), ...(perColumn.operators ?? {}) };
+    const strategy = STRATEGIES[this.filterConfig().type];
+    // Precedence: user labels > strategy overrides (e.g. date "On") > defaults.
+    const operators = {
+      ...DEFAULT_OPERATOR_LABELS,
+      ...(strategy.operatorOverrides ?? {}),
+      ...(inherited.operators ?? {}),
+      ...(perColumn.operators ?? {}),
+    };
     return { ...DEFAULT_LABELS, ...inherited, ...perColumn, operators };
   });
 
-  readonly booleanOptionsSignal = computed<SelectOption[]>(() => [
-    { value: 'true', label: this.resolvedLabels().booleanTrue },
-    { value: 'false', label: this.resolvedLabels().booleanFalse },
-  ]);
+  // ─── Operator picker options (computed, memoized) ─────────────────────
 
-  /** Convert filter config options to SelectOption[] for hk-select */
-  readonly selectOptionsSignal = computed<SelectOption[]>(() => {
+  readonly operatorOptions = computed<SelectOption[]>(() => {
+    const strategy = STRATEGIES[this.filterConfig().type];
+    const labels = this.resolvedLabels().operators;
+    const allowed = this.filterConfig().operators;
+    const ops = allowed && allowed.length > 0 ? strategy.operators.filter((op) => allowed.includes(op)) : strategy.operators;
+    return ops.map((op) => ({ value: op, label: labels[op] }));
+  });
+
+  /** True when the selected operator takes no value input (isEmpty / isNotEmpty). */
+  readonly isUnaryOperator = computed(() => {
+    const op = this.selectedOperator();
+    return op === 'isEmpty' || op === 'isNotEmpty';
+  });
+
+  // ─── Template-binding views ───────────────────────────────────────────
+  //
+  // Memoized (not methods) so child CVA components don't get fresh refs per
+  // CD tick and re-emit through `ngModelChange`, causing NG0103.
+
+  readonly textView = computed<string>(() => {
+    const v = this.value();
+    return v == null ? '' : String(v);
+  });
+
+  readonly numberView = computed<number | null>(() => {
+    const v = this.value();
+    return typeof v === 'number' ? v : null;
+  });
+
+  readonly selectViewString = computed<string>(() => {
+    const v = this.value();
+    return v == null || v === '' ? '' : String(v);
+  });
+
+  readonly booleanViewString = computed<string>(() => {
+    const v = this.value();
+    if (v == null) return '';
+    return v ? 'true' : 'false';
+  });
+
+  readonly multiSelectStrings = computed<string[]>(() => {
+    const v = this.value();
+    return Array.isArray(v) ? v.map((x) => String(x)) : [];
+  });
+
+  readonly dateView = computed<Date | null>(() => {
+    const v = this.value();
+    return v instanceof Date ? v : null;
+  });
+
+  readonly numberRangeMin = computed<number | null>(() => {
+    const v = this.value() as readonly [number | null, number | null] | null;
+    return v?.[0] ?? null;
+  });
+
+  readonly numberRangeMax = computed<number | null>(() => {
+    const v = this.value() as readonly [number | null, number | null] | null;
+    return v?.[1] ?? null;
+  });
+
+  /**
+   * Date-range view. Emits `null` until *both* endpoints are set —
+   * previously we substituted today's date for missing ends, which silently
+   * created a half-open filter the user never asked for.
+   */
+  readonly dateRangeView = computed<{ start: Date; end: Date } | null>(() => {
+    const v = this.value() as { start: Date | null; end: Date | null } | null;
+    if (!v || !v.start || !v.end) return null;
+    return { start: v.start, end: v.end };
+  });
+
+  readonly selectOptions = computed<SelectOption[]>(() => {
     const opts = this.filterConfig().options ?? [];
     return opts.map((o) => ({ value: String(o.value), label: o.label }));
   });
 
-  /** String representation of the current select value for hk-select */
-  selectValueString(): string {
-    const val = this.selectValue();
-    return val == null || val === '' ? '' : String(val);
-  }
+  readonly booleanOptions = computed<SelectOption[]>(() => [
+    { value: 'true', label: this.resolvedLabels().booleanTrue },
+    { value: 'false', label: this.resolvedLabels().booleanFalse },
+  ]);
 
-  booleanValueString(): string {
-    const val = this.booleanValue();
-    if (val === null) return '';
-    return val ? 'true' : 'false';
-  }
+  // ─── Value setters (coerce hk-select string keys back to source types) ──
 
-  /** String[] of multiselect values for hk-select multiple */
-  multiSelectStrings(): string[] {
-    return this.multiSelectValue().map((v) => String(v));
-  }
-
-  /** Convert date string to Date for hk-datepicker */
-  dateValueAsDate(): Date | null {
-    const v = this.dateValue();
-    if (!v) return null;
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  /** Convert dateRange strings to object for hk-datepicker range */
-  dateRangeAsObject(): { start: Date; end: Date } | null {
-    const s = this.dateRangeStart();
-    const e = this.dateRangeEnd();
-    if (!s && !e) return null;
-    const start = s ? new Date(s) : new Date();
-    const end = e ? new Date(e) : new Date();
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-    return { start, end };
-  }
-
-  /** Handle hk-select single selection change */
   onSelectChange(value: string | null): void {
-    this.selectValue.set(value ?? '');
+    this.value.set(value ?? '');
   }
 
   onBooleanChange(value: string | null): void {
-    if (!value || value === '') {
-      this.booleanValue.set(null);
-    } else {
-      this.booleanValue.set(value === 'true');
-    }
+    if (!value) this.value.set(null);
+    else this.value.set(value === 'true');
   }
 
-  /** Handle hk-select multi-selection change */
   onMultiSelectChange(values: string[]): void {
-    this.multiSelectValue.set(values ?? []);
+    this.value.set(values ?? []);
   }
 
-  /** Handle hk-datepicker single date change */
-  onDateChange(date: Date | null): void {
-    if (date) {
-      this.dateValue.set(date.toISOString().split('T')[0]);
-    } else {
-      this.dateValue.set('');
-    }
-  }
-
-  /** Handle hk-datepicker range change */
   onDateRangeChange(range: { start: Date; end: Date } | null): void {
-    if (range) {
-      this.dateRangeStart.set(range.start.toISOString().split('T')[0]);
-      this.dateRangeEnd.set(range.end.toISOString().split('T')[0]);
-    } else {
-      this.dateRangeStart.set('');
-      this.dateRangeEnd.set('');
-    }
+    this.value.set(range);
   }
 
-  ngOnInit(): void {
-    const config = this.filterConfig();
-    const active = this.activeFilter();
-
-    const defaultOp = config.defaultOperator ?? this.getDefaultOperator();
-    this.selectedOperator.set(defaultOp);
-
-    if (active) {
-      this.selectedOperator.set(active.operator);
-
-      switch (config.type) {
-        case 'text':
-          this.textValue.set(String(active.value ?? ''));
-          break;
-        case 'number':
-          this.numberValue.set(active.value as number);
-          break;
-        case 'select':
-          this.selectValue.set(active.value);
-          break;
-        case 'boolean':
-          this.booleanValue.set(active.value as boolean);
-          break;
-        case 'multiselect':
-          this.multiSelectValue.set(Array.isArray(active.value) ? active.value : []);
-          break;
-        case 'date':
-          this.dateValue.set(String(active.value ?? ''));
-          break;
-        case 'numberRange':
-          if (Array.isArray(active.value) && active.value.length === 2) {
-            this.rangeMin.set(active.value[0] as number);
-            this.rangeMax.set(active.value[1] as number);
-          }
-          break;
-        case 'dateRange':
-          if (Array.isArray(active.value) && active.value.length === 2) {
-            this.dateRangeStart.set(String(active.value[0]));
-            this.dateRangeEnd.set(String(active.value[1]));
-          }
-          break;
-      }
-    }
+  setNumberRangeMin(n: number | null): void {
+    const cur = this.value() as readonly [number | null, number | null] | null;
+    this.value.set([n, cur?.[1] ?? null]);
   }
+
+  setNumberRangeMax(n: number | null): void {
+    const cur = this.value() as readonly [number | null, number | null] | null;
+    this.value.set([cur?.[0] ?? null, n]);
+  }
+
+  // ─── Actions ──────────────────────────────────────────────────────────
 
   onApply(): void {
     const type = this.filterConfig().type;
-    let value: unknown;
-    let operator = this.selectedOperator();
-
-    switch (type) {
-      case 'text':
-        value = this.textValue();
-        break;
-      case 'number':
-        value = this.numberValue();
-        break;
-      case 'select':
-        value = this.selectValue() === '' ? null : this.selectValue();
-        operator = 'equals';
-        break;
-      case 'boolean':
-        value = this.booleanValue();
-        operator = 'equals';
-        break;
-      case 'multiselect':
-        value = this.multiSelectValue();
-        operator = 'in';
-        break;
-      case 'date':
-        value = this.dateValue();
-        break;
-      case 'numberRange':
-        value = [this.rangeMin(), this.rangeMax()];
-        operator = 'between';
-        break;
-      case 'dateRange':
-        value = [this.dateRangeStart(), this.dateRangeEnd()];
-        operator = 'between';
-        break;
-      default:
-        value = null;
-    }
-
+    const strategy = STRATEGIES[type];
+    const operator = strategy.forceOp ?? this.selectedOperator();
+    const value = this.toWireValue(type, this.value());
     this.apply.emit({ value, operator });
-    this.closeDropdown();
+    this.closeFilter.emit();
   }
 
   onClear(): void {
-    this.textValue.set('');
-    this.numberValue.set(null);
-    this.selectValue.set('');
-    this.booleanValue.set(null);
-    this.multiSelectValue.set([]);
-    this.dateValue.set('');
-    this.rangeMin.set(null);
-    this.rangeMax.set(null);
-    this.dateRangeStart.set('');
-    this.dateRangeEnd.set('');
-    this.selectedOperator.set(this.getDefaultOperator());
-
-    this.apply.emit({ value: null, operator: this.selectedOperator() });
-    this.closeDropdown();
-  }
-
-  onCancel(): void {
-    this.closeFilter.emit();
-    this.closeDropdown();
-  }
-
-  private closeDropdown(): void {
+    this.value.set(null);
+    const strategy = STRATEGIES[this.filterConfig().type];
+    this.selectedOperator.set(this.filterConfig().defaultOperator ?? strategy.forceOp ?? strategy.defaultOp);
+    this.clear.emit();
     this.closeFilter.emit();
   }
 
-  getTextOperators(): { value: FilterOperator; label: string }[] {
-    const labels = this.resolvedLabels().operators;
-    const ops: FilterOperator[] = ['contains', 'equals', 'notEquals', 'startsWith', 'endsWith', 'isEmpty', 'isNotEmpty'];
-    return this.filterAllowedOperators(ops.map((value) => ({ value, label: labels[value] })));
-  }
-
-  getNumberOperators(): { value: FilterOperator; label: string }[] {
-    const labels = this.resolvedLabels().operators;
-    const ops: FilterOperator[] = ['equals', 'notEquals', 'gt', 'lt', 'gte', 'lte', 'isEmpty', 'isNotEmpty'];
-    return this.filterAllowedOperators(ops.map((value) => ({ value, label: labels[value] })));
-  }
-
-  getDateOperators(): { value: FilterOperator; label: string }[] {
-    const labels = this.resolvedLabels().operators;
-    const ops: FilterOperator[] = ['equals', 'gt', 'lt', 'gte', 'lte'];
-    // Override generic labels with date-specific variants (e.g. "On", "After") unless user customized operators.
-    const userOperators = this.filterConfig().labels?.operators ?? this.labels()?.operators ?? {};
-    return this.filterAllowedOperators(
-      ops.map((value) => ({
-        value,
-        label: userOperators[value] ?? DATE_OPERATOR_OVERRIDES[value] ?? labels[value],
-      })),
-    );
-  }
-
-  private filterAllowedOperators(operators: { value: FilterOperator; label: string }[]): { value: FilterOperator; label: string }[] {
-    const allowed = this.filterConfig().operators;
-    if (!allowed || allowed.length === 0) {
-      return operators;
+  /**
+   * Convert the internal value into the wire format the parent expects.
+   * The parent's `applyColumnFilter` treats `null` / `''` / arrays of empty
+   * entries as "remove this filter" — so we don't suppress those here.
+   */
+  private toWireValue(type: FilterType, value: unknown): unknown {
+    if (type === 'date' && value instanceof Date) {
+      return formatLocalIsoDate(value);
     }
-    return operators.filter((op) => allowed.includes(op.value));
-  }
-
-  private getDefaultOperator(): FilterOperator {
-    switch (this.filterConfig().type) {
-      case 'text':
-        return 'contains';
-      case 'number':
-      case 'date':
-      case 'select':
-      case 'boolean':
-        return 'equals';
-      case 'multiselect':
-        return 'in';
-      case 'numberRange':
-      case 'dateRange':
-        return 'between';
-      default:
-        return 'equals';
+    if (type === 'dateRange' && value && typeof value === 'object' && 'start' in value) {
+      const range = value as { start: Date | null; end: Date | null };
+      return [range.start ? formatLocalIsoDate(range.start) : '', range.end ? formatLocalIsoDate(range.end) : ''];
     }
+    if (type === 'select' && value === '') return null;
+    return value;
   }
+}
+
+// ─── Date helpers (local-time, no UTC round-trip) ────────────────────────
+//
+// `toISOString().split('T')[0]` is the classic timezone trap: a date picked
+// at 23:00 local in UTC-5 becomes the *next* day in ISO. We format and
+// parse the wire string (YYYY-MM-DD) using local-time getters / constructor
+// so what the user sees on the picker is what lands in the filter.
+
+function formatLocalIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseLocalIsoDate(s: string): Date | null {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (!y || !mo || !d) return null;
+  return new Date(y, mo - 1, d);
 }

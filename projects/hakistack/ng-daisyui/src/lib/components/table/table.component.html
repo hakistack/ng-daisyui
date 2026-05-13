@@ -74,12 +74,12 @@
         </div>
         <div class="flex flex-wrap gap-2">
           @for (filter of activeFiltersSignal(); track filter.field) {
-            <div class="badge badge-primary gap-2 py-3">
+            <div class="badge gap-2 py-3 border border-primary/20 bg-primary/10 text-primary">
               <span class="font-medium">{{ filter.field }}:</span>
               <span>{{ filter.value }}</span>
               <button
                 type="button"
-                class="btn btn-ghost btn-xs p-0"
+                class="btn btn-ghost btn-xs p-0 hover:bg-primary/20"
                 (click)="removeFilter(filter.field)"
                 [attr.aria-label]="tableLabels().removeFilterAriaLabel(filter.field)"
               >
@@ -239,6 +239,8 @@
                     class="checkbox"
                     [checked]="isAllSelected()"
                     (change)="toggleSelectAll(inputChecked($event))"
+                    [disabled]="isSelectAllDisabled()"
+                    [attr.title]="isSelectAllDisabled() ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
                     [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                   />
                 </label>
@@ -319,6 +321,8 @@
                       class="checkbox"
                       [checked]="isSelected(row)"
                       (change)="toggleRow(row, inputChecked($event))"
+                      [disabled]="isRowSelectDisabled(row)"
+                      [attr.title]="isRowSelectDisabled(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
                       [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
                     />
                   </label>
@@ -568,6 +572,8 @@
                     class="checkbox"
                     [checked]="isAllSelected()"
                     (change)="toggleSelectAll(inputChecked($event))"
+                    [disabled]="isSelectAllDisabled()"
+                    [attr.title]="isSelectAllDisabled() ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
                     [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                   />
                 </label>
@@ -659,6 +665,10 @@
                         class="checkbox"
                         [checked]="isSelected(displayRow.row)"
                         (change)="toggleRow(displayRow.row, inputChecked($event))"
+                        [disabled]="isRowSelectDisabled(displayRow.row)"
+                        [attr.title]="
+                          isRowSelectDisabled(displayRow.row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null
+                        "
                       />
                     </label>
                   </td>
@@ -743,11 +753,7 @@
                         <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: displayRow.row }" />
                       } @else if (hasChildGridSignal()) {
                         <div [class]="getChildGridContainerClass()">
-                          <hk-table
-                            [config]="$any(childGridConfigSignal()!.config)"
-                            [data]="$any(getChildGridData(displayRow.row))"
-                            [paginationOptions]="$any(childGridConfigSignal()!.pagination) ?? null"
-                          />
+                          <hk-table [config]="$any(childGridConfigSignal()!.config)" [data]="$any(getChildGridData(displayRow.row))" />
                         </div>
                       }
                     </div>
@@ -963,6 +969,8 @@
                   class="checkbox"
                   [checked]="isAllSelected()"
                   (change)="toggleSelectAll(inputChecked($event))"
+                  [disabled]="isSelectAllDisabled()"
+                  [attr.title]="isSelectAllDisabled() ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
                   [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                 />
               </label>
@@ -984,6 +992,8 @@
                   [checked]="isSelected(row)"
                   [indeterminate]="isIndeterminate(row)"
                   (change)="toggleRow(row, inputChecked($event))"
+                  [disabled]="isRowSelectDisabled(row)"
+                  [attr.title]="isRowSelectDisabled(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
                   [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
                 />
               </label>
@@ -1046,11 +1056,7 @@
                     <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: row }" />
                   } @else if (hasChildGridSignal()) {
                     <div [class]="getChildGridContainerClass()">
-                      <hk-table
-                        [config]="$any(childGridConfigSignal()!.config)"
-                        [data]="$any(getChildGridData(row))"
-                        [paginationOptions]="$any(childGridConfigSignal()!.pagination) ?? null"
-                      />
+                      <hk-table [config]="$any(childGridConfigSignal()!.config)" [data]="$any(getChildGridData(row))" />
                     </div>
                   }
                 </div>
@@ -1106,39 +1112,85 @@
                   </span>
                 </div>
 
-                <!-- Filter Dropdown (Popover API — escapes overflow clipping) -->
+                <!-- Filter dropdown — two branches keyed on daisyUI version.
+                     v5 uses native popover + CSS anchor positioning (escapes overflow,
+                     auto-positions). v4 has neither, so falls back to daisyUI v4's
+                     documented `.dropdown`/`tabindex` focus-driven pattern. -->
                 @if (enableFilteringSignal() && hasFilterForColumn(column.field)) {
-                  <button
-                    type="button"
-                    class="btn btn-ghost btn-xs"
-                    [class.btn-primary]="getActiveFilterForColumn(column.field)"
-                    (click)="$event.stopPropagation()"
-                    [attr.aria-label]="tableLabels().filterButtonAriaLabel(column.header)"
-                    [attr.popovertarget]="'filter-popover-' + column.field"
-                    [style.anchor-name]="'--filter-anchor-' + column.field"
-                  >
-                    <svg lucideListFilter class="h-3 w-3"></svg>
-                    @if (getActiveFilterForColumn(column.field)) {
-                      <span class="badge badge-xs badge-primary">1</span>
-                    }
-                  </button>
-                  <div
-                    class="dropdown card card-compact bg-base-100 w-72 shadow-xl"
-                    popover
-                    [id]="'filter-popover-' + column.field"
-                    [style.position-anchor]="'--filter-anchor-' + column.field"
-                  >
-                    <div class="card-body">
-                      <hk-table-filter
-                        [column]="column"
-                        [filterConfig]="getFilterForColumn(column.field)!"
-                        [activeFilter]="getActiveFilterForColumn(column.field)"
-                        [labels]="filterLabels()"
-                        (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
-                        (closeFilter)="closeAllFilterDropdowns()"
-                      />
+                  @if (isDaisyV4Signal()) {
+                    <!-- daisyUI v4 — uses <details> so the trigger natively toggles
+                         on click (v4's pure-CSS .dropdown opens on :focus-within
+                         and has no toggle/close-on-second-click). No `dropdown-end`
+                         so the panel anchors LEFT of trigger and extends right,
+                         which keeps it from clipping off the table's left edge
+                         for the leftmost columns. The `data-hk-filter` attribute
+                         lets `onDocumentClick` close it on outside clicks. -->
+                    <details
+                      #filterDetails
+                      name="hk-filter-group"
+                      class="dropdown"
+                      data-hk-filter
+                      (toggle)="onFilterDetailsToggle(filterDetails)"
+                    >
+                      <summary
+                        class="btn btn-ghost btn-xs"
+                        [class.btn-primary]="getActiveFilterForColumn(column.field)"
+                        [attr.aria-label]="tableLabels().filterButtonAriaLabel(column.header)"
+                      >
+                        <svg lucideListFilter class="h-3 w-3"></svg>
+                        @if (getActiveFilterForColumn(column.field)) {
+                          <span class="badge badge-xs badge-primary">1</span>
+                        }
+                      </summary>
+                      <div class="dropdown-content card card-compact bg-base-100 w-72 shadow-xl z-50 mt-1">
+                        <div class="card-body">
+                          <hk-table-filter
+                            [column]="column"
+                            [filterConfig]="getFilterForColumn(column.field)!"
+                            [activeFilter]="getActiveFilterForColumn(column.field)"
+                            [labels]="filterLabels()"
+                            (apply)="applyColumnFilter(column.field, $event.value, $event.operator); filterDetails.open = false"
+                            (clear)="removeFilter(column.field); filterDetails.open = false"
+                            (closeFilter)="filterDetails.open = false"
+                          />
+                        </div>
+                      </div>
+                    </details>
+                  } @else {
+                    <!-- daisyUI v5: popover API + CSS anchor positioning. -->
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      [class.btn-primary]="getActiveFilterForColumn(column.field)"
+                      (click)="$event.stopPropagation()"
+                      [attr.aria-label]="tableLabels().filterButtonAriaLabel(column.header)"
+                      [attr.popovertarget]="'filter-popover-' + column.field"
+                      [style.anchor-name]="'--filter-anchor-' + column.field"
+                    >
+                      <svg lucideListFilter class="h-3 w-3"></svg>
+                      @if (getActiveFilterForColumn(column.field)) {
+                        <span class="badge badge-xs badge-primary">1</span>
+                      }
+                    </button>
+                    <div
+                      class="dropdown card card-compact bg-base-100 w-72 shadow-xl"
+                      popover
+                      [id]="'filter-popover-' + column.field"
+                      [style.position-anchor]="'--filter-anchor-' + column.field"
+                    >
+                      <div class="card-body">
+                        <hk-table-filter
+                          [column]="column"
+                          [filterConfig]="getFilterForColumn(column.field)!"
+                          [activeFilter]="getActiveFilterForColumn(column.field)"
+                          [labels]="filterLabels()"
+                          (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
+                          (clear)="removeFilter(column.field)"
+                          (closeFilter)="closeAllFilterDropdowns()"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  }
                 }
               </div>
 
@@ -1528,11 +1580,7 @@
           {{ masterDetailHeaderTextSignal() }}
         </div>
       }
-      <hk-table
-        [config]="$any(masterDetailConfigSignal()!.config)"
-        [data]="$any(masterDetailDataSignal())"
-        [paginationOptions]="$any(masterDetailConfigSignal()!.pagination) ?? null"
-      />
+      <hk-table [config]="$any(masterDetailConfigSignal()!.config)" [data]="$any(masterDetailDataSignal())" />
     </div>
   }
 </div>

@@ -5,13 +5,18 @@
       <!-- Consumer-supplied toolbar via <ng-template hkPdfToolbar>. -->
       <ng-container [ngTemplateOutlet]="ct.templateRef" [ngTemplateOutletContext]="toolbarContext()" />
     } @else {
-      <!-- Default toolbar. The wrapper enables container queries (Tailwind v4
-           `@container`) so the visible button set adapts to the toolbar's own
-           width — not the viewport. Buttons drop progressively at narrower
-           widths; print / download / fullscreen / first / last collapse into
-           the overflow ⋯ menu so they're still reachable everywhere. -->
-      <div class="@container flex items-center gap-1 px-2 py-1.5 border-b border-base-300 bg-base-200/50 text-sm flex-wrap">
-        <!-- Toggle sidebar — only when showSidebar is enabled. -->
+      <!-- Default toolbar. Grouped into logical sections (sidebar / nav /
+           zoom / mode / find / file ops / overflow) separated by thin
+           dividers. Container queries (`@container`) collapse the right-
+           side ops into the overflow menu progressively as the toolbar
+           narrows. Buttons are uniformly `btn-ghost btn-xs btn-square`
+           with a 16px lucide icon — same density as Acrobat's top bar. -->
+      <div
+        class="@container flex items-center gap-0.5 px-2 py-1.5 border-b border-base-300 bg-base-200/60 text-sm flex-wrap"
+        role="toolbar"
+        aria-label="PDF toolbar"
+      >
+        <!-- ── Group: sidebar toggle ──────────────────────────────────── -->
         @if (config().showSidebar !== false && layout() === 'default') {
           <button
             type="button"
@@ -22,11 +27,12 @@
             [attr.aria-pressed]="state()?.sidebarOpen ? 'true' : 'false'"
             (click)="toggleSidebar()"
           >
-            <span aria-hidden="true">☰</span>
+            <svg lucidePanelLeft [size]="16"></svg>
           </button>
-          <div class="divider divider-horizontal mx-0.5 my-0 hidden @sm:flex"></div>
+          <div class="w-px h-5 bg-base-300 mx-1 hidden @sm:block"></div>
         }
-        <!-- First page — ≥ @sm. -->
+
+        <!-- ── Group: page navigation ─────────────────────────────────── -->
         <button
           type="button"
           class="btn btn-ghost btn-xs btn-square hidden @sm:inline-flex"
@@ -35,9 +41,8 @@
           [disabled]="!showPages() || (state()?.page ?? 0) <= 1"
           (click)="toolbarFirst()"
         >
-          <span aria-hidden="true">«</span>
+          <svg lucideChevronsLeft [size]="16"></svg>
         </button>
-        <!-- Previous — always. -->
         <button
           type="button"
           class="btn btn-ghost btn-xs btn-square"
@@ -46,15 +51,13 @@
           [disabled]="!showPages() || (state()?.page ?? 0) <= 1"
           (click)="toolbarPrev()"
         >
-          <span aria-hidden="true">‹</span>
+          <svg lucideChevronLeft [size]="16"></svg>
         </button>
-
-        <!-- Page input + total — input always visible; "/ N" suffix from @xs. -->
         <div class="flex items-center gap-1 px-1">
           <input
             #pageInput
             type="number"
-            class="input input-xs input-bordered w-14 text-center"
+            class="input input-xs input-bordered w-12 text-center tabular-nums"
             [attr.aria-label]="labels().pageInputAriaLabel"
             [value]="state()?.page ?? 0"
             [min]="1"
@@ -62,10 +65,8 @@
             [disabled]="!showPages()"
             (change)="onPageInput(pageInput.value)"
           />
-          <span class="text-xs text-base-content/60 hidden @xs:inline">/ {{ state()?.numPages ?? 0 }}</span>
+          <span class="text-xs text-base-content/60 tabular-nums hidden @xs:inline">/ {{ state()?.numPages ?? 0 }}</span>
         </div>
-
-        <!-- Next — always. -->
         <button
           type="button"
           class="btn btn-ghost btn-xs btn-square"
@@ -74,9 +75,8 @@
           [disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
           (click)="toolbarNext()"
         >
-          <span aria-hidden="true">›</span>
+          <svg lucideChevronRight [size]="16"></svg>
         </button>
-        <!-- Last page — ≥ @sm. -->
         <button
           type="button"
           class="btn btn-ghost btn-xs btn-square hidden @sm:inline-flex"
@@ -85,13 +85,12 @@
           [disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
           (click)="toolbarLast()"
         >
-          <span aria-hidden="true">»</span>
+          <svg lucideChevronsRight [size]="16"></svg>
         </button>
 
-        <!-- Divider before zoom controls — ≥ @md. -->
-        <div class="divider divider-horizontal mx-1 my-0 hidden @md:flex"></div>
+        <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
 
-        <!-- Zoom out — always. -->
+        <!-- ── Group: zoom ────────────────────────────────────────────── -->
         <button
           type="button"
           class="btn btn-ghost btn-xs btn-square"
@@ -100,9 +99,8 @@
           [disabled]="!showPages()"
           (click)="toolbarZoomOut()"
         >
-          <span aria-hidden="true">−</span>
+          <svg lucideMinus [size]="16"></svg>
         </button>
-        <!-- Zoom select — ≥ @md. -->
         <select
           #zoomSelect
           class="select select-xs select-bordered w-28 hidden @md:inline-flex"
@@ -121,7 +119,6 @@
           <option value="2">200%</option>
           <option value="3">300%</option>
         </select>
-        <!-- Zoom in — always. -->
         <button
           type="button"
           class="btn btn-ghost btn-xs btn-square"
@@ -130,82 +127,100 @@
           [disabled]="!showPages()"
           (click)="toolbarZoomIn()"
         >
-          <span aria-hidden="true">+</span>
+          <svg lucidePlus [size]="16"></svg>
         </button>
-        <!-- Zoom percent display — ≥ @md. -->
-        <span class="text-xs text-base-content/60 w-12 text-right tabular-nums hidden @md:inline">{{ zoomPercent() }}</span>
+        <span class="text-xs text-base-content/60 w-10 text-right tabular-nums hidden @md:inline">{{ zoomPercent() }}</span>
 
-        <!-- Divider before mode toggle — ≥ @md. -->
-        <div class="divider divider-horizontal mx-1 my-0 hidden @md:flex"></div>
+        <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
 
-        <!-- Mode toggle — ≥ @md. -->
+        <!-- ── Group: display mode ─────────────────────────────────────── -->
         <div class="join hidden @md:inline-flex">
           <button
             type="button"
-            class="btn btn-xs join-item"
+            class="btn btn-xs btn-square join-item"
+            [attr.aria-label]="'Continuous scroll'"
+            [title]="'Continuous scroll'"
             [class.btn-active]="state()?.mode === 'continuous'"
             [disabled]="!showPages()"
             (click)="toolbarMode('continuous')"
           >
-            Scroll
+            <svg lucideScrollText [size]="16"></svg>
           </button>
           <button
             type="button"
-            class="btn btn-xs join-item"
+            class="btn btn-xs btn-square join-item"
+            [attr.aria-label]="'Single page'"
+            [title]="'Single page'"
             [class.btn-active]="state()?.mode === 'single'"
             [disabled]="!showPages()"
             (click)="toolbarMode('single')"
           >
-            Single
+            <svg lucideSquare [size]="16"></svg>
           </button>
         </div>
 
-        <div class="grow"></div>
+        <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
 
-        <!-- Document ops INLINE — ≥ @lg. -->
+        <!-- ── Group: find (inline, icon button) ──────────────────────── -->
         <button
           type="button"
-          class="btn btn-ghost btn-xs hidden @lg:inline-flex"
+          class="btn btn-ghost btn-xs btn-square"
+          [attr.aria-label]="labels().find"
+          [title]="labels().find + ' (⌘F)'"
+          [class.btn-active]="findBarOpen()"
+          [disabled]="!showPages()"
+          (click)="toolbarFind()"
+        >
+          <svg lucideSearch [size]="16"></svg>
+        </button>
+
+        <div class="grow"></div>
+
+        <!-- ── Group: file ops (icon buttons, inline at ≥ @lg) ─────────── -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
           [attr.aria-label]="labels().print"
           [title]="labels().print"
           [disabled]="!showPages()"
           (click)="toolbarPrint()"
         >
-          {{ labels().print }}
+          <svg lucidePrinter [size]="16"></svg>
         </button>
         <button
           type="button"
-          class="btn btn-ghost btn-xs hidden @lg:inline-flex"
+          class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
           [attr.aria-label]="labels().download"
           [title]="labels().download"
           [disabled]="!showPages()"
           (click)="toolbarDownload()"
         >
-          {{ labels().download }}
+          <svg lucideDownload [size]="16"></svg>
         </button>
         <button
           type="button"
-          class="btn btn-ghost btn-xs hidden @lg:inline-flex"
+          class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
           [attr.aria-label]="labels().fullscreen"
           [title]="labels().fullscreen"
           [disabled]="!showPages()"
           (click)="toolbarFullscreen()"
         >
-          ⛶
+          <svg lucideMaximize [size]="16"></svg>
         </button>
 
-        <!-- Overflow ⋯ — < @lg. Houses anything that drops out of the inline
-             toolbar at narrow widths so it stays reachable everywhere. The
-             <details> element handles open/close state natively; setting
-             `.open = false` on click closes the menu after each action. -->
-        <details #overflowMenu class="dropdown dropdown-end @lg:hidden">
-          <summary class="btn btn-ghost btn-xs btn-square" [attr.aria-label]="'More options'" [title]="'More options'">
-            <span aria-hidden="true">⋯</span>
+        <!-- Overflow ⋯ — picks up everything not currently inline. -->
+        <details #overflowMenu class="dropdown dropdown-end">
+          <summary
+            class="btn btn-ghost btn-xs btn-square @lg:hidden"
+            [attr.aria-label]="labels().moreOptions"
+            [title]="labels().moreOptions"
+          >
+            <svg lucideEllipsis [size]="16"></svg>
           </summary>
-          <ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] w-48 p-2 shadow">
-            <!-- First / last — only appear in overflow when hidden inline (< @sm). -->
+          <ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] w-52 p-2 shadow border border-base-300">
             <li class="@sm:hidden">
               <a [class.menu-disabled]="!showPages() || (state()?.page ?? 0) <= 1" (click)="toolbarFirst(); overflowMenu.open = false">
+                <svg lucideChevronsLeft [size]="14"></svg>
                 {{ labels().firstPage }}
               </a>
             </li>
@@ -214,37 +229,39 @@
                 [class.menu-disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
                 (click)="toolbarLast(); overflowMenu.open = false"
               >
+                <svg lucideChevronsRight [size]="14"></svg>
                 {{ labels().lastPage }}
               </a>
             </li>
-            <!-- Mode toggle — only in overflow when hidden inline (< @md). -->
             <li class="@md:hidden">
               <a
                 [class.menu-disabled]="!showPages()"
                 (click)="toolbarMode(state()?.mode === 'continuous' ? 'single' : 'continuous'); overflowMenu.open = false"
               >
-                {{ state()?.mode === 'continuous' ? 'Single page mode' : 'Continuous scroll' }}
+                @if (state()?.mode === 'continuous') {
+                  <svg lucideSquare [size]="14"></svg>
+                  Single page
+                } @else {
+                  <svg lucideScrollText [size]="14"></svg>
+                  Continuous
+                }
               </a>
             </li>
-            <!-- Find — always available in overflow (no inline button). -->
-            <li>
-              <a [class.menu-disabled]="!showPages()" (click)="toolbarFind(); overflowMenu.open = false">
-                {{ labels().searchAriaLabel }}
-              </a>
-            </li>
-            <!-- Document ops — always available in overflow at < @lg. -->
             <li>
               <a [class.menu-disabled]="!showPages()" (click)="toolbarPrint(); overflowMenu.open = false">
+                <svg lucidePrinter [size]="14"></svg>
                 {{ labels().print }}
               </a>
             </li>
             <li>
               <a [class.menu-disabled]="!showPages()" (click)="toolbarDownload(); overflowMenu.open = false">
+                <svg lucideDownload [size]="14"></svg>
                 {{ labels().download }}
               </a>
             </li>
             <li>
               <a [class.menu-disabled]="!showPages()" (click)="toolbarFullscreen(); overflowMenu.open = false">
+                <svg lucideMaximize [size]="14"></svg>
                 {{ labels().fullscreen }}
               </a>
             </li>
@@ -256,7 +273,14 @@
 
   <!-- ── FIND BAR (shared across layouts) ────────────────────────────────── -->
   @if (findBarOpen()) {
-    <div class="flex items-center gap-2 px-3 py-2 border-b border-base-300 bg-base-200/40 text-sm">
+    <div
+      class="flex items-center gap-1.5 px-3 py-2 border-b border-base-300 bg-base-200/40 text-sm"
+      role="search"
+      [attr.aria-label]="labels().searchAriaLabel"
+    >
+      <span class="text-base-content/50">
+        <svg lucideSearch [size]="14"></svg>
+      </span>
       <input
         #findInput
         type="text"
@@ -268,6 +292,31 @@
         (keydown.enter)="onFindEnter(findInput.value)"
         (keydown.escape)="closeFindBar()"
       />
+
+      <!-- Match toggles — Acrobat-style ghost icon buttons. `btn-active` when on. -->
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        [attr.aria-label]="labels().findCaseSensitive"
+        [attr.aria-pressed]="isFindCaseSensitive()"
+        [title]="labels().findCaseSensitive"
+        [class.btn-active]="isFindCaseSensitive()"
+        (click)="toggleFindCaseSensitive()"
+      >
+        <svg lucideCaseSensitive [size]="16"></svg>
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        [attr.aria-label]="labels().findWholeWord"
+        [attr.aria-pressed]="isFindWholeWord()"
+        [title]="labels().findWholeWord"
+        [class.btn-active]="isFindWholeWord()"
+        (click)="toggleFindWholeWord()"
+      >
+        <svg lucideWholeWord [size]="16"></svg>
+      </button>
+
       <span class="text-xs text-base-content/60 tabular-nums whitespace-nowrap min-w-16 text-right">
         @if (state()?.searchQuery) {
           @if ((state()?.searchMatches ?? 0) > 0) {
@@ -285,7 +334,7 @@
         [disabled]="(state()?.searchMatches ?? 0) === 0"
         (click)="searchPreviousMatchPublic()"
       >
-        <span aria-hidden="true">‹</span>
+        <svg lucideChevronLeft [size]="16"></svg>
       </button>
       <button
         type="button"
@@ -295,7 +344,7 @@
         [disabled]="(state()?.searchMatches ?? 0) === 0"
         (click)="searchNextMatchPublic()"
       >
-        <span aria-hidden="true">›</span>
+        <svg lucideChevronRight [size]="16"></svg>
       </button>
       <button
         type="button"
@@ -304,7 +353,7 @@
         [title]="labels().clearSearch"
         (click)="closeFindBar()"
       >
-        <span aria-hidden="true">✕</span>
+        <svg lucideX [size]="16"></svg>
       </button>
     </div>
   }
@@ -333,11 +382,6 @@
           </div>
         } @else {
           @if (pageNumbers().length > 0) {
-            <!-- Pages are mounted into the DOM as soon as we know the page count
-                 so viewChildren picks up the canvases — but kept invisible until
-                 the first paint completes, otherwise the brief gap between
-                 default-sized blank canvases and the painted result reads as a
-                 layout flash. -->
             <div
               class="flex flex-col items-center gap-4"
               role="document"
@@ -408,38 +452,81 @@
     </div>
   } @else {
     <!-- ── DEFAULT LAYOUT ────────────────────────────────────────────────── -->
-    <!-- Sidebar + viewport sit in a flex row inside the remaining space.
-         Sidebar collapses via state.sidebarOpen; opting out entirely is via
-         config.showSidebar = false (no toggle, no panel). -->
     <div class="flex flex-1 min-h-0 overflow-hidden">
       @if (config().showSidebar !== false && state()?.sidebarOpen) {
-        <aside class="hk-pdf-sidebar w-60 shrink-0 border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
-          <!-- Tabs: thumbnails | bookmarks -->
-          <div role="tablist" class="tabs tabs-lift">
-            <a
+        <aside class="hk-pdf-sidebar w-56 shrink-0 border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+          <!-- Tabs row: icon-only tab buttons keep the sidebar narrow while
+               surfacing four panels (Thumbnails / Bookmarks / Annotations /
+               Attachments). Tooltips carry the full label. Active tab gets
+               the daisyUI `tab-active` style. -->
+          <div role="tablist" class="flex border-b border-base-300 bg-base-200/40">
+            <button
+              type="button"
               role="tab"
-              class="tab"
-              [class.tab-active]="(state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+              class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+              [class.text-primary]="(state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+              [class.bg-base-100]="(state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+              [class.border-b-2]="(state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+              [class.border-primary]="(state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
               [attr.aria-selected]="(state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+              [attr.aria-label]="labels().thumbnailsTab"
+              [title]="labels().thumbnailsTab"
               (click)="setSidebarTab('thumbnails')"
             >
-              {{ labels().thumbnailsTab }}
-            </a>
-            <a
+              <svg lucideFileText [size]="16"></svg>
+            </button>
+            <button
+              type="button"
               role="tab"
-              class="tab"
-              [class.tab-active]="state()?.sidebarTab === 'bookmarks'"
+              class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+              [class.text-primary]="state()?.sidebarTab === 'bookmarks'"
+              [class.bg-base-100]="state()?.sidebarTab === 'bookmarks'"
+              [class.border-b-2]="state()?.sidebarTab === 'bookmarks'"
+              [class.border-primary]="state()?.sidebarTab === 'bookmarks'"
               [attr.aria-selected]="state()?.sidebarTab === 'bookmarks'"
+              [attr.aria-label]="labels().bookmarksTab"
+              [title]="labels().bookmarksTab"
               (click)="setSidebarTab('bookmarks')"
             >
-              {{ labels().bookmarksTab }}
-            </a>
+              <svg lucideBookOpen [size]="16"></svg>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+              [class.text-primary]="state()?.sidebarTab === 'annotations'"
+              [class.bg-base-100]="state()?.sidebarTab === 'annotations'"
+              [class.border-b-2]="state()?.sidebarTab === 'annotations'"
+              [class.border-primary]="state()?.sidebarTab === 'annotations'"
+              [attr.aria-selected]="state()?.sidebarTab === 'annotations'"
+              [attr.aria-label]="labels().annotationsTab"
+              [title]="labels().annotationsTab"
+              (click)="setSidebarTab('annotations')"
+            >
+              <svg lucideMessageSquare [size]="16"></svg>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+              [class.text-primary]="state()?.sidebarTab === 'attachments'"
+              [class.bg-base-100]="state()?.sidebarTab === 'attachments'"
+              [class.border-b-2]="state()?.sidebarTab === 'attachments'"
+              [class.border-primary]="state()?.sidebarTab === 'attachments'"
+              [attr.aria-selected]="state()?.sidebarTab === 'attachments'"
+              [attr.aria-label]="labels().attachmentsTab"
+              [title]="labels().attachmentsTab"
+              (click)="setSidebarTab('attachments')"
+            >
+              <svg lucidePaperclip [size]="16"></svg>
+            </button>
           </div>
-          <div #thumbnailPanel class="flex-1 overflow-auto p-2" role="tabpanel">
+
+          <div #thumbnailPanel class="flex-1 overflow-auto" role="tabpanel">
             @switch (state()?.sidebarTab ?? 'thumbnails') {
               @case ('thumbnails') {
                 @if (pageNumbers().length > 0) {
-                  <ul class="flex flex-col gap-2 items-center">
+                  <ul class="flex flex-col gap-2 items-center p-2">
                     @for (n of pageNumbers(); track n) {
                       <li>
                         <button
@@ -466,9 +553,62 @@
                 } @else if (outline()!.length === 0) {
                   <div class="text-xs text-base-content/60 italic p-4 text-center">{{ labels().noBookmarks }}</div>
                 } @else {
-                  <ul class="menu menu-sm w-full p-0">
+                  <ul class="menu menu-sm w-full p-2">
                     @for (node of outline()!; track $index) {
                       <ng-container [ngTemplateOutlet]="outlineNode" [ngTemplateOutletContext]="{ $implicit: node }" />
+                    }
+                  </ul>
+                }
+              }
+              @case ('annotations') {
+                @if (annotations() === null) {
+                  <div class="text-xs text-base-content/40 italic p-4 text-center">{{ labels().loading }}</div>
+                } @else if (annotations()!.length === 0) {
+                  <div class="text-xs text-base-content/60 italic p-4 text-center">{{ labels().noAnnotations }}</div>
+                } @else {
+                  <ul class="flex flex-col p-1">
+                    @for (a of annotations(); track $index) {
+                      <li>
+                        <button
+                          type="button"
+                          class="w-full text-left px-2 py-2 rounded-md hover:bg-base-200 transition-colors flex flex-col gap-1"
+                          (click)="goToAnnotation(a)"
+                        >
+                          <div class="flex items-center justify-between gap-2 text-xs">
+                            <span class="font-medium text-base-content/80">{{ a.subtype }}</span>
+                            <span class="text-base-content/50 tabular-nums">p. {{ a.pageNumber }}</span>
+                          </div>
+                          @if (a.contents) {
+                            <p class="text-xs text-base-content/70 line-clamp-2 text-left">{{ a.contents }}</p>
+                          }
+                          @if (a.author) {
+                            <span class="text-[10px] text-base-content/40">— {{ a.author }}</span>
+                          }
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              }
+              @case ('attachments') {
+                @if (attachments() === null) {
+                  <div class="text-xs text-base-content/40 italic p-4 text-center">{{ labels().loading }}</div>
+                } @else if (attachments()!.length === 0) {
+                  <div class="text-xs text-base-content/60 italic p-4 text-center">{{ labels().noAttachments }}</div>
+                } @else {
+                  <ul class="flex flex-col p-1">
+                    @for (att of attachments(); track $index) {
+                      <li>
+                        <button
+                          type="button"
+                          class="w-full text-left px-2 py-2 rounded-md hover:bg-base-200 transition-colors flex items-center gap-2"
+                          [title]="att.description || att.filename"
+                          (click)="downloadAttachment(att)"
+                        >
+                          <svg lucidePaperclip [size]="14" class="text-base-content/50 shrink-0"></svg>
+                          <span class="text-xs truncate">{{ att.filename }}</span>
+                        </button>
+                      </li>
                     }
                   </ul>
                 }

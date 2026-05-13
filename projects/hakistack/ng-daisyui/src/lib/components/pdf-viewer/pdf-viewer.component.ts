@@ -18,15 +18,41 @@ import {
   viewChild,
   viewChildren,
 } from '@angular/core';
+import {
+  LucideBookOpen,
+  LucideCaseSensitive,
+  LucideChevronLeft,
+  LucideChevronRight,
+  LucideChevronsLeft,
+  LucideChevronsRight,
+  LucideDownload,
+  LucideEllipsis,
+  LucideFileText,
+  LucideMaximize,
+  LucideMessageSquare,
+  LucideMinus,
+  LucidePanelLeft,
+  LucidePaperclip,
+  LucidePlus,
+  LucidePrinter,
+  LucideScrollText,
+  LucideSearch,
+  LucideSquare,
+  LucideWholeWord,
+  LucideX,
+} from '@lucide/angular';
 import { HK_THEME } from '../../theme/theme.config';
 import { HkPdfToolbarContext, HkPdfToolbarDirective } from './pdf-viewer.directives';
 import { DEFAULT_PDF_VIEWER_LABELS, HK_PDF_LABELS, ResolvedPdfViewerLabels } from './pdf-viewer.labels';
 import { HkPdfService } from './pdf.service';
 import { PdfSearchHandle, PdfSearchService } from '../../services';
 import {
+  PdfAnnotationEntry,
+  PdfAttachmentEntry,
   PdfDisplayMode,
   PdfDocumentSource,
   PdfSearchResult,
+  PdfSidebarTab,
   PdfViewerConfig,
   PdfViewerError,
   PdfViewerInternalApi,
@@ -117,7 +143,30 @@ interface PdfSearchHit {
  */
 @Component({
   selector: 'hk-pdf-viewer',
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    LucidePanelLeft,
+    LucideChevronsLeft,
+    LucideChevronLeft,
+    LucideChevronRight,
+    LucideChevronsRight,
+    LucidePlus,
+    LucideMinus,
+    LucideSearch,
+    LucidePrinter,
+    LucideDownload,
+    LucideMaximize,
+    LucideEllipsis,
+    LucideScrollText,
+    LucideSquare,
+    LucideX,
+    LucideCaseSensitive,
+    LucideWholeWord,
+    LucideFileText,
+    LucideBookOpen,
+    LucidePaperclip,
+    LucideMessageSquare,
+  ],
   templateUrl: './pdf-viewer.component.html',
   styleUrl: './pdf-viewer.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -272,6 +321,14 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const s = this.state();
     return !!s?.sidebarOpen && s.sidebarTab === 'bookmarks';
   });
+  private readonly attachmentsTabActive = computed(() => {
+    const s = this.state();
+    return !!s?.sidebarOpen && s.sidebarTab === 'attachments';
+  });
+  private readonly annotationsTabActive = computed(() => {
+    const s = this.state();
+    return !!s?.sidebarOpen && s.sidebarTab === 'annotations';
+  });
 
   /**
    * The set of pages that should currently be "live" — i.e. have their
@@ -308,10 +365,24 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     onPassword?: (cb: (pwd: string) => void, reason: number) => void;
   } | null = null;
   private pages: PageEntry[] = [];
-  /** In-flight render tasks. Set instead of Array so removal on completion is O(1). */
-  private renderTasks = new Set<{ cancel: () => void; promise: Promise<void> }>();
-  /** In-flight text layer instances. Set for the same O(1)-removal reason. */
-  private textLayerInstances = new Set<{ cancel?: () => void }>();
+  /**
+   * In-flight render tasks keyed by page number. Per-page lookup lets
+   * `applyBufferDiff` cancel renders for pages that scrolled out before they
+   * finish, freeing the PDF.js worker for what the user is now looking at.
+   */
+  private renderTasksByPage = new Map<number, { cancel: () => void; promise: Promise<void> }>();
+  /** In-flight text-layer instances, keyed the same way for the same reason. */
+  private textLayerTasksByPage = new Map<number, { cancel?: () => void }>();
+  /**
+   * Pending cancellations, keyed by page number. A page that scrolls out
+   * isn't cancelled immediately — we wait `RENDER_CANCEL_HYSTERESIS_MS` so
+   * brief scroll-pasts (page exits + re-enters within a few frames) keep
+   * their work. If the page is still out-of-buffer when the timeout fires,
+   * `cancelPageWork` runs.
+   */
+  private pendingCancellations = new Map<number, ReturnType<typeof setTimeout>>();
+  /** Hysteresis before cancelling an out-of-buffer render (ms). */
+  private static readonly RENDER_CANCEL_HYSTERESIS_MS = 200;
   /**
    * Per-page text indexes keyed by page number. Populated lazily on first
    * use (search or text-layer render, whichever comes first) and reused
@@ -359,6 +430,10 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private formInputUnlisten: (() => void) | null = null;
   /** PDF outline (bookmarks tree) — populated lazily when the bookmarks tab opens. `null` until fetched. */
   readonly outline = signal<unknown[] | null>(null);
+  /** Embedded-files list — populated lazily when the Attachments tab opens. `null` until fetched. */
+  readonly attachments = signal<PdfAttachmentEntry[] | null>(null);
+  /** Annotation list — populated lazily when the Annotations tab opens. `null` until fetched. */
+  readonly annotations = signal<PdfAnnotationEntry[] | null>(null);
   private intersectionObserver: IntersectionObserver | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private unbindController: (() => void) | null = null;
@@ -474,6 +549,18 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       if (!this.bookmarksTabActive()) return;
       if (this.outline() !== null || !this.pdfDoc) return;
       untracked(() => void this.fetchOutline());
+    });
+
+    // Lazily fetch attachments + annotations when their tabs open.
+    effect(() => {
+      if (!this.attachmentsTabActive()) return;
+      if (this.attachments() !== null || !this.pdfDoc) return;
+      untracked(() => void this.fetchAttachments());
+    });
+    effect(() => {
+      if (!this.annotationsTabActive()) return;
+      if (this.annotations() !== null || !this.pdfDoc) return;
+      untracked(() => void this.fetchAnnotations());
     });
 
     // ── Page virtualization: react to buffer changes ────────────────────
@@ -664,6 +751,8 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     this.thumbnailObserver?.disconnect();
     this.thumbnailObserver = null;
     this.outline.set(null);
+    this.attachments.set(null);
+    this.annotations.set(null);
     // Drop search + virtualization state for the previous doc.
     this.pageTextIndex.clear();
     this.searchHits = [];
@@ -745,21 +834,43 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         pages.push({ pageNumber: i, proxy: p, baseWidth: vp.width, baseHeight: vp.height });
       }
       this.pages = pages;
+
+      // Resolve the initial page before mounting wrappers. The `pageNumbers`
+      // signal triggers the @for to mount one wrapper per page; the effect
+      // watching `pageWrappers().length === pageNumbers().length` fires on
+      // the next CD tick (which happens during a later `await` here) and
+      // calls `scrollToPage(state.page)`. Without this update, `state.page`
+      // is still 0 from the reset above and `scrollToPage` warns. Setting
+      // it here closes that window — the state.update at the bottom of
+      // this block still runs for the `loaded: true` flip.
+      const initialPage = Math.max(1, Math.min(doc.numPages, this.config().page ?? 1));
+      this.internal?.state.update((s) => ({ ...s, page: initialPage, numPages: doc.numPages }));
       this.pageNumbers.set(pages.map((p) => p.pageNumber));
 
       // Kick off the WASM search index. Page text gets mirrored into it as
       // `populateTextIndex` runs (lazy per text-layer render or per first
       // search call). Failure is non-fatal — `runSearch` falls back to JS.
+      //
+      // Doc-swap race: two concurrent `loadDocument` calls can each kick off
+      // their own `createIndex` before either resolves. We pin the expected
+      // doc, and on resolve we either (a) dispose+drop if this PdfDoc isn't
+      // current, or (b) dispose any prior handle that snuck in (a peer
+      // resolve that landed first) before assigning ours. Without (b), the
+      // prior handle leaked: its only reference vanished but `dispose()`
+      // never ran, and a captured local in a renderTextLayer could later
+      // call into freed WASM memory and throw "null pointer passed to rust".
       const expectedDoc = this.pdfDoc;
       this.engineService
         .createIndex(doc.numPages)
         .then((handle) => {
-          // Doc may have been swapped during load; bind the handle only if
-          // we're still on the same document.
           if (this.pdfDoc !== expectedDoc) {
             handle.dispose();
             return;
           }
+          // Explicit dispose of any prior handle bound by a peer resolve.
+          // Idempotent on `DisposableHandle`, so a no-op when null/already
+          // disposed.
+          this.engineHandle?.dispose();
           this.engineHandle = handle;
           // If text was already populated before the handle arrived, push it
           // into the engine now.
@@ -783,15 +894,10 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       }
 
       const fingerprint = (doc.fingerprints?.[0] ?? '') as string;
-      const initialPage = Math.max(1, Math.min(doc.numPages, this.config().page ?? 1));
-
-      this.internal?.state.update((s) => ({
-        ...s,
-        loaded: true,
-        numPages: doc.numPages,
-        page: initialPage,
-        error: null,
-      }));
+      // `page` + `numPages` were set earlier (right before `pageNumbers.set`)
+      // so the wrapper-mounted effect sees a valid page. Here we only flip
+      // the `loaded` flag and clear any prior error.
+      this.internal?.state.update((s) => ({ ...s, loaded: true, error: null }));
 
       this.config().onLoaded?.({ numPages: doc.numPages, title, fingerprint, fileSize });
 
@@ -954,12 +1060,41 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const dpr = Math.max(1, window.devicePixelRatio || 1);
 
     // Evict pages that fell out of buffer. Skip pages currently being
-    // rendered by a peer diff — they'll naturally drop from the buffer on
-    // the next visibility flush if they're still out-of-view.
+    // rendered by a peer diff — they're handled by the hysteresis-cancel
+    // pass below, which can interrupt their in-flight render task instead
+    // of waiting for it to complete and then evicting.
     for (const num of Array.from(this.renderedPages)) {
       if (!buffer.has(num) && !this.inFlightPages.has(num)) {
         this.evictPage(num);
         this.renderedPages.delete(num);
+      }
+    }
+
+    // Cancel-aggressive virtualization (PERFORMANCE.md Phase 1):
+    //
+    // Pages mid-render that have scrolled out keep occupying the PDF.js
+    // worker until they finish — wasting time on bitmaps the user will
+    // never see, and blocking the page they're scrolling toward. Cancel
+    // them after a short hysteresis so brief scroll-pasts (exit + re-enter
+    // within ~12 frames) don't lose their work.
+    for (const num of this.inFlightPages) {
+      if (buffer.has(num) || this.pendingCancellations.has(num)) continue;
+      const handle = setTimeout(() => {
+        this.pendingCancellations.delete(num);
+        // Re-check at fire time — the page may have scrolled back in.
+        if (!this.liveBuffer().has(num)) this.cancelPageWork(num);
+      }, PdfViewerComponent.RENDER_CANCEL_HYSTERESIS_MS);
+      this.pendingCancellations.set(num, handle);
+    }
+
+    // Clear pending cancellations for pages that returned to the buffer
+    // before the hysteresis fired.
+    if (this.pendingCancellations.size > 0) {
+      for (const num of Array.from(this.pendingCancellations.keys())) {
+        if (buffer.has(num)) {
+          clearTimeout(this.pendingCancellations.get(num)!);
+          this.pendingCancellations.delete(num);
+        }
       }
     }
 
@@ -1051,7 +1186,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
     const transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined;
     const task = proxy.render({ canvasContext: ctx, viewport, transform });
-    this.renderTasks.add(task);
+    this.renderTasksByPage.set(page.pageNumber, task);
 
     // Kick off the text + annotation layers in parallel with canvas paint —
     // they don't need to block, and become available the moment they resolve.
@@ -1064,12 +1199,26 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     try {
       await task.promise;
     } catch (err) {
-      // Cancellation is normal — only surface real failures.
+      // Cancellation is normal — only surface real failures. Includes the
+      // hysteresis-cancel path in `applyBufferDiff` for pages that scrolled
+      // out before completing.
       if (epoch === this.renderEpoch && (err as { name?: string })?.name !== 'RenderingCancelledException') {
         this.emitError({ code: 'render_failed', message: 'Failed to render page.', recoverable: true, cause: err });
       }
     } finally {
-      this.renderTasks.delete(task);
+      // Clear by page-number, not task ref — a peer render-pass on the same
+      // page would have overwritten the entry, so deleting by ref could
+      // strip a newer task's registration. Page-number scoping handles that
+      // because peer passes are serialized by `inFlightPages`.
+      if (this.renderTasksByPage.get(page.pageNumber) === task) {
+        this.renderTasksByPage.delete(page.pageNumber);
+      }
+      // Page finished (or errored) — drop any pending hysteresis cancel for it.
+      const pending = this.pendingCancellations.get(page.pageNumber);
+      if (pending !== undefined) {
+        clearTimeout(pending);
+        this.pendingCancellations.delete(page.pageNumber);
+      }
     }
   }
 
@@ -1111,9 +1260,14 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       this.highlightedLayers.delete(container);
 
       const tl = new TextLayerCtor({ textContentSource: textContent, container, viewport });
-      this.textLayerInstances.add(tl);
-      await tl.render();
-      this.textLayerInstances.delete(tl);
+      this.textLayerTasksByPage.set(pageNumber, tl);
+      try {
+        await tl.render();
+      } finally {
+        if (this.textLayerTasksByPage.get(pageNumber) === tl) {
+          this.textLayerTasksByPage.delete(pageNumber);
+        }
+      }
 
       // Cache the freshly-rendered span list so subsequent highlight walks
       // (search type-ahead, next/prev, re-render under search) skip a
@@ -1169,9 +1323,15 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * engine's `add_page` is an idempotent overwrite. When called from the
    * loadDocument catch-up loop we don't have the original `string[]`, so we
    * reconstruct from the cached `text` + `itemOffsets`.
+   *
+   * Stale-handle safe: `PdfSearchHandle.addPage` is a silent no-op after
+   * `dispose()`, so a renderTextLayer that resolves after `disposeEngine-
+   * Handle()` runs (doc-swap race) won't throw "null pointer passed to
+   * rust" anymore — no try/catch needed here.
    */
   private mirrorPageToEngine(pageNumber: number, idx: PdfPageTextIndex, items?: readonly string[]): void {
-    if (!this.engineHandle) return;
+    const handle = this.engineHandle;
+    if (!handle) return;
     let strings: readonly string[];
     if (items) {
       strings = items;
@@ -1185,7 +1345,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       }
       strings = out;
     }
-    this.engineHandle.addPage(pageNumber - 1, strings); // engine uses 0-based page indices
+    handle.addPage(pageNumber - 1, strings); // engine uses 0-based page indices
   }
 
   private disposeEngineHandle(): void {
@@ -1298,6 +1458,81 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       this.outline.set(result ?? []);
     } catch {
       this.outline.set([]);
+    }
+  }
+
+  /**
+   * Fetch embedded files. PDF.js returns an object keyed by filename or
+   * `null`. We project to a flat list so the sidebar template stays simple.
+   */
+  private async fetchAttachments(): Promise<void> {
+    const doc = this.pdfDoc as null | {
+      getAttachments?: () => Promise<Record<string, { filename?: string; description?: string; content: Uint8Array }> | null>;
+    };
+    if (!doc?.getAttachments) {
+      this.attachments.set([]);
+      return;
+    }
+    try {
+      const result = await doc.getAttachments();
+      if (!result) {
+        this.attachments.set([]);
+        return;
+      }
+      const list: PdfAttachmentEntry[] = [];
+      for (const key of Object.keys(result)) {
+        const a = result[key];
+        list.push({ filename: a.filename ?? key, description: a.description ?? '', content: a.content });
+      }
+      this.attachments.set(list);
+    } catch {
+      this.attachments.set([]);
+    }
+  }
+
+  /**
+   * Walk every page's annotation list and project user-facing entries.
+   * Filters to subtypes the sidebar actually displays (highlights, free-text
+   * notes, ink, stamps, comments). Form fields render via the
+   * AnnotationLayer instead and aren't included here.
+   */
+  private async fetchAnnotations(): Promise<void> {
+    if (this.pages.length === 0) {
+      this.annotations.set([]);
+      return;
+    }
+    const VISIBLE_SUBTYPES = new Set([
+      'Highlight',
+      'Underline',
+      'StrikeOut',
+      'Squiggly',
+      'Text',
+      'FreeText',
+      'Ink',
+      'Stamp',
+      'Note',
+      'Caret',
+    ]);
+    const out: PdfAnnotationEntry[] = [];
+    try {
+      for (const page of this.pages) {
+        const proxy = page.proxy as { getAnnotations?: () => Promise<Array<Record<string, unknown>>> };
+        if (!proxy.getAnnotations) continue;
+        const annots = await proxy.getAnnotations();
+        for (const a of annots) {
+          const subtype = String(a['subtype'] ?? '');
+          if (!VISIBLE_SUBTYPES.has(subtype)) continue;
+          out.push({
+            pageNumber: page.pageNumber,
+            subtype,
+            contents: String(a['contents'] ?? '').trim(),
+            author: String(a['titleObj'] != null ? ((a['titleObj'] as { str?: string }).str ?? '') : ''),
+          });
+        }
+      }
+      this.annotations.set(out);
+    } catch {
+      this.annotations.set(out);
     }
   }
 
@@ -1504,23 +1739,51 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     };
   }
 
+  /**
+   * Cancel both the render task and the text-layer render for a single
+   * page. Called by `applyBufferDiff`'s hysteresis pass when a page has
+   * stayed out-of-buffer long enough that we should reclaim the worker.
+   */
+  private cancelPageWork(pageNumber: number): void {
+    const task = this.renderTasksByPage.get(pageNumber);
+    if (task) {
+      try {
+        task.cancel();
+      } catch {
+        /* ignore */
+      }
+      this.renderTasksByPage.delete(pageNumber);
+    }
+    const tl = this.textLayerTasksByPage.get(pageNumber);
+    if (tl) {
+      try {
+        tl.cancel?.();
+      } catch {
+        /* ignore */
+      }
+      this.textLayerTasksByPage.delete(pageNumber);
+    }
+  }
+
   private cancelInflightRenders(): void {
-    for (const t of this.renderTasks) {
+    for (const handle of this.pendingCancellations.values()) clearTimeout(handle);
+    this.pendingCancellations.clear();
+    for (const t of this.renderTasksByPage.values()) {
       try {
         t.cancel();
       } catch {
         /* ignore */
       }
     }
-    this.renderTasks.clear();
-    for (const tl of this.textLayerInstances) {
+    this.renderTasksByPage.clear();
+    for (const tl of this.textLayerTasksByPage.values()) {
       try {
         tl.cancel?.();
       } catch {
         /* ignore */
       }
     }
-    this.textLayerInstances.clear();
+    this.textLayerTasksByPage.clear();
   }
 
   // ── Zoom resolution ─────────────────────────────────────────────────────
@@ -1554,11 +1817,13 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   }
 
   private scrollToPage(page: number): void {
+    // Out-of-range silently no-ops. The legitimate path (load completed,
+    // page resolved to >= 1) always passes the lookup; an out-of-range
+    // value here means we got called during a transient state (mid-load,
+    // post-error) where there's nothing valid to scroll to anyway.
+    if (page < 1) return;
     const wrapper = this.pageWrappers()[page - 1]?.nativeElement;
-    if (!wrapper) {
-      console.warn('[hk-pdf-viewer] scrollToPage: no wrapper for page', page, 'wrappers:', this.pageWrappers().length);
-      return;
-    }
+    if (!wrapper) return;
     const mode = this.internal?.state().mode ?? 'continuous';
     if (mode !== 'continuous') return;
 
@@ -1592,7 +1857,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   }
 
   /** Switch the sidebar's active tab (thumbnails ↔ bookmarks). */
-  setSidebarTab(tab: 'thumbnails' | 'bookmarks'): void {
+  setSidebarTab(tab: PdfSidebarTab): void {
     this.internal?.state.update((s) => ({ ...s, sidebarTab: tab }));
   }
 
@@ -1644,10 +1909,17 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       await this.ensurePageTextIndex(page.pageNumber);
     }
 
+    // Read find-bar toggles. Defaults match Acrobat: case-insensitive,
+    // substring (not whole-word). Both threaded through to the WASM
+    // engine and the JS fallback below.
+    const s0 = this.state();
+    const caseSensitive = s0?.searchCaseSensitive ?? false;
+    const wholeWord = s0?.searchWholeWord ?? false;
+
     let hits: PdfSearchHit[];
-    if (this.engineHandle) {
-      // Engine path — single WASM call across every ingested page.
-      const engineHits = this.engineHandle.search(q, { caseSensitive: false });
+    const handle = this.engineHandle;
+    const engineHits = handle && !handle.isDisposed ? handle.search(q, { caseSensitive, wholeWord }) : null;
+    if (engineHits) {
       hits = new Array(engineHits.length);
       for (let i = 0; i < engineHits.length; i++) {
         const h = engineHits[i];
@@ -1658,18 +1930,30 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         };
       }
     } else {
-      // JS fallback — per-page indexOf loop.
-      const normalized = q.toLowerCase();
+      // JS fallback — per-page indexOf loop, with case + word-boundary
+      // post-filter to match engine semantics when WASM isn't available.
+      const needle = caseSensitive ? q : q.toLowerCase();
+      const isWordChar = (ch: string) => /[\p{L}\p{N}_]/u.test(ch);
       hits = [];
       for (const page of this.pages) {
         const idx = this.pageTextIndex.get(page.pageNumber);
         if (!idx) continue;
-        const haystack = idx.text.toLowerCase();
+        const haystack = caseSensitive ? idx.text : idx.text.toLowerCase();
         let from = 0;
         while (from <= haystack.length) {
-          const found = haystack.indexOf(normalized, from);
+          const found = haystack.indexOf(needle, from);
           if (found === -1) break;
-          hits.push({ pageNumber: page.pageNumber, charStart: found, length: q.length });
+          if (wholeWord) {
+            const before = found > 0 ? idx.text[found - 1] : '';
+            const after = found + q.length < idx.text.length ? idx.text[found + q.length] : '';
+            const okLeft = !before || !isWordChar(before);
+            const okRight = !after || !isWordChar(after);
+            if (okLeft && okRight) {
+              hits.push({ pageNumber: page.pageNumber, charStart: found, length: q.length });
+            }
+          } else {
+            hits.push({ pageNumber: page.pageNumber, charStart: found, length: q.length });
+          }
           from = found + Math.max(1, q.length);
         }
       }
@@ -2269,6 +2553,53 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   }
   searchPreviousMatchPublic(): void {
     this.searchPreviousMatch();
+  }
+
+  /**
+   * Toggle case-sensitive search. Re-runs the active query with the new
+   * option so the match counter updates in place — matches Acrobat's
+   * find-bar behavior.
+   */
+  toggleFindCaseSensitive(): void {
+    this.internal?.state.update((s) => ({ ...s, searchCaseSensitive: !s.searchCaseSensitive }));
+    const q = this.state()?.searchQuery ?? '';
+    if (q) void this.runSearch(q);
+  }
+
+  /** Toggle whole-word-only search. Re-runs the active query if any. */
+  toggleFindWholeWord(): void {
+    this.internal?.state.update((s) => ({ ...s, searchWholeWord: !s.searchWholeWord }));
+    const q = this.state()?.searchQuery ?? '';
+    if (q) void this.runSearch(q);
+  }
+
+  /** True when the user has opted-in to case-sensitive find. Drives the toggle button's `btn-active` state. */
+  isFindCaseSensitive(): boolean {
+    return this.state()?.searchCaseSensitive ?? false;
+  }
+
+  /** True when the user has opted-in to whole-word-only find. */
+  isFindWholeWord(): boolean {
+    return this.state()?.searchWholeWord ?? false;
+  }
+
+  /** Click handler for an attachment row — triggers a browser download of the embedded file. */
+  downloadAttachment(att: PdfAttachmentEntry): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const blob = new Blob([att.content as BlobPart], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = att.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /** Click handler for an annotation row — jumps to its page. */
+  goToAnnotation(entry: PdfAnnotationEntry): void {
+    this.goToPagePublic(entry.pageNumber);
   }
 
   /**

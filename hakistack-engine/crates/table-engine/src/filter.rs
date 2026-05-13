@@ -22,7 +22,6 @@ use crate::dataset::{BoolColumn, Column, ColumnId, Dataset, DateColumn, NumberCo
 use engine_core::{
     bitset::Bitset,
     fold::{contains_bytes, finder, fold_lower},
-    Idx,
 };
 
 /// One filter row from the user. Multiple filters AND together via [`apply`].
@@ -126,6 +125,68 @@ fn apply_single(dataset: &Dataset, filter: &ColumnFilter) -> Bitset {
     mask
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+//
+// All four per-column kernels share the same inner-loop shape: for every row,
+// check validity, run the predicate, write a bit into `out`. The naive loop
+// pays a `validity.get(i)` (word lookup + bit shift) and `out.set(i)` for each
+// of the N rows, even when the result for 64 rows could be assembled in a
+// single u64 and stored once.
+//
+// `fill_word_iter` reorganizes the work column-by-word: walk the *valid* bits
+// of each validity word with the `bits & (bits - 1)` clear-lowest-set trick,
+// run the predicate only for valid rows (skipping nulls with no work), and
+// commit one 64-bit `out.words_mut()[w] = acc` per chunk instead of 64
+// scattered `out.set(i)` calls. For 100k rows this collapses ~200k bitset
+// reads/writes to ~3.1k word writes. Wins:
+//
+//   - null-heavy columns: walk only valid bits (~validity.count_ones() vs N)
+//   - cache friendly: linear access to `col.values` / `col.lower`
+//   - amortized away the per-row word/shift arithmetic
+//
+// `negated_validity_into` covers the `IsEmpty` family — output is the
+// complement of validity, masked to the row count.
+//
+// `validity_into` covers `IsNotEmpty` — output is a copy of validity.
+
+#[inline]
+fn fill_word_iter<F>(out: &mut Bitset, validity: &Bitset, n: usize, mut check: F)
+where
+    F: FnMut(usize) -> bool,
+{
+    let v_words = validity.words();
+    let words = out.words_mut();
+    for (w, &v_word) in v_words.iter().enumerate() {
+        let base = w * 64;
+        let mut bits = v_word;
+        let mut acc: u64 = 0;
+        while bits != 0 {
+            let b = bits.trailing_zeros() as usize;
+            let i = base + b;
+            if i < n && check(i) {
+                acc |= 1u64 << b;
+            }
+            bits &= bits - 1;
+        }
+        words[w] = acc;
+    }
+}
+
+#[inline]
+fn validity_into(out: &mut Bitset, validity: &Bitset) {
+    out.copy_from(validity);
+}
+
+#[inline]
+fn negated_validity_into(out: &mut Bitset, validity: &Bitset) {
+    let v_words = validity.words();
+    let words = out.words_mut();
+    for (w, &v_word) in v_words.iter().enumerate() {
+        words[w] = !v_word;
+    }
+    out.mask_tail();
+}
+
 // ─── Text ───────────────────────────────────────────────────────────────────
 
 fn apply_text(col: &TextColumn, op: &TextOp, out: &mut Bitset) {
@@ -135,66 +196,52 @@ fn apply_text(col: &TextColumn, op: &TextOp, out: &mut Bitset) {
         TextOp::Contains(needle) => {
             let needle = fold_lower(needle);
             let f = finder(&needle);
-            for i in 0..n {
-                if col.validity.get(i as Idx) && contains_bytes(&col.lower[i], &f) {
-                    out.set(i as Idx);
-                }
-            }
+            fill_word_iter(out, &col.validity, n, |i| contains_bytes(&col.lower[i], &f));
         }
         TextOp::NotContains(needle) => {
             let needle = fold_lower(needle);
             let f = finder(&needle);
-            for i in 0..n {
-                if col.validity.get(i as Idx) && !contains_bytes(&col.lower[i], &f) {
-                    out.set(i as Idx);
-                }
-            }
+            fill_word_iter(out, &col.validity, n, |i| !contains_bytes(&col.lower[i], &f));
         }
         TextOp::StartsWith(needle) => {
             let needle = fold_lower(needle);
-            for i in 0..n {
-                if col.validity.get(i as Idx) && col.lower[i].starts_with(&*needle) {
-                    out.set(i as Idx);
-                }
-            }
+            fill_word_iter(out, &col.validity, n, |i| col.lower[i].starts_with(&*needle));
         }
         TextOp::EndsWith(needle) => {
             let needle = fold_lower(needle);
-            for i in 0..n {
-                if col.validity.get(i as Idx) && col.lower[i].ends_with(&*needle) {
-                    out.set(i as Idx);
-                }
-            }
+            fill_word_iter(out, &col.validity, n, |i| col.lower[i].ends_with(&*needle));
         }
         TextOp::Equals(needle) => {
             let needle = fold_lower(needle);
-            for i in 0..n {
-                if col.validity.get(i as Idx) && *col.lower[i] == *needle {
-                    out.set(i as Idx);
-                }
-            }
+            fill_word_iter(out, &col.validity, n, |i| *col.lower[i] == *needle);
         }
         TextOp::NotEquals(needle) => {
             let needle = fold_lower(needle);
-            for i in 0..n {
-                if col.validity.get(i as Idx) && *col.lower[i] != *needle {
-                    out.set(i as Idx);
-                }
-            }
+            fill_word_iter(out, &col.validity, n, |i| *col.lower[i] != *needle);
         }
         TextOp::IsEmpty => {
-            for i in 0..n {
-                if !col.validity.get(i as Idx) || col.lower[i].is_empty() {
-                    out.set(i as Idx);
+            // Both null rows AND empty-string rows match. The negation
+            // captures null rows in one word op; we then layer the empty-
+            // string check over valid rows.
+            negated_validity_into(out, &col.validity);
+            let v_words = col.validity.words();
+            let words = out.words_mut();
+            for (w, &v_word) in v_words.iter().enumerate() {
+                let base = w * 64;
+                let mut bits = v_word;
+                while bits != 0 {
+                    let b = bits.trailing_zeros() as usize;
+                    let i = base + b;
+                    if i < n && col.lower[i].is_empty() {
+                        words[w] |= 1u64 << b;
+                    }
+                    bits &= bits - 1;
                 }
             }
+            out.mask_tail();
         }
         TextOp::IsNotEmpty => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) && !col.lower[i].is_empty() {
-                    out.set(i as Idx);
-                }
-            }
+            fill_word_iter(out, &col.validity, n, |i| !col.lower[i].is_empty());
         }
     }
 }
@@ -204,52 +251,18 @@ fn apply_text(col: &TextColumn, op: &TextOp, out: &mut Bitset) {
 fn apply_number(col: &NumberColumn, op: &NumberOp, out: &mut Bitset) {
     let n = col.values.len();
 
-    macro_rules! compare {
-        ($cmp:expr) => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) && $cmp(col.values[i]) {
-                    out.set(i as Idx);
-                }
-            }
-        };
-    }
-
     match op {
-        NumberOp::Eq(x)      => compare!(|v: f64| v == *x),
-        NumberOp::NotEq(x)   => compare!(|v: f64| v != *x),
-        NumberOp::Gt(x)      => compare!(|v: f64| v >  *x),
-        NumberOp::Lt(x)      => compare!(|v: f64| v <  *x),
-        NumberOp::Gte(x)     => compare!(|v: f64| v >= *x),
-        NumberOp::Lte(x)     => compare!(|v: f64| v <= *x),
-        NumberOp::Between(lo, hi) => compare!(|v: f64| v >= *lo && v <= *hi),
-        NumberOp::In(list) => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) && list.iter().any(|x| col.values[i] == *x) {
-                    out.set(i as Idx);
-                }
-            }
-        }
-        NumberOp::NotIn(list) => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) && !list.iter().any(|x| col.values[i] == *x) {
-                    out.set(i as Idx);
-                }
-            }
-        }
-        NumberOp::IsEmpty => {
-            for i in 0..n {
-                if !col.validity.get(i as Idx) {
-                    out.set(i as Idx);
-                }
-            }
-        }
-        NumberOp::IsNotEmpty => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) {
-                    out.set(i as Idx);
-                }
-            }
-        }
+        NumberOp::Eq(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
+        NumberOp::NotEq(x)         => fill_word_iter(out, &col.validity, n, |i| col.values[i] != *x),
+        NumberOp::Gt(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] >  *x),
+        NumberOp::Lt(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] <  *x),
+        NumberOp::Gte(x)           => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *x),
+        NumberOp::Lte(x)           => fill_word_iter(out, &col.validity, n, |i| col.values[i] <= *x),
+        NumberOp::Between(lo, hi)  => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *lo && col.values[i] <= *hi),
+        NumberOp::In(list)         => fill_word_iter(out, &col.validity, n, |i| list.iter().any(|x| col.values[i] == *x)),
+        NumberOp::NotIn(list)      => fill_word_iter(out, &col.validity, n, |i| !list.iter().any(|x| col.values[i] == *x)),
+        NumberOp::IsEmpty          => negated_validity_into(out, &col.validity),
+        NumberOp::IsNotEmpty       => validity_into(out, &col.validity),
     }
 }
 
@@ -258,27 +271,9 @@ fn apply_number(col: &NumberColumn, op: &NumberOp, out: &mut Bitset) {
 fn apply_bool(col: &BoolColumn, op: &BoolOp, out: &mut Bitset) {
     let n = col.values.len();
     match op {
-        BoolOp::Eq(x) => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) && col.values[i] == *x {
-                    out.set(i as Idx);
-                }
-            }
-        }
-        BoolOp::IsEmpty => {
-            for i in 0..n {
-                if !col.validity.get(i as Idx) {
-                    out.set(i as Idx);
-                }
-            }
-        }
-        BoolOp::IsNotEmpty => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) {
-                    out.set(i as Idx);
-                }
-            }
-        }
+        BoolOp::Eq(x)        => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
+        BoolOp::IsEmpty      => negated_validity_into(out, &col.validity),
+        BoolOp::IsNotEmpty   => validity_into(out, &col.validity),
     }
 }
 
@@ -287,37 +282,15 @@ fn apply_bool(col: &BoolColumn, op: &BoolOp, out: &mut Bitset) {
 fn apply_date(col: &DateColumn, op: &DateOp, out: &mut Bitset) {
     let n = col.values.len();
 
-    macro_rules! compare {
-        ($cmp:expr) => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) && $cmp(col.values[i]) {
-                    out.set(i as Idx);
-                }
-            }
-        };
-    }
-
     match op {
-        DateOp::Eq(x)             => compare!(|v: i64| v == *x),
-        DateOp::Gt(x)             => compare!(|v: i64| v >  *x),
-        DateOp::Lt(x)             => compare!(|v: i64| v <  *x),
-        DateOp::Gte(x)            => compare!(|v: i64| v >= *x),
-        DateOp::Lte(x)            => compare!(|v: i64| v <= *x),
-        DateOp::Between(lo, hi)   => compare!(|v: i64| v >= *lo && v <= *hi),
-        DateOp::IsEmpty => {
-            for i in 0..n {
-                if !col.validity.get(i as Idx) {
-                    out.set(i as Idx);
-                }
-            }
-        }
-        DateOp::IsNotEmpty => {
-            for i in 0..n {
-                if col.validity.get(i as Idx) {
-                    out.set(i as Idx);
-                }
-            }
-        }
+        DateOp::Eq(x)             => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
+        DateOp::Gt(x)             => fill_word_iter(out, &col.validity, n, |i| col.values[i] >  *x),
+        DateOp::Lt(x)             => fill_word_iter(out, &col.validity, n, |i| col.values[i] <  *x),
+        DateOp::Gte(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *x),
+        DateOp::Lte(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] <= *x),
+        DateOp::Between(lo, hi)   => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *lo && col.values[i] <= *hi),
+        DateOp::IsEmpty           => negated_validity_into(out, &col.validity),
+        DateOp::IsNotEmpty        => validity_into(out, &col.validity),
     }
 }
 
@@ -327,6 +300,7 @@ fn apply_date(col: &DateColumn, op: &DateOp, out: &mut Bitset) {
 mod tests {
     use super::*;
     use crate::dataset::Dataset;
+    use engine_core::Idx;
 
     fn opt_strs(v: &[&str]) -> Vec<Option<String>> {
         v.iter().map(|s| Some(s.to_string())).collect()

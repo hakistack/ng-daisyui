@@ -28,6 +28,8 @@ type ResolvedPaginationLabels = {
   quickJumperInputAriaLabel: (totalPages: number) => string;
   quickJumperSubmitAriaLabel: string;
   emptyTotal: string;
+  /** "Page X of Y" text shown alongside the row-count display when more than 1 page exists. */
+  pageOfTotal: (current: number, total: number) => string;
 };
 
 const DEFAULT_LABELS: ResolvedPaginationLabels = {
@@ -54,6 +56,7 @@ const DEFAULT_LABELS: ResolvedPaginationLabels = {
   quickJumperInputAriaLabel: (total) => `Enter page number between 1 and ${total}`,
   quickJumperSubmitAriaLabel: 'Go to entered page',
   emptyTotal: '0 of 0',
+  pageOfTotal: (current, total) => `Page ${current} of ${total}`,
 };
 
 @Component({
@@ -94,6 +97,14 @@ const DEFAULT_LABELS: ResolvedPaginationLabels = {
                 <span>{{ resolvedLabels().emptyTotal }}</span>
               } @else {
                 <span>{{ totalDisplayText() }}</span>
+                <!-- In numbered mode, the active page button is one of many — show
+                     "Page X of Y" alongside the count for disambiguation. In compact
+                     mode the central nav button itself shows "Page X of Y", so the
+                     duplicate text would just add noise. -->
+                @if (totalPagesSignal() > 1 && navStyleSignal() === 'numbered') {
+                  <span class="text-base-content/50 mx-1">·</span>
+                  <span class="font-medium">{{ resolvedLabels().pageOfTotal(currentPageSignal(), totalPagesSignal()) }}</span>
+                }
               }
             } @else {
               <span>{{ resolvedLabels().cursorModeText }}</span>
@@ -132,30 +143,42 @@ const DEFAULT_LABELS: ResolvedPaginationLabels = {
               <svg lucideChevronLeft></svg>
             </button>
 
-            <!-- Page Number Buttons -->
-            @for (pageNum of visiblePagesSignal(); track trackByPage($index, pageNum)) {
-              @if (pageNum === currentPageSignal()) {
-                <!-- Current Page -->
-                <button
-                  type="button"
-                  class="join-item btn btn-sm btn-active"
-                  [attr.aria-label]="resolvedLabels().currentPageAriaLabel(pageNum)"
-                  [attr.aria-current]="'page'"
-                >
-                  {{ pageNum }}
-                </button>
-              } @else {
-                <!-- Other Pages -->
-                <button
-                  type="button"
-                  class="join-item btn btn-sm"
-                  (click)="onGotoPage(pageNum)"
-                  [disabled]="disabled()"
-                  [attr.aria-label]="resolvedLabels().goToPageAriaLabel(pageNum)"
-                >
-                  {{ pageNum }}
-                </button>
+            @if (navStyleSignal() === 'numbered') {
+              <!-- Numbered page buttons — opt-in via pagination.navStyle: 'numbered'. -->
+              @for (pageNum of visiblePagesSignal(); track trackByPage($index, pageNum)) {
+                @if (pageNum === currentPageSignal()) {
+                  <!-- Current page — btn-primary makes it unambiguous against the neutral btn-sm siblings. -->
+                  <button
+                    type="button"
+                    class="join-item btn btn-sm btn-primary"
+                    [attr.aria-label]="resolvedLabels().currentPageAriaLabel(pageNum)"
+                    [attr.aria-current]="'page'"
+                  >
+                    {{ pageNum }}
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="join-item btn btn-sm"
+                    (click)="onGotoPage(pageNum)"
+                    [disabled]="disabled()"
+                    [attr.aria-label]="resolvedLabels().goToPageAriaLabel(pageNum)"
+                  >
+                    {{ pageNum }}
+                  </button>
+                }
               }
+            } @else {
+              <!-- Compact (default) — single "Page X of Y" indicator. Constant width
+                   regardless of total page count, friendlier on mobile, no visual noise. -->
+              <button
+                type="button"
+                class="join-item btn btn-sm btn-primary cursor-default pointer-events-none"
+                [attr.aria-label]="resolvedLabels().currentPageAriaLabel(currentPageSignal())"
+                [attr.aria-current]="'page'"
+              >
+                {{ resolvedLabels().pageOfTotal(currentPageSignal(), totalPagesSignal()) }}
+              </button>
             }
 
             <!-- Next Page Button -->
@@ -268,7 +291,12 @@ export class TablePaginationComponent {
 
   // Computed signals
   readonly modeSignal = computed(() => this.paginationOptions()?.mode ?? 'offset');
-  readonly pageSizeSignal = computed(() => this.paginationOptions()?.pageSize ?? this.pageSize());
+  // The live `pageSize` / `pageIndex` inputs win over the static
+  // `paginationOptions.pageSize` field. Options provides the *initial*
+  // page size; once the parent table's state changes (user picks 100, etc.)
+  // the parent pipes the live value through this input — falling back to
+  // options would freeze the dropdown's display at its first render.
+  readonly pageSizeSignal = computed(() => this.pageSize() || this.paginationOptions()?.pageSize || 10);
   readonly pageSizeOptionsSignal = computed(() => this.paginationOptions()?.pageSizeOptions ?? [5, 10, 25, 50, 100]);
   readonly nextCursorSignal = computed(() => this.paginationOptions()?.nextCursor ?? null);
   readonly prevCursorSignal = computed(() => this.paginationOptions()?.prevCursor ?? null);
@@ -284,6 +312,13 @@ export class TablePaginationComponent {
 
   // showQuickJumper: display a "Go to page" input
   readonly showQuickJumperSignal = computed(() => this.paginationOptions()?.showQuickJumper === true);
+
+  /**
+   * Navigation style for offset mode. Defaults to `'compact'` — a single
+   * "Page X of Y" indicator between prev/next. Opt into `'numbered'` for
+   * the classic windowed page-button row (1 2 3 ... N).
+   */
+  readonly navStyleSignal = computed<'compact' | 'numbered'>(() => this.paginationOptions()?.navStyle ?? 'compact');
 
   // Pagination calculations
   readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));

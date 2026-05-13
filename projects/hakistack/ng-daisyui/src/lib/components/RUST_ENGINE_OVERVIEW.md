@@ -23,7 +23,7 @@ All Rust code lives in a single Cargo workspace, `hakistack-engine/`, sitting at
 - **`table-engine`** — filter / search / sort / group / aggregate / tree-flatten kernels for `hk-table`.
 - **`tree-engine`** — filter / flatten / selection cascade / descendant test for `hk-tree`.
 - **`search-engine`** — `fuzzy` module (bitap / `nucleo-matcher`) for `hk-command-palette` + `hk-select`; `pdf` module (substring / regex with offset map) for `hk-pdf-viewer`.
-- **`form-engine`** — *deferred*. Slot reserved for a condition / validation / dependency-graph engine if `hk-dynamic-form` ever scales beyond ~100 fields with heavy predicates. Empty crate with a README explaining the deferral, so the workspace stays symmetric.
+- **`form-engine`** — *planned*. Condition evaluator + validator pipeline + field-dependency graph for `hk-dynamic-form`. Pays off at 100+ fields with dense `showWhen` / `requiredWhen` rules — turns per-keystroke O(N×R) re-eval into incremental O(touched-rules). See `crates/form-engine/README.md` for the full plan + phased rollout.
 
 Trade-off acknowledged: a single `engine-wasm` bundle means apps using only `<hk-select>` still download table + tree + pdf code. With reasonable Rust hygiene the bundle stays under ~250 KB gzipped. If that becomes a problem, `wasm-bindgen`'s per-feature entry points can split it later without restructuring the crates.
 
@@ -121,7 +121,7 @@ ui-library-workspace/
 │   │   ├── table-engine/
 │   │   ├── tree-engine/
 │   │   ├── search-engine/             # fuzzy + pdf modules
-│   │   └── form-engine/               # deferred — README only
+│   │   └── form-engine/               # planned — README + phased rollout
 │   └── pkg/                           # wasm-pack output (gitignored)
 ├── scripts/
 │   └── build-wasm.mjs                 # runs `wasm-pack build` against engine-wasm

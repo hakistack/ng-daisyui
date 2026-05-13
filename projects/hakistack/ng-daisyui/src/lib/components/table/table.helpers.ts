@@ -259,6 +259,7 @@ export function createTable<T extends object>(config: FieldConfig<T>): FieldConf
     collapseToLevel: forward('collapseToLevel') as FieldConfiguration<T>['collapseToLevel'],
     expandAllDetails: forward('expandAllDetails') as FieldConfiguration<T>['expandAllDetails'],
     collapseAllDetails: forward('collapseAllDetails') as FieldConfiguration<T>['collapseAllDetails'],
+    setPagination: forward('setPagination') as FieldConfiguration<T>['setPagination'],
   };
 
   controllerRegistry.set(controller, state);
@@ -280,6 +281,7 @@ function createFieldConfig<T>(config: FieldConfig<T>): FieldConfig<T> {
     formatters: config.formatters ?? {},
     fallbacks: config.fallbacks ?? {},
     hasSelection: config.hasSelection ?? false,
+    selectionLimit: config.selectionLimit,
     hasActions: config.hasActions ?? false,
     selectableRows: config.selectableRows ?? false,
     selectedRowClass: config.selectedRowClass,
@@ -316,6 +318,9 @@ function createFieldConfig<T>(config: FieldConfig<T>): FieldConfig<T> {
     grouping: config.grouping,
     childGrid: config.childGrid,
     masterDetail: config.masterDetail,
+    labels: config.labels,
+    filterLabels: config.filterLabels,
+    pagination: config.pagination,
   } as FieldConfig<T>;
 }
 

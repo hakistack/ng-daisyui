@@ -43,14 +43,19 @@ impl TreeArena {
     /// 3. **Euler tour.** Iterative DFS over the now-built structure
     ///    assigning entry/exit timestamps for O(1) descendant tests.
     ///
-    /// Panics if `depths[0] != 0` (must start with a root) or the sequence
-    /// jumps more than one level in a single step (e.g. `[0, 2]`).
-    pub fn from_dfs_depths(depths: &[u8]) -> Self {
+    /// Returns an error string when `depths[0] != 0` (must start with a root)
+    /// or the sequence jumps more than one level in a single step (e.g.
+    /// `[0, 2]`). Returning rather than panicking matters at the WASM
+    /// boundary — a Rust panic surfaces in JS as an opaque
+    /// "RuntimeError: unreachable executed" with no context.
+    pub fn from_dfs_depths(depths: &[u8]) -> Result<Self, &'static str> {
         let n = depths.len();
         if n == 0 {
-            return Self::with_capacity(0);
+            return Ok(Self::with_capacity(0));
         }
-        assert_eq!(depths[0], 0, "first node must be a root (depth 0)");
+        if depths[0] != 0 {
+            return Err("first node must be a root (depth 0)");
+        }
 
         let mut arena = Self::with_capacity(n);
         arena.parent_of.resize(n, NONE);
@@ -63,11 +68,9 @@ impl TreeArena {
         // Pass 1: parent_of, depth_of.
         let mut stack: Vec<i32> = Vec::with_capacity(n);
         for (i, &d) in depths.iter().enumerate() {
-            assert!(
-                d as usize <= stack.len(),
-                "depth {} at index {} jumps more than one level (stack depth {})",
-                d, i, stack.len()
-            );
+            if d as usize > stack.len() {
+                return Err("depth sequence jumps more than one level in a single step");
+            }
             stack.truncate(d as usize);
             arena.parent_of[i] = if stack.is_empty() { NONE } else { *stack.last().unwrap() };
             arena.depth_of[i] = d;
@@ -86,44 +89,48 @@ impl TreeArena {
         }
 
         // Pass 3: Euler tour entry/exit timestamps via iterative DFS.
-        // Roots are nodes whose parent is NONE; iterate them in source order.
-        enum Step {
-            Enter(i32),
-            Exit(i32),
-        }
-        let mut work: Vec<Step> = Vec::new();
-        // Push roots in REVERSE so popping gives them in original order.
+        //
+        // Encoding to avoid a 2-variant `Step` enum + per-node `Vec<Step>`:
+        // pack the Enter/Exit flag into the value itself. Non-negative i32
+        // means "Enter that node"; XOR-with-MIN_INT (i.e. flip the sign
+        // bit) means "Exit". The Exit decoding is `v ^ i32::MIN`, which is
+        // also self-inverse — same op encodes and decodes.
+        //
+        // The other dealloc win: child pushes use the next_sibling chain
+        // twice (push in order, then `work[start..].reverse()`), instead of
+        // allocating a per-node `Vec<i32>` and calling `into_iter().rev()`.
+        // For a 10k-node tree that's ~10k heap allocations eliminated.
+        let mut work: Vec<i32> = Vec::with_capacity(n);
         for i in (0..n as i32).rev() {
             if arena.parent_of[i as usize] == NONE {
-                work.push(Step::Enter(i));
+                work.push(i);
             }
         }
         let mut counter: u32 = 0;
-        while let Some(step) = work.pop() {
-            match step {
-                Step::Enter(node) => {
-                    arena.entry_order[node as usize] = counter;
-                    counter += 1;
-                    work.push(Step::Exit(node));
-                    // Push children in reverse so leftmost is processed first.
-                    let mut chain = Vec::new();
-                    let mut c = arena.first_child[node as usize];
-                    while c != NONE {
-                        chain.push(c);
-                        c = arena.next_sibling[c as usize];
-                    }
-                    for c in chain.into_iter().rev() {
-                        work.push(Step::Enter(c));
-                    }
-                }
-                Step::Exit(node) => {
-                    arena.exit_order[node as usize] = counter;
-                    counter += 1;
-                }
+        while let Some(packed) = work.pop() {
+            if packed < 0 {
+                // Exit: decode back to the node index.
+                let node = (packed ^ i32::MIN) as usize;
+                arena.exit_order[node] = counter;
+                counter += 1;
+                continue;
             }
+            // Enter
+            let node = packed as usize;
+            arena.entry_order[node] = counter;
+            counter += 1;
+            work.push(packed ^ i32::MIN); // queue Exit
+            let start = work.len();
+            let mut c = arena.first_child[node];
+            while c != NONE {
+                work.push(c);
+                c = arena.next_sibling[c as usize];
+            }
+            // Reverse the just-pushed children so the leftmost pops first.
+            work[start..].reverse();
         }
 
-        arena
+        Ok(arena)
     }
 
     pub fn len(&self) -> usize {
@@ -147,22 +154,22 @@ impl TreeArena {
 
     /// Iterative depth-first walk. Calls `visit(node)` on each node in
     /// preorder. Avoids JS-style recursion.
+    ///
+    /// Allocation-free per node: children are pushed in source order, then
+    /// the just-pushed sub-slice is reversed in place so the leftmost child
+    /// pops first. No `Vec<i32>` allocated per node.
     pub fn dfs<F: FnMut(Idx)>(&self, root: Idx, mut visit: F) {
         let mut stack: Vec<i32> = vec![root as i32];
         while let Some(top) = stack.pop() {
             if top == NONE { continue; }
             visit(top as Idx);
-
-            // push siblings of children right-to-left so leftmost is visited first
+            let start = stack.len();
             let mut child = self.first_child[top as usize];
-            let mut chain = Vec::new();
             while child != NONE {
-                chain.push(child);
+                stack.push(child);
                 child = self.next_sibling[child as usize];
             }
-            for c in chain.into_iter().rev() {
-                stack.push(c);
-            }
+            stack[start..].reverse();
         }
     }
 }
@@ -206,7 +213,7 @@ mod tests {
     #[test]
     fn from_dfs_depths_round_trips_simple_tree() {
         // Tree: 0 → [1, 2]
-        let t = TreeArena::from_dfs_depths(&[0, 1, 1]);
+        let t = TreeArena::from_dfs_depths(&[0, 1, 1]).unwrap();
         assert_eq!(t.parent_of,    vec![-1, 0, 0]);
         assert_eq!(t.first_child,  vec![1, -1, -1]);
         assert_eq!(t.next_sibling, vec![-1, 2, -1]);
@@ -227,7 +234,7 @@ mod tests {
         //   │   ├── 4
         //   │   └── 5
         //   └── 6
-        let t = TreeArena::from_dfs_depths(&[0, 1, 2, 1, 2, 2, 1]);
+        let t = TreeArena::from_dfs_depths(&[0, 1, 2, 1, 2, 2, 1]).unwrap();
         assert_eq!(t.parent_of, vec![-1, 0, 1, 0, 3, 3, 0]);
         // first_child for 0 = 1, for 1 = 2, for 3 = 4
         assert_eq!(t.first_child[0], 1);
@@ -256,7 +263,7 @@ mod tests {
     #[test]
     fn from_dfs_depths_multiple_roots() {
         // Forest: 0 → [1], 2 → [3, 4]
-        let t = TreeArena::from_dfs_depths(&[0, 1, 0, 1, 1]);
+        let t = TreeArena::from_dfs_depths(&[0, 1, 0, 1, 1]).unwrap();
         assert_eq!(t.parent_of, vec![-1, 0, -1, 2, 2]);
         // No cross-root descendant relationships.
         assert!(t.is_descendant(2, 3));
@@ -268,19 +275,19 @@ mod tests {
 
     #[test]
     fn from_dfs_depths_empty() {
-        let t = TreeArena::from_dfs_depths(&[]);
+        let t = TreeArena::from_dfs_depths(&[]).unwrap();
         assert!(t.is_empty());
     }
 
     #[test]
-    #[should_panic(expected = "must be a root")]
     fn from_dfs_depths_must_start_at_root() {
-        TreeArena::from_dfs_depths(&[1, 1]);
+        let err = TreeArena::from_dfs_depths(&[1, 1]).unwrap_err();
+        assert!(err.contains("root"));
     }
 
     #[test]
-    #[should_panic(expected = "jumps more than one level")]
     fn from_dfs_depths_rejects_depth_jumps() {
-        TreeArena::from_dfs_depths(&[0, 2]);
+        let err = TreeArena::from_dfs_depths(&[0, 2]).unwrap_err();
+        assert!(err.contains("jumps more than one level"));
     }
 }

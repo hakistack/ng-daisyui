@@ -19,7 +19,7 @@ const DEFAULT_LABELS: Required<ColumnVisibilityLabels> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="dropdown dropdown-end">
-      <summary class="btn btn-sm btn-ghost gap-2">
+      <summary class="btn btn-outline btn-ghost gap-2">
         <svg lucideColumns3 [size]="16"></svg>
         <span>{{ resolvedLabels().trigger }}</span>
         <span class="badge badge-sm badge-neutral">{{ visibleColumnsCount() }}/{{ columns().length }}</span>

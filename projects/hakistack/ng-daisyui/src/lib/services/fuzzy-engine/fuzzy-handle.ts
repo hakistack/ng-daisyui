@@ -4,8 +4,11 @@
  * Strings are ingested once; per-keystroke `search()` calls receive only the
  * query text and return packed (index, score) pairs that we decode into
  * the friendly `FuzzyMatch[]` shape consumers expect.
+ *
+ * Lifecycle is inherited from `DisposableHandle`.
  */
 
+import { DisposableHandle } from '../../utils/disposable-handle';
 import type { FuzzyMatch, FuzzySearchOpts } from './fuzzy-engine.types';
 
 /**
@@ -19,16 +22,22 @@ export interface WasmFuzzyIndex {
   search(query: string, opts: unknown): Uint32Array;
 }
 
-export class FuzzyHandle {
-  private constructor(private readonly wasm: WasmFuzzyIndex) {}
+export class FuzzyHandle extends DisposableHandle {
+  private constructor(private readonly wasm: WasmFuzzyIndex) {
+    super();
+  }
 
   /** @internal — use `FuzzyEngineService.createIndex` */
   static _create(wasm: WasmFuzzyIndex): FuzzyHandle {
     return new FuzzyHandle(wasm);
   }
 
+  protected override freeWasm(): void {
+    this.wasm.free();
+  }
+
   get itemCount(): number {
-    return this.wasm.n_items();
+    return this.guard(() => this.wasm.n_items(), 0);
   }
 
   /**
@@ -37,20 +46,17 @@ export class FuzzyHandle {
    * branch to "show everything" in that case.
    */
   search(query: string, opts: FuzzySearchOpts = {}): FuzzyMatch[] {
-    const packed = this.wasm.search(query, {
-      caseSensitive: opts.caseSensitive ?? false,
-      maxResults: opts.maxResults ?? 0,
-    });
-    // Packed pairs: [idx, score, idx, score, ...]
-    const out: FuzzyMatch[] = new Array(packed.length / 2);
-    for (let i = 0, j = 0; i < packed.length; i += 2, j++) {
-      out[j] = { index: packed[i], score: packed[i + 1] };
-    }
-    return out;
-  }
-
-  /** Free the underlying WASM-heap memory. Call on component teardown. */
-  dispose(): void {
-    this.wasm.free();
+    return this.guard(() => {
+      const packed = this.wasm.search(query, {
+        caseSensitive: opts.caseSensitive ?? false,
+        maxResults: opts.maxResults ?? 0,
+      });
+      // Packed pairs: [idx, score, idx, score, ...]
+      const out: FuzzyMatch[] = new Array(packed.length / 2);
+      for (let i = 0, j = 0; i < packed.length; i += 2, j++) {
+        out[j] = { index: packed[i], score: packed[i + 1] };
+      }
+      return out;
+    }, [] as FuzzyMatch[]);
   }
 }

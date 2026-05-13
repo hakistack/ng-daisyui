@@ -149,7 +149,7 @@ mod tests {
                 "Marketing".into(),
             ],
             vec![0, 1, 2, 2, 1],
-        )
+        ).unwrap()
     }
 
     fn selection(idxs: &[Idx], n: u32) -> Bitset {
