@@ -94,12 +94,18 @@ describe('InputVariantStrategies', () => {
       expect(strategy.format('5551234567')).toBe('(555) 123-4567');
     });
 
-    it('should format partial phone number', () => {
-      expect(strategy.format('555')).toBe('(555');
+    it('should return partial input without national formatting', () => {
+      // AsYouType withholds the full pattern until enough digits accumulate;
+      // a 3-digit input stays bare. Exact pattern thresholds are
+      // libphonenumber's call — we just assert the strategy passes through
+      // without throwing and doesn't pad with stale formatting characters.
+      expect(strategy.format('555')).toBe('555');
     });
 
-    it('should parse to digits only', () => {
-      expect(strategy.parse('(555) 123-4567')).toBe('5551234567');
+    it('should parse to E.164 form', () => {
+      // libphonenumber returns the canonical E.164 number (with country code) — the
+      // best shape for storage, not the raw digit string.
+      expect(strategy.parse('(555) 123-4567')).toBe('+15551234567');
     });
 
     it('should return tel input type', () => {

@@ -11,6 +11,7 @@
 export { DynamicFormComponent } from './lib/components/dynamic-form/dynamic-form.component';
 export { createForm, field, step, validation, layout } from './lib/components/dynamic-form/dynamic-form.helpers';
 export { FormUtils } from './lib/components/dynamic-form/dynamic-form.utils';
+export { ConditionEngine } from './lib/components/dynamic-form/condition-engine';
 export type {
   FormConfig,
   FormFieldConfig,
@@ -388,6 +389,15 @@ export { PipeRegistryService, providePipes } from './lib/services/pipe-registry.
 
 // Fuzzy search engine — WASM-backed, lazy-loaded; powers command-palette + select.
 export { FuzzyEngineService, FuzzyHandle, type FuzzyMatch, type FuzzySearchOpts } from './lib/services/fuzzy-engine';
+
+// Form engine — WASM-backed, lazy-loaded; condition / dependency-graph kernel for hk-dynamic-form.
+export {
+  FormEngineService,
+  FormHandle,
+  type FormEngineHandle,
+  type EngineEvent as FormEngineEvent,
+  type EngineEventKind as FormEngineEventKind,
+} from './lib/services/form-engine';
 
 // PDF search engine — WASM-backed, lazy-loaded; powers in-document search in pdf-viewer.
 export { PdfSearchService, PdfSearchHandle, type PdfSearchHit, type PdfResolvedHit, type PdfSearchOpts } from './lib/services/pdf-search';

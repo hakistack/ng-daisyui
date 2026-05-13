@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID } from '@angular/core';
 
+import { LucideCircleCheck, LucideCircleX, LucideInfo, LucideTriangleAlert } from '@lucide/angular';
+
 import { ToastComponent } from './toast.component';
 import { ToastService } from './toast.service';
 import { DEFAULT_TOAST_CONFIG, provideToast, TOAST_CONFIG, ToastGlobalConfig } from './toast.config';
@@ -164,7 +166,7 @@ describe('ToastService', () => {
     it('should mark the toast as dismissing', () => {
       const id = service.show({ severity: 'info', summary: 'Bye' });
       service.dismiss(id);
-      const toast = service.toasts().find(t => t.id === id);
+      const toast = service.toasts().find((t) => t.id === id);
       expect(toast?.dismissing).toBe(true);
     });
 
@@ -236,13 +238,13 @@ describe('ToastService', () => {
       vi.advanceTimersByTime(500); // let some time pass
 
       service.pauseAutoDismiss(id);
-      const toast = service.toasts().find(t => t.id === id);
+      const toast = service.toasts().find((t) => t.id === id);
       expect(toast?.isPaused).toBe(true);
 
       // Should NOT dismiss while paused even after original life
       vi.advanceTimersByTime(5000);
-      expect(service.toasts().find(t => t.id === id)).toBeTruthy();
-      expect(service.toasts().find(t => t.id === id)?.dismissing).toBe(false);
+      expect(service.toasts().find((t) => t.id === id)).toBeTruthy();
+      expect(service.toasts().find((t) => t.id === id)?.dismissing).toBe(false);
 
       // Clean up
       service.clear();
@@ -256,16 +258,16 @@ describe('ToastService', () => {
       vi.advanceTimersByTime(1000); // paused for 1 second
 
       service.resumeAutoDismiss(id);
-      const toast = service.toasts().find(t => t.id === id);
+      const toast = service.toasts().find((t) => t.id === id);
       expect(toast?.isPaused).toBe(false);
 
       // After extended timeout, should auto-dismiss
       vi.advanceTimersByTime(DEFAULT_TOAST_CONFIG.extendedTimeOut + 50);
-      const dismissing = service.toasts().find(t => t.id === id);
+      const dismissing = service.toasts().find((t) => t.id === id);
       expect(dismissing?.dismissing).toBe(true);
 
       vi.advanceTimersByTime(DEFAULT_TOAST_CONFIG.exitDuration + 50);
-      expect(service.toasts().find(t => t.id === id)).toBeUndefined();
+      expect(service.toasts().find((t) => t.id === id)).toBeUndefined();
     });
 
     it('should be a no-op when pausing a non-existent toast', () => {
@@ -681,19 +683,19 @@ describe('ToastComponent', () => {
 
   describe('getIcon()', () => {
     it('should return CircleCheck for success severity', () => {
-      expect(component.getIcon('success')).toBe('CircleCheck');
+      expect(component.getIcon('success')).toBe(LucideCircleCheck);
     });
 
     it('should return Info for info severity', () => {
-      expect(component.getIcon('info')).toBe('Info');
+      expect(component.getIcon('info')).toBe(LucideInfo);
     });
 
     it('should return TriangleAlert for warning severity', () => {
-      expect(component.getIcon('warning')).toBe('TriangleAlert');
+      expect(component.getIcon('warning')).toBe(LucideTriangleAlert);
     });
 
     it('should return CircleX for error severity', () => {
-      expect(component.getIcon('error')).toBe('CircleX');
+      expect(component.getIcon('error')).toBe(LucideCircleX);
     });
   });
 
@@ -733,7 +735,7 @@ describe('ToastComponent', () => {
       component.dismiss(id);
       fixture.detectChanges();
 
-      const toast = service.toasts().find(t => t.id === id);
+      const toast = service.toasts().find((t) => t.id === id);
       expect(toast?.dismissing).toBe(true);
     });
   });
@@ -795,7 +797,7 @@ describe('ToastComponent', () => {
       service.pauseAutoDismiss(id);
       fixture.detectChanges();
 
-      const toast = service.toasts().find(t => t.id === id)!;
+      const toast = service.toasts().find((t) => t.id === id)!;
       expect(toast.isPaused).toBe(true);
 
       component.onMouseLeave(toast);
@@ -961,10 +963,7 @@ describe('ToastComponent with custom config', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ToastComponent],
-      providers: [
-        { provide: PLATFORM_ID, useValue: 'browser' },
-        provideToast({ position: 'top-center' }),
-      ],
+      providers: [{ provide: PLATFORM_ID, useValue: 'browser' }, provideToast({ position: 'top-center' })],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ToastComponent);

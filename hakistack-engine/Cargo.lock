@@ -38,6 +38,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "engine-core",
+ "form-engine",
  "js-sys",
  "search-engine",
  "serde",
@@ -51,6 +52,10 @@ dependencies = [
 [[package]]
 name = "form-engine"
 version = "0.1.0"
+dependencies = [
+ "engine-core",
+ "rustc-hash",
+]
 
 [[package]]
 name = "futures-core"

@@ -240,3 +240,71 @@ pub enum WireGroupKey {
     Bool   { value: bool },
     Date   { value: f64 },
 }
+
+// ─── Form engine ────────────────────────────────────────────────────────────
+//
+// The wire schema mirrors `form-engine`'s `FormSchema` / `Condition` types.
+// All field references are resolved to indices on the TS side before
+// crossing the boundary, so the engine never deals with name lookups in
+// the hot path.
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WireFormSchema {
+    pub fields: Vec<WireFormField>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WireFormField {
+    pub name: String,
+    #[serde(default)]
+    pub required_baseline: bool,
+    #[serde(default)]
+    pub disabled_baseline: bool,
+    #[serde(default)]
+    pub show_when: Vec<WireFormCondition>,
+    #[serde(default)]
+    pub hide_when: Vec<WireFormCondition>,
+    #[serde(default)]
+    pub required_when: Vec<WireFormCondition>,
+    #[serde(default)]
+    pub disabled_when: Vec<WireFormCondition>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WireFormCondition {
+    pub field: u32,
+    pub op:    WireFormOp,
+    pub value: WireFormValue,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum WireFormOp {
+    Equals,
+    NotEquals,
+    Contains,
+    GreaterThan,
+    LessThan,
+    In,
+    NotIn,
+    Function,
+}
+
+/// Tagged value wire format. The TS adapter normalizes JS values into one
+/// of these variants once at schema-ingest time; nothing about the engine
+/// hot path needs to inspect arbitrary `JsValue` shapes.
+#[derive(Debug, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum WireFormValue {
+    Null,
+    Bool     { value: bool },
+    Number   { value: f64 },
+    String   { value: String },
+    Array    { items: Vec<WireFormValue> },
+    /// `id` is assigned by the TS adapter when the user registers a
+    /// `function`-operator predicate.
+    Callback { id: u32 },
+}

@@ -16,6 +16,7 @@ engine-core   = { workspace = true }
 table-engine  = { workspace = true }
 tree-engine   = { workspace = true }
 search-engine = { workspace = true }
+form-engine   = { workspace = true }
 
 wasm-bindgen        = { workspace = true }
 js-sys              = { workspace = true }

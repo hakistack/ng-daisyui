@@ -6,7 +6,8 @@ license.workspace    = true
 authors.workspace    = true
 repository.workspace = true
 publish.workspace    = true
-description = "DEFERRED — placeholder slot for hk-dynamic-form's condition / validation engine. See README."
+description = "Schema-driven condition / dependency-graph kernel for hk-dynamic-form. See README.md."
 
-# Intentionally minimal. See crates/form-engine/README.md.
 [dependencies]
+engine-core = { workspace = true }
+rustc-hash  = { workspace = true }

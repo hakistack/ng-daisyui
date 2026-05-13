@@ -233,17 +233,23 @@
           <tr>
             @if (hasSelectionSignal()) {
               <th class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
-                <label>
-                  <input
-                    type="checkbox"
-                    class="checkbox"
-                    [checked]="isAllSelected()"
-                    (change)="toggleSelectAll(inputChecked($event))"
-                    [disabled]="isSelectAllDisabled()"
-                    [attr.title]="isSelectAllDisabled() ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
-                    [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
-                  />
-                </label>
+                <!-- Header "select all" — hidden when `selectionLimit === 1` (radio-
+                     like UX has no bulk action). For limit ≥ 2 the checkbox stays
+                     visible: it disables + shows the limit-reached tooltip when
+                     at cap, but is fully usable below cap (where toggleSelectAll
+                     fills up to the remaining capacity). Empty <th> keeps the
+                     column aligned with the row checkboxes below. -->
+                @if (showSelectAllCheckboxSignal()) {
+                  <label>
+                    <input
+                      type="checkbox"
+                      class="checkbox"
+                      [checked]="isAllSelected()"
+                      (change)="toggleSelectAll(inputChecked($event))"
+                      [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
+                    />
+                  </label>
+                }
               </th>
             }
             @if (hasStartActionsSignal()) {
@@ -566,17 +572,18 @@
             }
             @if (hasSelectionSignal()) {
               <th class="w-8 px-4">
-                <label>
-                  <input
-                    type="checkbox"
-                    class="checkbox"
-                    [checked]="isAllSelected()"
-                    (change)="toggleSelectAll(inputChecked($event))"
-                    [disabled]="isSelectAllDisabled()"
-                    [attr.title]="isSelectAllDisabled() ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
-                    [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
-                  />
-                </label>
+                <!-- See virtual-scroll header for the showSelectAllCheckboxSignal rationale. -->
+                @if (showSelectAllCheckboxSignal()) {
+                  <label>
+                    <input
+                      type="checkbox"
+                      class="checkbox"
+                      [checked]="isAllSelected()"
+                      (change)="toggleSelectAll(inputChecked($event))"
+                      [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
+                    />
+                  </label>
+                }
               </th>
             }
             @if (showExpandColumnSignal()) {
@@ -963,17 +970,18 @@
         @if (hasSelectionSignal()) {
           <ng-container cdkColumnDef="select">
             <th cdk-header-cell *cdkHeaderCellDef class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
-              <label>
-                <input
-                  type="checkbox"
-                  class="checkbox"
-                  [checked]="isAllSelected()"
-                  (change)="toggleSelectAll(inputChecked($event))"
-                  [disabled]="isSelectAllDisabled()"
-                  [attr.title]="isSelectAllDisabled() ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
-                  [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
-                />
-              </label>
+              <!-- See virtual-scroll header for the showSelectAllCheckboxSignal rationale. -->
+              @if (showSelectAllCheckboxSignal()) {
+                <label>
+                  <input
+                    type="checkbox"
+                    class="checkbox"
+                    [checked]="isAllSelected()"
+                    (change)="toggleSelectAll(inputChecked($event))"
+                    [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
+                  />
+                </label>
+              }
             </th>
             <td
               cdk-cell

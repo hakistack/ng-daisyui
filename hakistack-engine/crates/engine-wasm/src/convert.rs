@@ -3,6 +3,10 @@
 //! shape and `wire.rs` can stay focused on the JSON shape.
 
 use crate::wire::*;
+use form_engine::{
+    Condition as KernelCondition, ConditionOp as KernelConditionOp, FieldDef as KernelFieldDef,
+    FormSchema as KernelFormSchema, Value as KernelValue,
+};
 use table_engine::{
     aggregate::{AggFn as KernelAggFn, AggResult as KernelAggResult},
     filter::{
@@ -240,6 +244,66 @@ impl From<KernelGroupKey> for WireGroupKey {
     }
 }
 
+// ─── Form engine ────────────────────────────────────────────────────────────
+
+impl From<WireFormValue> for KernelValue {
+    fn from(w: WireFormValue) -> Self {
+        match w {
+            WireFormValue::Null              => KernelValue::Null,
+            WireFormValue::Bool   { value }  => KernelValue::Bool(value),
+            WireFormValue::Number { value }  => KernelValue::Number(value),
+            WireFormValue::String { value }  => KernelValue::String(value.into_boxed_str()),
+            WireFormValue::Array  { items }  => KernelValue::Array(items.into_iter().map(Into::into).collect()),
+            WireFormValue::Callback { id }   => KernelValue::JsCallback(id),
+        }
+    }
+}
+
+impl From<WireFormOp> for KernelConditionOp {
+    fn from(w: WireFormOp) -> Self {
+        match w {
+            WireFormOp::Equals      => KernelConditionOp::Equals,
+            WireFormOp::NotEquals   => KernelConditionOp::NotEquals,
+            WireFormOp::Contains    => KernelConditionOp::Contains,
+            WireFormOp::GreaterThan => KernelConditionOp::GreaterThan,
+            WireFormOp::LessThan    => KernelConditionOp::LessThan,
+            WireFormOp::In          => KernelConditionOp::In,
+            WireFormOp::NotIn       => KernelConditionOp::NotIn,
+            WireFormOp::Function    => KernelConditionOp::Function,
+        }
+    }
+}
+
+impl From<WireFormCondition> for KernelCondition {
+    fn from(w: WireFormCondition) -> Self {
+        KernelCondition {
+            field_idx: w.field,
+            op:        w.op.into(),
+            value:     w.value.into(),
+        }
+    }
+}
+
+impl From<WireFormField> for KernelFieldDef {
+    fn from(w: WireFormField) -> Self {
+        KernelFieldDef {
+            name:               w.name.into_boxed_str(),
+            required_baseline:  w.required_baseline,
+            disabled_baseline:  w.disabled_baseline,
+            show_when:          w.show_when.into_iter().map(Into::into).collect(),
+            hide_when:          w.hide_when.into_iter().map(Into::into).collect(),
+            required_when:      w.required_when.into_iter().map(Into::into).collect(),
+            disabled_when:      w.disabled_when.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<WireFormSchema> for KernelFormSchema {
+    fn from(w: WireFormSchema) -> Self {
+        KernelFormSchema::new(w.fields.into_iter().map(Into::into).collect())
+    }
+}
+
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -349,6 +413,63 @@ mod tests {
         assert!(kernel.columns.is_empty());
         assert!(!kernel.case_sensitive);
         assert_eq!(kernel.mode, KernelSearchMode::StartsWith);
+    }
+
+    #[test]
+    fn wire_form_value_round_trips() {
+        let json = r#"{"kind":"string","value":"hi"}"#;
+        let wire: WireFormValue = serde_json::from_str(json).unwrap();
+        let v: KernelValue = wire.into();
+        assert_eq!(v, KernelValue::String(Box::from("hi")));
+
+        let json = r#"{"kind":"array","items":[{"kind":"number","value":1},{"kind":"bool","value":true}]}"#;
+        let wire: WireFormValue = serde_json::from_str(json).unwrap();
+        let v: KernelValue = wire.into();
+        assert_eq!(
+            v,
+            KernelValue::Array(vec![KernelValue::Number(1.0), KernelValue::Bool(true)])
+        );
+
+        let json = r#"{"kind":"callback","id":42}"#;
+        let wire: WireFormValue = serde_json::from_str(json).unwrap();
+        assert_eq!(KernelValue::from(wire), KernelValue::JsCallback(42));
+
+        let json = r#"{"kind":"null"}"#;
+        let wire: WireFormValue = serde_json::from_str(json).unwrap();
+        assert_eq!(KernelValue::from(wire), KernelValue::Null);
+    }
+
+    #[test]
+    fn wire_form_schema_builds_kernel_schema_with_dep_index() {
+        // Two fields: B's showWhen depends on A.
+        let json = r#"{
+            "fields": [
+                {
+                    "name": "A",
+                    "showWhen": [],
+                    "hideWhen": [],
+                    "requiredWhen": [],
+                    "disabledWhen": []
+                },
+                {
+                    "name": "B",
+                    "showWhen": [
+                        { "field": 0, "op": "equals", "value": { "kind": "bool", "value": true } }
+                    ],
+                    "hideWhen": [],
+                    "requiredWhen": [],
+                    "disabledWhen": []
+                }
+            ]
+        }"#;
+        let wire: WireFormSchema = serde_json::from_str(json).unwrap();
+        let schema: KernelFormSchema = wire.into();
+
+        assert_eq!(schema.field_count(), 2);
+        assert_eq!(schema.idx_of("A"), Some(0));
+        assert_eq!(schema.idx_of("B"), Some(1));
+        // A → [RuleRef pointing to B.showWhen[0]]
+        assert_eq!(schema.deps.get(&0).map(|v| v.len()), Some(1));
     }
 
     #[test]

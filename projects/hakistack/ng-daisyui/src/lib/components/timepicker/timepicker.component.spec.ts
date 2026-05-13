@@ -6,8 +6,15 @@ import { TimepickerComponent } from './timepicker.component';
 // Test host only for ControlValueAccessor tests
 @Component({
   imports: [TimepickerComponent, ReactiveFormsModule],
-  template: `<hk-timepicker [formControl]="control" [use24Hour]="use24Hour" [showSeconds]="showSeconds"
-    [minuteStep]="minuteStep" [required]="required" [minTime]="minTime" [maxTime]="maxTime" />`,
+  template: `<hk-timepicker
+    [formControl]="control"
+    [use24Hour]="use24Hour"
+    [showSeconds]="showSeconds"
+    [minuteStep]="minuteStep"
+    [required]="required"
+    [minTime]="minTime"
+    [maxTime]="maxTime"
+  />`,
 })
 class TestHostComponent {
   control = new FormControl<string | null>(null);
@@ -20,7 +27,6 @@ class TestHostComponent {
 }
 
 describe('TimepickerComponent', () => {
-
   // =========================================================================
   // Direct component tests (no host needed)
   // =========================================================================
@@ -405,6 +411,13 @@ describe('TimepickerComponent', () => {
     // -----------------------------------------------------------------------
 
     describe('Selection Flow', () => {
+      // Auto-advance is a clock-face affordance (M3 / Mat behavior); the
+      // dropdown/numeric mode keeps the user on the same view.
+      beforeEach(() => {
+        fixture.componentRef.setInput('clockFace', true);
+        fixture.detectChanges();
+      });
+
       it('should advance to minutes after selecting hour', () => {
         component.openPicker();
         component.selectHour(14);

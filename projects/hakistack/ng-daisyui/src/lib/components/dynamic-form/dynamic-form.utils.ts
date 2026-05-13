@@ -1,5 +1,6 @@
 import { FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 
+import { ConditionEngine } from './condition-engine';
 import { ConditionalLogic, FormFieldConfig } from './dynamic-form.types';
 
 export class FormUtils {
@@ -110,53 +111,23 @@ export class FormUtils {
   }
 
   /**
-   * Optimized condition evaluation with early exits
+   * Optimized condition evaluation with early exits.
+   *
+   * @deprecated Prefer `ConditionEngine.evaluateCondition` — this delegates to
+   * the same implementation and exists only to keep the public API stable.
    */
   static evaluateCondition(condition: ConditionalLogic, formValues: Record<string, unknown>, formGroup?: FormGroup): boolean {
-    const fieldValue = formValues[condition.field];
-    const conditionValue = condition.value;
-
-    if (condition.operator === 'function') {
-      if (typeof conditionValue !== 'function') return false;
-      try {
-        return conditionValue(fieldValue, formValues, formGroup);
-      } catch {
-        return false;
-      }
-    }
-
-    switch (condition.operator) {
-      case 'equals':
-        return fieldValue === conditionValue;
-      case 'not-equals':
-        return fieldValue !== conditionValue;
-      case 'contains':
-        return typeof fieldValue === 'string' && typeof conditionValue === 'string' && fieldValue.includes(conditionValue);
-      case 'greater-than':
-        return typeof fieldValue === 'number' && typeof conditionValue === 'number' && fieldValue > conditionValue;
-      case 'less-than':
-        return typeof fieldValue === 'number' && typeof conditionValue === 'number' && fieldValue < conditionValue;
-      case 'in':
-        return Array.isArray(conditionValue) && conditionValue.includes(fieldValue);
-      case 'not-in':
-        return Array.isArray(conditionValue) && !conditionValue.includes(fieldValue);
-      default:
-        return false;
-    }
+    return ConditionEngine.evaluateCondition(condition, formValues, formGroup);
   }
 
   /**
-   * Evaluates multiple conditions with AND logic
+   * Evaluates multiple conditions with AND logic.
+   *
+   * @deprecated Prefer `ConditionEngine.evaluateConditions` — this delegates to
+   * the same implementation and exists only to keep the public API stable.
    */
   static evaluateConditions(conditions: readonly ConditionalLogic[], formValues: Record<string, unknown>, formGroup?: FormGroup): boolean {
-    if (conditions.length === 0) return true;
-
-    for (let i = 0, len = conditions.length; i < len; i++) {
-      if (!this.evaluateCondition(conditions[i], formValues, formGroup)) {
-        return false;
-      }
-    }
-    return true;
+    return ConditionEngine.evaluateConditions(conditions, formValues, formGroup);
   }
 
   /**

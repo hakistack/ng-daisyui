@@ -56,6 +56,7 @@ export class DialogWrapperComponent<T = unknown> implements OnInit, OnDestroy {
 
   private createAndAttachPortal(): void {
     if (!this.data?.component) {
+      console.warn('DialogWrapperComponent: No component provided in data');
       return;
     }
 
@@ -67,7 +68,8 @@ export class DialogWrapperComponent<T = unknown> implements OnInit, OnDestroy {
 
       this.portal = new ComponentPortal(this.data.component, null, childInjector);
       this.componentRef = this.outlet().attachComponentPortal(this.portal);
-    } catch {
+    } catch (err) {
+      console.error('DialogWrapperComponent: failed to attach portal', err);
       this.dialogRef.close();
     }
   }

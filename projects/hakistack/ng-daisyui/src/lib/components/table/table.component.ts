@@ -758,6 +758,15 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     const limit = this.selectionLimitSignal();
     return limit !== null && this.selectedSignal().size >= limit;
   });
+
+  /**
+   * Whether to render the header "select all" checkbox.
+   * Hidden whenever a `selectionLimit` is configured — "select all" + any
+   * cap is awkward UX (radio-like at limit=1, partial-fill confusion at
+   * limit=N). The empty <th> kept by the caller keeps the column aligned
+   * with the row checkboxes below.
+   */
+  readonly showSelectAllCheckboxSignal = computed(() => this.selectionLimitSignal() === null);
   readonly selectableRowsSignal = computed(() => !!this.fieldConfig()?.selectableRows);
   readonly selectableRowsModeSignal = computed(() => {
     const val = this.fieldConfig()?.selectableRows;

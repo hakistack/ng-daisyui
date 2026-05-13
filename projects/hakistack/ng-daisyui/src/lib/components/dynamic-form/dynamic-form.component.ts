@@ -20,6 +20,8 @@ import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormGroup, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { catchError, debounceTime, distinctUntilChanged, from, isObservable, Observable, of, startWith, switchMap } from 'rxjs';
 
+import type { EngineEvent, FormEngineHandle } from '../../services/form-engine/form-engine.types';
+import { FormEngineService } from '../../services/form-engine/form-engine.service';
 import { FormStateMetadata, FormStateService } from '../../services/form-state.service';
 import { DatepickerComponent } from '../datepicker/datepicker.component';
 import { EditorComponent } from '../editor/editor.component';
@@ -37,6 +39,7 @@ import {
   ResponsiveColSpan,
   StepChangeEvent,
 } from './dynamic-form.types';
+import { ConditionEngine } from './condition-engine';
 import { FormUtils } from './dynamic-form.utils';
 import { TimepickerComponent } from '../timepicker/timepicker.component';
 
@@ -183,6 +186,37 @@ export class DynamicFormComponent {
   /** Tracks which fields are currently loading dependent options */
   readonly fieldOptionsLoading = signal<Set<string>>(new Set());
 
+  /**
+   * Per-form condition dependency graph. Rebuilt on every `initializeForm`
+   * call. Backs the incremental re-eval path in `updateConditionalValidation`
+   * when the WASM `FormEngine` is not available (SSR, opt-out, load error).
+   */
+  private readonly conditionEngine = new ConditionEngine();
+  /** Last seen form values, used to compute the dirty set passed to the engine. */
+  private previousFormValuesForDirty: Record<string, unknown> = {};
+
+  private readonly formEngineService = inject(FormEngineService);
+  /**
+   * WASM-backed condition kernel. Created asynchronously on every
+   * `initializeForm`; until it resolves the component falls back to
+   * `conditionEngine` (the in-TS dep-graph path). Templates and effects
+   * read this through the signal so they re-evaluate when the engine
+   * becomes available (or is disposed on schema swap).
+   */
+  private readonly engineHandle = signal<FormEngineHandle | null>(null);
+  /**
+   * Bumps after every engine state change. Templates read this from
+   * `shouldShowField` / `isFieldRequired` so visibility / required
+   * statuses re-render even though the engine itself is not a signal.
+   */
+  private readonly engineGeneration = signal(0);
+  /**
+   * Monotonic token captured at the start of every async handle build;
+   * resolved handles whose token no longer matches are discarded as
+   * stale (config swapped while WASM was loading).
+   */
+  private engineHandleToken = 0;
+
   // Auto-save signals
   private readonly autoSaveFormId = signal<string | null>(null);
   private readonly pendingSave = signal<{ formId: string; values: Record<string, unknown>; metadata?: FormStateMetadata } | null>(null);
@@ -300,6 +334,9 @@ export class DynamicFormComponent {
     this.setupFormReactivity();
     this.setupExternalTriggers();
     this.setupFocusOnLoad();
+    // Release the WASM-heap slot when the component is torn down. Idempotent
+    // — `dispose()` no-ops on second call via `DisposableHandle`.
+    this.destroyRef.onDestroy(() => this.disposeEngineHandle());
   }
 
   /** Focus on field with focusOnLoad: true after the form renders */
@@ -552,18 +589,28 @@ export class DynamicFormComponent {
   shouldShowField(field: FormFieldConfig, values?: Record<string, unknown>): boolean {
     if (field.hidden) return false;
 
-    // Use context-enriched values for conditional logic (includes step info)
+    // Engine path: read the visibility bitset. The `engineGeneration` read
+    // is what wires this method into Angular's signal graph — visibility
+    // re-evaluates whenever `applyEngineEvents` bumps the generation.
+    const handle = this.engineHandle();
+    if (handle) {
+      this.engineGeneration();
+      return handle.isVisible(field.key);
+    }
+
+    // JS fallback (Phase 0/1 path) — context-enriched values for conditional
+    // logic, including step info.
     const currentValues = values || this.formValuesWithContext();
     const form = this.formGroup();
 
     // Check hideWhen conditions first (early exit)
-    if (field.hideWhen?.length && FormUtils.evaluateConditions(field.hideWhen, currentValues, form)) {
+    if (field.hideWhen?.length && ConditionEngine.evaluateConditions(field.hideWhen, currentValues, form)) {
       return false;
     }
 
     // Check showWhen conditions
     if (field.showWhen?.length) {
-      return FormUtils.evaluateConditions(field.showWhen, currentValues, form);
+      return ConditionEngine.evaluateConditions(field.showWhen, currentValues, form);
     }
 
     return true;
@@ -575,15 +622,21 @@ export class DynamicFormComponent {
   }
 
   isFieldRequired(field: FormFieldConfig): boolean {
-    // Use context-enriched values for conditional logic (includes step info)
-    const values = this.formValuesWithContext();
-    const form = this.formGroup();
-
-    // Check base validation first
+    // Baseline always wins.
     if (field.required) return true;
 
-    // Check conditional requirements
-    return field.requiredWhen?.length ? FormUtils.evaluateConditions(field.requiredWhen, values, form) : false;
+    // Engine path: read the required bitset (which already factors in
+    // baseline OR any `requiredWhen` conditions).
+    const handle = this.engineHandle();
+    if (handle) {
+      this.engineGeneration();
+      return handle.isRequired(field.key);
+    }
+
+    // JS fallback (Phase 0/1 path).
+    const values = this.formValuesWithContext();
+    const form = this.formGroup();
+    return field.requiredWhen?.length ? ConditionEngine.evaluateConditions(field.requiredWhen, values, form) : false;
   }
 
   getFieldValue(fieldKey: string): unknown {
@@ -984,8 +1037,17 @@ export class DynamicFormComponent {
     // No untracked wrapper: predicate signal reads must propagate as deps.
     // No feedback loop risk: updateConditionalValidation only mutates form
     // controls with { emitEvent: false }, so formValues is not re-set here.
+    //
+    // Dirty-set: we diff against the previous values so the engine can scope
+    // work to fields whose deps actually changed. An empty dirty set means
+    // the effect fired from an external signal (no form value moved) — the
+    // engine returns only fields with `function`-operator predicates in that
+    // case, since their inputs aren't statically tracked.
     effect(() => {
-      this.updateConditionalValidation(this.formValues());
+      const current = this.formValues();
+      const dirty = this.computeDirty(this.previousFormValuesForDirty, current);
+      this.previousFormValuesForDirty = current;
+      this.updateConditionalValidation(current, dirty);
     });
   }
 
@@ -1009,6 +1071,15 @@ export class DynamicFormComponent {
     const form = FormUtils.createFormGroup(allFields);
     this.formGroup.set(form);
     this.initializeFormValues();
+    // Build the field → rules dependency graph for incremental re-evaluation.
+    // Used by the JS fallback path; the WASM engine maintains its own.
+    this.conditionEngine.bindSchema(allFields);
+    // Reset dirty-tracking so the first effect tick treats this as a full pass.
+    this.previousFormValuesForDirty = {};
+
+    // Async-build the WASM engine handle. Stale-token guard handles a
+    // config swap that lands while a previous build is still in flight.
+    this.createEngineHandle(allFields);
 
     // Reset stepper state when config changes, but only if we're not expecting a restoration
     // (auto-save is not enabled or restoration already completed with no saved data)
@@ -1025,6 +1096,116 @@ export class DynamicFormComponent {
 
   private initializeFormValues(): void {
     this.formValues.set(this.formGroup().value);
+  }
+
+  /**
+   * Build the WASM engine handle for the current schema. Runs every
+   * time `initializeForm` rebuilds the form group. The previous handle
+   * (if any) is disposed; a stale-token guard discards any in-flight
+   * build whose schema was superseded.
+   */
+  private async createEngineHandle(allFields: readonly FormFieldConfig[]): Promise<void> {
+    const token = ++this.engineHandleToken;
+
+    // Tear down the previous handle (if any) before kicking the new one.
+    const prior = this.engineHandle();
+    if (prior) {
+      prior.bindValuesGetter(null);
+      prior.dispose();
+      this.engineHandle.set(null);
+    }
+
+    let handle: FormEngineHandle;
+    try {
+      handle = await this.formEngineService.createForm(allFields);
+    } catch {
+      // WASM unavailable (SSR, opt-out, load error). The JS fallback
+      // (`conditionEngine` + `ConditionEngine.evaluateConditions`) keeps
+      // running unchanged.
+      return;
+    }
+
+    if (token !== this.engineHandleToken) {
+      // Config swapped while we were loading — discard this build.
+      handle.dispose();
+      return;
+    }
+
+    // Wire the predicate values getter to the live FormGroup. Reads
+    // happen inside the engine's Rust → JS bridge during `setValue`
+    // calls; capturing `formGroup` via the signal keeps the closure
+    // pointing at the current form even on re-init.
+    handle.bindValuesGetter(() => this.formGroup().getRawValue());
+
+    // Push the form's current values into the engine, then apply any
+    // resulting required/disabled transitions to the FormControls so
+    // they match what the engine just computed.
+    const initialEvents = handle.setValues(this.formGroup().getRawValue());
+    this.engineHandle.set(handle);
+    this.applyEngineEvents(initialEvents);
+    this.engineGeneration.update((g) => g + 1);
+  }
+
+  /**
+   * Apply engine-emitted transitions to the live `FormControl`s.
+   *
+   * - `required` ⇒ rebuild validators with conditional-required state.
+   * - `disabled` ⇒ enable / disable the control silently.
+   * - `shown` / `hidden` ⇒ no FormControl change; the template reads
+   *    `shouldShowField` which re-asks the engine on the next CD tick.
+   *
+   * `{ emitEvent: false }` everywhere — we don't want our own engine-
+   * driven updates to retrigger `valueChanges` / `statusChanges`.
+   */
+  private applyEngineEvents(events: readonly EngineEvent[]): void {
+    if (events.length === 0) return;
+
+    const form = this.formGroup();
+    const config = this.config();
+    const fields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
+    const fieldsByKey = new Map<string, FormFieldConfig>();
+    for (const f of fields) fieldsByKey.set(f.key, f);
+
+    for (const e of events) {
+      const control = form.get(e.field);
+      if (!control) continue;
+      switch (e.kind) {
+        case 'required': {
+          const field = fieldsByKey.get(e.field);
+          if (!field) continue;
+          const newValidators = FormUtils.createValidatorsWithConditionalRequired(field, e.value);
+          control.setValidators(newValidators);
+          control.updateValueAndValidity({ emitEvent: false });
+          break;
+        }
+        case 'disabled':
+          if (e.value) {
+            control.disable({ emitEvent: false });
+          } else {
+            control.enable({ emitEvent: false });
+          }
+          break;
+        case 'shown':
+        case 'hidden':
+          // Template reads `shouldShowField` → `engineHandle().isVisible`.
+          // No FormControl side-effect required.
+          break;
+      }
+    }
+  }
+
+  /**
+   * Dispose the engine handle without rebuilding. Called from the
+   * destroy hook so the WASM-heap slot is released for short-lived
+   * forms.
+   */
+  private disposeEngineHandle(): void {
+    const handle = this.engineHandle();
+    if (handle) {
+      handle.bindValuesGetter(null);
+      handle.dispose();
+      this.engineHandle.set(null);
+    }
   }
 
   private setupFormSubscriptions(config: FormConfig): void {
@@ -1105,7 +1286,56 @@ export class DynamicFormComponent {
     }
   }
 
-  private updateConditionalValidation(formValues: Record<string, unknown>): void {
+  /**
+   * Diff two form-value maps and return the set of field keys whose values
+   * differ. Used to drive incremental condition re-eval — only fields whose
+   * conditions reference one of these keys need to be re-checked.
+   *
+   * Returns an empty set when nothing moved (the effect was triggered by an
+   * external signal, not by `formValues` itself). Reference equality is the
+   * cheapest correctness-preserving check we can do here; if a consumer
+   * mutates an existing object/array in place, they're already breaking the
+   * `valueChanges → distinctUntilChanged` contract upstream.
+   */
+  private computeDirty(prev: Record<string, unknown>, curr: Record<string, unknown>): ReadonlySet<string> {
+    const dirty = new Set<string>();
+    for (const key in curr) {
+      if (curr[key] !== prev[key]) dirty.add(key);
+    }
+    // Catch keys removed from the new values too (rare but possible after a reset).
+    for (const key in prev) {
+      if (!(key in curr)) dirty.add(key);
+    }
+    return dirty;
+  }
+
+  private updateConditionalValidation(formValues: Record<string, unknown>, dirty: ReadonlySet<string> | null): void {
+    // Engine path: hand off both value diff and condition evaluation to
+    // the WASM kernel. The events it emits map 1:1 to the validator /
+    // disabled-state updates this method used to compute itself.
+    const handle = this.engineHandle();
+    if (handle) {
+      const events =
+        dirty === null
+          ? handle.recomputeAll()
+          : (() => {
+              if (dirty.size === 0) {
+                // External signal tick: only function-predicate fields may
+                // have moved. The engine's recompute_all is the canonical
+                // way to ask "re-check the function owners"; the dep-graph
+                // walk in set_values skips it when the patch is empty.
+                return handle.recomputeAll();
+              }
+              const patch: Record<string, unknown> = {};
+              for (const key of dirty) patch[key] = formValues[key];
+              return handle.setValues(patch);
+            })();
+      this.applyEngineEvents(events);
+      this.engineGeneration.update((g) => g + 1);
+      return;
+    }
+
+    // JS fallback (Phase 0/1 path) ─────────────────────────────────────
     const form = this.formGroup();
     const config = this.config();
     const fields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
@@ -1113,6 +1343,15 @@ export class DynamicFormComponent {
     // Pre-filter fields that need conditional validation
     const fieldsWithConditionalValidation = fields.filter((field) => field.requiredWhen?.length || field.disabledWhen?.length);
     if (fieldsWithConditionalValidation.length === 0) return;
+
+    // Dep-graph filter: walk only the fields whose conditions reference one of
+    // the just-changed values (plus any field with a function predicate, which
+    // may read external signals we don't track). On the initial pass / unknown
+    // trigger (`dirty === null`), we still walk everything.
+    const affected = this.conditionEngine.affectedKeys(dirty);
+    const affectedFields =
+      dirty === null ? fieldsWithConditionalValidation : fieldsWithConditionalValidation.filter((f) => affected.has(f.key));
+    if (affectedFields.length === 0) return;
 
     // Enrich form values with step context for conditional logic
     const valuesWithContext = this.isStepperMode()
@@ -1130,20 +1369,20 @@ export class DynamicFormComponent {
     const validationUpdates: { control: AbstractControl; validators: ValidatorFn[] }[] = [];
     const stateUpdates: { control: AbstractControl; shouldDisable: boolean }[] = [];
 
-    for (const field of fieldsWithConditionalValidation) {
+    for (const field of affectedFields) {
       const control = form.get(field.key);
       if (!control) continue;
 
       // Handle conditional required validation
       if (field.requiredWhen?.length) {
-        const shouldBeRequired = FormUtils.evaluateConditions(field.requiredWhen, valuesWithContext, form);
+        const shouldBeRequired = ConditionEngine.evaluateConditions(field.requiredWhen, valuesWithContext, form);
         const newValidators = FormUtils.createValidatorsWithConditionalRequired(field, shouldBeRequired);
         validationUpdates.push({ control, validators: newValidators });
       }
 
       // Handle conditional disabled state
       if (field.disabledWhen?.length) {
-        const shouldBeDisabled = FormUtils.evaluateConditions(field.disabledWhen, valuesWithContext, form);
+        const shouldBeDisabled = ConditionEngine.evaluateConditions(field.disabledWhen, valuesWithContext, form);
         if (shouldBeDisabled !== control.disabled) {
           stateUpdates.push({ control, shouldDisable: shouldBeDisabled });
         }
