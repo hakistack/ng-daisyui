@@ -99,6 +99,7 @@ import {
   groupData,
   sortTreeData,
 } from './table.helpers';
+import { FilterController } from './controllers/filter.controller';
 import { SelectionController } from './controllers/selection.controller';
 import { SortController } from './controllers/sort.controller';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -109,12 +110,10 @@ import {
   inferEngineSchema,
   normalizeDirection,
   translateAggregate,
-  translateFilter,
   translateGroupFields,
   translateSort,
   type ColumnKind,
   type ColumnSchema,
-  type FilterDef,
   type GroupNode as EngineGroupNode,
   type SortDef,
 } from './engine';
@@ -417,12 +416,10 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return out;
   });
 
-  // Internal signals
-  private readonly filterState = signal<FilterConfig<T>[]>([]);
-  // Sort state lives on the SortController; selection state lives on the
-  // SelectionController. Both are instantiated lower in the file once their
-  // signal dependencies (currentData, mode, resize, tree maps) are declared.
-  readonly openFilterField = signal<string | null>(null); // Track which filter dropdown is open
+  // Filter / sort / selection state all live on their controllers
+  // (instantiated lower in the file once their signal dependencies are
+  // declared). Templates and external callers still reach them through the
+  // aliases exposed on the component.
   /**
    * Active daisyUI version. The v5 filter popover uses native HTML popover
    * API + CSS anchor positioning; v4 doesn't support anchor positioning AND
@@ -660,7 +657,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     if (!config?.enableRowReorder) return false;
     // Disable when sort or filter is active
     if (this.sorting.state().field) return false;
-    if (this.filterState().length > 0) return false;
+    if (this.filtering.hasActive()) return false;
     if (this.debouncedSearchTerm()) return false;
     return true;
   });
@@ -798,11 +795,10 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly checkboxCascadeSignal = computed(() => this.treeTableConfigSignal()?.checkboxCascade ?? 'none');
   readonly filterHierarchyModeSignal = computed(() => this.treeTableConfigSignal()?.filterHierarchyMode ?? 'ancestors');
 
-  // Filter computed signals
+  // Filter computed signals — `activeFiltersSignal`, `hasActiveFiltersSignal`,
+  // and `activeFiltersCountSignal` are aliased off the FilterController
+  // (declared lower in the file alongside the other controllers).
   readonly enableFilteringSignal = computed(() => this.fieldConfig()?.enableFiltering ?? false);
-  readonly activeFiltersSignal = computed(() => this.filterState());
-  readonly hasActiveFiltersSignal = computed(() => this.filterState().length > 0);
-  readonly activeFiltersCountSignal = computed(() => this.filterState().length);
 
   // Column visibility computed signals
   readonly columnVisibilityConfig = computed(() => this.fieldConfig()?.columnVisibility);
@@ -878,12 +874,12 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
    */
   private readonly filteredViewSignal = computed<IndexedView<T>>(() => {
     const data = this.originalDataSignal();
-    const filters = this.filterState();
+    const filters = this.filtering.state();
     const mode = this.modeSignal();
 
     if (mode === 'cursor' || filters.length === 0) return viewOf(data, null);
 
-    const predicate = (row: T) => filters.every((filter) => this.applyFilter(row, filter));
+    const predicate = (row: T) => filters.every((filter) => this.filtering.applyFilter(row, filter));
 
     if (this.isTreeTableSignal()) {
       const hierarchyMode = this.filterHierarchyModeSignal();
@@ -895,7 +891,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // translates without ambiguity; one untranslatable filter forces JS for
     // the whole list (rather than producing wrong results from a partial
     // application). Hybrid per-column dispatch is a future refinement.
-    const engineIndices = this.tryEngineFilterIndices(filters);
+    const engineIndices = this.filtering.tryEngineFilterIndices();
     if (engineIndices) return viewOf(data, engineIndices);
 
     return viewOf(data.filter(predicate), null);
@@ -903,45 +899,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   /** Public materialized form. Lazy — only allocated when actually read. */
   private readonly filteredDataSignal = computed(() => materializeView(this.filteredViewSignal()));
-
-  /**
-   * Engine-backed filter. Returns the indices array (into the original
-   * dataset) or `null` for the JS fallback. The handle is read off a signal
-   * so this re-runs when the WASM module finishes loading.
-   */
-  private tryEngineFilterIndices(filters: readonly FilterConfig<T>[]): Uint32Array | null {
-    const handle = this.engineHandleSignal();
-    const schema = this.engineSchemaSignal();
-    if (!handle || !schema) return null;
-
-    // Memo: filter→wire translation. The filterState signal hands out a new
-    // array reference only on actual filter changes, so ref-equality on
-    // (filters, schema) is the right key. Reuses the cached wire on every
-    // other re-run of the filteredViewSignal computed (data updates, search
-    // text changes, etc.). Invalidated when either ref changes.
-    const memo = this.filterTranslateMemo;
-    let wire: FilterDef<T>[] | null = null;
-    if (memo && memo.filters === filters && memo.schema === schema) {
-      wire = memo.wire;
-    } else {
-      const built: FilterDef<T>[] = [];
-      for (const f of filters) {
-        const translated = translateFilter<T>(f, schema);
-        if (!translated) {
-          this.filterTranslateMemo = null;
-          return null;
-        }
-        built.push(translated);
-      }
-      wire = built;
-      this.filterTranslateMemo = { filters, schema, wire };
-    }
-
-    return handle.filter(wire);
-  }
-
-  private filterTranslateMemo: { filters: readonly FilterConfig<T>[]; schema: readonly ColumnSchema<T>[]; wire: FilterDef<T>[] } | null =
-    null;
 
   /**
    * Searched view — fed by `filteredViewSignal`. Engine path narrows engine
@@ -1523,6 +1480,34 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly sortFieldSignal = this.sorting.field;
   readonly sortDirectionSignal = this.sorting.direction;
 
+  // ============================================================================
+  // Filtering
+  // ============================================================================
+  //
+  // Column-filter list, dropdown open-state, engine wire-translation memo,
+  // and the per-row predicate live in `controllers/filter.controller.ts`.
+  // The upstream `filteredViewSignal` pipeline below reads
+  // `this.filtering.state()` and calls `this.filtering.applyFilter(...)` /
+  // `this.filtering.tryEngineFilterIndices()`.
+
+  private readonly filtering = new FilterController<T>({
+    columnFiltersMap: this.columnFiltersMapSignal,
+    engineHandle: this.engineHandleSignal,
+    engineSchema: this.engineSchemaSignal,
+    onResetToFirstPage: () => this.firstPage(),
+    onCloseDropdowns: () => {
+      if (this.isBrowser) {
+        this.elementRef.nativeElement.querySelectorAll('[id^="filter-popover-"][popover]').forEach((el: HTMLElement) => el.hidePopover?.());
+      }
+    },
+    onFilterChange: (payload) => this.filterChange.emit(payload),
+  });
+
+  readonly openFilterField = this.filtering.openField;
+  readonly activeFiltersSignal = this.filtering.activeFilters;
+  readonly hasActiveFiltersSignal = this.filtering.hasActive;
+  readonly activeFiltersCountSignal = this.filtering.activeCount;
+
   readonly columnDefsSignal = computed((): ColumnDefinition<T>[] => {
     const cols = this.columns();
     if (cols?.length) return cols;
@@ -1968,99 +1953,41 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return tooltip || '';
   }
 
-  // Filter methods
+  // Filter methods (thin forwarders to the FilterController)
   toggleFilterDropdown(field: string): void {
-    const current = this.openFilterField();
-    this.openFilterField.set(current === field ? null : field);
+    this.filtering.toggleDropdown(field);
   }
 
   closeAllFilterDropdowns(): void {
-    this.openFilterField.set(null);
-    // Close any open filter popovers
-    if (this.isBrowser) {
-      this.elementRef.nativeElement.querySelectorAll('[id^="filter-popover-"][popover]').forEach((el: HTMLElement) => el.hidePopover?.());
-    }
+    this.filtering.closeAllDropdowns();
   }
 
   isFilterOpen(field: string): boolean {
-    return this.openFilterField() === field;
+    return this.filtering.isOpen(field);
   }
 
   getFilterForColumn(field: string): ColumnFilter<T> | undefined {
-    return this.columnFiltersMapSignal().get(field);
+    return this.filtering.getColumnFilter(field);
   }
 
   getActiveFilterForColumn(field: string): FilterConfig<T> | undefined {
-    return this.filterState().find((f) => f.field === field);
+    return this.filtering.getActiveFilterForColumn(field);
   }
 
   hasFilterForColumn(field: string): boolean {
-    return this.columnFiltersMapSignal().has(field);
+    return this.filtering.hasFilterForColumn(field);
   }
 
   applyColumnFilter(field: string, value: unknown, operator: FilterOperator): void {
-    const filterConfig = this.columnFiltersMapSignal().get(field);
-    if (!filterConfig) return;
-
-    // Remove existing filter for this field
-    const filters = this.filterState().filter((f) => f.field !== field);
-
-    // Add new filter if value is not empty. Treat empty arrays AND arrays of only
-    // empty/null entries (e.g. ['', ''] from an untouched date-range UI) as empty so
-    // clearing a range input actually clears the filter instead of leaving an active
-    // filter with NaN bounds that excludes every row.
-    const isEmpty =
-      value == null || value === '' || (Array.isArray(value) && (value.length === 0 || value.every((v) => v == null || v === '')));
-
-    if (!isEmpty) {
-      filters.push({
-        field: field as Extract<keyof T, string>,
-        value,
-        operator,
-        type: filterConfig.type,
-      });
-    }
-
-    this.filterState.set(filters);
-    this.closeAllFilterDropdowns();
-
-    // Reset to first page when filter changes
-    this.firstPage();
-
-    this.filterChange.emit({
-      field,
-      value,
-      operator,
-      filters: this.filterState(),
-    });
+    this.filtering.applyColumnFilter(field, value, operator);
   }
 
   removeFilter(field: string): void {
-    const filters = this.filterState().filter((f) => f.field !== field);
-    this.filterState.set(filters);
-
-    // Reset to first page
-    this.firstPage();
-
-    this.filterChange.emit({
-      field,
-      value: null,
-      operator: 'equals',
-      filters: this.filterState(),
-    });
+    this.filtering.removeFilter(field);
   }
 
   clearAllFilters(): void {
-    this.filterState.set([]);
-    this.closeAllFilterDropdowns();
-    this.firstPage();
-
-    this.filterChange.emit({
-      field: '',
-      value: null,
-      operator: 'equals',
-      filters: [],
-    });
+    this.filtering.clearAll();
   }
 
   // Global search methods
@@ -3237,7 +3164,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       if (hierarchyMode === 'none') return;
 
       // Only auto-expand when filtering or search is actually active.
-      const hasFilters = this.filterState().length > 0;
+      const hasFilters = this.filtering.hasActive();
       const hasSearch = !!this.debouncedSearchTerm();
       if (!hasFilters && !hasSearch) return;
 
@@ -3370,92 +3297,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       includeScore: opts.includeScore,
       isCaseSensitive: opts.isCaseSensitive,
     };
-  }
-
-  // Apply a single filter to a row
-  private applyFilter(row: T, filter: FilterConfig<T>): boolean {
-    const value = row[filter.field];
-    const filterValue = filter.value;
-
-    // Explicit empty checks first — independent of value nullity
-    if (filter.operator === 'isEmpty') {
-      return value == null || value === '';
-    }
-    if (filter.operator === 'isNotEmpty') {
-      return value != null && value !== '';
-    }
-
-    // Null-value semantics: "not" operators match null rows (null is not equal to /
-    // does not contain / is not in anything). Other operators filter nulls out.
-    if (value == null) {
-      return filter.operator === 'notEquals' || filter.operator === 'notContains' || filter.operator === 'notIn';
-    }
-
-    switch (filter.operator) {
-      case 'equals':
-        return value === filterValue;
-
-      case 'notEquals':
-        return value !== filterValue;
-
-      case 'contains':
-        return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
-
-      case 'notContains':
-        return !String(value).toLowerCase().includes(String(filterValue).toLowerCase());
-
-      case 'startsWith':
-        return String(value).toLowerCase().startsWith(String(filterValue).toLowerCase());
-
-      case 'endsWith':
-        return String(value).toLowerCase().endsWith(String(filterValue).toLowerCase());
-
-      case 'gt':
-        return Number(value) > Number(filterValue);
-
-      case 'lt':
-        return Number(value) < Number(filterValue);
-
-      case 'gte':
-        return Number(value) >= Number(filterValue);
-
-      case 'lte':
-        return Number(value) <= Number(filterValue);
-
-      case 'in':
-        return Array.isArray(filterValue) ? filterValue.includes(value) : false;
-
-      case 'notIn':
-        // Aligned with `in` — malformed (non-array) filter value fails closed.
-        return Array.isArray(filterValue) ? !filterValue.includes(value) : false;
-
-      case 'between': {
-        if (!Array.isArray(filterValue) || filterValue.length !== 2) return false;
-        const [a, b] = filterValue as [unknown, unknown];
-
-        // Date range: parse both sides via Date so ISO strings compare correctly.
-        // (Number('2025-01-15') is NaN, so the old number-only logic silently
-        // excluded every row whenever a date range was applied.)
-        if (filter.type === 'dateRange') {
-          const t = new Date(value as string | number | Date).getTime();
-          if (isNaN(t)) return false;
-          const lo = a != null && a !== '' ? new Date(a as string | number | Date).getTime() : -Infinity;
-          const hi = b != null && b !== '' ? new Date(b as string | number | Date).getTime() : Infinity;
-          return t >= lo && t <= hi;
-        }
-
-        // Numeric range (numberRange or legacy usage). Partial ranges are allowed:
-        // missing low bound → -Infinity; missing high bound → +Infinity.
-        const n = Number(value);
-        if (isNaN(n)) return false;
-        const lo = a != null && a !== '' ? Number(a) : -Infinity;
-        const hi = b != null && b !== '' ? Number(b) : Infinity;
-        return n >= lo && n <= hi;
-      }
-
-      default:
-        return true;
-    }
   }
 }
 
