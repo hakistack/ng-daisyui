@@ -1,6 +1,6 @@
 {
   "name": "@hakistack/ng-daisyui",
-  "version": "0.1.92",
+  "version": "0.2.0",
   "description": "Angular UI components built with DaisyUI and Tailwind CSS",
   "author": "Hakistack",
   "license": "UNLICENSED",
