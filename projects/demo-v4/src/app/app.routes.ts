@@ -35,6 +35,11 @@ export const routes: Routes = [
   },
   { path: 'tree', redirectTo: 'tree/basic', pathMatch: 'full' },
   { path: 'tree/:feature', loadComponent: () => import('@shared-demos/demos/tree-demo.component').then((m) => m.TreeDemoComponent) },
+  { path: 'pdf-viewer', redirectTo: 'pdf-viewer/basic', pathMatch: 'full' },
+  {
+    path: 'pdf-viewer/:feature',
+    loadComponent: () => import('@shared-demos/demos/pdf-viewer-demo.component').then((m) => m.PdfViewerDemoComponent),
+  },
   // Inputs
   { path: 'input', redirectTo: 'input/basic', pathMatch: 'full' },
   { path: 'input/:feature', loadComponent: () => import('@shared-demos/demos/input-demo.component').then((m) => m.InputDemoComponent) },
@@ -55,9 +60,19 @@ export const routes: Routes = [
   // Navigation
   { path: 'tabs', redirectTo: 'tabs/basic', pathMatch: 'full' },
   { path: 'tabs/:feature', loadComponent: () => import('@shared-demos/demos/tabs-demo.component').then((m) => m.TabsDemoComponent) },
+  { path: 'command-palette', redirectTo: 'command-palette/basic', pathMatch: 'full' },
+  {
+    path: 'command-palette/:feature',
+    loadComponent: () => import('@shared-demos/demos/command-palette-demo.component').then((m) => m.CommandPaletteDemoComponent),
+  },
   // Feedback
   { path: 'toast', redirectTo: 'toast/basic', pathMatch: 'full' },
   { path: 'toast/:feature', loadComponent: () => import('@shared-demos/demos/toast-demo.component').then((m) => m.ToastDemoComponent) },
+  { path: 'notification', redirectTo: 'notification/basic', pathMatch: 'full' },
+  {
+    path: 'notification/:feature',
+    loadComponent: () => import('@shared-demos/demos/notification-demo.component').then((m) => m.NotificationDemoComponent),
+  },
   { path: 'alert', redirectTo: 'alert/basic', pathMatch: 'full' },
   { path: 'alert/:feature', loadComponent: () => import('@shared-demos/demos/alert-demo.component').then((m) => m.AlertDemoComponent) },
   { path: 'dialog', redirectTo: 'dialog/basic', pathMatch: 'full' },
