@@ -27,8 +27,6 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
-import { IFuseOptions } from 'fuse.js';
-import { createFuseCache, FuseCache } from '../../utils/fuse-cache';
 import { HK_THEME } from '../../theme/theme.config';
 
 import { AutoFocusDirective } from '../../directives';
@@ -70,14 +68,11 @@ import {
   FilterConfig,
   FilterOperator,
   GlobalSearchChange,
-  GlobalSearchConfig,
-  GroupConfig,
   GroupExpandEvent,
   PageSizeChange,
   PaginationOptions,
   ResolvedColspanCell,
   ResolvedFooterRow,
-  ResolvedGroupAggregates,
   RowExpandEvent,
   RowGroup,
   RowReorderEvent,
@@ -90,18 +85,16 @@ import {
   _attachTableInstance,
   _detachTableInstance,
   collectAncestorKeys,
-  encodeGroupPath,
   exportToCsv,
   exportToJson,
   filterTreeData,
-  flattenTreeData,
   generateRowKey,
   getRowChildren,
-  groupData,
   sortTreeData,
 } from './table.helpers';
 import { FilterController } from './controllers/filter.controller';
 import { FooterController } from './controllers/footer.controller';
+import { GlobalSearchController } from './controllers/global-search.controller';
 import { GroupController } from './controllers/group.controller';
 import { PaginationController } from './controllers/pagination.controller';
 import { SelectionController } from './controllers/selection.controller';
@@ -686,23 +679,10 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly resolvedGroupAggregatesSignal = computed(() => this.config()?.resolvedGroupAggregates);
   readonly hasGroupFooterRowsSignal = computed(() => (this.groupConfigSignal()?.groupFooterRows?.length ?? 0) > 0);
 
-  // Global search signals
-  readonly globalSearchTerm = signal<string>('');
-  private readonly debouncedSearchTerm = signal<string>('');
-  private searchDebounceTimeout?: ReturnType<typeof setTimeout>;
-
-  // Fuzzy-search cache — auto-invalidates on data-ref OR keys change.
-  // No `includeScore` (was a 0.1.76- defect — score computed but never read).
-  // Recreated when consumer passes a *different* `fuseOptions` object reference.
-  private fuseCache: FuseCache<T> = createFuseCache<T>();
-  private _fuseOptionsRef: IFuseOptions<T> | undefined;
-
-  // Global search computed signals
-  readonly hasGlobalSearchSignal = computed(() => this.fieldConfig()?.globalSearch?.enabled ?? false);
-  readonly globalSearchModeSignal = computed(() => this.fieldConfig()?.globalSearch?.mode ?? 'contains');
-  readonly globalSearchPlaceholderSignal = computed(() => this.fieldConfig()?.globalSearch?.placeholder ?? 'Search all columns...');
-  readonly globalSearchClearAriaSignal = computed(() => this.fieldConfig()?.globalSearch?.labels?.clearAriaLabel ?? 'Clear search');
-  readonly hasGlobalSearchTermSignal = computed(() => this.debouncedSearchTerm().length > 0);
+  // Global search — the GlobalSearchController owns `term`, `debouncedTerm`,
+  // the debounce effect, the Fuse cache, and the searched-view pipeline.
+  // Declared lower in the file (after `filteredViewSignal` so the deps
+  // resolve cleanly); template-facing aliases are wired up there.
 
   // `sortFieldSignal` / `sortDirectionSignal` are exposed as aliases off the
   // SortController, declared lower in the file next to the selection controller.
@@ -893,147 +873,42 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   /** Public materialized form. Lazy — only allocated when actually read. */
   private readonly filteredDataSignal = computed(() => materializeView(this.filteredViewSignal()));
 
-  /**
-   * Searched view — fed by `filteredViewSignal`. Engine path narrows engine
-   * search results against the post-filter index set and returns indices;
-   * tree / fuzzy / custom paths produce a derived array wrapped in a view.
-   */
-  private readonly searchedViewSignal = computed<IndexedView<T>>(() => {
-    const view = this.filteredViewSignal();
-    const searchTerm = this.debouncedSearchTerm();
-    const config = this.fieldConfig()?.globalSearch;
-    const mode = this.modeSignal();
+  // ============================================================================
+  // Global Search (controller + template-facing aliases)
+  // ============================================================================
+  //
+  // Declared here — after `filteredViewSignal` so the deps resolve cleanly.
+  // The controller owns `term`, `debouncedTerm`, the Fuse cache, the
+  // debounce effect, and the searched-view pipeline. The host re-exposes
+  // its signals under their historical names so templates and specs work
+  // unmodified.
 
-    if (mode === 'cursor' || !config?.enabled || !searchTerm) return view;
-
-    const searchMode = config.mode ?? 'contains';
-
-    // Build the search predicate (used by JS / fuzzy / tree fallbacks)
-    let searchPredicate: (row: T) => boolean;
-
-    if (config.customSearch) {
-      searchPredicate = (row: T) => config.customSearch!(row, searchTerm);
-    } else if (searchMode === 'fuzzy') {
-      // Fuzzy doesn't combine well with the indices pipeline. Materialize
-      // the upstream view, run the JS fuzzy search, wrap the result.
-      const data = materializeView(view);
-      return viewOf(this.performFuzzySearch(data, searchTerm, config), null);
-    } else {
-      const caseSensitive = config.caseSensitive ?? false;
-      const excludeFields = new Set(config.excludeFields ?? []);
-      const searchableFields =
-        this.columns()
-          ?.map((col) => col.field)
-          .filter((f) => !excludeFields.has(f)) ?? [];
-      const normalizedSearch = caseSensitive ? searchTerm : searchTerm.toLowerCase();
-
-      searchPredicate = (row: T) => {
-        return searchableFields.some((field) => {
-          const value = row[field];
-          if (value == null) return false;
-
-          const stringValue = String(value);
-          const normalizedValue = caseSensitive ? stringValue : stringValue.toLowerCase();
-
-          switch (searchMode) {
-            case 'contains':
-              return normalizedValue.includes(normalizedSearch);
-            case 'startsWith':
-              return normalizedValue.startsWith(normalizedSearch);
-            case 'exact':
-              return normalizedValue === normalizedSearch;
-            default:
-              return false;
-          }
-        });
-      };
-    }
-
-    // Tree mode: hierarchy-aware search. Materialize upstream first; tree
-    // helpers expect concrete arrays. Ancestor auto-expand happens in
-    // setupEffects(), not here (cycle avoidance — see comment there).
-    if (this.isTreeTableSignal()) {
-      const hierarchyMode = this.filterHierarchyModeSignal();
-      const childrenProp = this.childrenPropertySignal();
-      const data = materializeView(view);
-      return viewOf(filterTreeData(data as T[], searchPredicate, childrenProp, hierarchyMode), null);
-    }
-
-    // Engine path: indices ∩ filter-indices, no row materialization.
-    const engineIndices = this.tryEngineSearchIndices(view, searchTerm, config);
-    if (engineIndices) return viewOf(view.source, engineIndices);
-
-    // JS fallback: walk the view, push surviving indices.
-    return viewOf(view.source, this.filterViewByPredicate(view, searchPredicate));
+  private readonly globalSearch = new GlobalSearchController<T>({
+    config: computed(() => this.fieldConfig()?.globalSearch),
+    filteredView: this.filteredViewSignal,
+    mode: this.modeSignal,
+    isTreeTable: this.isTreeTableSignal,
+    filterHierarchyMode: this.filterHierarchyModeSignal,
+    childrenProperty: this.childrenPropertySignal,
+    columns: this.columns,
+    engineHandle: this.engineHandleSignal,
+    engineSchemaKindMap: this.engineSchemaKindMapSignal,
+    injector: this.injector,
+    onSearchChange: (event) => this.globalSearchChange.emit(event),
+    onTermChanged: () => this.firstPage(),
   });
 
+  readonly globalSearchTerm = this.globalSearch.term;
+  private readonly debouncedSearchTerm = this.globalSearch.debouncedTerm;
+  readonly hasGlobalSearchSignal = this.globalSearch.enabled;
+  readonly globalSearchModeSignal = this.globalSearch.searchMode;
+  readonly globalSearchPlaceholderSignal = this.globalSearch.placeholder;
+  readonly globalSearchClearAriaSignal = this.globalSearch.clearAriaLabel;
+  readonly hasGlobalSearchTermSignal = this.globalSearch.hasTerm;
+  private readonly searchedViewSignal = this.globalSearch.searchedView;
+
   /** Public materialized form. Lazy — only allocated when actually read. */
-  private readonly globalSearchedDataSignal = computed(() => materializeView(this.searchedViewSignal()));
-
-  /**
-   * Engine-backed global search returning indices into the original dataset.
-   * Intersects the engine's match set with the post-column-filter index set.
-   * Returns `null` when the engine can't service this config.
-   */
-  private tryEngineSearchIndices(
-    view: IndexedView<T>,
-    searchTerm: string,
-    config: NonNullable<ReturnType<TableComponent<T>['fieldConfig']>>['globalSearch'] & object,
-  ): Uint32Array | null {
-    const handle = this.engineHandleSignal();
-    const kindMap = this.engineSchemaKindMapSignal();
-    if (!handle || !kindMap) return null;
-
-    const mode = (config.mode ?? 'contains') as 'contains' | 'startsWith' | 'exact';
-    if (mode !== 'contains' && mode !== 'startsWith' && mode !== 'exact') return null;
-
-    const excludeFields = new Set(config.excludeFields ?? []);
-    const fields =
-      this.columns()
-        ?.map((c) => c.field)
-        .filter((f) => !excludeFields.has(f)) ?? [];
-
-    const engineFields = fields.filter((f) => kindMap.get(f) === 'text') as (keyof T & string)[];
-
-    const matchedIdx = handle.search({
-      term: searchTerm,
-      mode,
-      fields: engineFields,
-      caseSensitive: config.caseSensitive ?? false,
-    });
-
-    // Intersect with the upstream view's index set. When the view has no
-    // indices (`null`), every row is in scope and the intersection is a
-    // no-op — return the engine's result directly.
-    if (view.indices === null) return matchedIdx;
-
-    const visibleSet = new Set<number>();
-    for (let i = 0; i < view.indices.length; i++) visibleSet.add(view.indices[i]);
-
-    const out = new Uint32Array(matchedIdx.length);
-    let n = 0;
-    for (let i = 0; i < matchedIdx.length; i++) {
-      const idx = matchedIdx[i];
-      if (visibleSet.has(idx)) out[n++] = idx;
-    }
-    return n === out.length ? out : out.slice(0, n);
-  }
-
-  /** Walk a view, return the indices array for rows that pass `predicate`. */
-  private filterViewByPredicate(view: IndexedView<T>, predicate: (row: T) => boolean): Uint32Array {
-    const buf: number[] = [];
-    if (!view.indices) {
-      for (let i = 0; i < view.source.length; i++) {
-        if (predicate(view.source[i])) buf.push(i);
-      }
-    } else {
-      for (let i = 0; i < view.indices.length; i++) {
-        const idx = view.indices[i];
-        if (predicate(view.source[idx])) buf.push(idx);
-      }
-    }
-    return Uint32Array.from(buf);
-  }
+  private readonly globalSearchedDataSignal: Signal<readonly T[]> = computed(() => materializeView(this.searchedViewSignal()));
 
   /**
    * Sorted view — fed by `searchedViewSignal`. Engine path runs entirely on
@@ -1482,9 +1357,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
-    if (this.searchDebounceTimeout) {
-      clearTimeout(this.searchDebounceTimeout);
-    }
+    this.globalSearch.dispose();
 
     if (this.attachedConfig) {
       _detachTableInstance(this.attachedConfig, this, this.attachedId ?? undefined);
@@ -1691,40 +1564,13 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     this.filtering.clearAll();
   }
 
-  // Global search methods
+  // Global search methods (thin forwarders to GlobalSearchController)
   onGlobalSearchChange(searchTerm: string): void {
-    this.globalSearchTerm.set(searchTerm);
+    this.globalSearch.setTerm(searchTerm);
   }
 
   clearGlobalSearch(): void {
-    // Skip the whole flow when there's nothing to clear — prevents a phantom
-    // emit/firstPage when the user clicks the clear affordance with an
-    // already-empty term (or when consumers programmatically call clear on
-    // an empty state).
-    const wasEmpty = this.globalSearchTerm() === '' && this.debouncedSearchTerm() === '';
-    if (wasEmpty) return;
-
-    this.globalSearchTerm.set('');
-    this.debouncedSearchTerm.set('');
-
-    // Clear any pending timeout
-    if (this.searchDebounceTimeout) {
-      clearTimeout(this.searchDebounceTimeout);
-    }
-
-    // For cursor/server-side pagination, emit event with empty search
-    const mode = this.modeSignal();
-    const config = this.fieldConfig()?.globalSearch;
-    if (mode === 'cursor' && config?.enabled) {
-      const searchMode = config.mode ?? 'contains';
-      this.globalSearchChange.emit({
-        searchTerm: '',
-        mode: searchMode,
-      });
-    }
-
-    // Reset to first page
-    this.firstPage();
+    this.globalSearch.clear();
   }
 
   // Column visibility methods
@@ -2548,47 +2394,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // Note: Sorting now works for both offset and cursor modes
     // Cursor mode emits events for server-side sorting
 
-    // Debounce global search term.
-    // The effect runs once on creation with the initial empty `searchTerm`,
-    // so emitting unconditionally produced a phantom `globalSearchChange`
-    // event on first paint. Server-side cursor consumers that load data both
-    // in `ngOnInit` and in `(globalSearchChange)` ended up making two
-    // identical first-load HTTP calls. Both the emit and `firstPage()` now
-    // gate on the term actually changing.
-    effect(() => {
-      const searchTerm = this.globalSearchTerm();
-      const config = this.fieldConfig()?.globalSearch;
-      const debounceTime = config?.debounceTime ?? 300;
-      const previousSearchTerm = this.debouncedSearchTerm();
-
-      // Clear any existing timeout
-      if (this.searchDebounceTimeout) {
-        clearTimeout(this.searchDebounceTimeout);
-      }
-
-      // Set new timeout to update debounced term
-      this.searchDebounceTimeout = setTimeout(() => {
-        const changed = searchTerm !== previousSearchTerm;
-        this.debouncedSearchTerm.set(searchTerm);
-
-        // For cursor/server-side pagination, emit event — but only when the
-        // term genuinely changed. The initial empty-string emit on mount is
-        // not a user action and would race with consumer-side initial loads.
-        const mode = this.modeSignal();
-        if (changed && mode === 'cursor' && config?.enabled) {
-          const searchMode = config.mode ?? 'contains';
-          this.globalSearchChange.emit({
-            searchTerm,
-            mode: searchMode,
-          });
-        }
-
-        // Reset to first page when search changes
-        if (changed) {
-          this.firstPage();
-        }
-      }, debounceTime);
-    });
+    // The global-search debounce effect lives on the GlobalSearchController.
 
     // Master-Detail: auto-select first row when data changes
     effect(() => {
@@ -2718,67 +2524,5 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, (char) => char.toUpperCase())
       .trim();
-  }
-
-  /**
-   * Performs fuzzy search via the shared FuseCache helper. The cache
-   * invalidates on data-ref OR keys change — so toggling column visibility
-   * or `excludeFields` correctly rebuilds the index, which the previous
-   * data-only invalidation missed.
-   */
-  private performFuzzySearch(data: readonly T[], searchTerm: string, config: NonNullable<GlobalSearchConfig<T>>): readonly T[] {
-    const excludeFields = new Set(config.excludeFields ?? []);
-    const searchableFields =
-      this.columns()
-        ?.map((col) => col.field)
-        .filter((f) => !excludeFields.has(f)) ?? [];
-
-    if (searchableFields.length === 0) return [];
-
-    const searchableKeys = searchableFields.map((f) => String(f));
-
-    // Recreate the cache only when the consumer's `fuseOptions` reference
-    // changes — not on every keystroke. This honors consumer overrides
-    // (threshold, ignoreLocation, etc.) without thrashing the cache.
-    const consumerOptions = config.fuseOptions;
-    if (consumerOptions !== this._fuseOptionsRef) {
-      this._fuseOptionsRef = consumerOptions;
-      this.fuseCache = createFuseCache<T>(consumerOptions ? this.extractFuseOverrides(consumerOptions) : undefined);
-    }
-
-    return this.fuseCache.search(searchTerm, data, searchableKeys);
-  }
-
-  /** Whitelist Fuse options that are safe to override per-instance. */
-  private extractFuseOverrides(opts: IFuseOptions<T>): Omit<IFuseOptions<T>, 'keys'> {
-    return {
-      threshold: opts.threshold,
-      ignoreLocation: opts.ignoreLocation,
-      minMatchCharLength: opts.minMatchCharLength,
-      includeScore: opts.includeScore,
-      isCaseSensitive: opts.isCaseSensitive,
-    };
-  }
-}
-
-/**
- * Map an engine `GroupKey` (typed wire shape) to the `unknown` value the JS
- * `RowGroup<T>` uses for `groupValue`. We never reach here for date columns —
- * `translateGroupFields` rejects them because the engine's ms-epoch numeric
- * key would mismatch the original `Date | string | number` types JS would
- * have extracted.
- */
-function engineKeyToValue(key: import('./engine').GroupKey): unknown {
-  switch (key.kind) {
-    case 'null':
-      return null;
-    case 'text':
-      return key.value;
-    case 'number':
-      return key.value;
-    case 'bool':
-      return key.value;
-    case 'date':
-      return key.value; // ms-epoch, reachable only if translateGroupFields is relaxed later
   }
 }
