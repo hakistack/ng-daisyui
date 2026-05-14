@@ -62,6 +62,13 @@ export class PaginationController {
   readonly pageSize: Signal<number>;
   readonly pageSizeOptions: Signal<readonly number[]>;
   readonly mode: Signal<'offset' | 'cursor'>;
+  /**
+   * True when the consumer is paginating server-side — either via
+   * `mode: 'cursor'` (always server-driven) or `mode: 'offset'` with
+   * `serverSide: true`. The data pipeline uses this to decide whether to
+   * slice client-side or pass the input through unchanged.
+   */
+  readonly isServerSide: Signal<boolean>;
   readonly nextCursor: Signal<string | number | null>;
   readonly prevCursor: Signal<string | number | null>;
   readonly totalPages: Signal<number>;
@@ -79,6 +86,12 @@ export class PaginationController {
     this.pageSize = computed(() => this.state().pageSize);
     this.pageSizeOptions = computed(() => deps.paginationOptions()?.pageSizeOptions ?? [5, 10, 25, 50, 100]);
     this.mode = computed(() => deps.paginationOptions()?.mode ?? 'offset');
+    this.isServerSide = computed(() => {
+      const options = deps.paginationOptions();
+      if (!options) return false;
+      // Cursor mode is always server-driven. Offset opts in via `serverSide`.
+      return options.mode === 'cursor' || options.serverSide === true;
+    });
     this.nextCursor = computed(() => deps.paginationOptions()?.nextCursor ?? null);
     this.prevCursor = computed(() => deps.paginationOptions()?.prevCursor ?? null);
     this.totalPages = computed(() => Math.max(1, Math.ceil(deps.totalItems() / this.pageSize())));

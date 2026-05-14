@@ -345,6 +345,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly pageSizeSignal = this.pagination.pageSize;
   readonly pageSizeOptionsSignal = this.pagination.pageSizeOptions;
   readonly modeSignal = this.pagination.mode;
+  readonly isServerSidePaginationSignal = this.pagination.isServerSide;
   readonly nextCursorSignal = this.pagination.nextCursor;
   readonly prevCursorSignal = this.pagination.prevCursor;
   private readonly totalPagesSignal = this.pagination.totalPages;
@@ -963,24 +964,33 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   /**
    * Page-slice boundary. Reads the lazy `displayViewSignal` and only
-   * materializes the rows actually rendered (50 in the typical offset case)
-   * — the engine-routed pipeline upstream never builds a full T[].
+   * materializes the rows actually rendered (50 in the typical client-side
+   * offset case) — the engine-routed pipeline upstream never builds a full T[].
+   *
+   * Three render paths:
+   *   - **Virtual scroll** — CDK reads the entire dataset; materialize once.
+   *   - **Server-side pagination** (cursor mode OR offset + serverSide) —
+   *     `data` already contains just the current page; pass through.
+   *   - **Client-side offset** (default) — slice
+   *     `[pageIndex * pageSize, +pageSize)` out of the view.
    */
   private readonly currentDataSignal: Signal<readonly T[]> = computed(() => {
-    const mode = this.modeSignal();
     const view = this.displayViewSignal();
 
     // Virtual scroll: CDK reads the entire dataset. Materialize once.
     if (this.isVirtualScrollSignal()) return materializeView(view);
 
-    if (mode === 'offset') {
-      const start = this.pageIndexSignal() * this.pageSizeSignal();
-      const end = start + this.pageSizeSignal();
-      return materializeSlice(view, start, end);
-    }
+    // Server-side pagination (cursor mode or offset+serverSide). The
+    // consumer is feeding us just the page we should render — slicing
+    // would discard the rows beyond `pageSize` (or worse, render an
+    // empty page on every nav past page 1, since indices wouldn't line
+    // up with the server's chunk).
+    if (this.isServerSidePaginationSignal()) return materializeView(view);
 
-    // Cursor mode: server returns the page; pass through.
-    return materializeView(view);
+    // Client-side offset: slice the page out of the full view.
+    const start = this.pageIndexSignal() * this.pageSizeSignal();
+    const end = start + this.pageSizeSignal();
+    return materializeSlice(view, start, end);
   });
 
   // ============================================================================

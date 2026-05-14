@@ -597,7 +597,45 @@ export interface ColumnDefinition<T> {
 
 // Enhanced pagination configuration
 export interface PaginationOptions {
+  /**
+   * Navigation style.
+   *
+   * - `'offset'` — numbered pages with a known `totalItems`. Renders page
+   *   buttons, "page X of Y", optional quick-jumper.
+   * - `'cursor'` — prev/next only, driven by opaque `nextCursor` /
+   *   `prevCursor` tokens. No numbered pages.
+   */
   mode: 'cursor' | 'offset';
+  /**
+   * Whether the consumer is paginating data server-side. Controls how the
+   * table treats the `data` input:
+   *
+   * - `false` (default) — table holds the full dataset and slices it
+   *   client-side: `data.slice(pageIndex * pageSize, ...)`.
+   * - `true` — `data` is *just the current page*. Table renders it
+   *   verbatim. The consumer wires `(pageChange)` to a fetch and pushes
+   *   server metadata via `controller.setPagination({ totalItems, ... })`.
+   *
+   * `mode: 'cursor'` ignores this flag (cursor mode is inherently
+   * server-side — there's no full dataset to slice in the first place).
+   *
+   * **Known limitations in server-side mode:**
+   * - Selection is page-local. Rows selected on page 1 are pruned when
+   *   the consumer swaps `data` for page 2 (the page-1 rows are no longer
+   *   in `data`). Cross-page persistence needs a different selection
+   *   strategy and is not implemented yet.
+   * - Footer aggregates (`column.footer` / `footerRows`) compute against
+   *   the *current page* only. For grand totals, compute server-side and
+   *   render via a custom footer template.
+   *
+   * **Required wiring for offset + server-side:**
+   * - Pass only the current page as `[data]`.
+   * - Listen to `(pageChange)` and fetch the next page.
+   * - Call `controller.setPagination({ totalItems })` so numbered pages
+   *   render correctly (without `totalItems`, totals fall back to
+   *   `data.length`, which only knows about the current page).
+   */
+  serverSide?: boolean;
   nextCursor?: string | null;
   prevCursor?: string | null;
   pageSize: number;

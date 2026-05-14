@@ -692,6 +692,54 @@ describe('TableComponent', () => {
 
       expect(component.totalItemsSignal()).toBe(5);
     });
+
+    it('offset + serverSide passes data through without slicing (regression: client-side slice produced blank page 2 when consumer fed one page at a time)', () => {
+      // Consumer fetches one page at a time. `data` is just rows 6–10
+      // (the server's page 2 response), and pageIndex is 1 with pageSize=5.
+      // Client-side slicing would compute `data.slice(5, 10)` → empty.
+      const pageTwoRows = [
+        { id: 6, name: 'Frank', email: 'f@e.com', age: 35, active: true },
+        { id: 7, name: 'Gina', email: 'g@e.com', age: 40, active: false },
+      ];
+      const config = buildConfig({
+        visible: ['name'],
+        pagination: { mode: 'offset', pageSize: 5, serverSide: true, totalItems: 10 },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', pageTwoRows);
+      fixture.detectChanges();
+
+      // Advance to page 2 like a consumer would after fetching.
+      component.nextPage();
+      fixture.detectChanges();
+
+      const rows = queryAllBodyRows(fixture);
+      expect(rows.length).toBe(pageTwoRows.length);
+      expect(component.isServerSidePaginationSignal()).toBe(true);
+    });
+
+    it('cursor mode reports isServerSidePagination true regardless of the serverSide flag', () => {
+      const config = buildConfig({
+        visible: ['name'],
+        pagination: { mode: 'cursor', pageSize: 5, totalItems: 100 },
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      expect(component.isServerSidePaginationSignal()).toBe(true);
+    });
+
+    it('default offset mode (no serverSide flag) keeps client-side slicing', () => {
+      const config = buildConfig({ visible: ['name'], pagination: { mode: 'offset', pageSize: 2 } });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      expect(component.isServerSidePaginationSignal()).toBe(false);
+      // Page 1 of 5 rows at pageSize=2 shows 2 rows, not all 5.
+      expect(queryAllBodyRows(fixture).length).toBe(2);
+    });
   });
 
   // =========================================================================
