@@ -100,8 +100,10 @@ import {
   sortTreeData,
 } from './table.helpers';
 import { FilterController } from './controllers/filter.controller';
+import { GroupController } from './controllers/group.controller';
 import { SelectionController } from './controllers/selection.controller';
 import { SortController } from './controllers/sort.controller';
+import { TreeController } from './controllers/tree.controller';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import {
   TableEngineService,
@@ -440,18 +442,9 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly columnVisibilityState = signal<Map<string, boolean>>(new Map()); // Track column visibility
   readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
 
-  // Tree table signals
-  readonly expandedRowKeys = signal<Set<string>>(new Set());
-  private treeRowLevelMap = new Map<T, number>(); // Cache row levels for template access
-  private treeRowKeyMap = new Map<T, string>(); // Cache row keys for template access
-  private treeRowHasChildrenMap = new Map<T, boolean>(); // Cache hasChildren for template access
-  private treeRowIsLastChildMap = new Map<T, boolean>(); // Cache isLastChild for indent guides
-  private treeRowAncestorFlagsMap = new Map<T, boolean[]>(); // Cache ancestor flags for indent guides
-  private treeRowParentKeyMap = new Map<string, string | null>(); // key → parentKey for cascade
-  private treeKeyToDataMap = new Map<string, T>(); // key → row for cascade
-
-  // Animation signal for tree row expand
-  readonly treeAnimatingKeys = signal<Set<string>>(new Set());
+  // Tree-table state (expansion, animating keys, topology caches) lives on
+  // the TreeController instantiated lower in the file. `expandedRowKeys` and
+  // `treeAnimatingKeys` are re-exposed there as aliases for templates.
 
   // ============================================================================
   // Sticky Columns
@@ -671,27 +664,14 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // ============================================================================
   // Row Grouping
   // ============================================================================
+  //
+  // GroupController (declared lower) owns the grouped tree, the display
+  // stream, expansion state, and the engine-routed groupBy pipeline.
+  // `groupConfigSignal` and `resolvedGroupAggregatesSignal` are kept here
+  // because they read from `fieldConfig()` / `config()` which other
+  // computeds (e.g. footer aggregates) also depend on.
   readonly groupConfigSignal = computed(() => this.fieldConfig()?.grouping);
-  readonly isGroupedSignal = computed(() => {
-    const cfg = this.groupConfigSignal();
-    if (!cfg?.groupBy) return false;
-    return Array.isArray(cfg.groupBy) ? cfg.groupBy.length > 0 : true;
-  });
-  /** Group depth for nested grouping. Always ≥ 1 when grouped. */
-  readonly groupDepthSignal = computed(() => {
-    const cfg = this.groupConfigSignal();
-    if (!cfg?.groupBy) return 0;
-    return Array.isArray(cfg.groupBy) ? cfg.groupBy.length : 1;
-  });
-  /**
-   * Path-keyed expansion state. Each entry is `encodeGroupPath(path)` for an
-   * EXPANDED group. `null` sentinel = "never interacted; defer to
-   * `initiallyExpanded`". Storing expanded paths instead of collapsed ones
-   * means new groups inherit the default state correctly across data changes.
-   */
-  readonly expandedGroups = signal<Set<string> | null>(null);
   readonly resolvedGroupAggregatesSignal = computed(() => this.config()?.resolvedGroupAggregates);
-  readonly hasGroupCaptionAggregatesSignal = computed(() => !!this.groupConfigSignal()?.captionAggregates);
   readonly hasGroupFooterRowsSignal = computed(() => (this.groupConfigSignal()?.groupFooterRows?.length ?? 0) > 0);
 
   // Global search signals
@@ -775,13 +755,12 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return c?.endActionsLabel ?? c?.actionsLabel ?? 'Actions';
   });
 
-  // Tree table computed signals
+  // Tree table — config is read here (the controller and other signals both
+  // depend on it). Topology / expansion state aliases come off the
+  // TreeController itself, declared further down.
   readonly treeTableConfigSignal = computed(() => this.fieldConfig()?.treeTable);
-  readonly isTreeTableSignal = computed(() => this.treeTableConfigSignal()?.enabled ?? false);
-  readonly treeIndentSizeSignal = computed(() => this.treeTableConfigSignal()?.indentSize ?? 24);
-  private readonly childrenPropertySignal = computed(() => this.treeTableConfigSignal()?.childrenProperty ?? 'children');
 
-  // Tree column integration: which data column renders the toggle
+  /** Which data column renders the expand/collapse toggle. */
   readonly treeColumnFieldSignal = computed(() => {
     const config = this.treeTableConfigSignal();
     if (!config?.enabled) return null;
@@ -791,9 +770,32 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return visible[safeIndex] ?? null;
   });
 
-  readonly showIndentGuidesSignal = computed(() => this.treeTableConfigSignal()?.showIndentGuides ?? true);
-  readonly checkboxCascadeSignal = computed(() => this.treeTableConfigSignal()?.checkboxCascade ?? 'none');
-  readonly filterHierarchyModeSignal = computed(() => this.treeTableConfigSignal()?.filterHierarchyMode ?? 'ancestors');
+  // ============================================================================
+  // Tree (controller + template-facing aliases)
+  // ============================================================================
+  //
+  // Declared here — before `displayViewSignal` and the SelectionController —
+  // so the data pipeline below and the cascade callbacks below can read
+  // `this.tree` after this field initializes. The data signals it depends on
+  // (`sortedDataSignal`, `originalDataSignal`) are declared further down, so
+  // we wrap those references in `computed()` to defer the read until call
+  // time (Angular doesn't evaluate computed bodies eagerly).
+
+  private readonly tree = new TreeController<T>({
+    config: this.treeTableConfigSignal,
+    sortedData: computed(() => this.sortedDataSignal()),
+    originalData: computed(() => this.originalDataSignal()),
+    onExpansionChange: (event) => this.expansionChange.emit(event),
+  });
+
+  readonly expandedRowKeys = this.tree.expandedKeys;
+  readonly treeAnimatingKeys = this.tree.animatingKeys;
+  readonly isTreeTableSignal = this.tree.enabled;
+  readonly treeIndentSizeSignal = this.tree.indentSize;
+  private readonly childrenPropertySignal = this.tree.childrenProperty;
+  readonly showIndentGuidesSignal = this.tree.showIndentGuides;
+  readonly checkboxCascadeSignal = this.tree.cascadeMode;
+  readonly filterHierarchyModeSignal = this.tree.filterHierarchyMode;
 
   // Filter computed signals — `activeFiltersSignal`, `hasActiveFiltersSignal`,
   // and `activeFiltersCountSignal` are aliased off the FilterController
@@ -1087,7 +1089,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   });
 
   /** Public materialized form. Lazy — only allocated when actually read. */
-  private readonly sortedDataSignal = computed(() => materializeView(this.sortedViewSignal()));
+  private readonly sortedDataSignal: Signal<readonly T[]> = computed(() => materializeView(this.sortedViewSignal()));
 
   /** Engine-backed sort returning indices into the original dataset. */
   private tryEngineSortIndices(view: IndexedView<T>, field: string, direction: '' | 'Ascending' | 'Descending'): Uint32Array | null {
@@ -1105,53 +1107,14 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return handle.sort(visibleIndices, specs);
   }
 
-  // Flatten tree data after sorting (for tree tables only)
-  // This creates a flat array with level/hierarchy info for display
-  private readonly flattenedTreeDataSignal = computed(() => {
-    const data = this.sortedDataSignal();
-    const isTreeTable = this.isTreeTableSignal();
-
-    if (!isTreeTable) {
-      return null; // Not tree mode, will use sortedDataSignal directly
-    }
-
-    const treeConfig = this.treeTableConfigSignal();
-    const expandedKeys = this.expandedRowKeys();
-    const childrenProp = treeConfig?.childrenProperty ?? 'children';
-    const customGetKey = treeConfig?.getRowKey;
-
-    // Clear and rebuild caches
-    this.treeRowLevelMap.clear();
-    this.treeRowKeyMap.clear();
-    this.treeRowHasChildrenMap.clear();
-    this.treeRowIsLastChildMap.clear();
-    this.treeRowAncestorFlagsMap.clear();
-    this.treeRowParentKeyMap.clear();
-    this.treeKeyToDataMap.clear();
-
-    const flattened = flattenTreeData(data, expandedKeys, (row, index) => generateRowKey(row, customGetKey, index), childrenProp);
-
-    // Populate caches for template access
-    for (const item of flattened) {
-      this.treeRowLevelMap.set(item.data, item.level);
-      this.treeRowKeyMap.set(item.data, item.key);
-      this.treeRowHasChildrenMap.set(item.data, item.hasChildren);
-      this.treeRowIsLastChildMap.set(item.data, item.isLastChild);
-      this.treeRowAncestorFlagsMap.set(item.data, item.ancestorLastFlags);
-      this.treeRowParentKeyMap.set(item.key, item.parentKey);
-      this.treeKeyToDataMap.set(item.key, item.data);
-    }
-
-    return flattened;
-  });
-
   /**
    * Display view — what the page-slice boundary slices. Tree mode wraps the
-   * flattened data (no indices); non-tree forwards the sorted view as-is.
-   * `currentDataSignal` reads this and only materializes the page rows.
+   * controller's flattened data (no indices); non-tree forwards the sorted
+   * view as-is. `currentDataSignal` reads this and only materializes the
+   * page rows.
    */
   private readonly displayViewSignal = computed<IndexedView<T>>(() => {
-    const flattened = this.flattenedTreeDataSignal();
+    const flattened = this.tree.flattened();
     if (flattened)
       return viewOf(
         flattened.map((f) => f.data),
@@ -1163,220 +1126,8 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   /** Public materialized form. Lazy — only allocated when actually read. */
   readonly displayDataSignal = computed(() => materializeView(this.displayViewSignal()));
 
-  // ============================================================================
-  // Row Grouping Pipeline
-  // ============================================================================
-  readonly groupedDataSignal = computed<RowGroup<T>[]>(() => {
-    const config = this.groupConfigSignal();
-    if (!this.isGroupedSignal()) return [];
-
-    const data = this.displayDataSignal();
-    const expandedGroups = this.expandedGroups();
-    const resolvedGroupAggregates = this.resolvedGroupAggregatesSignal();
-    const initiallyExpanded = config?.initiallyExpanded ?? true;
-
-    // Engine path. Builds the tree topology in WASM and reuses the existing
-    // RowGroup<T> shape so the rest of the pipeline (template, expansion
-    // state, aggregates) is unchanged. Falls back to JS when:
-    //   - any groupBy field isn't engine-safe (date columns, missing schema)
-    //   - display rows can't be mapped to original-array indices (tree mode)
-    //   - engine handle isn't ready
-    const tree =
-      this.tryEngineGroup(data, config!, initiallyExpanded, resolvedGroupAggregates) ??
-      groupData<T>(
-        data,
-        config!.groupBy,
-        config!.aggregates as Partial<Record<StringKey<T>, AggregateFunction>>,
-        config!.groupSortFn,
-        config!.groupHeaderLabel,
-        initiallyExpanded,
-        resolvedGroupAggregates,
-      );
-
-    // Apply expansion state recursively. `null` ⇒ first paint, use the
-    // configured default for every node; otherwise, a path is expanded iff
-    // it appears in the Set.
-    const applyExpansion = (nodes: RowGroup<T>[]) => {
-      for (const node of nodes) {
-        node.expanded = expandedGroups === null ? initiallyExpanded : expandedGroups.has(encodeGroupPath(node.path));
-        if (node.children.length > 0) applyExpansion(node.children);
-      }
-    };
-    applyExpansion(tree);
-
-    return tree;
-  });
-
-  /**
-   * Engine-backed group. Returns the `RowGroup<T>` tree on success or `null`
-   * to signal a JS fallback.
-   *
-   * This wires three things in sequence:
-   *   1. **Field translation** — every `groupBy` field must be engine-safe
-   *      (text / number / bool). Date columns intentionally fall back so
-   *      `groupValue` typing matches the original JS behavior.
-   *   2. **Index mapping** — visible rows (`data`) need to map to
-   *      original-array indices for the engine's `RowSet::Indices` input.
-   *      Tree-mode synthetic rows can't, so they fall back.
-   *   3. **Tree conversion** — the engine produces a flat tree of
-   *      `EngineGroupNode { key, indices, depth, children }`. We walk it
-   *      recursively producing `RowGroup<T>`, computing per-group aggregates
-   *      via the existing TS `computeAggregate` helper (correctness over
-   *      perf — aggregate counts are typically tiny).
-   */
-  private tryEngineGroup(
-    data: readonly T[],
-    config: GroupConfig<T>,
-    initiallyExpanded: boolean,
-    resolvedGroupAggregates: ResolvedGroupAggregates<T> | undefined,
-  ): RowGroup<T>[] | null {
-    const handle = this.engineHandleSignal();
-    const schema = this.engineSchemaSignal();
-    if (!handle || !schema) return null;
-
-    const fields: readonly (keyof T & string)[] = Array.isArray(config.groupBy)
-      ? (config.groupBy as readonly (keyof T & string)[])
-      : [config.groupBy as keyof T & string];
-    const safeFields = translateGroupFields<T>(fields, schema);
-    if (!safeFields) return null;
-
-    const indices = this.displayIndicesSignal();
-    if (indices === 'unmappable') return null;
-
-    const original = this.originalDataSignal();
-    const engineNodes = handle.group(safeFields, indices);
-
-    const out = this.engineGroupsToRowGroups(engineNodes, original, [], config, initiallyExpanded, resolvedGroupAggregates);
-
-    // Optional `groupSortFn` is applied here too — kernel produces
-    // first-seen order; user-provided sort runs at every level.
-    if (config.groupSortFn) {
-      const sort = config.groupSortFn;
-      const sortRecursive = (nodes: RowGroup<T>[]) => {
-        nodes.sort((a, b) => sort(a.groupValue, b.groupValue));
-        for (const n of nodes) {
-          if (n.children.length > 0) sortRecursive(n.children);
-        }
-      };
-      sortRecursive(out);
-    }
-
-    return out;
-  }
-
-  /** Recursive RowGroup<T> builder from engine nodes. Computes labels + aggregates per node. */
-  private engineGroupsToRowGroups(
-    nodes: readonly EngineGroupNode[],
-    original: readonly T[],
-    parentPath: readonly unknown[],
-    config: GroupConfig<T>,
-    initiallyExpanded: boolean,
-    resolvedGroupAggregates: ResolvedGroupAggregates<T> | undefined,
-  ): RowGroup<T>[] {
-    const out = new Array<RowGroup<T>>(nodes.length);
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      const groupValue = engineKeyToValue(node.key);
-      const path = [...parentPath, groupValue];
-      const rows = Array.from(node.indices, (idx) => original[idx]);
-
-      const groupLabel = config.groupHeaderLabel ? config.groupHeaderLabel(groupValue, rows) : String(groupValue ?? 'Unknown');
-
-      const aggregates: Record<string, number> = {};
-      if (config.aggregates) {
-        for (const [field, fn] of Object.entries(config.aggregates)) {
-          if (fn) {
-            aggregates[field] = computeAggregate(rows, field as Extract<keyof T, string>, fn as AggregateFunction);
-          }
-        }
-      }
-
-      const group: RowGroup<T> = {
-        groupValue,
-        groupLabel,
-        path,
-        depth: node.depth,
-        rows,
-        children: this.engineGroupsToRowGroups(node.children, original, path, config, initiallyExpanded, resolvedGroupAggregates),
-        aggregates,
-        expanded: initiallyExpanded,
-      };
-
-      if (resolvedGroupAggregates?.resolvedCaptionCells) {
-        group.resolvedCaptionCells = resolvedGroupAggregates.resolvedCaptionCells;
-      }
-      if (resolvedGroupAggregates?.resolvedGroupFooterRows) {
-        group.resolvedGroupFooterRows = resolvedGroupAggregates.resolvedGroupFooterRows;
-      }
-
-      out[i] = group;
-    }
-    return out;
-  }
-
-  /**
-   * Flattens the group tree into a per-row stream the template can render
-   * sequentially. A non-leaf branch emits its header, then (if expanded)
-   * recurses into its children and their headers/data/footers, then emits
-   * its own footer rows. A leaf branch (no children) emits its header,
-   * then (if expanded) the data rows, then any footer rows.
-   *
-   * The `depth` carried on each emitted entry drives indentation in the
-   * template; `path` is the stable key used by the toggle handler.
-   */
-  readonly groupedDisplaySignal = computed<
-    Array<
-      | { type: 'group-header'; group: RowGroup<T>; depth: number }
-      | { type: 'group-footer'; group: RowGroup<T>; depth: number; footerRowIndex?: number }
-      | { type: 'data'; row: T; depth: number }
-    >
-  >(() => {
-    const groups = this.groupedDataSignal();
-    if (groups.length === 0) return [];
-
-    const config = this.groupConfigSignal();
-    const showGroupFooter = config?.showGroupFooter ?? false;
-    const hasGroupFooterRows = this.hasGroupFooterRowsSignal();
-
-    type DisplayRow =
-      | { type: 'group-header'; group: RowGroup<T>; depth: number }
-      | { type: 'group-footer'; group: RowGroup<T>; depth: number; footerRowIndex?: number }
-      | { type: 'data'; row: T; depth: number };
-
-    const result: DisplayRow[] = [];
-
-    const emitFooters = (group: RowGroup<T>, depth: number) => {
-      if (hasGroupFooterRows && group.resolvedGroupFooterRows) {
-        for (let i = 0; i < group.resolvedGroupFooterRows.length; i++) {
-          result.push({ type: 'group-footer', group, depth, footerRowIndex: i });
-        }
-      } else if (showGroupFooter) {
-        result.push({ type: 'group-footer', group, depth });
-      }
-    };
-
-    const walk = (nodes: readonly RowGroup<T>[]) => {
-      for (const node of nodes) {
-        result.push({ type: 'group-header', group: node, depth: node.depth });
-        if (!node.expanded) continue;
-
-        if (node.children.length > 0) {
-          // Non-leaf: recurse into sub-groups, then emit this level's footers.
-          walk(node.children);
-          emitFooters(node, node.depth);
-        } else {
-          // Leaf: data rows, then this level's footers.
-          for (const row of node.rows) {
-            result.push({ type: 'data', row, depth: node.depth });
-          }
-          emitFooters(node, node.depth);
-        }
-      }
-    };
-
-    walk(groups);
-    return result;
-  });
+  // Row grouping — `groupedDataSignal` and `groupedDisplaySignal` are
+  // exposed as aliases off the GroupController (declared below).
 
   // Total items for pagination - must be defined after displayDataSignal
   readonly totalItemsSignal = computed(() => {
@@ -1437,14 +1188,8 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     isTreeTable: this.isTreeTableSignal,
     childrenProperty: this.childrenPropertySignal,
     getChildren: (row, prop) => getRowChildren(row, prop),
-    getParent: (row) => {
-      const key = this.treeRowKeyMap.get(row);
-      if (!key) return null;
-      const parentKey = this.treeRowParentKeyMap.get(key);
-      if (!parentKey) return null;
-      return this.treeKeyToDataMap.get(parentKey) ?? null;
-    },
-    hasChildren: (row) => this.hasChildren(row),
+    getParent: (row) => this.tree.getParent(row),
+    hasChildren: (row) => this.tree.hasChildren(row),
     onSelectionChange: (selected) => this.selectionChange.emit(selected),
     onActiveRowChange: (row) => this.activeRowChange.emit(row),
     onActiveRowsChange: (rows) => this.activeRowsChange.emit(rows),
@@ -2113,91 +1858,44 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   // ============================================================================
-  // Tree Table Methods
+  // Tree Table Methods (thin forwarders to TreeController)
   // ============================================================================
 
   hasChildren(row: T): boolean {
-    return this.treeRowHasChildrenMap.get(row) ?? false;
+    return this.tree.hasChildren(row);
   }
 
   isRowExpanded(row: T): boolean {
-    const key = this.treeRowKeyMap.get(row);
-    if (!key) return false;
-    return this.expandedRowKeys().has(key);
+    return this.tree.isExpanded(row);
   }
 
   /** 0 = root level */
   getRowLevel(row: T): number {
-    return this.treeRowLevelMap.get(row) ?? 0;
+    return this.tree.getLevel(row);
   }
 
   getRowIndentPadding(row: T): number {
-    const level = this.getRowLevel(row);
-    const indentSize = this.treeIndentSizeSignal();
-    // Add base padding (8px) + level-based indent
-    return 8 + level * indentSize;
+    return this.tree.getIndentPadding(row);
   }
 
   toggleRowExpand(row: T, event?: MouseEvent): void {
-    if (event) {
-      event.stopPropagation();
-    }
-
-    const key = this.treeRowKeyMap.get(row);
-    if (!key) return;
-
-    const currentExpanded = this.expandedRowKeys();
-    const isCurrentlyExpanded = currentExpanded.has(key);
-
-    // When expanding, collect child keys for animation
-    if (!isCurrentlyExpanded) {
-      const childrenProp = this.childrenPropertySignal();
-      const children = getRowChildren(row, childrenProp);
-      if (children && children.length > 0) {
-        const treeConfig = this.treeTableConfigSignal();
-        const customGetKey = treeConfig?.getRowKey;
-        const childKeys = new Set<string>();
-        children.forEach((child, idx) => {
-          childKeys.add(generateRowKey(child, customGetKey, idx));
-        });
-        this.treeAnimatingKeys.set(childKeys);
-        setTimeout(() => this.treeAnimatingKeys.set(new Set()), 250);
-      }
-    }
-
-    this.expandedRowKeys.update((keys) => {
-      const newKeys = new Set(keys);
-      if (isCurrentlyExpanded) {
-        newKeys.delete(key);
-      } else {
-        newKeys.add(key);
-      }
-      return newKeys;
-    });
-
-    this.expansionChange.emit({ row, expanded: !isCurrentlyExpanded });
+    this.tree.toggleRow(row, event);
   }
 
   expandAllRows(): void {
-    const allKeys = new Set<string>();
-    this.collectAllRowKeys(this.originalDataSignal(), allKeys);
-    this.expandedRowKeys.set(allKeys);
+    this.tree.expandAll();
   }
 
   collapseAllRows(): void {
-    this.expandedRowKeys.set(new Set());
+    this.tree.collapseAll();
   }
 
   expandToLevel(level: number): void {
-    const allKeys = new Set<string>();
-    this.collectKeysToLevel(this.originalDataSignal(), allKeys, 0, level);
-    this.expandedRowKeys.set(allKeys);
+    this.tree.expandToLevel(level);
   }
 
   collapseToLevel(level: number): void {
-    const keysToKeep = new Set<string>();
-    this.collectKeysToLevel(this.originalDataSignal(), keysToKeep, 0, level);
-    this.expandedRowKeys.set(keysToKeep);
+    this.tree.collapseToLevel(level);
   }
 
   isTreeColumn(field: string): boolean {
@@ -2205,17 +1903,15 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   getAncestorFlags(row: T): boolean[] {
-    return this.treeRowAncestorFlagsMap.get(row) ?? [];
+    return this.tree.getAncestorFlags(row);
   }
 
   isLastChild(row: T): boolean {
-    return this.treeRowIsLastChildMap.get(row) ?? false;
+    return this.tree.isLastChild(row);
   }
 
   isTreeRowAnimating(row: T): boolean {
-    const key = this.treeRowKeyMap.get(row);
-    if (!key) return false;
-    return this.treeAnimatingKeys().has(key);
+    return this.tree.isAnimating(row);
   }
 
   isIndeterminate(row: T): boolean {
@@ -2229,42 +1925,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       return sync.isHtml ? (sync.safeHtml as string) : sync.value;
     }
     return '';
-  }
-
-  private collectKeysToLevel(data: readonly T[], keys: Set<string>, currentLevel: number, targetLevel: number): void {
-    if (currentLevel >= targetLevel) return;
-    const treeConfig = this.treeTableConfigSignal();
-    const childrenProp = treeConfig?.childrenProperty ?? 'children';
-    const customGetKey = treeConfig?.getRowKey;
-
-    data.forEach((row, index) => {
-      const key = generateRowKey(row, customGetKey, index);
-      const children = getRowChildren(row, childrenProp);
-
-      if (children && children.length > 0) {
-        keys.add(key);
-        this.collectKeysToLevel(children, keys, currentLevel + 1, targetLevel);
-      }
-    });
-  }
-
-  /**
-   * Recursively collects all row keys from the tree.
-   */
-  private collectAllRowKeys(data: readonly T[], keys: Set<string>, startIndex = 0): void {
-    const treeConfig = this.treeTableConfigSignal();
-    const childrenProp = treeConfig?.childrenProperty ?? 'children';
-    const customGetKey = treeConfig?.getRowKey;
-
-    data.forEach((row, index) => {
-      const key = generateRowKey(row, customGetKey, startIndex + index);
-      const children = getRowChildren(row, childrenProp);
-
-      if (children && children.length > 0) {
-        keys.add(key);
-        this.collectAllRowKeys(children, keys, 0);
-      }
-    });
   }
 
   // ============================================================================
@@ -2461,6 +2121,35 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     }
     return out;
   });
+
+  // ============================================================================
+  // Grouping (controller + template-facing aliases)
+  // ============================================================================
+  //
+  // Declared here — after `displayDataSignal` and `displayIndicesSignal` —
+  // because the grouping pipeline reads both. The public method bodies
+  // (`toggleGroupExpand`, `expandAllGroups`, `collapseAllGroups`) below
+  // forward to this controller; templates read `groupedDataSignal` and
+  // `groupedDisplaySignal` through the aliases.
+
+  private readonly grouping = new GroupController<T>({
+    config: this.groupConfigSignal,
+    resolvedGroupAggregates: this.resolvedGroupAggregatesSignal,
+    hasGroupFooterRows: this.hasGroupFooterRowsSignal,
+    displayData: this.displayDataSignal,
+    displayIndices: this.displayIndicesSignal,
+    originalData: this.originalDataSignal,
+    engineHandle: this.engineHandleSignal,
+    engineSchema: this.engineSchemaSignal,
+    onGroupExpand: (event) => this.groupExpandChange.emit(event),
+  });
+
+  readonly isGroupedSignal = this.grouping.isGrouped;
+  readonly groupDepthSignal = this.grouping.depth;
+  readonly hasGroupCaptionAggregatesSignal = this.grouping.hasCaptionAggregates;
+  readonly expandedGroups = this.grouping.expandedPaths;
+  readonly groupedDataSignal = this.grouping.groupedData;
+  readonly groupedDisplaySignal = this.grouping.groupedDisplay;
 
   /**
    * Engine-backed aggregate for a footer cell. Returns the formatted string
@@ -2825,86 +2514,24 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // Row Grouping Methods
   // ============================================================================
 
-  /**
-   * Toggle the expansion state of a single group, addressed by its full path.
-   *
-   * Path-based addressing is needed for multi-level grouping where two groups
-   * can share the same leaf-level value (e.g. "US → CA" and "MX → CA"); for
-   * single-level grouping `path` is just `[groupValue]`.
-   */
   toggleGroupExpand(path: readonly unknown[]): void {
-    const node = this.findGroupByPath(path);
-    if (!node) return;
-
-    const wasExpanded = node.expanded;
-    const key = encodeGroupPath(path);
-
-    this.expandedGroups.update((set) => {
-      // Lazy-initialize on first interaction: snapshot current expanded paths.
-      let newSet: Set<string>;
-      if (set === null) {
-        newSet = new Set();
-        const collect = (nodes: readonly RowGroup<T>[]) => {
-          for (const n of nodes) {
-            if (n.expanded) newSet.add(encodeGroupPath(n.path));
-            if (n.children.length > 0) collect(n.children);
-          }
-        };
-        collect(this.groupedDataSignal());
-      } else {
-        newSet = new Set(set);
-      }
-
-      if (wasExpanded) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
-
-    this.groupExpandChange.emit({ groupValue: node.groupValue, path, expanded: !wasExpanded });
+    this.grouping.toggle(path);
   }
 
-  /** Expand every group at every depth. */
   expandAllGroups(): void {
-    const all = new Set<string>();
-    const visit = (nodes: readonly RowGroup<T>[]) => {
-      for (const n of nodes) {
-        all.add(encodeGroupPath(n.path));
-        if (n.children.length > 0) visit(n.children);
-      }
-    };
-    visit(this.groupedDataSignal());
-    this.expandedGroups.set(all);
+    this.grouping.expandAll();
   }
 
-  /** Collapse every group at every depth. */
   collapseAllGroups(): void {
-    this.expandedGroups.set(new Set());
-  }
-
-  /** Locate a group node by its path. Walks the (already-computed) tree. */
-  private findGroupByPath(path: readonly unknown[]): RowGroup<T> | undefined {
-    let nodes: readonly RowGroup<T>[] = this.groupedDataSignal();
-    let found: RowGroup<T> | undefined;
-    for (const key of path) {
-      found = nodes.find((n) => n.groupValue === key);
-      if (!found) return undefined;
-      nodes = found.children;
-    }
-    return found;
+    this.grouping.collapseAll();
   }
 
   getGroupAggregateValue(group: RowGroup<T>, field: string): string {
-    const val = group.aggregates[field];
-    return val != null ? String(Math.round(val * 100) / 100) : '';
+    return this.grouping.getAggregateValue(group, field);
   }
 
   getGroupCaptionValue(group: RowGroup<T>, field: string): string {
-    const fn = group.resolvedCaptionCells?.[field as StringKey<T>];
-    if (!fn) return '';
-    return fn(group.rows);
+    return this.grouping.getCaptionValue(group, field);
   }
 
   getGroupFooterRowCellValue(group: RowGroup<T>, footerRowIndex: number, column: ColumnDefinition<T>): string {
@@ -2989,20 +2616,11 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       }
     });
 
-    // Initialize tree table expanded state
+    // Initialize tree table expanded state — precedence and timing live on
+    // the controller; this effect just runs it whenever the config changes.
     effect(() => {
-      const treeConfig = this.treeTableConfigSignal();
-      if (treeConfig?.enabled) {
-        // Precedence: expandAll > initialExpandLevel > initialExpandedKeys
-        if (treeConfig.expandAll) {
-          // Expand all on next tick to allow data to be loaded first
-          setTimeout(() => this.expandAllRows(), 0);
-        } else if (treeConfig.initialExpandLevel != null && treeConfig.initialExpandLevel > 0) {
-          setTimeout(() => this.expandToLevel(treeConfig.initialExpandLevel!), 0);
-        } else if (treeConfig.initialExpandedKeys && treeConfig.initialExpandedKeys.length > 0) {
-          this.expandedRowKeys.set(new Set(treeConfig.initialExpandedKeys));
-        }
-      }
+      this.treeTableConfigSignal();
+      this.tree.applyInitialExpansion();
     });
 
     // Pagination state is driven by three disjoint triggers. Each effect owns
@@ -3179,15 +2797,9 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       const ancestorKeys = collectAncestorKeys(filtered as T[], (row, index) => generateRowKey(row, customGetKey, index), childrenProp);
       if (ancestorKeys.size === 0) return;
 
-      // Wrap the read+write of expandedRowKeys in untracked() so this effect
-      // doesn't register as a consumer of the signal it's about to update.
-      untracked(() => {
-        const current = this.expandedRowKeys();
-        const merged = new Set([...current, ...ancestorKeys]);
-        if (merged.size !== current.size) {
-          this.expandedRowKeys.set(merged);
-        }
-      });
+      // Wrap the controller mutation in untracked() so this effect doesn't
+      // register as a consumer of the signal it's about to update.
+      untracked(() => this.tree.mergeExpanded(ancestorKeys));
     });
   }
 

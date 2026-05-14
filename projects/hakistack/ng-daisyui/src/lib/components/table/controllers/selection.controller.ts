@@ -70,7 +70,6 @@ export class SelectionController<T> {
 
   // ─── Derived (assigned in constructor) ────────────────────────────────────
   readonly selectedArray: Signal<T[]>;
-
   /** True when every selectable row on the current page is in the selected set. */
   readonly isAllSelected: Signal<boolean>;
   /** True when `selected.size >= selectionLimit`. */
