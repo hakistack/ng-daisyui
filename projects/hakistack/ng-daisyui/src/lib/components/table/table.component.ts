@@ -760,6 +760,15 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   });
 
   /**
+   * Per-row selectability predicate (from `FieldConfig.isRowSelectable`).
+   * Defaults to "always selectable" when not provided.
+   */
+  readonly isRowSelectableFnSignal = computed<(row: T) => boolean>(() => {
+    const fn = this.fieldConfig()?.isRowSelectable;
+    return typeof fn === 'function' ? fn : () => true;
+  });
+
+  /**
    * Whether to render the header "select all" checkbox.
    * Hidden whenever a `selectionLimit` is configured — "select all" + any
    * cap is awkward UX (radio-like at limit=1, partial-fill confusion at
@@ -1565,7 +1574,11 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly isAllSelected = computed(() => {
     const data = this.currentDataSignal(); // Use current page data for "select all"
     const selected = this.selectedSignal();
-    return data.length > 0 && data.every((row) => selected.has(row));
+    const canSelect = this.isRowSelectableFnSignal();
+    // Only count rows the predicate allows. A page of all-unselectable rows
+    // reports `false` so the header checkbox doesn't render as "checked".
+    const selectable = data.filter(canSelect);
+    return selectable.length > 0 && selectable.every((row) => selected.has(row));
   });
 
   // DataSource
@@ -1869,8 +1882,13 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   toggleRow(row: T, checked: boolean): void {
     // Belt-and-suspenders against programmatic callers / keyboard focus that
     // bypass the `[disabled]` HTML attribute on the checkbox. The HTML guard
-    // is the primary UX (greyed out + tooltip); this guard ensures the
+    // is the primary UX (greyed out + tooltip); these guards ensure the
     // model state stays consistent if a checked=true event slips through.
+    // Unchecking is always allowed (a row that was selected before the
+    // predicate started returning false can still be removed).
+    if (checked && !this.isRowSelectableFnSignal()(row)) {
+      return;
+    }
     if (checked && this.isSelectionLimitReachedSignal() && !this.isSelected(row)) {
       return;
     }
@@ -1909,6 +1927,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   toggleSelectAll(checked: boolean): void {
     const data = this.currentDataSignal(); // Only select/deselect current page
     const limit = this.selectionLimitSignal();
+    const canSelect = this.isRowSelectableFnSignal();
 
     this.selectedSignal.update((selectedSet) => {
       const newSet = new Set(selectedSet);
@@ -1917,12 +1936,16 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
         // Cap additions at remaining capacity so a select-all click on a
         // page that doesn't fit under the limit fills partway instead of
         // overshooting. Already-selected rows on this page don't count
-        // against capacity — they're a no-op `add`.
+        // against capacity — they're a no-op `add`. Rows where the
+        // predicate returns false are skipped entirely.
         for (const row of data) {
+          if (!canSelect(row)) continue;
           if (limit !== null && newSet.size >= limit && !newSet.has(row)) break;
           newSet.add(row);
         }
       } else {
+        // Deselection ignores the predicate — a previously-selected row
+        // whose predicate now returns false must still be removable.
         for (const row of data) newSet.delete(row);
       }
 
@@ -1937,23 +1960,42 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   /**
-   * Whether this row's checkbox should render as `disabled`. True when a
-   * `selectionLimit` is configured, the limit has been reached, and this
-   * row isn't already in the selected set. Disabled rows can't be toggled
-   * on — but a checked row can still be unchecked (limit goes down → others
-   * re-enable).
+   * Whether this row's checkbox should render as `disabled`. True when:
+   *   - the `isRowSelectable` predicate returns false for this row, OR
+   *   - a `selectionLimit` is configured, the limit has been reached, and
+   *     this row isn't already in the selected set.
+   *
+   * Disabled rows can't be toggled on — but a checked row can still be
+   * unchecked (limit goes down → others re-enable; a row whose predicate
+   * flips to false post-selection remains removable).
    */
   isRowSelectDisabled(row: T): boolean {
+    if (!this.isRowSelectableFnSignal()(row)) return true;
     return this.isSelectionLimitReachedSignal() && !this.isSelected(row);
   }
 
   /**
+   * Whether this row is disabled specifically because the selection limit
+   * was reached. Used to gate the "Maximum of N selected" tooltip so it
+   * doesn't appear over rows blocked by the per-row predicate.
+   */
+  isRowSelectDisabledByLimit(row: T): boolean {
+    return this.isSelectionLimitReachedSignal() && !this.isSelected(row) && this.isRowSelectableFnSignal()(row);
+  }
+
+  /**
    * Whether the header "select all on page" checkbox should render as
-   * `disabled`. Disabled only when at limit *and* clicking would try to add
-   * (i.e. not all rows on the page are currently selected — in which case
-   * the click would deselect, which is always allowed).
+   * `disabled`. Disabled when:
+   *   - no rows on the page are selectable (predicate returns false for all), OR
+   *   - at the selection limit *and* clicking would try to add (not all
+   *     selectable rows on the page are currently selected — in which case
+   *     the click would deselect, which is always allowed).
    */
   isSelectAllDisabled(): boolean {
+    const data = this.currentDataSignal();
+    const canSelect = this.isRowSelectableFnSignal();
+    const hasSelectable = data.some(canSelect);
+    if (!hasSelectable) return true;
     if (this.selectionLimitSignal() === null) return false;
     if (this.isAllSelected()) return false; // would deselect — always allowed
     return this.isSelectionLimitReachedSignal();

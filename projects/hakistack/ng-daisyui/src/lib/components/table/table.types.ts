@@ -340,6 +340,15 @@ export interface FieldConfig<T> {
    * unlimited).
    */
   selectionLimit?: number;
+  /**
+   * Per-row predicate that decides whether a row can be checkbox-selected.
+   * Return `false` to disable that row's checkbox; rows are otherwise
+   * selectable by default. Composes with `selectionLimit` — both must pass.
+   * "Select all on page" only acts on rows where the predicate returns true.
+   *
+   * No effect when `hasSelection` is false.
+   */
+  isRowSelectable?: (row: T) => boolean;
   hasActions?: boolean;
   /** Enable click-to-select row highlighting. 'single' (or true) = one row at a time, 'multi' = toggle multiple rows */
   selectableRows?: boolean | 'single' | 'multi';

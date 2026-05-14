@@ -282,6 +282,7 @@ function createFieldConfig<T>(config: FieldConfig<T>): FieldConfig<T> {
     fallbacks: config.fallbacks ?? {},
     hasSelection: config.hasSelection ?? false,
     selectionLimit: config.selectionLimit,
+    isRowSelectable: config.isRowSelectable,
     hasActions: config.hasActions ?? false,
     selectableRows: config.selectableRows ?? false,
     selectedRowClass: config.selectedRowClass,

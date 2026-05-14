@@ -245,6 +245,7 @@
                       type="checkbox"
                       class="checkbox"
                       [checked]="isAllSelected()"
+                      [disabled]="isSelectAllDisabled()"
                       (change)="toggleSelectAll(inputChecked($event))"
                       [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                     />
@@ -328,7 +329,9 @@
                       [checked]="isSelected(row)"
                       (change)="toggleRow(row, inputChecked($event))"
                       [disabled]="isRowSelectDisabled(row)"
-                      [attr.title]="isRowSelectDisabled(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
+                      [attr.title]="
+                        isRowSelectDisabledByLimit(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null
+                      "
                       [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
                     />
                   </label>
@@ -579,6 +582,7 @@
                       type="checkbox"
                       class="checkbox"
                       [checked]="isAllSelected()"
+                      [disabled]="isSelectAllDisabled()"
                       (change)="toggleSelectAll(inputChecked($event))"
                       [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                     />
@@ -674,7 +678,9 @@
                         (change)="toggleRow(displayRow.row, inputChecked($event))"
                         [disabled]="isRowSelectDisabled(displayRow.row)"
                         [attr.title]="
-                          isRowSelectDisabled(displayRow.row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null
+                          isRowSelectDisabledByLimit(displayRow.row)
+                            ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!)
+                            : null
                         "
                       />
                     </label>
@@ -977,6 +983,7 @@
                     type="checkbox"
                     class="checkbox"
                     [checked]="isAllSelected()"
+                    [disabled]="isSelectAllDisabled()"
                     (change)="toggleSelectAll(inputChecked($event))"
                     [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
                   />
@@ -1001,7 +1008,7 @@
                   [indeterminate]="isIndeterminate(row)"
                   (change)="toggleRow(row, inputChecked($event))"
                   [disabled]="isRowSelectDisabled(row)"
-                  [attr.title]="isRowSelectDisabled(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
+                  [attr.title]="isRowSelectDisabledByLimit(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
                   [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
                 />
               </label>
