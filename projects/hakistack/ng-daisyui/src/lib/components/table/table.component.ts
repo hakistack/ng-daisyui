@@ -14,6 +14,7 @@ import {
   ElementRef,
   forwardRef,
   inject,
+  Injector,
   input,
   OnDestroy,
   output,
@@ -101,6 +102,7 @@ import {
 } from './table.helpers';
 import { FilterController } from './controllers/filter.controller';
 import { GroupController } from './controllers/group.controller';
+import { PaginationController } from './controllers/pagination.controller';
 import { SelectionController } from './controllers/selection.controller';
 import { SortController } from './controllers/sort.controller';
 import { TreeController } from './controllers/tree.controller';
@@ -181,16 +183,6 @@ function materializeSlice<T>(view: IndexedView<T>, start: number, end: number): 
   return out;
 }
 
-// Enhanced pagination state interface
-interface PaginationState {
-  readonly pageIndex: number;
-  readonly pageSize: number;
-  readonly pageSizeOptions: readonly number[];
-  readonly totalItems: number;
-  readonly showFirstLastButtons: boolean;
-  readonly disabled: boolean;
-}
-
 // Types for better type safety
 interface ActionItem<T> {
   readonly key: ActionType;
@@ -246,6 +238,8 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly hasLocalStorage = this.isBrowser && typeof localStorage !== 'undefined';
   private readonly engineService = inject(TableEngineService);
+  /** Passed to controllers so they can register their own `effect()`s outside the host's injection context. */
+  private readonly injector = inject(Injector);
 
   // ───────────────────────────────────────────────────────────────────────
   // Typed event-target helpers
@@ -321,26 +315,48 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly fieldConfig = computed(() => this.config()?.config);
 
   /**
-   * Runtime-overrides bag for pagination. Static configuration comes from
-   * `fieldConfig.pagination` (set via `createTable({ pagination: {...} })`);
-   * server-driven values like `totalItems`, `nextCursor`, `prevCursor`
-   * arrive through `controller.setPagination(opts)` and land here, merged
-   * on top of the static config by `paginationOptions` below.
-   */
-  private readonly dynamicPaginationOverrides = signal<Partial<PaginationOptions> | null>(null);
-
-  /**
    * Effective pagination options — `fieldConfig.pagination` merged with any
    * runtime overrides pushed via `setPagination()`. Returns `null` when the
    * consumer didn't configure pagination at all, in which case the
-   * pagination footer is hidden.
+   * pagination footer is hidden. The runtime overrides bag lives on the
+   * PaginationController (declared lower); this computed reads from it.
    */
-  readonly paginationOptions = computed<PaginationOptions | null>(() => {
+  readonly paginationOptions: Signal<PaginationOptions | null> = computed<PaginationOptions | null>(() => {
     const fromConfig = this.fieldConfig()?.pagination ?? null;
-    const overrides = this.dynamicPaginationOverrides();
+    const overrides = this.pagination.dynamicOverrides();
     if (!fromConfig && !overrides) return null;
     return { ...(fromConfig ?? {}), ...(overrides ?? {}) } as PaginationOptions;
   });
+
+  // ============================================================================
+  // Pagination (controller + template-facing aliases)
+  // ============================================================================
+  //
+  // The PaginationController owns `state`, the runtime-overrides bag, the
+  // two state-sync effects (options → state, totalItems → state), and the
+  // page-nav methods. The host keeps the data-ref orchestration effect
+  // because it spans selection / html-cache too; it calls
+  // `this.pagination.clampToData(totalItems)` from inside that effect.
+  // `totalItems` is wrapped in `computed()` to defer the read — the
+  // `totalItemsSignal` field is declared further down.
+
+  private readonly pagination: PaginationController = new PaginationController({
+    paginationOptions: this.paginationOptions,
+    totalItems: computed(() => this.totalItemsSignal()),
+    showFirstLastButtons: this.showFirstLastButtons,
+    disabled: this.disabled,
+    injector: this.injector,
+    onPageChange: (event) => this.pageChange.emit(event),
+    onCursorChange: (event) => this.cursorChange.emit(event),
+  });
+
+  readonly pageIndexSignal = this.pagination.pageIndex;
+  readonly pageSizeSignal = this.pagination.pageSize;
+  readonly pageSizeOptionsSignal = this.pagination.pageSizeOptions;
+  readonly modeSignal = this.pagination.mode;
+  readonly nextCursorSignal = this.pagination.nextCursor;
+  readonly prevCursorSignal = this.pagination.prevCursor;
+  private readonly totalPagesSignal = this.pagination.totalPages;
 
   // Outputs
   readonly selectionChange = output<readonly T[]>();
@@ -692,31 +708,10 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly globalSearchClearAriaSignal = computed(() => this.fieldConfig()?.globalSearch?.labels?.clearAriaLabel ?? 'Clear search');
   readonly hasGlobalSearchTermSignal = computed(() => this.debouncedSearchTerm().length > 0);
 
-  // Enhanced pagination state
-  private readonly paginationState = signal<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-    pageSizeOptions: [5, 10, 25, 50, 100],
-    totalItems: 0,
-    showFirstLastButtons: true,
-    disabled: false,
-  });
-  /** Last `paginationOptions.pageSize` we synced into state — used to detect actual config changes vs. re-runs that just toggle `disabled` etc. */
-  private lastSeenOptionsPageSize: number | undefined;
-
   // `sortFieldSignal` / `sortDirectionSignal` are exposed as aliases off the
   // SortController, declared lower in the file next to the selection controller.
-
-  // Enhanced pagination computed signals
-  readonly pageIndexSignal = computed(() => this.paginationState().pageIndex);
-  readonly pageSizeSignal = computed(() => this.paginationState().pageSize);
-  // Note: totalItemsSignal is defined later after displayDataSignal to avoid circular dependency
-  readonly pageSizeOptionsSignal = computed(() => this.paginationOptions()?.pageSizeOptions ?? [5, 10, 25, 50, 100]);
-  readonly modeSignal = computed(() => this.paginationOptions()?.mode ?? 'offset');
-  readonly nextCursorSignal = computed(() => this.paginationOptions()?.nextCursor ?? null);
-  readonly prevCursorSignal = computed(() => this.paginationOptions()?.prevCursor ?? null);
-
-  private readonly totalPagesSignal = computed(() => Math.max(1, Math.ceil(this.totalItemsSignal() / this.pageSizeSignal())));
+  // Pagination signals (`pageIndexSignal` etc.) are aliased off the
+  // PaginationController declared above.
 
   readonly hasSelectionSignal = computed(() => this.fieldConfig()?.hasSelection ?? false);
 
@@ -856,7 +851,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   });
 
   // Data processing signals
-  private readonly originalDataSignal = computed(() => this.data() ?? []);
+  private readonly originalDataSignal: Signal<readonly T[]> = computed(() => this.data() ?? []);
 
   // Filtered data signal
   //
@@ -1124,13 +1119,13 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   });
 
   /** Public materialized form. Lazy — only allocated when actually read. */
-  readonly displayDataSignal = computed(() => materializeView(this.displayViewSignal()));
+  readonly displayDataSignal: Signal<readonly T[]> = computed(() => materializeView(this.displayViewSignal()));
 
   // Row grouping — `groupedDataSignal` and `groupedDisplaySignal` are
   // exposed as aliases off the GroupController (declared below).
 
   // Total items for pagination - must be defined after displayDataSignal
-  readonly totalItemsSignal = computed(() => {
+  readonly totalItemsSignal: Signal<number> = computed(() => {
     const mode = this.modeSignal();
     // For server-side pagination, use totalItems from options
     if (mode === 'cursor') {
@@ -1147,7 +1142,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
    * materializes the rows actually rendered (50 in the typical offset case)
    * — the engine-routed pipeline upstream never builds a full T[].
    */
-  private readonly currentDataSignal = computed(() => {
+  private readonly currentDataSignal: Signal<readonly T[]> = computed(() => {
     const mode = this.modeSignal();
     const view = this.displayViewSignal();
 
@@ -1505,61 +1500,31 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   firstPage(): void {
-    if (this.pageIndexSignal() > 0 && !this.disabled()) {
-      this.updatePagination({ pageIndex: 0, pageSize: this.pageSizeSignal() });
-    }
+    this.pagination.firstPage();
   }
 
   previousPage(): void {
-    if (this.pageIndexSignal() > 0 && !this.disabled()) {
-      this.updatePagination({ pageIndex: this.pageIndexSignal() - 1, pageSize: this.pageSizeSignal() });
-    }
+    this.pagination.previousPage();
   }
 
   nextPage(): void {
-    const lastPage = this.totalPagesSignal() - 1;
-    if (this.pageIndexSignal() < lastPage && !this.disabled()) {
-      this.updatePagination({ pageIndex: this.pageIndexSignal() + 1, pageSize: this.pageSizeSignal() });
-    }
+    this.pagination.nextPage();
   }
 
   lastPage(): void {
-    const lastPage = this.totalPagesSignal() - 1;
-    if (this.pageIndexSignal() < lastPage && !this.disabled()) {
-      this.updatePagination({ pageIndex: lastPage, pageSize: this.pageSizeSignal() });
-    }
+    this.pagination.lastPage();
   }
 
   gotoPage(pageNumber: number): void {
-    const pageIndex = pageNumber - 1; // Convert to 0-based
-    if (pageIndex >= 0 && pageIndex < this.totalPagesSignal() && !this.disabled()) {
-      this.updatePagination({ pageIndex, pageSize: this.pageSizeSignal() });
-    }
+    this.pagination.gotoPage(pageNumber);
   }
 
-  /**
-   * Merge `opts` into the runtime pagination override bag. Used by
-   * server-driven flows that need to push `totalItems` / `nextCursor` /
-   * `prevCursor` after each fetch resolves — the static config from
-   * `createTable({ pagination: {...} })` is the floor, this is the live
-   * delta on top.
-   */
   setPagination(opts: Partial<PaginationOptions>): void {
-    this.dynamicPaginationOverrides.update((curr) => ({ ...(curr ?? {}), ...opts }));
+    this.pagination.setPagination(opts);
   }
 
   clearSelection(): void {
     this.selection.clearSelection();
-  }
-
-  private updatePagination(options: { pageIndex: number; pageSize: number }): void {
-    this.paginationState.update((state) => ({
-      ...state,
-      pageIndex: options.pageIndex,
-      pageSize: options.pageSize,
-    }));
-
-    this.pageChange.emit(options);
   }
 
   sort(field: string): void {
@@ -1668,18 +1633,13 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     };
   }
 
-  // Handler methods for pagination component
+  // Handler methods for pagination component (forwarders to PaginationController)
   handlePaginationPageChange(event: PageSizeChange): void {
-    this.paginationState.update((state) => ({
-      ...state,
-      pageIndex: event.pageIndex,
-      pageSize: event.pageSize,
-    }));
-    this.pageChange.emit(event);
+    this.pagination.handlePageChange(event);
   }
 
   handleCursorChange(event: CursorPageChange): void {
-    this.cursorChange.emit(event);
+    this.pagination.handleCursorChange(event);
   }
 
   isTooltipVisible(row: T, action: ActionItem<T>): boolean {
@@ -2623,76 +2583,23 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       this.tree.applyInitialExpansion();
     });
 
-    // Pagination state is driven by three disjoint triggers. Each effect owns
-    // exactly one input — reads of other signals are `untracked()` so an update
-    // to one source never fires the other effects (prevents e.g. a server-side
-    // `totalItems` update from yanking pageIndex back to 0).
-
-    // Trigger: paginationOptions / showFirstLastButtons / disabled change.
+    // Pagination is driven by three disjoint triggers; the PaginationController
+    // owns the two pure state-sync effects (options → state, totalItems →
+    // state). The third — data ref → clamp pageIndex + prune selection +
+    // clear html cache — stays here because it spans multiple controllers.
     //
-    // The previous version unconditionally overwrote `pageSize` from
-    // `options.pageSize` on every fire — so the moment `disabled` or
-    // `showFirstLastButtons` emitted, the user's dropdown choice (e.g.
-    // "100 per page") got reverted to the static initial value. We now
-    // only sync `pageSize` when `options.pageSize` *itself* changes
-    // between two reads; otherwise the user's live choice is preserved.
-    effect(() => {
-      const options = this.paginationOptions();
-      const showFirstLast = this.showFirstLastButtons();
-      const disabled = this.disabled();
-      if (!options) return;
-      const optionsPageSize = options.pageSize ?? 10;
-      const seen = this.lastSeenOptionsPageSize;
-      const optionsPageSizeChanged = seen === undefined || seen !== optionsPageSize;
-      this.lastSeenOptionsPageSize = optionsPageSize;
-      this.paginationState.update((state) => ({
-        ...state,
-        // Only override the user's interactive choice when the *consumer-
-        // declared* page size actually changed. Re-renders that just toggle
-        // `disabled` no longer touch pageSize.
-        pageSize: optionsPageSizeChanged ? optionsPageSize : state.pageSize,
-        showFirstLastButtons: showFirstLast,
-        disabled,
-      }));
-    });
-
-    // Trigger: data() changes — reset pageIndex, clear caches, drop dangling
-    // selection.
-    //
-    // Selection-preservation rule: when the new `data` array still contains a
-    // previously-selected row by reference, keep it. Templates routinely pass
-    // a derived array (`users().slice(0, N)`, `users().filter(...)`) inline,
-    // which produces a fresh reference every CD tick but the row refs inside
-    // are stable. Wiping the whole selection on every ref change made clicks
-    // silently dropped between renders — model and DOM drift out of sync.
+    // Selection-preservation: when the new `data` array still contains a
+    // previously-selected row by reference, keep it. Inline derived arrays
+    // (`users().slice(...)`, `.filter(...)`) mint a fresh ref every CD tick
+    // but the row refs inside are stable. Clamp instead of reset to 0 for
+    // the same reason — resetting made "next page" land back on page 1
+    // whenever the parent re-rendered.
     effect(() => {
       const data = this.data();
       untracked(() => {
         this.htmlCache.clear();
-        // Clamp pageIndex into the valid range instead of resetting to 0.
-        // Resetting on every data ref change made navigation feel broken:
-        // any inline derived data array (`users().slice(0, N)`, etc.) mints
-        // a fresh ref each CD pass, so clicking "next" landed back on page 1
-        // every time. Clamping only intervenes when the user's current page
-        // is genuinely out of range (e.g. row count just dropped).
-        const totalItems = this.totalItemsSignal();
-        const pageSize = this.paginationState().pageSize || 10;
-        const maxPageIndex = Math.max(0, Math.ceil(totalItems / pageSize) - 1);
-        this.paginationState.update((state) => ({
-          ...state,
-          pageIndex: Math.min(state.pageIndex, maxPageIndex),
-          totalItems,
-        }));
-
+        this.pagination.clampToData(this.totalItemsSignal());
         this.selection.pruneToData(data);
-      });
-    });
-
-    // Trigger: totalItems changes independently (server-side pagination)
-    effect(() => {
-      const totalItems = this.totalItemsSignal();
-      untracked(() => {
-        this.paginationState.update((state) => ({ ...state, totalItems }));
       });
     });
 
