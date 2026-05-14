@@ -99,6 +99,8 @@ import {
   groupData,
   sortTreeData,
 } from './table.helpers';
+import { SelectionController } from './controllers/selection.controller';
+import { SortController } from './controllers/sort.controller';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import {
   TableEngineService,
@@ -197,11 +199,6 @@ interface ActionItem<T> {
 interface BulkActionItem<T> {
   readonly key: ActionType;
   readonly config: TableBulkAction<T>;
-}
-
-interface SortState {
-  readonly field: string;
-  readonly direction: '' | 'Ascending' | 'Descending';
 }
 
 @Component({
@@ -421,11 +418,10 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   });
 
   // Internal signals
-  private readonly sortState = signal<SortState>({ field: '', direction: '' });
   private readonly filterState = signal<FilterConfig<T>[]>([]);
-  readonly selectedSignal = signal(new Set<T>());
-  readonly activeRow = signal<T | null>(null);
-  readonly activeRows = signal<Set<T>>(new Set());
+  // Sort state lives on the SortController; selection state lives on the
+  // SelectionController. Both are instantiated lower in the file once their
+  // signal dependencies (currentData, mode, resize, tree maps) are declared.
   readonly openFilterField = signal<string | null>(null); // Track which filter dropdown is open
   /**
    * Active daisyUI version. The v5 filter popover uses native HTML popover
@@ -663,7 +659,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     const config = this.fieldConfig();
     if (!config?.enableRowReorder) return false;
     // Disable when sort or filter is active
-    if (this.sortState().field) return false;
+    if (this.sorting.state().field) return false;
     if (this.filterState().length > 0) return false;
     if (this.debouncedSearchTerm()) return false;
     return true;
@@ -731,8 +727,8 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   /** Last `paginationOptions.pageSize` we synced into state — used to detect actual config changes vs. re-runs that just toggle `disabled` etc. */
   private lastSeenOptionsPageSize: number | undefined;
 
-  readonly sortFieldSignal = computed(() => this.sortState().field);
-  readonly sortDirectionSignal = computed(() => this.sortState().direction);
+  // `sortFieldSignal` / `sortDirectionSignal` are exposed as aliases off the
+  // SortController, declared lower in the file next to the selection controller.
 
   // Enhanced pagination computed signals
   readonly pageIndexSignal = computed(() => this.paginationState().pageIndex);
@@ -753,35 +749,21 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return typeof n === 'number' && n >= 1 ? n : null;
   });
 
-  /** True when the selection has hit `selectionLimit`. Drives disabled-checkbox state. */
-  readonly isSelectionLimitReachedSignal = computed(() => {
-    const limit = this.selectionLimitSignal();
-    return limit !== null && this.selectedSignal().size >= limit;
-  });
-
   /**
-   * Per-row selectability predicate (from `FieldConfig.isRowSelectable`).
-   * Defaults to "always selectable" when not provided.
+   * Click-to-highlight UX mode. Distinct from checkbox selection — `single`
+   * highlights at most one row at a time, `multi` toggles a Set, `false`
+   * disables row-click highlighting entirely.
    */
-  readonly isRowSelectableFnSignal = computed<(row: T) => boolean>(() => {
-    const fn = this.fieldConfig()?.isRowSelectable;
-    return typeof fn === 'function' ? fn : () => true;
-  });
-
-  /**
-   * Whether to render the header "select all" checkbox.
-   * Hidden whenever a `selectionLimit` is configured — "select all" + any
-   * cap is awkward UX (radio-like at limit=1, partial-fill confusion at
-   * limit=N). The empty <th> kept by the caller keeps the column aligned
-   * with the row checkboxes below.
-   */
-  readonly showSelectAllCheckboxSignal = computed(() => this.selectionLimitSignal() === null);
-  readonly selectableRowsSignal = computed(() => !!this.fieldConfig()?.selectableRows);
-  readonly selectableRowsModeSignal = computed(() => {
+  readonly selectableRowsModeSignal = computed<false | 'single' | 'multi'>(() => {
     const val = this.fieldConfig()?.selectableRows;
     if (val === 'multi') return 'multi';
     return val ? 'single' : false;
   });
+
+  // `isSelectionLimitReachedSignal`, `showSelectAllCheckboxSignal`,
+  // `selectableRowsSignal`, and the per-row predicate signal are exposed on
+  // the selection controller (declared below). The template-/spec-facing
+  // aliases are wired up there to keep the public surface stable.
   readonly hasActionsSignal = computed(() => {
     const actions = this.fieldConfig()?.actions ?? [];
     return actions.length > 0;
@@ -1120,12 +1102,12 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
    */
   private readonly sortedViewSignal = computed<IndexedView<T>>(() => {
     const view = this.searchedViewSignal();
-    const { field, direction } = this.sortState();
+    const { field, direction } = this.sorting.state();
 
     if (!field || !direction) return view;
 
     const compareFn = (a: T, b: T) =>
-      this.compareValues((a as Record<string, unknown>)[field], (b as Record<string, unknown>)[field], direction);
+      this.sorting.compareValues((a as Record<string, unknown>)[field], (b as Record<string, unknown>)[field], direction);
 
     if (this.isTreeTableSignal()) {
       const childrenProp = this.childrenPropertySignal();
@@ -1474,6 +1456,73 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return materializeView(view);
   });
 
+  // ============================================================================
+  // Selection
+  // ============================================================================
+  //
+  // Selection state (`selected`, `activeRow`, `activeRows`), cascade rules,
+  // and the per-row predicate live in `controllers/selection.controller.ts`.
+  // The component re-exports the controller's signals/methods under their
+  // historical names so templates, specs, and external callers see no API
+  // change. See [[feedback_extract_shared_patterns]] — this is step 1 of the
+  // SOLID-aligned table refactor.
+
+  private readonly selection = new SelectionController<T>({
+    currentData: this.currentDataSignal,
+    hasSelection: this.hasSelectionSignal,
+    selectionLimit: this.selectionLimitSignal,
+    isRowSelectable: computed(() => {
+      const fn = this.fieldConfig()?.isRowSelectable;
+      return typeof fn === 'function' ? fn : () => true;
+    }),
+    selectableRowsMode: this.selectableRowsModeSignal,
+    cascadeMode: this.checkboxCascadeSignal,
+    isTreeTable: this.isTreeTableSignal,
+    childrenProperty: this.childrenPropertySignal,
+    getChildren: (row, prop) => getRowChildren(row, prop),
+    getParent: (row) => {
+      const key = this.treeRowKeyMap.get(row);
+      if (!key) return null;
+      const parentKey = this.treeRowParentKeyMap.get(key);
+      if (!parentKey) return null;
+      return this.treeKeyToDataMap.get(parentKey) ?? null;
+    },
+    hasChildren: (row) => this.hasChildren(row),
+    onSelectionChange: (selected) => this.selectionChange.emit(selected),
+    onActiveRowChange: (row) => this.activeRowChange.emit(row),
+    onActiveRowsChange: (rows) => this.activeRowsChange.emit(rows),
+  });
+
+  // Public re-exports of controller state. Naming matches the pre-refactor
+  // shape so existing templates and specs work unmodified.
+  readonly selectedSignal = this.selection.selected;
+  readonly activeRow = this.selection.activeRow;
+  readonly activeRows = this.selection.activeRows;
+  readonly isSelectionLimitReachedSignal = this.selection.isSelectionLimitReached;
+  readonly showSelectAllCheckboxSignal = this.selection.showSelectAllCheckbox;
+  readonly selectableRowsSignal = this.selection.selectableRowsActive;
+
+  // ============================================================================
+  // Sorting
+  // ============================================================================
+  //
+  // Sort cycle (asc → desc → unsorted) and the type-aware row comparator live
+  // in `controllers/sort.controller.ts`. The upstream `sortedViewSignal`
+  // pipeline below reads `this.sorting.state()` and calls
+  // `this.sorting.compareValues(...)` for the JS fallback path.
+
+  private readonly sorting = new SortController({
+    isResizing: this.isResizingSignal,
+    isOffsetMode: computed(() => this.modeSignal() === 'offset'),
+    onResetToFirstPage: () => this.firstPage(),
+    onSortFieldChange: (field) => this.sortFieldChange.emit(field),
+    onSortDirectionChange: (direction) => this.sortDirectionChange.emit(direction),
+    onSortChange: (state) => this.sortChange.emit({ field: state.field, direction: state.direction }),
+  });
+
+  readonly sortFieldSignal = this.sorting.field;
+  readonly sortDirectionSignal = this.sorting.direction;
+
   readonly columnDefsSignal = computed((): ColumnDefinition<T>[] => {
     const cols = this.columns();
     if (cols?.length) return cols;
@@ -1508,7 +1557,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return bulkActions.map((config) => ({ key: config.type, config })).sort(TableComponent.compareByActionOrder);
   });
 
-  readonly selectedArraySignal = computed(() => [...this.selectedSignal()]);
+  readonly selectedArraySignal = this.selection.selectedArray;
 
   readonly displayedColumnsSignal = computed(() => {
     let dataColumns = this.columnDefsSignal().map((c) => c.field);
@@ -1571,15 +1620,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return ordered;
   });
 
-  readonly isAllSelected = computed(() => {
-    const data = this.currentDataSignal(); // Use current page data for "select all"
-    const selected = this.selectedSignal();
-    const canSelect = this.isRowSelectableFnSignal();
-    // Only count rows the predicate allows. A page of all-unselectable rows
-    // reports `false` so the header checkbox doesn't render as "checked".
-    const selectable = data.filter(canSelect);
-    return selectable.length > 0 && selectable.every((row) => selected.has(row));
-  });
+  readonly isAllSelected = this.selection.isAllSelected;
 
   // DataSource
   readonly dataSource: DataSource<T>;
@@ -1778,8 +1819,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   clearSelection(): void {
-    this.selectedSignal.set(new Set());
-    this.selectionChange.emit([]);
+    this.selection.clearSelection();
   }
 
   private updatePagination(options: { pageIndex: number; pageSize: number }): void {
@@ -1792,25 +1832,8 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     this.pageChange.emit(options);
   }
 
-  // Enhanced sort method with server-side support
   sort(field: string): void {
-    if (this.isResizingSignal()) return; // Skip sort while resizing
-    const currentSort = this.sortState();
-    const newDirection = this.calculateNewSortDirection(field, currentSort);
-    const newSortState: SortState = {
-      field: newDirection ? field : '',
-      direction: newDirection,
-    };
-
-    // Update sort state
-    this.sortState.set(newSortState);
-
-    this.emitSortEvents(newSortState);
-
-    // Reset to first page for offset mode (client-side sorting)
-    if (this.modeSignal() === 'offset') {
-      this.firstPage();
-    }
+    this.sorting.sort(field);
   }
 
   classesFor({ key, config }: ActionItem<T> | BulkActionItem<T>): string {
@@ -1880,125 +1903,27 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   toggleRow(row: T, checked: boolean): void {
-    // Belt-and-suspenders against programmatic callers / keyboard focus that
-    // bypass the `[disabled]` HTML attribute on the checkbox. The HTML guard
-    // is the primary UX (greyed out + tooltip); these guards ensure the
-    // model state stays consistent if a checked=true event slips through.
-    // Unchecking is always allowed (a row that was selected before the
-    // predicate started returning false can still be removed).
-    if (checked && !this.isRowSelectableFnSignal()(row)) {
-      return;
-    }
-    if (checked && this.isSelectionLimitReachedSignal() && !this.isSelected(row)) {
-      return;
-    }
-
-    const cascade = this.checkboxCascadeSignal();
-
-    this.selectedSignal.update((selectedSet) => {
-      const newSet = new Set(selectedSet);
-      if (checked) {
-        newSet.add(row);
-      } else {
-        newSet.delete(row);
-      }
-
-      // Cascade selection in tree mode
-      if (cascade !== 'none' && this.isTreeTableSignal()) {
-        const childrenProp = this.childrenPropertySignal();
-
-        // Downward cascade: select/deselect all descendants
-        if (cascade === 'downward' || cascade === 'both') {
-          this.cascadeDown(row, checked, newSet, childrenProp);
-        }
-
-        // Upward cascade: auto-check parent if all siblings are checked
-        if (cascade === 'upward' || cascade === 'both') {
-          this.cascadeUp(row, newSet, childrenProp);
-        }
-      }
-
-      return newSet;
-    });
-
-    this.selectionChange.emit([...this.selectedSignal()]);
+    this.selection.toggleRow(row, checked);
   }
 
   toggleSelectAll(checked: boolean): void {
-    const data = this.currentDataSignal(); // Only select/deselect current page
-    const limit = this.selectionLimitSignal();
-    const canSelect = this.isRowSelectableFnSignal();
-
-    this.selectedSignal.update((selectedSet) => {
-      const newSet = new Set(selectedSet);
-
-      if (checked) {
-        // Cap additions at remaining capacity so a select-all click on a
-        // page that doesn't fit under the limit fills partway instead of
-        // overshooting. Already-selected rows on this page don't count
-        // against capacity — they're a no-op `add`. Rows where the
-        // predicate returns false are skipped entirely.
-        for (const row of data) {
-          if (!canSelect(row)) continue;
-          if (limit !== null && newSet.size >= limit && !newSet.has(row)) break;
-          newSet.add(row);
-        }
-      } else {
-        // Deselection ignores the predicate — a previously-selected row
-        // whose predicate now returns false must still be removable.
-        for (const row of data) newSet.delete(row);
-      }
-
-      return newSet;
-    });
-
-    this.selectionChange.emit([...this.selectedSignal()]);
+    this.selection.toggleSelectAll(checked);
   }
 
   isSelected(row: T): boolean {
-    return this.selectedSignal().has(row);
+    return this.selection.isSelected(row);
   }
 
-  /**
-   * Whether this row's checkbox should render as `disabled`. True when:
-   *   - the `isRowSelectable` predicate returns false for this row, OR
-   *   - a `selectionLimit` is configured, the limit has been reached, and
-   *     this row isn't already in the selected set.
-   *
-   * Disabled rows can't be toggled on — but a checked row can still be
-   * unchecked (limit goes down → others re-enable; a row whose predicate
-   * flips to false post-selection remains removable).
-   */
   isRowSelectDisabled(row: T): boolean {
-    if (!this.isRowSelectableFnSignal()(row)) return true;
-    return this.isSelectionLimitReachedSignal() && !this.isSelected(row);
+    return this.selection.isRowSelectDisabled(row);
   }
 
-  /**
-   * Whether this row is disabled specifically because the selection limit
-   * was reached. Used to gate the "Maximum of N selected" tooltip so it
-   * doesn't appear over rows blocked by the per-row predicate.
-   */
   isRowSelectDisabledByLimit(row: T): boolean {
-    return this.isSelectionLimitReachedSignal() && !this.isSelected(row) && this.isRowSelectableFnSignal()(row);
+    return this.selection.isRowSelectDisabledByLimit(row);
   }
 
-  /**
-   * Whether the header "select all on page" checkbox should render as
-   * `disabled`. Disabled when:
-   *   - no rows on the page are selectable (predicate returns false for all), OR
-   *   - at the selection limit *and* clicking would try to add (not all
-   *     selectable rows on the page are currently selected — in which case
-   *     the click would deselect, which is always allowed).
-   */
   isSelectAllDisabled(): boolean {
-    const data = this.currentDataSignal();
-    const canSelect = this.isRowSelectableFnSignal();
-    const hasSelectable = data.some(canSelect);
-    if (!hasSelectable) return true;
-    if (this.selectionLimitSignal() === null) return false;
-    if (this.isAllSelected()) return false; // would deselect — always allowed
-    return this.isSelectionLimitReachedSignal();
+    return this.selection.isSelectAllDisabled();
   }
 
   isSelectedBgClass(row: T): Record<string, boolean> {
@@ -2367,27 +2292,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   isIndeterminate(row: T): boolean {
-    const cascade = this.checkboxCascadeSignal();
-    if (cascade === 'none') return false;
-    if (!this.hasChildren(row)) return false;
-
-    const childrenProp = this.childrenPropertySignal();
-    const children = getRowChildren(row, childrenProp);
-    if (!children || children.length === 0) return false;
-
-    const selected = this.selectedSignal();
-    let someSelected = false;
-    let allSelected = true;
-
-    for (const child of children) {
-      if (selected.has(child)) {
-        someSelected = true;
-      } else {
-        allSelected = false;
-      }
-    }
-
-    return someSelected && !allSelected;
+    return this.selection.isIndeterminate(row);
   }
 
   /** Get the rendered cell HTML for use in tree-cell-content */
@@ -2414,41 +2319,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
         this.collectKeysToLevel(children, keys, currentLevel + 1, targetLevel);
       }
     });
-  }
-
-  private cascadeDown(row: T, checked: boolean, set: Set<T>, childrenProp: string): void {
-    const children = getRowChildren(row, childrenProp);
-    if (!children) return;
-    for (const child of children) {
-      if (checked) {
-        set.add(child);
-      } else {
-        set.delete(child);
-      }
-      this.cascadeDown(child, checked, set, childrenProp);
-    }
-  }
-
-  private cascadeUp(row: T, set: Set<T>, childrenProp: string): void {
-    const key = this.treeRowKeyMap.get(row);
-    if (!key) return;
-    const parentKey = this.treeRowParentKeyMap.get(key);
-    if (!parentKey) return;
-    const parentRow = this.treeKeyToDataMap.get(parentKey);
-    if (!parentRow) return;
-
-    const siblings = getRowChildren(parentRow, childrenProp);
-    if (!siblings) return;
-
-    const allSiblingsSelected = siblings.every((s) => set.has(s));
-    if (allSiblingsSelected) {
-      set.add(parentRow);
-    } else {
-      set.delete(parentRow);
-    }
-
-    // Continue cascading up
-    this.cascadeUp(parentRow, set, childrenProp);
   }
 
   /**
@@ -2801,24 +2671,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
 
   onRowClick(row: T): void {
     this.rowClick.emit(row);
-    const mode = this.selectableRowsModeSignal();
-    if (mode === 'single') {
-      const current = this.activeRow();
-      this.activeRow.set(current === row ? null : row);
-      this.activeRowChange.emit(this.activeRow());
-    } else if (mode === 'multi') {
-      this.activeRows.update((set) => {
-        const next = new Set(set);
-        if (next.has(row)) {
-          next.delete(row);
-        } else {
-          next.add(row);
-        }
-        return next;
-      });
-      this.activeRowChange.emit(row);
-      this.activeRowsChange.emit([...this.activeRows()]);
-    }
+    this.selection.toggleActiveRow(row);
     if (this.hasMasterDetailSignal()) {
       this.masterDetailSelectedRow.set(row);
       this.masterDetailRowChange.emit(row);
@@ -3286,20 +3139,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
           totalItems,
         }));
 
-        if (!data || data.length === 0) {
-          this.selectedSignal.set(new Set());
-          return;
-        }
-        const current = this.selectedSignal();
-        if (current.size === 0) return;
-        const liveRows = new Set<T>(data);
-        let dropped = false;
-        const next = new Set<T>();
-        for (const row of current) {
-          if (liveRows.has(row)) next.add(row);
-          else dropped = true;
-        }
-        if (dropped) this.selectedSignal.set(next);
+        this.selection.pruneToData(data);
       });
     });
 
@@ -3490,85 +3330,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, (char) => char.toUpperCase())
       .trim();
-  }
-
-  private calculateNewSortDirection(field: string, currentSort: SortState): '' | 'Ascending' | 'Descending' {
-    // If sorting a different field, start with ascending
-    if (currentSort.field !== field) {
-      return 'Ascending';
-    }
-
-    // Cycle through: Ascending → Descending → No Sort (empty)
-    switch (currentSort.direction) {
-      case 'Ascending':
-        return 'Descending';
-      case 'Descending':
-        return '';
-      default:
-        return 'Ascending';
-    }
-  }
-
-  private emitSortEvents(sortState: SortState): void {
-    this.sortFieldChange.emit(sortState.field);
-    this.sortDirectionChange.emit(sortState.direction);
-    this.sortChange.emit({
-      field: sortState.field,
-      direction: sortState.direction,
-    });
-  }
-
-  /**
-   * Type-aware comparison function for sorting
-   * Handles: strings (locale-aware), numbers, dates, booleans, null/undefined
-   */
-  private compareValues(valueA: unknown, valueB: unknown, direction: 'Ascending' | 'Descending'): number {
-    const multiplier = direction === 'Ascending' ? 1 : -1;
-
-    // Handle null/undefined - always push to end regardless of direction
-    if (valueA == null && valueB == null) return 0;
-    if (valueA == null) return 1;
-    if (valueB == null) return -1;
-
-    // Type-specific comparisons
-    const typeA = typeof valueA;
-    const typeB = typeof valueB;
-
-    // If types differ, convert both to strings for comparison
-    if (typeA !== typeB) {
-      return String(valueA).localeCompare(String(valueB), undefined, { numeric: true, sensitivity: 'base' }) * multiplier;
-    }
-
-    // String comparison (locale-aware, case-insensitive)
-    if (typeA === 'string') {
-      return (
-        (valueA as string).localeCompare(valueB as string, undefined, {
-          numeric: true,
-          sensitivity: 'base',
-        }) * multiplier
-      );
-    }
-
-    // Number comparison
-    if (typeA === 'number') {
-      const diff = (valueA as number) - (valueB as number);
-      // Handle NaN
-      if (isNaN(diff)) return 0;
-      return diff * multiplier;
-    }
-
-    // Boolean comparison (false < true)
-    if (typeA === 'boolean') {
-      return ((valueA as boolean) === (valueB as boolean) ? 0 : (valueA as boolean) ? 1 : -1) * multiplier;
-    }
-
-    // Date comparison
-    if (valueA instanceof Date && valueB instanceof Date) {
-      return (valueA.getTime() - valueB.getTime()) * multiplier;
-    }
-
-    // Fallback: convert to string and compare
-    return String(valueA).localeCompare(String(valueB), undefined, { numeric: true, sensitivity: 'base' }) * multiplier;
   }
 
   /**
