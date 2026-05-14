@@ -101,6 +101,7 @@ import {
   sortTreeData,
 } from './table.helpers';
 import { FilterController } from './controllers/filter.controller';
+import { FooterController } from './controllers/footer.controller';
 import { GroupController } from './controllers/group.controller';
 import { PaginationController } from './controllers/pagination.controller';
 import { SelectionController } from './controllers/selection.controller';
@@ -113,15 +114,12 @@ import {
   buildSchemaKindMap,
   inferEngineSchema,
   normalizeDirection,
-  translateAggregate,
   translateGroupFields,
   translateSort,
   type ColumnKind,
   type ColumnSchema,
-  type GroupNode as EngineGroupNode,
   type SortDef,
 } from './engine';
-import { computeAggregate, getAggregateSpec, type AggregateFunction } from './table-aggregates';
 
 // Optimized DataSource with proper typing
 class SignalDataSource<T> extends DataSource<T> {
@@ -528,8 +526,12 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // ============================================================================
   // Summary Footer Row
   // ============================================================================
+  // The cells, the aggregate routing, and the multi-row CDK column sets live
+  // on FooterController (declared further down). Only the projected-template
+  // surface stays here — those are content-children of *this* component, so
+  // they must live on the host. Aliases for `hasFooterSignal` etc. are
+  // exposed next to the FooterController declaration.
   readonly showFooterSignal = computed(() => this.fieldConfig()?.showFooter ?? false);
-  readonly hasAggregateFooterSignal = computed(() => this.showFooterSignal() && this.columnDefsSignal().some((col) => !!col.footer));
   /** Custom footer template — rendered between table and pagination for full flexibility. */
   readonly footerTemplate = contentChild<TemplateRef<{ $implicit: readonly T[]; columns: readonly ColumnDefinition<T>[] }>>('tableFooter');
   /** Custom empty state template — shown when no data and not loading. */
@@ -553,17 +555,11 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly footerTemplateDirectives = contentChildren(HkFooterDirective);
   readonly hasFooterTemplateDirectives = computed(() => this.footerTemplateDirectives().length > 0);
 
-  // Multi-row footer signals
+  /** Pre-resolved multi-row footer (built by `createTable({ footerRows: [...] })`). */
   readonly resolvedFooterRowsSignal = computed(() => this.config()?.resolvedFooterRows ?? []);
-  readonly hasFooterRowsSignal = computed(() => this.resolvedFooterRowsSignal().length > 0);
 
   /** Total column count including utility columns (selection, actions, etc.) */
   readonly totalColumnsCountSignal = computed(() => this.displayedColumnsSignal().length);
-
-  /** True when multi-row footerRows, legacy column.footer, or footer template directives exist. */
-  readonly hasFooterSignal = computed(
-    () => this.hasFooterRowsSignal() || this.hasAggregateFooterSignal() || this.hasFooterTemplateDirectives(),
-  );
 
   // ============================================================================
   // Native Drag State (Column & Row Reordering)
@@ -2022,28 +2018,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     }
   }
 
-  // ============================================================================
-  // Summary Footer Row Methods
-  // ============================================================================
-
-  getFooterValue(column: ColumnDefinition<T>): string {
-    if (!column.footer) return '';
-    const engineResult = this.tryEngineAggregate(column.footer);
-    if (engineResult !== null) return engineResult;
-
-    // JS fallback — invoke the user-supplied / aggregate-builder function.
-    const data = this.displayDataSignal();
-    return String(column.footer(data));
-  }
-
-  getFooterRowCellValue(row: ResolvedFooterRow<T>, column: ColumnDefinition<T>): string {
-    const fn = row.cells[column.field];
-    if (!fn) return '';
-    const engineResult = this.tryEngineAggregate(fn);
-    if (engineResult !== null) return engineResult;
-    return fn(this.displayDataSignal());
-  }
-
   /**
    * Map the display view back to original-array indices. With the
    * `IndexedView<T>` pipeline this is essentially free for the engine path:
@@ -2111,80 +2085,52 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly groupedDataSignal = this.grouping.groupedData;
   readonly groupedDisplaySignal = this.grouping.groupedDisplay;
 
-  /**
-   * Engine-backed aggregate for a footer cell. Returns the formatted string
-   * when the engine ran, `null` to signal the caller to fall back to JS.
-   *
-   * Routes through the engine only when:
-   *   1. The footer function carries an `AggregateSpec` (was built via
-   *      `aggregate(field, fn)`) — custom user functions stay on JS.
-   *   2. The handle is loaded.
-   *   3. The agg fn + column kind combination is safe (per
-   *      `translateAggregate` — see its docs for the conservative rules).
-   *   4. Visible rows can be mapped back to original-array indices (rules
-   *      out tree-table mode for now).
-   */
-  private tryEngineAggregate(fn: unknown): string | null {
-    const spec = getAggregateSpec<T>(fn);
-    if (!spec) return null;
+  // ============================================================================
+  // Footer (controller + template-facing aliases)
+  // ============================================================================
+  //
+  // Declared here — after `displayDataSignal` and `displayIndicesSignal` —
+  // because engine-routed aggregates need them. The template-facing
+  // signals (`hasFooterSignal`, `footerColumnSets`) and per-cell value
+  // accessors all forward to this controller.
 
-    const handle = this.engineHandleSignal();
-    const kindMap = this.engineSchemaKindMapSignal();
-    if (!handle || !kindMap) return null;
-
-    const aggFn = translateAggregate<T>(spec.field, spec.fn, kindMap);
-    if (!aggFn) return null;
-
-    const indices = this.displayIndicesSignal();
-    if (indices === 'unmappable') return null;
-
-    const result = handle.aggregate(spec.field, indices, aggFn);
-    switch (result.kind) {
-      case 'number':
-        return String(result.value);
-      case 'count':
-        return String(result.value);
-      case 'date':
-        return String(result.value); // ms-epoch number — matches `Number(date)` JS behavior
-      case 'none':
-        return null; // empty input: JS path returns `0`, let it.
-    }
-  }
-
-  /**
-   * Column name sets for CDK multi-row footer.
-   * Each footer row gets its own prefixed column set (e.g. '__fr0_salary', '__fr1_salary')
-   * so CDK renders each row with its own cdkFooterCellDef — different content per row.
-   */
-  readonly footerColumnSets = computed(() => {
-    const rows = this.resolvedFooterRowsSignal();
-    if (!rows.length) return [];
-    const baseCols = this.displayedColumnsSignal();
-    return rows.map((row, i) => {
-      // Colspan rows use a single synthetic column spanning full width
-      if (row.colspanCells) return [`__cfr${i}`];
-      // Column-aligned rows use prefixed columns
-      return baseCols.map((col) => `__fr${i}_${col}`);
-    });
+  private readonly footer = new FooterController<T>({
+    resolvedFooterRows: this.resolvedFooterRowsSignal,
+    columnDefs: this.columnDefsSignal,
+    orderedColumnDefs: this.orderedColumnDefsSignal,
+    displayedColumns: this.displayedColumnsSignal,
+    showFooter: this.showFooterSignal,
+    hasFooterTemplateDirectives: this.hasFooterTemplateDirectives,
+    engineHandle: this.engineHandleSignal,
+    engineSchemaKindMap: this.engineSchemaKindMapSignal,
+    displayIndices: this.displayIndicesSignal,
+    displayData: this.displayDataSignal,
   });
 
-  /** Look up the footer aggregate value for a given footer row + base column name. */
+  readonly hasAggregateFooterSignal = this.footer.hasAggregateFooter;
+  readonly hasFooterRowsSignal = this.footer.hasFooterRows;
+  readonly hasFooterSignal = this.footer.hasFooter;
+  readonly footerColumnSets = this.footer.columnSets;
+
+  // Template-facing value accessors — forward straight to the controller.
+  getFooterValue(column: ColumnDefinition<T>): string {
+    return this.footer.getFooterValue(column);
+  }
+
+  getFooterRowCellValue(row: ResolvedFooterRow<T>, column: ColumnDefinition<T>): string {
+    return this.footer.getFooterRowCellValue(row, column);
+  }
+
   getFooterCellValueForCol(rowIdx: number, baseCol: string): string {
-    const footerRow = this.resolvedFooterRowsSignal()[rowIdx];
-    if (!footerRow || footerRow.colspanCells) return ''; // colspan rows handled differently
-    const column = this.orderedColumnDefsSignal().find((c) => c.field === baseCol);
-    if (!column) return ''; // Special column (select, actions, etc.) — empty cell
-    return this.getFooterRowCellValue(footerRow, column);
+    return this.footer.getFooterCellValueForCol(rowIdx, baseCol);
   }
 
-  /** Get the display value for a colspan footer cell. */
   getColspanCellValue(cell: ResolvedColspanCell): string {
-    return cell.valueFn(this.displayDataSignal());
+    return this.footer.getColspanCellValue(cell);
   }
 
-  /** Get the display value for a colspan footer cell within a group. */
   getGroupColspanCellValue(cell: ResolvedColspanCell, group: RowGroup<T>): string {
-    return cell.valueFn(group.rows);
+    return this.footer.getGroupColspanCellValue(cell, group);
   }
 
   // ============================================================================
@@ -2495,11 +2441,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   getGroupFooterRowCellValue(group: RowGroup<T>, footerRowIndex: number, column: ColumnDefinition<T>): string {
-    const footerRow = group.resolvedGroupFooterRows?.[footerRowIndex];
-    if (!footerRow) return '';
-    const fn = footerRow.cells[column.field];
-    if (!fn) return '';
-    return fn(group.rows);
+    return this.footer.getGroupFooterRowCellValue(group, footerRowIndex, column);
   }
 
   private saveColumnVisibilityToStorage(): void {
