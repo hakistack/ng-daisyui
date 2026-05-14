@@ -1,6 +1,5 @@
 // table.component.ts
 import { CdkTableModule, DataSource } from '@angular/cdk/table';
-import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
@@ -92,6 +91,7 @@ import {
   getRowChildren,
   sortTreeData,
 } from './table.helpers';
+import { ColumnUiController } from './controllers/column-ui.controller';
 import { FilterController } from './controllers/filter.controller';
 import { FooterController } from './controllers/footer.controller';
 import { GlobalSearchController } from './controllers/global-search.controller';
@@ -446,59 +446,17 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
    * ourselves to work in Firefox / Safari too.
    */
   readonly openFilterPos = signal<{ top: number; left: number } | null>(null);
-  readonly columnVisibilityState = signal<Map<string, boolean>>(new Map()); // Track column visibility
   readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
 
   // Tree-table state (expansion, animating keys, topology caches) lives on
   // the TreeController instantiated lower in the file. `expandedRowKeys` and
   // `treeAnimatingKeys` are re-exposed there as aliases for templates.
 
-  // ============================================================================
-  // Sticky Columns
-  // ============================================================================
-  readonly stickyStartColumnsSignal = computed(() => {
-    const cols = this.columnDefsSignal();
-    const set = new Set<string>();
-    for (const col of cols) {
-      if (col.sticky === 'start') set.add(col.field);
-    }
-    return set;
-  });
-
-  readonly stickyEndColumnsSignal = computed(() => {
-    const cols = this.columnDefsSignal();
-    const set = new Set<string>();
-    for (const col of cols) {
-      if (col.sticky === 'end') set.add(col.field);
-    }
-    return set;
-  });
-
-  readonly hasStickyColumnsSignal = computed(() => {
-    const config = this.fieldConfig()?.stickyColumns;
-    // Only activate sticky behavior when stickyColumns is explicitly configured with at least one option
-    return config != null && (config.stickySelection != null || config.stickyActions != null);
-  });
-
-  readonly stickySelectionSignal = computed(() => {
-    const config = this.fieldConfig()?.stickyColumns;
-    if (!this.hasStickyColumnsSignal()) return false;
-    return this.hasSelectionSignal() && config?.stickySelection !== false;
-  });
-
-  readonly stickyActionsSignal = computed(() => {
-    const config = this.fieldConfig()?.stickyColumns;
-    if (!this.hasStickyColumnsSignal()) return false;
-    return this.hasActionsSignal() && config?.stickyActions !== false;
-  });
-
-  // ============================================================================
-  // Column Resizing
-  // ============================================================================
-  readonly columnWidthsSignal = signal<Map<string, number>>(new Map());
-  readonly isResizingSignal = signal(false);
+  // Column visibility, reorder, resize, and sticky state all live on the
+  // ColumnUiController declared lower (after `columnDefsSignal` /
+  // `displayedColumnsSignal` are available). Template-facing aliases are
+  // wired up there.
   readonly enableResizingSignal = computed(() => this.fieldConfig()?.enableColumnResizing ?? false);
-  private resizeState: { field: string; startX: number; startWidth: number } | null = null;
 
   // ============================================================================
   // Virtual Scrolling
@@ -555,10 +513,10 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   readonly totalColumnsCountSignal = computed(() => this.displayedColumnsSignal().length);
 
   // ============================================================================
-  // Native Drag State (Column & Row Reordering)
+  // Native Drag State (Row Reordering)
   // ============================================================================
-  readonly draggedColumnField = signal<string | null>(null);
-  readonly dragOverColumnField = signal<string | null>(null);
+  // Column-drag state (`draggedColumnField`, `dragOverColumnField`) lives on
+  // the ColumnUiController and is re-exposed under its historical names.
   readonly draggedRow = signal<T | null>(null);
   readonly dragOverRowIndex = signal<number | null>(null);
 
@@ -641,11 +599,8 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return startIdx === -1 ? this.displayedColumnsSignal().length - 1 : startIdx;
   });
 
-  // ============================================================================
-  // Column Reordering
-  // ============================================================================
+  // Column reorder enable flag — state and handlers live on ColumnUiController.
   readonly enableColumnReorderSignal = computed(() => this.fieldConfig()?.enableColumnReorder ?? false);
-  readonly columnOrderOverride = signal<string[] | null>(null);
 
   // ============================================================================
   // Row Reordering
@@ -773,11 +728,9 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // (declared lower in the file alongside the other controllers).
   readonly enableFilteringSignal = computed(() => this.fieldConfig()?.enableFiltering ?? false);
 
-  // Column visibility computed signals
+  // Column visibility — `isColumnVisibilityEnabled`, `alwaysVisibleColumns`,
+  // and `columnVisibilityLabels` are aliased off the ColumnUiController.
   readonly columnVisibilityConfig = computed(() => this.fieldConfig()?.columnVisibility);
-  readonly isColumnVisibilityEnabled = computed(() => this.columnVisibilityConfig()?.enabled ?? false);
-  readonly alwaysVisibleColumns = computed(() => new Set(this.columnVisibilityConfig()?.alwaysVisible ?? []));
-  readonly columnVisibilityLabels = computed(() => this.columnVisibilityConfig()?.labels ?? {});
 
   // Label resolution for the main table template. `tableLabels()` returns a
   // merged object (defaults + user overrides) so templates can `{{ tableLabels().foo }}`
@@ -1080,7 +1033,7 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   // `this.sorting.compareValues(...)` for the JS fallback path.
 
   private readonly sorting = new SortController({
-    isResizing: this.isResizingSignal,
+    isResizing: computed(() => this.isResizingSignal()),
     isOffsetMode: computed(() => this.modeSignal() === 'offset'),
     onResetToFirstPage: () => this.firstPage(),
     onSortFieldChange: (field) => this.sortFieldChange.emit(field),
@@ -1217,6 +1170,47 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   });
 
   readonly isAllSelected = this.selection.isAllSelected;
+
+  // ============================================================================
+  // Column UI (visibility / reorder / resize / sticky)
+  // ============================================================================
+  //
+  // Declared after `displayedColumnsSignal` / `orderedColumnDefsSignal` /
+  // `columnDefsSignal` so the deps resolve cleanly. The host re-exposes
+  // controller state under historical names so templates and specs work
+  // unmodified. Initialization (`applyInitialVisibility`) runs in the host
+  // `setupEffects` block so it's reactive to config changes.
+
+  private readonly columnUi = new ColumnUiController<T>({
+    columnDefs: this.columnDefsSignal,
+    displayedColumns: this.displayedColumnsSignal,
+    visibilityConfig: this.columnVisibilityConfig,
+    enableResizing: this.enableResizingSignal,
+    enableReorder: this.enableColumnReorderSignal,
+    stickyConfig: computed(() => this.fieldConfig()?.stickyColumns),
+    hasSelection: this.hasSelectionSignal,
+    hasActions: this.hasActionsSignal,
+    canUseStorage: this.hasLocalStorage,
+    onColumnReorder: (event) => this.columnReorder.emit(event),
+    onColumnResize: (event) => this.columnResize.emit(event),
+  });
+
+  // Public re-exports of controller state. Naming matches the pre-refactor
+  // shape so templates, specs, and external callers see no API change.
+  readonly columnVisibilityState = this.columnUi.visibilityState;
+  readonly isColumnVisibilityEnabled = this.columnUi.isVisibilityEnabled;
+  readonly alwaysVisibleColumns = this.columnUi.alwaysVisible;
+  readonly columnVisibilityLabels = this.columnUi.visibilityLabels;
+  readonly columnOrderOverride = this.columnUi.orderOverride;
+  readonly columnWidthsSignal = this.columnUi.widths;
+  readonly isResizingSignal = this.columnUi.isResizing;
+  readonly stickyStartColumnsSignal = this.columnUi.stickyStartColumns;
+  readonly stickyEndColumnsSignal = this.columnUi.stickyEndColumns;
+  readonly hasStickyColumnsSignal = this.columnUi.hasStickyColumns;
+  readonly stickySelectionSignal = this.columnUi.stickySelection;
+  readonly stickyActionsSignal = this.columnUi.stickyActions;
+  readonly draggedColumnField = this.columnUi.draggedField;
+  readonly dragOverColumnField = this.columnUi.dragOverField;
 
   // DataSource
   readonly dataSource: DataSource<T>;
@@ -1573,90 +1567,25 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     this.globalSearch.clear();
   }
 
-  // Column visibility methods
+  // Column visibility methods (thin forwarders to ColumnUiController)
   isColumnVisible(field: string): boolean {
-    const visibilityState = this.columnVisibilityState();
-    const isVisible = visibilityState.get(field);
-    return isVisible !== false; // Show by default if not set
+    return this.columnUi.isColumnVisible(field);
   }
 
   toggleColumnVisibility(field: string): void {
-    const currentState = this.isColumnVisible(field);
-    const alwaysVisible = this.alwaysVisibleColumns();
-
-    // Don't allow hiding if it's marked as always visible
-    if (alwaysVisible.has(field) && currentState) {
-      return;
-    }
-
-    // Don't allow hiding if it's the last visible column
-    const allColumns = this.columnDefsSignal().map((c) => c.field);
-    const visibleCount = allColumns.filter((f) => this.isColumnVisible(f)).length;
-    if (visibleCount === 1 && currentState) {
-      return; // Keep at least one column visible
-    }
-
-    this.columnVisibilityState.update((state) => {
-      const newState = new Map(state);
-      newState.set(field, !currentState);
-      return newState;
-    });
-
-    // Save to localStorage if enabled
-    this.saveColumnVisibilityToStorage();
+    this.columnUi.toggleVisibility(field);
   }
 
   showAllColumns(): void {
-    const allColumns = this.columnDefsSignal().map((c) => c.field);
-    this.columnVisibilityState.update((state) => {
-      const newState = new Map(state);
-      allColumns.forEach((field) => newState.set(field, true));
-      return newState;
-    });
-    this.saveColumnVisibilityToStorage();
+    this.columnUi.showAll();
   }
 
   hideAllColumns(): void {
-    const allColumns = this.columnDefsSignal().map((c) => c.field);
-    const alwaysVisible = this.alwaysVisibleColumns();
-
-    // Keep at least one column visible (first non-always-visible column or first column)
-    const firstColumn = allColumns.find((f) => !alwaysVisible.has(f)) || allColumns[0];
-
-    this.columnVisibilityState.update((state) => {
-      const newState = new Map(state);
-      allColumns.forEach((field) => {
-        if (alwaysVisible.has(field) || field === firstColumn) {
-          newState.set(field, true);
-        } else {
-          newState.set(field, false);
-        }
-      });
-      return newState;
-    });
-    this.saveColumnVisibilityToStorage();
+    this.columnUi.hideAll();
   }
 
   resetColumnVisibility(): void {
-    const config = this.columnVisibilityConfig();
-    const defaultVisible = config?.defaultVisible;
-
-    if (defaultVisible && defaultVisible.length > 0) {
-      // Reset to default visible columns
-      const allColumns = this.columnDefsSignal().map((c) => c.field);
-      this.columnVisibilityState.update((state) => {
-        const newState = new Map(state);
-        allColumns.forEach((field) => {
-          newState.set(field, defaultVisible.includes(field));
-        });
-        return newState;
-      });
-    } else {
-      // Show all columns
-      this.showAllColumns();
-    }
-
-    this.saveColumnVisibilityToStorage();
+    this.columnUi.reset();
   }
 
   // ============================================================================
@@ -1730,68 +1659,31 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   // ============================================================================
-  // Sticky Column Methods
+  // Sticky / Resize Methods (thin forwarders to ColumnUiController)
   // ============================================================================
 
   isStickyStart(field: string): boolean {
-    if (field === 'select') return this.stickySelectionSignal();
-    if (field === 'actions_start') return this.stickyActionsSignal();
-    return this.stickyStartColumnsSignal().has(field);
+    return this.columnUi.isStickyStart(field);
   }
 
   isStickyEnd(field: string): boolean {
-    if (field === 'actions_end') return this.stickyActionsSignal();
-    return this.stickyEndColumnsSignal().has(field);
+    return this.columnUi.isStickyEnd(field);
   }
 
-  // ============================================================================
-  // Column Resizing Methods
-  // ============================================================================
-
   getColumnWidth(field: string): number | null {
-    return this.columnWidthsSignal().get(field) ?? null;
+    return this.columnUi.getColumnWidth(field);
   }
 
   onResizeStart(field: string, event: PointerEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    const th = (event.target as HTMLElement).closest('th');
-    if (!th) return;
-
-    this.isResizingSignal.set(true);
-    this.resizeState = { field, startX: event.clientX, startWidth: th.offsetWidth };
-
-    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+    this.columnUi.onResizeStart(field, event);
   }
 
   onResizeMove(event: PointerEvent): void {
-    if (!this.resizeState) return;
-
-    const { field, startX, startWidth } = this.resizeState;
-    const diff = event.clientX - startX;
-    let newWidth = Math.max(startWidth + diff, 50); // minimum 50px
-
-    // Enforce column min/max from column definition
-    const col = this.columnDefsSignal().find((c) => c.field === field);
-    if (col?.minWidth) newWidth = Math.max(newWidth, col.minWidth);
-    if (col?.maxWidth) newWidth = Math.min(newWidth, col.maxWidth);
-
-    this.columnWidthsSignal.update((m) => {
-      const newMap = new Map(m);
-      newMap.set(field, newWidth);
-      return newMap;
-    });
+    this.columnUi.onResizeMove(event);
   }
 
   onResizeEnd(): void {
-    if (!this.resizeState) return;
-
-    const { field, startWidth } = this.resizeState;
-    const newWidth = this.columnWidthsSignal().get(field) ?? startWidth;
-
-    this.columnResize.emit({ field, width: newWidth, previousWidth: startWidth });
-    this.resizeState = null;
-    this.isResizingSignal.set(false);
+    this.columnUi.onResizeEnd();
   }
 
   // ============================================================================
@@ -2159,58 +2051,27 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
   }
 
   // ============================================================================
-  // Column Reordering (Native HTML5 Drag)
+  // Column Reordering (thin forwarders to ColumnUiController)
   // ============================================================================
 
   onColumnDragStart(field: string, event: DragEvent): void {
-    if (!this.enableColumnReorderSignal()) return;
-    this.draggedColumnField.set(field);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', field);
-    }
+    this.columnUi.onDragStart(field, event);
   }
 
   onColumnDragOver(field: string, event: DragEvent): void {
-    if (!this.enableColumnReorderSignal() || !this.draggedColumnField()) return;
-    event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-    this.dragOverColumnField.set(field);
+    this.columnUi.onDragOver(field, event);
   }
 
   onColumnDragLeave(): void {
-    this.dragOverColumnField.set(null);
+    this.columnUi.onDragLeave();
   }
 
   onColumnDrop(field: string, event: DragEvent): void {
-    event.preventDefault();
-    const fromField = this.draggedColumnField();
-    this.draggedColumnField.set(null);
-    this.dragOverColumnField.set(null);
-
-    if (!fromField || fromField === field) return;
-
-    const cols = [...this.displayedColumnsSignal()];
-    const specialCols = new Set(['select', '__detail_expand', '__drag_handle', 'actions_start', 'actions_end']);
-    const dataCols = cols.filter((c) => !specialCols.has(c));
-
-    const fromIdx = dataCols.indexOf(fromField);
-    const toIdx = dataCols.indexOf(field);
-    if (fromIdx === -1 || toIdx === -1) return;
-
-    moveItemInArray(dataCols, fromIdx, toIdx);
-    this.columnOrderOverride.set(dataCols);
-
-    this.columnReorder.emit({
-      previousIndex: fromIdx,
-      currentIndex: toIdx,
-      columns: dataCols,
-    });
+    this.columnUi.onDrop(field, event);
   }
 
   onColumnDragEnd(): void {
-    this.draggedColumnField.set(null);
-    this.dragOverColumnField.set(null);
+    this.columnUi.onDragEnd();
   }
 
   // ============================================================================
@@ -2290,50 +2151,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     return this.footer.getGroupFooterRowCellValue(group, footerRowIndex, column);
   }
 
-  private saveColumnVisibilityToStorage(): void {
-    const config = this.columnVisibilityConfig();
-    const storageKey = config?.storageKey;
-
-    if (!storageKey) return;
-    if (!this.hasLocalStorage) return;
-
-    const visibilityState = this.columnVisibilityState();
-    const visibilityObj: Record<string, boolean> = {};
-
-    visibilityState.forEach((visible, field) => {
-      visibilityObj[field] = visible;
-    });
-
-    // Defer write to avoid blocking the main thread
-    queueMicrotask(() => {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(visibilityObj));
-      } catch {}
-    });
-  }
-
-  private loadColumnVisibilityFromStorage(): void {
-    const config = this.columnVisibilityConfig();
-    const storageKey = config?.storageKey;
-
-    if (!storageKey) return;
-    if (!this.hasLocalStorage) return;
-
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const visibilityObj: Record<string, boolean> = JSON.parse(stored);
-        this.columnVisibilityState.update((state) => {
-          const newState = new Map(state);
-          Object.entries(visibilityObj).forEach(([field, visible]) => {
-            newState.set(field, visible);
-          });
-          return newState;
-        });
-      }
-    } catch {}
-  }
-
   // Private methods
   private setupEffects(): void {
     // Note: group expansion initialization is handled lazily.
@@ -2342,26 +2159,12 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
     // toggleGroupExpand populates the Set from current state. An empty Set
     // means "all collapsed" (not "all expanded").
 
-    // Initialize column visibility (use untracked for reads that would cause re-trigger)
+    // Initialize column visibility — load from storage + seed defaults.
+    // The controller handles precedence; this effect just re-runs it when
+    // the config or column defs change.
     effect(() => {
-      const config = this.columnVisibilityConfig();
-      if (config?.enabled) {
-        // Try to load from localStorage first
-        this.loadColumnVisibilityFromStorage();
-
-        // If nothing was loaded and there are default visible columns, set them
-        const visibilityState = untracked(() => this.columnVisibilityState());
-        if (visibilityState.size === 0 && config.defaultVisible && config.defaultVisible.length > 0) {
-          const allColumns = untracked(() => this.columnDefsSignal()).map((c) => c.field);
-          this.columnVisibilityState.update((state) => {
-            const newState = new Map(state);
-            allColumns.forEach((field) => {
-              newState.set(field, config.defaultVisible!.includes(field));
-            });
-            return newState;
-          });
-        }
-      }
+      this.columnVisibilityConfig();
+      untracked(() => this.columnUi.applyInitialVisibility());
     });
 
     // Initialize tree table expanded state — precedence and timing live on
