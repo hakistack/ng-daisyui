@@ -88,9 +88,13 @@ export class NotificationItemComponent {
    * daisyUI-native panel class. Builds on the `alert` component so notifications
    * inherit the same look-and-feel as the rest of the lib (toast / inline alerts):
    *
-   * - **Severity-driven** (no avatar, no iconTemplate): `alert alert-soft alert-{severity}`
-   *   — soft-tinted background matching the semantic color, stroke-current
-   *   icons inherit color automatically.
+   * - **Severity-driven** (no avatar, no iconTemplate):
+   *   - v5: `alert alert-soft alert-{severity}` — soft-tinted background.
+   *   - v4: `alert bg-base-100 text-{severity}` — daisyUI v4 has no `alert-soft`,
+   *     so we follow the docs' "Alert with title and description" pattern:
+   *     neutral panel + severity-colored leading icon (via inherited
+   *     currentColor on `stroke-current`). Title / message / close pin
+   *     themselves to `text-base-content` so they stay readable.
    * - **Avatar-driven** (user notifications): `alert bg-base-100` — neutral panel
    *   so the avatar reads as the dominant element.
    *
@@ -102,7 +106,11 @@ export class NotificationItemComponent {
     if (this.notification().avatar || this.notification().iconTemplate) {
       return `${base} bg-base-100`;
     }
-    return `${base} alert-soft alert-${this.notification().severity}`;
+    const severity = this.notification().severity;
+    if (this.theme.id === 'daisyui-v4') {
+      return `${base} bg-base-100 text-${severity}`;
+    }
+    return `${base} alert-soft alert-${severity}`;
   });
 
   /**
