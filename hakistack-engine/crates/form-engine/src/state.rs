@@ -26,7 +26,7 @@ pub struct ValueMap {
 impl ValueMap {
     pub fn with_field_count(n: FieldIdx) -> Self {
         Self {
-            values: vec![Value::Null; n as usize],
+            values: vec![Value::default(); n as usize],
         }
     }
 

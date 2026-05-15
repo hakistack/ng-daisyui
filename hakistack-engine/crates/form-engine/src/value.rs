@@ -14,7 +14,12 @@
 /// Engine value. Heap-light by design — strings are boxed but never
 /// re-allocated past ingest; arrays are flat `Vec<Value>` so the
 /// `contains` / `in` operators read them directly.
-#[derive(Debug, Clone)]
+///
+/// `PartialEq` is derived: `f64`'s own `PartialEq` already returns
+/// `false` for any NaN comparison (IEEE-754), which matches the JS
+/// `NaN !== NaN` convention the engine inherits. `Eq` is intentionally
+/// not derived for the same reason.
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Null,
     Bool(bool),
@@ -27,11 +32,19 @@ pub enum Value {
     JsCallback(u32),
 }
 
+impl Default for Value {
+    #[inline]
+    fn default() -> Self {
+        Value::Null
+    }
+}
+
 impl Value {
     /// Truthiness in the JS sense — used by the `string` /
     /// `[fieldKey, true]` shorthand the TS adapter normalizes to
     /// `{ op: Equals, value: Bool(true) }`. Direct callers rarely need
     /// this.
+    #[inline]
     pub fn is_truthy(&self) -> bool {
         match self {
             Value::Null => false,
@@ -43,6 +56,7 @@ impl Value {
         }
     }
 
+    #[inline]
     pub fn as_number(&self) -> Option<f64> {
         if let Value::Number(n) = self {
             Some(*n)
@@ -51,6 +65,7 @@ impl Value {
         }
     }
 
+    #[inline]
     pub fn as_str(&self) -> Option<&str> {
         if let Value::String(s) = self {
             Some(s)
@@ -59,32 +74,12 @@ impl Value {
         }
     }
 
+    #[inline]
     pub fn as_array(&self) -> Option<&[Value]> {
         if let Value::Array(v) = self {
             Some(v)
         } else {
             None
-        }
-    }
-}
-
-impl PartialEq for Value {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Value::Null, Value::Null) => true,
-            (Value::Bool(a), Value::Bool(b)) => a == b,
-            (Value::Number(a), Value::Number(b)) => {
-                // NaN ≠ NaN is the JS convention; engine matches it.
-                if a.is_nan() || b.is_nan() {
-                    false
-                } else {
-                    a == b
-                }
-            }
-            (Value::String(a), Value::String(b)) => a == b,
-            (Value::Array(a), Value::Array(b)) => a == b,
-            (Value::JsCallback(a), Value::JsCallback(b)) => a == b,
-            _ => false,
         }
     }
 }

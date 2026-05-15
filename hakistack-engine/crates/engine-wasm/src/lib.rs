@@ -114,6 +114,15 @@ impl WasmDataset {
                     // bottleneck since fields are typically short.
                     let values: Vec<Option<String>> = serde_wasm_bindgen::from_value(col_js)
                         .map_err(|e| JsValue::from_str(&format!("column id {} (text): {e}", col.id)))?;
+                    // Numeric paths validate length inside extract_columnar_*;
+                    // the text path must do it here, otherwise the builder's
+                    // assert surfaces as an opaque WASM "unreachable" trap.
+                    if values.len() as u32 != n_rows {
+                        return Err(JsValue::from_str(&format!(
+                            "column id {} (text): expected length {n_rows}, got {}",
+                            col.id, values.len()
+                        )));
+                    }
                     builder = builder.add_text(col.id, values);
                 }
                 wire::WireColumnKind::Number => {
@@ -127,10 +136,26 @@ impl WasmDataset {
                     builder = builder.add_bool_columnar(col.id, values, validity);
                 }
                 wire::WireColumnKind::Date => {
-                    let (values_f, validity) =
+                    let (values_f, mut validity) =
                         extract_columnar_f64(&col_js, n_rows, col.id, "date")?;
                     // JS Date.getTime() returns f64 ms-epoch; narrow to i64.
-                    let values: Vec<i64> = values_f.into_iter().map(|f| f as i64).collect();
+                    // Unchecked `f as i64` saturates ±∞ to ±i64::MAX/MIN and
+                    // turns NaN into 0 — both surface as silently wrong dates.
+                    // Treat non-finite / out-of-range as invalid: zero the
+                    // slot and clear the validity bit so the kernel never
+                    // reads the value. Mirrors how `add_number_columnar`
+                    // handles NaN in numeric columns.
+                    const I64_MIN_F: f64 = i64::MIN as f64;
+                    const I64_MAX_F: f64 = i64::MAX as f64;
+                    let mut values: Vec<i64> = Vec::with_capacity(values_f.len());
+                    for (i, f) in values_f.into_iter().enumerate() {
+                        if f.is_finite() && f >= I64_MIN_F && f <= I64_MAX_F {
+                            values.push(f as i64);
+                        } else {
+                            values.push(0);
+                            validity.unset(i as u32);
+                        }
+                    }
                     builder = builder.add_date_columnar(col.id, values, validity);
                 }
             }
@@ -151,8 +176,7 @@ impl WasmDataset {
         let kernel: Vec<ColumnFilter> = wire.into_iter().map(Into::into).collect();
 
         let mask = apply_filters(&self.inner, &kernel);
-        let indices: Vec<u32> = mask.iter().collect();
-        Ok(uint32_array_from_slice(&indices))
+        Ok(uint32_array_from_bitset(&mask))
     }
 
     /// Apply a global multi-column search and return the matching-row mask.
@@ -164,8 +188,7 @@ impl WasmDataset {
         let kernel: SearchSpec = wire.into();
 
         let mask = apply_search(&self.inner, &kernel);
-        let indices: Vec<u32> = mask.iter().collect();
-        Ok(uint32_array_from_slice(&indices))
+        Ok(uint32_array_from_bitset(&mask))
     }
 
     /// Sort the given indices by a multi-tier sort spec, return the new order.
@@ -269,8 +292,7 @@ impl WasmTree {
             .map_err(|e| JsValue::from_str(&format!("tree filter spec parse error: {e}")))?;
         let kernel: TreeFilterSpec = wire.into();
         let mask = tree_filter(&self.inner, &kernel);
-        let visible: Vec<u32> = mask.iter().collect();
-        Ok(uint32_array_from_slice(&visible))
+        Ok(uint32_array_from_bitset(&mask))
     }
 
     /// Flatten the tree, given which nodes are visible and which are expanded.
@@ -584,6 +606,21 @@ fn pack_form_events(events: &[form_engine::Event]) -> Uint32Array {
 fn uint32_array_from_slice(slice: &[u32]) -> Uint32Array {
     let arr = Uint32Array::new_with_length(slice.len() as u32);
     arr.copy_from(slice);
+    arr
+}
+
+/// Pack set bits into a `Uint32Array` without paying the growth-doubling
+/// peak that `bitset.iter().collect::<Vec<u32>>()` incurs (no `size_hint`).
+/// One word-popcount pass sizes the Vec exactly; one bulk memcpy hands it
+/// to JS. Used by every filter / search / tree call.
+fn uint32_array_from_bitset(mask: &Bitset) -> Uint32Array {
+    let n = mask.count_ones();
+    let mut indices: Vec<u32> = Vec::with_capacity(n as usize);
+    for idx in mask.iter() {
+        indices.push(idx);
+    }
+    let arr = Uint32Array::new_with_length(n);
+    arr.copy_from(&indices);
     arr
 }
 

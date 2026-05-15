@@ -3,7 +3,6 @@ import { CdkTableModule, DataSource } from '@angular/cdk/table';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -222,7 +221,7 @@ interface BulkActionItem<T> {
     '(keydown)': 'onTableKeydown($event)',
   },
 })
-export class TableComponent<T extends object> implements OnDestroy, AfterViewInit {
+export class TableComponent<T extends object> implements OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elementRef = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
@@ -1357,8 +1356,6 @@ export class TableComponent<T extends object> implements OnDestroy, AfterViewIni
       this.engineSchemaSignal.set(null);
     }
   }
-
-  ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
     this.globalSearch.dispose();
