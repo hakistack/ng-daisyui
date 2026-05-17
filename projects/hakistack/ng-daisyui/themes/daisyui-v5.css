@@ -37,6 +37,7 @@
   --hk-color-base-300: var(--color-base-300);
   --hk-color-base-content: var(--color-base-content);
   --hk-color-primary: var(--color-primary);
+  --hk-color-primary-content: var(--color-primary-content);
   --hk-color-error: var(--color-error);
   --hk-color-base-content-85: oklch(from var(--color-base-content) l c h / 0.85);
   --hk-color-base-content-70: color-mix(in oklch, var(--color-base-content) 70%, transparent);

@@ -25,6 +25,7 @@
   --hk-color-base-300: hsl(var(--b3));
   --hk-color-base-content: hsl(var(--bc));
   --hk-color-primary: hsl(var(--p));
+  --hk-color-primary-content: hsl(var(--pc));
   --hk-color-error: hsl(var(--er));
   --hk-color-base-content-85: hsl(var(--bc) / 0.85);
   --hk-color-base-content-70: hsl(var(--bc) / 0.7);

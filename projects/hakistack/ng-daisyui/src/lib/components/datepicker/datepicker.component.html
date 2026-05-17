@@ -131,11 +131,21 @@
               @switch (currentView()) {
                 @case ('days') {
                   <!-- Month/Year buttons for days view -->
-                  <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToMonthView()" aria-label="Select month">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm hover:bg-primary hover:text-primary-content hover:border-primary"
+                    (click)="goToMonthView()"
+                    aria-label="Select month"
+                  >
                     {{ monthLabel() }}
                   </button>
                   <span class="text-base-content/50">/</span>
-                  <button type="button" class="btn btn-ghost btn-sm hover:btn-primary" (click)="goToYearView()" aria-label="Select year">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm hover:bg-primary hover:text-primary-content hover:border-primary"
+                    (click)="goToYearView()"
+                    aria-label="Select year"
+                  >
                     {{ yearLabel() }}
                   </button>
                 }
@@ -143,7 +153,7 @@
                   <!-- Year button and current month indicator -->
                   <button
                     type="button"
-                    class="btn btn-ghost btn-sm hover:btn-primary"
+                    class="btn btn-ghost btn-sm hover:bg-primary hover:text-primary-content hover:border-primary"
                     (click)="goToYearView()"
                     [attr.aria-label]="resolvedLabels().selectYearAriaLabel"
                   >
@@ -245,8 +255,7 @@
                         class="btn btn-sm transition-all duration-200"
                         [class]="{
                           'btn-primary': month.isSelected,
-                          'btn-ghost': !month.isSelected,
-                          'hover:btn-primary': !month.isSelected,
+                          'btn-ghost hover:bg-primary hover:text-primary-content hover:border-primary': !month.isSelected,
                         }"
                         (click)="selectMonth(month.index)"
                         [attr.aria-pressed]="month.isSelected"
@@ -310,8 +319,7 @@
                         class="btn btn-sm transition-all duration-200"
                         [class]="{
                           'btn-primary': year.isSelected,
-                          'btn-ghost': !year.isSelected,
-                          'hover:btn-primary': !year.isSelected,
+                          'btn-ghost hover:bg-primary hover:text-primary-content hover:border-primary': !year.isSelected,
                         }"
                         (click)="selectYear(year.year)"
                         [attr.aria-pressed]="year.isSelected"

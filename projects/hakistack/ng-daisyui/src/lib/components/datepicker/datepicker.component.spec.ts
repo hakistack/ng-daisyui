@@ -551,8 +551,8 @@ describe('DatepickerComponent', () => {
       it('should mark days of the current month as isCurrentMonth', () => {
         component.currentMonth.set(new Date(2025, 2, 1)); // March 2025
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const marchCells = allCells.filter(c => c.isCurrentMonth);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const marchCells = allCells.filter((c) => c.isCurrentMonth);
         expect(marchCells.length).toBe(31); // March has 31 days
       });
 
@@ -560,13 +560,13 @@ describe('DatepickerComponent', () => {
         component.currentMonth.set(new Date(2025, 2, 1)); // March 2025 starts on Saturday
         fixture.detectChanges();
         const firstWeek = component.calendarWeeks()[0].cells;
-        const prevMonthCells = firstWeek.filter(c => !c.isCurrentMonth);
+        const prevMonthCells = firstWeek.filter((c) => !c.isCurrentMonth);
         // March 2025 starts on Saturday (index 6 with Sunday=0), so 6 trailing days from Feb
         expect(prevMonthCells.length).toBeGreaterThan(0);
       });
 
       it('should include leading days of the next month', () => {
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
         const totalCells = allCells.length;
         expect(totalCells).toBe(42); // always 6 * 7
       });
@@ -575,9 +575,12 @@ describe('DatepickerComponent', () => {
         const today = new Date();
         component.currentMonth.set(new Date(today.getFullYear(), today.getMonth(), 1));
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
         const todayCell = allCells.find(
-          c => c.date!.getFullYear() === today.getFullYear() && c.date!.getMonth() === today.getMonth() && c.date!.getDate() === today.getDate(),
+          (c) =>
+            c.date!.getFullYear() === today.getFullYear() &&
+            c.date!.getMonth() === today.getMonth() &&
+            c.date!.getDate() === today.getDate(),
         );
         expect(todayCell).toBeDefined();
         expect(todayCell!.isToday).toBe(true);
@@ -588,8 +591,8 @@ describe('DatepickerComponent', () => {
         component.currentMonth.set(new Date(2025, 2, 1)); // March 2025
         component.selectDate(date);
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const selectedCell = allCells.find(c => c.date!.getDate() === 15 && c.date!.getMonth() === 2 && c.isCurrentMonth);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const selectedCell = allCells.find((c) => c.date!.getDate() === 15 && c.date!.getMonth() === 2 && c.isCurrentMonth);
         expect(selectedCell).toBeDefined();
         expect(selectedCell!.isSelected).toBe(true);
       });
@@ -629,7 +632,7 @@ describe('DatepickerComponent', () => {
       it('should mark the current month as selected', () => {
         component.currentMonth.set(new Date(2025, 5, 1)); // June
         fixture.detectChanges();
-        const selected = component.months().find(m => m.isSelected);
+        const selected = component.months().find((m) => m.isSelected);
         expect(selected).toBeDefined();
         expect(selected!.index).toBe(5);
       });
@@ -646,7 +649,7 @@ describe('DatepickerComponent', () => {
 
       it('should mark the current year as selected', () => {
         const currentYear = component.currentMonth().getFullYear();
-        const selected = component.years().find(y => y.isSelected);
+        const selected = component.years().find((y) => y.isSelected);
         expect(selected).toBeDefined();
         expect(selected!.year).toBe(currentYear);
       });
@@ -691,9 +694,9 @@ describe('DatepickerComponent', () => {
         component.currentMonth.set(new Date(2025, 2, 1)); // March 2025
         fixture.componentRef.setInput('minDate', day(2025, 3, 15));
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const march10 = allCells.find(c => c.isCurrentMonth && c.date!.getDate() === 10);
-        const march20 = allCells.find(c => c.isCurrentMonth && c.date!.getDate() === 20);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const march10 = allCells.find((c) => c.isCurrentMonth && c.date!.getDate() === 10);
+        const march20 = allCells.find((c) => c.isCurrentMonth && c.date!.getDate() === 20);
         expect(march10!.isDisabled).toBe(true);
         expect(march20!.isDisabled).toBe(false);
       });
@@ -1076,7 +1079,7 @@ describe('DatepickerComponent', () => {
         expect(classes).toContain('opacity-50');
       });
 
-      it('should include hover:btn-primary for non-disabled, non-selected cells', () => {
+      it('should include primary hover utilities for non-disabled, non-selected cells', () => {
         const cell = {
           date: day(2025, 3, 15),
           isCurrentMonth: true,
@@ -1089,7 +1092,9 @@ describe('DatepickerComponent', () => {
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
-        expect(classes).toContain('hover:btn-primary');
+        expect(classes).toContain('hover:bg-primary');
+        expect(classes).toContain('hover:text-primary-content');
+        expect(classes).toContain('hover:border-primary');
       });
     });
 
@@ -1155,48 +1160,48 @@ describe('DatepickerComponent', () => {
       it('should handle February in a leap year (2024)', () => {
         component.currentMonth.set(new Date(2024, 1, 1)); // February 2024
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const febCells = allCells.filter(c => c.isCurrentMonth);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const febCells = allCells.filter((c) => c.isCurrentMonth);
         expect(febCells.length).toBe(29); // 2024 is a leap year
       });
 
       it('should handle February in a non-leap year (2025)', () => {
         component.currentMonth.set(new Date(2025, 1, 1)); // February 2025
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const febCells = allCells.filter(c => c.isCurrentMonth);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const febCells = allCells.filter((c) => c.isCurrentMonth);
         expect(febCells.length).toBe(28);
       });
 
       it('should handle month boundaries correctly for 30-day months', () => {
         component.currentMonth.set(new Date(2025, 3, 1)); // April 2025
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const aprilCells = allCells.filter(c => c.isCurrentMonth);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const aprilCells = allCells.filter((c) => c.isCurrentMonth);
         expect(aprilCells.length).toBe(30);
       });
 
       it('should handle month boundaries correctly for 31-day months', () => {
         component.currentMonth.set(new Date(2025, 0, 1)); // January 2025
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const janCells = allCells.filter(c => c.isCurrentMonth);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const janCells = allCells.filter((c) => c.isCurrentMonth);
         expect(janCells.length).toBe(31);
       });
 
       it('should handle year 2000 (leap year)', () => {
         component.currentMonth.set(new Date(2000, 1, 1)); // February 2000
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const febCells = allCells.filter(c => c.isCurrentMonth);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const febCells = allCells.filter((c) => c.isCurrentMonth);
         expect(febCells.length).toBe(29);
       });
 
       it('should handle year 1900 (not a leap year)', () => {
         component.currentMonth.set(new Date(1900, 1, 1)); // February 1900
         fixture.detectChanges();
-        const allCells = component.calendarWeeks().flatMap(w => w.cells);
-        const febCells = allCells.filter(c => c.isCurrentMonth);
+        const allCells = component.calendarWeeks().flatMap((w) => w.cells);
+        const febCells = allCells.filter((c) => c.isCurrentMonth);
         expect(febCells.length).toBe(28);
       });
 

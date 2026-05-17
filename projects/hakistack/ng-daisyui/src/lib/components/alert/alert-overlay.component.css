@@ -61,7 +61,7 @@
   left: 0;
   width: 100%;
   height: 3px;
-  background: var(--color-primary, oklch(0.65 0.2 250));
+  background: var(--hk-color-primary, oklch(0.65 0.2 250));
   opacity: 0.5;
   transform-origin: left;
   animation: alert-timer-shrink var(--alert-timer-duration, 5000ms) linear forwards;

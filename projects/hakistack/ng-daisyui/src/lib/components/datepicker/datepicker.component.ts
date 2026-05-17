@@ -623,7 +623,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     }
 
     if (!cell.isDisabled && !cell.isSelected && !cell.isRangeStart && !cell.isRangeEnd) {
-      classes.push('hover:btn-primary');
+      classes.push('hover:bg-primary', 'hover:text-primary-content', 'hover:border-primary');
     }
 
     return classes.join(' ');
@@ -889,9 +889,13 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   onClickOutside(event: Event): void {
-    if (!this.dpRoot().nativeElement.contains(event.target as Node)) {
-      this.closePicker();
-    }
+    const root = this.dpRoot().nativeElement;
+    const path = event.composedPath();
+    // composedPath reflects the DOM at dispatch time, so it still includes
+    // buttons that change detection removed (e.g. month/year view swap).
+    if (path.includes(root)) return;
+    if (root.contains(event.target as Node)) return;
+    this.closePicker();
   }
 
   onEscapeKey(): void {
