@@ -132,8 +132,8 @@ export class PipeRegistryService {
     value: unknown,
     options?: K extends keyof BuiltinPipesWithOptions ? BuiltinPipesWithOptions[K] : never,
   ): string;
-  transform(pipeName: string, value: unknown, options?: Record<string, unknown>): string;
-  transform(pipeName: string, value: unknown, options?: Record<string, unknown>): string {
+  transform(pipeName: string, value: unknown, options?: unknown): string;
+  transform(pipeName: string, value: unknown, options?: unknown): string {
     // Handle null/undefined/empty values gracefully
     if (value === null || value === undefined || value === '') {
       return '';
@@ -171,7 +171,7 @@ export class PipeRegistryService {
     const pipeName = formatter[0] as string;
     const options = formatter.length > 1 ? formatter[1] : undefined;
     const pipe = this.getPipe(pipeName);
-    const args = this.optionsToArgs(pipeName, options as Record<string, unknown> | undefined);
+    const args = this.optionsToArgs(pipeName, options);
 
     try {
       return pipe.transform(value, ...args) ?? '';
@@ -184,9 +184,13 @@ export class PipeRegistryService {
   /**
    * Converts options object to positional arguments for Angular pipes.
    * Filters out trailing undefined values to let pipes use their defaults.
+   *
+   * Accepts the string shorthand variants too (e.g. `fmt.date('short')` →
+   * options is the bare format string, not an object) — without this,
+   * the format was silently dropped and DatePipe fell back to 'mediumDate'.
    */
-  private optionsToArgs(pipeName: string, options?: Record<string, unknown>): unknown[] {
-    if (!options) {
+  private optionsToArgs(pipeName: string, options?: unknown): unknown[] {
+    if (options === undefined || options === null) {
       return [];
     }
 
@@ -194,29 +198,50 @@ export class PipeRegistryService {
 
     switch (pipeName) {
       case 'date':
-        args = [options['format'], options['timezone'], options['locale']];
+        if (typeof options === 'string') {
+          args = [options];
+        } else {
+          const o = options as Record<string, unknown>;
+          args = [o['format'], o['timezone'], o['locale']];
+        }
         break;
 
       case 'currency':
-        args = [options['currencyCode'], options['display'], options['digitsInfo'], options['locale']];
+        if (typeof options === 'string') {
+          args = [options];
+        } else {
+          const o = options as Record<string, unknown>;
+          args = [o['currencyCode'], o['display'], o['digitsInfo'], o['locale']];
+        }
         break;
 
       case 'number':
-      case 'percent':
-        args = [options['digitsInfo'], options['locale']];
+      case 'percent': {
+        const o = options as Record<string, unknown>;
+        args = [o['digitsInfo'], o['locale']];
         break;
+      }
 
-      case 'json':
-        args = [options['space']];
+      case 'json': {
+        const o = options as Record<string, unknown>;
+        args = [o['space']];
         break;
+      }
 
-      case 'keyvalue':
-        args = [options['compareFn']];
+      case 'keyvalue': {
+        const o = options as Record<string, unknown>;
+        args = [o['compareFn']];
         break;
+      }
 
       default:
-        // For custom pipes, pass all option values as positional args
-        return Object.values(options);
+        // For custom pipes, pass option values as positional args. Object
+        // shorthand stays as a single arg so custom pipes receive what
+        // their author expects.
+        if (typeof options === 'object') {
+          return Object.values(options as Record<string, unknown>);
+        }
+        return [options];
     }
 
     // Remove trailing undefined values to let pipes use their defaults
