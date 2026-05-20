@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 
 import { LucideColumns3, LucideLock, LucideEye, LucideEyeOff, LucideRotateCcw } from '@lucide/angular';
+import { HK_THEME } from '../../theme/theme.config';
 import { ColumnDefinition, ColumnVisibilityLabels } from './table.types';
 
 const DEFAULT_LABELS: Required<ColumnVisibilityLabels> = {
@@ -13,20 +14,110 @@ const DEFAULT_LABELS: Required<ColumnVisibilityLabels> = {
   resetAriaLabel: 'Reset to default columns',
 };
 
+let popoverInstanceId = 0;
+
 @Component({
   selector: 'hk-table-column-visibility',
   imports: [LucideColumns3, LucideLock, LucideEye, LucideEyeOff, LucideRotateCcw],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // The table wraps its content in `overflow-hidden` (rounded-box + horizontal
+  // scroll). A plain `<details class="dropdown">` rendered inside that wrapper
+  // gets clipped — no z-index or repositioning can rescue it because the
+  // clipping happens at the ancestor's painting layer. The v5 branch escapes
+  // by rendering into the browser's top-layer via the native popover API
+  // (anchor-positioned to the trigger). The v4 branch keeps `<details>`
+  // because daisyUI v4's `.dropdown` / `.card` CSS overrides popover's UA
+  // `display:none` rule, breaking the closed state — matches the v4 filter
+  // fallback in table.component.html.
   template: `
-    <details class="dropdown dropdown-end">
-      <summary class="btn btn-outline btn-ghost gap-2">
+    @if (isDaisyV4()) {
+      <details class="dropdown dropdown-end">
+        <summary class="btn btn-outline btn-ghost gap-2">
+          <svg lucideColumns3 [size]="16"></svg>
+          <span>{{ resolvedLabels().trigger }}</span>
+          <span class="badge badge-sm badge-neutral">{{ visibleColumnsCount() }}/{{ columns().length }}</span>
+        </summary>
+        <div class="dropdown-content card card-sm bg-base-100 z-10 mt-2 min-w-72 max-w-sm shadow-xl">
+          <div class="card-body gap-3 p-4">
+            <div class="flex flex-col gap-1">
+              @for (column of columns(); track column.field) {
+                @let isVisible = isColumnVisible(column.field);
+                @let isAlwaysVisible = alwaysVisibleColumns().has(column.field);
+                @let isLastVisible = visibleColumnsCount() === 1 && isVisible;
+                @let isDisabled = isAlwaysVisible || isLastVisible;
+
+                <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-base-200">
+                  <input
+                    type="checkbox"
+                    class="checkbox checkbox-sm"
+                    [checked]="isVisible"
+                    [disabled]="isDisabled"
+                    (change)="onToggleColumn(column.field)"
+                  />
+                  <span class="flex-1 text-sm">{{ column.header }}</span>
+                  @if (isAlwaysVisible) {
+                    <svg lucideLock [size]="12" class="opacity-50"></svg>
+                  }
+                </label>
+              }
+            </div>
+
+            <div class="divider my-0"></div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs gap-1"
+                [disabled]="allColumnsVisible()"
+                (click)="onShowAll()"
+                [attr.aria-label]="resolvedLabels().showAllAriaLabel"
+              >
+                <svg lucideEye [size]="14"></svg>
+                {{ resolvedLabels().showAll }}
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs gap-1"
+                [disabled]="onlyRequiredColumnsVisible()"
+                (click)="onHideAll()"
+                [attr.aria-label]="resolvedLabels().hideAllAriaLabel"
+              >
+                <svg lucideEyeOff [size]="14"></svg>
+                {{ resolvedLabels().hideAll }}
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs gap-1"
+                (click)="onReset()"
+                [attr.aria-label]="resolvedLabels().resetAriaLabel"
+              >
+                <svg lucideRotateCcw [size]="14"></svg>
+                {{ resolvedLabels().reset }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </details>
+    } @else {
+      <button
+        type="button"
+        class="btn btn-outline btn-ghost gap-2"
+        [attr.popovertarget]="popoverId"
+        [style.anchor-name]="'--' + popoverId + '-anchor'"
+      >
         <svg lucideColumns3 [size]="16"></svg>
         <span>{{ resolvedLabels().trigger }}</span>
         <span class="badge badge-sm badge-neutral">{{ visibleColumnsCount() }}/{{ columns().length }}</span>
-      </summary>
-      <div class="dropdown-content card card-sm bg-base-100 z-10 mt-2 min-w-72 max-w-sm shadow-xl">
+      </button>
+      <div
+        class="dropdown dropdown-end card card-sm bg-base-100 min-w-72 max-w-sm shadow-xl"
+        popover
+        [id]="popoverId"
+        [style.position-anchor]="'--' + popoverId + '-anchor'"
+      >
         <div class="card-body gap-3 p-4">
-          <!-- Column toggles -->
           <div class="flex flex-col gap-1">
             @for (column of columns(); track column.field) {
               @let isVisible = isColumnVisible(column.field);
@@ -50,10 +141,8 @@ const DEFAULT_LABELS: Required<ColumnVisibilityLabels> = {
             }
           </div>
 
-          <!-- Divider -->
           <div class="divider my-0"></div>
 
-          <!-- Quick actions -->
           <div class="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -89,7 +178,7 @@ const DEFAULT_LABELS: Required<ColumnVisibilityLabels> = {
           </div>
         </div>
       </div>
-    </details>
+    }
   `,
 })
 export class TableColumnVisibilityComponent<T extends Record<string, unknown>> {
@@ -103,6 +192,13 @@ export class TableColumnVisibilityComponent<T extends Record<string, unknown>> {
   readonly showAll = output<void>();
   readonly hideAll = output<void>();
   readonly resetEmitter = output<void>();
+
+  private readonly hkTheme = inject(HK_THEME);
+  readonly isDaisyV4 = computed(() => this.hkTheme.id === 'daisyui-v4');
+
+  // Document-unique id for the v5 popover/anchor pair. Incremented per
+  // instance so multiple tables on a page don't collide on popovertarget.
+  readonly popoverId = `hk-col-vis-${++popoverInstanceId}`;
 
   readonly resolvedLabels = computed<Required<ColumnVisibilityLabels>>(() => ({
     ...DEFAULT_LABELS,
