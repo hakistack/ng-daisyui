@@ -347,7 +347,7 @@
                           [class]="classesFor(action)"
                           [style]="action.config.buttonStyle"
                           [disabled]="action.config.disabled?.(row)"
-                          (click)="action.config.action(row)"
+                          (click)="$event.stopPropagation(); action.config.action(row)"
                         >
                           @if (action.config.icon) {
                             <svg [lucideIcon]="action.config.icon"></svg>
@@ -370,7 +370,7 @@
                   [style.padding-left.px]="isTreeTableSignal() && isTreeColumn(column.field) ? getRowIndentPadding(row) : null"
                 >
                   @if (enableEditingSignal() && isEditing(row, column.field)) {
-                    <div class="edit-cell" tabindex="-1" (keydown)="onEditKeydown($event)">
+                    <div class="edit-cell" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="onEditKeydown($event)">
                       @switch (getEditorType(column)) {
                         @case ('toggle') {
                           <input
@@ -467,7 +467,7 @@
                           [class]="classesFor(action)"
                           [style]="action.config.buttonStyle"
                           [disabled]="action.config.disabled?.(row)"
-                          (click)="action.config.action(row)"
+                          (click)="$event.stopPropagation(); action.config.action(row)"
                         >
                           @if (action.config.icon) {
                             <svg [lucideIcon]="action.config.icon"></svg>
@@ -717,7 +717,7 @@
                             [class]="classesFor(action)"
                             [style]="action.config.buttonStyle"
                             [disabled]="action.config.disabled?.(displayRow.row)"
-                            (click)="action.config.action(displayRow.row)"
+                            (click)="$event.stopPropagation(); action.config.action(displayRow.row)"
                           >
                             @if (action.config.icon) {
                               <svg [lucideIcon]="action.config.icon"></svg>
@@ -744,7 +744,7 @@
                             [class]="classesFor(action)"
                             [style]="action.config.buttonStyle"
                             [disabled]="action.config.disabled?.(displayRow.row)"
-                            (click)="action.config.action(displayRow.row)"
+                            (click)="$event.stopPropagation(); action.config.action(displayRow.row)"
                           >
                             @if (action.config.icon) {
                               <svg [lucideIcon]="action.config.icon"></svg>
@@ -1239,7 +1239,7 @@
             >
               @if (enableEditingSignal() && isEditing(row, column.field)) {
                 <!-- Edit Mode -->
-                <div class="edit-cell" tabindex="-1" (keydown)="onEditKeydown($event)">
+                <div class="edit-cell" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="onEditKeydown($event)">
                   @switch (getEditorType(column)) {
                     @case ('toggle') {
                       <input
@@ -1373,7 +1373,7 @@
                           [class]="classesFor(action)"
                           [style]="action.config.buttonStyle"
                           [disabled]="action.config.disabled?.(row)"
-                          (click)="action.config.action(row)"
+                          (click)="$event.stopPropagation(); action.config.action(row)"
                         >
                           @if (action.config.icon) {
                             <svg [lucideIcon]="action.config.icon"></svg>
@@ -1389,7 +1389,7 @@
                         [class]="classesFor(action)"
                         [style]="action.config.buttonStyle"
                         [disabled]="action.config.disabled?.(row)"
-                        (click)="action.config.action(row)"
+                        (click)="$event.stopPropagation(); action.config.action(row)"
                       >
                         @if (action.config.icon) {
                           <svg [lucideIcon]="action.config.icon"></svg>
@@ -1435,7 +1435,7 @@
                           [class]="classesFor(action)"
                           [style]="action.config.buttonStyle"
                           [disabled]="action.config.disabled?.(row)"
-                          (click)="action.config.action(row)"
+                          (click)="$event.stopPropagation(); action.config.action(row)"
                         >
                           @if (action.config.icon) {
                             <svg [lucideIcon]="action.config.icon"></svg>
@@ -1451,7 +1451,7 @@
                         [class]="classesFor(action)"
                         [style]="action.config.buttonStyle"
                         [disabled]="action.config.disabled?.(row)"
-                        (click)="action.config.action(row)"
+                        (click)="$event.stopPropagation(); action.config.action(row)"
                       >
                         @if (action.config.icon) {
                           <svg [lucideIcon]="action.config.icon"></svg>
