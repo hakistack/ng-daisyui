@@ -1,0 +1,21 @@
+[package]
+name        = "document-engine"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+authors.workspace    = true
+repository.workspace = true
+publish.workspace    = true
+description = "Pure-Rust document parsers (spreadsheets via calamine, more to come). Testable natively with `cargo test` — no wasm-bindgen here."
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+serde = { workspace = true }
+
+# Spreadsheets — handles .xlsx, .xls, .xlsb, .xlsm, .xla, .xlam, .ods in one crate.
+# Default features are fine for Phase 1; a follow-up can disable `dates` (which
+# pulls chrono, ~80 KB) once the consumer code is confirmed to only use the
+# numeric `DateTime` serial representation.
+calamine = "0.32"

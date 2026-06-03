@@ -11,17 +11,14 @@
 //!   `(node_idx, state)` pairs for the affected ancestors.
 
 use crate::dataset::TreeDataset;
-use engine_core::{
-    bitset::Bitset,
-    Idx,
-};
+use engine_core::{Idx, bitset::Bitset};
 
 /// Tri-state for a node when looking at its descendants' selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum NodeState {
-    Clear         = 0,
-    Selected      = 1,
+    Clear = 0,
+    Selected = 1,
     Indeterminate = 2,
 }
 
@@ -95,7 +92,7 @@ pub fn cascade_up(dataset: &TreeDataset, selected: &Bitset, changed: Idx) -> Vec
 fn subtree_state(dataset: &TreeDataset, selected: &Bitset, root: Idx) -> NodeState {
     let arena = &dataset.arena;
     let mut total: u32 = 0;
-    let mut sel:   u32 = 0;
+    let mut sel: u32 = 0;
     let mut stack: Vec<i32> = vec![root as i32];
 
     while let Some(node) = stack.pop() {
@@ -149,7 +146,8 @@ mod tests {
                 "Marketing".into(),
             ],
             vec![0, 1, 2, 2, 1],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     fn selection(idxs: &[Idx], n: u32) -> Bitset {
@@ -200,7 +198,7 @@ mod tests {
         let s = selection(&[2, 3], d.n_nodes());
         let result = cascade_up(&d, &s, 3);
 
-        assert_eq!(result[0], (1, NodeState::Selected));      // Engineering
+        assert_eq!(result[0], (1, NodeState::Selected)); // Engineering
         assert_eq!(result[1], (0, NodeState::Indeterminate)); // Root
     }
 

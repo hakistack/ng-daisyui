@@ -25,7 +25,7 @@
 use std::cmp::Ordering;
 
 use crate::dataset::{BoolColumn, Column, ColumnId, Dataset, DateColumn, NumberColumn, TextColumn};
-use engine_core::{bitset::Bitset, Idx};
+use engine_core::{Idx, bitset::Bitset};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -41,20 +41,28 @@ pub enum NullsPosition {
 
 #[derive(Debug, Clone, Copy)]
 pub struct SortSpec {
-    pub column:    ColumnId,
+    pub column: ColumnId,
     pub direction: Direction,
-    pub nulls:     NullsPosition,
+    pub nulls: NullsPosition,
 }
 
 impl SortSpec {
     /// Convenience: ascending, nulls last (the most common DataGrid default).
     pub fn asc(column: ColumnId) -> Self {
-        Self { column, direction: Direction::Asc, nulls: NullsPosition::Last }
+        Self {
+            column,
+            direction: Direction::Asc,
+            nulls: NullsPosition::Last,
+        }
     }
 
     /// Convenience: descending, nulls last.
     pub fn desc(column: ColumnId) -> Self {
-        Self { column, direction: Direction::Desc, nulls: NullsPosition::Last }
+        Self {
+            column,
+            direction: Direction::Desc,
+            nulls: NullsPosition::Last,
+        }
     }
 }
 
@@ -84,20 +92,20 @@ pub fn sort_from_mask(dataset: &Dataset, mask: &Bitset, specs: &[SortSpec]) -> V
 
 enum Resolved<'a> {
     Skip,
-    Text   (&'a TextColumn,   Direction, NullsPosition),
-    Number (&'a NumberColumn, Direction, NullsPosition),
-    Bool   (&'a BoolColumn,   Direction, NullsPosition),
-    Date   (&'a DateColumn,   Direction, NullsPosition),
+    Text(&'a TextColumn, Direction, NullsPosition),
+    Number(&'a NumberColumn, Direction, NullsPosition),
+    Bool(&'a BoolColumn, Direction, NullsPosition),
+    Date(&'a DateColumn, Direction, NullsPosition),
 }
 
 impl<'a> Resolved<'a> {
     fn from(dataset: &'a Dataset, spec: &SortSpec) -> Self {
         match dataset.column(spec.column) {
-            Some(Column::Text(c))   => Self::Text(c,   spec.direction, spec.nulls),
+            Some(Column::Text(c)) => Self::Text(c, spec.direction, spec.nulls),
             Some(Column::Number(c)) => Self::Number(c, spec.direction, spec.nulls),
-            Some(Column::Bool(c))   => Self::Bool(c,   spec.direction, spec.nulls),
-            Some(Column::Date(c))   => Self::Date(c,   spec.direction, spec.nulls),
-            None                    => Self::Skip,
+            Some(Column::Bool(c)) => Self::Bool(c, spec.direction, spec.nulls),
+            Some(Column::Date(c)) => Self::Date(c, spec.direction, spec.nulls),
+            None => Self::Skip,
         }
     }
 }
@@ -154,22 +162,22 @@ fn compare_one(r: &Resolved<'_>, a: Idx, b: Idx) -> Ordering {
 fn cmp_with_nulls<F: FnOnce() -> Ordering>(
     a_valid: bool,
     b_valid: bool,
-    dir:     Direction,
-    nulls:   NullsPosition,
-    cmp:     F,
+    dir: Direction,
+    nulls: NullsPosition,
+    cmp: F,
 ) -> Ordering {
     match (a_valid, b_valid) {
         (false, false) => Ordering::Equal,
-        (false, true)  => match nulls {
+        (false, true) => match nulls {
             NullsPosition::First => Ordering::Less,
-            NullsPosition::Last  => Ordering::Greater,
+            NullsPosition::Last => Ordering::Greater,
         },
         (true, false) => match nulls {
             NullsPosition::First => Ordering::Greater,
-            NullsPosition::Last  => Ordering::Less,
+            NullsPosition::Last => Ordering::Less,
         },
         (true, true) => match dir {
-            Direction::Asc  => cmp(),
+            Direction::Asc => cmp(),
             Direction::Desc => cmp().reverse(),
         },
     }
@@ -181,7 +189,7 @@ fn cmp_with_nulls<F: FnOnce() -> Ordering>(
 mod tests {
     use super::*;
     use crate::dataset::Dataset;
-    use crate::filter::{apply as apply_filters, ColumnFilter, NumberOp};
+    use crate::filter::{ColumnFilter, NumberOp, apply as apply_filters};
 
     fn opt_strs(v: &[&str]) -> Vec<Option<String>> {
         v.iter().map(|s| Some(s.to_string())).collect()
@@ -193,9 +201,18 @@ mod tests {
         // id 3 = joined (date)
         Dataset::builder(5)
             .add_text(0, opt_strs(&["Carol", "alice", "Bob", "Alice", "dave"]))
-            .add_number(1, vec![Some(30.0), Some(25.0), Some(40.0), Some(25.0), None])
-            .add_bool(2, vec![Some(true), Some(false), Some(true), Some(false), None])
-            .add_date(3, vec![Some(300), Some(100), Some(400), Some(100), Some(200)])
+            .add_number(
+                1,
+                vec![Some(30.0), Some(25.0), Some(40.0), Some(25.0), None],
+            )
+            .add_bool(
+                2,
+                vec![Some(true), Some(false), Some(true), Some(false), None],
+            )
+            .add_date(
+                3,
+                vec![Some(300), Some(100), Some(400), Some(100), Some(200)],
+            )
             .build()
     }
 
@@ -237,11 +254,15 @@ mod tests {
     fn number_asc_with_nulls_first() {
         let ds = ds_named();
         let mut idxs = all_indices(5);
-        sort_indices(&ds, &mut idxs, &[SortSpec {
-            column: 1,
-            direction: Direction::Asc,
-            nulls: NullsPosition::First,
-        }]);
+        sort_indices(
+            &ds,
+            &mut idxs,
+            &[SortSpec {
+                column: 1,
+                direction: Direction::Asc,
+                nulls: NullsPosition::First,
+            }],
+        );
         assert_eq!(idxs, vec![4, 1, 3, 0, 2]);
     }
 
@@ -326,10 +347,7 @@ mod tests {
         let ds = ds_named();
         let mut idxs = all_indices(5);
         // primary = nonexistent column 99 (skipped), secondary = age asc
-        sort_indices(&ds, &mut idxs, &[
-            SortSpec::asc(99),
-            SortSpec::asc(1),
-        ]);
+        sort_indices(&ds, &mut idxs, &[SortSpec::asc(99), SortSpec::asc(1)]);
         // Falls through to age ordering
         assert_eq!(idxs, vec![1, 3, 0, 2, 4]);
     }
@@ -351,10 +369,13 @@ mod tests {
     #[test]
     fn sort_after_filter_via_mask() {
         let ds = ds_named();
-        let mask = apply_filters(&ds, &[ColumnFilter::Number {
-            column: 1,
-            op: NumberOp::Lt(35.0),
-        }]);
+        let mask = apply_filters(
+            &ds,
+            &[ColumnFilter::Number {
+                column: 1,
+                op: NumberOp::Lt(35.0),
+            }],
+        );
         // Filter survivors: rows 0 (30), 1 (25), 3 (25)
         let sorted = sort_from_mask(&ds, &mask, &[SortSpec::asc(1)]);
         // Sorted by age asc: 25(1), 25(3), 30(0)

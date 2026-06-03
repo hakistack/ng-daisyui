@@ -10,23 +10,23 @@ const NONE: i32 = -1;
 
 #[derive(Debug, Clone)]
 pub struct TreeArena {
-    pub parent_of:    Vec<i32>,
-    pub first_child:  Vec<i32>,
+    pub parent_of: Vec<i32>,
+    pub first_child: Vec<i32>,
     pub next_sibling: Vec<i32>,
-    pub depth_of:     Vec<u8>,
-    pub entry_order:  Vec<u32>,
-    pub exit_order:   Vec<u32>,
+    pub depth_of: Vec<u8>,
+    pub entry_order: Vec<u32>,
+    pub exit_order: Vec<u32>,
 }
 
 impl TreeArena {
     pub fn with_capacity(n: usize) -> Self {
         Self {
-            parent_of:    Vec::with_capacity(n),
-            first_child:  Vec::with_capacity(n),
+            parent_of: Vec::with_capacity(n),
+            first_child: Vec::with_capacity(n),
             next_sibling: Vec::with_capacity(n),
-            depth_of:     Vec::with_capacity(n),
-            entry_order:  Vec::with_capacity(n),
-            exit_order:   Vec::with_capacity(n),
+            depth_of: Vec::with_capacity(n),
+            entry_order: Vec::with_capacity(n),
+            exit_order: Vec::with_capacity(n),
         }
     }
 
@@ -72,7 +72,11 @@ impl TreeArena {
                 return Err("depth sequence jumps more than one level in a single step");
             }
             stack.truncate(d as usize);
-            arena.parent_of[i] = if stack.is_empty() { NONE } else { *stack.last().unwrap() };
+            arena.parent_of[i] = if stack.is_empty() {
+                NONE
+            } else {
+                *stack.last().unwrap()
+            };
             arena.depth_of[i] = d;
             stack.push(i as i32);
         }
@@ -82,7 +86,9 @@ impl TreeArena {
         // first_child, with later children chained via next_sibling.
         for i in (0..n).rev() {
             let parent = arena.parent_of[i];
-            if parent == NONE { continue; }
+            if parent == NONE {
+                continue;
+            }
             let p = parent as usize;
             arena.next_sibling[i] = arena.first_child[p];
             arena.first_child[p] = i as i32;
@@ -146,9 +152,9 @@ impl TreeArena {
     pub fn is_descendant(&self, root: Idx, candidate: Idx) -> bool {
         let r = root as usize;
         let c = candidate as usize;
-        let r_in  = self.entry_order[r];
+        let r_in = self.entry_order[r];
         let r_out = self.exit_order[r];
-        let c_in  = self.entry_order[c];
+        let c_in = self.entry_order[c];
         r_in < c_in && c_in < r_out
     }
 
@@ -161,7 +167,9 @@ impl TreeArena {
     pub fn dfs<F: FnMut(Idx)>(&self, root: Idx, mut visit: F) {
         let mut stack: Vec<i32> = vec![root as i32];
         while let Some(top) = stack.pop() {
-            if top == NONE { continue; }
+            if top == NONE {
+                continue;
+            }
             visit(top as Idx);
             let start = stack.len();
             let mut child = self.first_child[top as usize];
@@ -181,12 +189,12 @@ mod tests {
     /// Hand-built 3-node tree: 0 (root) → [1, 2]
     fn tiny() -> TreeArena {
         TreeArena {
-            parent_of:    vec![-1, 0, 0],
-            first_child:  vec![1, -1, -1],
+            parent_of: vec![-1, 0, 0],
+            first_child: vec![1, -1, -1],
             next_sibling: vec![-1, 2, -1],
-            depth_of:     vec![0, 1, 1],
-            entry_order:  vec![0, 1, 3],
-            exit_order:   vec![6, 2, 4],
+            depth_of: vec![0, 1, 1],
+            entry_order: vec![0, 1, 3],
+            exit_order: vec![6, 2, 4],
         }
     }
 
@@ -214,10 +222,10 @@ mod tests {
     fn from_dfs_depths_round_trips_simple_tree() {
         // Tree: 0 → [1, 2]
         let t = TreeArena::from_dfs_depths(&[0, 1, 1]).unwrap();
-        assert_eq!(t.parent_of,    vec![-1, 0, 0]);
-        assert_eq!(t.first_child,  vec![1, -1, -1]);
+        assert_eq!(t.parent_of, vec![-1, 0, 0]);
+        assert_eq!(t.first_child, vec![1, -1, -1]);
         assert_eq!(t.next_sibling, vec![-1, 2, -1]);
-        assert_eq!(t.depth_of,     vec![0, 1, 1]);
+        assert_eq!(t.depth_of, vec![0, 1, 1]);
         // Descendant tests should agree with the hand-built tiny() arena.
         assert!(t.is_descendant(0, 1));
         assert!(t.is_descendant(0, 2));

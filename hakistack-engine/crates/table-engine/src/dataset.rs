@@ -16,7 +16,7 @@
 //! slot is overwritten with `0.0` and validity stays 0). Empty strings
 //! (`Some("")`) stay valid — they're a real value in JS, distinct from `null`.
 
-use engine_core::{bitset::Bitset, fold::fold_lower, FxHashMap, Idx};
+use engine_core::{FxHashMap, Idx, bitset::Bitset, fold::fold_lower};
 
 /// Stable column identifier. The engine never sees field names; the JS layer
 /// maps `string` keys to `u32` ids before calling in.
@@ -24,7 +24,7 @@ pub type ColumnId = u32;
 
 #[derive(Debug)]
 pub struct Dataset {
-    n_rows:  u32,
+    n_rows: u32,
     columns: FxHashMap<ColumnId, Column>,
 }
 
@@ -69,20 +69,20 @@ pub enum Column {
 /// (when added later). `lower` is what the case-insensitive filter scans.
 #[derive(Debug)]
 pub struct TextColumn {
-    pub values:   Vec<Box<str>>,
-    pub lower:    Vec<Box<str>>,
+    pub values: Vec<Box<str>>,
+    pub lower: Vec<Box<str>>,
     pub validity: Bitset,
 }
 
 #[derive(Debug)]
 pub struct NumberColumn {
-    pub values:   Vec<f64>,
+    pub values: Vec<f64>,
     pub validity: Bitset,
 }
 
 #[derive(Debug)]
 pub struct BoolColumn {
-    pub values:   Vec<bool>,
+    pub values: Vec<bool>,
     pub validity: Bitset,
 }
 
@@ -90,7 +90,7 @@ pub struct BoolColumn {
 /// `Date.parse` before calling in, so the engine never sees strings.
 #[derive(Debug)]
 pub struct DateColumn {
-    pub values:   Vec<i64>,
+    pub values: Vec<i64>,
     pub validity: Bitset,
 }
 
@@ -98,15 +98,15 @@ pub struct DateColumn {
 /// pad/truncate to `n_rows` first. Keeps the kernel branch-free at runtime.
 #[derive(Debug)]
 pub struct DatasetBuilder {
-    n_rows:  u32,
+    n_rows: u32,
     columns: FxHashMap<ColumnId, Column>,
 }
 
 impl DatasetBuilder {
     pub fn add_text(mut self, id: ColumnId, values: Vec<Option<String>>) -> Self {
         self.assert_len(values.len(), "text");
-        let mut raw      = Vec::with_capacity(values.len());
-        let mut lower    = Vec::with_capacity(values.len());
+        let mut raw = Vec::with_capacity(values.len());
+        let mut lower = Vec::with_capacity(values.len());
         let mut validity = Bitset::with_capacity(self.n_rows);
         for (i, v) in values.into_iter().enumerate() {
             match v {
@@ -122,14 +122,20 @@ impl DatasetBuilder {
                 }
             }
         }
-        self.columns
-            .insert(id, Column::Text(TextColumn { values: raw, lower, validity }));
+        self.columns.insert(
+            id,
+            Column::Text(TextColumn {
+                values: raw,
+                lower,
+                validity,
+            }),
+        );
         self
     }
 
     pub fn add_number(mut self, id: ColumnId, values: Vec<Option<f64>>) -> Self {
         self.assert_len(values.len(), "number");
-        let mut raw      = Vec::with_capacity(values.len());
+        let mut raw = Vec::with_capacity(values.len());
         let mut validity = Bitset::with_capacity(self.n_rows);
         for (i, v) in values.into_iter().enumerate() {
             match v {
@@ -140,14 +146,19 @@ impl DatasetBuilder {
                 _ => raw.push(0.0),
             }
         }
-        self.columns
-            .insert(id, Column::Number(NumberColumn { values: raw, validity }));
+        self.columns.insert(
+            id,
+            Column::Number(NumberColumn {
+                values: raw,
+                validity,
+            }),
+        );
         self
     }
 
     pub fn add_bool(mut self, id: ColumnId, values: Vec<Option<bool>>) -> Self {
         self.assert_len(values.len(), "bool");
-        let mut raw      = Vec::with_capacity(values.len());
+        let mut raw = Vec::with_capacity(values.len());
         let mut validity = Bitset::with_capacity(self.n_rows);
         for (i, v) in values.into_iter().enumerate() {
             match v {
@@ -158,14 +169,19 @@ impl DatasetBuilder {
                 None => raw.push(false),
             }
         }
-        self.columns
-            .insert(id, Column::Bool(BoolColumn { values: raw, validity }));
+        self.columns.insert(
+            id,
+            Column::Bool(BoolColumn {
+                values: raw,
+                validity,
+            }),
+        );
         self
     }
 
     pub fn add_date(mut self, id: ColumnId, values: Vec<Option<i64>>) -> Self {
         self.assert_len(values.len(), "date");
-        let mut raw      = Vec::with_capacity(values.len());
+        let mut raw = Vec::with_capacity(values.len());
         let mut validity = Bitset::with_capacity(self.n_rows);
         for (i, v) in values.into_iter().enumerate() {
             match v {
@@ -176,8 +192,13 @@ impl DatasetBuilder {
                 None => raw.push(0),
             }
         }
-        self.columns
-            .insert(id, Column::Date(DateColumn { values: raw, validity }));
+        self.columns.insert(
+            id,
+            Column::Date(DateColumn {
+                values: raw,
+                validity,
+            }),
+        );
         self
     }
 
@@ -194,7 +215,12 @@ impl DatasetBuilder {
     /// JS contract: NaN rows must already have their validity bit cleared;
     /// we keep a defensive scan here so a buggy caller can't poison
     /// comparison kernels with NaN values claiming to be valid.
-    pub fn add_number_columnar(mut self, id: ColumnId, mut values: Vec<f64>, mut validity: Bitset) -> Self {
+    pub fn add_number_columnar(
+        mut self,
+        id: ColumnId,
+        mut values: Vec<f64>,
+        mut validity: Bitset,
+    ) -> Self {
         self.assert_len(values.len(), "number");
         for (i, v) in values.iter_mut().enumerate() {
             if v.is_nan() {
@@ -230,7 +256,7 @@ impl DatasetBuilder {
 
     pub fn build(self) -> Dataset {
         Dataset {
-            n_rows:  self.n_rows,
+            n_rows: self.n_rows,
             columns: self.columns,
         }
     }
@@ -266,7 +292,10 @@ mod tests {
             .add_text(0, opt_strs(&["Alice", "Bob", "Carol"]))
             .add_number(1, vec![Some(10.0), Some(20.0), None])
             .add_bool(2, vec![Some(true), Some(false), Some(true)])
-            .add_date(3, vec![Some(1_700_000_000_000), None, Some(1_800_000_000_000)])
+            .add_date(
+                3,
+                vec![Some(1_700_000_000_000), None, Some(1_800_000_000_000)],
+            )
             .build();
 
         assert_eq!(ds.n_rows(), 3);
@@ -282,7 +311,9 @@ mod tests {
         let ds = Dataset::builder(2)
             .add_text(0, opt_strs(&["Hello", "WORLD"]))
             .build();
-        let Some(Column::Text(col)) = ds.column(0) else { panic!() };
+        let Some(Column::Text(col)) = ds.column(0) else {
+            panic!()
+        };
         assert_eq!(&*col.lower[0], "hello");
         assert_eq!(&*col.lower[1], "world");
         assert_eq!(&*col.values[0], "Hello"); // raw preserved
@@ -295,9 +326,11 @@ mod tests {
         let ds = Dataset::builder(2)
             .add_text(0, vec![None, Some("".into())])
             .build();
-        let Some(Column::Text(col)) = ds.column(0) else { panic!() };
-        assert!(!col.validity.get(0));     // None → null
-        assert!(col.validity.get(1));      // Some("") → valid empty
+        let Some(Column::Text(col)) = ds.column(0) else {
+            panic!()
+        };
+        assert!(!col.validity.get(0)); // None → null
+        assert!(col.validity.get(1)); // Some("") → valid empty
         assert_eq!(&*col.values[1], "");
     }
 
@@ -306,10 +339,12 @@ mod tests {
         let ds = Dataset::builder(3)
             .add_number(0, vec![Some(1.0), Some(f64::NAN), None])
             .build();
-        let Some(Column::Number(col)) = ds.column(0) else { panic!() };
+        let Some(Column::Number(col)) = ds.column(0) else {
+            panic!()
+        };
         assert!(col.validity.get(0));
-        assert!(!col.validity.get(1));     // NaN → null
-        assert!(!col.validity.get(2));     // None → null
+        assert!(!col.validity.get(1)); // NaN → null
+        assert!(!col.validity.get(2)); // None → null
     }
 
     #[test]

@@ -11,10 +11,10 @@
 //! back into row objects against its original array — no per-keystroke
 //! serialization of row payloads.
 
-use js_sys::{Array, Float64Array, Reflect, Uint32Array, Uint8Array};
+use js_sys::{Array, Float64Array, Reflect, Uint8Array, Uint32Array};
 use wasm_bindgen::prelude::*;
 
-use engine_core::{bitset::Bitset, FxHashMap};
+use engine_core::{FxHashMap, bitset::Bitset};
 use form_engine::{
     FieldIdx as FormFieldIdx, FormEngine as KernelFormEngine, FormSchema as KernelFormSchema,
     PredicateResolver, Value as KernelValue, ValueMap,
@@ -24,17 +24,17 @@ use search_engine::{
     pdf::{PdfIndex, SearchOpts as PdfSearchOpts},
 };
 use table_engine::{
-    aggregate::{compute as compute_aggregate, RowSet},
+    aggregate::{RowSet, compute as compute_aggregate},
     dataset::Dataset,
-    filter::{apply as apply_filters, ColumnFilter},
+    filter::{ColumnFilter, apply as apply_filters},
     group::group_by_multi,
-    search::{apply_search, SearchSpec},
-    sort::{sort_indices, SortSpec},
+    search::{SearchSpec, apply_search},
+    sort::{SortSpec, sort_indices},
 };
 use tree_engine::{
     cascade::{cascade_up as tree_cascade_up, select_descendants as tree_select_descendants},
     dataset::TreeDataset,
-    filter::{filter as tree_filter, FilterSpec as TreeFilterSpec},
+    filter::{FilterSpec as TreeFilterSpec, filter as tree_filter},
     flatten::flatten as tree_flatten,
 };
 
@@ -43,8 +43,7 @@ mod wire;
 
 use wire::{
     WireAggFn, WireAggResult, WireFilter, WireFormSchema, WireFormValue, WireFuzzyOpts, WireGroup,
-    WirePdfSearchOpts, WireSchemaColumn, WireSearchSpec, WireSortSpec,
-    WireTreeFilterSpec,
+    WirePdfSearchOpts, WireSchemaColumn, WireSearchSpec, WireSortSpec, WireTreeFilterSpec,
 };
 
 /// Called automatically when the module is instantiated.
@@ -113,14 +112,17 @@ impl WasmDataset {
                     // for fold + index. The text path is rarely the ingest
                     // bottleneck since fields are typically short.
                     let values: Vec<Option<String>> = serde_wasm_bindgen::from_value(col_js)
-                        .map_err(|e| JsValue::from_str(&format!("column id {} (text): {e}", col.id)))?;
+                        .map_err(|e| {
+                            JsValue::from_str(&format!("column id {} (text): {e}", col.id))
+                        })?;
                     // Numeric paths validate length inside extract_columnar_*;
                     // the text path must do it here, otherwise the builder's
                     // assert surfaces as an opaque WASM "unreachable" trap.
                     if values.len() as u32 != n_rows {
                         return Err(JsValue::from_str(&format!(
                             "column id {} (text): expected length {n_rows}, got {}",
-                            col.id, values.len()
+                            col.id,
+                            values.len()
                         )));
                     }
                     builder = builder.add_text(col.id, values);
@@ -131,8 +133,7 @@ impl WasmDataset {
                     builder = builder.add_number_columnar(col.id, values, validity);
                 }
                 wire::WireColumnKind::Bool => {
-                    let (values, validity) =
-                        extract_columnar_u8(&col_js, n_rows, col.id, "bool")?;
+                    let (values, validity) = extract_columnar_u8(&col_js, n_rows, col.id, "bool")?;
                     builder = builder.add_bool_columnar(col.id, values, validity);
                 }
                 wire::WireColumnKind::Date => {
@@ -149,7 +150,7 @@ impl WasmDataset {
                     const I64_MAX_F: f64 = i64::MAX as f64;
                     let mut values: Vec<i64> = Vec::with_capacity(values_f.len());
                     for (i, f) in values_f.into_iter().enumerate() {
-                        if f.is_finite() && f >= I64_MIN_F && f <= I64_MAX_F {
+                        if f.is_finite() && (I64_MIN_F..=I64_MAX_F).contains(&f) {
                             values.push(f as i64);
                         } else {
                             values.push(0);
@@ -161,7 +162,9 @@ impl WasmDataset {
             }
         }
 
-        Ok(WasmDataset { inner: builder.build() })
+        Ok(WasmDataset {
+            inner: builder.build(),
+        })
     }
 
     pub fn n_rows(&self) -> u32 {
@@ -227,13 +230,18 @@ impl WasmDataset {
 
         let kernel_result = compute_aggregate(&self.inner, column, row_set, wire_agg.into());
         let wire_result = WireAggResult::from(kernel_result);
-        serde_wasm_bindgen::to_value(&wire_result).map_err(|e| JsValue::from_str(&format!("agg serialize error: {e}")))
+        serde_wasm_bindgen::to_value(&wire_result)
+            .map_err(|e| JsValue::from_str(&format!("agg serialize error: {e}")))
     }
 
     /// Multi-level group. Returns a tree of `WireGroup` nodes.
     /// `columns` is the chain of grouping fields (e.g. `[country_id, state_id]`).
     /// `indices == null` ⇒ group across the entire dataset.
-    pub fn group(&self, columns: Vec<u32>, indices: Option<Uint32Array>) -> Result<JsValue, JsValue> {
+    pub fn group(
+        &self,
+        columns: Vec<u32>,
+        indices: Option<Uint32Array>,
+    ) -> Result<JsValue, JsValue> {
         let idx_vec_storage;
         let row_set = if let Some(arr) = indices.as_ref() {
             idx_vec_storage = arr.to_vec();
@@ -273,7 +281,8 @@ impl WasmTree {
         if labels.len() != depths.len() {
             return Err(JsValue::from_str(&format!(
                 "labels.length ({}) does not match depths.length ({})",
-                labels.len(), depths.len()
+                labels.len(),
+                depths.len()
             )));
         }
         TreeDataset::from_dfs(labels, depths)
@@ -309,12 +318,16 @@ impl WasmTree {
         let mut vis = Bitset::with_capacity(n);
         let visible_vec = visible.to_vec();
         for &i in &visible_vec {
-            if i < n { vis.set(i); }
+            if i < n {
+                vis.set(i);
+            }
         }
         let mut exp = Bitset::with_capacity(n);
         let expanded_vec = expanded.to_vec();
         for &i in &expanded_vec {
-            if i < n { exp.set(i); }
+            if i < n {
+                exp.set(i);
+            }
         }
 
         let rows = tree_flatten(&self.inner, &vis, &exp);
@@ -341,7 +354,9 @@ impl WasmTree {
         let mut sel = Bitset::with_capacity(n);
         let selected_vec = selected.to_vec();
         for &i in &selected_vec {
-            if i < n { sel.set(i); }
+            if i < n {
+                sel.set(i);
+            }
         }
 
         let entries = tree_cascade_up(&self.inner, &sel, changed);
@@ -424,7 +439,9 @@ impl WasmPdfIndex {
     /// Build an empty index for `page_count` pages. All pages start
     /// uningested; call [`add_page`] as PDF.js delivers each page's text.
     pub fn new(page_count: u32) -> WasmPdfIndex {
-        WasmPdfIndex { inner: PdfIndex::new(page_count) }
+        WasmPdfIndex {
+            inner: PdfIndex::new(page_count),
+        }
     }
 
     pub fn n_pages(&self) -> u32 {
@@ -465,8 +482,10 @@ impl WasmPdfIndex {
     /// Empty array when the hit can't be resolved (page uningested, etc.).
     pub fn resolve_hit(&self, page: u32, char_start: u32, char_len: u32) -> Uint32Array {
         match self.inner.resolve_hit(page, char_start, char_len) {
-            Some(r) => uint32_array_from_slice(&[r.item_start, r.item_end, r.intra_start, r.intra_end]),
-            None    => Uint32Array::new_with_length(0),
+            Some(r) => {
+                uint32_array_from_slice(&[r.item_start, r.item_end, r.intra_start, r.intra_end])
+            }
+            None => Uint32Array::new_with_length(0),
         }
     }
 }
@@ -481,7 +500,7 @@ impl WasmPdfIndex {
 /// wasm-bindgen) in `ngOnDestroy` to release WASM-heap memory.
 #[wasm_bindgen]
 pub struct WasmFormEngine {
-    inner:      KernelFormEngine,
+    inner: KernelFormEngine,
     predicates: FxHashMap<u32, js_sys::Function>,
 }
 
@@ -516,7 +535,9 @@ impl WasmFormEngine {
             .map_err(|e| JsValue::from_str(&format!("form schema parse error: {e}")))?;
         let kernel: KernelFormSchema = wire.into();
         let predicates = FxHashMap::default();
-        let resolver = JsPredicateResolver { predicates: &predicates };
+        let resolver = JsPredicateResolver {
+            predicates: &predicates,
+        };
         let inner = KernelFormEngine::new(kernel, &resolver);
         Ok(WasmFormEngine { inner, predicates })
     }
@@ -551,7 +572,9 @@ impl WasmFormEngine {
         let wire: WireFormValue = serde_wasm_bindgen::from_value(value)
             .map_err(|e| JsValue::from_str(&format!("form value parse error: {e}")))?;
         let v: KernelValue = wire.into();
-        let resolver = JsPredicateResolver { predicates: &self.predicates };
+        let resolver = JsPredicateResolver {
+            predicates: &self.predicates,
+        };
         let events = self.inner.set_value(field, v, &resolver);
         Ok(pack_form_events(&events))
     }
@@ -564,7 +587,9 @@ impl WasmFormEngine {
             .map_err(|e| JsValue::from_str(&format!("form patch parse error: {e}")))?;
         let kernel_pairs: Vec<(FormFieldIdx, KernelValue)> =
             wire.into_iter().map(|(i, v)| (i, v.into())).collect();
-        let resolver = JsPredicateResolver { predicates: &self.predicates };
+        let resolver = JsPredicateResolver {
+            predicates: &self.predicates,
+        };
         let events = self.inner.set_values(kernel_pairs, &resolver);
         Ok(pack_form_events(&events))
     }
@@ -573,7 +598,9 @@ impl WasmFormEngine {
     /// (no `formValues` diff available) and `function`-predicate fields
     /// must be re-checked alongside every other conditional field.
     pub fn recompute_all(&mut self) -> Uint32Array {
-        let resolver = JsPredicateResolver { predicates: &self.predicates };
+        let resolver = JsPredicateResolver {
+            predicates: &self.predicates,
+        };
         let events = self.inner.recompute_all(&resolver);
         pack_form_events(&events)
     }
@@ -633,17 +660,23 @@ fn extract_columnar_f64(
     col_id: u32,
     kind: &'static str,
 ) -> Result<(Vec<f64>, Bitset), JsValue> {
-    let values_js = Reflect::get(col_js, &JsValue::from_str("values"))
-        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'values'")))?;
-    let validity_js = Reflect::get(col_js, &JsValue::from_str("validity"))
-        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'validity'")))?;
+    let values_js = Reflect::get(col_js, &JsValue::from_str("values")).map_err(|_| {
+        JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'values'"))
+    })?;
+    let validity_js = Reflect::get(col_js, &JsValue::from_str("validity")).map_err(|_| {
+        JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'validity'"))
+    })?;
 
-    let values_arr: Float64Array = values_js
-        .dyn_into()
-        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): 'values' is not a Float64Array")))?;
-    let validity_arr: Uint8Array = validity_js
-        .dyn_into()
-        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): 'validity' is not a Uint8Array")))?;
+    let values_arr: Float64Array = values_js.dyn_into().map_err(|_| {
+        JsValue::from_str(&format!(
+            "column id {col_id} ({kind}): 'values' is not a Float64Array"
+        ))
+    })?;
+    let validity_arr: Uint8Array = validity_js.dyn_into().map_err(|_| {
+        JsValue::from_str(&format!(
+            "column id {col_id} ({kind}): 'validity' is not a Uint8Array"
+        ))
+    })?;
 
     if values_arr.length() != n_rows || validity_arr.length() != n_rows {
         return Err(JsValue::from_str(&format!(
@@ -668,17 +701,23 @@ fn extract_columnar_u8(
     col_id: u32,
     kind: &'static str,
 ) -> Result<(Vec<u8>, Bitset), JsValue> {
-    let values_js = Reflect::get(col_js, &JsValue::from_str("values"))
-        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'values'")))?;
-    let validity_js = Reflect::get(col_js, &JsValue::from_str("validity"))
-        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'validity'")))?;
+    let values_js = Reflect::get(col_js, &JsValue::from_str("values")).map_err(|_| {
+        JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'values'"))
+    })?;
+    let validity_js = Reflect::get(col_js, &JsValue::from_str("validity")).map_err(|_| {
+        JsValue::from_str(&format!("column id {col_id} ({kind}): missing 'validity'"))
+    })?;
 
-    let values_arr: Uint8Array = values_js
-        .dyn_into()
-        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): 'values' is not a Uint8Array")))?;
-    let validity_arr: Uint8Array = validity_js
-        .dyn_into()
-        .map_err(|_| JsValue::from_str(&format!("column id {col_id} ({kind}): 'validity' is not a Uint8Array")))?;
+    let values_arr: Uint8Array = values_js.dyn_into().map_err(|_| {
+        JsValue::from_str(&format!(
+            "column id {col_id} ({kind}): 'values' is not a Uint8Array"
+        ))
+    })?;
+    let validity_arr: Uint8Array = validity_js.dyn_into().map_err(|_| {
+        JsValue::from_str(&format!(
+            "column id {col_id} ({kind}): 'validity' is not a Uint8Array"
+        ))
+    })?;
 
     if values_arr.length() != n_rows || validity_arr.length() != n_rows {
         return Err(JsValue::from_str(&format!(

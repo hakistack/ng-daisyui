@@ -36,16 +36,32 @@ pub struct Event {
 
 impl Event {
     pub fn shown(field: FieldIdx) -> Self {
-        Self { kind: EventKind::FieldShown, field, payload: 0 }
+        Self {
+            kind: EventKind::FieldShown,
+            field,
+            payload: 0,
+        }
     }
     pub fn hidden(field: FieldIdx) -> Self {
-        Self { kind: EventKind::FieldHidden, field, payload: 0 }
+        Self {
+            kind: EventKind::FieldHidden,
+            field,
+            payload: 0,
+        }
     }
     pub fn required(field: FieldIdx, required: bool) -> Self {
-        Self { kind: EventKind::RequiredChanged, field, payload: required as u32 }
+        Self {
+            kind: EventKind::RequiredChanged,
+            field,
+            payload: required as u32,
+        }
     }
     pub fn disabled(field: FieldIdx, disabled: bool) -> Self {
-        Self { kind: EventKind::DisabledChanged, field, payload: disabled as u32 }
+        Self {
+            kind: EventKind::DisabledChanged,
+            field,
+            payload: disabled as u32,
+        }
     }
 
     /// Pack into a `(kind, field, payload)` triple — same layout the

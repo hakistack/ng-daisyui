@@ -4,17 +4,14 @@
 //! after that. The arena stores topology only; label storage and
 //! pre-folding for case-insensitive filter live here.
 
-use engine_core::{
-    arena::TreeArena,
-    fold::fold_lower,
-};
+use engine_core::{arena::TreeArena, fold::fold_lower};
 
 /// One ingested tree.
 #[derive(Debug)]
 pub struct TreeDataset {
-    pub arena:    TreeArena,
+    pub arena: TreeArena,
     /// Original node labels in DFS preorder. Used for sort/render later.
-    pub labels:   Vec<Box<str>>,
+    pub labels: Vec<Box<str>>,
     /// Pre-lowercased labels for case-insensitive filter / search.
     pub label_lc: Vec<Box<str>>,
 }
@@ -37,8 +34,8 @@ impl TreeDataset {
             return Err("labels and depths must have the same length");
         }
         let arena = TreeArena::from_dfs_depths(&depths)?;
-        let mut raw  = Vec::with_capacity(labels.len());
-        let mut lc   = Vec::with_capacity(labels.len());
+        let mut raw = Vec::with_capacity(labels.len());
+        let mut lc = Vec::with_capacity(labels.len());
         for label in labels {
             let folded = fold_lower(&label);
             raw.push(label.into_boxed_str());
@@ -46,7 +43,7 @@ impl TreeDataset {
         }
         Ok(Self {
             arena,
-            labels:   raw,
+            labels: raw,
             label_lc: lc,
         })
     }
@@ -65,7 +62,8 @@ mod tests {
         let ds = TreeDataset::from_dfs(
             vec!["Root".into(), "Child A".into(), "Child B".into()],
             vec![0, 1, 1],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(ds.n_nodes(), 3);
         assert_eq!(&*ds.labels[0], "Root");
         assert_eq!(&*ds.label_lc[1], "child a");

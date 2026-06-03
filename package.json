@@ -30,6 +30,9 @@
     "engine:build": "node scripts/build-wasm.mjs",
     "engine:build:dev": "node scripts/build-wasm.mjs --dev",
     "engine:clean": "cargo clean --manifest-path hakistack-engine/Cargo.toml && rm -rf hakistack-engine/pkg projects/hakistack/ng-daisyui/src/lib/wasm",
+    "libheif:build": "bash hakistack-engine/external/libheif-wasm/build.sh",
+    "libheif:build:dev": "LIBHEIF_BUILD_PROFILE=dev bash hakistack-engine/external/libheif-wasm/build.sh",
+    "libheif:clean": "rm -rf hakistack-engine/external/libheif-wasm/build hakistack-engine/external/libheif-wasm/vendor projects/hakistack/ng-daisyui/src/lib/wasm/libheif",
     "prepare": "husky"
   },
   "size-limit": [
@@ -79,6 +82,7 @@
     "@tailwindcss/postcss": "^4.2.2",
     "@tiptap/suggestion": "^3.22.4",
     "fuse.js": "^7.2.0",
+    "heic2any": "^0.0.4",
     "libphonenumber-js": "^1.12.42",
     "motion": "^12.38.0",
     "pdfjs-dist": "^4.10.38",

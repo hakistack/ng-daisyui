@@ -27,10 +27,10 @@ use engine_core::{
 /// One filter row from the user. Multiple filters AND together via [`apply`].
 #[derive(Debug, Clone)]
 pub enum ColumnFilter {
-    Text   { column: ColumnId, op: TextOp },
+    Text { column: ColumnId, op: TextOp },
     Number { column: ColumnId, op: NumberOp },
-    Bool   { column: ColumnId, op: BoolOp },
-    Date   { column: ColumnId, op: DateOp },
+    Bool { column: ColumnId, op: BoolOp },
+    Date { column: ColumnId, op: DateOp },
 }
 
 #[derive(Debug, Clone)]
@@ -53,7 +53,7 @@ pub enum NumberOp {
     Lt(f64),
     Gte(f64),
     Lte(f64),
-    Between(f64, f64),  // inclusive [lo, hi]
+    Between(f64, f64), // inclusive [lo, hi]
     In(Vec<f64>),
     NotIn(Vec<f64>),
     IsEmpty,
@@ -74,7 +74,7 @@ pub enum DateOp {
     Lt(i64),
     Gte(i64),
     Lte(i64),
-    Between(i64, i64),  // inclusive [lo, hi]
+    Between(i64, i64), // inclusive [lo, hi]
     IsEmpty,
     IsNotEmpty,
 }
@@ -201,11 +201,15 @@ fn apply_text(col: &TextColumn, op: &TextOp, out: &mut Bitset) {
         TextOp::NotContains(needle) => {
             let needle = fold_lower(needle);
             let f = finder(&needle);
-            fill_word_iter(out, &col.validity, n, |i| !contains_bytes(&col.lower[i], &f));
+            fill_word_iter(out, &col.validity, n, |i| {
+                !contains_bytes(&col.lower[i], &f)
+            });
         }
         TextOp::StartsWith(needle) => {
             let needle = fold_lower(needle);
-            fill_word_iter(out, &col.validity, n, |i| col.lower[i].starts_with(&*needle));
+            fill_word_iter(out, &col.validity, n, |i| {
+                col.lower[i].starts_with(&*needle)
+            });
         }
         TextOp::EndsWith(needle) => {
             let needle = fold_lower(needle);
@@ -252,17 +256,23 @@ fn apply_number(col: &NumberColumn, op: &NumberOp, out: &mut Bitset) {
     let n = col.values.len();
 
     match op {
-        NumberOp::Eq(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
-        NumberOp::NotEq(x)         => fill_word_iter(out, &col.validity, n, |i| col.values[i] != *x),
-        NumberOp::Gt(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] >  *x),
-        NumberOp::Lt(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] <  *x),
-        NumberOp::Gte(x)           => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *x),
-        NumberOp::Lte(x)           => fill_word_iter(out, &col.validity, n, |i| col.values[i] <= *x),
-        NumberOp::Between(lo, hi)  => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *lo && col.values[i] <= *hi),
-        NumberOp::In(list)         => fill_word_iter(out, &col.validity, n, |i| list.iter().any(|x| col.values[i] == *x)),
-        NumberOp::NotIn(list)      => fill_word_iter(out, &col.validity, n, |i| !list.iter().any(|x| col.values[i] == *x)),
-        NumberOp::IsEmpty          => negated_validity_into(out, &col.validity),
-        NumberOp::IsNotEmpty       => validity_into(out, &col.validity),
+        NumberOp::Eq(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
+        NumberOp::NotEq(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] != *x),
+        NumberOp::Gt(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] > *x),
+        NumberOp::Lt(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] < *x),
+        NumberOp::Gte(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *x),
+        NumberOp::Lte(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] <= *x),
+        NumberOp::Between(lo, hi) => fill_word_iter(out, &col.validity, n, |i| {
+            col.values[i] >= *lo && col.values[i] <= *hi
+        }),
+        NumberOp::In(list) => fill_word_iter(out, &col.validity, n, |i| {
+            list.iter().any(|x| col.values[i] == *x)
+        }),
+        NumberOp::NotIn(list) => fill_word_iter(out, &col.validity, n, |i| {
+            !list.iter().any(|x| col.values[i] == *x)
+        }),
+        NumberOp::IsEmpty => negated_validity_into(out, &col.validity),
+        NumberOp::IsNotEmpty => validity_into(out, &col.validity),
     }
 }
 
@@ -271,9 +281,9 @@ fn apply_number(col: &NumberColumn, op: &NumberOp, out: &mut Bitset) {
 fn apply_bool(col: &BoolColumn, op: &BoolOp, out: &mut Bitset) {
     let n = col.values.len();
     match op {
-        BoolOp::Eq(x)        => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
-        BoolOp::IsEmpty      => negated_validity_into(out, &col.validity),
-        BoolOp::IsNotEmpty   => validity_into(out, &col.validity),
+        BoolOp::Eq(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
+        BoolOp::IsEmpty => negated_validity_into(out, &col.validity),
+        BoolOp::IsNotEmpty => validity_into(out, &col.validity),
     }
 }
 
@@ -283,14 +293,16 @@ fn apply_date(col: &DateColumn, op: &DateOp, out: &mut Bitset) {
     let n = col.values.len();
 
     match op {
-        DateOp::Eq(x)             => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
-        DateOp::Gt(x)             => fill_word_iter(out, &col.validity, n, |i| col.values[i] >  *x),
-        DateOp::Lt(x)             => fill_word_iter(out, &col.validity, n, |i| col.values[i] <  *x),
-        DateOp::Gte(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *x),
-        DateOp::Lte(x)            => fill_word_iter(out, &col.validity, n, |i| col.values[i] <= *x),
-        DateOp::Between(lo, hi)   => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *lo && col.values[i] <= *hi),
-        DateOp::IsEmpty           => negated_validity_into(out, &col.validity),
-        DateOp::IsNotEmpty        => validity_into(out, &col.validity),
+        DateOp::Eq(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] == *x),
+        DateOp::Gt(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] > *x),
+        DateOp::Lt(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] < *x),
+        DateOp::Gte(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] >= *x),
+        DateOp::Lte(x) => fill_word_iter(out, &col.validity, n, |i| col.values[i] <= *x),
+        DateOp::Between(lo, hi) => fill_word_iter(out, &col.validity, n, |i| {
+            col.values[i] >= *lo && col.values[i] <= *hi
+        }),
+        DateOp::IsEmpty => negated_validity_into(out, &col.validity),
+        DateOp::IsNotEmpty => validity_into(out, &col.validity),
     }
 }
 
@@ -312,10 +324,16 @@ mod tests {
 
     fn sample_dataset() -> Dataset {
         Dataset::builder(5)
-            .add_text(0,  opt_strs(&["Alice", "Bob", "Carol", "alice", "Dave"]))
-            .add_number(1, vec![Some(10.0), Some(20.0), Some(30.0), None, Some(40.0)])
-            .add_bool(2,   vec![Some(true), Some(false), Some(true), None, Some(false)])
-            .add_date(3,   vec![Some(100), Some(200), None, Some(300), Some(400)])
+            .add_text(0, opt_strs(&["Alice", "Bob", "Carol", "alice", "Dave"]))
+            .add_number(
+                1,
+                vec![Some(10.0), Some(20.0), Some(30.0), None, Some(40.0)],
+            )
+            .add_bool(
+                2,
+                vec![Some(true), Some(false), Some(true), None, Some(false)],
+            )
+            .add_date(3, vec![Some(100), Some(200), None, Some(300), Some(400)])
             .build()
     }
 
@@ -324,10 +342,13 @@ mod tests {
     #[test]
     fn text_contains_is_case_insensitive() {
         let ds = sample_dataset();
-        let mask = apply(&ds, &[ColumnFilter::Text {
-            column: 0,
-            op: TextOp::Contains("ali".into()),
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 0,
+                op: TextOp::Contains("ali".into()),
+            }],
+        );
         // "Alice" (0) and "alice" (3) both match
         assert_eq!(matches(&mask), vec![0, 3]);
     }
@@ -335,20 +356,26 @@ mod tests {
     #[test]
     fn text_starts_with() {
         let ds = sample_dataset();
-        let mask = apply(&ds, &[ColumnFilter::Text {
-            column: 0,
-            op: TextOp::StartsWith("c".into()),
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 0,
+                op: TextOp::StartsWith("c".into()),
+            }],
+        );
         assert_eq!(matches(&mask), vec![2]); // "Carol"
     }
 
     #[test]
     fn text_ends_with() {
         let ds = sample_dataset();
-        let mask = apply(&ds, &[ColumnFilter::Text {
-            column: 0,
-            op: TextOp::EndsWith("e".into()),
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 0,
+                op: TextOp::EndsWith("e".into()),
+            }],
+        );
         // "Alice", "alice", "Dave"
         assert_eq!(matches(&mask), vec![0, 3, 4]);
     }
@@ -356,16 +383,22 @@ mod tests {
     #[test]
     fn text_equals_and_not_equals() {
         let ds = sample_dataset();
-        let eq = apply(&ds, &[ColumnFilter::Text {
-            column: 0,
-            op: TextOp::Equals("BOB".into()),
-        }]);
+        let eq = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 0,
+                op: TextOp::Equals("BOB".into()),
+            }],
+        );
         assert_eq!(matches(&eq), vec![1]);
 
-        let neq = apply(&ds, &[ColumnFilter::Text {
-            column: 0,
-            op: TextOp::NotEquals("Bob".into()),
-        }]);
+        let neq = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 0,
+                op: TextOp::NotEquals("Bob".into()),
+            }],
+        );
         // 1 ("Bob") excluded; nulls would also be excluded but there are none here
         assert_eq!(matches(&neq), vec![0, 2, 3, 4]);
     }
@@ -375,10 +408,13 @@ mod tests {
         let ds = Dataset::builder(3)
             .add_text(0, vec![Some("foo".into()), None, Some("bar".into())])
             .build();
-        let mask = apply(&ds, &[ColumnFilter::Text {
-            column: 0,
-            op: TextOp::NotContains("foo".into()),
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 0,
+                op: TextOp::NotContains("foo".into()),
+            }],
+        );
         // null row (1) excluded — improvement over JS which would coerce null → "null"
         assert_eq!(matches(&mask), vec![2]);
     }
@@ -386,12 +422,23 @@ mod tests {
     #[test]
     fn text_is_empty_matches_null_and_empty_string() {
         let ds = Dataset::builder(4)
-            .add_text(0, vec![Some("foo".into()), None, Some("".into()), Some("bar".into())])
+            .add_text(
+                0,
+                vec![
+                    Some("foo".into()),
+                    None,
+                    Some("".into()),
+                    Some("bar".into()),
+                ],
+            )
             .build();
-        let mask = apply(&ds, &[ColumnFilter::Text {
-            column: 0,
-            op: TextOp::IsEmpty,
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 0,
+                op: TextOp::IsEmpty,
+            }],
+        );
         assert_eq!(matches(&mask), vec![1, 2]);
     }
 
@@ -400,36 +447,57 @@ mod tests {
     #[test]
     fn number_comparisons() {
         let ds = sample_dataset();
-        let gt = apply(&ds, &[ColumnFilter::Number { column: 1, op: NumberOp::Gt(20.0) }]);
+        let gt = apply(
+            &ds,
+            &[ColumnFilter::Number {
+                column: 1,
+                op: NumberOp::Gt(20.0),
+            }],
+        );
         assert_eq!(matches(&gt), vec![2, 4]);
 
-        let lte = apply(&ds, &[ColumnFilter::Number { column: 1, op: NumberOp::Lte(20.0) }]);
+        let lte = apply(
+            &ds,
+            &[ColumnFilter::Number {
+                column: 1,
+                op: NumberOp::Lte(20.0),
+            }],
+        );
         assert_eq!(matches(&lte), vec![0, 1]); // null at 3 excluded
     }
 
     #[test]
     fn number_between_is_inclusive() {
         let ds = sample_dataset();
-        let mask = apply(&ds, &[ColumnFilter::Number {
-            column: 1,
-            op: NumberOp::Between(10.0, 30.0),
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Number {
+                column: 1,
+                op: NumberOp::Between(10.0, 30.0),
+            }],
+        );
         assert_eq!(matches(&mask), vec![0, 1, 2]);
     }
 
     #[test]
     fn number_in_and_not_in() {
         let ds = sample_dataset();
-        let inn = apply(&ds, &[ColumnFilter::Number {
-            column: 1,
-            op: NumberOp::In(vec![10.0, 40.0]),
-        }]);
+        let inn = apply(
+            &ds,
+            &[ColumnFilter::Number {
+                column: 1,
+                op: NumberOp::In(vec![10.0, 40.0]),
+            }],
+        );
         assert_eq!(matches(&inn), vec![0, 4]);
 
-        let nin = apply(&ds, &[ColumnFilter::Number {
-            column: 1,
-            op: NumberOp::NotIn(vec![10.0, 40.0]),
-        }]);
+        let nin = apply(
+            &ds,
+            &[ColumnFilter::Number {
+                column: 1,
+                op: NumberOp::NotIn(vec![10.0, 40.0]),
+            }],
+        );
         assert_eq!(matches(&nin), vec![1, 2]); // null at 3 excluded
     }
 
@@ -438,10 +506,13 @@ mod tests {
         let ds = Dataset::builder(3)
             .add_number(0, vec![Some(1.0), None, Some(f64::NAN)])
             .build();
-        let mask = apply(&ds, &[ColumnFilter::Number {
-            column: 0,
-            op: NumberOp::IsEmpty,
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Number {
+                column: 0,
+                op: NumberOp::IsEmpty,
+            }],
+        );
         assert_eq!(matches(&mask), vec![1, 2]);
     }
 
@@ -450,7 +521,13 @@ mod tests {
     #[test]
     fn bool_eq() {
         let ds = sample_dataset();
-        let mask = apply(&ds, &[ColumnFilter::Bool { column: 2, op: BoolOp::Eq(true) }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Bool {
+                column: 2,
+                op: BoolOp::Eq(true),
+            }],
+        );
         assert_eq!(matches(&mask), vec![0, 2]);
     }
 
@@ -459,10 +536,13 @@ mod tests {
     #[test]
     fn date_between() {
         let ds = sample_dataset();
-        let mask = apply(&ds, &[ColumnFilter::Date {
-            column: 3,
-            op: DateOp::Between(150, 350),
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Date {
+                column: 3,
+                op: DateOp::Between(150, 350),
+            }],
+        );
         assert_eq!(matches(&mask), vec![1, 3]); // 200 and 300; null at 2 excluded
     }
 
@@ -471,10 +551,19 @@ mod tests {
     #[test]
     fn multiple_filters_and_together() {
         let ds = sample_dataset();
-        let mask = apply(&ds, &[
-            ColumnFilter::Number { column: 1, op: NumberOp::Gt(15.0) },
-            ColumnFilter::Bool   { column: 2, op: BoolOp::Eq(true) },
-        ]);
+        let mask = apply(
+            &ds,
+            &[
+                ColumnFilter::Number {
+                    column: 1,
+                    op: NumberOp::Gt(15.0),
+                },
+                ColumnFilter::Bool {
+                    column: 2,
+                    op: BoolOp::Eq(true),
+                },
+            ],
+        );
         // number > 15 ⇒ {1, 2, 4}; bool = true ⇒ {0, 2}; AND ⇒ {2}
         assert_eq!(matches(&mask), vec![2]);
     }
@@ -489,10 +578,13 @@ mod tests {
     #[test]
     fn missing_column_yields_no_matches() {
         let ds = sample_dataset();
-        let mask = apply(&ds, &[ColumnFilter::Text {
-            column: 99, // doesn't exist
-            op: TextOp::Contains("anything".into()),
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 99, // doesn't exist
+                op: TextOp::Contains("anything".into()),
+            }],
+        );
         assert_eq!(mask.count_ones(), 0);
     }
 
@@ -500,10 +592,13 @@ mod tests {
     fn wrong_column_kind_yields_no_matches() {
         // Trying to text-filter a number column → mask all zeros
         let ds = sample_dataset();
-        let mask = apply(&ds, &[ColumnFilter::Text {
-            column: 1, // Number column
-            op: TextOp::Contains("anything".into()),
-        }]);
+        let mask = apply(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 1, // Number column
+                op: TextOp::Contains("anything".into()),
+            }],
+        );
         assert_eq!(mask.count_ones(), 0);
     }
 }

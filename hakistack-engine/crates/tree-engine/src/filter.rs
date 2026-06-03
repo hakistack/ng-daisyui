@@ -14,9 +14,9 @@
 
 use crate::dataset::TreeDataset;
 use engine_core::{
+    Idx,
     bitset::Bitset,
     fold::{contains_bytes, finder, fold_lower},
-    Idx,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,8 +27,8 @@ pub enum FilterMode {
 
 #[derive(Debug, Clone)]
 pub struct FilterSpec {
-    pub term:           String,
-    pub mode:           FilterMode,
+    pub term: String,
+    pub mode: FilterMode,
     pub case_sensitive: bool,
 }
 
@@ -117,7 +117,8 @@ mod tests {
                 "Marketing".into(),
             ],
             vec![0, 1, 2, 2, 1],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     fn matches(b: &Bitset) -> Vec<Idx> {
@@ -126,21 +127,27 @@ mod tests {
 
     #[test]
     fn empty_term_shows_everything() {
-        let v = filter(&ds(), &FilterSpec {
-            term: "".into(),
-            mode: FilterMode::Lenient,
-            case_sensitive: false,
-        });
+        let v = filter(
+            &ds(),
+            &FilterSpec {
+                term: "".into(),
+                mode: FilterMode::Lenient,
+                case_sensitive: false,
+            },
+        );
         assert_eq!(v.count_ones(), 5);
     }
 
     #[test]
     fn lenient_keeps_ancestors_of_matches_visible() {
-        let v = filter(&ds(), &FilterSpec {
-            term: "back".into(),
-            mode: FilterMode::Lenient,
-            case_sensitive: false,
-        });
+        let v = filter(
+            &ds(),
+            &FilterSpec {
+                term: "back".into(),
+                mode: FilterMode::Lenient,
+                case_sensitive: false,
+            },
+        );
         // "Backend" (2) matches; ancestors "Engineering" (1) and "Root" (0)
         // also become visible. "Frontend" (3) and "Marketing" (4) hidden.
         assert_eq!(matches(&v), vec![0, 1, 2]);
@@ -148,22 +155,28 @@ mod tests {
 
     #[test]
     fn strict_hides_ancestors_that_dont_directly_match() {
-        let v = filter(&ds(), &FilterSpec {
-            term: "back".into(),
-            mode: FilterMode::Strict,
-            case_sensitive: false,
-        });
+        let v = filter(
+            &ds(),
+            &FilterSpec {
+                term: "back".into(),
+                mode: FilterMode::Strict,
+                case_sensitive: false,
+            },
+        );
         // Only "Backend" matches its own label.
         assert_eq!(matches(&v), vec![2]);
     }
 
     #[test]
     fn case_insensitive_default() {
-        let v = filter(&ds(), &FilterSpec {
-            term: "ENGINEER".into(),
-            mode: FilterMode::Lenient,
-            case_sensitive: false,
-        });
+        let v = filter(
+            &ds(),
+            &FilterSpec {
+                term: "ENGINEER".into(),
+                mode: FilterMode::Lenient,
+                case_sensitive: false,
+            },
+        );
         // "Engineering" (1) matches → ancestors visible too.
         // Children of Engineering are NOT made visible — lenient bubbles UP.
         assert_eq!(matches(&v), vec![0, 1]);
@@ -171,21 +184,27 @@ mod tests {
 
     #[test]
     fn case_sensitive_misses() {
-        let v = filter(&ds(), &FilterSpec {
-            term: "ENGINEER".into(),
-            mode: FilterMode::Lenient,
-            case_sensitive: true,
-        });
+        let v = filter(
+            &ds(),
+            &FilterSpec {
+                term: "ENGINEER".into(),
+                mode: FilterMode::Lenient,
+                case_sensitive: true,
+            },
+        );
         assert_eq!(v.count_ones(), 0);
     }
 
     #[test]
     fn match_at_root_makes_only_root_visible_in_strict() {
-        let v = filter(&ds(), &FilterSpec {
-            term: "Root".into(),
-            mode: FilterMode::Strict,
-            case_sensitive: false,
-        });
+        let v = filter(
+            &ds(),
+            &FilterSpec {
+                term: "Root".into(),
+                mode: FilterMode::Strict,
+                case_sensitive: false,
+            },
+        );
         assert_eq!(matches(&v), vec![0]);
     }
 
@@ -193,21 +212,27 @@ mod tests {
     fn match_at_root_lenient_does_not_show_descendants() {
         // Lenient bubbles UP not DOWN: matching the root doesn't make all
         // descendants visible.
-        let v = filter(&ds(), &FilterSpec {
-            term: "Root".into(),
-            mode: FilterMode::Lenient,
-            case_sensitive: false,
-        });
+        let v = filter(
+            &ds(),
+            &FilterSpec {
+                term: "Root".into(),
+                mode: FilterMode::Lenient,
+                case_sensitive: false,
+            },
+        );
         assert_eq!(matches(&v), vec![0]);
     }
 
     #[test]
     fn no_match_lenient_yields_empty() {
-        let v = filter(&ds(), &FilterSpec {
-            term: "xyz-not-here".into(),
-            mode: FilterMode::Lenient,
-            case_sensitive: false,
-        });
+        let v = filter(
+            &ds(),
+            &FilterSpec {
+                term: "xyz-not-here".into(),
+                mode: FilterMode::Lenient,
+                case_sensitive: false,
+            },
+        );
         assert_eq!(v.count_ones(), 0);
     }
 }

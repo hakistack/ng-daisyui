@@ -8,7 +8,7 @@ use crate::Idx;
 #[derive(Debug, Clone)]
 pub struct Bitset {
     words: Vec<u64>,
-    len:   u32,
+    len: u32,
 }
 
 impl Bitset {
@@ -16,7 +16,7 @@ impl Bitset {
         let n_words = (n as usize).div_ceil(64);
         Self {
             words: vec![0u64; n_words],
-            len:   n,
+            len: n,
         }
     }
 
@@ -177,8 +177,12 @@ mod tests {
     fn and_or_combine() {
         let mut a = Bitset::with_capacity(64);
         let mut b = Bitset::with_capacity(64);
-        a.set(1); a.set(2); a.set(3);
-        b.set(2); b.set(3); b.set(4);
+        a.set(1);
+        a.set(2);
+        a.set(3);
+        b.set(2);
+        b.set(3);
+        b.set(4);
 
         let mut and = a.clone();
         and.and_with(&b);

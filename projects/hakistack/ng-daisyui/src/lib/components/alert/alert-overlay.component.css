@@ -1,8 +1,17 @@
 /*
  * Alert overlay styles
- * DaisyUI's .modal class handles: backdrop, centering, z-index, transitions
- * We only need custom styles for: icon animation, timer progress, exit animation
+ * DaisyUI's .modal class handles: backdrop, centering, transitions
+ * We only need custom styles for: icon animation, timer progress, exit animation, z-index
  */
+
+/*
+ * Alerts must stack above CDK Overlay (used by DialogService, Select, Datepicker, etc.).
+ * CDK's cdk-overlay-container defaults to z-index 1000; DaisyUI's .modal sits at ~999,
+ * which is why a confirm() opened from inside a CDK dialog rendered behind it.
+ */
+:host .modal {
+  z-index: 1100;
+}
 
 /* Modal box enter — DaisyUI modal already animates on open, this adds a subtle scale */
 .alert-modal-enter {

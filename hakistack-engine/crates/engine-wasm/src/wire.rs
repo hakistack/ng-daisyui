@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WireSchemaColumn {
-    pub id:   u32,
+    pub id: u32,
     pub kind: WireColumnKind,
 }
 
@@ -34,20 +34,20 @@ pub enum WireColumnKind {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum WireFilter {
-    Text   { column: u32, op: WireTextOp },
+    Text { column: u32, op: WireTextOp },
     Number { column: u32, op: WireNumberOp },
-    Bool   { column: u32, op: WireBoolOp },
-    Date   { column: u32, op: WireDateOp },
+    Bool { column: u32, op: WireBoolOp },
+    Date { column: u32, op: WireDateOp },
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum WireTextOp {
-    Contains    { needle: String },
-    StartsWith  { needle: String },
-    EndsWith    { needle: String },
-    Equals      { needle: String },
-    NotEquals   { needle: String },
+    Contains { needle: String },
+    StartsWith { needle: String },
+    EndsWith { needle: String },
+    Equals { needle: String },
+    NotEquals { needle: String },
     NotContains { needle: String },
     IsEmpty,
     IsNotEmpty,
@@ -56,15 +56,15 @@ pub enum WireTextOp {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum WireNumberOp {
-    Eq         { value: f64 },
-    NotEq      { value: f64 },
-    Gt         { value: f64 },
-    Lt         { value: f64 },
-    Gte        { value: f64 },
-    Lte        { value: f64 },
-    Between    { lo: f64, hi: f64 },
-    In         { values: Vec<f64> },
-    NotIn      { values: Vec<f64> },
+    Eq { value: f64 },
+    NotEq { value: f64 },
+    Gt { value: f64 },
+    Lt { value: f64 },
+    Gte { value: f64 },
+    Lte { value: f64 },
+    Between { lo: f64, hi: f64 },
+    In { values: Vec<f64> },
+    NotIn { values: Vec<f64> },
     IsEmpty,
     IsNotEmpty,
 }
@@ -84,11 +84,11 @@ pub enum WireBoolOp {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum WireDateOp {
-    Eq      { value: f64 },
-    Gt      { value: f64 },
-    Lt      { value: f64 },
-    Gte     { value: f64 },
-    Lte     { value: f64 },
+    Eq { value: f64 },
+    Gt { value: f64 },
+    Lt { value: f64 },
+    Gte { value: f64 },
+    Lte { value: f64 },
     Between { lo: f64, hi: f64 },
     IsEmpty,
     IsNotEmpty,
@@ -107,10 +107,10 @@ pub struct WirePdfSearchOpts {
     #[serde(default)]
     pub case_sensitive: bool,
     #[serde(default)]
-    pub whole_word:     bool,
+    pub whole_word: bool,
     /// `0` ⇒ no cap.
     #[serde(default)]
-    pub max_hits:       u32,
+    pub max_hits: u32,
 }
 
 // ─── Fuzzy search ──────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ pub struct WireFuzzyOpts {
     pub case_sensitive: bool,
     /// `0` ⇒ no cap (all results).
     #[serde(default)]
-    pub max_results:    u32,
+    pub max_results: u32,
 }
 
 // ─── Tree filter ───────────────────────────────────────────────────────────
@@ -134,8 +134,8 @@ pub struct WireFuzzyOpts {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WireTreeFilterSpec {
-    pub term:           String,
-    pub mode:           WireTreeFilterMode,
+    pub term: String,
+    pub mode: WireTreeFilterMode,
     #[serde(default)]
     pub case_sensitive: bool,
 }
@@ -152,11 +152,11 @@ pub enum WireTreeFilterMode {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WireSearchSpec {
-    pub term:           String,
-    pub mode:           WireSearchMode,
+    pub term: String,
+    pub mode: WireSearchMode,
     /// Column ids to search. Empty ⇒ every text column in the dataset.
     #[serde(default)]
-    pub columns:        Vec<u32>,
+    pub columns: Vec<u32>,
     #[serde(default)]
     pub case_sensitive: bool,
 }
@@ -174,9 +174,9 @@ pub enum WireSearchMode {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WireSortSpec {
-    pub column:    u32,
+    pub column: u32,
     pub direction: WireDirection,
-    pub nulls:     WireNullsPosition,
+    pub nulls: WireNullsPosition,
 }
 
 #[derive(Debug, Deserialize)]
@@ -213,11 +213,17 @@ pub enum WireAggFn {
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum WireAggResult {
     None,
-    Number { value: f64 },
+    Number {
+        value: f64,
+    },
     /// Date result as ms-epoch encoded into f64 — JS Number safely holds
     /// integer values up to 2^53.
-    Date   { value: f64 },
-    Count  { value: u32 },
+    Date {
+        value: f64,
+    },
+    Count {
+        value: u32,
+    },
 }
 
 // ─── Group ──────────────────────────────────────────────────────────────────
@@ -225,9 +231,9 @@ pub enum WireAggResult {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WireGroup {
-    pub key:      WireGroupKey,
-    pub indices:  Vec<u32>,
-    pub depth:    u32,
+    pub key: WireGroupKey,
+    pub indices: Vec<u32>,
+    pub depth: u32,
     pub children: Vec<WireGroup>,
 }
 
@@ -235,10 +241,10 @@ pub struct WireGroup {
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum WireGroupKey {
     Null,
-    Text   { value: String },
+    Text { value: String },
     Number { value: f64 },
-    Bool   { value: bool },
-    Date   { value: f64 },
+    Bool { value: bool },
+    Date { value: f64 },
 }
 
 // ─── Form engine ────────────────────────────────────────────────────────────
@@ -276,7 +282,7 @@ pub struct WireFormField {
 #[serde(rename_all = "camelCase")]
 pub struct WireFormCondition {
     pub field: u32,
-    pub op:    WireFormOp,
+    pub op: WireFormOp,
     pub value: WireFormValue,
 }
 
@@ -300,11 +306,21 @@ pub enum WireFormOp {
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum WireFormValue {
     Null,
-    Bool     { value: bool },
-    Number   { value: f64 },
-    String   { value: String },
-    Array    { items: Vec<WireFormValue> },
+    Bool {
+        value: bool,
+    },
+    Number {
+        value: f64,
+    },
+    String {
+        value: String,
+    },
+    Array {
+        items: Vec<WireFormValue>,
+    },
     /// `id` is assigned by the TS adapter when the user registers a
     /// `function`-operator predicate.
-    Callback { id: u32 },
+    Callback {
+        id: u32,
+    },
 }

@@ -44,10 +44,10 @@ use engine_core::{FxHashMap, Idx};
 /// `RowSet::Indices(&group.indices)` at any depth.
 #[derive(Debug, Clone)]
 pub struct Group {
-    pub key:      GroupKey,
+    pub key: GroupKey,
     /// Row indices in source order. For multi-level groups, this is the union
     /// of all descendant indices.
-    pub indices:  Vec<Idx>,
+    pub indices: Vec<Idx>,
     /// Sub-groups one level deeper. Empty for single-level results and for
     /// leaf nodes in multi-level results.
     pub children: Vec<Group>,
@@ -65,33 +65,51 @@ pub enum GroupKey {
 }
 
 impl GroupKey {
-    pub fn is_null(&self) -> bool { matches!(self, GroupKey::Null) }
+    pub fn is_null(&self) -> bool {
+        matches!(self, GroupKey::Null)
+    }
 
     pub fn as_text(&self) -> Option<&str> {
-        if let GroupKey::Text(s) = self { Some(s) } else { None }
+        if let GroupKey::Text(s) = self {
+            Some(s)
+        } else {
+            None
+        }
     }
 
     pub fn as_number(&self) -> Option<f64> {
-        if let GroupKey::Number(n) = self { Some(*n) } else { None }
+        if let GroupKey::Number(n) = self {
+            Some(*n)
+        } else {
+            None
+        }
     }
 
     pub fn as_bool(&self) -> Option<bool> {
-        if let GroupKey::Bool(b) = self { Some(*b) } else { None }
+        if let GroupKey::Bool(b) = self {
+            Some(*b)
+        } else {
+            None
+        }
     }
 
     pub fn as_date(&self) -> Option<i64> {
-        if let GroupKey::Date(d) = self { Some(*d) } else { None }
+        if let GroupKey::Date(d) = self {
+            Some(*d)
+        } else {
+            None
+        }
     }
 }
 
 impl PartialEq for GroupKey {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (GroupKey::Null, GroupKey::Null)             => true,
-            (GroupKey::Text(a),   GroupKey::Text(b))     => a == b,
-            (GroupKey::Number(a), GroupKey::Number(b))   => a.to_bits() == b.to_bits(),
-            (GroupKey::Bool(a),   GroupKey::Bool(b))     => a == b,
-            (GroupKey::Date(a),   GroupKey::Date(b))     => a == b,
+            (GroupKey::Null, GroupKey::Null) => true,
+            (GroupKey::Text(a), GroupKey::Text(b)) => a == b,
+            (GroupKey::Number(a), GroupKey::Number(b)) => a.to_bits() == b.to_bits(),
+            (GroupKey::Bool(a), GroupKey::Bool(b)) => a == b,
+            (GroupKey::Date(a), GroupKey::Date(b)) => a == b,
             _ => false,
         }
     }
@@ -101,11 +119,23 @@ impl Eq for GroupKey {}
 impl Hash for GroupKey {
     fn hash<H: Hasher>(&self, h: &mut H) {
         match self {
-            GroupKey::Null         => 0u8.hash(h),
-            GroupKey::Text(s)      => { 1u8.hash(h); s.hash(h); }
-            GroupKey::Number(n)    => { 2u8.hash(h); n.to_bits().hash(h); }
-            GroupKey::Bool(b)      => { 3u8.hash(h); b.hash(h); }
-            GroupKey::Date(d)      => { 4u8.hash(h); d.hash(h); }
+            GroupKey::Null => 0u8.hash(h),
+            GroupKey::Text(s) => {
+                1u8.hash(h);
+                s.hash(h);
+            }
+            GroupKey::Number(n) => {
+                2u8.hash(h);
+                n.to_bits().hash(h);
+            }
+            GroupKey::Bool(b) => {
+                3u8.hash(h);
+                b.hash(h);
+            }
+            GroupKey::Date(d) => {
+                4u8.hash(h);
+                d.hash(h);
+            }
         }
     }
 }
@@ -123,11 +153,7 @@ pub fn group_by(dataset: &Dataset, column: ColumnId, rows: RowSet<'_>) -> Vec<Gr
 /// aggregates work uniformly via `RowSet::Indices(&node.indices)`.
 ///
 /// Returns an empty `Vec` if `columns` is empty or any column is missing.
-pub fn group_by_multi(
-    dataset: &Dataset,
-    columns: &[ColumnId],
-    rows:    RowSet<'_>,
-) -> Vec<Group> {
+pub fn group_by_multi(dataset: &Dataset, columns: &[ColumnId], rows: RowSet<'_>) -> Vec<Group> {
     if columns.is_empty() {
         return Vec::new();
     }
@@ -153,11 +179,11 @@ pub fn group_by_multi(
 /// Recursive insertion: for `cols[level]`, find or create a child of the
 /// current sub-tree's node list, push the row index, then descend.
 fn insert_row(
-    nodes:  &mut Vec<WorkingNode>,
+    nodes: &mut Vec<WorkingNode>,
     bucket: &mut FxHashMap<GroupKey, usize>,
-    cols:   &[&Column],
-    level:  usize,
-    idx:    Idx,
+    cols: &[&Column],
+    level: usize,
+    idx: Idx,
 ) {
     if level >= cols.len() {
         return;
@@ -186,29 +212,32 @@ fn insert_row(
 }
 
 fn finalize(nodes: Vec<WorkingNode>) -> Vec<Group> {
-    nodes.into_iter().map(|n| Group {
-        key:      n.key,
-        indices:  n.indices,
-        children: finalize(n.children),
-    }).collect()
+    nodes
+        .into_iter()
+        .map(|n| Group {
+            key: n.key,
+            indices: n.indices,
+            children: finalize(n.children),
+        })
+        .collect()
 }
 
 /// Construction-only twin of [`Group`] that carries the per-level bucket map.
 /// Stripped during [`finalize`].
 struct WorkingNode {
-    key:      GroupKey,
-    indices:  Vec<Idx>,
+    key: GroupKey,
+    indices: Vec<Idx>,
     children: Vec<WorkingNode>,
-    bucket:   FxHashMap<GroupKey, usize>,
+    bucket: FxHashMap<GroupKey, usize>,
 }
 
 impl WorkingNode {
     fn new(key: GroupKey) -> Self {
         Self {
             key,
-            indices:  Vec::new(),
+            indices: Vec::new(),
             children: Vec::new(),
-            bucket:   FxHashMap::default(),
+            bucket: FxHashMap::default(),
         }
     }
 }
@@ -252,9 +281,9 @@ fn read_key(col: &Column, i: Idx) -> GroupKey {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::aggregate::{compute as compute_agg, AggFn, AggResult};
+    use crate::aggregate::{AggFn, AggResult, compute as compute_agg};
     use crate::dataset::Dataset;
-    use crate::filter::{apply as apply_filters, ColumnFilter, BoolOp};
+    use crate::filter::{BoolOp, ColumnFilter, apply as apply_filters};
 
     fn opt_strs(v: &[&str]) -> Vec<Option<String>> {
         v.iter().map(|s| Some(s.to_string())).collect()
@@ -264,7 +293,8 @@ mod tests {
     /// 2 = active (bool), 3 = quarter (date).
     fn ds() -> Dataset {
         Dataset::builder(6)
-            .add_text(0,
+            .add_text(
+                0,
                 vec![
                     Some("active".into()),
                     Some("paused".into()),
@@ -272,10 +302,41 @@ mod tests {
                     None,
                     Some("active".into()),
                     Some("paused".into()),
-                ])
-            .add_number(1, vec![Some(100.0), Some(50.0), Some(200.0), Some(30.0), Some(75.0), Some(150.0)])
-            .add_bool(2, vec![Some(true), Some(false), Some(true), Some(true), Some(false), Some(false)])
-            .add_date(3, vec![Some(100), Some(100), Some(200), Some(200), Some(100), Some(200)])
+                ],
+            )
+            .add_number(
+                1,
+                vec![
+                    Some(100.0),
+                    Some(50.0),
+                    Some(200.0),
+                    Some(30.0),
+                    Some(75.0),
+                    Some(150.0),
+                ],
+            )
+            .add_bool(
+                2,
+                vec![
+                    Some(true),
+                    Some(false),
+                    Some(true),
+                    Some(true),
+                    Some(false),
+                    Some(false),
+                ],
+            )
+            .add_date(
+                3,
+                vec![
+                    Some(100),
+                    Some(100),
+                    Some(200),
+                    Some(200),
+                    Some(100),
+                    Some(200),
+                ],
+            )
             .build()
     }
 
@@ -354,10 +415,13 @@ mod tests {
     fn group_after_filter_via_mask() {
         let ds = ds();
         // Filter: only active=true rows  →  rows 0, 2, 3
-        let mask = apply_filters(&ds, &[ColumnFilter::Bool {
-            column: 2,
-            op: BoolOp::Eq(true),
-        }]);
+        let mask = apply_filters(
+            &ds,
+            &[ColumnFilter::Bool {
+                column: 2,
+                op: BoolOp::Eq(true),
+            }],
+        );
         let g = group_by(&ds, 0, RowSet::Mask(&mask));
         // Status of rows 0, 2, 3:  "active", "active", null  → 2 groups
         assert_eq!(g.len(), 2);
@@ -406,9 +470,15 @@ mod tests {
         let ds = ds();
         let groups = group_by(&ds, 0, RowSet::All);
 
-        let active = groups.iter().find(|g| g.key.as_text() == Some("active")).unwrap();
-        let paused = groups.iter().find(|g| g.key.as_text() == Some("paused")).unwrap();
-        let nullg  = groups.iter().find(|g| g.key.is_null()).unwrap();
+        let active = groups
+            .iter()
+            .find(|g| g.key.as_text() == Some("active"))
+            .unwrap();
+        let paused = groups
+            .iter()
+            .find(|g| g.key.as_text() == Some("paused"))
+            .unwrap();
+        let nullg = groups.iter().find(|g| g.key.is_null()).unwrap();
 
         // active rows: 0, 2, 4   revenue: 100 + 200 + 75 = 375
         assert_eq!(
@@ -450,7 +520,17 @@ mod tests {
         Dataset::builder(6)
             .add_text(0, opt_strs(&["US", "US", "US", "UK", "UK", "US"]))
             .add_text(1, opt_strs(&["CA", "NY", "CA", "LDN", "LDN", "NY"]))
-            .add_number(2, vec![Some(100.0), Some(200.0), Some(150.0), Some(90.0), Some(110.0), Some(50.0)])
+            .add_number(
+                2,
+                vec![
+                    Some(100.0),
+                    Some(200.0),
+                    Some(150.0),
+                    Some(90.0),
+                    Some(110.0),
+                    Some(50.0),
+                ],
+            )
             .build()
     }
 
@@ -556,10 +636,13 @@ mod tests {
     fn multi_level_via_filter_mask() {
         // Filter to only US rows, then multi-group by [country, state].
         let ds = sales();
-        let mask = apply_filters(&ds, &[ColumnFilter::Text {
-            column: 0,
-            op: crate::filter::TextOp::Equals("US".into()),
-        }]);
+        let mask = apply_filters(
+            &ds,
+            &[ColumnFilter::Text {
+                column: 0,
+                op: crate::filter::TextOp::Equals("US".into()),
+            }],
+        );
         let groups = group_by_multi(&ds, &[0, 1], RowSet::Mask(&mask));
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].key.as_text(), Some("US"));
@@ -584,7 +667,7 @@ mod tests {
         // group_by(col) and group_by_multi(&[col]) must agree.
         let ds = sales();
         let single = group_by(&ds, 0, RowSet::All);
-        let multi  = group_by_multi(&ds, &[0], RowSet::All);
+        let multi = group_by_multi(&ds, &[0], RowSet::All);
 
         assert_eq!(single.len(), multi.len());
         for (s, m) in single.iter().zip(multi.iter()) {

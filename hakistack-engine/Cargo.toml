@@ -7,7 +7,19 @@ members = [
     "crates/tree-engine",
     "crates/search-engine",
     "crates/form-engine",
+    "crates/document-engine",
+    "crates/document-wasm",
+    "crates/image-engine",
+    "crates/image-wasm",
 ]
+# `libheif-bridge` is excluded on purpose: it targets only
+# wasm32-unknown-emscripten and links against pre-built libheif.a +
+# libde265.a from external/libheif-wasm/vendor/. Including it would
+# make `cargo check --workspace` on host attempt a link that requires
+# the static libs and the Emscripten linker — neither of which is
+# present on a default host build. Build explicitly with:
+#   npm run libheif:build
+exclude = ["crates/libheif-bridge"]
 
 [workspace.package]
 version    = "0.1.0"
@@ -19,11 +31,13 @@ publish    = false
 
 [workspace.dependencies]
 # Internal crates — referenced via { workspace = true }
-engine-core   = { path = "crates/engine-core",   version = "0.1.0" }
-table-engine  = { path = "crates/table-engine",  version = "0.1.0" }
-tree-engine   = { path = "crates/tree-engine",   version = "0.1.0" }
-search-engine = { path = "crates/search-engine", version = "0.1.0" }
-form-engine   = { path = "crates/form-engine",   version = "0.1.0" }
+engine-core     = { path = "crates/engine-core",     version = "0.1.0" }
+table-engine    = { path = "crates/table-engine",    version = "0.1.0" }
+tree-engine     = { path = "crates/tree-engine",     version = "0.1.0" }
+search-engine   = { path = "crates/search-engine",   version = "0.1.0" }
+form-engine     = { path = "crates/form-engine",     version = "0.1.0" }
+document-engine = { path = "crates/document-engine", version = "0.1.0" }
+image-engine    = { path = "crates/image-engine",    version = "0.1.0" }
 
 # WASM bindings
 wasm-bindgen        = "0.2"

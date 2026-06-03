@@ -95,7 +95,10 @@ mod tests {
         assert_ne!(Value::Bool(true), Value::Bool(false));
         assert_eq!(Value::Number(1.0), Value::Number(1.0));
         assert_ne!(Value::Number(f64::NAN), Value::Number(f64::NAN));
-        assert_eq!(Value::String(Box::from("hi")), Value::String(Box::from("hi")));
+        assert_eq!(
+            Value::String(Box::from("hi")),
+            Value::String(Box::from("hi"))
+        );
         assert_ne!(Value::Number(1.0), Value::String(Box::from("1")));
     }
 

@@ -40,6 +40,11 @@ export const routes: Routes = [
     path: 'pdf-viewer/:feature',
     loadComponent: () => import('@shared-demos/demos/pdf-viewer-demo.component').then((m) => m.PdfViewerDemoComponent),
   },
+  { path: 'document-viewer', redirectTo: 'document-viewer/basic', pathMatch: 'full' },
+  {
+    path: 'document-viewer/:feature',
+    loadComponent: () => import('@shared-demos/demos/document-viewer-demo.component').then((m) => m.DocumentViewerDemoComponent),
+  },
   // Inputs
   { path: 'input', redirectTo: 'input/basic', pathMatch: 'full' },
   { path: 'input/:feature', loadComponent: () => import('@shared-demos/demos/input-demo.component').then((m) => m.InputDemoComponent) },

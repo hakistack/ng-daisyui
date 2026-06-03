@@ -11,17 +11,13 @@
 //! won't render an expand chevron for it.
 
 use crate::dataset::TreeDataset;
-use engine_core::{
-    arena::TreeArena,
-    bitset::Bitset,
-    Idx,
-};
+use engine_core::{Idx, arena::TreeArena, bitset::Bitset};
 
 /// Output triple per emitted row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FlatRow {
-    pub node:         u32,
-    pub depth:        u32,
+    pub node: u32,
+    pub depth: u32,
     pub has_children: u32, // 0 or 1
 }
 
@@ -58,12 +54,12 @@ pub fn flatten(dataset: &TreeDataset, visible: &Bitset, expanded: &Bitset) -> Ve
 }
 
 fn emit_subtree(
-    arena:    &TreeArena,
+    arena: &TreeArena,
     _dataset: &TreeDataset,
-    visible:  &Bitset,
+    visible: &Bitset,
     expanded: &Bitset,
-    root:     i32,
-    out:      &mut Vec<FlatRow>,
+    root: i32,
+    out: &mut Vec<FlatRow>,
 ) {
     // Iterative DFS with a stack of nodes to visit. Maintain "is this node's
     // ancestor chain fully expanded?" by tracking the open path.
@@ -88,8 +84,8 @@ fn emit_subtree(
         }
 
         out.push(FlatRow {
-            node:         i,
-            depth:        arena.depth_of[node as usize] as u32,
+            node: i,
+            depth: arena.depth_of[node as usize] as u32,
             has_children: if has_visible_child { 1 } else { 0 },
         });
 
@@ -119,7 +115,7 @@ fn emit_subtree(
 mod tests {
     use super::*;
     use crate::dataset::TreeDataset;
-    use crate::filter::{filter, FilterMode, FilterSpec};
+    use crate::filter::{FilterMode, FilterSpec, filter};
     use engine_core::Idx;
 
     /// Tree (same as filter tests):
@@ -138,7 +134,8 @@ mod tests {
                 "Marketing".into(),
             ],
             vec![0, 1, 2, 2, 1],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     fn all_visible(n: u32) -> Bitset {
@@ -213,11 +210,14 @@ mod tests {
     #[test]
     fn filtered_subtree_collapses_into_visible_path() {
         let d = ds();
-        let visible = filter(&d, &FilterSpec {
-            term: "back".into(),
-            mode: FilterMode::Lenient,
-            case_sensitive: false,
-        });
+        let visible = filter(
+            &d,
+            &FilterSpec {
+                term: "back".into(),
+                mode: FilterMode::Lenient,
+                case_sensitive: false,
+            },
+        );
         // visible = {0 (Root), 1 (Engineering), 2 (Backend)}
         // With everything expanded, output is {0, 1, 2} — Frontend hidden,
         // Marketing hidden, even though they're "expanded" in the set.
@@ -232,11 +232,14 @@ mod tests {
         // but its OTHER child (Frontend) is hidden. has_children for
         // Engineering must reflect "still has 1 visible child" (Backend).
         let d = ds();
-        let visible = filter(&d, &FilterSpec {
-            term: "back".into(),
-            mode: FilterMode::Lenient,
-            case_sensitive: false,
-        });
+        let visible = filter(
+            &d,
+            &FilterSpec {
+                term: "back".into(),
+                mode: FilterMode::Lenient,
+                case_sensitive: false,
+            },
+        );
         let e = expand(&[0, 1], d.n_nodes());
         let out = flatten(&d, &visible, &e);
         // Find Engineering in output
@@ -262,7 +265,8 @@ mod tests {
         let d = TreeDataset::from_dfs(
             vec!["A".into(), "Aa".into(), "B".into(), "Ba".into()],
             vec![0, 1, 0, 1],
-        ).unwrap();
+        )
+        .unwrap();
         let v = all_visible(d.n_nodes());
         let e = expand(&[0, 2], d.n_nodes());
         let out = flatten(&d, &v, &e);

@@ -15,7 +15,7 @@ pub mod dataset;
 pub mod filter;
 pub mod flatten;
 
-pub use cascade::{cascade_up, select_descendants, NodeState};
+pub use cascade::{NodeState, cascade_up, select_descendants};
 pub use dataset::TreeDataset;
-pub use filter::{filter, FilterMode, FilterSpec};
-pub use flatten::{flatten, FlatRow};
+pub use filter::{FilterMode, FilterSpec, filter};
+pub use flatten::{FlatRow, flatten};

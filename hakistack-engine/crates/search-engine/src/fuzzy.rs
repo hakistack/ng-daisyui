@@ -113,8 +113,8 @@ mod tests {
         assert_eq!(results[0].0, 0);
         // "save file" should score lower (only "file" matches contiguously).
         let positions: Vec<Idx> = idx_score(&results);
-        let pos_open_file   = positions.iter().position(|&i| i == 0).unwrap();
-        let pos_save_file   = positions.iter().position(|&i| i == 2);
+        let pos_open_file = positions.iter().position(|&i| i == 0).unwrap();
+        let pos_save_file = positions.iter().position(|&i| i == 2);
         if let Some(p) = pos_save_file {
             assert!(p > pos_open_file);
         }
@@ -142,7 +142,10 @@ mod tests {
         let i = sample();
         let results = i.search(
             "foobar",
-            FuzzyOpts { case_sensitive: true, max_results: None },
+            FuzzyOpts {
+                case_sensitive: true,
+                max_results: None,
+            },
         );
         let positions: Vec<Idx> = idx_score(&results);
         // FOOBAR doesn't case-sensitive-match "foobar".
@@ -154,7 +157,10 @@ mod tests {
         let i = sample();
         let results = i.search(
             "o",
-            FuzzyOpts { case_sensitive: false, max_results: Some(2) },
+            FuzzyOpts {
+                case_sensitive: false,
+                max_results: Some(2),
+            },
         );
         assert!(results.len() <= 2);
     }

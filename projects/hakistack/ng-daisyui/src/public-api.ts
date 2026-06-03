@@ -286,6 +286,36 @@ export type {
   CommandPaletteState,
 } from './lib/components/command-palette/command-palette.types';
 
+// Document Viewer — universal facade over format-specific renderers.
+// Spreadsheet renderer is calamine-backed via the `document_wasm` bundle;
+// other renderers (text, image, pdf) are lightweight JS-only.
+export { DocumentViewerComponent } from './lib/components/document-viewer/document-viewer.component';
+export { DocumentSpreadsheetRenderer } from './lib/components/document-viewer/renderers/spreadsheet.renderer';
+export { DocumentTextRenderer } from './lib/components/document-viewer/renderers/text.renderer';
+export { DocumentImageRenderer } from './lib/components/document-viewer/renderers/image.renderer';
+export { DocumentImageSpecialRenderer } from './lib/components/document-viewer/renderers/image-special.renderer';
+export { DocumentPdfRenderer } from './lib/components/document-viewer/renderers/pdf.renderer';
+export { DocumentUnsupportedRenderer } from './lib/components/document-viewer/renderers/unsupported.renderer';
+export { resolveFormat, guessFilename, loadSourceAsBytes } from './lib/components/document-viewer/document-viewer.helpers';
+export type {
+  DocumentSource,
+  DocumentFormat,
+  ResolvedFormat,
+  DocumentRendererInputs,
+  DocumentRendererRegistration,
+  DocumentViewerConfig,
+} from './lib/components/document-viewer/document-viewer.types';
+export {
+  DocumentEngineService,
+  HK_DOCUMENT_ENGINE_WASM_URL,
+  provideDocumentEngineWasmUrl,
+  type ParsedSpreadsheet,
+  type SpreadsheetSheet,
+  type SpreadsheetCell,
+} from './lib/services/document-engine.service';
+export { ImageEngineService, HK_IMAGE_ENGINE_WASM_URL, provideImageEngineWasmUrl } from './lib/services/image-engine.service';
+export { LibheifService } from './lib/services/libheif.service';
+
 // PDF Viewer
 export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';

@@ -16,7 +16,9 @@ pub mod schema;
 pub mod state;
 pub mod value;
 
-pub use condition::{Condition, ConditionOp, FieldIdx, NoopResolver, PredicateId, PredicateResolver};
+pub use condition::{
+    Condition, ConditionOp, FieldIdx, NoopResolver, PredicateId, PredicateResolver,
+};
 pub use engine::FormEngine;
 pub use event::{Event, EventKind};
 pub use schema::{FieldDef, FormSchema, RuleKind, RuleRef};

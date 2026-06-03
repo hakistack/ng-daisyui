@@ -89,17 +89,46 @@ impl FormSchema {
             name_to_idx.insert(field.name.clone(), owner);
 
             let mut has_function = false;
-            index_array(&field.show_when, owner, RuleKind::ShowWhen, &mut deps, &mut has_function);
-            index_array(&field.hide_when, owner, RuleKind::HideWhen, &mut deps, &mut has_function);
-            index_array(&field.required_when, owner, RuleKind::RequiredWhen, &mut deps, &mut has_function);
-            index_array(&field.disabled_when, owner, RuleKind::DisabledWhen, &mut deps, &mut has_function);
+            index_array(
+                &field.show_when,
+                owner,
+                RuleKind::ShowWhen,
+                &mut deps,
+                &mut has_function,
+            );
+            index_array(
+                &field.hide_when,
+                owner,
+                RuleKind::HideWhen,
+                &mut deps,
+                &mut has_function,
+            );
+            index_array(
+                &field.required_when,
+                owner,
+                RuleKind::RequiredWhen,
+                &mut deps,
+                &mut has_function,
+            );
+            index_array(
+                &field.disabled_when,
+                owner,
+                RuleKind::DisabledWhen,
+                &mut deps,
+                &mut has_function,
+            );
 
             if has_function {
                 function_owners.push(owner);
             }
         }
 
-        Self { fields, deps, name_to_idx, function_owners }
+        Self {
+            fields,
+            deps,
+            name_to_idx,
+            function_owners,
+        }
     }
 
     pub fn field_count(&self) -> FieldIdx {
@@ -153,7 +182,11 @@ mod tests {
     }
 
     fn c(field_idx: FieldIdx, op: ConditionOp, value: Value) -> Condition {
-        Condition { field_idx, op, value }
+        Condition {
+            field_idx,
+            op,
+            value,
+        }
     }
 
     #[test]
@@ -169,12 +202,26 @@ mod tests {
         // country (idx 0) drives region (idx 1)
         let from_country = &schema.deps[&0];
         assert_eq!(from_country.len(), 1);
-        assert_eq!(from_country[0], RuleRef { owner: 1, kind: RuleKind::RequiredWhen, index: 0 });
+        assert_eq!(
+            from_country[0],
+            RuleRef {
+                owner: 1,
+                kind: RuleKind::RequiredWhen,
+                index: 0
+            }
+        );
 
         // region (idx 1) drives country (idx 0)
         let from_region = &schema.deps[&1];
         assert_eq!(from_region.len(), 1);
-        assert_eq!(from_region[0], RuleRef { owner: 0, kind: RuleKind::ShowWhen, index: 0 });
+        assert_eq!(
+            from_region[0],
+            RuleRef {
+                owner: 0,
+                kind: RuleKind::ShowWhen,
+                index: 0
+            }
+        );
     }
 
     #[test]

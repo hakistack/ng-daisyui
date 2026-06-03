@@ -123,7 +123,8 @@ mod tests {
     use crate::state::ValueMap;
 
     fn vm(pairs: &[(FieldIdx, Value)]) -> ValueMap {
-        let mut v = ValueMap::with_field_count(pairs.iter().map(|(i, _)| *i + 1).max().unwrap_or(0));
+        let mut v =
+            ValueMap::with_field_count(pairs.iter().map(|(i, _)| *i + 1).max().unwrap_or(0));
         for (i, val) in pairs {
             v.set(*i, val.clone());
         }
@@ -131,44 +132,95 @@ mod tests {
     }
 
     fn cond(idx: FieldIdx, op: ConditionOp, value: Value) -> Condition {
-        Condition { field_idx: idx, op, value }
+        Condition {
+            field_idx: idx,
+            op,
+            value,
+        }
     }
 
     #[test]
     fn equals_and_not_equals() {
         let values = vm(&[(0, Value::String(Box::from("hi")))]);
-        assert!(evaluate(&cond(0, ConditionOp::Equals, Value::String(Box::from("hi"))), &values, &NoopResolver));
-        assert!(!evaluate(&cond(0, ConditionOp::Equals, Value::String(Box::from("bye"))), &values, &NoopResolver));
-        assert!(evaluate(&cond(0, ConditionOp::NotEquals, Value::String(Box::from("bye"))), &values, &NoopResolver));
+        assert!(evaluate(
+            &cond(0, ConditionOp::Equals, Value::String(Box::from("hi"))),
+            &values,
+            &NoopResolver
+        ));
+        assert!(!evaluate(
+            &cond(0, ConditionOp::Equals, Value::String(Box::from("bye"))),
+            &values,
+            &NoopResolver
+        ));
+        assert!(evaluate(
+            &cond(0, ConditionOp::NotEquals, Value::String(Box::from("bye"))),
+            &values,
+            &NoopResolver
+        ));
     }
 
     #[test]
     fn contains_requires_two_strings() {
         let s = vm(&[(0, Value::String(Box::from("hello world")))]);
-        assert!(evaluate(&cond(0, ConditionOp::Contains, Value::String(Box::from("world"))), &s, &NoopResolver));
+        assert!(evaluate(
+            &cond(0, ConditionOp::Contains, Value::String(Box::from("world"))),
+            &s,
+            &NoopResolver
+        ));
         // numeric/string mismatch is false, never panic
         let n = vm(&[(0, Value::Number(42.0))]);
-        assert!(!evaluate(&cond(0, ConditionOp::Contains, Value::String(Box::from("4"))), &n, &NoopResolver));
+        assert!(!evaluate(
+            &cond(0, ConditionOp::Contains, Value::String(Box::from("4"))),
+            &n,
+            &NoopResolver
+        ));
     }
 
     #[test]
     fn greater_less_only_for_numbers() {
         let v = vm(&[(0, Value::Number(5.0))]);
-        assert!(evaluate(&cond(0, ConditionOp::GreaterThan, Value::Number(3.0)), &v, &NoopResolver));
-        assert!(evaluate(&cond(0, ConditionOp::LessThan, Value::Number(10.0)), &v, &NoopResolver));
+        assert!(evaluate(
+            &cond(0, ConditionOp::GreaterThan, Value::Number(3.0)),
+            &v,
+            &NoopResolver
+        ));
+        assert!(evaluate(
+            &cond(0, ConditionOp::LessThan, Value::Number(10.0)),
+            &v,
+            &NoopResolver
+        ));
         // string vs number → false
         let s = vm(&[(0, Value::String(Box::from("a")))]);
-        assert!(!evaluate(&cond(0, ConditionOp::GreaterThan, Value::Number(0.0)), &s, &NoopResolver));
+        assert!(!evaluate(
+            &cond(0, ConditionOp::GreaterThan, Value::Number(0.0)),
+            &s,
+            &NoopResolver
+        ));
     }
 
     #[test]
     fn in_and_not_in_require_array_operand() {
         let v = vm(&[(0, Value::String(Box::from("admin")))]);
-        let arr = Value::Array(vec![Value::String(Box::from("admin")), Value::String(Box::from("user"))]);
-        assert!(evaluate(&cond(0, ConditionOp::In, arr.clone()), &v, &NoopResolver));
-        assert!(!evaluate(&cond(0, ConditionOp::NotIn, arr), &v, &NoopResolver));
+        let arr = Value::Array(vec![
+            Value::String(Box::from("admin")),
+            Value::String(Box::from("user")),
+        ]);
+        assert!(evaluate(
+            &cond(0, ConditionOp::In, arr.clone()),
+            &v,
+            &NoopResolver
+        ));
+        assert!(!evaluate(
+            &cond(0, ConditionOp::NotIn, arr),
+            &v,
+            &NoopResolver
+        ));
         // non-array operand → false (matches JS `Array.isArray` guard)
-        assert!(!evaluate(&cond(0, ConditionOp::In, Value::String(Box::from("admin"))), &v, &NoopResolver));
+        assert!(!evaluate(
+            &cond(0, ConditionOp::In, Value::String(Box::from("admin"))),
+            &v,
+            &NoopResolver
+        ));
     }
 
     #[test]
@@ -180,10 +232,22 @@ mod tests {
             }
         }
         let values = ValueMap::with_field_count(1);
-        assert!(evaluate(&cond(0, ConditionOp::Function, Value::JsCallback(7)), &values, &R));
-        assert!(!evaluate(&cond(0, ConditionOp::Function, Value::JsCallback(8)), &values, &R));
+        assert!(evaluate(
+            &cond(0, ConditionOp::Function, Value::JsCallback(7)),
+            &values,
+            &R
+        ));
+        assert!(!evaluate(
+            &cond(0, ConditionOp::Function, Value::JsCallback(8)),
+            &values,
+            &R
+        ));
         // function op without JsCallback rhs → false
-        assert!(!evaluate(&cond(0, ConditionOp::Function, Value::Number(1.0)), &values, &R));
+        assert!(!evaluate(
+            &cond(0, ConditionOp::Function, Value::Number(1.0)),
+            &values,
+            &R
+        ));
     }
 
     #[test]
@@ -198,14 +262,26 @@ mod tests {
 
     #[test]
     fn empty_condition_list_is_true() {
-        assert!(evaluate_all(&[], &ValueMap::with_field_count(0), &NoopResolver));
+        assert!(evaluate_all(
+            &[],
+            &ValueMap::with_field_count(0),
+            &NoopResolver
+        ));
     }
 
     #[test]
     fn missing_field_value_reads_as_null() {
         // field_idx 5 was never set; values for it default to Null.
         let v = ValueMap::with_field_count(10);
-        assert!(evaluate(&cond(5, ConditionOp::Equals, Value::Null), &v, &NoopResolver));
-        assert!(!evaluate(&cond(5, ConditionOp::Equals, Value::Number(0.0)), &v, &NoopResolver));
+        assert!(evaluate(
+            &cond(5, ConditionOp::Equals, Value::Null),
+            &v,
+            &NoopResolver
+        ));
+        assert!(!evaluate(
+            &cond(5, ConditionOp::Equals, Value::Number(0.0)),
+            &v,
+            &NoopResolver
+        ));
     }
 }

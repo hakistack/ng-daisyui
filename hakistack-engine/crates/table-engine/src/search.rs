@@ -38,11 +38,11 @@ pub enum SearchMode {
 #[derive(Debug, Clone)]
 pub struct SearchSpec {
     /// The substring to look for. Empty string ⇒ no-op (returns all-zeros).
-    pub term:           String,
-    pub mode:           SearchMode,
+    pub term: String,
+    pub mode: SearchMode,
     /// Columns to search. Empty ⇒ every text column in the dataset.
     /// Non-text columns in the list are silently skipped.
-    pub columns:        Vec<ColumnId>,
+    pub columns: Vec<ColumnId>,
     pub case_sensitive: bool,
 }
 
@@ -70,7 +70,13 @@ pub fn apply_search(dataset: &Dataset, spec: &SearchSpec) -> Bitset {
     let targets: Vec<&TextColumn> = if spec.columns.is_empty() {
         dataset
             .iter_columns()
-            .filter_map(|(_, c)| if let Column::Text(t) = c { Some(t) } else { None })
+            .filter_map(|(_, c)| {
+                if let Column::Text(t) = c {
+                    Some(t)
+                } else {
+                    None
+                }
+            })
             .collect()
     } else {
         spec.columns
@@ -89,23 +95,41 @@ pub fn apply_search(dataset: &Dataset, spec: &SearchSpec) -> Bitset {
     for col in targets {
         match spec.mode {
             SearchMode::Contains => {
-                let haystack = if spec.case_sensitive { &col.values } else { &col.lower };
+                let haystack = if spec.case_sensitive {
+                    &col.values
+                } else {
+                    &col.lower
+                };
                 for i in 0..n {
-                    if !out.get(i) && col.validity.get(i) && contains_bytes(&haystack[i as usize], &f) {
+                    if !out.get(i)
+                        && col.validity.get(i)
+                        && contains_bytes(&haystack[i as usize], &f)
+                    {
                         out.set(i);
                     }
                 }
             }
             SearchMode::StartsWith => {
-                let haystack = if spec.case_sensitive { &col.values } else { &col.lower };
+                let haystack = if spec.case_sensitive {
+                    &col.values
+                } else {
+                    &col.lower
+                };
                 for i in 0..n {
-                    if !out.get(i) && col.validity.get(i) && haystack[i as usize].starts_with(&*needle) {
+                    if !out.get(i)
+                        && col.validity.get(i)
+                        && haystack[i as usize].starts_with(&*needle)
+                    {
                         out.set(i);
                     }
                 }
             }
             SearchMode::Exact => {
-                let haystack = if spec.case_sensitive { &col.values } else { &col.lower };
+                let haystack = if spec.case_sensitive {
+                    &col.values
+                } else {
+                    &col.lower
+                };
                 for i in 0..n {
                     if !out.get(i) && col.validity.get(i) && *haystack[i as usize] == *needle {
                         out.set(i);
@@ -138,32 +162,41 @@ mod tests {
         // 5 rows, 3 columns: name (text), email (text), age (number).
         // Search should match across name + email but ignore age.
         Dataset::builder(5)
-            .add_text(0, opt_strs(&["Alice", "Bob",   "Carol", "alice", "Dave"]))
+            .add_text(0, opt_strs(&["Alice", "Bob", "Carol", "alice", "Dave"]))
             .add_text(1, opt_strs(&["a@x", "b@x", "c@x", "alt@y", "d@x"]))
-            .add_number(2, vec![Some(30.0), Some(25.0), Some(35.0), Some(28.0), Some(40.0)])
+            .add_number(
+                2,
+                vec![Some(30.0), Some(25.0), Some(35.0), Some(28.0), Some(40.0)],
+            )
             .build()
     }
 
     #[test]
     fn contains_is_case_insensitive_by_default() {
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "ALI".into(),
-            mode: SearchMode::Contains,
-            columns: vec![],
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "ALI".into(),
+                mode: SearchMode::Contains,
+                columns: vec![],
+                case_sensitive: false,
+            },
+        );
         // "Alice" (0), "alice" (3), "alt@y" (3) — but row 3 only counted once.
         assert_eq!(matches(&m), vec![0, 3]);
     }
 
     #[test]
     fn case_sensitive_flag_changes_results() {
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "ali".into(),
-            mode: SearchMode::Contains,
-            columns: vec![],
-            case_sensitive: true,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "ali".into(),
+                mode: SearchMode::Contains,
+                columns: vec![],
+                case_sensitive: true,
+            },
+        );
         // Only "alice" (3) matches case-sensitively (no "ali" in "Alice")
         // but "alt" doesn't contain "ali" either. Wait — "alt" doesn't contain "ali" sub.
         // Re-examining: "alice" contains "ali" lowercase ⇒ row 3 matches.
@@ -173,12 +206,15 @@ mod tests {
     #[test]
     fn search_or_combines_across_columns() {
         // Term "@x" appears only in the email column.
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "@x".into(),
-            mode: SearchMode::Contains,
-            columns: vec![],
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "@x".into(),
+                mode: SearchMode::Contains,
+                columns: vec![],
+                case_sensitive: false,
+            },
+        );
         // emails ending in @x: rows 0, 1, 2, 4 (not row 3 which is alt@y)
         assert_eq!(matches(&m), vec![0, 1, 2, 4]);
     }
@@ -186,47 +222,59 @@ mod tests {
     #[test]
     fn limited_columns_search_only_those() {
         // Column 0 only — should NOT match the email-only term.
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "@x".into(),
-            mode: SearchMode::Contains,
-            columns: vec![0],
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "@x".into(),
+                mode: SearchMode::Contains,
+                columns: vec![0],
+                case_sensitive: false,
+            },
+        );
         assert_eq!(m.count_ones(), 0);
     }
 
     #[test]
     fn starts_with_mode() {
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "ali".into(),
-            mode: SearchMode::StartsWith,
-            columns: vec![0],
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "ali".into(),
+                mode: SearchMode::StartsWith,
+                columns: vec![0],
+                case_sensitive: false,
+            },
+        );
         // "Alice" (0) and "alice" (3) start with "ali" case-insensitively
         assert_eq!(matches(&m), vec![0, 3]);
     }
 
     #[test]
     fn exact_mode() {
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "alice".into(),
-            mode: SearchMode::Exact,
-            columns: vec![0],
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "alice".into(),
+                mode: SearchMode::Exact,
+                columns: vec![0],
+                case_sensitive: false,
+            },
+        );
         // Both "Alice" and "alice" are exact matches case-insensitively.
         assert_eq!(matches(&m), vec![0, 3]);
     }
 
     #[test]
     fn empty_term_returns_no_matches() {
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "".into(),
-            mode: SearchMode::Contains,
-            columns: vec![],
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "".into(),
+                mode: SearchMode::Contains,
+                columns: vec![],
+                case_sensitive: false,
+            },
+        );
         assert_eq!(m.count_ones(), 0);
     }
 
@@ -234,12 +282,15 @@ mod tests {
     fn non_text_columns_are_silently_skipped() {
         // Column 2 is a number column — searching in it must not error,
         // and must produce zero matches (not panic).
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "30".into(),
-            mode: SearchMode::Contains,
-            columns: vec![2],
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "30".into(),
+                mode: SearchMode::Contains,
+                columns: vec![2],
+                case_sensitive: false,
+            },
+        );
         assert_eq!(m.count_ones(), 0);
     }
 
@@ -248,24 +299,30 @@ mod tests {
         let ds = Dataset::builder(3)
             .add_text(0, vec![Some("foo".into()), None, Some("bar".into())])
             .build();
-        let m = apply_search(&ds, &SearchSpec {
-            term: "o".into(),
-            mode: SearchMode::Contains,
-            columns: vec![],
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds,
+            &SearchSpec {
+                term: "o".into(),
+                mode: SearchMode::Contains,
+                columns: vec![],
+                case_sensitive: false,
+            },
+        );
         // null at row 1 must not match
         assert_eq!(matches(&m), vec![0]);
     }
 
     #[test]
     fn missing_column_id_is_skipped() {
-        let m = apply_search(&ds(), &SearchSpec {
-            term: "alice".into(),
-            mode: SearchMode::Contains,
-            columns: vec![99], // doesn't exist
-            case_sensitive: false,
-        });
+        let m = apply_search(
+            &ds(),
+            &SearchSpec {
+                term: "alice".into(),
+                mode: SearchMode::Contains,
+                columns: vec![99], // doesn't exist
+                case_sensitive: false,
+            },
+        );
         assert_eq!(m.count_ones(), 0);
     }
 }

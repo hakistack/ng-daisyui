@@ -16,11 +16,11 @@ export class DialogService {
   constructor() {
     this.router.events
       .pipe(
-        filter(event => event instanceof NavigationStart),
+        filter((event) => event instanceof NavigationStart),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => {
-        this.openDialogs.forEach(ref => ref.close());
+        this.openDialogs.forEach((ref) => ref.close());
         this.openDialogs.clear();
       });
   }
@@ -59,6 +59,9 @@ export class DialogService {
     const providers: StaticProvider[] = [{ provide: DIALOG_DATA, useValue: wrapperData }];
     const cfg = options ? Object.fromEntries(Object.entries(options).filter(([key]) => key !== 'data')) : {};
     const finalConfig: DialogConfig<unknown, unknown> = {
+      width: '95vw',
+      maxWidth: '32rem',
+      minWidth: '24rem',
       ...cfg,
       data: wrapperData,
       providers,

@@ -1,0 +1,4 @@
+# Build artifacts — produced by build.sh / build-rust.sh, never committed.
+build/
+build-rust/
+vendor/

@@ -18,21 +18,21 @@ use memchr::memmem::Finder;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Hit {
-    pub page:       u32,
+    pub page: u32,
     pub char_start: u32,
-    pub char_len:   u32,
+    pub char_len: u32,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct ResolvedHit {
     /// First text-item index the hit overlaps.
-    pub item_start:  u32,
+    pub item_start: u32,
     /// Last text-item index the hit overlaps (inclusive).
-    pub item_end:    u32,
+    pub item_end: u32,
     /// Char offset within `item_start` where the hit begins.
     pub intra_start: u32,
     /// Char offset within `item_end` (exclusive) where the hit ends.
-    pub intra_end:   u32,
+    pub intra_end: u32,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -40,15 +40,15 @@ pub struct SearchOpts {
     /// Match case exactly. Default `false` ⇒ case-insensitive.
     pub case_sensitive: bool,
     /// Match only when the hit is bounded by ASCII word breaks on both sides.
-    pub whole_word:     bool,
+    pub whole_word: bool,
     /// Cap on hits returned. `0` ⇒ unlimited.
-    pub max_hits:       u32,
+    pub max_hits: u32,
 }
 
 #[derive(Debug)]
 struct PageEntry {
-    raw:         Box<str>,
-    lower:       Box<str>,
+    raw: Box<str>,
+    lower: Box<str>,
     /// `item_starts[i]` is the char offset where text item `i` begins in
     /// `raw` / `lower` (they share offsets — folding preserves byte
     /// positions for the ASCII-mostly text PDFs typically have, and we
@@ -79,7 +79,10 @@ impl PdfIndex {
     /// Whether a page's text has been ingested yet. Useful for the JS layer
     /// to know whether searching this page produces stale results.
     pub fn has_page(&self, page: u32) -> bool {
-        self.pages.get(page as usize).map(|p| p.is_some()).unwrap_or(false)
+        self.pages
+            .get(page as usize)
+            .map(|p| p.is_some())
+            .unwrap_or(false)
     }
 
     /// Ingest a page's text items. The order of `text_items` matches the
@@ -106,8 +109,8 @@ impl PdfIndex {
         let lower = fold_lower(&raw);
 
         self.pages[page as usize] = Some(PageEntry {
-            raw:         raw.into_boxed_str(),
-            lower:       lower.into_boxed_str(),
+            raw: raw.into_boxed_str(),
+            lower: lower.into_boxed_str(),
             item_starts,
         });
     }
@@ -131,14 +134,22 @@ impl PdfIndex {
         let f: Finder<'_> = finder(&needle_owned);
 
         let mut hits: Vec<Hit> = Vec::new();
-        let cap = if opts.max_hits == 0 { u32::MAX } else { opts.max_hits };
+        let cap = if opts.max_hits == 0 {
+            u32::MAX
+        } else {
+            opts.max_hits
+        };
 
         for (page_idx, slot) in self.pages.iter().enumerate() {
             if hits.len() as u32 >= cap {
                 break;
             }
             let Some(entry) = slot else { continue };
-            let haystack = if opts.case_sensitive { &entry.raw } else { &entry.lower };
+            let haystack = if opts.case_sensitive {
+                &entry.raw
+            } else {
+                &entry.lower
+            };
 
             // Skip whole-page check: contains is a quick reject before we
             // pay for full iteration. Only useful when whole-word adds work.
@@ -158,9 +169,9 @@ impl PdfIndex {
                 }
 
                 hits.push(Hit {
-                    page:       page_idx as u32,
+                    page: page_idx as u32,
                     char_start: pos as u32,
-                    char_len:   needle_bytes.len() as u32,
+                    char_len: needle_bytes.len() as u32,
                 });
             }
         }
@@ -185,9 +196,9 @@ impl PdfIndex {
         }
 
         let item_start = item_index_for(entry.item_starts.as_slice(), char_start);
-        let item_end   = item_index_for(entry.item_starts.as_slice(), end - 1);
+        let item_end = item_index_for(entry.item_starts.as_slice(), end - 1);
         let intra_start = char_start - entry.item_starts[item_start as usize];
-        let intra_end   = end - entry.item_starts[item_end as usize];
+        let intra_end = end - entry.item_starts[item_end as usize];
 
         Some(ResolvedHit {
             item_start,
@@ -229,16 +240,16 @@ mod tests {
     fn idx() -> PdfIndex {
         let mut idx = PdfIndex::new(3);
         // Page 0
-        idx.add_page(0, vec![
-            "Hello ".into(),
-            "world. ".into(),
-            "This is page one.".into(),
-        ]);
+        idx.add_page(
+            0,
+            vec![
+                "Hello ".into(),
+                "world. ".into(),
+                "This is page one.".into(),
+            ],
+        );
         // Page 1
-        idx.add_page(1, vec![
-            "Wonderful WORLD ".into(),
-            "of search.".into(),
-        ]);
+        idx.add_page(1, vec!["Wonderful WORLD ".into(), "of search.".into()]);
         // Page 2 left as None (not ingested)
         idx
     }
@@ -264,7 +275,10 @@ mod tests {
         let i = idx();
         let h = i.search(
             "world",
-            SearchOpts { case_sensitive: true, ..Default::default() },
+            SearchOpts {
+                case_sensitive: true,
+                ..Default::default()
+            },
         );
         assert_eq!(h.len(), 1);
         assert_eq!(h[0].page, 0);
@@ -280,7 +294,10 @@ mod tests {
 
         let ww = i.search(
             "wonder",
-            SearchOpts { whole_word: true, ..Default::default() },
+            SearchOpts {
+                whole_word: true,
+                ..Default::default()
+            },
         );
         assert_eq!(ww.len(), 0);
     }
@@ -291,7 +308,10 @@ mod tests {
         let i = idx();
         let ww = i.search(
             "world",
-            SearchOpts { whole_word: true, ..Default::default() },
+            SearchOpts {
+                whole_word: true,
+                ..Default::default()
+            },
         );
         assert_eq!(ww.len(), 2);
     }
@@ -309,7 +329,13 @@ mod tests {
     fn max_hits_caps_output() {
         let mut i = PdfIndex::new(1);
         i.add_page(0, vec!["xxxxxxxxxx".into()]);
-        let h = i.search("x", SearchOpts { max_hits: 3, ..Default::default() });
+        let h = i.search(
+            "x",
+            SearchOpts {
+                max_hits: 3,
+                ..Default::default()
+            },
+        );
         assert_eq!(h.len(), 3);
     }
 
@@ -319,7 +345,9 @@ mod tests {
         let i = idx();
         let h = i.search("world", SearchOpts::default());
         let first = h[0];
-        let r = i.resolve_hit(first.page, first.char_start, first.char_len).unwrap();
+        let r = i
+            .resolve_hit(first.page, first.char_start, first.char_len)
+            .unwrap();
         assert_eq!(r.item_start, 1);
         assert_eq!(r.item_end, 1);
         // "world" starts at char 0 within item 1 (which starts with "world. ")
@@ -336,11 +364,13 @@ mod tests {
         // Search for "cdefg" — starts mid-item-0, ends mid-item-2
         let hits = i.search("cdefg", SearchOpts::default());
         assert_eq!(hits.len(), 1);
-        let r = i.resolve_hit(0, hits[0].char_start, hits[0].char_len).unwrap();
+        let r = i
+            .resolve_hit(0, hits[0].char_start, hits[0].char_len)
+            .unwrap();
         assert_eq!(r.item_start, 0); // contains 'c'
-        assert_eq!(r.item_end, 2);   // contains 'g'
+        assert_eq!(r.item_end, 2); // contains 'g'
         assert_eq!(r.intra_start, 2); // 'c' is at offset 2 in "abc"
-        assert_eq!(r.intra_end, 1);   // 'g' ends after offset 1 in "ghi"
+        assert_eq!(r.intra_end, 1); // 'g' ends after offset 1 in "ghi"
     }
 
     #[test]

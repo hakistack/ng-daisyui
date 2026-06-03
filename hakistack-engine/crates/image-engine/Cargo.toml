@@ -1,0 +1,38 @@
+[package]
+name        = "image-engine"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+authors.workspace    = true
+repository.workspace = true
+publish.workspace    = true
+description = "Pure-Rust image decoder for browser-unsupported formats (TIFF, AVIF, …). Wraps the `image` crate with a minimal feature set."
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+# Image format decoders.
+#
+# Feature selection rationale:
+#   - tiff/tif    — no browser supports this; headline format for Phase 2
+#   - bmp/gif/ico — pure-Rust, small, useful coverage
+#   - pnm/qoi     — pure-Rust, tiny, completeness
+#   - png         — needed as the **output** encoder (we always write PNG to JS)
+#
+# Skipped (browser-native, would bloat the bundle):  jpeg, webp
+# Skipped (heavy, niche):                            hdr, exr, dds, farbfeld
+# Deferred to Phase 2.1 (needs separate WASM build): avif (libavif/dav1d FFI),
+#                                                    heic  (libheif FFI)
+#
+# `default-features = false` drops `rayon` (no threads in WASM anyway) plus
+# the default format set we don't want — keeps the bundle lean.
+image = { version = "0.25", default-features = false, features = [
+    "tiff",
+    "bmp",
+    "gif",
+    "ico",
+    "pnm",
+    "qoi",
+    "png",
+] }

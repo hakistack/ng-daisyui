@@ -14,13 +14,11 @@ pub mod group;
 pub mod search;
 pub mod sort;
 
-pub use aggregate::{compute as compute_aggregate, AggFn, AggResult, RowSet};
-pub use group::{group_by, group_by_multi, Group, GroupKey};
+pub use aggregate::{AggFn, AggResult, RowSet, compute as compute_aggregate};
 pub use dataset::{
-    BoolColumn, Column, ColumnId, DateColumn, Dataset, DatasetBuilder, NumberColumn, TextColumn,
+    BoolColumn, Column, ColumnId, Dataset, DatasetBuilder, DateColumn, NumberColumn, TextColumn,
 };
-pub use filter::{apply as apply_filters, BoolOp, ColumnFilter, DateOp, NumberOp, TextOp};
-pub use search::{apply_search, SearchMode, SearchSpec};
-pub use sort::{
-    sort_from_mask, sort_indices, Direction, NullsPosition, SortSpec,
-};
+pub use filter::{BoolOp, ColumnFilter, DateOp, NumberOp, TextOp, apply as apply_filters};
+pub use group::{Group, GroupKey, group_by, group_by_multi};
+pub use search::{SearchMode, SearchSpec, apply_search};
+pub use sort::{Direction, NullsPosition, SortSpec, sort_from_mask, sort_indices};

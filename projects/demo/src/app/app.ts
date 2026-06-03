@@ -389,6 +389,17 @@ export class App implements OnInit {
             { id: 'config', label: 'Config Variants' },
           ],
         },
+        {
+          path: '/document-viewer',
+          label: 'Document Viewer',
+          icon: 'file-spreadsheet',
+          children: [
+            { id: 'basic', label: 'Pick a File' },
+            { id: 'spreadsheet', label: 'Spreadsheet (Rust+WASM)' },
+            { id: 'image', label: 'TIFF + Images (Rust+WASM)' },
+            { id: 'switching', label: 'Format Dispatch' },
+          ],
+        },
       ],
     },
     {

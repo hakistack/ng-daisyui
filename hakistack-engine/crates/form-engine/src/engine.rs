@@ -15,7 +15,7 @@
 
 use std::collections::BTreeSet;
 
-use crate::condition::{evaluate_all, FieldIdx, PredicateResolver};
+use crate::condition::{FieldIdx, PredicateResolver, evaluate_all};
 use crate::event::Event;
 use crate::schema::FormSchema;
 use crate::state::FormState;
@@ -51,7 +51,7 @@ impl FormEngine {
         me
     }
 
-    /// Read-only views ────────────────────────────────────────────────
+    // ── Read-only views ────────────────────────────────────────────────
 
     pub fn is_visible(&self, idx: FieldIdx) -> bool {
         if idx >= self.schema.field_count() {
@@ -78,13 +78,18 @@ impl FormEngine {
         self.state.values.get(idx)
     }
 
-    /// Mutating API ───────────────────────────────────────────────────
+    // ── Mutating API ───────────────────────────────────────────────────
 
     /// Write one value. No-ops (same value) return an empty list. Walks
     /// the dep index and re-derives status only for fields whose rules
     /// reference the changed field, plus every owner with a function
     /// predicate (those may read state we don't track).
-    pub fn set_value(&mut self, idx: FieldIdx, value: Value, resolver: &dyn PredicateResolver) -> Vec<Event> {
+    pub fn set_value(
+        &mut self,
+        idx: FieldIdx,
+        value: Value,
+        resolver: &dyn PredicateResolver,
+    ) -> Vec<Event> {
         if !self.state.values.set(idx, value) {
             return Vec::new();
         }
@@ -167,7 +172,12 @@ impl FormEngine {
 
     /// Re-derive every status axis for `owner` from its conditions.
     /// Emits transition events only for axes that actually flipped.
-    fn recompute_one(&mut self, owner: FieldIdx, resolver: &dyn PredicateResolver, out: &mut Vec<Event>) {
+    fn recompute_one(
+        &mut self,
+        owner: FieldIdx,
+        resolver: &dyn PredicateResolver,
+        out: &mut Vec<Event>,
+    ) {
         let owner_usize = owner as usize;
         let Some(field) = self.schema.fields.get(owner_usize) else {
             return;
@@ -175,7 +185,9 @@ impl FormEngine {
 
         // ─ Visibility: hideWhen wins over showWhen; both default to "no opinion".
         let prior_visible = self.state.visible.get(owner);
-        let next_visible = if !field.hide_when.is_empty() && evaluate_all(&field.hide_when, &self.state.values, resolver) {
+        let next_visible = if !field.hide_when.is_empty()
+            && evaluate_all(&field.hide_when, &self.state.values, resolver)
+        {
             false
         } else if !field.show_when.is_empty() {
             evaluate_all(&field.show_when, &self.state.values, resolver)
@@ -195,7 +207,8 @@ impl FormEngine {
         // ─ Required: baseline OR any requiredWhen.
         let prior_required = self.state.required_effective.get(owner);
         let next_required = field.required_baseline
-            || (!field.required_when.is_empty() && evaluate_all(&field.required_when, &self.state.values, resolver));
+            || (!field.required_when.is_empty()
+                && evaluate_all(&field.required_when, &self.state.values, resolver));
         if next_required != prior_required {
             if next_required {
                 self.state.required_effective.set(owner);
@@ -208,7 +221,8 @@ impl FormEngine {
         // ─ Disabled: baseline OR any disabledWhen.
         let prior_disabled = self.state.disabled_effective.get(owner);
         let next_disabled = field.disabled_baseline
-            || (!field.disabled_when.is_empty() && evaluate_all(&field.disabled_when, &self.state.values, resolver));
+            || (!field.disabled_when.is_empty()
+                && evaluate_all(&field.disabled_when, &self.state.values, resolver));
         if next_disabled != prior_disabled {
             if next_disabled {
                 self.state.disabled_effective.set(owner);
@@ -240,7 +254,11 @@ mod tests {
     }
 
     fn c(field_idx: FieldIdx, op: ConditionOp, value: Value) -> Condition {
-        Condition { field_idx, op, value }
+        Condition {
+            field_idx,
+            op,
+            value,
+        }
     }
 
     #[test]
@@ -269,12 +287,20 @@ mod tests {
         assert!(!engine.is_visible(1));
         let events = engine.set_value(0, Value::Number(1.0), &NoopResolver);
         assert!(engine.is_visible(1));
-        assert!(events.iter().any(|e| e.kind == EventKind::FieldShown && e.field == 1));
+        assert!(
+            events
+                .iter()
+                .any(|e| e.kind == EventKind::FieldShown && e.field == 1)
+        );
 
         // Move back to non-matching value ⇒ hidden
         let events = engine.set_value(0, Value::Number(2.0), &NoopResolver);
         assert!(!engine.is_visible(1));
-        assert!(events.iter().any(|e| e.kind == EventKind::FieldHidden && e.field == 1));
+        assert!(
+            events
+                .iter()
+                .any(|e| e.kind == EventKind::FieldHidden && e.field == 1)
+        );
     }
 
     #[test]
@@ -300,11 +326,19 @@ mod tests {
         assert!(!engine.is_required(1));
         let events = engine.set_value(0, Value::Bool(true), &NoopResolver);
         assert!(engine.is_required(1));
-        assert!(events.iter().any(|e| e.kind == EventKind::RequiredChanged && e.field == 1 && e.payload == 1));
+        assert!(
+            events
+                .iter()
+                .any(|e| e.kind == EventKind::RequiredChanged && e.field == 1 && e.payload == 1)
+        );
         // Flip back
         let events = engine.set_value(0, Value::Bool(false), &NoopResolver);
         assert!(!engine.is_required(1));
-        assert!(events.iter().any(|e| e.kind == EventKind::RequiredChanged && e.field == 1 && e.payload == 0));
+        assert!(
+            events
+                .iter()
+                .any(|e| e.kind == EventKind::RequiredChanged && e.field == 1 && e.payload == 0)
+        );
     }
 
     #[test]
@@ -356,7 +390,11 @@ mod tests {
         // Touch a (idx 0): only b and c should flip.
         let events = engine.set_value(0, Value::Number(1.0), &NoopResolver);
         let flipped: BTreeSet<FieldIdx> = events.iter().map(|e| e.field).collect();
-        assert_eq!(flipped, [1, 2].into_iter().collect::<BTreeSet<_>>(), "only b and c should be touched");
+        assert_eq!(
+            flipped,
+            [1, 2].into_iter().collect::<BTreeSet<_>>(),
+            "only b and c should be touched"
+        );
         assert!(engine.is_visible(1));
         assert!(engine.is_visible(2));
         assert!(!engine.is_visible(3), "d unaffected by changes to a");
@@ -409,7 +447,10 @@ mod tests {
         // Touch an unrelated field with a permissive resolver. The
         // function-owner set must still re-evaluate signal_bound.
         let _ = engine.set_value(2, Value::String(Box::from("anything")), &R { allow: true });
-        assert!(engine.is_visible(1), "function-owner should re-eval on any change");
+        assert!(
+            engine.is_visible(1),
+            "function-owner should re-eval on any change"
+        );
     }
 
     #[test]

@@ -1,0 +1,63 @@
+[package]
+name        = "libheif-bridge"
+version     = "0.1.0"
+edition     = "2024"
+license     = "MIT"
+authors     = ["Hakistack contributors"]
+publish     = false
+description = "Rust↔libheif bridge that compiles to wasm32-unknown-emscripten and links against pre-built libheif.a + libde265.a. Backs the HEIC decode path in <hk-document-viewer>."
+
+# Excluded from the parent Cargo workspace on purpose — see the
+# top-level hakistack-engine/Cargo.toml for the reason. Build with:
+#   npm run libheif:build
+
+# Bin crate (not cdylib) because the `cdylib` crate-type on
+# wasm32-unknown-emscripten emits `-sSIDE_MODULE=2`, which produces a
+# stripped-down "side module" without runtime/JS glue. That defeats
+# MODULARIZE / EXPORT_ES6 and leaves `_free` undefined. A bin crate
+# emits a main module with the full Emscripten runtime — same approach
+# Pyodide uses for Rust extensions on this target.
+#
+# The `fn main()` in src/main.rs is intentionally a no-op; we only use
+# the binary as a vehicle for the `extern "C"` exports.
+[[bin]]
+name = "libheif_bridge"
+path = "src/main.rs"
+
+[dependencies]
+# Pinned to libc for the C type aliases (c_char, c_int, etc.) — keeps
+# the FFI declarations matching the libheif headers exactly.
+libc = "0.2"
+
+[profile.release]
+# `opt-level = "z"` for smallest output. emcc 3.1.68 triggers its
+# post-link wasm-opt pass at this level — make sure your wasm-opt
+# supports `--enable-bulk-memory-opt` (binaryen 122+). The bundled
+# binaryen 119 in emsdk 3.1.68 is a version mismatch and will fail:
+#
+#     emcc: Unknown option '--enable-bulk-memory-opt'
+#
+# Fix: install newer binaryen and replace emsdk's bundled wasm-opt:
+#
+#     brew install binaryen
+#     mv ~/Downloads/emsdk/upstream/bin/wasm-opt ~/Downloads/emsdk/upstream/bin/wasm-opt.bundled
+#     ln -s /opt/homebrew/bin/wasm-opt ~/Downloads/emsdk/upstream/bin/wasm-opt
+#
+# If you can't upgrade binaryen, drop opt-level to `1` to skip the
+# wasm-opt pass — produces ~70% larger output but links cleanly.
+opt-level     = "z"
+lto           = "fat"
+codegen-units = 1
+strip         = true
+# Per the wasm32-unknown-emscripten docs: `panic=abort` avoids the
+# default `-fwasm-exceptions` for our own Rust code. We still get
+# wasm-exceptions trampolines from the pre-built std (linked in), which
+# is why libheif also has to be compiled with `-fwasm-exceptions` to
+# match (see build-rust.sh's WASMEH_FLAGS).
+panic = "abort"
+
+[profile.dev]
+# Same panic strategy for dev — keeps the ABI consistent so a dev/release
+# swap doesn't break link compatibility with the (potentially release-
+# built) static libs.
+panic = "abort"

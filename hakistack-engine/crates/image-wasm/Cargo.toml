@@ -1,0 +1,32 @@
+[package]
+name        = "image-wasm"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+authors.workspace    = true
+repository.workspace = true
+publish.workspace    = true
+description = "wasm-bindgen umbrella for image-engine. Separate bundle from document-wasm so apps that only view spreadsheets don't pay for the image decoder, and vice versa."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+image-engine = { workspace = true }
+
+wasm-bindgen = { workspace = true }
+js-sys       = { workspace = true }
+
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default      = ["debug-panics"]
+debug-panics = ["dep:console_error_panic_hook"]
+
+# Match the existing umbrella crates' wasm-opt config: `-O3` empirically
+# produces smaller output than `-Oz` for our codebase because aggressive
+# inlining enables better DCE than the size pass.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O3", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false

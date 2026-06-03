@@ -1,9 +1,22 @@
 #!/usr/bin/env node
 /**
- * Build hakistack-engine and place its output where the Angular library can lazy-load it.
+ * Build the hakistack engine WASM bundles and place their output where the
+ * Angular library can lazy-load them.
  *
- *   1. `wasm-pack build crates/engine-wasm --target web --out-dir ../../pkg`
- *   2. copy hakistack-engine/pkg → projects/hakistack/ng-daisyui/src/lib/wasm
+ * Two bundles, two output folders:
+ *
+ *   1. engine_wasm    — table / tree / fuzzy / form / pdf-search kernels.
+ *                       Loaded by `<hk-table>`, `<hk-tree>`, command-palette,
+ *                       select, dynamic-form, pdf-viewer.
+ *   2. document_wasm  — calamine-backed spreadsheet parsing (later: docx,
+ *                       pptx, doc/ppt/xls binary). Loaded only by
+ *                       `<hk-document-viewer>`.
+ *
+ * Each bundle is wasm-packed, copied to its own subfolder under
+ * `projects/hakistack/ng-daisyui/src/lib/wasm/`, and emitted alongside a
+ * `*_glue.ts` + `*_inline.ts` pair so ng-packagr bundles both into the FESM.
+ * The dynamic-import in each loader gives bundlers a tree-shaking seam, so
+ * apps that don't touch a particular bundle don't pay for its base64.
  *
  * Requires `wasm-pack` on PATH:  `cargo install wasm-pack`
  */
@@ -16,16 +29,6 @@ import { fileURLToPath } from 'node:url';
 const HERE   = dirname(fileURLToPath(import.meta.url));
 const ROOT   = resolve(HERE, '..');
 const ENGINE = resolve(ROOT, 'hakistack-engine');
-const PKG    = resolve(ENGINE, 'pkg');
-
-// Where the WASM bundle gets copied. Order matters: lib/wasm holds the
-// canonical copy that ships in the published package; demo/public are dev
-// conveniences so `ng serve` can find /engine_wasm.js.
-const COPY_TARGETS = [
-  resolve(ROOT, 'projects/hakistack/ng-daisyui/src/lib/wasm'),
-  resolve(ROOT, 'projects/demo/public'),
-  resolve(ROOT, 'projects/demo-v4/public'),
-];
 
 const profile = process.argv.includes('--dev') ? '--dev' : '--release';
 
@@ -40,70 +43,116 @@ try {
   process.exit(1);
 }
 
-// Release builds drop `console_error_panic_hook` (saves ~5 KB) — wasm-pack
-// understands `--no-default-features` to mean "skip the `default` feature
-// set," which for engine-wasm is just the `debug-panics` feature.
-const featureFlags = profile === '--release' ? '--no-default-features' : '';
+/**
+ * Build, copy, and inline a single wasm-pack crate.
+ *
+ * @param {Object} cfg
+ * @param {string} cfg.cratePath     — path under hakistack-engine/crates
+ * @param {string} cfg.pkgDirName    — output folder name under hakistack-engine/<this>
+ * @param {string} cfg.bundleName    — base file name (e.g. 'engine_wasm')
+ * @param {string} cfg.libSubdir     — destination folder under .../lib/wasm/
+ * @param {Array<string>} cfg.publicTargets — optional dev-only copies (.js + .wasm)
+ */
+function buildBundle({ cratePath, pkgDirName, bundleName, libSubdir, publicTargets = [] }) {
+  const PKG = resolve(ENGINE, pkgDirName);
 
-console.log(`▶ wasm-pack build  (${profile}${featureFlags ? ` ${featureFlags}` : ''})`);
-execSync(
-  `wasm-pack build crates/engine-wasm --target web --out-dir ../../pkg ${profile} ${featureFlags}`.trim(),
-  { stdio: 'inherit', cwd: ENGINE },
-);
+  // Release builds drop `console_error_panic_hook` (saves ~5 KB) — wasm-pack
+  // understands `--no-default-features` to mean "skip the `default` feature
+  // set," which for both umbrellas is just the `debug-panics` feature.
+  const featureFlags = profile === '--release' ? '--no-default-features' : '';
 
-// Lib copy: replace the whole folder so stale files don't linger.
-const libTarget = COPY_TARGETS[0];
-if (existsSync(libTarget)) rmSync(libTarget, { recursive: true, force: true });
-mkdirSync(libTarget, { recursive: true });
-cpSync(PKG, libTarget, { recursive: true });
-console.log(`✓ ${libTarget.replace(ROOT + '/', '')}`);
+  console.log(`▶ wasm-pack build ${cratePath}  (${profile}${featureFlags ? ` ${featureFlags}` : ''})`);
+  execSync(
+    `wasm-pack build ${cratePath} --target web --out-dir ../../${pkgDirName} ${profile} ${featureFlags}`.trim(),
+    { stdio: 'inherit', cwd: ENGINE },
+  );
 
-// ─── Inline-bundle generation ─────────────────────────────────────────────
-//
-// ng-packagr only bundles `.ts` files reachable from the entry point. To
-// ship the engine inside the FESM (so consumers don't have to copy WASM to
-// their public/ folder), we emit two siblings of the wasm-pack output:
-//
-//   - engine_wasm_glue.ts   = engine_wasm.js + `// @ts-nocheck` header
-//   - engine_wasm_inline.ts = `export const ENGINE_WASM_BASE64 = '...';`
-//
-// The shared loader (lib/components/table/engine/engine-loader.ts) dynamic-
-// imports both, decodes the base64 → Uint8Array, and passes it to the
-// glue's `default()` initializer — no fetch, no URL config.
-{
-  const glueJsPath = resolve(libTarget, 'engine_wasm.js');
-  const wasmPath = resolve(libTarget, 'engine_wasm_bg.wasm');
+  const libTarget = resolve(ROOT, 'projects/hakistack/ng-daisyui/src/lib/wasm', libSubdir);
+
+  // Lib copy: replace the whole folder so stale files don't linger.
+  if (existsSync(libTarget)) rmSync(libTarget, { recursive: true, force: true });
+  mkdirSync(libTarget, { recursive: true });
+  cpSync(PKG, libTarget, { recursive: true });
+  console.log(`✓ ${libTarget.replace(ROOT + '/', '')}`);
+
+  // ─── Inline-bundle generation ───────────────────────────────────────────
+  //
+  // ng-packagr only bundles `.ts` files reachable from the entry point. To
+  // ship the bundle inside the FESM (so consumers don't have to copy WASM
+  // to their public/ folder), we emit two siblings of the wasm-pack output:
+  //
+  //   - <bundleName>_glue.ts   = <bundleName>.js + `// @ts-nocheck` header
+  //   - <bundleName>_inline.ts = `export const <UPPER>_BASE64 = '...';`
+  //
+  // The matching loader dynamic-imports both, decodes the base64 →
+  // Uint8Array, and passes it to the glue's `default()` initializer.
+  const glueJsPath = resolve(libTarget, `${bundleName}.js`);
+  const wasmPath = resolve(libTarget, `${bundleName}_bg.wasm`);
 
   const glueJs = readFileSync(glueJsPath, 'utf8');
   // The wasm-pack glue is plain ES; TS strict mode chokes on the dynamically
   // typed `wasm` variable. `@ts-nocheck` keeps ng-packagr happy without
   // editing the generated file's logic.
-  const glueTs = `// @ts-nocheck\n/* eslint-disable */\n// Auto-generated by scripts/build-wasm.mjs from engine_wasm.js. Do not edit.\n${glueJs}`;
-  writeFileSync(resolve(libTarget, 'engine_wasm_glue.ts'), glueTs);
+  const glueTs = `// @ts-nocheck\n/* eslint-disable */\n// Auto-generated by scripts/build-wasm.mjs from ${bundleName}.js. Do not edit.\n${glueJs}`;
+  writeFileSync(resolve(libTarget, `${bundleName}_glue.ts`), glueTs);
 
   const wasmBytes = readFileSync(wasmPath);
   const wasmBase64 = wasmBytes.toString('base64');
+  const constName = `${bundleName.toUpperCase()}_BASE64`;
   const inlineTs =
     `// Auto-generated by scripts/build-wasm.mjs. Do not edit.\n` +
-    `// Base64 of engine_wasm_bg.wasm (${wasmBytes.length.toLocaleString()} raw bytes).\n` +
-    `export const ENGINE_WASM_BASE64 = ${JSON.stringify(wasmBase64)};\n`;
-  writeFileSync(resolve(libTarget, 'engine_wasm_inline.ts'), inlineTs);
+    `// Base64 of ${bundleName}_bg.wasm (${wasmBytes.length.toLocaleString()} raw bytes).\n` +
+    `export const ${constName} = ${JSON.stringify(wasmBase64)};\n`;
+  writeFileSync(resolve(libTarget, `${bundleName}_inline.ts`), inlineTs);
 
   const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
-  console.log(`✓ ${libTarget.replace(ROOT + '/', '')}/engine_wasm_glue.ts (${kb(glueTs.length)})`);
-  console.log(`✓ ${libTarget.replace(ROOT + '/', '')}/engine_wasm_inline.ts (base64 ${kb(wasmBase64.length)} from ${kb(wasmBytes.length)} raw)`);
+  console.log(`✓ ${libTarget.replace(ROOT + '/', '')}/${bundleName}_glue.ts (${kb(glueTs.length)})`);
+  console.log(`✓ ${libTarget.replace(ROOT + '/', '')}/${bundleName}_inline.ts (base64 ${kb(wasmBase64.length)} from ${kb(wasmBytes.length)} raw)`);
+
+  // Demo copies: only the .js + .wasm files. Don't overwrite an entire shared
+  // assets/ folder since other files live there.
+  const wasmFiles = [`${bundleName}.js`, `${bundleName}_bg.wasm`];
+  for (const target of publicTargets) {
+    if (!existsSync(target)) continue; // demo project absent in this checkout — skip silently
+    for (const f of wasmFiles) {
+      cpSync(resolve(PKG, f), resolve(target, f));
+    }
+    console.log(`✓ ${target.replace(ROOT + '/', '')} (${bundleName}.{js,wasm})`);
+  }
 }
 
-// Demo copies: only the .js + .wasm files. Don't overwrite an entire shared
-// assets/ folder since other files live there.
-const wasmFiles = ['engine_wasm.js', 'engine_wasm_bg.wasm'];
-for (const target of COPY_TARGETS.slice(1)) {
-  if (!existsSync(target)) {
-    // Demo project not present in this checkout — skip silently.
-    continue;
-  }
-  for (const f of wasmFiles) {
-    cpSync(resolve(PKG, f), resolve(target, f));
-  }
-  console.log(`✓ ${target.replace(ROOT + '/', '')} (engine_wasm.{js,wasm})`);
-}
+// ─── engine_wasm bundle (table / tree / fuzzy / form / pdf-search) ──────────
+buildBundle({
+  cratePath:     'crates/engine-wasm',
+  pkgDirName:    'pkg',
+  bundleName:    'engine_wasm',
+  libSubdir:     '.',
+  publicTargets: [
+    resolve(ROOT, 'projects/demo/public'),
+    resolve(ROOT, 'projects/demo-v4/public'),
+  ],
+});
+
+// ─── document_wasm bundle (calamine — spreadsheets) ─────────────────────────
+buildBundle({
+  cratePath:     'crates/document-wasm',
+  pkgDirName:    'pkg-document',
+  bundleName:    'document_wasm',
+  libSubdir:     'document',
+  publicTargets: [
+    resolve(ROOT, 'projects/demo/public'),
+    resolve(ROOT, 'projects/demo-v4/public'),
+  ],
+});
+
+// ─── image_wasm bundle (Rust `image` crate — TIFF + minor formats) ──────────
+buildBundle({
+  cratePath:     'crates/image-wasm',
+  pkgDirName:    'pkg-image',
+  bundleName:    'image_wasm',
+  libSubdir:     'image',
+  publicTargets: [
+    resolve(ROOT, 'projects/demo/public'),
+    resolve(ROOT, 'projects/demo-v4/public'),
+  ],
+});
