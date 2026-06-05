@@ -129,6 +129,11 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "prebundle": {
+              "exclude": ["pdfjs-dist"]
+            }
+          },
           "configurations": {
             "production": {
               "buildTarget": "demo:build:production"
@@ -214,6 +219,11 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "prebundle": {
+              "exclude": ["pdfjs-dist"]
+            }
+          },
           "configurations": {
             "production": {
               "buildTarget": "demo-v4:build:production"

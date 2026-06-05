@@ -1,6 +1,13 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 
-import { guessFilename, loadSourceAsBytes, resolveFormat } from './document-viewer.helpers';
+import {
+  getRenderableExtensions,
+  getSupportedExtensions,
+  guessFilename,
+  loadSourceAsBytes,
+  resolveFormat,
+} from './document-viewer.helpers';
+import { DocumentRendererRegistration } from './document-viewer.types';
 
 describe('document-viewer.helpers', () => {
   // ─── resolveFormat ────────────────────────────────────────────────────
@@ -23,11 +30,28 @@ describe('document-viewer.helpers', () => {
       }
     });
 
-    it('returns "document" for .docx / .doc / .rtf / .odt', () => {
-      for (const ext of ['docx', 'doc', 'rtf', 'odt']) {
-        const fmt = resolveFormat(`https://example.com/file.${ext}`);
-        expect(fmt.format, `for .${ext}`).toBe('document');
-      }
+    it('routes word-processing extensions to discrete format keys', () => {
+      // Each renderer has its own optional peer dep, so we use distinct
+      // format keys rather than a single 'document' catch-all. `.doc` /
+      // `.odt` map to 'doc-legacy' which has no renderer (yet).
+      expect(resolveFormat('/file.docx').format).toBe('docx');
+      expect(resolveFormat('/file.rtf').format).toBe('rtf');
+      expect(resolveFormat('/file.doc').format).toBe('doc-legacy');
+      expect(resolveFormat('/file.odt').format).toBe('doc-legacy');
+    });
+
+    it('routes html / htm to "html" (sandboxed iframe renderer)', () => {
+      // Previously html was bucketed with 'text' and rendered as
+      // preformatted source. Now it gets its own renderer that renders
+      // the page in a sandboxed iframe.
+      expect(resolveFormat('/page.html').format).toBe('html');
+      expect(resolveFormat('/page.htm').format).toBe('html');
+    });
+
+    it('routes eml/msg to discrete format keys', () => {
+      // Same rationale as word-processing — distinct parsers per format.
+      expect(resolveFormat('/inbox.eml').format).toBe('eml');
+      expect(resolveFormat('/outlook.msg').format).toBe('msg');
     });
 
     it('returns "image" for native browser formats', () => {
@@ -46,8 +70,11 @@ describe('document-viewer.helpers', () => {
       expect(resolveFormat('/img.avif').format).toBe('image');
     });
 
-    it('returns "text" for txt / md / csv / log / html / json', () => {
-      for (const ext of ['txt', 'md', 'csv', 'log', 'html', 'htm', 'json']) {
+    it('returns "text" for txt / md / csv / log / json', () => {
+      // html/htm intentionally excluded — they get the dedicated 'html'
+      // renderer that uses a sandboxed iframe instead of preformatted
+      // text. See the 'routes html / htm to "html"' test below.
+      for (const ext of ['txt', 'md', 'csv', 'log', 'json']) {
         const fmt = resolveFormat(`/file.${ext}`);
         expect(fmt.format, `for .${ext}`).toBe('text');
       }
@@ -180,6 +207,77 @@ describe('document-viewer.helpers', () => {
       globalThis.fetch = vi.fn().mockResolvedValue(new Response('', { status: 404 })) as typeof fetch;
 
       await expect(loadSourceAsBytes('https://example.com/missing')).rejects.toThrow(/HTTP 404/);
+    });
+  });
+
+  // ─── getSupportedExtensions / getRenderableExtensions ────────────────
+
+  describe('getSupportedExtensions', () => {
+    it('returns every known extension with a leading dot', () => {
+      const exts = getSupportedExtensions();
+      // Sanity: every entry starts with `.` and is non-empty after the dot.
+      expect(exts.every((e) => e.startsWith('.') && e.length > 1)).toBe(true);
+    });
+
+    it('includes representative extensions from every format family', () => {
+      const exts = new Set(getSupportedExtensions());
+      // PDF, spreadsheets, docx, rtf, html, eml, msg, epub, images, text.
+      expect(exts.has('.pdf')).toBe(true);
+      expect(exts.has('.xlsx')).toBe(true);
+      expect(exts.has('.docx')).toBe(true);
+      expect(exts.has('.rtf')).toBe(true);
+      expect(exts.has('.html')).toBe(true);
+      expect(exts.has('.eml')).toBe(true);
+      expect(exts.has('.msg')).toBe(true);
+      expect(exts.has('.epub')).toBe(true);
+      expect(exts.has('.png')).toBe(true);
+      expect(exts.has('.tiff')).toBe(true);
+      expect(exts.has('.txt')).toBe(true);
+    });
+
+    it('returns a stable sorted order', () => {
+      const a = getSupportedExtensions();
+      const b = getSupportedExtensions();
+      expect(a).toEqual(b);
+      const sorted = [...a].sort();
+      expect(a).toEqual(sorted);
+    });
+  });
+
+  describe('getRenderableExtensions', () => {
+    it('only includes extensions claimed by the passed registrations', () => {
+      // Faking a registration list that claims only 'pdf'. 'image' is
+      // included implicitly per the helper's "native browser capability"
+      // exception.
+      const regs: DocumentRendererRegistration[] = [{ formats: ['pdf'], component: class {} }];
+      const exts = new Set(getRenderableExtensions(regs));
+      expect(exts.has('.pdf')).toBe(true);
+      expect(exts.has('.png')).toBe(true); // 'image' implicit
+      expect(exts.has('.docx')).toBe(false);
+      expect(exts.has('.epub')).toBe(false);
+    });
+
+    it('always includes "image" extensions even when no renderer registered for it', () => {
+      // Empty registration list — only the implicit 'image' exception applies.
+      const exts = new Set(getRenderableExtensions([]));
+      expect(exts.has('.png')).toBe(true);
+      expect(exts.has('.jpg')).toBe(true);
+      // But not unsupported formats:
+      expect(exts.has('.pdf')).toBe(false);
+      expect(exts.has('.docx')).toBe(false);
+    });
+
+    it('excludes extensions for "doc-legacy" / "presentation" until a renderer claims them', () => {
+      // Even a permissive renderer-list that claims most formats won't
+      // include the legacy office keys unless they explicitly register.
+      const regs: DocumentRendererRegistration[] = [{ formats: ['pdf', 'docx', 'rtf', 'html', 'eml', 'msg', 'epub'], component: class {} }];
+      const exts = new Set(getRenderableExtensions(regs));
+      expect(exts.has('.doc')).toBe(false); // 'doc-legacy' unclaimed
+      expect(exts.has('.pptx')).toBe(false); // 'presentation' unclaimed
+      // But all the claimed formats are present:
+      expect(exts.has('.docx')).toBe(true);
+      expect(exts.has('.rtf')).toBe(true);
+      expect(exts.has('.epub')).toBe(true);
     });
   });
 });

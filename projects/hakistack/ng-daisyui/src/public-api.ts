@@ -292,11 +292,24 @@ export type {
 export { DocumentViewerComponent } from './lib/components/document-viewer/document-viewer.component';
 export { DocumentSpreadsheetRenderer } from './lib/components/document-viewer/renderers/spreadsheet.renderer';
 export { DocumentTextRenderer } from './lib/components/document-viewer/renderers/text.renderer';
+export { DocumentHtmlRenderer } from './lib/components/document-viewer/renderers/html.renderer';
+export { DocumentRtfRenderer } from './lib/components/document-viewer/renderers/rtf.renderer';
+export { DocumentDocxRenderer } from './lib/components/document-viewer/renderers/docx.renderer';
+export { DocumentEmlRenderer } from './lib/components/document-viewer/renderers/eml.renderer';
+export { DocumentMsgRenderer } from './lib/components/document-viewer/renderers/msg.renderer';
+export { DocumentEpubRenderer } from './lib/components/document-viewer/renderers/epub.renderer';
 export { DocumentImageRenderer } from './lib/components/document-viewer/renderers/image.renderer';
 export { DocumentImageSpecialRenderer } from './lib/components/document-viewer/renderers/image-special.renderer';
 export { DocumentPdfRenderer } from './lib/components/document-viewer/renderers/pdf.renderer';
 export { DocumentUnsupportedRenderer } from './lib/components/document-viewer/renderers/unsupported.renderer';
-export { resolveFormat, guessFilename, loadSourceAsBytes } from './lib/components/document-viewer/document-viewer.helpers';
+export type { ParsedEmail } from './lib/components/document-viewer/renderers/eml.renderer';
+export {
+  resolveFormat,
+  guessFilename,
+  loadSourceAsBytes,
+  getSupportedExtensions,
+  getRenderableExtensions,
+} from './lib/components/document-viewer/document-viewer.helpers';
 export type {
   DocumentSource,
   DocumentFormat,

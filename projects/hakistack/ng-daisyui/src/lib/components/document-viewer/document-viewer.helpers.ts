@@ -17,24 +17,30 @@ const EXT_TO_FORMAT: Readonly<Record<string, DocumentFormat>> = {
   ods: 'spreadsheet',
   csv: 'text', // text renderer (or special spreadsheet in future)
 
-  // Word-processing
-  docx: 'document',
-  doc: 'document',
-  rtf: 'document',
-  odt: 'document',
+  // Word-processing — each renderer has its own optional peer dep.
+  // `.doc` / `.odt` route to 'doc-legacy' for now (no renderer yet —
+  // future LibreOffice WASM build would handle them).
+  docx: 'docx',
+  rtf: 'rtf',
+  doc: 'doc-legacy',
+  odt: 'doc-legacy',
 
-  // Presentations
+  // Presentations — no renderer yet. Reserved for a future LibreOffice
+  // WASM or specialized .pptx renderer (pptxjs / custom Rust).
   pptx: 'presentation',
   ppt: 'presentation',
   odp: 'presentation',
 
-  // Plain / lightweight markup — rendered as text for Phase 1
+  // Plain / lightweight markup rendered as preformatted text.
   txt: 'text',
   log: 'text',
   md: 'text',
   json: 'text',
-  html: 'text',
-  htm: 'text',
+
+  // HTML gets its own renderer — sandboxed iframe + DOMPurify so we
+  // render markup as web content, not as escaped source code.
+  html: 'html',
+  htm: 'html',
 
   // Images — native browser <img> handles these.
   // `avif` is here because modern Chrome / Firefox / Safari decode it
@@ -60,9 +66,10 @@ const EXT_TO_FORMAT: Readonly<Record<string, DocumentFormat>> = {
   tiff: 'image-special',
   tif: 'image-special',
 
-  // Email
-  eml: 'email',
-  msg: 'email',
+  // Email — split into discrete keys so the registry can route to the
+  // right parser (postal-mime for RFC 822 vs msgreader for Outlook).
+  eml: 'eml',
+  msg: 'msg',
 
   // E-books
   epub: 'epub',
@@ -83,10 +90,11 @@ const MIME_TO_FORMAT: Readonly<Record<string, DocumentFormat>> = {
   'application/vnd.oasis.opendocument.spreadsheet': 'spreadsheet',
   'text/csv': 'text',
 
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'document',
-  'application/msword': 'document',
-  'application/rtf': 'document',
-  'application/vnd.oasis.opendocument.text': 'document',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/rtf': 'rtf',
+  'text/rtf': 'rtf',
+  'application/msword': 'doc-legacy',
+  'application/vnd.oasis.opendocument.text': 'doc-legacy',
 
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'presentation',
   'application/vnd.ms-powerpoint': 'presentation',
@@ -95,7 +103,8 @@ const MIME_TO_FORMAT: Readonly<Record<string, DocumentFormat>> = {
   'text/plain': 'text',
   'text/markdown': 'text',
   'application/json': 'text',
-  'text/html': 'text',
+  'text/html': 'html',
+  'application/xhtml+xml': 'html',
 
   'image/png': 'image',
   'image/jpeg': 'image',
@@ -110,8 +119,8 @@ const MIME_TO_FORMAT: Readonly<Record<string, DocumentFormat>> = {
   'image/heif': 'image-special',
   'image/tiff': 'image-special',
 
-  'message/rfc822': 'email',
-  'application/vnd.ms-outlook': 'email',
+  'message/rfc822': 'eml',
+  'application/vnd.ms-outlook': 'msg',
 
   'application/epub+zip': 'epub',
 };
@@ -221,4 +230,61 @@ export function guessFilename(source: DocumentSource): string | null {
     return slash === -1 ? stripped : stripped.slice(slash + 1) || null;
   }
   return null;
+}
+
+/**
+ * Every file extension the format detector knows about, returned with
+ * leading dots — ready to drop into a `<input type="file" accept="...">`
+ * value. Sorted alphabetically for stability across renders.
+ *
+ * This is the single source of truth: when `EXT_TO_FORMAT` grows, every
+ * consumer's accept list grows with it on next render. No hard-coding
+ * required.
+ *
+ * **Includes formats with no renderer yet** (e.g. `.doc` → `'doc-legacy'`,
+ * `.pptx` → `'presentation'`). Picking those triggers the unsupported
+ * fallback with a clean message rather than silently rejecting at the
+ * picker layer — which is usually the right UX, but if you want stricter
+ * gating use [`getRenderableExtensions`].
+ *
+ * @example
+ * // Class:
+ * readonly accept = getSupportedExtensions().join(',');
+ * // Template:
+ * <input type="file" [attr.accept]="accept" />
+ */
+export function getSupportedExtensions(): string[] {
+  return Object.keys(EXT_TO_FORMAT)
+    .sort()
+    .map((ext) => `.${ext}`);
+}
+
+/**
+ * Subset of [`getSupportedExtensions`] that filters out formats whose
+ * renderer hasn't been registered. Useful when the file picker should
+ * reject files the viewer can't actually display.
+ *
+ * Pass the renderer registration list (e.g. `BUILT_IN_RENDERERS` from
+ * the facade, plus any consumer overrides). Format keys with no
+ * matching registration are excluded.
+ *
+ * `'image'` is always included even without explicit registration —
+ * the native `<img>` path is a built-in browser capability.
+ *
+ * @example
+ * // Class:
+ * private readonly viewerConfig = signal<DocumentViewerConfig>({});
+ * readonly accept = computed(() =>
+ *   getRenderableExtensions(this.viewerConfig().renderers ?? []).join(','),
+ * );
+ */
+export function getRenderableExtensions(rendererRegistrations: readonly { readonly formats: readonly DocumentFormat[] }[]): string[] {
+  const claimed = new Set<DocumentFormat>(['image']);
+  for (const reg of rendererRegistrations) {
+    for (const fmt of reg.formats) claimed.add(fmt);
+  }
+  return Object.entries(EXT_TO_FORMAT)
+    .filter(([, fmt]) => claimed.has(fmt))
+    .map(([ext]) => `.${ext}`)
+    .sort();
 }

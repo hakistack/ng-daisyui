@@ -19,14 +19,18 @@ export type DocumentSource = string | Uint8Array | Blob;
  */
 export type DocumentFormat =
   | 'pdf'
-  | 'spreadsheet' // xlsx, xls, xlsb, ods
-  | 'document' // docx, doc, rtf, odt
-  | 'presentation' // pptx, ppt, odp
-  | 'text' // txt, md, csv, log, json, html, htm
-  | 'image' // png, jpg, gif, webp, bmp, svg, ico (native browser)
-  | 'image-special' // heic, tiff, tif (need a JS/WASM decoder)
-  | 'email' // eml, msg
-  | 'epub'
+  | 'spreadsheet' // xlsx, xls, xlsb, ods — calamine WASM
+  | 'docx' // docx (Word OOXML) — docx-preview peer dep
+  | 'rtf' // rtf — rtf-parser peer dep
+  | 'doc-legacy' // doc, odt — no renderer yet (LibreOffice WASM future)
+  | 'presentation' // pptx, ppt, odp — no renderer yet (LibreOffice WASM future)
+  | 'text' // txt, md, csv, log, json — preformatted text
+  | 'html' // html, htm — sandboxed iframe + DOMPurify
+  | 'image' // png, jpg, gif, webp, bmp, svg, ico, avif — native <img>
+  | 'image-special' // heic, heif, tiff, tif — WASM decoder
+  | 'eml' // eml — postal-mime peer dep
+  | 'msg' // msg — @kenjiuno/msgreader peer dep
+  | 'epub' // epub — foliate-js peer dep
   | 'unknown';
 
 /** Resolved format information for a given source. */

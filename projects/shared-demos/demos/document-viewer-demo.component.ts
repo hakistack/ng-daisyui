@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 
-import { DocumentSource, DocumentViewerComponent, resolveFormat } from '@hakistack/ng-daisyui';
+import { DocumentSource, DocumentViewerComponent, getSupportedExtensions, resolveFormat } from '@hakistack/ng-daisyui';
 
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
@@ -44,12 +44,7 @@ const SAMPLE_TEXT =
             description="Upload anything — PDF, xlsx, image, text. The viewer detects the format and dispatches to the matching renderer."
           >
             <div class="flex flex-wrap gap-2 items-center mb-3">
-              <input
-                type="file"
-                class="file-input file-input-sm file-input-bordered"
-                accept=".pdf,.xlsx,.xls,.xlsb,.ods,.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.avif,.heic,.heif,.tiff,.tif,.txt,.md,.csv,.log,.html,.json"
-                (change)="onFile($event)"
-              />
+              <input type="file" class="file-input file-input-sm file-input-bordered" [attr.accept]="acceptAll" (change)="onFile($event)" />
               <button class="btn btn-sm" (click)="clear()">Clear</button>
             </div>
 
@@ -77,7 +72,7 @@ const SAMPLE_TEXT =
               <input
                 type="file"
                 class="file-input file-input-sm file-input-bordered"
-                accept=".xlsx,.xls,.xlsb,.xlsm,.ods,.csv"
+                [attr.accept]="acceptSheet"
                 (change)="onFile($event)"
               />
               <button class="btn btn-sm" (click)="clear()">Clear</button>
@@ -105,7 +100,7 @@ const SAMPLE_TEXT =
               <input
                 type="file"
                 class="file-input file-input-sm file-input-bordered"
-                accept=".tiff,.tif,.heic,.heif,.bmp,.gif,.ico,.pnm,.pbm,.pgm,.ppm,.qoi"
+                [attr.accept]="acceptImage"
                 (change)="onFile($event)"
               />
               <button class="btn btn-sm" (click)="clear()">Clear</button>
@@ -154,6 +149,25 @@ export class DocumentViewerDemoComponent {
   readonly SAMPLE_PDF = SAMPLE_PDF;
   readonly SAMPLE_IMG = SAMPLE_IMG;
   readonly SAMPLE_TEXT = SAMPLE_TEXT;
+
+  /**
+   * Three accept lists demonstrate two patterns:
+   *
+   *   - `acceptAll`     — derived from the lib's `EXT_TO_FORMAT` map.
+   *                       Single source of truth. Adding a new format
+   *                       to helpers.ts auto-extends every consumer
+   *                       that uses this helper.
+   *   - `acceptSheet` / `acceptImage` — hardcoded per-tab narrowings.
+   *                       Intentionally curated to scope each tab to
+   *                       the formats it demonstrates.
+   *
+   * The native `<input accept>` attribute is a comma-separated string,
+   * not an array — `.join(',')` at the binding site keeps the source
+   * authoring shape (string[]) and runtime shape (string) honest.
+   */
+  readonly acceptAll = getSupportedExtensions().join(',');
+  readonly acceptSheet = ['.xlsx', '.xls', '.xlsb', '.xlsm', '.ods', '.csv'].join(',');
+  readonly acceptImage = ['.tiff', '.tif', '.heic', '.heif', '.bmp', '.gif', '.ico', '.pnm', '.pbm', '.pgm', '.ppm', '.qoi'].join(',');
 
   private readonly route = inject(ActivatedRoute);
   private readonly tabFromRoute = toSignal(this.route.paramMap.pipe(map((p) => (p.get('feature') ?? 'basic') as DocumentViewerTab)), {
