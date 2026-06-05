@@ -1,6 +1,6 @@
 {
   "name": "@hakistack/ng-daisyui",
-  "version": "0.2.9",
+  "version": "0.3.0",
   "description": "Angular UI components built with DaisyUI and Tailwind CSS",
   "author": "Hakistack",
   "license": "UNLICENSED",
@@ -70,13 +70,27 @@
     "tailwindcss": "^4.0.0"
   },
   "peerDependenciesMeta": {
-    "@angular/router": { "optional": true },
-    "@kenjiuno/msgreader": { "optional": true },
-    "docx-preview": { "optional": true },
-    "dompurify": { "optional": true },
-    "foliate-js": { "optional": true },
-    "heic2any": { "optional": true },
-    "postal-mime": { "optional": true }
+    "@angular/router": {
+      "optional": true
+    },
+    "@kenjiuno/msgreader": {
+      "optional": true
+    },
+    "docx-preview": {
+      "optional": true
+    },
+    "dompurify": {
+      "optional": true
+    },
+    "foliate-js": {
+      "optional": true
+    },
+    "heic2any": {
+      "optional": true
+    },
+    "postal-mime": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@lucide/angular": "^1.7.0",
