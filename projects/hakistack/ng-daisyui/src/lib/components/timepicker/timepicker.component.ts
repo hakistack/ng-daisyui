@@ -5,6 +5,7 @@ import {
   effect,
   ElementRef,
   forwardRef,
+  inject,
   input,
   OnDestroy,
   output,
@@ -12,13 +13,14 @@ import {
   viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ConnectedPosition, Overlay, OverlayModule } from '@angular/cdk/overlay';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, NG_VALIDATORS, ValidationErrors, Validator, AbstractControl } from '@angular/forms';
 import { generateUniqueId } from '../../utils/generate-uuid';
 import { ClockPosition, TimepickerEvent, TimepickerPosition, TimepickerView } from './timepicker.types';
 
 @Component({
   selector: 'hk-timepicker',
-  imports: [CommonModule],
+  imports: [CommonModule, OverlayModule],
   templateUrl: './timepicker.component.html',
   styleUrls: ['./timepicker.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,7 +44,10 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   private readonly minuteSegmentRef = viewChild<ElementRef<HTMLInputElement>>('minuteSegment');
   private readonly secondSegmentRef = viewChild<ElementRef<HTMLInputElement>>('secondSegment');
 
-  private boundDocumentClick = this.onClickOutside.bind(this);
+  private readonly overlay = inject(Overlay);
+  /** Keep the panel pinned to the field as the page scrolls. */
+  readonly scrollStrategy = this.overlay.scrollStrategies.reposition();
+
   private boundDocumentKeydown = this.onDocumentKeydown.bind(this);
   private documentListenersAttached = false;
   private isEditing = false;
@@ -353,25 +358,30 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
     return this.selectedSecond() !== null;
   });
 
-  readonly dropdownClasses = computed(() => {
-    const position = this.dropdownPosition();
-    const classes = ['bg-base-100 border-base-300 absolute z-50 mt-1 rounded-lg border p-4 shadow-lg'];
+  /** Visual classes for the panel. Positioning is owned by the CDK overlay. */
+  readonly dropdownClasses = 'bg-base-100 border-base-300 rounded-lg border p-4 shadow-lg';
 
-    switch (position) {
+  /**
+   * Connected-overlay positions derived from `dropdownPosition`: the requested
+   * corner is preferred, and CDK auto-flips to the opposite edge when there's
+   * no room, so the panel never opens off-screen.
+   */
+  readonly overlayPositions = computed<ConnectedPosition[]>(() => {
+    const below: ConnectedPosition = { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: 4 };
+    const above: ConnectedPosition = { originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom', offsetY: -4 };
+    const belowEnd: ConnectedPosition = { originX: 'end', originY: 'bottom', overlayX: 'end', overlayY: 'top', offsetY: 4 };
+    const aboveEnd: ConnectedPosition = { originX: 'end', originY: 'top', overlayX: 'end', overlayY: 'bottom', offsetY: -4 };
+
+    switch (this.dropdownPosition()) {
       case 'bottom-right':
-        classes.push('right-0');
-        break;
+        return [belowEnd, aboveEnd];
       case 'top-left':
-        classes.push('bottom-full left-0 mb-1 mt-0');
-        break;
+        return [above, below];
       case 'top-right':
-        classes.push('bottom-full right-0 mb-1 mt-0');
-        break;
-      default:
-        classes.push('left-0');
+        return [aboveEnd, belowEnd];
+      default: // 'bottom-left'
+        return [below, above];
     }
-
-    return classes.join(' ');
   });
 
   ngOnDestroy(): void {
@@ -1275,22 +1285,27 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
 
   private addDocumentListeners(): void {
     if (this.documentListenersAttached) return;
-    document.addEventListener('click', this.boundDocumentClick, { passive: true });
+    // Outside-click is handled by the overlay's (overlayOutsideClick); only the
+    // global keydown (Escape / segment navigation) is wired here.
     document.addEventListener('keydown', this.boundDocumentKeydown);
     this.documentListenersAttached = true;
   }
 
   private removeDocumentListeners(): void {
     if (!this.documentListenersAttached) return;
-    document.removeEventListener('click', this.boundDocumentClick);
     document.removeEventListener('keydown', this.boundDocumentKeydown);
     this.documentListenersAttached = false;
   }
 
-  onClickOutside(event: Event): void {
-    if (!this.tpRoot().nativeElement.contains(event.target as Node)) {
-      this.closePicker();
-    }
+  /**
+   * Close when a click lands outside both the field and the panel. CDK only
+   * fires this for clicks outside the overlay pane, and we ignore clicks on the
+   * field so `togglePicker()` owns that case (no close-then-reopen).
+   */
+  onOverlayOutsideClick(event: MouseEvent): void {
+    if (!this.isOpen()) return;
+    if (this.tpRoot().nativeElement.contains(event.target as Node)) return;
+    this.closePicker();
   }
 
   private onDocumentKeydown(event: KeyboardEvent): void {

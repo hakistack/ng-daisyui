@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "HakistackI18nNgAdd",
+  "title": "Hakistack i18n setup schematic",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "Target project in angular.json. Defaults to the first application project.",
+      "$default": { "$source": "projectName" }
+    },
+    "locales": {
+      "type": "string",
+      "description": "Comma-separated locale ids (the first is the source locale).",
+      "default": "en,es",
+      "x-prompt": "Which locales do you want to support? (comma-separated, e.g. en,es)"
+    },
+    "sourceLang": {
+      "type": "string",
+      "description": "Source/required locale. Defaults to the first entry in `locales`.",
+      "default": "en"
+    },
+    "skipInstall": {
+      "type": "boolean",
+      "default": false,
+      "description": "Skip running the package install after adding @jsverse/transloco."
+    },
+    "skipScripts": {
+      "type": "boolean",
+      "default": false,
+      "description": "Skip adding the i18n:* npm scripts and prestart/prebuild chain."
+    },
+    "skipSample": {
+      "type": "boolean",
+      "default": false,
+      "description": "Skip creating the sample *.i18n.ts module and locale .d.ts."
+    }
+  },
+  "required": []
+}

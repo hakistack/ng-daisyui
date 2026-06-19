@@ -8,11 +8,6 @@ import { SHOW_OVERVIEW } from '@shared-demos/config';
 const THEMES = [
   'kaizen',
   'kaizen-light',
-  'obsidian',
-  'obsidian-light',
-  'material',
-  'material-light',
-  'reportforge',
   'light',
   'dark',
   'cupcake',

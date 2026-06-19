@@ -8,7 +8,8 @@
     "start:v4": "cd projects/demo-v4 && ng serve",
     "demo:v4": "cd projects/demo-v4 && ng serve --open --port 58791",
     "install:v4": "cd projects/demo-v4 && npm install",
-    "build": "ng build @hakistack/ng-daisyui && node scripts/fix-exports.mjs && node scripts/build-schematics.mjs && node scripts/extract-fesm-classes.mjs",
+    "build": "node scripts/build-pdfium-worker.mjs && ng build @hakistack/ng-daisyui && node scripts/fix-exports.mjs && node scripts/build-schematics.mjs && node scripts/build-render-worker.mjs && node scripts/extract-fesm-classes.mjs",
+    "build:i18n": "ng build @hakistack/i18n && node scripts/build-i18n-cli.mjs && node scripts/build-i18n-schematics.mjs",
     "vercel:build": "ng build demo --base-href=/ && npm --prefix projects/demo-v4 run build -- --base-href=/v4/ && node scripts/assemble-vercel.mjs",
     "lint": "ng lint",
     "build:watch": "ng build @hakistack/ng-daisyui --watch",
@@ -19,6 +20,7 @@
     "e2e:ui": "playwright test --ui",
     "publish:local": "cd dist/hakistack/ng-daisyui && npm link",
     "publish:registry": "cp .npmrc dist/hakistack/ng-daisyui/.npmrc && cd dist/hakistack/ng-daisyui && npm publish",
+    "publish:i18n:registry": "cp .npmrc dist/hakistack/i18n/.npmrc && cd dist/hakistack/i18n && npm publish",
     "release:patch": "node scripts/release.mjs patch && npm run build",
     "release:minor": "node scripts/release.mjs minor && npm run build",
     "release:major": "node scripts/release.mjs major && npm run build",
@@ -89,12 +91,12 @@
     "heic2any": "^0.0.4",
     "libphonenumber-js": "^1.12.42",
     "motion": "^12.38.0",
-    "pdfjs-dist": "^4.10.38",
+    "pdfjs-dist": "^6.0.227",
     "postal-mime": "^2.7.4",
     "postcss": "^8.5.8",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@angular-eslint/builder": "^21.3.1",

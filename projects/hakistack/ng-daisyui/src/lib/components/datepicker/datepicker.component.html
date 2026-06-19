@@ -1,8 +1,9 @@
-<div class="relative" #dpRoot>
+<div class="relative" #dpRoot cdkOverlayOrigin #dpOrigin="cdkOverlayOrigin">
   <!-- Main Input -->
   <div class="flex items-center">
     <div class="relative flex-1">
       <input
+        #dpInput
         type="text"
         readonly
         [class]="inputClasses()"
@@ -36,15 +37,7 @@
             aria-label="Clear selection"
             tabindex="-1"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="text-base-content/60 hover:text-base-content h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <svg lucideX [size]="16" class="text-base-content/60 hover:text-base-content" aria-hidden="true"></svg>
           </button>
         }
 
@@ -56,20 +49,7 @@
           (click)="!isDisabled() && togglePicker()"
           aria-label="Open calendar"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="text-base-content/60 hover:text-base-content h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
+          <svg lucideCalendar [size]="20" class="text-base-content/60 hover:text-base-content" aria-hidden="true"></svg>
         </button>
       </div>
     </div>
@@ -90,11 +70,22 @@
     </div>
   }
 
-  <!-- Datepicker Dropdown -->
-  @if (isOpen()) {
+  <!-- Datepicker Dropdown — teleported to the CDK overlay layer so it floats
+       above the page, auto-flips between bottom/top, and follows the field on scroll. -->
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="dpOrigin"
+    [cdkConnectedOverlayOpen]="isOpen()"
+    [cdkConnectedOverlayPositions]="overlayPositions()"
+    [cdkConnectedOverlayScrollStrategy]="scrollStrategy"
+    [cdkConnectedOverlayPush]="true"
+    (overlayOutsideClick)="onOverlayOutsideClick($event)"
+    (detach)="closePicker()"
+  >
     <div
+      #dialogPanel
       [id]="inputId() + '-dialog'"
-      [class]="dropdownClasses()"
+      [class]="dropdownClasses"
       [style.min-width]="showTime() ? '26rem' : minWidth()"
       role="dialog"
       [attr.aria-label]="placeholder()"
@@ -105,7 +96,7 @@
         <div [class]="showTime() ? 'flex-1' : ''">
           <!-- Header Navigation -->
           <div class="datepicker-header mb-4 flex items-center justify-between">
-            <!-- Navigation arrows - only show for days view -->
+            <!-- Previous month - only shown in days view -->
             <button
               type="button"
               class="btn btn-ghost btn-sm btn-square"
@@ -114,16 +105,7 @@
               [class.invisible]="currentView() !== 'days'"
               [attr.aria-label]="resolvedLabels().previousMonthAriaLabel"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
+              <svg lucideChevronLeft [size]="16" aria-hidden="true"></svg>
             </button>
 
             <!-- Progressive Navigation Breadcrumb -->
@@ -168,7 +150,7 @@
               }
             </div>
 
-            <!-- Navigation arrows - only show for days view -->
+            <!-- Next month - only shown in days view -->
             <button
               type="button"
               class="btn btn-ghost btn-sm btn-square"
@@ -177,16 +159,7 @@
               [class.invisible]="currentView() !== 'days'"
               [attr.aria-label]="resolvedLabels().nextMonthAriaLabel"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
+              <svg lucideChevronRight [size]="16" aria-hidden="true"></svg>
             </button>
           </div>
 
@@ -194,11 +167,14 @@
           <div class="datepicker-content">
             @switch (currentView()) {
               @case ('days') {
-                <div class="calendar-grid">
+                <div class="calendar-grid" role="grid" [attr.aria-label]="monthLabel() + ' ' + yearLabel()">
                   <!-- Weekday Headers -->
-                  <div class="mb-2 grid grid-cols-7 gap-1">
+                  <div class="mb-2 grid grid-cols-7 gap-1" role="row">
                     @for (weekday of weekdays(); track weekday.id) {
-                      <div class="text-base-content/70 flex items-center justify-center p-2 text-center text-xs font-medium">
+                      <div
+                        class="text-base-content/70 flex items-center justify-center p-2 text-center text-xs font-medium"
+                        role="columnheader"
+                      >
                         {{ weekday.label }}
                       </div>
                     }
@@ -207,19 +183,25 @@
                   <!-- Calendar Days -->
                   <div class="space-y-1">
                     @for (week of calendarWeeks(); track week.id) {
-                      <div class="grid grid-cols-7 gap-1">
+                      <div class="grid grid-cols-7 gap-1" role="row">
                         @for (cell of week.cells; track cell.id) {
-                          <div class="flex items-center justify-center">
+                          <div
+                            class="flex items-center justify-center"
+                            role="gridcell"
+                            [attr.aria-selected]="cell.isSelected || cell.isInRange"
+                          >
                             <button
                               type="button"
-                              class="flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors"
+                              class="dp-day flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors"
                               [class]="getDayClasses(cell)"
                               [disabled]="cell.isDisabled"
+                              [attr.data-ts]="cell.date?.getTime()"
+                              [tabindex]="cell.isFocused ? 0 : -1"
                               (click)="cell.date && selectDate(cell.date)"
                               (mouseenter)="onDateHover(cell.date)"
                               (mouseleave)="onDateHover(null)"
-                              [attr.aria-label]="cell.date?.toLocaleDateString(locale())"
-                              [attr.aria-selected]="cell.isSelected || cell.isInRange"
+                              [attr.aria-label]="dayAriaLabel(cell.date)"
+                              [attr.aria-current]="cell.isToday ? 'date' : null"
                             >
                               {{ cell.date?.getDate() }}
                             </button>
@@ -241,9 +223,7 @@
                       (click)="goToDayView()"
                       [attr.aria-label]="resolvedLabels().backToCalendarAriaLabel"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                      </svg>
+                      <svg lucideChevronLeft [size]="16" class="mr-1" aria-hidden="true"></svg>
                       {{ resolvedLabels().backToCalendar }}
                     </button>
                   </div>
@@ -253,10 +233,7 @@
                       <button
                         type="button"
                         class="btn btn-sm transition-all duration-200"
-                        [class]="{
-                          'btn-primary': month.isSelected,
-                          'btn-ghost hover:bg-primary hover:text-primary-content hover:border-primary': !month.isSelected,
-                        }"
+                        [class]="gridButtonClasses(month.isSelected)"
                         (click)="selectMonth(month.index)"
                         [attr.aria-pressed]="month.isSelected"
                       >
@@ -277,9 +254,7 @@
                       (click)="goToMonthView()"
                       [attr.aria-label]="resolvedLabels().backToMonthsAriaLabel"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                      </svg>
+                      <svg lucideChevronLeft [size]="16" class="mr-1" aria-hidden="true"></svg>
                       {{ resolvedLabels().backToMonths }}
                     </button>
                   </div>
@@ -292,9 +267,7 @@
                       (click)="navigateYears('prev')"
                       [attr.aria-label]="resolvedLabels().previousYearsAriaLabel"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                      </svg>
+                      <svg lucideChevronLeft [size]="16" aria-hidden="true"></svg>
                     </button>
 
                     <span class="text-sm font-medium">{{ yearsRange() }}</span>
@@ -305,9 +278,7 @@
                       (click)="navigateYears('next')"
                       [attr.aria-label]="resolvedLabels().nextYearsAriaLabel"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                      </svg>
+                      <svg lucideChevronRight [size]="16" aria-hidden="true"></svg>
                     </button>
                   </div>
 
@@ -317,10 +288,7 @@
                       <button
                         type="button"
                         class="btn btn-sm transition-all duration-200"
-                        [class]="{
-                          'btn-primary': year.isSelected,
-                          'btn-ghost hover:bg-primary hover:text-primary-content hover:border-primary': !year.isSelected,
-                        }"
+                        [class]="gridButtonClasses(year.isSelected)"
                         (click)="selectYear(year.year)"
                         [attr.aria-pressed]="year.isSelected"
                       >
@@ -430,5 +398,5 @@
         </div>
       </div>
     </div>
-  }
+  </ng-template>
 </div>

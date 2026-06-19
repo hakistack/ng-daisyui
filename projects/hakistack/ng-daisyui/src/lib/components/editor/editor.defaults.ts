@@ -16,6 +16,9 @@ import {
   LucideHeading2,
   LucideHeading3,
   LucideSquareCode,
+  LucideSave,
+  LucideDownload,
+  LucidePrinter,
   type LucideIcon,
 } from '@lucide/angular';
 import type { EditorToolbarItem, EditorToolbarPreset } from './editor.types';
@@ -39,6 +42,9 @@ export const TOOLBAR_ICONS: Record<Exclude<EditorToolbarItem, 'divider'>, Lucide
   horizontalRule: LucideMinus,
   undo: LucideUndo2,
   redo: LucideRedo2,
+  save: LucideSave,
+  export: LucideDownload,
+  print: LucidePrinter,
 };
 
 /** ARIA label per item. Exposed so consumers can localize. */
@@ -60,10 +66,16 @@ export const TOOLBAR_LABELS: Record<Exclude<EditorToolbarItem, 'divider'>, strin
   horizontalRule: 'Divider',
   undo: 'Undo',
   redo: 'Redo',
+  save: 'Save',
+  export: 'Export',
+  print: 'Print',
 };
 
 export const TOOLBAR_PRESETS: Record<EditorToolbarPreset, readonly EditorToolbarItem[]> = {
   none: [],
+  // Document-editor shell chrome: history + persistence, no text formatting.
+  // Format-capable editors (DOCX/TipTap) layer their own items on top.
+  document: ['undo', 'redo', 'divider', 'save', 'export'],
   minimal: ['bold', 'italic', 'underline', 'divider', 'link'],
   basic: ['bold', 'italic', 'underline', 'strike', 'divider', 'bulletList', 'orderedList', 'divider', 'link', 'divider', 'undo', 'redo'],
   full: [
@@ -109,4 +121,7 @@ export const TOOLBAR_ICON_COMPONENTS = [
   LucideHeading2,
   LucideHeading3,
   LucideSquareCode,
+  LucideSave,
+  LucideDownload,
+  LucidePrinter,
 ] as const;

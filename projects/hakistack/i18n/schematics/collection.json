@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "ng-add": {
+      "description": "Set up @hakistack/i18n: install transloco, write i18n.config.json, add codegen scripts, scaffold a sample module.",
+      "factory": "./ng-add/index.cjs#ngAdd",
+      "schema": "./ng-add/schema.json"
+    },
+    "setup": {
+      "description": "Same as ng-add — run anytime on an installed library (ng generate @hakistack/i18n:setup).",
+      "factory": "./ng-add/index.cjs#ngAdd",
+      "schema": "./ng-add/schema.json"
+    }
+  }
+}

@@ -45,6 +45,10 @@ import { HK_THEME } from '../../theme/theme.config';
 import { HkPdfToolbarContext, HkPdfToolbarDirective } from './pdf-viewer.directives';
 import { DEFAULT_PDF_VIEWER_LABELS, HK_PDF_LABELS, ResolvedPdfViewerLabels } from './pdf-viewer.labels';
 import { HkPdfService } from './pdf.service';
+import { PdfRenderPool, isRenderPoolSupported } from './pdf-render-pool';
+import { PdfDocHandle, PdfEngine, PdfOutlineNode, PdfTextSegment } from './engine/pdf-engine.types';
+import { PdfiumEngine } from './engine/pdfium-engine';
+import { isPdfiumEngineAvailable } from './engine/pdfium-worker.loader';
 import { PdfSearchHandle, PdfSearchService } from '../../services';
 import {
   PdfAnnotationEntry,
@@ -253,7 +257,9 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     if (this.config().layout === 'preview') {
       return 'flex flex-col bg-base-100';
     }
-    return `card ${this.theme.classes.cardBorder} bg-base-100 overflow-hidden flex flex-col`;
+    // `h-full` lets the card fill the host (which fills a sized parent), so the
+    // viewport gets the full height instead of collapsing to a short box.
+    return `card ${this.theme.classes.cardBorder} bg-base-100 overflow-hidden flex flex-col h-full`;
   });
 
   /** Active layout — short alias for the template. */
@@ -370,7 +376,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * `applyBufferDiff` cancel renders for pages that scrolled out before they
    * finish, freeing the PDF.js worker for what the user is now looking at.
    */
-  private renderTasksByPage = new Map<number, { cancel: () => void; promise: Promise<void> }>();
+  private renderTasksByPage = new Map<number, { cancel: () => void; promise: Promise<unknown> }>();
   /** In-flight text-layer instances, keyed the same way for the same reason. */
   private textLayerTasksByPage = new Map<number, { cancel?: () => void }>();
   /**
@@ -439,6 +445,26 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private unbindController: (() => void) | null = null;
   /** Bumps when a re-render is requested so in-flight callers can detect they were superseded. */
   private renderEpoch = 0;
+
+  /** Off-main-thread raster pool; null = render on the main thread (default). */
+  private renderPool: PdfRenderPool | null = null;
+  /**
+   * PDFium engine (Rust→WASM, in a worker) — the off-thread rasterizer that
+   * replaces pd​f.js. Long-lived: created lazily on first document, reused
+   * across loads (one document open at a time, tracked by {@link pdfiumDoc}).
+   * `null` until the PDFium worker is built + the browser supports it; until
+   * then pages render via pd​f.js (transitional — that path is removed at M3.5
+   * once PDFium is verified). See PDFIUM_ENGINE.md.
+   */
+  private pdfiumEngine: PdfEngine | null = null;
+  /** Handle to the document currently open in {@link pdfiumEngine}; `null` if none. */
+  private pdfiumDoc: PdfDocHandle | null = null;
+  /**
+   * Per-page PDFium text segments (reading order), cached for the document's
+   * lifetime. Drives both the text layer and the search index when the engine
+   * is active. Cleared on document swap.
+   */
+  private pdfiumTextCache = new Map<number, PdfTextSegment[]>();
   /** Internal API on the currently bound config — cached so we don't read the signal in callbacks. */
   private internal: PdfViewerInternalApi | null = null;
   /**
@@ -529,11 +555,20 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     // sidebar's thumbnail panel so we only paint thumbnails for items that
     // actually scroll into view. Critical for big docs: a 100-page PDF
     // would otherwise queue 100 PDF.js render tasks the moment the sidebar
-    // opens, blocking the worker for the main canvas. We wait for the main
-    // stack's first paint (`firstRenderComplete`) so thumbnails never
-    // compete with the user's primary view.
+    // opens, blocking the worker for the main canvas.
+    //
+    // Deps must be reactive signals: `pageNumbers()` (not the plain `pages`
+    // array, which doesn't track) so the observer (re)installs as soon as the
+    // doc's pages exist and the thumbnails tab is shown. Thumbnails still paint
+    // lazily + sequentially, so they don't starve the main view.
     effect(() => {
-      if (!this.thumbnailsTabActive() || !this.firstRenderComplete() || this.pages.length === 0) {
+      // The thumbnail grid stays mounted (just `[hidden]` when another sidebar
+      // tab is active), so its rendered canvases persist — switching tabs is
+      // instant, no re-raster. We install once pages + panel exist; while the
+      // panel is hidden it has no layout, so the observer fires no intersections
+      // and nothing renders until the user actually views the thumbnails. The
+      // rendered set is reset only on document swap (see `loadDocument`).
+      if (this.pageNumbers().length === 0) {
         this.thumbnailObserver?.disconnect();
         this.thumbnailObserver = null;
         return;
@@ -755,6 +790,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     this.annotations.set(null);
     // Drop search + virtualization state for the previous doc.
     this.pageTextIndex.clear();
+    this.pdfiumTextCache.clear();
     this.searchHits = [];
     this.searchHitsByPage.clear();
     this.textLayerAllSpans.clear();
@@ -834,6 +870,71 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         pages.push({ pageNumber: i, proxy: p, baseWidth: vp.width, baseHeight: vp.height });
       }
       this.pages = pages;
+
+      // PDFium engine (off-thread, correct-text raster — the pd​f.js replacement).
+      // Reused across documents (the previous doc was released in
+      // `destroyDocument` during the reset above). When the engine is active it
+      // owns rasterization (`renderPageOnto`'s first branch) and we skip the
+      // legacy pd​f.js render pool below. If `open` fails we drop back to the
+      // pd​f.js raster so the viewer never blanks.
+      const engine = this.ensurePdfiumEngine();
+      if (engine) {
+        try {
+          const bytes = await doc.getData();
+          const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+          const handle = await engine.open(buf, { password: this.config().password });
+          // Doc-swap guard: a newer load may have started while we awaited.
+          if (this.pdfDoc === doc) {
+            this.pdfiumDoc = handle;
+          } else {
+            engine.dispose(handle);
+          }
+        } catch {
+          // Engine couldn't open this document — fall through to pd​f.js raster.
+          this.pdfiumDoc = null;
+        }
+      }
+
+      // Off-main-thread raster pool (opt-in: renderPoolSize > 0 + renderWorkerSrc
+      // + OffscreenCanvas support). Each worker loads its own copy of the bytes
+      // we already have. If the worker fails to load, drop the pool and
+      // re-render on the main thread so pages never end up blank.
+      this.renderPool?.dispose();
+      this.renderPool = null;
+      const poolDefaults = this.pdfService.getDefaults();
+      // Off by default. pdf.js rasterizes text using the main-thread document's
+      // font machinery; inside a Web Worker (OffscreenCanvas) that path doesn't
+      // work, so glyphs render as .notdef boxes. The pool stays available
+      // (opt-in via renderPoolSize > 0) for experimentation, but the default is
+      // the correct main-thread render. True off-thread raster needs a
+      // self-rasterizing engine (e.g. pdfium/Rust) — see RUST_ENGINE.md.
+      const poolSize = this.config().renderPoolSize ?? poolDefaults.renderPoolSize ?? 0;
+      const workerUrl = this.config().renderWorkerSrc ?? poolDefaults.renderWorkerSrc;
+      if (this.pdfiumDoc === null && poolSize > 0 && workerUrl && isRenderPoolSupported()) {
+        try {
+          const bytes = await doc.getData();
+          const pool = new PdfRenderPool();
+          pool
+            .init({
+              bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+              workerUrl,
+              pdfWorkerSrc: (pdfjs as unknown as { GlobalWorkerOptions: { workerSrc?: string } }).GlobalWorkerOptions.workerSrc,
+              cMapUrl: poolDefaults.cMapUrl,
+              cMapPacked: poolDefaults.cMapPacked ?? true,
+              standardFontDataUrl: poolDefaults.standardFontDataUrl,
+              size: poolSize,
+            })
+            .catch(() => {
+              if (this.renderPool === pool) {
+                this.renderPool = null;
+                void this.renderAll();
+              }
+            });
+          this.renderPool = pool;
+        } catch {
+          this.renderPool = null;
+        }
+      }
 
       // Resolve the initial page before mounting wrappers. The `pageNumbers`
       // signal triggers the @for to mount one wrapper per page; the effect
@@ -935,6 +1036,33 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     this.config().onError?.(error);
   }
 
+  /**
+   * Lazily create the PDFium engine, reusing the existing instance. Returns
+   * `null` (and stays on the pd​f.js raster path) when the engine isn't
+   * available here — server, missing browser primitives, or the PDFium worker
+   * not yet built. Construction failure is swallowed for the same reason.
+   */
+  private ensurePdfiumEngine(): PdfEngine | null {
+    if (this.pdfiumEngine) return this.pdfiumEngine;
+    if (!isPdfiumEngineAvailable()) return null;
+    try {
+      this.pdfiumEngine = new PdfiumEngine();
+    } catch {
+      this.pdfiumEngine = null;
+    }
+    return this.pdfiumEngine;
+  }
+
+  /** Release the open PDFium document (if any) and tear down the engine/worker. */
+  private destroyPdfiumEngine(): void {
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      this.pdfiumEngine.dispose(this.pdfiumDoc);
+    }
+    this.pdfiumDoc = null;
+    this.pdfiumEngine?.destroy();
+    this.pdfiumEngine = null;
+  }
+
   private async destroyDocument(): Promise<void> {
     if (this.loadingTask?.destroy) {
       try {
@@ -955,6 +1083,11 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     this.pdfDoc = null;
     this.pages = [];
     this.pageNumbers.set([]);
+    // Release the PDFium document but keep the engine/worker for the next load.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      this.pdfiumEngine.dispose(this.pdfiumDoc);
+    }
+    this.pdfiumDoc = null;
   }
 
   // ── Rendering ───────────────────────────────────────────────────────────
@@ -1165,10 +1298,35 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     if (annotLayer) annotLayer.replaceChildren();
   }
 
+  /** True while a search query is active (the highlighter needs text spans). */
+  private isSearchActive(): boolean {
+    return !!this.internal?.state().searchQuery;
+  }
+
+  /**
+   * Run non-critical render work (text / annotation layers) in idle time so it
+   * doesn't block canvas rasterization during scroll. Epoch-guarded: stale work
+   * (doc swapped, zoom changed, page evicted) is dropped. Falls back to a
+   * macrotask where `requestIdleCallback` isn't available (Safari).
+   */
+  private scheduleIdle(fn: () => void, epoch: number): void {
+    const run = () => {
+      if (epoch === this.renderEpoch) fn();
+    };
+    const ric = (globalThis as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    if (ric) ric(run, { timeout: 500 });
+    else setTimeout(run, 0);
+  }
+
   private async renderPageOnto(page: PageEntry, canvas: HTMLCanvasElement, scale: number, dpr: number, epoch: number): Promise<void> {
     const proxy = page.proxy as {
       getViewport: (o: { scale: number }) => { width: number; height: number };
-      render: (o: { canvasContext: CanvasRenderingContext2D; viewport: unknown; transform?: number[] }) => {
+      render: (o: {
+        canvas?: HTMLCanvasElement | null;
+        canvasContext?: CanvasRenderingContext2D;
+        viewport: unknown;
+        transform?: number[];
+      }) => {
         cancel: () => void;
         promise: Promise<void>;
       };
@@ -1184,18 +1342,93 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     canvas.style.width = `${viewport.width}px`;
     canvas.style.height = `${viewport.height}px`;
 
-    const transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined;
-    const task = proxy.render({ canvasContext: ctx, viewport, transform });
-    this.renderTasksByPage.set(page.pageNumber, task);
-
-    // Kick off the text + annotation layers in parallel with canvas paint —
-    // they don't need to block, and become available the moment they resolve.
+    // Text + annotation layers are deferred off the critical raster path so
+    // they don't compete with canvas painting during scroll (the main source
+    // of jank). They're built in idle time instead — selection, links, and
+    // form widgets become live a beat after the page paints. The one exception
+    // is an active search: the highlighter reads rendered text spans, so the
+    // text layer must be ready promptly when there's a query.
     const wrapper = canvas.parentElement;
     const textLayerDiv = wrapper?.querySelector<HTMLElement>('.hk-pdf-text-layer') ?? null;
-    if (textLayerDiv) void this.renderTextLayer(proxy, textLayerDiv, viewport, epoch, page.pageNumber);
     const annotLayerDiv = wrapper?.querySelector<HTMLElement>('.hk-pdf-annotation-layer') ?? null;
-    if (annotLayerDiv) void this.renderAnnotationLayer(proxy, annotLayerDiv, viewport, epoch);
+    const renderText = () => {
+      if (textLayerDiv) void this.renderTextLayer(proxy, textLayerDiv, viewport, epoch, page.pageNumber);
+    };
+    if (this.isSearchActive()) {
+      renderText();
+    } else {
+      this.scheduleIdle(renderText, epoch);
+    }
+    if (annotLayerDiv)
+      this.scheduleIdle(() => void this.renderAnnotationLayer(proxy, annotLayerDiv, viewport, epoch, page.pageNumber), epoch);
 
+    // Clear by page-number, not handle ref — a peer render-pass on the same
+    // page would have overwritten the entry, so deleting by ref could strip a
+    // newer pass's registration. Page-number scoping handles that because peer
+    // passes are serialized by `inFlightPages`.
+    const cleanup = (handle: { cancel: () => void; promise: Promise<unknown> }) => {
+      if (this.renderTasksByPage.get(page.pageNumber) === handle) {
+        this.renderTasksByPage.delete(page.pageNumber);
+      }
+      const pending = this.pendingCancellations.get(page.pageNumber);
+      if (pending !== undefined) {
+        clearTimeout(pending);
+        this.pendingCancellations.delete(page.pageNumber);
+      }
+    };
+
+    // PDFium engine raster (preferred): the worker rasterizes the page off the
+    // main thread — with correct text, which pd​f.js could not do off-thread —
+    // and returns an ImageBitmap we blit in a sub-millisecond `drawImage`.
+    // PDFium pages are 0-based; our `pageNumber` is 1-based.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      const task = this.pdfiumEngine.renderPage(this.pdfiumDoc, page.pageNumber - 1, viewport.width, dpr);
+      const handle = { cancel: task.cancel, promise: task.promise };
+      this.renderTasksByPage.set(page.pageNumber, handle);
+      try {
+        const { bitmap } = await task.promise;
+        if (epoch === this.renderEpoch) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(bitmap, 0, 0);
+        }
+        bitmap.close();
+      } catch (err) {
+        if (epoch === this.renderEpoch && (err as { name?: string })?.name !== 'AbortError') {
+          this.emitError({ code: 'render_failed', message: 'Failed to render page.', recoverable: true, cause: err });
+        }
+      } finally {
+        cleanup(handle);
+      }
+      return;
+    }
+
+    // Off-main-thread raster when the pool is enabled: the worker returns an
+    // ImageBitmap we blit in sub-millisecond `drawImage`, instead of painting
+    // the page on the main thread (the dominant scroll-jank cost).
+    if (this.renderPool) {
+      const handle = this.renderPool.render(page.pageNumber, scale, dpr);
+      this.renderTasksByPage.set(page.pageNumber, handle);
+      try {
+        const bitmap = await handle.promise;
+        if (epoch === this.renderEpoch) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(bitmap, 0, 0);
+        }
+        bitmap.close();
+      } catch (err) {
+        if (epoch === this.renderEpoch && (err as { name?: string })?.name !== 'AbortError') {
+          this.emitError({ code: 'render_failed', message: 'Failed to render page.', recoverable: true, cause: err });
+        }
+      } finally {
+        cleanup(handle);
+      }
+      return;
+    }
+
+    const transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined;
+    // pdf.js 6.x: pass the DOM `canvas` (preferred); it derives the 2D context.
+    const task = proxy.render({ canvas, viewport, transform });
+    this.renderTasksByPage.set(page.pageNumber, task);
     try {
       await task.promise;
     } catch (err) {
@@ -1206,19 +1439,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         this.emitError({ code: 'render_failed', message: 'Failed to render page.', recoverable: true, cause: err });
       }
     } finally {
-      // Clear by page-number, not task ref — a peer render-pass on the same
-      // page would have overwritten the entry, so deleting by ref could
-      // strip a newer task's registration. Page-number scoping handles that
-      // because peer passes are serialized by `inFlightPages`.
-      if (this.renderTasksByPage.get(page.pageNumber) === task) {
-        this.renderTasksByPage.delete(page.pageNumber);
-      }
-      // Page finished (or errored) — drop any pending hysteresis cancel for it.
-      const pending = this.pendingCancellations.get(page.pageNumber);
-      if (pending !== undefined) {
-        clearTimeout(pending);
-        this.pendingCancellations.delete(page.pageNumber);
-      }
+      cleanup(task);
     }
   }
 
@@ -1237,6 +1458,12 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     epoch: number,
     pageNumber: number,
   ): Promise<void> {
+    // PDFium path: build a selectable/searchable text layer from engine
+    // segments instead of pd​f.js's TextLayer.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      await this.renderPdfiumTextLayer(container, viewport, epoch, pageNumber);
+      return;
+    }
     if (typeof proxy.getTextContent !== 'function') return;
     try {
       const pdfjs = await this.pdfService.load();
@@ -1288,6 +1515,88 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Fetch (and cache) a page's PDFium text segments. Returns `null` when the
+   * engine isn't active or extraction fails — callers then skip text work.
+   */
+  private async pdfiumSegments(pageNumber: number): Promise<PdfTextSegment[] | null> {
+    if (!this.pdfiumEngine || this.pdfiumDoc === null) return null;
+    const cached = this.pdfiumTextCache.get(pageNumber);
+    if (cached) return cached;
+    try {
+      const segs = await this.pdfiumEngine.pageText(this.pdfiumDoc, pageNumber - 1);
+      this.pdfiumTextCache.set(pageNumber, segs);
+      return segs;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Render the PDFium text layer: one absolutely-positioned, transparent
+   * `<span>` per text segment, sized in CSS px (segment points × render
+   * scale). The spans overlay the rasterized canvas so text is selectable and
+   * search highlights land on the right runs. Span order matches the search
+   * index (segment index ≡ span index), so {@link applyHighlightsForPage}
+   * works unchanged.
+   *
+   * Each span is stretched horizontally (`scaleX`) to fill its segment box so
+   * the selection rectangle tracks the glyphs — the same trick pd​f.js's
+   * TextLayer uses. Width reads are batched before any writes to keep it to a
+   * single layout pass.
+   */
+  private async renderPdfiumTextLayer(container: HTMLElement, viewport: unknown, epoch: number, pageNumber: number): Promise<void> {
+    const segs = await this.pdfiumSegments(pageNumber);
+    if (epoch !== this.renderEpoch || !segs) return;
+
+    this.populateTextIndexFromStrings(
+      pageNumber,
+      segs.map((s) => s.text),
+    );
+
+    const page = this.pages.find((p) => p.pageNumber === pageNumber);
+    if (!page) return;
+    const vw = (viewport as { width: number }).width;
+    const scale = page.baseWidth > 0 ? vw / page.baseWidth : 1;
+
+    container.replaceChildren();
+    this.textLayerAllSpans.delete(container);
+    this.textLayerMatchedSpans.delete(container);
+    this.highlightedLayers.delete(container);
+
+    const spans: HTMLElement[] = [];
+    const frag = document.createDocumentFragment();
+    for (const seg of segs) {
+      const span = document.createElement('span');
+      span.textContent = seg.text;
+      const s = span.style;
+      s.position = 'absolute';
+      s.left = `${seg.x * scale}px`;
+      s.top = `${seg.y * scale}px`;
+      s.height = `${seg.h * scale}px`;
+      s.fontSize = `${seg.h * scale}px`;
+      s.lineHeight = '1';
+      s.whiteSpace = 'pre';
+      s.transformOrigin = '0 0';
+      s.color = 'transparent';
+      frag.appendChild(span);
+      spans.push(span);
+    }
+    container.appendChild(frag);
+
+    // Batch all width reads (one layout), then write transforms (no reads).
+    const naturals = spans.map((sp) => sp.offsetWidth);
+    for (let i = 0; i < spans.length; i++) {
+      const target = segs[i].w * scale;
+      if (naturals[i] > 0 && target > 0) spans[i].style.transform = `scaleX(${target / naturals[i]})`;
+    }
+
+    this.textLayerAllSpans.set(container, spans);
+    if (this.searchHitsByPage.size > 0) {
+      this.applyHighlightsForPage(pageNumber, container);
+    }
+  }
+
+  /**
    * Build the page's substring-search index from a `TextContent.items` list.
    * Each item's `str` is concatenated into a single page-level string; the
    * starting char index of every item is recorded so we can map a match's
@@ -1299,15 +1608,26 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * changes — building a 1k-item string per page on every zoom adds up.
    */
   private populateTextIndex(pageNumber: number, items: Array<{ str?: string }>): void {
+    this.populateTextIndexFromStrings(
+      pageNumber,
+      items.map((i) => i.str ?? ''),
+    );
+  }
+
+  /**
+   * Shared core of {@link populateTextIndex} that works from raw per-item
+   * strings — one string per text-layer span, in span order. The pd​f.js path
+   * derives these from `TextContent.items[].str`; the PDFium path from
+   * {@link PdfTextSegment.text}. Either way, span index ≡ string index, which
+   * the search highlighter relies on.
+   */
+  private populateTextIndexFromStrings(pageNumber: number, strings: string[]): void {
     if (this.pageTextIndex.has(pageNumber)) return;
     const itemOffsets: number[] = [];
-    const strings: string[] = new Array(items.length);
     let text = '';
-    for (let i = 0; i < items.length; i++) {
-      const s = items[i].str ?? '';
+    for (let i = 0; i < strings.length; i++) {
       itemOffsets.push(text.length);
-      strings[i] = s;
-      text += s;
+      text += strings[i];
     }
     const idx: PdfPageTextIndex = { text, itemOffsets };
     this.pageTextIndex.set(pageNumber, idx);
@@ -1404,23 +1724,61 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    */
   private async renderOneThumbnail(pageNumber: number): Promise<void> {
     const page = this.pages.find((p) => p.pageNumber === pageNumber);
-    if (!page) return;
+    // The page proxy or canvas may not be ready on this tick (the @for row
+    // just rendered). Un-mark so the next intersection / install pass retries
+    // instead of leaving the thumbnail permanently blank.
+    if (!page) {
+      this.renderedThumbs.delete(pageNumber);
+      return;
+    }
     const canvas = this.hostRef.nativeElement.querySelector<HTMLCanvasElement>(`canvas[data-thumb-page="${pageNumber}"]`);
-    if (!canvas) return;
+    if (!canvas) {
+      this.renderedThumbs.delete(pageNumber);
+      requestAnimationFrame(() => {
+        if (this.thumbnailsTabActive() && !this.renderedThumbs.has(pageNumber)) {
+          this.renderedThumbs.add(pageNumber);
+          void this.renderOneThumbnail(pageNumber);
+        }
+      });
+      return;
+    }
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const targetWidth = 180;
+
+    // PDFium path: render the thumbnail off-thread, same as the main canvas.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      try {
+        const { bitmap, width, height } = await this.pdfiumEngine.renderPage(this.pdfiumDoc, pageNumber - 1, targetWidth, dpr).promise;
+        canvas.width = width;
+        canvas.height = height;
+        canvas.style.width = `${targetWidth}px`;
+        canvas.style.height = `${Math.round(height / dpr)}px`;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(bitmap, 0, 0);
+        bitmap.close();
+      } catch {
+        this.renderedThumbs.delete(pageNumber);
+      }
+      return;
+    }
 
     const proxy = page.proxy as {
       getViewport: (o: { scale: number }) => { width: number; height: number };
-      render: (o: { canvasContext: CanvasRenderingContext2D; viewport: unknown; transform?: number[]; intent?: string }) => {
+      render: (o: {
+        canvas?: HTMLCanvasElement | null;
+        canvasContext?: CanvasRenderingContext2D;
+        viewport: unknown;
+        transform?: number[];
+      }) => {
         cancel: () => void;
         promise: Promise<void>;
       };
     };
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const targetWidth = 180;
     const scale = targetWidth / page.baseWidth;
     const viewport = proxy.getViewport({ scale });
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
     canvas.width = Math.floor(viewport.width * dpr);
     canvas.height = Math.floor(viewport.height * dpr);
@@ -1428,10 +1786,9 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     canvas.style.height = `${viewport.height}px`;
 
     const transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined;
-    // `intent: 'thumbnail'` was a misread — pdfjs only knows 'display',
-    // 'print', and 'any'. The default ('display') is correct here; thumbnails
-    // are just main-canvas renders at a smaller scale.
-    const task = proxy.render({ canvasContext: ctx, viewport, transform });
+    // pdf.js 6.x: pass the DOM `canvas` (preferred); thumbnails are just
+    // main-canvas renders at a smaller scale.
+    const task = proxy.render({ canvas, viewport, transform });
     try {
       await task.promise;
     } catch {
@@ -1448,6 +1805,18 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * instead of staying in the loading state.
    */
   private async fetchOutline(): Promise<void> {
+    // PDFium path: build the template's node shape ({ title, items, pageIndex })
+    // from the engine's bookmark tree. `pageIndex` drives `outlineGoto`.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      try {
+        const tree = await this.pdfiumEngine.outline(this.pdfiumDoc);
+        const toNode = (n: PdfOutlineNode): unknown => ({ title: n.title, pageIndex: n.pageIndex, items: n.children.map(toNode) });
+        this.outline.set(tree.map(toNode));
+      } catch {
+        this.outline.set([]);
+      }
+      return;
+    }
     const doc = this.pdfDoc as null | { getOutline?: () => Promise<unknown[] | null> };
     if (!doc?.getOutline) {
       this.outline.set([]);
@@ -1466,6 +1835,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * `null`. We project to a flat list so the sidebar template stays simple.
    */
   private async fetchAttachments(): Promise<void> {
+    // PDFium path: embedded files straight from the engine.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      try {
+        const files = await this.pdfiumEngine.attachments(this.pdfiumDoc);
+        this.attachments.set(files.map((f) => ({ filename: f.name, description: '', content: f.bytes })));
+      } catch {
+        this.attachments.set([]);
+      }
+      return;
+    }
     const doc = this.pdfDoc as null | {
       getAttachments?: () => Promise<Record<string, { filename?: string; description?: string; content: Uint8Array }> | null>;
     };
@@ -1499,6 +1878,18 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private async fetchAnnotations(): Promise<void> {
     if (this.pages.length === 0) {
       this.annotations.set([]);
+      return;
+    }
+    // PDFium path: the engine already filters to displayable subtypes.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      try {
+        const rows = await this.pdfiumEngine.documentAnnotations(this.pdfiumDoc);
+        this.annotations.set(
+          rows.map((r) => ({ pageNumber: r.pageIndex + 1, subtype: r.subtype, contents: r.contents.trim(), author: '' })),
+        );
+      } catch {
+        this.annotations.set([]);
+      }
       return;
     }
     const VISIBLE_SUBTYPES = new Set([
@@ -1544,6 +1935,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private async ensurePageTextIndex(pageNumber: number): Promise<PdfPageTextIndex | null> {
     const cached = this.pageTextIndex.get(pageNumber);
     if (cached) return cached;
+    // PDFium path: extract text segments from the engine and index them.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      const segs = await this.pdfiumSegments(pageNumber);
+      if (!segs) return null;
+      this.populateTextIndexFromStrings(
+        pageNumber,
+        segs.map((s) => s.text),
+      );
+      return this.pageTextIndex.get(pageNumber) ?? null;
+    }
     const page = this.pages.find((p) => p.pageNumber === pageNumber);
     if (!page) return null;
     const proxy = page.proxy as { getTextContent?: () => Promise<{ items?: Array<{ str?: string }> }> };
@@ -1569,18 +1970,31 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     container: HTMLElement,
     viewport: unknown,
     epoch: number,
+    pageNumber: number,
   ): Promise<void> {
+    // PDFium path: annotation *appearances* are baked into the raster; only
+    // clickable links need a DOM overlay.
+    if (this.pdfiumEngine && this.pdfiumDoc !== null) {
+      await this.renderPdfiumLinkLayer(container, viewport, epoch, pageNumber);
+      return;
+    }
     if (typeof proxy.getAnnotations !== 'function') return;
     try {
       const pdfjs = await this.pdfService.load();
       if (epoch !== this.renderEpoch) return;
 
-      const AnnotCtor = (
-        pdfjs as unknown as {
-          AnnotationLayer?: new (opts: unknown) => { render(opts: unknown): Promise<void> };
-        }
-      ).AnnotationLayer;
-      if (!AnnotCtor) return;
+      // `AnnotationLayer` is typed via HkPdfjs's `Pick`, so no cast is needed.
+      // Derive the render-parameter type straight from the class — keeps us in
+      // lockstep with pdf.js's own `AnnotationLayerParameters` without importing
+      // a deep internal path.
+      // `AnnotationLayer` is typed via HkPdfjs's `Pick`, so no cast is needed.
+      // Derive both the constructor- and render-parameter types straight from
+      // the class — keeps us in lockstep with pdf.js's own shapes without
+      // importing a deep internal path.
+      const AnnotationLayer = pdfjs.AnnotationLayer;
+      if (!AnnotationLayer) return;
+      type AnnotationCtorParams = ConstructorParameters<typeof AnnotationLayer>[0];
+      type AnnotationRenderParams = Parameters<InstanceType<typeof AnnotationLayer>['render']>[0];
 
       const annotations = (await proxy.getAnnotations()) ?? [];
       if (epoch !== this.renderEpoch) return;
@@ -1591,38 +2005,57 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
       container.replaceChildren();
 
-      const vpClone = (viewport as { clone?: (o: unknown) => unknown }).clone?.({ dontFlip: true }) ?? viewport;
+      const vpClone = ((viewport as { clone?: (o: unknown) => unknown }).clone?.({ dontFlip: true }) ??
+        viewport) as AnnotationRenderParams['viewport'];
+      const div = container as HTMLDivElement;
+      const page = proxy as unknown as AnnotationRenderParams['page'];
 
-      const layer = new AnnotCtor({
-        div: container,
-        page: proxy,
-        viewport: vpClone,
-      });
-
-      // Pull doc-level annotation context. `annotationStorage` is where
-      // PDF.js holds form-field edits + AnnotationEditor edits — passing it
-      // through lets users actually fill in the form widgets and have their
-      // values flow back into the document for save() to pick up.
-      // `fieldObjects` is the form metadata; `getFieldObjects` returns null
-      // for documents without a form, which is fine.
+      // Pull doc-level annotation context. `annotationStorage` is where PDF.js
+      // holds form-field + AnnotationEditor edits — passing it lets users fill
+      // form widgets and have values flow back for save(). `fieldObjects` is the
+      // form metadata; `getFieldObjects` returns null for form-less documents.
       const doc = this.pdfDoc as null | {
-        annotationStorage?: unknown;
-        getFieldObjects?: () => Promise<unknown>;
+        annotationStorage?: AnnotationRenderParams['annotationStorage'];
+        getFieldObjects?: () => Promise<AnnotationRenderParams['fieldObjects']>;
       };
-      const annotationStorage = doc?.annotationStorage ?? null;
+      const annotationStorage = doc?.annotationStorage ?? undefined;
       const fieldObjects = doc?.getFieldObjects ? await doc.getFieldObjects() : null;
+      const linkService = this.buildLinkService() as unknown as AnnotationRenderParams['linkService'];
       if (epoch !== this.renderEpoch) return;
 
-      await layer.render({
+      // pdf.js 6.x moved linkService/annotationStorage into the constructor
+      // (alongside managers we don't use — passed as undefined).
+      const ctorParams: AnnotationCtorParams = {
+        div,
+        page,
+        viewport: vpClone,
+        linkService,
+        annotationStorage,
+        accessibilityManager: undefined,
+        annotationCanvasMap: undefined,
+        annotationEditorUIManager: undefined,
+        structTreeLayer: undefined,
+        commentManager: undefined,
+      };
+      const layer = new AnnotationLayer(ctorParams);
+
+      // pdf.js 6.x: render() requires div/page/viewport alongside the per-render
+      // params (they're no longer implied by the constructor). `linkService` is
+      // a structural minimal impl, so it's cast to the exact param type.
+      const params: AnnotationRenderParams = {
+        viewport: vpClone,
+        div,
+        page,
         annotations,
-        imageResourcesPath: '',
-        renderForms: true,
-        linkService: this.buildLinkService(),
+        linkService,
         annotationStorage,
         fieldObjects,
+        imageResourcesPath: '',
+        renderForms: true,
         enableScripting: false,
         hasJSActions: false,
-      });
+      };
+      await layer.render(params);
 
       // Form widgets get rendered as <input>/<select>/<textarea>/<button>
       // inside annotation layer sections. Our outer .hk-pdf-annotation-layer
@@ -1634,6 +2067,63 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       if ((err as { name?: string })?.name === 'AbortException') return;
       console.warn('[hk-pdf-viewer] annotation layer failed:', err);
     }
+  }
+
+  /**
+   * Render the PDFium link overlay: one transparent, absolutely-positioned
+   * hit target per link rect. Internal jumps are `<button>`s routed through
+   * `goToPage`; external URIs are `<a target="_blank" rel="noopener">`. Rects
+   * are CSS px (segment points × render scale). Annotation appearances
+   * (highlights, ink, stamps, form widgets) are already in the rasterized
+   * canvas, so this layer carries links only.
+   */
+  private async renderPdfiumLinkLayer(container: HTMLElement, viewport: unknown, epoch: number, pageNumber: number): Promise<void> {
+    if (!this.pdfiumEngine || this.pdfiumDoc === null) return;
+    let links;
+    try {
+      links = await this.pdfiumEngine.pageLinks(this.pdfiumDoc, pageNumber - 1);
+    } catch {
+      return;
+    }
+    if (epoch !== this.renderEpoch) return;
+
+    container.replaceChildren();
+    if (links.length === 0) return;
+
+    const page = this.pages.find((p) => p.pageNumber === pageNumber);
+    if (!page) return;
+    const vw = (viewport as { width: number }).width;
+    const scale = page.baseWidth > 0 ? vw / page.baseWidth : 1;
+    const labels = this.labels();
+
+    const frag = document.createDocumentFragment();
+    for (const link of links) {
+      const isUri = link.uri.length > 0;
+      const el = document.createElement(isUri ? 'a' : 'button');
+      el.className = 'hk-pdf-link';
+      const s = el.style;
+      s.left = `${link.x * scale}px`;
+      s.top = `${link.y * scale}px`;
+      s.width = `${link.w * scale}px`;
+      s.height = `${link.h * scale}px`;
+      if (isUri) {
+        const a = el as HTMLAnchorElement;
+        a.href = link.uri;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.setAttribute('aria-label', link.uri);
+      } else {
+        const target = link.pageIndex;
+        el.setAttribute('type', 'button');
+        el.setAttribute('aria-label', labels.thumbnailAriaLabel.replace('{page}', String(target + 1)));
+        el.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.goToPage(target + 1);
+        });
+      }
+      frag.appendChild(el);
+    }
+    container.appendChild(frag);
   }
 
   /**
@@ -1876,7 +2366,12 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * destination resolver the annotation layer uses, so `dest` arrays and
    * named destinations both work.
    */
-  outlineGoto(node: { dest?: unknown }): void {
+  outlineGoto(node: { dest?: unknown; pageIndex?: number }): void {
+    // PDFium nodes carry a 0-based page index instead of a pd​f.js `dest`.
+    if (typeof node?.pageIndex === 'number') {
+      if (node.pageIndex >= 0) this.goToPage(node.pageIndex + 1);
+      return;
+    }
     const dest = node?.dest;
     if (!dest) return;
     const linkService = this.buildLinkService() as { goToDestination?: (d: unknown) => Promise<void> };
@@ -2354,6 +2849,9 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
   private teardown(): void {
     this.cancelInflightRenders();
+    this.renderPool?.dispose();
+    this.renderPool = null;
+    this.destroyPdfiumEngine();
     this.disposeEngineHandle();
     this.intersectionObserver?.disconnect();
     this.intersectionObserver = null;

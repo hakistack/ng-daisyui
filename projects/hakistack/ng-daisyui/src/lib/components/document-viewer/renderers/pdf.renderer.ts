@@ -18,7 +18,12 @@ import { DocumentRendererInputs } from '../document-viewer.types';
   imports: [PdfViewerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <hk-pdf-viewer [src]="source()" [config]="viewer.config()" /> `,
-  host: { class: 'block w-full' },
+  // `<hk-pdf-viewer>` is `h-full` — it needs a bounded-height parent or its
+  // scrolling viewport collapses, leaving a big blank area under the first
+  // page. Give it a sensible default viewport height (matching the standalone
+  // pdf-viewer demo's `h-[75vh]` wrapper). Consumers wanting a different size
+  // can wrap the document viewer in a fixed-height box.
+  host: { class: 'block w-full h-[75vh]' },
 })
 export class DocumentPdfRenderer {
   readonly source = input.required<DocumentRendererInputs['source']>();

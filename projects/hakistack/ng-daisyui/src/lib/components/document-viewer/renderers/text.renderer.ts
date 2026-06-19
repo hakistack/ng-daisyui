@@ -68,7 +68,7 @@ export class DocumentTextRenderer {
  * superset of Latin-1) but covers the 95% case without a full encoding
  * detector dep.
  */
-function decodeTextWithFallback(bytes: Uint8Array): string {
+export function decodeTextWithFallback(bytes: Uint8Array): string {
   const utf8 = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
   if (!utf8.includes('�')) return utf8;
   try {

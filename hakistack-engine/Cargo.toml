@@ -11,6 +11,7 @@ members = [
     "crates/document-wasm",
     "crates/image-engine",
     "crates/image-wasm",
+    "crates/pdf-engine",
 ]
 # `libheif-bridge` is excluded on purpose: it targets only
 # wasm32-unknown-emscripten and links against pre-built libheif.a +

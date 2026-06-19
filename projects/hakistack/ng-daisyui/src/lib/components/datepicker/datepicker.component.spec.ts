@@ -47,6 +47,26 @@ function day(year: number, month: number, date: number): Date {
   return new Date(year, month - 1, date);
 }
 
+/**
+ * The calendar dialog renders in the CDK overlay container (teleported to the
+ * body), not inside the fixture element — so query both. Trigger-side elements
+ * (the input) still live in the fixture and are found there first.
+ */
+function overlayRoot(): HTMLElement {
+  return (document.querySelector('.cdk-overlay-container') as HTMLElement | null) ?? document.body;
+}
+// Returns `any` to mirror `fixture.nativeElement` (also `any`), so existing call
+// sites can read element-specific props (.value, .readOnly) without casts.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function q(fixture: ComponentFixture<unknown>, selector: string): any {
+  return fixture.nativeElement.querySelector(selector) ?? overlayRoot().querySelector(selector);
+}
+function qa(fixture: ComponentFixture<unknown>, selector: string): any[] {
+  const inFixture = Array.from(fixture.nativeElement.querySelectorAll(selector));
+  return inFixture.length ? inFixture : Array.from(overlayRoot().querySelectorAll(selector));
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 describe('DatepickerComponent', () => {
   // =========================================================================
   // Direct component tests (no host needed)
@@ -949,12 +969,12 @@ describe('DatepickerComponent', () => {
         expect(component.isOpen()).toBe(false);
       });
 
-      it('onClickOutside should close if target is not within dpRoot', () => {
+      it('onOverlayOutsideClick should close if target is not within dpRoot', () => {
         component.openPicker();
         // Simulate a click on a detached element (outside dpRoot)
         const outsideEl = document.createElement('div');
         document.body.appendChild(outsideEl);
-        component.onClickOutside(new MouseEvent('click', { bubbles: true }) as Event);
+        component.onOverlayOutsideClick(new MouseEvent('click', { bubbles: true }));
         // The MouseEvent target is null, which is not contained by dpRoot
         expect(component.isOpen()).toBe(false);
         outsideEl.remove();
@@ -976,6 +996,7 @@ describe('DatepickerComponent', () => {
           isRangeStart: true,
           isRangeEnd: false,
           isDisabled: false,
+          isFocused: false,
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
@@ -992,6 +1013,7 @@ describe('DatepickerComponent', () => {
           isRangeStart: false,
           isRangeEnd: true,
           isDisabled: false,
+          isFocused: false,
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
@@ -1008,6 +1030,7 @@ describe('DatepickerComponent', () => {
           isRangeStart: false,
           isRangeEnd: false,
           isDisabled: false,
+          isFocused: false,
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
@@ -1024,6 +1047,7 @@ describe('DatepickerComponent', () => {
           isRangeStart: false,
           isRangeEnd: false,
           isDisabled: false,
+          isFocused: false,
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
@@ -1040,6 +1064,7 @@ describe('DatepickerComponent', () => {
           isRangeStart: false,
           isRangeEnd: false,
           isDisabled: false,
+          isFocused: false,
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
@@ -1056,6 +1081,7 @@ describe('DatepickerComponent', () => {
           isRangeStart: false,
           isRangeEnd: false,
           isDisabled: true,
+          isFocused: false,
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
@@ -1073,6 +1099,7 @@ describe('DatepickerComponent', () => {
           isRangeStart: false,
           isRangeEnd: false,
           isDisabled: false,
+          isFocused: false,
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
@@ -1089,6 +1116,7 @@ describe('DatepickerComponent', () => {
           isRangeStart: false,
           isRangeEnd: false,
           isDisabled: false,
+          isFocused: false,
           id: 'test',
         };
         const classes = component.getDayClasses(cell);
@@ -1123,32 +1151,44 @@ describe('DatepickerComponent', () => {
     });
 
     // -----------------------------------------------------------------------
-    // dropdownClasses
+    // overlayPositions — derived from dropdownPosition; CDK auto-flips.
     // -----------------------------------------------------------------------
 
-    describe('dropdownClasses', () => {
-      it('should use left-0 for bottom-left (default)', () => {
-        expect(component.dropdownClasses()).toContain('left-0');
+    describe('overlayPositions', () => {
+      it('opens below, start-aligned, for bottom-left (default)', () => {
+        const primary = component.overlayPositions()[0];
+        expect(primary.originY).toBe('bottom');
+        expect(primary.originX).toBe('start');
+        expect(primary.overlayY).toBe('top');
       });
 
-      it('should use right-0 for bottom-right', () => {
+      it('end-aligns for bottom-right', () => {
         fixture.componentRef.setInput('dropdownPosition', 'bottom-right');
         fixture.detectChanges();
-        expect(component.dropdownClasses()).toContain('right-0');
+        const primary = component.overlayPositions()[0];
+        expect(primary.originY).toBe('bottom');
+        expect(primary.originX).toBe('end');
       });
 
-      it('should use bottom-full for top-left', () => {
+      it('opens above for top-left', () => {
         fixture.componentRef.setInput('dropdownPosition', 'top-left');
         fixture.detectChanges();
-        expect(component.dropdownClasses()).toContain('bottom-full');
-        expect(component.dropdownClasses()).toContain('left-0');
+        const primary = component.overlayPositions()[0];
+        expect(primary.originY).toBe('top');
+        expect(primary.originX).toBe('start');
+        expect(primary.overlayY).toBe('bottom');
       });
 
-      it('should use bottom-full and right-0 for top-right', () => {
+      it('opens above, end-aligned, for top-right', () => {
         fixture.componentRef.setInput('dropdownPosition', 'top-right');
         fixture.detectChanges();
-        expect(component.dropdownClasses()).toContain('bottom-full');
-        expect(component.dropdownClasses()).toContain('right-0');
+        const primary = component.overlayPositions()[0];
+        expect(primary.originY).toBe('top');
+        expect(primary.originX).toBe('end');
+      });
+
+      it('always provides a flipped fallback position', () => {
+        expect(component.overlayPositions().length).toBeGreaterThanOrEqual(2);
       });
     });
 
@@ -1335,46 +1375,46 @@ describe('DatepickerComponent', () => {
 
     describe('DOM rendering', () => {
       it('should render an input element', () => {
-        const input = fixture.nativeElement.querySelector('input');
+        const input = q(fixture, 'input');
         expect(input).toBeTruthy();
         expect(input.readOnly).toBe(true);
       });
 
       it('should show placeholder text', () => {
-        const input = fixture.nativeElement.querySelector('input');
+        const input = q(fixture, 'input');
         expect(input.placeholder).toBe('Select Date');
       });
 
       it('should show custom placeholder', () => {
         fixture.componentRef.setInput('placeholder', 'Pick a date');
         fixture.detectChanges();
-        const input = fixture.nativeElement.querySelector('input');
+        const input = q(fixture, 'input');
         expect(input.placeholder).toBe('Pick a date');
       });
 
       it('should not render dropdown when closed', () => {
-        const dropdown = fixture.nativeElement.querySelector('[role="dialog"]');
+        const dropdown = q(fixture, '[role="dialog"]');
         expect(dropdown).toBeNull();
       });
 
       it('should render dropdown when open', () => {
         component.openPicker();
         fixture.detectChanges();
-        const dropdown = fixture.nativeElement.querySelector('[role="dialog"]');
+        const dropdown = q(fixture, '[role="dialog"]');
         expect(dropdown).toBeTruthy();
       });
 
       it('should render weekday headers when open', () => {
         component.openPicker();
         fixture.detectChanges();
-        const headers = fixture.nativeElement.querySelectorAll('.calendar-grid .text-xs.font-medium');
+        const headers = qa(fixture, '.calendar-grid .text-xs.font-medium');
         expect(headers.length).toBe(7);
       });
 
       it('should render 42 day buttons when open', () => {
         component.openPicker();
         fixture.detectChanges();
-        const dayButtons = fixture.nativeElement.querySelectorAll('.calendar-grid button');
+        const dayButtons = qa(fixture, '.calendar-grid button');
         expect(dayButtons.length).toBe(42);
       });
 
@@ -1382,7 +1422,7 @@ describe('DatepickerComponent', () => {
         component.openPicker();
         component.goToMonthView();
         fixture.detectChanges();
-        const monthsView = fixture.nativeElement.querySelector('.months-view');
+        const monthsView = q(fixture, '.months-view');
         expect(monthsView).toBeTruthy();
         // The grid has 12 month buttons; the "Back to Calendar" button is outside the grid
         const gridButtons = monthsView.querySelectorAll('.grid button');
@@ -1393,7 +1433,7 @@ describe('DatepickerComponent', () => {
         component.openPicker();
         component.goToYearView();
         fixture.detectChanges();
-        const yearsView = fixture.nativeElement.querySelector('.years-view');
+        const yearsView = q(fixture, '.years-view');
         expect(yearsView).toBeTruthy();
         // The grid has 24 year buttons; nav buttons and "Back to Months" are outside the grid
         const gridButtons = yearsView.querySelectorAll('.grid button');
@@ -1403,7 +1443,7 @@ describe('DatepickerComponent', () => {
       it('should show clear button in footer when showClearButton is true', () => {
         component.openPicker();
         fixture.detectChanges();
-        const footer = fixture.nativeElement.querySelector('.datepicker-footer');
+        const footer = q(fixture, '.datepicker-footer');
         const clearBtn = footer?.querySelector('button');
         expect(clearBtn?.textContent?.trim()).toBe('Clear');
       });
@@ -1413,7 +1453,7 @@ describe('DatepickerComponent', () => {
         fixture.detectChanges();
         component.openPicker();
         fixture.detectChanges();
-        const footer = fixture.nativeElement.querySelector('.datepicker-footer');
+        const footer = q(fixture, '.datepicker-footer');
         const todayBtn = Array.from(footer.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(
           (b: HTMLButtonElement) => b.textContent?.trim() === 'Today',
         );
@@ -1423,7 +1463,7 @@ describe('DatepickerComponent', () => {
       it('should show close button in footer', () => {
         component.openPicker();
         fixture.detectChanges();
-        const footer = fixture.nativeElement.querySelector('.datepicker-footer');
+        const footer = q(fixture, '.datepicker-footer');
         const closeBtn = Array.from(footer.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(
           (b: HTMLButtonElement) => b.textContent?.trim() === 'Close',
         );
@@ -1433,13 +1473,13 @@ describe('DatepickerComponent', () => {
       it('should show clear icon button when there is a selection and showClearButton is true', () => {
         component.selectDate(day(2025, 3, 15));
         fixture.detectChanges();
-        const clearIconBtn = fixture.nativeElement.querySelector('[aria-label="Clear selection"]');
+        const clearIconBtn = q(fixture, '[aria-label="Clear selection"]');
         expect(clearIconBtn).toBeTruthy();
       });
 
       it('should not show clear icon button when there is no selection', () => {
         fixture.detectChanges();
-        const clearIconBtn = fixture.nativeElement.querySelector('[aria-label="Clear selection"]');
+        const clearIconBtn = q(fixture, '[aria-label="Clear selection"]');
         expect(clearIconBtn).toBeNull();
       });
 
@@ -1452,7 +1492,7 @@ describe('DatepickerComponent', () => {
         fixture.detectChanges();
         // Re-open since closeOnSelect might have been triggered... actually with closeOnSelect=false, it stays open
         // But selectDate on first click in range mode does not close (range is incomplete)
-        const hint = fixture.nativeElement.querySelector('.datepicker-footer');
+        const hint = q(fixture, '.datepicker-footer');
         expect(hint.textContent).toContain('Select end date');
       });
     });
@@ -1463,12 +1503,12 @@ describe('DatepickerComponent', () => {
 
     describe('Accessibility', () => {
       it('should have aria-haspopup="dialog" on input', () => {
-        const input = fixture.nativeElement.querySelector('input');
+        const input = q(fixture, 'input');
         expect(input.getAttribute('aria-haspopup')).toBe('dialog');
       });
 
       it('should set aria-expanded to match isOpen state', () => {
-        const input = fixture.nativeElement.querySelector('input');
+        const input = q(fixture, 'input');
         expect(input.getAttribute('aria-expanded')).toBe('false');
         component.openPicker();
         fixture.detectChanges();
@@ -1478,7 +1518,7 @@ describe('DatepickerComponent', () => {
       it('should set aria-required when required', () => {
         fixture.componentRef.setInput('required', true);
         fixture.detectChanges();
-        const input = fixture.nativeElement.querySelector('input');
+        const input = q(fixture, 'input');
         expect(input.getAttribute('aria-required')).toBe('true');
       });
 
@@ -1487,14 +1527,14 @@ describe('DatepickerComponent', () => {
         fixture.detectChanges();
         component.isTouched.set(true);
         fixture.detectChanges();
-        const input = fixture.nativeElement.querySelector('input');
+        const input = q(fixture, 'input');
         expect(input.getAttribute('aria-invalid')).toBe('true');
       });
 
       it('should have role="dialog" on the dropdown', () => {
         component.openPicker();
         fixture.detectChanges();
-        const dialog = fixture.nativeElement.querySelector('[role="dialog"]');
+        const dialog = q(fixture, '[role="dialog"]');
         expect(dialog).toBeTruthy();
         expect(dialog.getAttribute('aria-modal')).toBe('true');
       });
@@ -1502,7 +1542,7 @@ describe('DatepickerComponent', () => {
       it('should have aria-label on day buttons', () => {
         component.openPicker();
         fixture.detectChanges();
-        const dayButtons = fixture.nativeElement.querySelectorAll('.calendar-grid button');
+        const dayButtons = qa(fixture, '.calendar-grid button');
         const firstButton = dayButtons[0];
         expect(firstButton.getAttribute('aria-label')).toBeTruthy();
       });
@@ -1512,7 +1552,7 @@ describe('DatepickerComponent', () => {
         fixture.detectChanges();
         component.isTouched.set(true);
         fixture.detectChanges();
-        const errorEl = fixture.nativeElement.querySelector('[role="alert"]');
+        const errorEl = q(fixture, '[role="alert"]');
         expect(errorEl).toBeTruthy();
         expect(errorEl.textContent).toContain('required');
       });
@@ -1522,7 +1562,7 @@ describe('DatepickerComponent', () => {
         fixture.detectChanges();
         component.isTouched.set(true);
         fixture.detectChanges();
-        const input = fixture.nativeElement.querySelector('input');
+        const input = q(fixture, 'input');
         const describedBy = input.getAttribute('aria-describedby');
         expect(describedBy).toBeTruthy();
         expect(describedBy).toContain('-error');
@@ -1531,8 +1571,8 @@ describe('DatepickerComponent', () => {
       it('should have aria-label on navigation buttons', () => {
         component.openPicker();
         fixture.detectChanges();
-        const prevBtn = fixture.nativeElement.querySelector('[aria-label="Previous month"]');
-        const nextBtn = fixture.nativeElement.querySelector('[aria-label="Next month"]');
+        const prevBtn = q(fixture, '[aria-label="Previous month"]');
+        const nextBtn = q(fixture, '[aria-label="Next month"]');
         expect(prevBtn).toBeTruthy();
         expect(nextBtn).toBeTruthy();
       });

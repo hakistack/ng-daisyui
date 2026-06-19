@@ -14,6 +14,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, NG_VALIDATORS, ValidationErrors, Validator, AbstractControl } from '@angular/forms';
+import { ConnectedPosition, Overlay, OverlayModule } from '@angular/cdk/overlay';
+import { LucideCalendar, LucideChevronLeft, LucideChevronRight, LucideX } from '@lucide/angular';
 import { generateUniqueId } from '../../utils/generate-uuid';
 import {
   DatepickerConfig,
@@ -30,7 +32,7 @@ import { DatepickerUtilsService } from './datepicker-utils.service';
 
 @Component({
   selector: 'hk-datepicker',
-  imports: [CommonModule],
+  imports: [CommonModule, OverlayModule, LucideCalendar, LucideChevronLeft, LucideChevronRight, LucideX],
   templateUrl: './datepicker.component.html',
   styleUrls: ['./datepicker.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,12 +52,18 @@ import { DatepickerUtilsService } from './datepicker-utils.service';
 })
 export class DatepickerComponent implements ControlValueAccessor, Validator, OnDestroy {
   private readonly dpRoot = viewChild.required<ElementRef<HTMLElement>>('dpRoot');
+  private readonly dpInput = viewChild<ElementRef<HTMLInputElement>>('dpInput');
+  /** The calendar dialog, teleported into the CDK overlay layer. */
+  private readonly dialogPanel = viewChild<ElementRef<HTMLElement>>('dialogPanel');
 
   private readonly dateUtils = inject(DatepickerUtilsService);
+  private readonly overlay = inject(Overlay);
   private readonly cellIdCache = new Map<string, string>();
 
-  // Bound event handlers for proper cleanup
-  private boundDocumentClick = this.onClickOutside.bind(this);
+  /** Keep the calendar pinned to the field as the page scrolls. */
+  readonly scrollStrategy = this.overlay.scrollStrategies.reposition();
+
+  // Bound event handler for proper cleanup (global keyboard navigation).
   private boundDocumentKeydown = this.onDocumentKeydown.bind(this);
   private documentListenersAttached = false;
 
@@ -162,6 +170,8 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   readonly rangeEnd = signal<Date | null>(null);
   readonly yearWindowStart = signal(this.getYearWindowStart());
   readonly hoveredDate = signal<Date | null>(null);
+  /** Date that currently holds keyboard focus inside the day grid (roving tabindex). */
+  readonly focusedDate = signal<Date | null>(null);
 
   // Time signals
   readonly selectedHour = signal<number>(12);
@@ -319,27 +329,33 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     return classes.join(' ');
   });
 
-  readonly dropdownClasses = computed(() => {
-    const position = this.dropdownPosition();
-    const baseClasses = 'datepicker-dropdown bg-base-100 border-base-300 absolute z-50 mt-1 rounded-lg border p-4 shadow-lg';
-    const classes = [baseClasses];
+  /**
+   * Visual classes for the calendar panel. Positioning is owned by the CDK
+   * overlay now (see {@link overlayPositions}), so this is just the look.
+   */
+  readonly dropdownClasses = 'datepicker-dropdown bg-base-100 border-base-300 rounded-lg border p-4 shadow-lg';
 
-    // Position classes
-    switch (position) {
+  /**
+   * Connected-overlay positions derived from `dropdownPosition`: the requested
+   * corner is the preferred placement, and CDK auto-flips to the opposite edge
+   * when there isn't room (so the calendar never opens off-screen).
+   */
+  readonly overlayPositions = computed<ConnectedPosition[]>(() => {
+    const below: ConnectedPosition = { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: 4 };
+    const above: ConnectedPosition = { originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom', offsetY: -4 };
+    const belowEnd: ConnectedPosition = { originX: 'end', originY: 'bottom', overlayX: 'end', overlayY: 'top', offsetY: 4 };
+    const aboveEnd: ConnectedPosition = { originX: 'end', originY: 'top', overlayX: 'end', overlayY: 'bottom', offsetY: -4 };
+
+    switch (this.dropdownPosition()) {
       case 'bottom-right':
-        classes.push('right-0');
-        break;
+        return [belowEnd, aboveEnd];
       case 'top-left':
-        classes.push('bottom-full left-0 mb-1 mt-0');
-        break;
+        return [above, below];
       case 'top-right':
-        classes.push('bottom-full right-0 mb-1 mt-0');
-        break;
-      default:
-        classes.push('left-0');
+        return [aboveEnd, belowEnd];
+      default: // 'bottom-left' | 'auto'
+        return [below, above];
     }
-
-    return classes.join(' ');
   });
 
   constructor() {
@@ -352,14 +368,14 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
   private addDocumentListeners(): void {
     if (this.documentListenersAttached) return;
-    document.addEventListener('click', this.boundDocumentClick, { passive: true });
+    // Outside-click is handled by the overlay's (overlayOutsideClick); only the
+    // global keydown (Escape / Tab trap / grid navigation) is wired here.
     document.addEventListener('keydown', this.boundDocumentKeydown);
     this.documentListenersAttached = true;
   }
 
   private removeDocumentListeners(): void {
     if (!this.documentListenersAttached) return;
-    document.removeEventListener('click', this.boundDocumentClick);
     document.removeEventListener('keydown', this.boundDocumentKeydown);
     this.documentListenersAttached = false;
   }
@@ -367,22 +383,132 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   private onDocumentKeydown(event: KeyboardEvent): void {
     if (!this.isOpen()) return;
 
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closePicker();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      this.trapFocus(event);
+      return;
+    }
+
+    // Grid navigation only applies while a day cell holds focus.
+    const onDayCell = this.currentView() === 'days' && !!(event.target as HTMLElement | null)?.closest?.('.dp-day');
+    if (!onDayCell) return;
+
     switch (event.key) {
-      case 'Escape':
-        this.onEscapeKey();
+      case 'ArrowLeft':
+        event.preventDefault();
+        this.moveFocusBy(-1);
         break;
-      case 'Enter':
-        if (!this.isOpen()) {
-          event.preventDefault();
-          this.openPicker();
-        }
+      case 'ArrowRight':
+        event.preventDefault();
+        this.moveFocusBy(1);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.moveFocusBy(-7);
         break;
       case 'ArrowDown':
-        if (!this.isOpen()) {
-          event.preventDefault();
-          this.openPicker();
-        }
+        event.preventDefault();
+        this.moveFocusBy(7);
         break;
+      case 'Home':
+        event.preventDefault();
+        this.moveFocusToWeekEdge('start');
+        break;
+      case 'End':
+        event.preventDefault();
+        this.moveFocusToWeekEdge('end');
+        break;
+      case 'PageUp':
+        event.preventDefault();
+        this.moveFocusByMonths(event.shiftKey ? -12 : -1);
+        break;
+      case 'PageDown':
+        event.preventDefault();
+        this.moveFocusByMonths(event.shiftKey ? 12 : 1);
+        break;
+      case 'Enter':
+      case ' ':
+      case 'Spacebar': {
+        event.preventDefault();
+        const focused = this.focusedDate();
+        if (focused) this.selectDate(focused);
+        break;
+      }
+    }
+  }
+
+  // ── Keyboard focus navigation (roving tabindex) ─────────────────────────
+
+  private moveFocusBy(days: number): void {
+    const base = this.focusedDate() ?? new Date();
+    this.setFocusedDate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + days));
+  }
+
+  private moveFocusByMonths(months: number): void {
+    const base = this.focusedDate() ?? new Date();
+    this.setFocusedDate(this.dateUtils.addMonths(base, months));
+  }
+
+  private moveFocusToWeekEdge(edge: 'start' | 'end'): void {
+    const base = this.focusedDate() ?? new Date();
+    const offset = this.dateUtils.getAdjustedWeekday(base, this.firstDayOfWeek());
+    const delta = edge === 'start' ? -offset : 6 - offset;
+    this.setFocusedDate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + delta));
+  }
+
+  private setFocusedDate(date: Date): void {
+    const normalized = this.dateUtils.getStartOfDay(date);
+    this.focusedDate.set(normalized);
+
+    const month = this.currentMonth();
+    if (normalized.getMonth() !== month.getMonth() || normalized.getFullYear() !== month.getFullYear()) {
+      this.currentMonth.set(this.dateUtils.getStartOfMonth(normalized));
+    }
+
+    this.focusCellForDate(normalized);
+  }
+
+  /** Moves DOM focus to the day button matching `date` once the view has rendered. */
+  private focusCellForDate(date: Date): void {
+    const ts = this.dateUtils.getStartOfDay(date).getTime();
+    requestAnimationFrame(() => {
+      // The calendar is teleported into the overlay layer, so query the panel.
+      const root = this.dialogPanel()?.nativeElement;
+      const cell = root?.querySelector<HTMLButtonElement>(`button.dp-day[data-ts="${ts}"]`);
+      cell?.focus();
+    });
+  }
+
+  private returnFocusToInput(): void {
+    this.dpInput()?.nativeElement.focus();
+  }
+
+  /** Keeps Tab focus cycling within the open dialog (aria-modal contract). */
+  private trapFocus(event: KeyboardEvent): void {
+    const dialog = this.dialogPanel()?.nativeElement;
+    if (!dialog) return;
+
+    const selector = 'a[href], button, input, select, textarea, [tabindex]';
+    const focusables = Array.from(dialog.querySelectorAll<HTMLElement>(selector)).filter(
+      (el) => !el.hasAttribute('disabled') && el.tabIndex !== -1 && el.offsetParent !== null,
+    );
+    if (focusables.length === 0) return;
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
     }
   }
 
@@ -474,21 +600,10 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   togglePicker(): void {
     if (this.isDisabled()) return;
 
-    const willOpen = !this.isOpen();
-    this.isOpen.set(willOpen);
-
-    if (willOpen) {
-      this.pickerOpened.emit();
-      this.addDocumentListeners();
-      this.updateView('days');
-      const date = this.selectedDate() || this.rangeStart();
-      if (date) {
-        this.currentMonth.set(this.dateUtils.getStartOfMonth(date));
-      }
+    if (this.isOpen()) {
+      this.closePicker();
     } else {
-      this.pickerClosed.emit();
-      this.removeDocumentListeners();
-      this.markAsTouched();
+      this.openPicker();
     }
   }
 
@@ -498,16 +613,24 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
       this.pickerClosed.emit();
       this.removeDocumentListeners();
       this.markAsTouched();
+      this.returnFocusToInput();
     }
   }
 
   openPicker(): void {
-    if (!this.isDisabled() && !this.isOpen()) {
-      this.isOpen.set(true);
-      this.pickerOpened.emit();
-      this.addDocumentListeners();
-      this.updateView('days');
-    }
+    if (this.isDisabled() || this.isOpen()) return;
+
+    this.isOpen.set(true);
+    this.pickerOpened.emit();
+    this.addDocumentListeners();
+    this.updateView('days');
+
+    // Seed keyboard focus on the active date and move DOM focus into the grid
+    // so the dialog (aria-modal) actually receives focus on open.
+    const base = (this.range() ? this.rangeStart() : this.selectedDate()) ?? new Date();
+    this.currentMonth.set(this.dateUtils.getStartOfMonth(base));
+    this.focusedDate.set(this.dateUtils.getStartOfDay(base));
+    this.focusCellForDate(base);
   }
 
   markAsTouched(): void {
@@ -627,6 +750,14 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     }
 
     return classes.join(' ');
+  }
+
+  /** Class map shared by the month- and year-grid buttons. */
+  gridButtonClasses(isSelected: boolean): Record<string, boolean> {
+    return {
+      'btn-primary': isSelected,
+      'btn-ghost hover:bg-primary hover:text-primary-content hover:border-primary': !isSelected,
+    };
   }
 
   // ── Time selection methods ──────────────────────────────────────────────
@@ -827,18 +958,27 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     }
 
     const stableId = this.getStableCellId(date, cellIndex);
+    const focused = this.focusedDate();
+    const isFocused = focused ? this.dateUtils.isSameDay(date, focused) : false;
 
     return {
       date,
       isCurrentMonth,
       isToday,
       isSelected: isSelected || isRangeStart || isRangeEnd,
+      isFocused,
       isInRange,
       isRangeStart,
       isRangeEnd,
       isDisabled: this.isDateDisabled(date),
       id: stableId,
     };
+  }
+
+  /** Full, localized accessible label for a day cell (e.g. "Monday, January 5, 2026"). */
+  dayAriaLabel(date: Date | null): string | null {
+    if (!date) return null;
+    return date.toLocaleDateString(this.locale(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
 
   isDateDisabled(date: Date): boolean {
@@ -888,13 +1028,19 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     return new Date(startYear, 0, 1);
   }
 
-  onClickOutside(event: Event): void {
+  /**
+   * Close when a click lands outside both the field and the calendar panel.
+   * CDK only fires this for clicks outside the overlay pane, so calendar clicks
+   * are safe; we additionally ignore clicks on the field so `togglePicker()`
+   * owns that case (no close-then-reopen double-fire).
+   */
+  onOverlayOutsideClick(event: MouseEvent): void {
+    if (!this.isOpen()) return;
     const root = this.dpRoot().nativeElement;
-    const path = event.composedPath();
     // composedPath reflects the DOM at dispatch time, so it still includes
     // buttons that change detection removed (e.g. month/year view swap).
-    if (path.includes(root)) return;
-    if (root.contains(event.target as Node)) return;
+    const path = event.composedPath?.() ?? [];
+    if (path.includes(root) || root.contains(event.target as Node)) return;
     this.closePicker();
   }
 

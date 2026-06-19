@@ -104,7 +104,21 @@ User-visible win: country pickers, currency selectors, big tag dropdowns stop dr
 
 ---
 
-## 5. What to *not* port
+## 5. Threading model: why *not* a Web Worker?
+
+Fuse.js documents a [Web Worker pattern](https://www.fusejs.io/web-workers.html) to keep search off the main thread. WASM can do the same — a `.wasm` module instantiates inside a worker exactly like JS — and Rust additionally offers true in-engine threads via `wasm-bindgen-rayon`. We use **neither** for `hk-select`. Run the synchronous WASM call on the main thread.
+
+Why: the Worker pattern exists because Fuse.js takes ~200 ms at 10 000 options and freezes the UI (see §4). Rust takes that to ~12 ms — inside a frame budget — so the problem the worker solves **no longer exists**. A worker would make select *worse*:
+
+- `filteredOptions` (`select.component.ts:142-154`) is a synchronous `computed()`. A worker forces it **async**, which breaks the signals/CVA wiring listed as out of scope (§1).
+- The corpus must live *inside* the worker (load once); `postMessage`-ing the options every keystroke costs more than the search itself.
+- `wasm-bindgen-rayon` needs site-wide `COOP`/`COEP` headers — a deployment constraint a component library cannot impose on consumers.
+
+**When a worker *would* earn its place:** a much larger or continuously-growing corpus where even ~12 ms × frequent updates adds up — e.g. full-text search over documents, not a dropdown. The pattern there is WASM-in-worker, index held in the worker, RPC via Comlink. Out of scope here; noted so the decision isn't re-litigated.
+
+---
+
+## 6. What to *not* port
 
 - **Virtual scroll math.** The CDK already handles viewport clipping; Rust adds nothing.
 - **Grouping** (`:181-195`). Buckets a small filtered list into `Map<string, SelectOption[]>`. Microseconds. Stays.
@@ -113,7 +127,7 @@ User-visible win: country pickers, currency selectors, big tag dropdowns stop dr
 
 ---
 
-## 6. Risks and mitigations
+## 7. Risks and mitigations
 
 | Risk | Mitigation |
 |------|------------|
@@ -123,7 +137,7 @@ User-visible win: country pickers, currency selectors, big tag dropdowns stop dr
 
 ---
 
-## 7. Phased rollout
+## 8. Phased rollout
 
 Coordinated with `hk-command-palette`. Engine ships once.
 
@@ -135,7 +149,7 @@ The select adoption is downstream of the palette's; the palette is the engine's 
 
 ---
 
-## 8. See also
+## 9. See also
 
 - `command-palette/RUST_ENGINE.md` — engine architecture, data model, WASM API, algorithms
 - `tree/RUST_ENGINE.md` — same indices-not-rows pattern applied to hierarchical data

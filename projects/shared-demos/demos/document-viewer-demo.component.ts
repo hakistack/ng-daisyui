@@ -3,12 +3,18 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 
-import { DocumentSource, DocumentViewerComponent, getSupportedExtensions, resolveFormat } from '@hakistack/ng-daisyui';
+import {
+  DocumentSource,
+  DocumentViewerComponent,
+  createDocumentEditor,
+  getSupportedExtensions,
+  resolveFormat,
+} from '@hakistack/ng-daisyui';
 
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 
-type DocumentViewerTab = 'basic' | 'spreadsheet' | 'image' | 'switching';
+type DocumentViewerTab = 'basic' | 'spreadsheet' | 'image' | 'switching' | 'editor';
 
 /**
  * Sample URLs for the format-dispatch tab.
@@ -25,6 +31,26 @@ const SAMPLE_IMG =
   'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png';
 const SAMPLE_TEXT =
   'data:text/plain;charset=utf-8,Hello%20from%20hk-document-viewer.%0AThis%20is%20a%20plain-text%20document.%0AThe%20text%20renderer%20handles%20.txt%2C%20.md%2C%20.csv%2C%20.log%2C%20.html.';
+const SAMPLE_MD = `data:text/markdown;charset=utf-8,${encodeURIComponent(
+  [
+    '# Meeting notes',
+    '',
+    'Edit the **left** pane and watch the *preview* update live.',
+    '',
+    '- Undo / Redo via the toolbar',
+    '- Save → bytes round-trip',
+    '',
+    '> Markdown is rendered by an in-house subset renderer.',
+    '',
+    '```',
+    'const x = 1 < 2;',
+    '```',
+    '',
+  ].join('\n'),
+)}`;
+const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
+  ['name,role,city', 'Ada,Engineer,London', 'Grace,Admiral,"New York"', 'Linus,Maintainer,Helsinki'].join('\n'),
+)}`;
 
 @Component({
   selector: 'app-document-viewer-demo',
@@ -141,6 +167,37 @@ const SAMPLE_TEXT =
             }
           </app-doc-section>
         }
+
+        @if (activeTab() === 'editor') {
+          <app-doc-section
+            title="Edit mode (Phase 0 — Text slice)"
+            description='The same facade flips editable with mode="edit" + a createDocumentEditor controller. Edit the text, drive Undo/Redo and Save from the shared shell toolbar, Export downloads the round-tripped bytes, and Done toggles back to the read-only renderer.'
+            [codeExample]="editorCode"
+          >
+            <div class="flex flex-wrap gap-2 items-center mb-3">
+              <button class="btn btn-sm" (click)="loadEditorSample(SAMPLE_MD, 'notes.md')">Markdown</button>
+              <button class="btn btn-sm" (click)="loadEditorSample(SAMPLE_CSV, 'data.csv')">CSV</button>
+              <button class="btn btn-sm" (click)="loadEditorSample(SAMPLE_TEXT, 'notes.txt')">Plain text</button>
+              <button class="btn btn-sm" (click)="clear()">Clear</button>
+            </div>
+            @if (currentSource(); as src) {
+              <hk-document-viewer [src]="src" [config]="viewerConfig()" mode="edit" [editor]="docEditor" />
+              <div class="text-xs text-base-content/60 mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                <span><strong>Dirty:</strong> {{ docEditor.isDirty() }}</span>
+                <span><strong>Can undo:</strong> {{ docEditor.canUndo() }}</span>
+                <span><strong>Can redo:</strong> {{ docEditor.canRedo() }}</span>
+              </div>
+              @if (lastSaved(); as saved) {
+                <div class="mt-2">
+                  <div class="text-xs text-base-content/50 mb-1">Last save (decoded bytes from the controller's onSave):</div>
+                  <pre class="bg-base-200 rounded p-3 text-xs whitespace-pre-wrap break-words">{{ saved }}</pre>
+                </div>
+              }
+            } @else {
+              <div class="text-base-content/40 text-sm py-12 text-center">Load the sample note above to start editing.</div>
+            }
+          </app-doc-section>
+        }
       </div>
     </app-demo-page>
   `,
@@ -149,6 +206,20 @@ export class DocumentViewerDemoComponent {
   readonly SAMPLE_PDF = SAMPLE_PDF;
   readonly SAMPLE_IMG = SAMPLE_IMG;
   readonly SAMPLE_TEXT = SAMPLE_TEXT;
+  readonly SAMPLE_MD = SAMPLE_MD;
+  readonly SAMPLE_CSV = SAMPLE_CSV;
+
+  /** Decoded bytes from the most recent save — proves the round-trip. */
+  readonly lastSaved = signal<string | null>(null);
+
+  /**
+   * Editor controller for the edit-mode tab. Safe as a field initializer:
+   * `createDocumentEditor` only builds signals/computeds — no `inject()`.
+   */
+  readonly docEditor = createDocumentEditor({
+    filename: 'notes.md',
+    onSave: (bytes) => this.lastSaved.set(new TextDecoder().decode(bytes)),
+  });
 
   /**
    * Three accept lists demonstrate two patterns:
@@ -204,6 +275,12 @@ export class DocumentViewerDemoComponent {
     this.currentFilename.set(filename);
   }
 
+  /** Load an editor sample and clear the previous save preview. */
+  loadEditorSample(url: string, filename: string): void {
+    this.lastSaved.set(null);
+    this.loadSample(url, filename);
+  }
+
   clear(): void {
     this.currentSource.set(null);
     this.currentFilename.set(null);
@@ -220,4 +297,20 @@ loadXlsx(): void {
 @if (currentSource(); as src) {
   <hk-document-viewer [src]="src" [config]="{ filename: 'sample.xlsx' }" />
 }`;
+
+  readonly editorCode = `// Class
+docEditor = createDocumentEditor({
+  filename: 'notes.md',
+  onSave: (bytes) => this.api.upload(bytes), // round-tripped to original format
+});
+src = signal<DocumentSource>('/notes.md');
+
+// Template — same facade, now editable
+@if (src(); as s) {
+  <hk-document-viewer [src]="s" mode="edit" [editor]="docEditor" />
+}
+
+// Anywhere in the class
+this.docEditor.undo();
+await this.docEditor.save();`;
 }

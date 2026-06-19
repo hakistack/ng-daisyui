@@ -1,4 +1,4 @@
-<div class="relative w-full" #dropdownRoot>
+<div class="relative w-full" #dropdownRoot cdkOverlayOrigin #selectOrigin="cdkOverlayOrigin">
   <!-- Main Input -->
   <div
     [class]="inputClasses()"
@@ -100,15 +100,22 @@
       </svg>
     }
   </div>
+</div>
 
-  <!-- Dropdown Container -->
-  <div
-    class="dropdown-container bg-base-100 border-base-300 rounded-box absolute inset-x-0 z-20 mt-1 flex flex-col border shadow transition-all duration-200 ease-out"
-    [class.dropdown-open]="dropdownOpen()"
-    [class.dropdown-closed]="!dropdownOpen()"
-    role="dialog"
-    aria-label="Options"
-  >
+<!-- Dropdown panel — teleported to the CDK overlay layer so it floats above the
+     page, auto-flips between bottom/top, and follows the trigger on scroll. -->
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="selectOrigin"
+  [cdkConnectedOverlayOpen]="dropdownOpen()"
+  [cdkConnectedOverlayPositions]="overlayPositions"
+  [cdkConnectedOverlayWidth]="triggerWidth()"
+  [cdkConnectedOverlayScrollStrategy]="scrollStrategy"
+  [cdkConnectedOverlayPush]="true"
+  (overlayOutsideClick)="onOverlayOutsideClick($event)"
+  (detach)="closeDropdown()"
+>
+  <div class="dropdown-container bg-base-100 border-base-300 rounded-box flex flex-col border shadow" role="dialog" aria-label="Options">
     <!-- Search Input -->
     @if (enableSearch()) {
       <div class="border-base-300 flex-none border-b p-3">
@@ -348,4 +355,4 @@
       </div>
     }
   </div>
-</div>
+</ng-template>

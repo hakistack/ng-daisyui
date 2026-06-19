@@ -219,23 +219,29 @@
           </summary>
           <ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] w-52 p-2 shadow border border-base-300">
             <li class="@sm:hidden">
-              <a [class.menu-disabled]="!showPages() || (state()?.page ?? 0) <= 1" (click)="toolbarFirst(); overflowMenu.open = false">
+              <button
+                type="button"
+                [disabled]="!showPages() || (state()?.page ?? 0) <= 1"
+                (click)="toolbarFirst(); overflowMenu.open = false"
+              >
                 <svg lucideChevronsLeft [size]="14"></svg>
                 {{ labels().firstPage }}
-              </a>
+              </button>
             </li>
             <li class="@sm:hidden">
-              <a
-                [class.menu-disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
+              <button
+                type="button"
+                [disabled]="!showPages() || (state()?.page ?? 0) >= (state()?.numPages ?? 0)"
                 (click)="toolbarLast(); overflowMenu.open = false"
               >
                 <svg lucideChevronsRight [size]="14"></svg>
                 {{ labels().lastPage }}
-              </a>
+              </button>
             </li>
             <li class="@md:hidden">
-              <a
-                [class.menu-disabled]="!showPages()"
+              <button
+                type="button"
+                [disabled]="!showPages()"
                 (click)="toolbarMode(state()?.mode === 'continuous' ? 'single' : 'continuous'); overflowMenu.open = false"
               >
                 @if (state()?.mode === 'continuous') {
@@ -245,25 +251,25 @@
                   <svg lucideScrollText [size]="14"></svg>
                   Continuous
                 }
-              </a>
+              </button>
             </li>
             <li>
-              <a [class.menu-disabled]="!showPages()" (click)="toolbarPrint(); overflowMenu.open = false">
+              <button type="button" [disabled]="!showPages()" (click)="toolbarPrint(); overflowMenu.open = false">
                 <svg lucidePrinter [size]="14"></svg>
                 {{ labels().print }}
-              </a>
+              </button>
             </li>
             <li>
-              <a [class.menu-disabled]="!showPages()" (click)="toolbarDownload(); overflowMenu.open = false">
+              <button type="button" [disabled]="!showPages()" (click)="toolbarDownload(); overflowMenu.open = false">
                 <svg lucideDownload [size]="14"></svg>
                 {{ labels().download }}
-              </a>
+              </button>
             </li>
             <li>
-              <a [class.menu-disabled]="!showPages()" (click)="toolbarFullscreen(); overflowMenu.open = false">
+              <button type="button" [disabled]="!showPages()" (click)="toolbarFullscreen(); overflowMenu.open = false">
                 <svg lucideMaximize [size]="14"></svg>
                 {{ labels().fullscreen }}
-              </a>
+              </button>
             </li>
           </ul>
         </details>
@@ -383,7 +389,7 @@
         } @else {
           @if (pageNumbers().length > 0) {
             <div
-              class="flex flex-col items-center gap-4"
+              class="hk-pdf-page-stack flex flex-col items-center gap-4"
               role="document"
               aria-label="PDF document"
               [class.invisible]="!firstRenderComplete()"
@@ -523,30 +529,32 @@
           </div>
 
           <div #thumbnailPanel class="flex-1 overflow-auto" role="tabpanel">
-            @switch (state()?.sidebarTab ?? 'thumbnails') {
-              @case ('thumbnails') {
-                @if (pageNumbers().length > 0) {
-                  <ul class="flex flex-col gap-2 items-center p-2">
-                    @for (n of pageNumbers(); track n) {
-                      <li>
-                        <button
-                          type="button"
-                          class="hk-pdf-thumbnail"
-                          [class.hk-pdf-thumbnail-active]="state()?.page === n"
-                          [attr.aria-label]="thumbnailAriaLabel(n)"
-                          [attr.aria-current]="state()?.page === n ? 'page' : null"
-                          (click)="goToPagePublic(n)"
-                        >
-                          <canvas [attr.data-thumb-page]="n"></canvas>
-                          <span class="text-xs text-base-content/70 mt-1">{{ n }}</span>
-                        </button>
-                      </li>
-                    }
-                  </ul>
-                } @else {
-                  <div class="text-xs text-base-content/40 italic p-4 text-center">{{ labels().loading }}</div>
-                }
+            <!-- Thumbnails stay mounted (just hidden) so their rendered canvases
+                 persist across tab switches — re-entry is instant, no re-raster. -->
+            <div [hidden]="(state()?.sidebarTab ?? 'thumbnails') !== 'thumbnails'">
+              @if (pageNumbers().length > 0) {
+                <ul class="flex flex-col gap-2 items-center p-2">
+                  @for (n of pageNumbers(); track n) {
+                    <li>
+                      <button
+                        type="button"
+                        class="hk-pdf-thumbnail"
+                        [class.hk-pdf-thumbnail-active]="state()?.page === n"
+                        [attr.aria-label]="thumbnailAriaLabel(n)"
+                        [attr.aria-current]="state()?.page === n ? 'page' : null"
+                        (click)="goToPagePublic(n)"
+                      >
+                        <canvas [attr.data-thumb-page]="n"></canvas>
+                        <span class="text-xs text-base-content/70 mt-1">{{ n }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div class="text-xs text-base-content/40 italic p-4 text-center">{{ labels().loading }}</div>
               }
+            </div>
+            @switch (state()?.sidebarTab) {
               @case ('bookmarks') {
                 @if (outline() === null) {
                   <div class="text-xs text-base-content/40 italic p-4 text-center">{{ labels().loading }}</div>
@@ -627,7 +635,7 @@
         } @else {
           @if (pageNumbers().length > 0) {
             <div
-              class="flex flex-col items-center gap-4"
+              class="hk-pdf-page-stack flex flex-col items-center gap-4"
               role="document"
               aria-label="PDF document"
               [class.invisible]="!firstRenderComplete()"
@@ -668,7 +676,7 @@
      the PDF's outline as a daisyUI menu. Each node may have children. -->
 <ng-template #outlineNode let-node>
   <li>
-    <a (click)="outlineGoto(node)">{{ node.title || '(untitled)' }}</a>
+    <button type="button" (click)="outlineGoto(node)">{{ node.title || '(untitled)' }}</button>
     @if (node.items?.length) {
       <ul>
         @for (child of node.items; track $index) {

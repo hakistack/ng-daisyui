@@ -61,6 +61,21 @@ export interface HkPdfDefaults {
   readonly workerSrc?: string;
 
   /**
+   * App-wide URL of the bundled off-thread render worker
+   * (`@hakistack/ng-daisyui/workers/pdf-render.worker.mjs`). Only used when
+   * {@link renderPoolSize} > 0 — see the warning there; off-thread rendering is
+   * experimental (text renders as boxes due to a pdf.js worker font limitation)
+   * and off by default.
+   */
+  readonly renderWorkerSrc?: string;
+
+  /**
+   * Off-thread render pool size. **Defaults to `0` (main-thread).** Experimental
+   * when `> 0` — see {@link PdfViewerConfig.renderPoolSize}. Clamped to 1–4.
+   */
+  readonly renderPoolSize?: number;
+
+  /**
    * Maximum canvas pixel area (width × height) for any single page. PDF.js
    * default is `2 ** 24` (~16M, ≈4096²). Lower this on memory-constrained
    * devices or when rendering very large multi-page docs; raise it if pages

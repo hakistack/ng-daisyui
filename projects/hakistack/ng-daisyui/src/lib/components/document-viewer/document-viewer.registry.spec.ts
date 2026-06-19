@@ -62,7 +62,7 @@ describe('resolveRenderer', () => {
   });
 
   it('returns null when neither user nor built-in regs claim the format', () => {
-    const userRegs: DocumentRendererRegistration[] = [{ formats: ['document'], component: SpyOverrideRenderer }];
-    expect(resolveRenderer('email', userRegs, BUILT_INS)).toBeNull();
+    const userRegs: DocumentRendererRegistration[] = [{ formats: ['docx'], component: SpyOverrideRenderer }];
+    expect(resolveRenderer('epub', userRegs, BUILT_INS)).toBeNull();
   });
 });

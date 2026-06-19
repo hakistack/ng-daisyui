@@ -29,12 +29,22 @@ const GROUPED_OPTIONS: SelectOption[] = [
   { value: 'broccoli', label: 'Broccoli', group: 'Vegetables' },
 ];
 
+/**
+ * The dropdown panel renders in the CDK overlay container (teleported to the
+ * body), not inside the fixture element — so panel queries must look there too.
+ * Trigger-side elements still live in the fixture.
+ */
+function overlayRoot(): HTMLElement {
+  return (document.querySelector('.cdk-overlay-container') as HTMLElement | null) ?? document.body;
+}
+
 function queryAll(fixture: ComponentFixture<unknown>, selector: string): HTMLElement[] {
-  return Array.from(fixture.nativeElement.querySelectorAll(selector));
+  const inFixture = Array.from(fixture.nativeElement.querySelectorAll(selector)) as HTMLElement[];
+  return inFixture.length ? inFixture : (Array.from(overlayRoot().querySelectorAll(selector)) as HTMLElement[]);
 }
 
 function query(fixture: ComponentFixture<unknown>, selector: string): HTMLElement | null {
-  return fixture.nativeElement.querySelector(selector);
+  return fixture.nativeElement.querySelector(selector) ?? overlayRoot().querySelector(selector);
 }
 
 /** Open the dropdown by clicking the main input container. */
@@ -1662,7 +1672,7 @@ describe('SelectComponent', () => {
   // Document click outside (close dropdown)
   // -------------------------------------------------------------------------
 
-  describe('document click outside', () => {
+  describe('overlay outside click', () => {
     beforeEach(() => {
       fixture.componentRef.setInput('options', MOCK_OPTIONS);
       fixture.detectChanges();
@@ -1672,23 +1682,24 @@ describe('SelectComponent', () => {
       openDropdown(fixture);
       expect(component.dropdownOpen()).toBe(true);
 
-      // Simulate a click outside the dropdown root
+      // Click outside both the trigger and the overlay panel.
       const outsideEvent = new MouseEvent('click', { bubbles: true });
       Object.defineProperty(outsideEvent, 'target', { value: document.body });
-      component.onDocumentClick(outsideEvent);
+      component.onOverlayOutsideClick(outsideEvent);
 
       expect(component.dropdownOpen()).toBe(false);
     });
 
-    it('should not close dropdown on click inside', () => {
+    it('should not close dropdown on click inside the trigger', () => {
       openDropdown(fixture);
       expect(component.dropdownOpen()).toBe(true);
 
-      // Simulate a click inside the dropdown root
-      const dropdownEl = fixture.nativeElement.querySelector('.relative') as HTMLElement;
+      // Click on the trigger root — toggleDropdown owns that case, so the
+      // outside-click handler must ignore it.
+      const triggerEl = fixture.nativeElement.querySelector('.relative') as HTMLElement;
       const insideEvent = new MouseEvent('click', { bubbles: true });
-      Object.defineProperty(insideEvent, 'target', { value: dropdownEl });
-      component.onDocumentClick(insideEvent);
+      Object.defineProperty(insideEvent, 'target', { value: triggerEl });
+      component.onOverlayOutsideClick(insideEvent);
 
       expect(component.dropdownOpen()).toBe(true);
     });
@@ -1699,7 +1710,7 @@ describe('SelectComponent', () => {
       // This should be a no-op
       const event = new MouseEvent('click', { bubbles: true });
       Object.defineProperty(event, 'target', { value: document.body });
-      component.onDocumentClick(event);
+      component.onOverlayOutsideClick(event);
 
       expect(component.dropdownOpen()).toBe(false);
     });
@@ -1739,8 +1750,8 @@ describe('SelectComponent (FormControl integration)', () => {
     inputDiv.click();
     hostFixture.detectChanges();
 
-    // Click first option
-    const buttons = Array.from(hostFixture.nativeElement.querySelectorAll('[role="option"] button')) as HTMLElement[];
+    // Click first option (rendered in the CDK overlay, not the host element)
+    const buttons = queryAll(hostFixture, '[role="option"] button');
     buttons[0].click();
     hostFixture.detectChanges();
 

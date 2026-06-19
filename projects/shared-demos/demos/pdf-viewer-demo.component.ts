@@ -29,10 +29,8 @@ const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemon
               description="Pass a URL via [src] and a controller config via [config]. Component takes care of the rest."
               [codeExample]="basicCode"
             >
-              <hk-pdf-viewer [src]="pdfUrl()" [config]="basicViewer.config()" />
-              <div class="mt-3 text-xs text-base-content/60">
-                <strong>Status:</strong> Phase 1 scaffolding — component renders a loading placeholder. Rendering implementation follows in
-                the next commit.
+              <div class="h-[75vh]">
+                <hk-pdf-viewer [src]="pdfUrl()" [config]="basicViewer.config()" />
               </div>
             </app-doc-section>
 
@@ -46,6 +44,23 @@ const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemon
                 <pre class="bg-base-200 p-2 rounded text-xs mt-1 overflow-x-auto">{{ pdfUrl() || '(empty)' }}</pre>
               </div>
             </app-doc-section>
+
+            <app-doc-section
+              title="Off-thread rendering (experimental — known limitation)"
+              description="Toggling ON routes raster through an OffscreenCanvas worker pool. ⚠️ pdf.js renders text via the main-thread document's font machinery, which a Web Worker lacks — so ON currently draws glyphs as boxes. Kept here to demonstrate why it's off by default; true off-thread raster needs a self-rasterizing engine (pdfium/Rust)."
+            >
+              <div class="flex flex-wrap items-center gap-3 mb-3">
+                <button class="btn btn-sm" [class.btn-primary]="perfPoolOn()" (click)="togglePerfPool()">
+                  Off-thread rendering: {{ perfPoolOn() ? 'ON (2 workers)' : 'OFF (main thread)' }}
+                </button>
+                <span class="text-xs text-base-content/60">renderPoolSize: {{ perfPoolOn() ? 2 : 0 }}</span>
+              </div>
+              @if (perfMounted()) {
+                <div class="h-[75vh]">
+                  <hk-pdf-viewer [src]="pdfUrl()" [config]="perfViewer().config()" />
+                </div>
+              }
+            </app-doc-section>
           </div>
         }
 
@@ -56,7 +71,9 @@ const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemon
               description="Methods on the controller returned by createPdfViewer() — call them anywhere, no @ViewChild needed."
               [codeExample]="controllerCode"
             >
-              <hk-pdf-viewer [src]="pdfUrl()" [config]="basicViewer.config()" />
+              <div class="h-[75vh]">
+                <hk-pdf-viewer [src]="pdfUrl()" [config]="basicViewer.config()" />
+              </div>
               <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <button class="btn btn-sm" (click)="basicViewer.firstPage()">First</button>
                 <button class="btn btn-sm" (click)="basicViewer.previousPage()">Previous</button>
@@ -257,6 +274,35 @@ export class PdfViewerDemoComponent {
     mode: 'single',
     zoom: 'fit-page',
   });
+
+  // ── Off-thread rendering A/B ──────────────────────────────────────────────
+  // The render worker is served as a static asset from the demo's public/ dir
+  // (mirrored there by scripts/build-render-worker.mjs). Toggling recreates the
+  // controller + remounts the viewer so loadDocument re-inits (or tears down)
+  // the worker pool.
+  readonly perfPoolOn = signal(false);
+  readonly perfMounted = signal(true);
+  readonly perfViewer = signal(this.makePerfViewer(false));
+
+  private makePerfViewer(poolOn: boolean): ReturnType<typeof createPdfViewer> {
+    return createPdfViewer({
+      zoom: 'fit-width',
+      mode: 'continuous',
+      renderPoolSize: poolOn ? 2 : 0,
+      renderWorkerSrc: '/pdf-render.worker.mjs',
+      onError: (e) => console.error('[pdf-viewer-demo perf] error:', e),
+    });
+  }
+
+  togglePerfPool(): void {
+    const next = !this.perfPoolOn();
+    this.perfPoolOn.set(next);
+    this.perfViewer.set(this.makePerfViewer(next));
+    // Remount so the viewer re-runs loadDocument (which wires up / tears down
+    // the worker pool) rather than just swapping the config.
+    this.perfMounted.set(false);
+    setTimeout(() => this.perfMounted.set(true));
+  }
 
   readonly minimalViewer = createPdfViewer({
     showToolbar: false,

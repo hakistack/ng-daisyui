@@ -113,6 +113,8 @@ export interface DayCell {
   isToday: boolean;
   /** Whether this date is currently selected */
   isSelected: boolean;
+  /** Whether this date currently holds keyboard focus (roving tabindex) */
+  isFocused: boolean;
   /** Whether this date falls within the selected range */
   isInRange: boolean;
   /** Whether this date is the start of the selected range */

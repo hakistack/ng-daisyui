@@ -1,0 +1,38 @@
+{
+  "name": "@hakistack/i18n",
+  "version": "0.1.0",
+  "description": "TypeScript-first, build-time-generated, type-safe i18n layer for Angular on top of Transloco. Author translations in .ts, get typed keys and JSON for free.",
+  "author": "Hakistack",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hakistack/i18n.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.hakistack.dev/"
+  },
+  "keywords": [
+    "angular",
+    "i18n",
+    "transloco",
+    "translations",
+    "type-safe",
+    "codegen"
+  ],
+  "bin": {
+    "hakistack-i18n": "./cli/bin.cjs"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0",
+    "@angular/core": ">=21.0.0",
+    "@jsverse/transloco": "^8.2.0",
+    "rxjs": ">=7.8.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "optionalDependencies": {
+    "chokidar": "^5.0.0"
+  },
+  "sideEffects": false
+}

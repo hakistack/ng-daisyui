@@ -3,7 +3,7 @@
  */
 import type { LucideIcon } from '@lucide/angular';
 
-export type EditorToolbarPreset = 'full' | 'basic' | 'minimal' | 'none';
+export type EditorToolbarPreset = 'full' | 'basic' | 'minimal' | 'none' | 'document';
 
 export type EditorToolbarItem =
   | 'bold'
@@ -23,6 +23,11 @@ export type EditorToolbarItem =
   | 'horizontalRule'
   | 'undo'
   | 'redo'
+  // Document-level actions — used by the document-editor shell toolbar. The
+  // rich-text editor's own presets don't reference these, so it is unaffected.
+  | 'save'
+  | 'export'
+  | 'print'
   | 'divider';
 
 /**

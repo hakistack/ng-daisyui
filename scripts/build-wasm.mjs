@@ -156,3 +156,19 @@ buildBundle({
     resolve(ROOT, 'projects/demo-v4/public'),
   ],
 });
+
+// ─── pdf_engine bundle (pdfium-render bindings — the PDFium PDF engine) ──────
+// This emits the *bindings* glue only; the actual PDFium engine ships as a
+// separate vendored `pdfium.wasm` loaded at runtime (paulocoutinhox/pdfium-lib,
+// growable heap). See PDFIUM_ENGINE.md. Built by the pipeline now; the loader/
+// worker that import it land in Phase 1 (until then it's tree-shaken out).
+buildBundle({
+  cratePath:     'crates/pdf-engine',
+  pkgDirName:    'pkg-pdf',
+  bundleName:    'pdf_engine',
+  libSubdir:     'pdf',
+  publicTargets: [
+    resolve(ROOT, 'projects/demo/public'),
+    resolve(ROOT, 'projects/demo-v4/public'),
+  ],
+});

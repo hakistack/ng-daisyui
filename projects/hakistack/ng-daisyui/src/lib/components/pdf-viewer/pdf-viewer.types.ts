@@ -96,6 +96,31 @@ export interface PdfViewerConfig {
    */
   readonly workerSrc?: string;
 
+  /**
+   * Number of off-main-thread render workers. **Defaults to `0` (main-thread
+   * rendering).**
+   *
+   * ⚠️ Experimental: pdf.js rasterizes text using the main-thread document's
+   * font machinery, which isn't available inside a Web Worker — so off-thread
+   * rendering (`> 0`) currently draws glyphs as `.notdef` boxes. Left here for
+   * experimentation; true off-thread raster needs a self-rasterizing engine
+   * (pdfium/Rust). Also requires {@link renderWorkerSrc} + `OffscreenCanvas`.
+   * Clamped to 1–4; falls back to main thread if the worker can't load.
+   */
+  readonly renderPoolSize?: number;
+
+  /**
+   * URL of the bundled render worker asset shipped with the library
+   * (`@hakistack/ng-daisyui/workers/pdf-render.worker.mjs`). ng-packagr can't
+   * bundle workers, so the library can't auto-resolve it — provide it per
+   * instance or app-wide via `provideHkPdfDefaults`. Without it, rendering
+   * stays on the main thread.
+   *
+   * @example
+   *   renderWorkerSrc: new URL('@hakistack/ng-daisyui/workers/pdf-render.worker.mjs', import.meta.url).href
+   */
+  readonly renderWorkerSrc?: string;
+
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 
   /** Fires once the document is parsed and ready to render. */

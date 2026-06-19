@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
 
 import { ImageEngineService } from '../../../services/image-engine.service';
 import { LibheifService } from '../../../services/libheif.service';
@@ -61,7 +61,12 @@ export class DocumentImageSpecialRenderer {
 
     effect(() => {
       const src = this.source();
-      void this.decode(src);
+      this.format();
+      // `decode()` reads and writes the renderer's own signals (objectUrl via
+      // revoke, loading, error). Run it untracked so the effect depends only on
+      // `source()`/`format()` — otherwise the objectUrl write would re-trigger
+      // the effect and loop forever.
+      untracked(() => void this.decode(src));
     });
 
     destroyRef.onDestroy(() => this.revokeObjectUrl());

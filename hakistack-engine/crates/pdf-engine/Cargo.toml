@@ -1,0 +1,32 @@
+[package]
+name = "pdf-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "pdf_engine"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+# PDFium wrapper. `default-features = false` drops the heavy `image` crate
+# (we read raw RGBA straight out of the PDFium bitmap) and keeps only the
+# version-matched FFI surface. `pdfium_latest` must match the vendored
+# pdfium.wasm build (see PDFIUM_ENGINE.md).
+pdfium-render = { version = "0.8.37", default-features = false, features = ["pdfium_latest"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1"
+
+# Match the other wasm crates' wasm-opt config. pdfium-render emits bulk-memory
+# ops (memory.fill/copy), so the default `wasm-opt -O` pass fails to validate
+# the input without these feature flags enabled.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O3", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false

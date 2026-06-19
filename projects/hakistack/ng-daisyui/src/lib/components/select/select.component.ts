@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
+import { ConnectedPosition, Overlay, OverlayModule } from '@angular/cdk/overlay';
 import { createFuseCache, FuseCache } from '../../utils/fuse-cache';
 import { FuzzyEngineService, FuzzyHandle } from '../../services';
 import { HK_THEME } from '../../theme/theme.config';
@@ -53,7 +54,7 @@ export type SelectColor = 'neutral' | 'primary' | 'secondary' | 'accent' | 'info
 
 @Component({
   selector: 'hk-select',
-  imports: [ScrollingModule, ReactiveFormsModule, FormsModule],
+  imports: [ScrollingModule, ReactiveFormsModule, FormsModule, OverlayModule],
   templateUrl: './select.component.html',
   styleUrl: './select.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -67,15 +68,30 @@ export type SelectColor = 'neutral' | 'primary' | 'secondary' | 'accent' | 'info
 })
 export class SelectComponent implements ControlValueAccessor, OnDestroy {
   private readonly theme = inject(HK_THEME);
+  private readonly overlay = inject(Overlay);
+
+  /** Keep the panel pinned to the trigger as the page scrolls. */
+  readonly scrollStrategy = this.overlay.scrollStrategies.reposition();
+
+  /**
+   * Connected-overlay positions: open below the trigger by default, flip above
+   * when there isn't room. CDK picks the first position that fits the viewport.
+   */
+  readonly overlayPositions: ConnectedPosition[] = [
+    { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: 4 },
+    { originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom', offsetY: -4 },
+  ];
+
+  /** Width handed to the overlay so the panel matches the trigger field. */
+  readonly triggerWidth = signal(0);
 
   private readonly dropdownRoot = viewChild.required<ElementRef<HTMLElement>>('dropdownRoot');
-  private readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
+  private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
   private readonly viewport = viewChild<CdkVirtualScrollViewport>('viewport');
 
   readonly menuActiveClass = this.theme.classes.menuActive;
 
-  // Bound event handlers for proper cleanup
-  private boundDocumentClick = this.onDocumentClick.bind(this);
+  // Bound event handler for proper cleanup (global keyboard navigation).
   private boundDocumentKeydown = this.onDocumentKeydown.bind(this);
   private documentListenersAttached = false;
 
@@ -117,7 +133,11 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     maxDropdownHeight: '16rem',
     searchDebounceMs: 300,
     virtualScrollThreshold: 100,
-    highlightClassName: 'bg-yellow-200 px-1 rounded',
+    // Theme-aware search highlight: a soft tint of the theme's `warning`
+    // token (whatever each theme defines — not a hardcoded Tailwind yellow),
+    // with `text-base-content` so the match stays legible on every theme and
+    // over the normal / menu-active / selected (bg-primary/10) row states.
+    highlightClassName: 'bg-warning/30 text-base-content rounded px-0.5',
   };
 
   // Reactive state
@@ -599,13 +619,15 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   // Event handlers
-  onDocumentClick(event: MouseEvent): void {
-    if (!this.dropdownOpen() || !this.dropdownRoot()?.nativeElement) return;
-
-    const isClickOutside = !this.dropdownRoot().nativeElement.contains(event.target as Node);
-    if (isClickOutside) {
-      this.closeDropdown();
-    }
+  /**
+   * Close when a click lands outside both the trigger and the overlay panel.
+   * Clicks on the trigger are ignored here so `toggleDropdown()` owns that case
+   * (otherwise the click would both close via outside-click and reopen).
+   */
+  onOverlayOutsideClick(event: MouseEvent): void {
+    if (!this.dropdownOpen()) return;
+    if (this.dropdownRoot()?.nativeElement.contains(event.target as Node)) return;
+    this.closeDropdown();
   }
 
   onDocumentKeydown(event: KeyboardEvent): void {
@@ -623,14 +645,14 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   // Private methods
   private addDocumentListeners(): void {
     if (this.documentListenersAttached) return;
-    document.addEventListener('click', this.boundDocumentClick, { passive: true });
+    // Outside-click is handled by the overlay's (overlayOutsideClick); only the
+    // global keydown (arrow/enter/escape navigation) is wired here.
     document.addEventListener('keydown', this.boundDocumentKeydown);
     this.documentListenersAttached = true;
   }
 
   private removeDocumentListeners(): void {
     if (!this.documentListenersAttached) return;
-    document.removeEventListener('click', this.boundDocumentClick);
     document.removeEventListener('keydown', this.boundDocumentKeydown);
     this.documentListenersAttached = false;
   }
@@ -649,7 +671,10 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   private handleDropdownOpen(): void {
-    // Delay adding document listeners to avoid capturing the current click event
+    // Match the overlay panel to the trigger's current width.
+    this.triggerWidth.set(this.dropdownRoot().nativeElement.offsetWidth);
+
+    // Delay adding the keydown listener to avoid capturing the current event.
     requestAnimationFrame(() => {
       this.addDocumentListeners();
     });
@@ -666,12 +691,14 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
         this.viewport()?.scrollToIndex(0);
       }
       if (this.enableSearch()) {
-        this.searchInput().nativeElement.focus();
+        this.searchInput()?.nativeElement.focus();
       }
     });
   }
 
-  private closeDropdown(): void {
+  /** Close the panel. Public so the overlay's `(detach)` can call it. */
+  closeDropdown(): void {
+    if (!this.dropdownOpen()) return;
     this.dropdownOpen.set(false);
     this.dropdownToggle.emit(false);
     this.resetHighlight();

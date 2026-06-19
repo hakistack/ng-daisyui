@@ -1,4 +1,4 @@
-<div class="relative" #tpRoot>
+<div class="relative" #tpRoot cdkOverlayOrigin #tpOrigin="cdkOverlayOrigin">
   <!-- Main Input -->
   <div class="flex items-center">
     <div class="relative flex-1">
@@ -96,11 +96,21 @@
     </div>
   }
 
-  <!-- Timepicker Dropdown -->
-  @if (isOpen()) {
+  <!-- Timepicker Dropdown — teleported to the CDK overlay layer so it floats
+       above the page, auto-flips between bottom/top, and follows the field on scroll. -->
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="tpOrigin"
+    [cdkConnectedOverlayOpen]="isOpen()"
+    [cdkConnectedOverlayPositions]="overlayPositions()"
+    [cdkConnectedOverlayScrollStrategy]="scrollStrategy"
+    [cdkConnectedOverlayPush]="true"
+    (overlayOutsideClick)="onOverlayOutsideClick($event)"
+    (detach)="closePicker()"
+  >
     <div
       [id]="inputId() + '-dialog'"
-      [class]="dropdownClasses()"
+      [class]="dropdownClasses"
       [style.min-width]="minWidth()"
       role="dialog"
       [attr.aria-label]="placeholder()"
@@ -478,5 +488,5 @@
         <button type="button" class="btn btn-ghost btn-sm" (click)="closePicker()">{{ closeLabel() }}</button>
       </div>
     </div>
-  }
+  </ng-template>
 </div>

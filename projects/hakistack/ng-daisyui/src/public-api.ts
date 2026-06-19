@@ -329,6 +329,40 @@ export {
 export { ImageEngineService, HK_IMAGE_ENGINE_WASM_URL, provideImageEngineWasmUrl } from './lib/services/image-engine.service';
 export { LibheifService } from './lib/services/libheif.service';
 
+// Document Editor — turns the viewer facade editable (mode="edit"). Phase 0:
+// foundation + Text vertical slice. createDocumentEditor mirrors createPdfViewer.
+export { createDocumentEditor } from './lib/components/document-editor/document-editor.helpers';
+export { resolveEditor, resolveSerializer } from './lib/components/document-editor/document-editor.registry';
+export { DocumentEditorShellComponent } from './lib/components/document-editor/document-editor-shell.component';
+export {
+  DocumentTextEditor,
+  DocumentPlainTextEditor,
+  DocumentMarkdownEditor,
+  DocumentCsvEditor,
+  BUILT_IN_EDITORS,
+  loadTextSource,
+  renderMarkdown,
+  escapeHtml,
+  sanitizeMarkdownHtml,
+  parseCsv,
+  serializeCsv,
+  type ParsedCsv,
+} from './lib/components/document-editor/editors';
+export { serializeText, BUILT_IN_SERIALIZERS } from './lib/components/document-editor/serializers';
+export type {
+  DocumentEditorMode,
+  ExportTarget,
+  DocumentEditorController,
+  DocumentEditorConfig,
+  DocumentEditorInputs,
+  DocumentEditorBridge,
+  DocumentEditorRegistration,
+  DocumentSerializerRegistration,
+  DocumentSerialize,
+} from './lib/components/document-editor/document-editor.types';
+export { CommandStack, type EditorCommand } from './lib/utils/command-stack';
+// Note: EditorToolbarComponent + toolbar types are exported above with the editor.
+
 // PDF Viewer
 export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';

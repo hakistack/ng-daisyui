@@ -193,7 +193,7 @@ export class InstallationComponent {
     },
     {
       q: 'Theme not applying',
-      a: 'Verify that data-theme is set on your <html> or root element. For custom themes (kaizen, obsidian), make sure you imported the corresponding CSS file.',
+      a: 'Verify that data-theme is set on your <html> or root element. For the custom kaizen theme, make sure you imported the corresponding CSS file.',
     },
   ];
 
@@ -210,11 +210,9 @@ export class InstallationComponent {
 /* Library styles */
 @import "@hakistack/ng-daisyui";
 
-/* Optional: Custom themes */
+/* Optional: Custom kaizen theme */
 @import "@hakistack/ng-daisyui/themes/kaizen";
-@import "@hakistack/ng-daisyui/themes/kaizen-light";
-@import "@hakistack/ng-daisyui/themes/obsidian";
-@import "@hakistack/ng-daisyui/themes/obsidian-light";`;
+@import "@hakistack/ng-daisyui/themes/kaizen-light";`;
 
   themeCode = `<!-- index.html -->
 <html data-theme="kaizen">

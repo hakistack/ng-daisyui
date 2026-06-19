@@ -7,59 +7,23 @@ cdk-virtual-scroll-viewport {
 :host {
   display: block;
   width: 100%;
-
-  --dropdown-max-height: 25rem;
-  --dropdown-border-radius: 0.5rem;
-  --dropdown-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --transition-duration: 150ms;
-  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
-  --scale-from: 0.95;
-  --scale-to: 1;
-  --opacity-from: 0;
-  --opacity-to: 1;
 }
 
-.dropdown-container {
-  left: 0;
-  right: 0;
-  border-radius: var(--dropdown-border-radius);
-  box-shadow: var(--dropdown-shadow);
-  transform-origin: top center;
-  will-change: opacity, transform, max-height;
-  opacity: var(--opacity-from);
-  transform: scaleY(var(--scale-from));
-  max-height: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 1000;
-  isolation: isolate;
-  scrollbar-width: thin;
-  scrollbar-color: var(--hk-color-base-content-20) transparent;
-  transition:
-    opacity var(--transition-duration) var(--transition-timing),
-    transform var(--transition-duration) var(--transition-timing),
-    max-height var(--transition-duration) var(--transition-timing);
-}
-
-.dropdown-container.dropdown-open {
-  opacity: var(--opacity-to);
-  transform: scaleY(var(--scale-to));
-  max-height: var(--dropdown-max-height);
-  pointer-events: auto;
-}
-
-.dropdown-container.dropdown-closed {
-  opacity: var(--opacity-from);
-  transform: scaleY(var(--scale-from));
-  max-height: 0;
-  pointer-events: none;
-}
+/*
+ * The dropdown panel's base look + reveal animation live in the global
+ * `styles.css` (`.dropdown-container`) so they survive being teleported into
+ * the CDK overlay layer — where `:host` custom properties no longer cascade.
+ *
+ * The rules below are scoped extras that still match the teleported panel via
+ * emulated-encapsulation attributes. They use the global `--hk-*` variables,
+ * which DO reach the panel because they're defined on `:root`.
+ */
 
 .menu li > a {
   transition:
-    background-color var(--transition-duration) var(--transition-timing),
-    color var(--transition-duration) var(--transition-timing),
-    transform 100ms var(--transition-timing);
+    background-color var(--hk-transition-duration) var(--hk-transition-timing),
+    color var(--hk-transition-duration) var(--hk-transition-timing),
+    transform 100ms var(--hk-transition-timing);
   border-radius: 0.25rem;
   margin: 0 0.25rem;
   transform: translateZ(0);
@@ -67,8 +31,8 @@ cdk-virtual-scroll-viewport {
 
 .dropdown-container .input {
   transition:
-    border-color var(--transition-duration) var(--transition-timing),
-    box-shadow var(--transition-duration) var(--transition-timing);
+    border-color var(--hk-transition-duration) var(--hk-transition-timing),
+    box-shadow var(--hk-transition-duration) var(--hk-transition-timing);
 }
 
 .dropdown-container .input:focus-within {
@@ -88,7 +52,7 @@ cdk-virtual-scroll-viewport {
 }
 
 .dropdown-container .text-center {
-  animation: fadeInUp 200ms var(--transition-timing);
+  animation: fadeInUp 200ms var(--hk-transition-timing);
 }
 
 .dropdown-container ::-webkit-scrollbar {
@@ -112,28 +76,7 @@ cdk-virtual-scroll-viewport {
   scroll-behavior: smooth;
 }
 
-@media (max-width: 640px) {
-  :host {
-    --dropdown-max-height: 50vh;
-  }
-
-  .dropdown-container {
-    --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  }
-}
-
-@media (min-width: 641px) {
-  :host {
-    --dropdown-max-height: min(25rem, 50vh);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  :host {
-    --transition-duration: 0ms;
-  }
-
-  .dropdown-container,
   .menu li > a,
   .dropdown-container .input {
     transition: none;
@@ -149,21 +92,9 @@ cdk-virtual-scroll-viewport {
 }
 
 @media (prefers-contrast: high) {
-  .dropdown-container {
-    border-width: 2px;
-    --dropdown-shadow: none;
-  }
-
   .menu li > a.menu-active,
   .menu li > a.active {
     outline: 2px solid currentColor;
     outline-offset: -2px;
   }
 }
-
-@media (prefers-color-scheme: dark) {
-  :host {
-    --dropdown-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-  }
-}
-

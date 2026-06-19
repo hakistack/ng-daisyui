@@ -7,6 +7,41 @@
   },
   "newProjectRoot": "projects",
   "projects": {
+    "@hakistack/i18n": {
+      "projectType": "library",
+      "root": "projects/hakistack/i18n",
+      "sourceRoot": "projects/hakistack/i18n/src",
+      "prefix": "hk",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/hakistack/i18n/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/hakistack/i18n/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "projects/hakistack/i18n/tsconfig.spec.json"
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/hakistack/i18n/**/*.ts",
+              "projects/hakistack/i18n/**/*.html"
+            ]
+          }
+        }
+      }
+    },
     "@hakistack/ng-daisyui": {
       "projectType": "library",
       "root": "projects/hakistack/ng-daisyui",

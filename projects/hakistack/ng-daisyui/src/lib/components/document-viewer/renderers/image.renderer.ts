@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
 
 import { DocumentRendererInputs } from '../document-viewer.types';
 
@@ -43,19 +43,24 @@ export class DocumentImageRenderer {
 
     effect(() => {
       const src = this.source();
-      // Revoke the prior object URL before creating a new one so we don't
-      // leak memory when the source changes during the component's life.
-      this.revokeObjectUrl();
-      if (typeof src === 'string') return;
+      // Everything below reads AND writes `objectUrl`. Keep it untracked so the
+      // only dependency is `source()` — otherwise revoking/setting the URL would
+      // re-trigger this effect, which re-sets the URL, looping forever (a frozen
+      // tab on any Blob/Uint8Array source).
+      untracked(() => {
+        // Revoke the prior object URL before creating a new one so we don't
+        // leak memory when the source changes during the component's life.
+        this.revokeObjectUrl();
+        if (typeof src === 'string') return;
 
-      // `new Blob([Uint8Array])` is valid at runtime; the cast keeps TS
-      // happy across DOM lib variants that constrain BlobPart's buffer to
-      // ArrayBuffer (excluding SharedArrayBuffer). Our bytes always come
-      // from a plain ArrayBuffer-backed view (fetch + arrayBuffer), so the
-      // distinction is benign.
-      const blob = src instanceof Blob ? src : new Blob([src as BlobPart]);
-      const url = URL.createObjectURL(blob);
-      this.objectUrl.set(url);
+        // `new Blob([Uint8Array])` is valid at runtime; the cast keeps TS
+        // happy across DOM lib variants that constrain BlobPart's buffer to
+        // ArrayBuffer (excluding SharedArrayBuffer). Our bytes always come
+        // from a plain ArrayBuffer-backed view (fetch + arrayBuffer), so the
+        // distinction is benign.
+        const blob = src instanceof Blob ? src : new Blob([src as BlobPart]);
+        this.objectUrl.set(URL.createObjectURL(blob));
+      });
     });
 
     destroyRef.onDestroy(() => this.revokeObjectUrl());
