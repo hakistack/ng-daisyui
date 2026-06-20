@@ -758,8 +758,11 @@
           </div>
         </aside>
       }
-      <!-- Viewport: scrollable area holding the page canvases. Toolbar (if any) is rendered above by the shared block. -->
-      <div #viewport class="hk-pdf-viewport relative flex-1 min-h-0 overflow-auto bg-base-200 p-4">
+      <!-- Viewport: scrollable area holding the page canvases. Toolbar (if any) is rendered above by the shared block.
+           `min-w-0` is critical: without it this flex item won't shrink below its content's min-width, so a rotated
+           page (explicit wider inline width) would expand the viewport, which `computeScale` reads back as a larger
+           clientWidth — a feedback loop that explodes the zoom. With it, the wide page overflows into a scroll. -->
+      <div #viewport class="hk-pdf-viewport relative flex-1 min-h-0 min-w-0 overflow-auto bg-base-200 p-4">
         @if (state()?.error; as err) {
           <div class="flex flex-col items-center justify-center gap-3 py-12 text-center">
             <span class="text-error text-sm font-medium">{{ labels().errorGeneric }}</span>

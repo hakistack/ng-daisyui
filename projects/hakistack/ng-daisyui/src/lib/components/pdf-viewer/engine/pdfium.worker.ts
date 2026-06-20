@@ -112,7 +112,16 @@ ctx.onmessage = async (e: MessageEvent<PdfWorkerRequest>) => {
         break;
       }
       case 'render': {
-        const targetWidth = Math.max(1, Math.floor(msg.cssWidth * msg.dpr));
+        // Clamp to [1, 8192]. 8192 is the GPU/canvas max-texture ceiling and is
+        // far above any legitimate fit-* render (~2-3k px); the upper bound is
+        // purely defensive so a pathological size can never OOM PDFium's bitmap
+        // allocator (which surfaces as PdfiumLibraryInternalError(Unknown)).
+        const MAX_RENDER_WIDTH = 8192;
+        const requested = Math.floor(msg.cssWidth * msg.dpr);
+        const targetWidth = Math.max(1, Math.min(MAX_RENDER_WIDTH, requested));
+        if (requested > MAX_RENDER_WIDTH) {
+          console.warn(`[hk-pdf-viewer] render width ${requested}px clamped to ${MAX_RENDER_WIDTH}px`);
+        }
         const [width, height, rgba] = render(msg.doc, msg.page, targetWidth) as unknown as [number, number, Uint8Array];
         const image = new ImageData(new Uint8ClampedArray(rgba), width, height);
         const bitmap = await createImageBitmap(image);

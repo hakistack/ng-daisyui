@@ -506,6 +506,13 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    */
   private lastViewportWidth = 0;
   private lastViewportHeight = 0;
+  /**
+   * Last fit-* scale we re-rendered at. The resize observer only re-renders when
+   * the *resolved scale* changes — not on every clientWidth/Height tick — so a
+   * scrollbar toggling (e.g. after rotating a page to landscape, which changes
+   * clientHeight but not the fit-width scale) doesn't churn the render engine.
+   */
+  private lastRenderScale = 0;
   /** RAF handle for debouncing resize-driven re-renders. */
   private resizeRafHandle: number | null = null;
   /**
@@ -999,6 +1006,10 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
     const scale = this.computeScale();
     if (scale <= 0) return;
+    // Keep the resize-observer's baseline in sync regardless of what triggered
+    // this render (manual zoom, mode switch, resize) so it only fires again on a
+    // genuine scale change.
+    this.lastRenderScale = scale;
 
     // Push the resolved scale into state so the toolbar can show a percentage.
     this.internal?.state.update((s) => ({ ...s, zoom: scale }));
@@ -2505,15 +2516,19 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     // initial callback would cancel the in-flight first render mid-paint.
     this.lastViewportWidth = vp.clientWidth;
     this.lastViewportHeight = vp.clientHeight;
+    this.lastRenderScale = this.computeScale();
     this.resizeObserver?.disconnect();
     this.resizeObserver = new ResizeObserver(() => {
       const zoomMode = this.internal?.state().zoomMode;
       if (zoomMode !== 'fit-width' && zoomMode !== 'fit-page' && zoomMode !== 'auto') return;
-      const w = vp.clientWidth;
-      const h = vp.clientHeight;
-      if (w === this.lastViewportWidth && h === this.lastViewportHeight) return;
-      this.lastViewportWidth = w;
-      this.lastViewportHeight = h;
+      // Gate on the *resolved scale*, not raw clientWidth/Height. Under
+      // fit-width, a horizontal scrollbar appearing (e.g. after a page is
+      // rotated to landscape) shrinks clientHeight but leaves the scale
+      // unchanged — re-rendering on that churned the engine and could fragment
+      // the wasm heap until a render OOM'd (PdfiumLibraryInternalError).
+      const nextScale = this.computeScale();
+      if (nextScale <= 0 || Math.abs(nextScale - this.lastRenderScale) < 1e-3) return;
+      this.lastRenderScale = nextScale;
       // Debounce to a single rAF so a continuous drag doesn't queue a render
       // per pixel — only the final size triggers the redraw.
       if (this.resizeRafHandle !== null) cancelAnimationFrame(this.resizeRafHandle);
