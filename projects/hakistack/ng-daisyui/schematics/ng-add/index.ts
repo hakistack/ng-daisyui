@@ -19,14 +19,15 @@ const TAILWIND_V5_IMPORT = '@import "tailwindcss";';
 const DAISYUI_V5_PLUGIN = '@plugin "daisyui";';
 const LIBRARY_V5_IMPORT = '@import "@hakistack/ng-daisyui";';
 
-const LEGACY_STYLE_IMPORT = '@import "@hakistack/ng-daisyui/themes/daisyui-v4.css";';
+// v4 consumers import ONE self-contained stylesheet: it bundles the --hk-* bridge
+// AND every daisyUI/Tailwind class the lib uses. No preset / FESM scanning needed.
+const LEGACY_STYLE_IMPORT = '@import "@hakistack/ng-daisyui/styles-v4.css";';
 const LEGACY_TAILWIND_DIRECTIVES = '@tailwind base;\n@tailwind components;\n@tailwind utilities;';
 
-const LEGACY_TAILWIND_CONFIG = `const ngDaisyuiPreset = require('@hakistack/ng-daisyui/themes/daisyui-v4-preset');
-
-/** @type {import('tailwindcss').Config} */
+const LEGACY_TAILWIND_CONFIG = `/** @type {import('tailwindcss').Config} */
 module.exports = {
-  presets: [ngDaisyuiPreset],
+  // Only scan YOUR app. The library's own classes are delivered precompiled via
+  // \`@import "@hakistack/ng-daisyui/styles-v4.css"\` in your styles.css.
   content: [
     './src/**/*.{html,ts}',
   ],
@@ -223,7 +224,7 @@ function wireLegacyStylesFile(tree: Tree, options: Schema, context: SchematicCon
   let contents = stylesBuffer.toString('utf-8');
   let mutated = false;
 
-  if (!contents.includes('@hakistack/ng-daisyui/themes/daisyui-v4.css')) {
+  if (!contents.includes('@hakistack/ng-daisyui/styles-v4.css')) {
     contents = `${LEGACY_STYLE_IMPORT}\n${contents}`;
     mutated = true;
     context.logger.info(`  Added ${LEGACY_STYLE_IMPORT} to ${stylesPath}`);

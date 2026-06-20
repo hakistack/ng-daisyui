@@ -39,11 +39,6 @@
     },
     "./plugin.mjs": "./plugin.mjs",
     "./styles.css": "./styles.css",
-    "./themes/daisyui-v4-plugin": {
-      "import": "./themes/daisyui-v4-plugin.mjs",
-      "require": "./themes/daisyui-v4-plugin.cjs"
-    },
-    "./themes/daisyui-v4-preset": "./themes/daisyui-v4-preset.cjs",
     "./themes/daisyui-v4.css": "./themes/daisyui-v4.css",
     "./themes/daisyui-v5.css": "./themes/daisyui-v5.css"
   },

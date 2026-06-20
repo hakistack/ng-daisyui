@@ -1,4 +1,4 @@
-import { Component, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { highlightCode } from './syntax-highlighter';
 
@@ -6,11 +6,12 @@ import { highlightCode } from './syntax-highlighter';
   selector: 'app-code-block',
   template: `
     <div class="code-block relative rounded-xl overflow-hidden">
-      <div class="code-header flex items-center justify-between px-4 py-2">
-        <div class="flex items-center gap-1.5">
-          <span class="w-3 h-3 rounded-full bg-error/60"></span>
-          <span class="w-3 h-3 rounded-full bg-warning/60"></span>
-          <span class="w-3 h-3 rounded-full bg-success/60"></span>
+      <div class="code-header flex items-center justify-between px-3.5 py-2">
+        <div class="lang-tag flex items-center gap-1.5 text-[11px] font-mono tracking-wide select-none">
+          <svg class="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+          <span>{{ langLabel() }}</span>
         </div>
         <button class="copy-btn text-xs px-2.5 py-1 rounded-md transition-all" (click)="copyCode()">
           @if (copied()) {
@@ -46,6 +47,10 @@ import { highlightCode } from './syntax-highlighter';
       background: var(--cb-header-bg, oklch(0.22 0.015 260));
       border-bottom: 1px solid var(--cb-border, oklch(0.28 0.01 260));
     }
+    .lang-tag {
+      color: var(--cb-tag-color, oklch(0.6 0.01 260));
+      text-transform: lowercase;
+    }
     .copy-btn {
       color: var(--cb-btn-color, oklch(0.65 0.01 260));
       background: var(--cb-btn-bg, oklch(0.25 0.01 260));
@@ -71,6 +76,7 @@ import { highlightCode } from './syntax-highlighter';
 export class CodeBlockComponent {
   code = input.required<string>();
   lang = input<'typescript' | 'angular-html'>('typescript');
+  readonly langLabel = computed(() => (this.lang() === 'angular-html' ? 'html' : 'typescript'));
   copied = signal(false);
   highlightedHtml = signal<SafeHtml>('');
   private sanitizer = inject(DomSanitizer);

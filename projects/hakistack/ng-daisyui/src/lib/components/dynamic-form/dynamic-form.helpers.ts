@@ -36,15 +36,78 @@ import {
   ToggleFieldOptions,
   UrlFieldOptions,
 } from './dynamic-form.types';
+import {
+  CheckboxFieldDef,
+  DateFieldDef,
+  DeclarativeFormConfig,
+  EmailFieldDef,
+  FieldDefinition,
+  FieldsMap,
+  InferFormValues,
+  NumberFieldDef,
+  PasswordFieldDef,
+  PasswordStrength,
+  SelectFieldDef,
+  TextareaFieldDef,
+  TextFieldDef,
+} from './dynamic-form.schema';
 
 // ── createForm ──────────────────────────────────────────────────────────────
+
+/**
+ * The DSL toolkit handed to the `createForm` callback form. Lets you build a form
+ * without importing `field` / `layout` / `validation` / `step` separately — they
+ * arrive fully typed (and autocompletable) as the callback's single argument.
+ *
+ * The members are the very same objects exported from this module, so the type is
+ * derived with `typeof` — no parallel typing, no `any`, identical IntelliSense.
+ *
+ * @example
+ * createForm(({ field, layout, validation, step }) => ({ ... }));
+ */
+export interface FormDsl {
+  /** Field builders — `field.text`, `field.email`, `field.select`, … */
+  readonly field: typeof field;
+  /** Layout bundles — `layout.vertical`, `layout.horizontal`, `layout.grid`. */
+  readonly layout: typeof layout;
+  /** Validation bundles — `validation.required`, `validation.password`, … */
+  readonly validation: typeof validation;
+  /** Step builders for wizard mode — `step.create`, `step.review`. */
+  readonly step: typeof step;
+}
+
+/**
+ * Singleton DSL toolkit passed to the `createForm` callback form. Uses getters so
+ * the bindings resolve at call time — `createForm` is declared above the `field`/
+ * `layout`/`validation`/`step` consts, and the callback only runs after module init.
+ */
+const formDsl: FormDsl = {
+  get field() {
+    return field;
+  },
+  get layout() {
+    return layout;
+  },
+  get validation() {
+    return validation;
+  },
+  get step() {
+    return step;
+  },
+};
 
 /**
  * Create a form configuration with external control capabilities.
  * Returns a FormController with config signal and submit/reset methods.
  *
- * @example
+ * Accepts either a plain `CreateFormInput` object, or a **callback** that receives
+ * a typed `{ field, layout, validation, step }` DSL — so consumers only need to
+ * import `createForm` and get the builders inline with full autocomplete.
+ *
+ * @example Object form (classic)
  * ```typescript
+ * import { createForm, field } from '@hakistack/ng-daisyui';
+ *
  * const form = createForm({
  *   fields: [
  *     field.text('name', 'Name', { required: true }),
@@ -54,41 +117,74 @@ import {
  *     if (data.valid) saveUser(data.values);
  *   },
  * });
+ * ```
  *
- * // In template
+ * @example Callback form (only import `createForm`)
+ * ```typescript
+ * import { createForm } from '@hakistack/ng-daisyui';
+ *
+ * const form = createForm(({ field, layout, validation }) => ({
+ *   ...layout.vertical({ gap: 'md' }),
+ *   fields: [
+ *     field.text('name', 'Full Name', { required: true }),
+ *     field.email('email', 'Email Address', { required: true }),
+ *     field.password('password', 'Password', validation.password(8)),
+ *   ],
+ *   onSubmit: (data) => console.log(data),
+ * }));
+ * ```
+ *
+ * ```html
+ * <!-- In template -->
  * <hk-dynamic-form [config]="form.config()" />
  * <button (click)="form.submit()">Submit</button>
  * <button (click)="form.reset()">Reset</button>
  * ```
  */
-// Overload signatures: untyped (default) and typed (opt-in)
+// Overload signatures:
+//  1-2) object form with a `fields` array (untyped / typed)
+//  3-4) callback DSL form (untyped / typed)
+//  5)   declarative schema form — `fields` is a map; value shape is inferred
 export function createForm(input: CreateFormInput): FormController;
 export function createForm<T>(input: CreateFormInput<T>): FormController<T>;
-export function createForm<T = Record<string, any>>(input: CreateFormInput<T>): FormController<T> {
+export function createForm(builder: (dsl: FormDsl) => CreateFormInput): FormController;
+export function createForm<T>(builder: (dsl: FormDsl) => CreateFormInput<T>): FormController<T>;
+export function createForm<TFields extends FieldsMap>(config: DeclarativeFormConfig<TFields>): FormController<InferFormValues<TFields>>;
+export function createForm<T = Record<string, any>>(
+  input: CreateFormInput<T> | ((dsl: FormDsl) => CreateFormInput<T>) | DeclarativeFormConfig<FieldsMap>,
+): FormController<T> {
+  const resolved: CreateFormInput<T> =
+    typeof input === 'function'
+      ? input(formDsl)
+      : isDeclarativeConfig(input)
+        ? (declarativeToInput(input) as CreateFormInput<T>)
+        : (input as CreateFormInput<T>);
+
   const submitTrigger = signal(0);
   const resetTrigger = signal(0);
 
   const config = computed<FormConfig<T>>(() => ({
-    title: input.title,
-    description: input.description,
-    layout: input.layout || 'vertical',
-    gridColumns: input.gridColumns,
-    gap: input.gap,
-    labelWidth: input.labelWidth,
-    autoSave: input.autoSave,
-    fields: input.fields,
-    steps: input.steps,
-    stepperConfig: input.steps
+    title: resolved.title,
+    description: resolved.description,
+    layout: resolved.layout || 'vertical',
+    gridColumns: resolved.gridColumns,
+    gap: resolved.gap,
+    labelWidth: resolved.labelWidth,
+    autoSave: resolved.autoSave,
+    fields: resolved.fields,
+    steps: resolved.steps,
+    stepperConfig: resolved.steps
       ? {
           linear: true,
           validateStepOnNext: true,
           showStepSummary: true,
-          ...input.stepperConfig,
+          ...resolved.stepperConfig,
         }
       : undefined,
-    onSubmit: input.onSubmit,
-    onReset: input.onReset,
-    onChange: input.onChange,
+    validate: resolved.validate,
+    onSubmit: resolved.onSubmit,
+    onReset: resolved.onReset,
+    onChange: resolved.onChange,
     _submitTrigger: submitTrigger.asReadonly(),
     _resetTrigger: resetTrigger.asReadonly(),
   }));
@@ -97,6 +193,156 @@ export function createForm<T = Record<string, any>>(input: CreateFormInput<T>): 
     config,
     submit: () => submitTrigger.update((v) => v + 1),
     reset: () => resetTrigger.update((v) => v + 1),
+  };
+}
+
+// ── Declarative schema → CreateFormInput conversion ──────────────────────────
+
+/** Built-in `passwordStrength` presets → regex pattern. */
+const PASSWORD_STRENGTH_PATTERNS: Record<PasswordStrength, RegExp> = {
+  low: /^(?=.*[A-Za-z])(?=.*\d).+$/,
+  medium: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+  high: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/,
+};
+
+/** A declarative config has a `fields` *map* (plain object), never an array. */
+function isDeclarativeConfig(input: unknown): input is DeclarativeFormConfig<FieldsMap> {
+  if (typeof input !== 'object' || input === null) return false;
+  const fields = (input as { fields?: unknown }).fields;
+  return typeof fields === 'object' && fields !== null && !Array.isArray(fields);
+}
+
+/** Convert a single declarative field definition into the resolved `FormFieldConfig`. */
+function declarativeFieldToConfig(key: string, def: FieldDefinition): FormFieldConfig {
+  const label = autoLabel(key, def.label);
+  const shared: InternalFieldInput = {
+    helpText: def.helpText,
+    disabled: def.disabled,
+    hidden: def.hidden,
+    colSpan: def.colSpan,
+    width: def.width,
+    order: def.order,
+    group: def.group,
+    customValidators: def.customValidators,
+  };
+
+  switch (def.type) {
+    case 'text':
+    case 'textarea': {
+      const d = def as TextFieldDef | TextareaFieldDef;
+      const v = d.validation ?? {};
+      return createField(key, def.type, label, {
+        ...shared,
+        placeholder: d.placeholder,
+        defaultValue: d.defaultValue,
+        rows: def.type === 'textarea' ? (d as TextareaFieldDef).rows : undefined,
+        required: v.required,
+        minLength: v.minLength ?? d.minLength,
+        maxLength: v.maxLength ?? d.maxLength,
+        pattern: v.pattern,
+      });
+    }
+    case 'email': {
+      const d = def as EmailFieldDef;
+      const v = d.validation ?? {};
+      return createField(key, 'email', label, {
+        ...shared,
+        placeholder: d.placeholder,
+        defaultValue: d.defaultValue,
+        required: v.required,
+        email: v.email ?? true,
+      });
+    }
+    case 'password': {
+      const d = def as PasswordFieldDef;
+      const v = d.validation ?? {};
+      const pattern = v.pattern ?? (v.passwordStrength ? PASSWORD_STRENGTH_PATTERNS[v.passwordStrength] : undefined);
+      return createField(key, 'password', label, {
+        ...shared,
+        placeholder: d.placeholder,
+        defaultValue: d.defaultValue,
+        required: v.required,
+        minLength: v.minLength ?? d.minLength,
+        maxLength: v.maxLength ?? d.maxLength,
+        pattern,
+      });
+    }
+    case 'number': {
+      const d = def as NumberFieldDef;
+      const v = d.validation ?? {};
+      return createField(key, 'number', label, {
+        ...shared,
+        placeholder: d.placeholder,
+        defaultValue: d.defaultValue,
+        required: v.required,
+        min: v.min ?? d.min,
+        max: v.max ?? d.max,
+        step: d.step,
+      });
+    }
+    case 'checkbox': {
+      const d = def as CheckboxFieldDef;
+      const v = d.validation ?? {};
+      return createField(key, 'checkbox', label, {
+        ...shared,
+        defaultValue: d.value ?? d.defaultValue ?? false,
+        required: v.required,
+      });
+    }
+    case 'select': {
+      const d = def as SelectFieldDef<unknown>;
+      const v = d.validation ?? {};
+      return createField(key, 'select', label, {
+        ...shared,
+        placeholder: d.placeholder,
+        defaultValue: d.defaultValue,
+        choices: d.options as InternalFieldInput['choices'],
+        enableSearch: d.enableSearch,
+        required: v.required,
+      });
+    }
+    case 'date': {
+      const d = def as DateFieldDef;
+      const v = d.validation ?? {};
+      return createField(key, 'date', label, {
+        ...shared,
+        defaultValue: d.defaultValue ?? null,
+        required: v.required,
+      });
+    }
+    default: {
+      // Exhaustiveness guard — a new field type must be handled above.
+      const _exhaustive: never = def;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Translate a declarative config into the internal `CreateFormInput` shape. */
+function declarativeToInput(config: DeclarativeFormConfig<FieldsMap>): CreateFormInput {
+  const fields = Object.entries(config.fields).map(([key, def]) => declarativeFieldToConfig(key, def));
+
+  const declarativeOnSubmit = config.onSubmit;
+
+  return {
+    title: config.title,
+    description: config.description,
+    layout: config.layout?.type ?? 'vertical',
+    gap: config.layout?.gap,
+    gridColumns: config.layout?.columns,
+    labelWidth: config.layout?.labelWidth,
+    autoSave: config.autoSave,
+    fields,
+    // `validate` and `onChange` already operate on raw values — pass through.
+    validate: config.validate as (values: Record<string, any>) => Record<string, string> | null | void,
+    onChange: config.onChange as ((values: Record<string, any>) => void) | undefined,
+    onReset: config.onReset,
+    // Declarative `onSubmit` receives the values directly and only fires when valid.
+    onSubmit: declarativeOnSubmit
+      ? (submission) => {
+          if (submission.valid) declarativeOnSubmit(submission.values as Record<string, any>);
+        }
+      : undefined,
   };
 }
 

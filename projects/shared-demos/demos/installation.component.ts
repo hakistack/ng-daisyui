@@ -226,7 +226,6 @@ import {
   DynamicFormComponent,
   ToastService,
   createForm,
-  field,
 } from '@hakistack/ng-daisyui';
 
 @Component({
@@ -241,10 +240,10 @@ export class MyPageComponent {
   private toast = inject(ToastService);
 
   form = createForm({
-    fields: [
-      field.text('name', 'Name', { required: true }),
-      field.email('email', 'Email'),
-    ],
+    fields: {
+      name: { type: 'text', label: 'Name', validation: { required: true } },
+      email: { type: 'email', label: 'Email' },
+    },
     onSubmit: (data) => this.toast.success('Saved!'),
   });
 }`;

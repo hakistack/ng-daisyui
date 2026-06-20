@@ -551,7 +551,7 @@ export class GettingStartedComponent {
       title: 'Builder + controller',
       description:
         'Every complex component pairs a typed builder with a controller that exposes config() + imperative methods. Same pattern across forms, tables, palettes, viewers.',
-      snippet: `createForm({\n  fields: [field.text('name'), ...],\n  onSubmit: (data) => save(data),\n})`,
+      snippet: `createForm({\n  fields: { name: { type: 'text' }, ... },\n  onSubmit: (data) => save(data),\n})`,
     },
     {
       icon: 'palette',
@@ -585,7 +585,7 @@ export class GettingStartedComponent {
 @import "@hakistack/ng-daisyui";`;
 
   usageCode = `import { Component } from '@angular/core';
-import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui';
+import { DynamicFormComponent, createForm } from '@hakistack/ng-daisyui';
 
 @Component({
   selector: 'app-example',
@@ -597,11 +597,11 @@ import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui';
 })
 export class ExampleComponent {
   form = createForm({
-    fields: [
-      field.text('name', 'Full name', { required: true }),
-      field.email('email', 'Email address'),
-    ],
-    onSubmit: (data) => console.log(data),
+    fields: {
+      name: { type: 'text', label: 'Full name', validation: { required: true } },
+      email: { type: 'email', label: 'Email address' },
+    },
+    onSubmit: (data) => console.log(data.name, data.email), // typed
   });
 }`;
 }

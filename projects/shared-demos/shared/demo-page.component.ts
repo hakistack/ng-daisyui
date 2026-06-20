@@ -6,32 +6,52 @@ import { SHOW_IMPORT } from '../config';
   selector: 'app-demo-page',
   imports: [LucideDynamicIcon],
   template: `
-    <div class="space-y-4">
-      <!-- Hero header -->
-      <div class="flex items-start gap-4">
-        <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-          <svg [lucideIcon]="icon()" [size]="20"></svg>
+    <div class="space-y-6">
+      <!-- ══ Editorial page header ══ -->
+      <header class="flex items-start gap-4 sm:gap-5">
+        <!-- Icon medallion -->
+        <div
+          class="shrink-0 mt-0.5 w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 ring-1 ring-primary/15 text-primary flex items-center justify-center shadow-sm shadow-primary/10"
+        >
+          <svg [lucideIcon]="icon()" [size]="22"></svg>
         </div>
-        <div>
-          <div class="flex items-center gap-3 mb-1">
-            <h1 class="text-2xl lg:text-3xl font-serif tracking-tight">{{ title() }}</h1>
-            <span class="badge badge-sm badge-ghost text-[9px] uppercase tracking-widest font-semibold">{{ category() }}</span>
+
+        <div class="min-w-0 flex-1">
+          <!-- Eyebrow: short rule + category -->
+          <div class="flex items-center gap-2 mb-2">
+            <span class="h-px w-5 bg-primary/50"></span>
+            <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">{{ category() }}</span>
           </div>
-          <p class="text-base-content/45 text-sm max-w-2xl leading-relaxed">{{ description() }}</p>
+
+          <h1 class="text-3xl lg:text-[2.5rem] font-serif tracking-tight leading-[1.05]">{{ title() }}</h1>
+
+          <p class="text-base-content/55 text-sm sm:text-[15px] max-w-2xl leading-relaxed mt-3">{{ description() }}</p>
+
           @if (showImport) {
-            <code class="text-[11px] bg-base-200 px-2.5 py-1 rounded-md font-mono text-base-content/40 inline-block mt-2">
+            <code
+              class="text-[11px] bg-base-200 border border-base-content/8 px-2.5 py-1 rounded-md font-mono text-base-content/45 inline-block mt-3"
+            >
               import {{ '{' }} {{ importName() }} {{ '}' }} from '&#64;hakistack/ng-daisyui'
             </code>
           }
         </div>
-      </div>
+      </header>
 
-      <!-- Page tabs -->
-      <div role="tablist" class="tabs tabs-border tabs-bordered">
-        <button role="tab" class="tab tab-sm" [class.tab-active]="activeTab() === 'examples'" (click)="activeTab.set('examples')">
+      <!-- ══ Section tabs ══ -->
+      <div role="tablist" class="tabs tabs-border tabs-bordered border-b border-base-content/10">
+        <button
+          role="tab"
+          class="tab gap-1.5 font-medium"
+          [class.tab-active]="activeTab() === 'examples'"
+          (click)="activeTab.set('examples')"
+        >
+          <svg lucideIcon="layout-grid" [size]="14"></svg>
           Examples
         </button>
-        <button role="tab" class="tab tab-sm" [class.tab-active]="activeTab() === 'api'" (click)="activeTab.set('api')">API</button>
+        <button role="tab" class="tab gap-1.5 font-medium" [class.tab-active]="activeTab() === 'api'" (click)="activeTab.set('api')">
+          <svg lucideIcon="code" [size]="14"></svg>
+          API
+        </button>
       </div>
 
       <!-- Projected content -->

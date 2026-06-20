@@ -1,35 +1,45 @@
 import { Component, input, signal } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { CodeBlockComponent } from './code-block.component';
 
 @Component({
   selector: 'app-doc-section',
-  imports: [CodeBlockComponent],
+  imports: [CodeBlockComponent, LucideDynamicIcon],
   host: { class: 'block' },
   template: `
-    <div class="card card-border card-bordered bg-base-200 border-l-2 border-l-primary/20">
-      <div class="card-body gap-1.5 p-4 sm:p-5">
-        <h2 class="card-title text-base font-serif">{{ title() }}</h2>
-        @if (description()) {
-          <p class="text-xs text-base-content/45">{{ description() }}</p>
-        }
-        <div class="mt-0.5">
-          <ng-content />
+    <div class="card card-border card-bordered bg-base-200 overflow-hidden">
+      <!-- Header: title + description on the left, code toggle on the right -->
+      <div class="flex items-start justify-between gap-3 px-4 sm:px-5 pt-4 pb-3">
+        <div class="min-w-0">
+          <h2 class="text-base font-serif leading-tight">{{ title() }}</h2>
+          @if (description()) {
+            <p class="text-xs text-base-content/50 mt-1 leading-relaxed">{{ description() }}</p>
+          }
         </div>
         @if (codeExample()) {
-          <div class="collapse collapse-arrow bg-base-200/60 rounded-lg mt-2">
-            <input type="checkbox" [checked]="showCode()" (change)="showCode.set(!showCode())" />
-            <div class="collapse-title text-xs font-medium flex items-center gap-1.5 min-h-0 py-2">
-              <svg class="w-3.5 h-3.5 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-              </svg>
-              {{ showCode() ? 'Hide Code' : 'Show Code' }}
-            </div>
-            <div class="collapse-content">
-              <app-code-block [code]="codeExample()!" />
-            </div>
-          </div>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs gap-1.5 shrink-0 text-base-content/60 font-medium"
+            [attr.aria-pressed]="showCode()"
+            (click)="showCode.set(!showCode())"
+          >
+            <svg [lucideIcon]="showCode() ? 'chevron-up' : 'code'" [size]="13"></svg>
+            {{ showCode() ? 'Hide code' : 'Show code' }}
+          </button>
         }
       </div>
+
+      <!-- Live demo surface -->
+      <div class="px-4 sm:px-5 pb-4">
+        <ng-content />
+      </div>
+
+      <!-- Inline code reveal -->
+      @if (codeExample() && showCode()) {
+        <div class="border-t border-base-content/8 bg-base-300/30 p-3 sm:p-4">
+          <app-code-block [code]="codeExample()!" />
+        </div>
+      }
     </div>
   `,
 })

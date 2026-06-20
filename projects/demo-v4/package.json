@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "ng serve --port 58791",
-    "build": "ng build"
+    "build": "ng build",
+    "build:lib-css": "node scripts/build-lib-css.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",

@@ -601,10 +601,10 @@ const wizard = createForm({
 });`;
 
   formControllerCode = `const form = createForm({
-  fields: [
-    field.text('name', 'Name', { required: true }),
-    field.email('email', 'Email'),
-  ],
+  fields: {
+    name: { type: 'text', label: 'Name', validation: { required: true } },
+    email: { type: 'email', label: 'Email' },
+  },
   onSubmit: (data) => saveUser(data),
 });
 

@@ -192,7 +192,7 @@ interface NavSection {
               >
               <div class="min-w-0">
                 <div class="font-serif text-base leading-tight">ng-daisyui</div>
-                <div class="text-[10px] text-base-content/30 font-mono tracking-wide">hakistack &middot; v0.1.54</div>
+                <div class="text-[10px] text-base-content/30 font-mono tracking-wide">hakistack &middot; v0.3.0</div>
               </div>
             </div>
           </div>
@@ -201,7 +201,7 @@ interface NavSection {
 
           <!-- Navigation -->
           <nav class="sidebar-menu flex-1 overflow-y-auto sidebar-scroll px-3 py-3">
-            <ul class="menu gap-0.5">
+            <ul class="menu gap-0.5 w-full">
               @for (section of navSections; track section.title) {
                 <li class="menu-title mt-5 mb-1 first:mt-1">
                   {{ section.title }}
@@ -238,7 +238,7 @@ interface NavSection {
 
           <!-- Sidebar footer -->
           <div class="px-5 py-3 border-t border-base-content/5">
-            <div class="text-[10px] text-base-content/20 font-mono">Built with DaisyUI 5 &middot; Tailwind 4</div>
+            <div class="text-[10px] text-base-content/20 font-mono">v0.3.0 &middot; Built with DaisyUI 5 &middot; Tailwind 4</div>
           </div>
         </aside>
       </div>

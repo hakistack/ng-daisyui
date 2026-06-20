@@ -400,6 +400,12 @@ export interface CreateFormInput<T = Record<string, any>> {
   readonly fields?: FormFieldConfig[];
   readonly steps?: FormStep[];
   readonly stepperConfig?: Partial<StepperConfig>;
+  /**
+   * Form-level (cross-field) validation. Receives the current values and returns a
+   * `{ fieldName: message }` map for any invalid fields, or `null`/nothing when valid.
+   * Errors surface on the named fields and block submission.
+   */
+  readonly validate?: (values: T) => Record<string, string> | null | void;
   readonly onSubmit?: (data: FormSubmissionData<T>) => void;
   readonly onReset?: () => void;
   readonly onChange?: (values: T) => void;
@@ -468,16 +474,27 @@ export interface FormConfig<T = Record<string, any>> {
   readonly stepperConfig?: StepperConfig;
   /** Step definitions for wizard mode. Mutually exclusive with `fields`. */
   readonly steps?: readonly FormStep[];
+  // NOTE: the T-dependent callbacks below use *method* signature syntax (not
+  // `readonly x?: (…) => …` property syntax) on purpose. Method signatures are
+  // bivariant in their parameters, which makes `FormConfig<SpecificShape>`
+  // assignable to `FormConfig<Record<string, any>>`. That is what lets a typed
+  // controller — `createForm<T>()` or the declarative schema API — bind its
+  // `config()` to `<hk-dynamic-form [config]>` without an `any` cast on the input.
+  /**
+   * Form-level (cross-field) validator. Returns a `{ fieldName: message }` map for any
+   * invalid fields, or `null`/nothing when valid. Surfaces on the named fields and blocks submit.
+   */
+  validate?(values: T): Record<string, string> | null | void;
   /**
    * Called when the user submits a valid (or invalid) form.
    * Receives `{ values, valid, errors, completedSteps?, currentStep? }`.
    * Trigger externally via `form.submit()` from the `FormController`.
    */
-  readonly onSubmit?: (data: FormSubmissionData<T>) => void;
+  onSubmit?(data: FormSubmissionData<T>): void;
   /** Called after `form.reset()` clears the form to defaults. */
   readonly onReset?: () => void;
   /** Called on every form value change (debounced). Receives the raw values map. */
-  readonly onChange?: (values: T) => void;
+  onChange?(values: T): void;
   /** @internal Trigger signal for external submit calls */
   readonly _submitTrigger?: () => number;
   /** @internal Trigger signal for external reset calls */

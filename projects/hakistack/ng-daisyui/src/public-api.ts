@@ -10,6 +10,34 @@
 // Dynamic Form
 export { DynamicFormComponent } from './lib/components/dynamic-form/dynamic-form.component';
 export { createForm, field, step, validation, layout } from './lib/components/dynamic-form/dynamic-form.helpers';
+export type { FormDsl } from './lib/components/dynamic-form/dynamic-form.helpers';
+export type {
+  // Declarative (schema-first) forms API
+  DeclarativeFormConfig,
+  FieldsMap,
+  FieldDefinition,
+  DeclarativeFieldType,
+  FormLayoutConfig,
+  FormValidationErrors,
+  InferFormValues,
+  InferFieldValue,
+  PasswordStrength,
+  TextFieldDef,
+  EmailFieldDef,
+  PasswordFieldDef,
+  TextareaFieldDef,
+  NumberFieldDef,
+  CheckboxFieldDef,
+  SelectFieldDef,
+  DateFieldDef,
+  TextValidation,
+  EmailValidation,
+  PasswordValidation,
+  NumberValidation,
+  CheckboxValidation,
+  SelectValidation,
+  DateValidation,
+} from './lib/components/dynamic-form/dynamic-form.schema';
 export { FormUtils } from './lib/components/dynamic-form/dynamic-form.utils';
 export { ConditionEngine } from './lib/components/dynamic-form/condition-engine';
 export type {

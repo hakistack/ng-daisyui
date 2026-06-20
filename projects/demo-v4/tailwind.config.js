@@ -1,15 +1,19 @@
 const path = require('path');
-const ngDaisyuiPreset = require('../hakistack/ng-daisyui/themes/daisyui-v4-preset');
 
-/** @type {import('tailwindcss').Config} */
+/**
+ * This app consumes @hakistack/ng-daisyui exactly like an EXTERNAL v4 consumer:
+ * it does NOT scan the library's source/FESM and uses no ng-daisyui preset.
+ * The library's own classes come from the precompiled
+ * `@hakistack/ng-daisyui/styles-v4.css` (imported in src/styles.css). Here we
+ * only scan THIS app's code (the demo shell + the shared demo pages).
+ *
+ * @type {import('tailwindcss').Config}
+ */
 module.exports = {
-  presets: [ngDaisyuiPreset],
   content: [
     path.join(__dirname, 'src/**/*.{html,ts}'),
-    // Shared demo components
+    // Shared demo pages (this app's own code)
     path.join(__dirname, '../../projects/shared-demos/**/*.{html,ts}'),
-    // Dev: scan library source directly (in prod, the preset scans the FESM bundle)
-    path.join(__dirname, '../../projects/hakistack/ng-daisyui/src/**/*.{html,ts}'),
   ],
   theme: {
     extend: {},

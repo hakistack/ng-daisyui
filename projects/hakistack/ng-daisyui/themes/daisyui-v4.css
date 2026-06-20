@@ -3,16 +3,21 @@
  *
  * Maps --hk-* CSS custom properties to DaisyUI v4 (Tailwind v3) hsl color functions.
  *
- * Usage — in styles.css:
- *   @import "@hakistack/ng-daisyui/themes/daisyui-v4";
+ * NOTE: this adapter is ALSO bundled into `@hakistack/ng-daisyui/styles-v4.css`
+ * (prepended at build time), so v4 consumers normally need just ONE import:
  *
- * And in tailwind.config.js, extend the shipped preset (which scans the
- * library's compiled bundle; no manual safelist needed):
+ *   @import "@hakistack/ng-daisyui/styles-v4.css";   // bridge + all lib classes
+ *   @tailwind base;
+ *   @tailwind components;
+ *   @tailwind utilities;
+ *
+ * tailwind.config.js only needs to scan YOUR app (no ng-daisyui preset):
  *   module.exports = {
- *     presets: [require('@hakistack/ng-daisyui/themes/daisyui-v4-preset')],
  *     content: ['./src/**\/*.{html,ts}'],
  *     plugins: [require('daisyui')],
  *   }
+ *
+ * This standalone file is kept for back-compat / if you want only the bridge.
  */
 
 /* =====================================================

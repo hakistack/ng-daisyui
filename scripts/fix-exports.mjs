@@ -34,6 +34,16 @@ packageJson.exports['./styles'] = {
   default: './styles.css',
 };
 
+// Precompiled DaisyUI v4 / Tailwind 3 stylesheet. Generated from the FESM by
+// projects/demo-v4/scripts/build-lib-css.mjs (run during `npm run build`). Lets
+// v4 consumers `@import "@hakistack/ng-daisyui/styles-v4.css"` and get every
+// class the lib uses — no fragile content-scan / safelist on their side.
+packageJson.exports['./styles-v4.css'] = './styles-v4.css';
+packageJson.exports['./styles-v4'] = {
+  style: './styles-v4.css',
+  default: './styles-v4.css',
+};
+
 writeFileSync(distPackageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
 
 console.log('✓ Fixed package.json exports for dual Angular/Tailwind support');

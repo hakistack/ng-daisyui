@@ -8,7 +8,7 @@
     "start:v4": "cd projects/demo-v4 && ng serve",
     "demo:v4": "cd projects/demo-v4 && ng serve --open --port 58791",
     "install:v4": "cd projects/demo-v4 && npm install",
-    "build": "node scripts/build-pdfium-worker.mjs && ng build @hakistack/ng-daisyui && node scripts/fix-exports.mjs && node scripts/build-schematics.mjs && node scripts/extract-fesm-classes.mjs",
+    "build": "node scripts/build-pdfium-worker.mjs && ng build @hakistack/ng-daisyui && npm --prefix projects/demo-v4 run build:lib-css && node scripts/fix-exports.mjs && node scripts/build-schematics.mjs",
     "build:i18n": "ng build @hakistack/i18n && node scripts/build-i18n-cli.mjs && node scripts/build-i18n-schematics.mjs",
     "vercel:build": "ng build demo --base-href=/ && npm --prefix projects/demo-v4 run build -- --base-href=/v4/ && node scripts/assemble-vercel.mjs",
     "lint": "ng lint",

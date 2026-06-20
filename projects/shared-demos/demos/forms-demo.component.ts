@@ -41,7 +41,7 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
       description="Build complex forms with validation, conditional logic, and multiple layouts"
       icon="file-input"
       category="Forms"
-      importName="DynamicFormComponent, createForm, field"
+      importName="DynamicFormComponent, createForm"
     >
       <div examples class="space-y-6">
         @if (activeTab() === 'layouts') {
@@ -67,6 +67,18 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
               <div class="card-actions justify-end mt-4">
                 <button class="btn btn-ghost" (click)="gridForm.reset()">Reset</button>
                 <button class="btn btn-primary" (click)="gridForm.submit()">Submit</button>
+              </div>
+            </app-doc-section>
+
+            <app-doc-section
+              title="Declarative schema (recommended)"
+              description="A single object: fields as a map, per-field validation, cross-field validate, and a fully-typed onSubmit — only createForm is imported."
+              [codeExample]="declarativeCode"
+            >
+              <hk-dynamic-form [config]="signupForm.config()" />
+              <div class="card-actions justify-end mt-4">
+                <button class="btn btn-ghost" (click)="signupForm.reset()">Reset</button>
+                <button class="btn btn-primary" (click)="signupForm.submit()">Submit</button>
               </div>
             </app-doc-section>
           </div>
@@ -226,6 +238,17 @@ type ApiSubTab = 'component' | 'field-builders' | 'options' | 'conditional-logic
         <!-- Layout & Validation sub-tab -->
         @if (apiTab() === 'layout-validation') {
           <div class="space-y-6">
+            <div class="card card-border card-bordered bg-base-100">
+              <div class="card-body gap-3">
+                <h3 class="card-title text-lg">Callback DSL — import only <code>createForm</code></h3>
+                <p class="text-sm text-base-content/70">
+                  Pass a callback to <code>createForm</code> and the <code>field</code>, <code>layout</code>, <code>validation</code> and
+                  <code>step</code> builders arrive fully typed as its argument — no extra imports, full autocomplete inside the callback.
+                  The classic object form still works unchanged.
+                </p>
+                <app-code-block [code]="callbackDslCode" />
+              </div>
+            </div>
             <app-api-table title="createForm() Config (CreateFormInput)" [entries]="createFormInputDocs" />
             <app-api-table title="layout.* Helpers" [entries]="layoutHelperDocs" />
             <app-api-table title="validation.* Helpers" [entries]="validationHelperDocs" />
@@ -327,40 +350,54 @@ export class FormsDemoComponent {
   apiTab = signal<ApiSubTab>('component');
   lastSubmission = signal<FormSubmissionData | null>(null);
 
+  // Declarative schema form — recommended API. `fields` is a map (key = field name),
+  // validation lives per-field, `validate` is cross-field, and `data` is fully typed.
+  // Declarative schema with cross-field validation (password match).
+  signupForm = createForm({
+    layout: { type: 'vertical', gap: 'md' },
+    fields: {
+      name: { type: 'text', label: 'Full Name', validation: { required: true, minLength: 2, maxLength: 80 } },
+      email: { type: 'email', label: 'Email Address', validation: { required: true, email: true } },
+      password: { type: 'password', label: 'Password', validation: { required: true, minLength: 8, passwordStrength: 'medium' } },
+      confirmPassword: { type: 'password', label: 'Confirm Password', validation: { required: true } },
+    },
+    validate: (data) => (data.password !== data.confirmPassword ? { confirmPassword: 'Passwords do not match' } : null),
+    onSubmit: (data) => this.handleValues('Sign-up Form', data),
+  });
+
   verticalForm = createForm({
-    layout: 'vertical',
-    gap: 'md',
-    fields: [
-      field.text('name', 'Full Name', { required: true, placeholder: 'John Doe' }),
-      field.email('email', 'Email Address', { required: true }),
-      field.password('password', 'Password', { ...validation.password(8) }),
-    ],
-    onSubmit: (data) => this.handleSubmit('Vertical Form', data),
+    layout: { type: 'vertical', gap: 'md' },
+    fields: {
+      name: { type: 'text', label: 'Full Name', placeholder: 'John Doe', validation: { required: true } },
+      email: { type: 'email', label: 'Email Address', validation: { required: true } },
+      password: { type: 'password', label: 'Password', validation: { required: true, minLength: 8 } },
+    },
+    onSubmit: (data) => this.handleValues('Vertical Form', data),
   });
 
   horizontalForm = createForm({
-    ...layout.horizontal({ labelWidth: 'md', gap: 'md' }),
-    fields: [
-      field.text('username', 'Username', { required: true }),
-      field.email('email', 'Email', { required: true }),
-      field.text('phone', 'Phone Number', { placeholder: '(555) 123-4567' }),
-    ],
-    onSubmit: (data) => this.handleSubmit('Horizontal Form', data),
+    layout: { type: 'horizontal', labelWidth: 'md', gap: 'md' },
+    fields: {
+      username: { type: 'text', label: 'Username', validation: { required: true } },
+      email: { type: 'email', label: 'Email', validation: { required: true } },
+      phone: { type: 'text', label: 'Phone Number', placeholder: '(555) 123-4567' },
+    },
+    onSubmit: (data) => this.handleValues('Horizontal Form', data),
   });
 
   gridForm = createForm({
-    ...layout.grid(12, { gap: 'md' }),
-    fields: [
-      field.text('firstName', 'First Name', { required: true, colSpan: 6 }),
-      field.text('lastName', 'Last Name', { required: true, colSpan: 6 }),
-      field.email('email', 'Email', { colSpan: { default: 12, md: 8 } }),
-      field.text('phone', 'Phone', { colSpan: { default: 12, md: 4 }, placeholder: '(555) 123-4567' }),
-      field.textarea('address', 'Address', { colSpan: 12 }),
-      field.text('city', 'City', { colSpan: { default: 12, md: 4 } }),
-      field.text('state', 'State', { colSpan: { default: 6, md: 4 } }),
-      field.text('zip', 'ZIP Code', { colSpan: { default: 6, md: 4 } }),
-    ],
-    onSubmit: (data) => this.handleSubmit('Grid Form', data),
+    layout: { type: 'grid', columns: 12, gap: 'md' },
+    fields: {
+      firstName: { type: 'text', label: 'First Name', colSpan: 6, validation: { required: true } },
+      lastName: { type: 'text', label: 'Last Name', colSpan: 6, validation: { required: true } },
+      email: { type: 'email', label: 'Email', colSpan: { default: 12, md: 8 } },
+      phone: { type: 'text', label: 'Phone', colSpan: { default: 12, md: 4 }, placeholder: '(555) 123-4567' },
+      address: { type: 'textarea', label: 'Address', colSpan: 12 },
+      city: { type: 'text', label: 'City', colSpan: { default: 12, md: 4 } },
+      state: { type: 'text', label: 'State', colSpan: { default: 6, md: 4 } },
+      zip: { type: 'text', label: 'ZIP Code', colSpan: { default: 6, md: 4 } },
+    },
+    onSubmit: (data) => this.handleValues('Grid Form', data),
   });
 
   allFieldsForm = createForm({
@@ -528,17 +565,15 @@ export class FormsDemoComponent {
   draftRestoredMessage = signal('');
 
   autoSaveForm = createForm({
-    layout: 'grid',
-    gridColumns: 2,
-    gap: 'md',
-    fields: [
-      field.text('firstName', 'First Name', { required: true, placeholder: 'John' }),
-      field.text('lastName', 'Last Name', { required: true, placeholder: 'Doe' }),
-      field.email('email', 'Email', { required: true, colSpan: 2, placeholder: 'john@example.com' }),
-      field.select('role', 'Role', { choices: ['Developer', 'Designer', 'Manager', 'QA Engineer'] }),
-      field.select('department', 'Department', { choices: ['Engineering', 'Marketing', 'Sales', 'HR'] }),
-      field.textarea('notes', 'Notes', { colSpan: 2, placeholder: 'Type something, then refresh the page...' }),
-    ],
+    layout: { type: 'grid', columns: 2, gap: 'md' },
+    fields: {
+      firstName: { type: 'text', label: 'First Name', placeholder: 'John', validation: { required: true } },
+      lastName: { type: 'text', label: 'Last Name', placeholder: 'Doe', validation: { required: true } },
+      email: { type: 'email', label: 'Email', colSpan: 2, placeholder: 'john@example.com', validation: { required: true } },
+      role: { type: 'select', label: 'Role', options: ['Developer', 'Designer', 'Manager', 'QA Engineer'] },
+      department: { type: 'select', label: 'Department', options: ['Engineering', 'Marketing', 'Sales', 'HR'] },
+      notes: { type: 'textarea', label: 'Notes', colSpan: 2, placeholder: 'Type something, then refresh the page...' },
+    },
     autoSave: {
       enabled: true,
       formId: 'demo-autosave-form',
@@ -546,7 +581,7 @@ export class FormsDemoComponent {
       clearOnSubmit: true,
       storage: 'localStorage',
     },
-    onSubmit: (data) => this.handleSubmit('Auto-Save Form', data),
+    onSubmit: (data) => this.handleValues('Auto-Save Form', data),
   });
 
   onFormRestored(values: Record<string, unknown>) {
@@ -571,15 +606,22 @@ export class FormsDemoComponent {
     console.log(`[${formName}]`, data);
   }
 
+  /** Bridge a declarative form's `onSubmit(values)` to the shared submission handler. */
+  private handleValues(formName: string, values: Record<string, unknown>) {
+    this.handleSubmit(formName, { values, valid: true, errors: {} });
+  }
+
   // --- Code examples ---
-  verticalCode = `const form = createForm({
-  ...layout.vertical({ gap: 'md' }),
-  fields: [
-    field.text('name', 'Full Name', { required: true }),
-    field.email('email', 'Email Address', { required: true }),
-    field.password('password', 'Password', { ...validation.password(8) }),
-  ],
-  onSubmit: (data) => console.log(data),
+  verticalCode = `import { createForm } from '@hakistack/ng-daisyui';
+
+const form = createForm({
+  layout: { type: 'vertical', gap: 'md' },
+  fields: {
+    name: { type: 'text', label: 'Full Name', validation: { required: true } },
+    email: { type: 'email', label: 'Email Address', validation: { required: true } },
+    password: { type: 'password', label: 'Password', validation: { required: true, minLength: 8 } },
+  },
+  onSubmit: (data) => console.log(data.name, data.email), // data is fully typed
 });
 
 <hk-dynamic-form [config]="form.config()" />
@@ -587,23 +629,23 @@ export class FormsDemoComponent {
 <button (click)="form.reset()">Reset</button>`;
 
   horizontalCode = `const form = createForm({
-  ...layout.horizontal({ labelWidth: 'md', gap: 'md' }),
-  fields: [
-    field.text('username', 'Username', { required: true }),
-    field.email('email', 'Email', { required: true }),
-  ],
+  layout: { type: 'horizontal', labelWidth: 'md', gap: 'md' },
+  fields: {
+    username: { type: 'text', label: 'Username', validation: { required: true } },
+    email: { type: 'email', label: 'Email', validation: { required: true } },
+  },
   onSubmit: (data) => console.log(data),
 });`;
 
   gridCode = `const form = createForm({
-  ...layout.grid(12, { gap: 'md' }),
-  fields: [
-    field.text('firstName', 'First Name', { required: true, colSpan: 6 }),
-    field.text('lastName', 'Last Name', { required: true, colSpan: 6 }),
-    field.email('email', 'Email', { colSpan: { default: 12, md: 8 } }),
-    field.text('phone', 'Phone', { colSpan: { default: 12, md: 4 } }),
-    field.textarea('address', 'Address', { colSpan: 12 }),
-  ],
+  layout: { type: 'grid', columns: 12, gap: 'md' },
+  fields: {
+    firstName: { type: 'text', label: 'First Name', colSpan: 6, validation: { required: true } },
+    lastName: { type: 'text', label: 'Last Name', colSpan: 6, validation: { required: true } },
+    email: { type: 'email', label: 'Email', colSpan: { default: 12, md: 8 } },
+    phone: { type: 'text', label: 'Phone', colSpan: { default: 12, md: 4 } },
+    address: { type: 'textarea', label: 'Address', colSpan: 12 },
+  },
   onSubmit: (data) => console.log(data),
 });`;
 
@@ -649,23 +691,22 @@ field.select('city', 'City', {
   },
 }),`;
 
-  autoSaveCode = `import { createForm, field, provideFormState } from '@hakistack/ng-daisyui';
+  autoSaveCode = `import { createForm, provideFormState } from '@hakistack/ng-daisyui';
 
 // In app.config.ts providers:
 provideFormState({ mode: 'localStorage' })
 
 // Form config:
 const form = createForm({
-  layout: 'grid',
-  gridColumns: 2,
-  fields: [
-    field.text('firstName', 'First Name', { required: true }),
-    field.text('lastName', 'Last Name', { required: true }),
-    field.email('email', 'Email', { required: true, colSpan: 2 }),
-    field.select('role', 'Role', { choices: ['Developer', 'Designer', 'Manager'] }),
-    field.select('department', 'Department', { choices: ['Engineering', 'Marketing'] }),
-    field.textarea('notes', 'Notes', { colSpan: 2 }),
-  ],
+  layout: { type: 'grid', columns: 2 },
+  fields: {
+    firstName: { type: 'text', label: 'First Name', validation: { required: true } },
+    lastName: { type: 'text', label: 'Last Name', validation: { required: true } },
+    email: { type: 'email', label: 'Email', colSpan: 2, validation: { required: true } },
+    role: { type: 'select', label: 'Role', options: ['Developer', 'Designer', 'Manager'] },
+    department: { type: 'select', label: 'Department', options: ['Engineering', 'Marketing'] },
+    notes: { type: 'textarea', label: 'Notes', colSpan: 2 },
+  },
   autoSave: {
     enabled: true,
     formId: 'demo-autosave-form',  // Unique ID for storage key
@@ -692,6 +733,48 @@ field.text('code', 'Referral Code', {
   showWhen: ['hasCode', true],
   requiredWhen: ['hasCode', true],
 }),`;
+
+  declarativeCode = `import { createForm } from '@hakistack/ng-daisyui';
+
+// Recommended: one object. fields is a map, validation is per-field,
+// validate is cross-field, and data is inferred (name: string, etc.).
+const form = createForm({
+  layout: { type: 'vertical', gap: 'md' },
+  fields: {
+    name: { type: 'text', label: 'Full Name', validation: { required: true, minLength: 2, maxLength: 80 } },
+    email: { type: 'email', label: 'Email Address', validation: { required: true, email: true } },
+    password: { type: 'password', label: 'Password', validation: { required: true, minLength: 8, passwordStrength: 'medium' } },
+    confirmPassword: { type: 'password', label: 'Confirm Password', validation: { required: true } },
+  },
+  validate: (data) => {
+    if (data.password !== data.confirmPassword) {
+      return { confirmPassword: 'Passwords do not match' };
+    }
+    return null;
+  },
+  onSubmit: (data) => {
+    console.log(data.name);     // string
+    console.log(data.email);    // string
+    console.log(data.password); // string
+  },
+});`;
+
+  callbackDslCode = `import { createForm } from '@hakistack/ng-daisyui';
+
+// Only import createForm — the builders arrive as a typed DSL argument.
+const form = createForm(({ field, layout, validation }) => ({
+  ...layout.vertical({ gap: 'md' }),
+  fields: [
+    field.text('name', 'Full Name', { required: true }),
+    field.email('email', 'Email Address', { required: true }),
+    field.password('password', 'Password', validation.password(8)),
+  ],
+  onSubmit: (data) => console.log(data),
+}));
+
+// Equivalent classic object form (still supported):
+// import { createForm, field, layout, validation } from '@hakistack/ng-daisyui';
+// const form = createForm({ ...layout.vertical({ gap: 'md' }), fields: [...] });`;
 
   builderCode = `import { createForm, field, layout, validation, step } from '@hakistack/ng-daisyui';
 

@@ -254,27 +254,23 @@ export class GettingStartedV4Component {
 npm install -D tailwindcss@^3.4 postcss autoprefixer daisyui@^4.12`;
 
   tailwindConfigCode = `// tailwind.config.js
-const ngDaisyuiPreset = require('@hakistack/ng-daisyui/themes/daisyui-v4-preset');
-
 module.exports = {
-  presets: [ngDaisyuiPreset],
-  content: [
-    './src/**/*.{html,ts}',
-    './node_modules/@hakistack/ng-daisyui/**/*.{mjs,js}',
-  ],
+  // Only scan YOUR app — the lib ships its classes precompiled (see styles.css).
+  content: ['./src/**/*.{html,ts}'],
   plugins: [require('daisyui')],
   daisyui: { themes: ['light', 'dark'] },
 };`;
 
   stylesCode = `/* src/styles.css */
-@import "@hakistack/ng-daisyui/themes/daisyui-v4.css";
+/* One import: --hk-* bridge + all the lib's classes, precompiled. */
+@import "@hakistack/ng-daisyui/styles-v4.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;`;
 
   usageCode = `import { Component } from '@angular/core';
-import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui';
+import { DynamicFormComponent, createForm } from '@hakistack/ng-daisyui';
 
 @Component({
   selector: 'app-example',
@@ -286,11 +282,11 @@ import { DynamicFormComponent, createForm, field } from '@hakistack/ng-daisyui';
 })
 export class ExampleComponent {
   form = createForm({
-    fields: [
-      field.text('name', 'Full Name', { required: true }),
-      field.email('email', 'Email Address'),
-    ],
-    onSubmit: (data) => console.log(data),
+    fields: {
+      name: { type: 'text', label: 'Full Name', validation: { required: true } },
+      email: { type: 'email', label: 'Email Address' },
+    },
+    onSubmit: (data) => console.log(data.name, data.email), // typed
   });
 }`;
 }

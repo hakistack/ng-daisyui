@@ -1,17 +1,19 @@
 /* @hakistack/ng-daisyui — v4 demo entry styles.
  *
- * Intentionally minimal: just the lib's v4 theme adapter (variable
- * bridge from --hk-* to hsl(var(--bN))) and Tailwind v3 directives.
+ * This app consumes the library as an EXTERNAL DaisyUI v4 consumer would, with a
+ * single self-contained import: `styles-v4.css` bundles the --hk-* theme bridge
+ * AND every daisyUI/Tailwind class the lib uses, so we never re-scan the lib
+ * source. A published consumer writes:
+ *     @import "@hakistack/ng-daisyui/styles-v4.css";
+ * Here we point at the built file in dist (monorepo path).
  *
- * Component-level chrome (toast, dropdown, stepper animations) is
- * registered by the daisyUI-v4 plugin via the preset in
- * tailwind.config.js. Component visual styling comes straight from
- * daisyUI v4 — this file deliberately does NOT add any custom chrome
- * (no glassmorphism, no grain overlays, no custom scrollbars, no
- * card hover lifts) so the demo shows native daisyUI v4 rendering.
+ * Then this app's own Tailwind + daisyUI (below) styles the demo shell / pages.
+ *
+ * NOTE: `styles-v4.css` is a build artifact (generated from the FESM by
+ * `build:lib-css`). Run `npm run build` before serving this app, or it won't
+ * resolve. This is intentional — it proves the precompiled CSS is complete.
  */
-
-@import "../../hakistack/ng-daisyui/themes/daisyui-v4.css";
+@import "../../../dist/hakistack/ng-daisyui/styles-v4.css";
 
 @tailwind base;
 @tailwind components;

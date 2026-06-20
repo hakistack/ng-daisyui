@@ -28,6 +28,19 @@
   border-radius: 9999px;
 }
 
+/* ── Disclosure rows: hug the chevron to the label ──
+   daisyUI lays menu rows out as a grid that right-aligns the ▾ arrow,
+   leaving a wide blank gap after short labels. Switching the summary to
+   flex packs [icon] [label] [arrow] together. */
+.sidebar-menu .menu li > details > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sidebar-menu .menu li > details > summary::after {
+  margin-inline-start: 0.125rem;
+}
+
 /* ── Menu item transitions & active styling ── */
 .sidebar-menu .menu li > a {
   transition: all 0.15s ease;

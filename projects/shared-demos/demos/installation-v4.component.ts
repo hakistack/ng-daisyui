@@ -230,16 +230,11 @@ yarn add -D tailwindcss@^3.4 postcss autoprefixer daisyui@^4.12`;
 pnpm add -D tailwindcss@^3.4 postcss autoprefixer daisyui@^4.12`;
 
   tailwindConfigCode = `// tailwind.config.js
-const ngDaisyuiPreset = require('@hakistack/ng-daisyui/themes/daisyui-v4-preset');
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  presets: [ngDaisyuiPreset],
-  content: [
-    './src/**/*.{html,ts}',
-    // Scan the library bundle so dynamic classes are not purged
-    './node_modules/@hakistack/ng-daisyui/**/*.{mjs,js}',
-  ],
+  // Only scan YOUR app — the library ships its classes precompiled
+  // (see styles.css below), so there's no preset and no bundle scanning.
+  content: ['./src/**/*.{html,ts}'],
   theme: { extend: {} },
   plugins: [require('daisyui')],
   daisyui: {
@@ -260,8 +255,9 @@ module.exports = {
 };`;
 
   stylesCode = `/* src/styles.css */
-/* Library theme adapter: v4 CSS-variable mappings + compat borders */
-@import "@hakistack/ng-daisyui/themes/daisyui-v4.css";
+/* One self-contained import: the --hk-* theme bridge + every daisyUI/Tailwind
+   class the library uses (precompiled). No bundle scanning on your side. */
+@import "@hakistack/ng-daisyui/styles-v4.css";
 
 @tailwind base;
 @tailwind components;
@@ -310,7 +306,6 @@ import {
   DynamicFormComponent,
   ToastService,
   createForm,
-  field,
 } from '@hakistack/ng-daisyui';
 
 @Component({
@@ -325,10 +320,10 @@ export class MyPageComponent {
   private toast = inject(ToastService);
 
   form = createForm({
-    fields: [
-      field.text('name', 'Name', { required: true }),
-      field.email('email', 'Email'),
-    ],
+    fields: {
+      name: { type: 'text', label: 'Name', validation: { required: true } },
+      email: { type: 'email', label: 'Email' },
+    },
     onSubmit: () => this.toast.success('Saved!'),
   });
 }`;

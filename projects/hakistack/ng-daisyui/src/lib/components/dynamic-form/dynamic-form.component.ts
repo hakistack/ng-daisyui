@@ -76,6 +76,8 @@ export class DynamicFormComponent {
   private readonly formStateService = inject(FormStateService);
 
   // Inputs
+  // Accepts `FormConfig<T>` for any `T`: the config callbacks use method-signature
+  // (bivariant) syntax, so a typed controller's `config()` is assignable here. See FormConfig.
   readonly config = input.required<FormConfig>();
   readonly initialValues = input<Record<string, unknown>>({});
   readonly disabled = input<boolean>(false);
@@ -300,8 +302,19 @@ export class DynamicFormComponent {
     return `dynamic-form space-y-6 ${layout} ${disabled}`.trim();
   });
 
+  /**
+   * Form-level (cross-field) errors from `config.validate`, keyed by field name.
+   * Recomputes on every value change. `null` when valid or no validator is set.
+   */
+  readonly crossFieldErrors = computed<Record<string, string> | null>(() => {
+    const validate = this.config().validate;
+    if (!validate) return null;
+    const result = validate(this.formValues());
+    return result && Object.keys(result).length > 0 ? result : null;
+  });
+
   readonly isSubmitDisabled = computed(() => {
-    return this.disabled() || this.formGroup().invalid;
+    return this.disabled() || this.formGroup().invalid || this.crossFieldErrors() !== null;
   });
 
   readonly layoutClasses = computed(() => {
@@ -403,10 +416,23 @@ export class DynamicFormComponent {
     const form = this.formGroup();
     form.markAllAsTouched();
 
+    // Run form-level (cross-field) validation synchronously against the latest values.
+    const validate = this.config().validate;
+    const validateResult = validate ? validate(form.value) : null;
+    const crossFieldErrors = validateResult && Object.keys(validateResult).length > 0 ? validateResult : null;
+    const valid = form.valid && !crossFieldErrors;
+
+    const errors = valid ? {} : this.getAllErrors();
+    if (crossFieldErrors) {
+      for (const [key, message] of Object.entries(crossFieldErrors)) {
+        errors[key] = [...(errors[key] ?? []), message];
+      }
+    }
+
     const submissionData: FormSubmissionData = {
       values: form.value,
-      valid: form.valid,
-      errors: form.valid ? {} : this.getAllErrors(),
+      valid,
+      errors,
       // Include stepper info if in stepper mode
       completedSteps: this.isStepperMode() ? [...this.completedSteps()] : undefined,
       currentStep: this.currentStep()?.name,
@@ -649,11 +675,23 @@ export class DynamicFormComponent {
     const allFields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
     const field = allFields.find((f) => f.key === fieldKey);
 
-    if (!control?.errors || !control.touched || !field) {
+    if (!field || !control?.touched) {
       return [];
     }
 
-    return [FormUtils.getErrorMessage(field, control.errors)];
+    const messages: string[] = [];
+
+    if (control.errors) {
+      messages.push(FormUtils.getErrorMessage(field, control.errors));
+    }
+
+    // Form-level (cross-field) error for this field, e.g. "Passwords do not match".
+    const crossFieldMessage = this.crossFieldErrors()?.[fieldKey];
+    if (crossFieldMessage) {
+      messages.push(crossFieldMessage);
+    }
+
+    return messages;
   }
 
   getFieldOptions(field: FormFieldConfig): FormSelectOption[] {

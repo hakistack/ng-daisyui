@@ -219,7 +219,7 @@ interface NavSection {
 
           <!-- Navigation -->
           <nav class="flex-1 overflow-y-auto px-3 py-3">
-            <ul class="menu gap-0.5">
+            <ul class="menu gap-0.5 w-full">
               @for (section of navSections; track section.title) {
                 <li class="menu-title mt-5 first:mt-1">
                   <span>{{ section.title }}</span>
@@ -268,23 +268,6 @@ export class App implements OnInit {
   readonly themes = THEMES;
   readonly currentTheme = signal<string>('dark');
   readonly currentPath = signal('');
-
-  /** DaisyUI v4 themes that read as visually dark — used for system-pref fallback. */
-  private readonly DARK_THEMES = new Set([
-    'dark',
-    'synthwave',
-    'halloween',
-    'forest',
-    'black',
-    'luxury',
-    'dracula',
-    'business',
-    'night',
-    'coffee',
-    'dim',
-    'sunset',
-    'hacienda',
-  ]);
 
   readonly currentPageLabel = computed(() => {
     const path = this.currentPath();
