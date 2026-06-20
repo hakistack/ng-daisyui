@@ -458,6 +458,16 @@ export type {
   SidebarSide,
 } from './lib/components/navbar/navbar.types';
 
+// Breadcrumbs
+export { BreadcrumbsComponent } from './lib/components/breadcrumbs/breadcrumbs.component';
+export { BreadcrumbService } from './lib/components/breadcrumbs/breadcrumbs.service';
+export type {
+  BreadcrumbItem,
+  BreadcrumbSize,
+  BreadcrumbRouteData,
+  BreadcrumbRouteContext,
+} from './lib/components/breadcrumbs/breadcrumbs.types';
+
 // Virtual Scroller
 export { VirtualScrollerComponent } from './lib/components/virtual-scroller/virtual-scroller.component';
 export type {

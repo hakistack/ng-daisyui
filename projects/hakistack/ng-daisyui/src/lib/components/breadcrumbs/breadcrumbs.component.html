@@ -1,0 +1,55 @@
+<nav class="breadcrumbs" [class]="sizeClass()" [style.max-width]="maxWidth() ?? null" [attr.aria-label]="ariaLabel()">
+  <ol>
+    @for (item of resolvedItems(); track $index) {
+      <li [class]="item.class">
+        @if (item.current) {
+          <span
+            class="inline-flex items-center gap-2 cursor-default hover:no-underline"
+            aria-current="page"
+            [attr.aria-label]="item.ariaLabel ?? null"
+          >
+            <ng-container *ngTemplateOutlet="crumbInner; context: { $implicit: item }" />
+          </span>
+        } @else if (item.href && !item.disabled) {
+          <a
+            [href]="item.href"
+            [attr.target]="item.target ?? null"
+            [attr.rel]="item.target === '_blank' ? 'noopener noreferrer' : null"
+            [attr.aria-label]="item.ariaLabel ?? null"
+            (click)="select(item, $event)"
+          >
+            <ng-container *ngTemplateOutlet="crumbInner; context: { $implicit: item }" />
+          </a>
+        } @else if (item.routerLink != null && !item.disabled) {
+          <a [routerLink]="item.routerLink" [attr.aria-label]="item.ariaLabel ?? null" (click)="select(item, $event)">
+            <ng-container *ngTemplateOutlet="crumbInner; context: { $implicit: item }" />
+          </a>
+        } @else if (item.action && !item.disabled) {
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 cursor-pointer bg-transparent border-0 p-0"
+            [attr.aria-label]="item.ariaLabel ?? null"
+            (click)="select(item, $event)"
+          >
+            <ng-container *ngTemplateOutlet="crumbInner; context: { $implicit: item }" />
+          </button>
+        } @else {
+          <span
+            class="inline-flex items-center gap-2 cursor-default hover:no-underline"
+            [attr.aria-disabled]="item.disabled ? true : null"
+            [attr.aria-label]="item.ariaLabel ?? null"
+          >
+            <ng-container *ngTemplateOutlet="crumbInner; context: { $implicit: item }" />
+          </span>
+        }
+      </li>
+    }
+  </ol>
+</nav>
+
+<ng-template #crumbInner let-it>
+  @if (it.icon) {
+    <svg [lucideIcon]="it.icon" [size]="16" class="shrink-0"></svg>
+  }
+  {{ it.label }}
+</ng-template>

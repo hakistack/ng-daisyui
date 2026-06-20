@@ -463,6 +463,7 @@
           @if (pageNumbers().length > 0) {
             <div
               class="hk-pdf-page-stack flex flex-col items-center gap-4"
+              [class.hk-pdf-page-stack-centered]="centerPages()"
               role="document"
               aria-label="PDF document"
               [class.invisible]="!firstRenderComplete()"
@@ -772,6 +773,7 @@
           @if (pageNumbers().length > 0) {
             <div
               class="hk-pdf-page-stack flex flex-col items-center gap-4"
+              [class.hk-pdf-page-stack-centered]="centerPages()"
               role="document"
               aria-label="PDF document"
               [class.invisible]="!firstRenderComplete()"

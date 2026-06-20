@@ -1265,11 +1265,14 @@ export class TableComponent<T extends object> implements OnDestroy {
   private static readonly DEFAULT_ACTION_CLASS = 'btn btn-sm btn-ghost';
 
   /** Default export options for bulk export actions */
+  // `[lucideIcon]` resolves string names against the kebab-case keys that
+  // `provideLucideIcons` registers (e.g. `LucideSheet` → 'sheet'). PascalCase
+  // names ('Sheet') don't resolve and throw "Unable to resolve icon".
   private static readonly DEFAULT_EXPORT_OPTIONS: readonly BulkActionDropdownOption[] = [
-    { label: 'CSV', value: 'csv', icon: 'Sheet' },
-    { label: 'Excel', value: 'excel', icon: 'FileSpreadsheet' },
-    { label: 'PDF', value: 'pdf', icon: 'FileText' },
-    { label: 'JSON', value: 'json', icon: 'Braces' },
+    { label: 'CSV', value: 'csv', icon: 'sheet' },
+    { label: 'Excel', value: 'excel', icon: 'file-spreadsheet' },
+    { label: 'PDF', value: 'pdf', icon: 'file-text' },
+    { label: 'JSON', value: 'json', icon: 'braces' },
   ] as const;
 
   /**

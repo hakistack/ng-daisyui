@@ -70,6 +70,12 @@ export const routes: Routes = [
     path: 'app-shell/:feature',
     loadComponent: () => import('@shared-demos/demos/app-shell-demo.component').then((m) => m.AppShellDemoComponent),
   },
+  { path: 'breadcrumbs', redirectTo: 'breadcrumbs/basic', pathMatch: 'full' },
+  {
+    path: 'breadcrumbs/:feature',
+    data: { breadcrumb: 'Breadcrumbs' },
+    loadComponent: () => import('@shared-demos/demos/breadcrumbs-demo.component').then((m) => m.BreadcrumbsDemoComponent),
+  },
   { path: 'tabs', redirectTo: 'tabs/basic', pathMatch: 'full' },
   { path: 'tabs/:feature', loadComponent: () => import('@shared-demos/demos/tabs-demo.component').then((m) => m.TabsDemoComponent) },
   { path: 'command-palette', redirectTo: 'command-palette/basic', pathMatch: 'full' },

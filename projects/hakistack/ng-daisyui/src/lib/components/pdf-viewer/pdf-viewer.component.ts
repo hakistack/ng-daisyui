@@ -47,6 +47,7 @@ import {
 } from '@lucide/angular';
 import { HK_THEME } from '../../theme/theme.config';
 import { HkPdfToolbarContext, HkPdfToolbarDirective } from './pdf-viewer.directives';
+import { inverseRotateDelta } from './pdf-viewer.helpers';
 import { DEFAULT_PDF_VIEWER_LABELS, HK_PDF_LABELS, ResolvedPdfViewerLabels } from './pdf-viewer.labels';
 import { PdfDocHandle, PdfEngine, PdfFormField, PdfLinkRect, PdfOutlineNode, PdfTextSegment } from './engine/pdf-engine.types';
 import { PdfEnginePool } from './engine/pdf-engine-pool';
@@ -69,6 +70,23 @@ import {
 const VIEWPORT_PAD_X = 32; // px reserved when computing fit-width / fit-page
 const VIEWPORT_PAD_Y = 32;
 const AUTO_ZOOM_CAP = 1.5;
+/**
+ * Ceiling for the auto-fit (`fit-width`) scale. On a very wide viewport
+ * (fullscreen, ultra-wide monitors) an un-capped fit-width blows a portrait page
+ * up to several hundred percent — it overflows vertically *and* the device-pixel
+ * canvas can exceed the browser's max canvas size, leaving the lower part of the
+ * page blank. Capping keeps a comfortable reading width; the page-stack centres
+ * the page with margins past this point. `fit-page` is intentionally uncapped
+ * (it's already bounded by height).
+ */
+const FIT_ZOOM_MAX = 2;
+/**
+ * Max device-pixel dimension for a page canvas. Browsers cap canvas size (Safari
+ * is the tightest, ~4096 px/side on some versions) and silently drop the
+ * overflow — the cause of a blank lower page region at very high zoom. We reduce
+ * the effective DPR so neither side exceeds this; the CSS box stays full-size.
+ */
+const MAX_CANVAS_DIM = 4096;
 
 /**
  * IntersectionObserver `rootMargin` used to define the "live" page buffer.
@@ -656,23 +674,52 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     // mode tracks `state.page` via Prev/Next + the goToPage path.
     effect(() => {
       if (!this.isContinuousMode()) return;
+      // Re-runs each rAF-paced visibility flush (i.e. as the user scrolls).
       const visible = this.visibleEntries();
-      let bestRatio = 0;
-      let best = -1;
-      for (const [num, ratio] of visible) {
-        if (ratio > bestRatio) {
-          bestRatio = ratio;
-          best = num;
-        }
-      }
-      if (best <= 0) return;
+      const vp = this.viewport()?.nativeElement;
+      if (!vp || visible.size === 0) return;
       untracked(() => {
+        // Current page = the one whose box straddles the viewport's vertical
+        // centre (nearest page if the centre lands in the inter-page gap). This
+        // is position-based, not intersection-ratio based, so it's stable
+        // (changes exactly once when the centre crosses a boundary — no flicker)
+        // and unaffected by scroll speed or zoom, unlike the visible-fraction
+        // ratio which barely moves for a page taller than the viewport.
+        const vpRect = vp.getBoundingClientRect();
+        const center = vpRect.top + vpRect.height / 2;
+        let current = -1;
+        let bestDist = Infinity;
+        for (const num of visible.keys()) {
+          const wrapper = this.pageWrappers()[num - 1]?.nativeElement;
+          if (!wrapper) continue;
+          const r = wrapper.getBoundingClientRect();
+          if (r.top <= center && r.bottom >= center) {
+            current = num;
+            break;
+          }
+          const dist = center < r.top ? r.top - center : center - r.bottom;
+          if (dist < bestDist) {
+            bestDist = dist;
+            current = num;
+          }
+        }
+        if (current <= 0) return;
         const cur = this.internal?.state().page ?? 0;
-        if (best !== cur) {
-          this.internal?.state.update((s) => ({ ...s, page: best }));
-          this.config().onPageChange?.(best);
+        if (current !== cur) {
+          this.internal?.state.update((s) => ({ ...s, page: current }));
+          this.config().onPageChange?.(current);
         }
       });
+    });
+
+    // Keep the active page's thumbnail visible in the sidebar as the user moves
+    // through the document (scroll, prev/next, goToPage). Confined to the
+    // thumbnail panel — never scrolls the outer page.
+    effect(() => {
+      const page = this.state()?.page ?? 0;
+      const active = this.thumbnailsTabActive();
+      if (page <= 0 || !active) return;
+      untracked(() => this.scrollActiveThumbnailIntoView(page));
     });
 
     // Push consumer-set form values into the engine's form fields. Skips the
@@ -1223,8 +1270,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
     // Viewport from the page's natural size (PDF points) × the fitted scale.
     const viewport = { width: page.baseWidth * scale, height: page.baseHeight * scale };
-    canvas.width = Math.floor(viewport.width * dpr);
-    canvas.height = Math.floor(viewport.height * dpr);
+    // Clamp the *device* canvas so neither side exceeds the browser's max canvas
+    // dimension. Past it the canvas silently fails to paint its lower/right
+    // region (the blank-page-bottom at very high zoom). We reduce the effective
+    // DPR to fit; the CSS box stays full-size so the browser upscales the raster
+    // (slightly soft, but complete). Fit modes stay well under this (see
+    // FIT_ZOOM_MAX); only extreme manual zoom triggers it.
+    const ideal = Math.max(viewport.width, viewport.height) * dpr;
+    const renderDpr = ideal > MAX_CANVAS_DIM ? (dpr * MAX_CANVAS_DIM) / ideal : dpr;
+    canvas.width = Math.floor(viewport.width * renderDpr);
+    canvas.height = Math.floor(viewport.height * renderDpr);
     canvas.style.width = `${viewport.width}px`;
     canvas.style.height = `${viewport.height}px`;
 
@@ -1247,7 +1302,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
     // Bitmap cache: exact hit → blit instantly, no worker round-trip (this is
     // the scroll-back / zoom-revisit fast path).
-    const targetWidth = Math.max(1, Math.floor(viewport.width * dpr));
+    const targetWidth = Math.max(1, Math.floor(viewport.width * renderDpr));
     const cacheKey = `${page.pageNumber}:${targetWidth}`;
     const hit = this.pageBitmapCache.get(cacheKey);
     if (hit) {
@@ -1283,7 +1338,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     // PDFium rasterizes the page off the main thread (with correct text) and
     // returns an ImageBitmap we blit in a sub-millisecond `drawImage`. PDFium
     // pages are 0-based; our `pageNumber` is 1-based.
-    const task = engine.renderPage(doc, page.pageNumber - 1, viewport.width, dpr);
+    const task = engine.renderPage(doc, page.pageNumber - 1, viewport.width, renderDpr);
     const handle = { cancel: task.cancel, promise: task.promise };
     this.renderTasksByPage.set(page.pageNumber, handle);
     try {
@@ -1607,13 +1662,22 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     if (!ctx) return;
     try {
       const { bitmap, width, height } = await engine.renderPage(this.pdfiumDoc, pageNumber - 1, targetWidth, dpr).promise;
-      canvas.width = width;
-      canvas.height = height;
-      canvas.style.width = `${targetWidth}px`;
-      canvas.style.height = `${Math.round(height / dpr)}px`;
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(bitmap, 0, 0);
+      // Bake the display rotation into the thumbnail raster so it matches the
+      // main view. 90/270 swap the canvas dims; the CSS box then fits to a fixed
+      // width preserving the (possibly landscape) aspect — no overflow.
+      const deg = this.pageRotation(pageNumber);
+      const swap = deg === 90 || deg === 270;
+      canvas.width = swap ? height : width;
+      canvas.height = swap ? width : height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((deg * Math.PI) / 180);
+      ctx.drawImage(bitmap, -width / 2, -height / 2);
+      ctx.restore();
       bitmap.close();
+      canvas.style.width = `${targetWidth}px`;
+      canvas.style.height = `${Math.round((canvas.height / canvas.width) * targetWidth)}px`;
     } catch {
       // Bring it back into the candidate set so a future intersection retries.
       this.renderedThumbs.delete(pageNumber);
@@ -1920,11 +1984,21 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const vp = this.viewport()?.nativeElement;
     if (!vp) return typeof cfgZoom === 'number' ? cfgZoom : 1;
 
-    const availableWidth = Math.max(0, vp.clientWidth - VIEWPORT_PAD_X);
-    const availableHeight = Math.max(0, vp.clientHeight - VIEWPORT_PAD_Y);
+    // Cap the measured size by the window. If an ancestor lays the viewer out
+    // content-driven (a flex/grid item defaults to `min-width: auto`, so the
+    // track grows to fit a rotated, wider page), `vp.clientWidth` balloons —
+    // and since we feed it back into the scale that sizes that very page, the
+    // zoom runs away geometrically and crashes the renderer. The viewer is
+    // never legitimately wider/taller than the window, so this only ever clamps
+    // the runaway; normal layouts are unaffected.
+    const doc = vp.ownerDocument?.documentElement;
+    const winW = doc?.clientWidth || vp.clientWidth;
+    const winH = doc?.clientHeight || vp.clientHeight;
+    const availableWidth = Math.max(0, Math.min(vp.clientWidth, winW) - VIEWPORT_PAD_X);
+    const availableHeight = Math.max(0, Math.min(vp.clientHeight, winH) - VIEWPORT_PAD_Y);
 
     if (typeof cfgZoom === 'number') return cfgZoom;
-    if (cfgZoom === 'fit-width') return availableWidth / first.baseWidth;
+    if (cfgZoom === 'fit-width') return Math.min(FIT_ZOOM_MAX, availableWidth / first.baseWidth);
     if (cfgZoom === 'fit-page') return Math.min(availableWidth / first.baseWidth, availableHeight / first.baseHeight);
     if (cfgZoom === 'auto') return Math.min(AUTO_ZOOM_CAP, availableWidth / first.baseWidth);
     return 1;
@@ -1952,14 +2026,37 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const mode = this.internal?.state().mode ?? 'continuous';
     if (mode !== 'continuous') return;
 
-    // Native scrollIntoView on the wrapper. The browser handles all the
-    // padding / border / nested-scroller arithmetic for us — no manual
-    // offsetTop walks, no padding subtraction, no off-by-one. The nearest
-    // scrollable ancestor (our viewport) scrolls to put the wrapper at its
-    // start. If the viewer itself is not fully visible in the page, the
-    // outer document scrolls too — usually desirable UX since it surfaces
-    // the viewer when the user navigates.
-    wrapper.scrollIntoView({ block: 'start', behavior: 'auto' });
+    const vp = this.viewport()?.nativeElement;
+    if (!vp) return;
+
+    // Scroll ONLY our inner viewport — never `scrollIntoView`, which walks every
+    // scrollable ancestor and yanks the whole document/page to surface the
+    // viewer. Align the wrapper's top to the viewport's content-start (below its
+    // top padding) by nudging scrollTop by the current rect delta.
+    const padTop = parseFloat(getComputedStyle(vp).paddingTop) || 0;
+    const delta = wrapper.getBoundingClientRect().top - vp.getBoundingClientRect().top - padTop;
+    vp.scrollTo({ top: vp.scrollTop + delta, behavior: 'auto' });
+  }
+
+  /**
+   * Scroll the sidebar thumbnail panel so the active page's thumbnail is in
+   * view — but only when it's actually off-screen (block: 'nearest' semantics),
+   * so it doesn't yank on every page tick. Confined to the panel; never scrolls
+   * the outer document.
+   */
+  private scrollActiveThumbnailIntoView(page: number): void {
+    const panel = this.thumbnailPanel()?.nativeElement;
+    if (!panel) return;
+    const item = panel.querySelector<HTMLCanvasElement>(`canvas[data-thumb-page="${page}"]`)?.closest('li');
+    if (!item) return;
+    const pRect = panel.getBoundingClientRect();
+    const iRect = item.getBoundingClientRect();
+    const MARGIN = 8;
+    if (iRect.top < pRect.top) {
+      panel.scrollTop += iRect.top - pRect.top - MARGIN;
+    } else if (iRect.bottom > pRect.bottom) {
+      panel.scrollTop += iRect.bottom - pRect.bottom + MARGIN;
+    }
   }
 
   private setZoom(zoom: PdfZoom): void {
@@ -2266,7 +2363,15 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       charOffset += spanLen;
     }
 
-    firstActive?.scrollIntoView({ block: 'center', behavior: 'auto' });
+    // Centre the match in our viewport only — not via `scrollIntoView`, which
+    // would also scroll the outer document.
+    const vp = this.viewport()?.nativeElement;
+    if (firstActive && vp) {
+      const sRect = firstActive.getBoundingClientRect();
+      const vpRect = vp.getBoundingClientRect();
+      const delta = sRect.top - vpRect.top - (vp.clientHeight - sRect.height) / 2;
+      vp.scrollTo({ top: vp.scrollTop + delta, behavior: 'auto' });
+    }
   }
 
   /**
@@ -2330,9 +2435,12 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     // Bake display rotations into the saved bytes, then revert so the live
     // (CSS-rotated) view stays consistent.
     const rotations = [...this.pageRotations()].filter(([, r]) => r !== 0);
-    for (const [n, r] of rotations) await engine.setPageRotation(doc, n - 1, r);
     let result: Uint8Array;
     try {
+      // Apply rotations INSIDE the try so the finally always reverts them — even
+      // if a mutation throws partway (e.g. a pool desync), we must not leave the
+      // live doc rotated (it would double-rotate against the CSS display).
+      for (const [n, r] of rotations) await engine.setPageRotation(doc, n - 1, r);
       result = await engine.save(doc);
     } finally {
       for (const [n] of rotations) {
@@ -2404,9 +2512,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
     // dpr=1: the requested device pixels are exactly baseWidth*scale.
     const { bitmap, width, height } = await engine.renderPage(this.pdfiumDoc, pageNumber - 1, page.baseWidth * scale, 1).promise;
-    canvas.width = width;
-    canvas.height = height;
-    ctx.drawImage(bitmap, 0, 0);
+    // Bake the display rotation into the exported image so it matches what the
+    // user sees (rotation is CSS-only in the live view). 90/270 swap the canvas
+    // dims; we rotate about the centre. deg=0 reduces to a plain drawImage(0,0).
+    const deg = this.pageRotation(pageNumber);
+    const swap = deg === 90 || deg === 270;
+    canvas.width = swap ? height : width;
+    canvas.height = swap ? width : height;
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((deg * Math.PI) / 180);
+    ctx.drawImage(bitmap, -width / 2, -height / 2);
     bitmap.close();
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, options?.quality));
@@ -2605,6 +2720,17 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
   /** Whether to show the page list (loaded + no error). */
   readonly showPages = computed(() => !!this.state()?.loaded && !this.state()?.error);
+
+  /**
+   * Center the page stack vertically only when a single page is shown (single
+   * mode, or a one-page document). In continuous multi-page mode we top-align so
+   * a tall stack doesn't leave dead space below the first page while scrolling.
+   */
+  readonly centerPages = computed(() => {
+    const s = this.state();
+    if (!s) return false;
+    return s.mode === 'single' || s.numPages <= 1;
+  });
 
   /** Page wrapper hidden? — true in single-mode for any non-current page. */
   pageHidden(pageNumber: number): boolean {
@@ -2823,6 +2949,12 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       else next.set(pageNumber, r);
       return next;
     });
+    // Re-rasterize this page's sidebar thumbnail so it reflects the new rotation.
+    this.renderedThumbs.delete(pageNumber);
+    if (this.thumbnailsTabActive()) {
+      this.renderedThumbs.add(pageNumber);
+      void this.renderOneThumbnail(pageNumber);
+    }
   }
 
   /** Rotate the current page 90° clockwise (toolbar). */
@@ -3020,9 +3152,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     if (tool === 'none') return;
     ev.preventDefault();
     const layer = ev.currentTarget as HTMLElement;
-    const r = layer.getBoundingClientRect();
-    const x = ev.clientX - r.left;
-    const y = ev.clientY - r.top;
+    const { x, y } = this.pointerToLayer(layer, pageNumber, ev.clientX, ev.clientY);
     if (tool === 'note') {
       void this.commitNote(layer, pageNumber, x, y);
       return;
@@ -3056,8 +3186,8 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   onEditPointerMove(ev: PointerEvent): void {
     const ink = this.inkDraw;
     if (ink) {
-      const r = ink.layer.getBoundingClientRect();
-      ink.points.push(ev.clientX - r.left, ev.clientY - r.top);
+      const p = this.pointerToLayer(ink.layer, ink.pageNumber, ev.clientX, ev.clientY);
+      ink.points.push(p.x, p.y);
       let pts = '';
       for (let i = 0; i < ink.points.length; i += 2) pts += `${ink.points[i]},${ink.points[i + 1]} `;
       ink.poly.setAttribute('points', pts.trim());
@@ -3065,9 +3195,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     }
     const d = this.editDrag;
     if (!d) return;
-    const r = d.layer.getBoundingClientRect();
-    const x = ev.clientX - r.left;
-    const y = ev.clientY - r.top;
+    const { x, y } = this.pointerToLayer(d.layer, d.pageNumber, ev.clientX, ev.clientY);
     const s = d.preview.style;
     s.left = `${Math.min(d.startX, x)}px`;
     s.top = `${Math.min(d.startY, y)}px`;
@@ -3087,9 +3215,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const d = this.editDrag;
     if (!d) return;
     this.editDrag = null;
-    const r = d.layer.getBoundingClientRect();
-    const x = ev.clientX - r.left;
-    const y = ev.clientY - r.top;
+    const { x, y } = this.pointerToLayer(d.layer, d.pageNumber, ev.clientX, ev.clientY);
     const left = Math.min(d.startX, x);
     const top = Math.min(d.startY, y);
     const w = Math.abs(x - d.startX);
@@ -3097,6 +3223,26 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     d.preview.remove();
     if (w < 4 || h < 4) return; // ignore taps / tiny drags
     void this.commitRectAnnotation(this.annotationTool(), d.layer, pageNumber, left, top, w, h);
+  }
+
+  /**
+   * Map a screen pointer position to the page's **unrotated** layer-local CSS
+   * coordinates, inverting the rotor's CSS display rotation about the layer
+   * centre. Annotations are stored in unrotated page space (rotation is
+   * display-only until `save()` bakes `/Rotate`), so this places them where the
+   * user drew on the rotated page — consistent in both the live view and the
+   * saved file. For an unrotated page this reduces to `clientX - rect.left`.
+   */
+  private pointerToLayer(layer: HTMLElement, pageNumber: number, clientX: number, clientY: number): { x: number; y: number } {
+    const r = layer.getBoundingClientRect();
+    // Rotation about centre preserves the centre, so the bbox centre IS the
+    // layer's true centre even when the layer is rotated.
+    const dx = clientX - (r.left + r.width / 2);
+    const dy = clientY - (r.top + r.height / 2);
+    // Inverse of the rotor's clockwise R(deg): local = R(-deg) · screenDelta.
+    const local = inverseRotateDelta(dx, dy, this.pageRotation(pageNumber));
+    // clientWidth/Height are the element's own (unrotated) box dims.
+    return { x: layer.clientWidth / 2 + local.dx, y: layer.clientHeight / 2 + local.dy };
   }
 
   /** Points-per-CSS-pixel for a page's edit layer (engine wants PDF points). */

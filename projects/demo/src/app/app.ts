@@ -487,6 +487,17 @@ export class App implements OnInit {
           ],
         },
         {
+          path: '/breadcrumbs',
+          label: 'Breadcrumbs',
+          icon: 'list-tree',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'icons', label: 'With Icons' },
+            { id: 'maxwidth', label: 'Max Width' },
+            { id: 'auto', label: 'Auto (Router)' },
+          ],
+        },
+        {
           path: '/tabs',
           label: 'Tabs',
           icon: 'panel-top',

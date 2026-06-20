@@ -17,6 +17,17 @@
   display: block;
   height: 100%;
   min-height: 24rem;
+  /* `min-width: 0` so that when the viewer is a flex/grid item (which default to
+     `min-width: auto`), a wide page — e.g. a rotated landscape page — overflows
+     into the inner scroll container instead of stretching the host. */
+  min-width: 0;
+  /* `contain: inline-size` is the real guard: it makes the host's width
+     independent of its contents, so a wide rotated page can NEVER grow the host
+     (it overflows into the inner scroll). Without this, the page's intrinsic
+     width propagates up through any `min-width: auto` flex/grid ancestor, the
+     host grows, we read that back as a larger viewport width, and the fit-width
+     zoom jumps on rotate. Width still comes from the containing block as usual. */
+  contain: inline-size;
 }
 
 :host .hk-pdf-viewport {
@@ -31,11 +42,33 @@
   max-height: 75vh;
 }
 
-/* Page stack: center the pages in the viewport when the content is shorter
-   than the available height (kills the dead space below a single page), but
-   keep top-to-bottom scrolling when the content overflows (`safe`). */
+/* In fullscreen the host fills the whole screen, but the 75vh cap above would
+   pin the scroll area to 75% of it — leaving a dead band below the viewport.
+   Let it fill the available height instead. (Separate rules: an unknown
+   pseudo-class would invalidate the whole selector list, so don't combine.) */
+:host(:fullscreen) .hk-pdf-viewport {
+  max-height: none;
+}
+:host(:-webkit-full-screen) .hk-pdf-viewport {
+  max-height: none;
+}
+
+/* Page stack: top-align by default so a tall multi-page document flows from the
+   top with no dead space above the first page. `align-items: safe center` keeps
+   horizontal centering, but aligns a page wider than the viewport (e.g. a
+   rotated landscape page) to the start so its left edge stays reachable by
+   horizontal scroll instead of being clipped. */
 :host .hk-pdf-page-stack {
   min-height: 100%;
+  justify-content: flex-start;
+  align-items: safe center;
+}
+
+/* Only when a single page is shown (single mode / one-page doc) do we center it
+   vertically — `safe` falls back to top-align (scroll) if it overflows. This is
+   what kills the dead space below a lone short page without affecting the
+   continuous multi-page flow. */
+:host .hk-pdf-page-stack.hk-pdf-page-stack-centered {
   justify-content: safe center;
 }
 
