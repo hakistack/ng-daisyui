@@ -368,9 +368,6 @@ export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.compo
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';
 export { HK_PDF_LABELS, provideHkPdfLabels, DEFAULT_PDF_VIEWER_LABELS } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export type { PdfViewerLabels, ResolvedPdfViewerLabels } from './lib/components/pdf-viewer/pdf-viewer.labels';
-export { HK_PDF_DEFAULTS, provideHkPdfDefaults } from './lib/components/pdf-viewer/pdf-viewer.defaults';
-export type { HkPdfDefaults } from './lib/components/pdf-viewer/pdf-viewer.defaults';
-export { HkPdfService } from './lib/components/pdf-viewer/pdf.service';
 export { HkPdfToolbarDirective } from './lib/components/pdf-viewer/pdf-viewer.directives';
 export type { HkPdfToolbarContext } from './lib/components/pdf-viewer/pdf-viewer.directives';
 export type {
@@ -378,6 +375,7 @@ export type {
   PdfZoom,
   PdfDisplayMode,
   PdfSidebarTab,
+  PdfAnnotationTool,
   PdfViewerLayout,
   PdfViewerConfig,
   PdfViewerController,
@@ -385,6 +383,7 @@ export type {
   PdfLoadedInfo,
   PdfViewerError,
   PdfSearchResult,
+  PdfImageExportOptions,
 } from './lib/components/pdf-viewer/pdf-viewer.types';
 
 // Tree
@@ -422,6 +421,42 @@ export type {
   TreeNodeDragStartEvent as TreeDragStartEvent,
   TreeNodeDragEndEvent as TreeDragEndEvent,
 } from './lib/components/tree/tree.types';
+
+// Menu
+export { MenuComponent } from './lib/components/menu/menu.component';
+export {
+  createMenu,
+  item,
+  processMenuItems,
+  findMenuItem,
+  collectGroupIds,
+  inferMenuItemKind,
+  isMenuItemVisible,
+} from './lib/components/menu/menu.helpers';
+export type {
+  MenuConfig,
+  MenuItem,
+  MenuItemKind,
+  MenuController,
+  MenuExpandEvent,
+  MenuIcon,
+  MenuOrientation,
+  MenuSize,
+  MenuSubmenuMode,
+} from './lib/components/menu/menu.types';
+
+// Navbar / Sidebar / App shell
+export { NavbarComponent } from './lib/components/navbar/navbar.component';
+export { SidebarComponent } from './lib/components/navbar/sidebar.component';
+export { AppShellComponent } from './lib/components/navbar/app-shell.component';
+export type {
+  NavbarConfig,
+  SidebarConfig,
+  ShellConfig,
+  ShellBreakpoint,
+  ShellMode,
+  SidebarSide,
+} from './lib/components/navbar/navbar.types';
 
 // Virtual Scroller
 export { VirtualScrollerComponent } from './lib/components/virtual-scroller/virtual-scroller.component';

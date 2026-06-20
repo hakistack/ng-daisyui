@@ -1,0 +1,10 @@
+:host {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-side,
+  .drawer-toggle ~ .drawer-side {
+    transition: none;
+  }
+}

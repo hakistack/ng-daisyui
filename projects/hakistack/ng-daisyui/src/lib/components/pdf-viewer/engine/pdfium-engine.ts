@@ -3,6 +3,7 @@ import {
   PdfAttachmentFile,
   PdfDocHandle,
   PdfEngine,
+  PdfFormField,
   PdfLinkRect,
   PdfOutlineNode,
   PdfPageSize,
@@ -25,17 +26,29 @@ import { createPdfiumWorker } from './pdfium-worker.loader';
  * Requires a `worker-src blob:` CSP allowance.
  */
 export class PdfiumEngine implements PdfEngine {
-  private readonly worker: Worker;
-  private readonly revokeWorker: () => void;
+  /** Resolves once the worker is created (its source is a lazy dynamic import). */
+  private readonly workerReady: Promise<Worker>;
+  private worker: Worker | null = null;
+  private revokeWorker: (() => void) | null = null;
+  private destroyed = false;
   private nextId = 1;
   private readonly pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: unknown) => void }>();
 
   constructor() {
-    const { worker, revoke } = createPdfiumWorker();
-    this.worker = worker;
-    this.revokeWorker = revoke;
-    this.worker.onmessage = (e: MessageEvent<PdfWorkerResponse>) => this.onMessage(e.data);
-    this.worker.onerror = () => this.failAll(new Error('pdfium worker crashed'));
+    this.workerReady = createPdfiumWorker().then(({ worker, revoke }) => {
+      if (this.destroyed) {
+        worker.terminate();
+        revoke();
+        throw new DOMException('engine destroyed', 'AbortError');
+      }
+      this.worker = worker;
+      this.revokeWorker = revoke;
+      worker.onmessage = (e: MessageEvent<PdfWorkerResponse>) => this.onMessage(e.data);
+      worker.onerror = () => this.failAll(new Error('pdfium worker crashed'));
+      return worker;
+    });
+    // Don't let a never-used engine produce an unhandled rejection.
+    this.workerReady.catch(() => undefined);
   }
 
   open(bytes: ArrayBuffer, opts?: { password?: string }): Promise<PdfDocHandle> {
@@ -49,6 +62,10 @@ export class PdfiumEngine implements PdfEngine {
 
   pageSize(doc: PdfDocHandle, page: number): Promise<PdfPageSize> {
     return this.request({ type: 'pageSize', id: 0, doc, page }) as Promise<PdfPageSize>;
+  }
+
+  documentTitle(doc: PdfDocHandle): Promise<string> {
+    return this.request({ type: 'documentTitle', id: 0, doc }) as Promise<string>;
   }
 
   pageText(doc: PdfDocHandle, page: number): Promise<PdfTextSegment[]> {
@@ -71,11 +88,71 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'attachments', id: 0, doc }) as Promise<PdfAttachmentFile[]>;
   }
 
+  formFields(doc: PdfDocHandle, page: number): Promise<PdfFormField[]> {
+    return this.request({ type: 'formFields', id: 0, doc, page }) as Promise<PdfFormField[]>;
+  }
+
+  setFieldValue(doc: PdfDocHandle, page: number, name: string, value: string): Promise<boolean> {
+    return this.request({ type: 'setFieldValue', id: 0, doc, page, name, value }) as Promise<boolean>;
+  }
+
+  addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean> {
+    return this.request({ type: 'addHighlight', id: 0, doc, page, x, y, w, h, color }) as Promise<boolean>;
+  }
+
+  addTextNote(doc: PdfDocHandle, page: number, x: number, y: number, contents: string, color: number): Promise<boolean> {
+    return this.request({ type: 'addTextNote', id: 0, doc, page, x, y, contents, color }) as Promise<boolean>;
+  }
+
+  addFreeText(
+    doc: PdfDocHandle,
+    page: number,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    contents: string,
+    color: number,
+  ): Promise<boolean> {
+    return this.request({ type: 'addFreeText', id: 0, doc, page, x, y, w, h, contents, color }) as Promise<boolean>;
+  }
+
+  addInk(doc: PdfDocHandle, page: number, points: number[], color: number, width: number): Promise<boolean> {
+    return this.request({ type: 'addInk', id: 0, doc, page, points, color, width }) as Promise<boolean>;
+  }
+
+  deleteAnnotation(doc: PdfDocHandle, page: number, index: number): Promise<boolean> {
+    return this.request({ type: 'deleteAnnotation', id: 0, doc, page, index }) as Promise<boolean>;
+  }
+
+  setAnnotationContents(doc: PdfDocHandle, page: number, index: number, contents: string): Promise<boolean> {
+    return this.request({ type: 'setAnnotationContents', id: 0, doc, page, index, contents }) as Promise<boolean>;
+  }
+
+  deletePage(doc: PdfDocHandle, index: number): Promise<boolean> {
+    return this.request({ type: 'deletePage', id: 0, doc, index }) as Promise<boolean>;
+  }
+
+  insertBlankPage(doc: PdfDocHandle, index: number, width: number, height: number): Promise<boolean> {
+    return this.request({ type: 'insertBlankPage', id: 0, doc, index, width, height }) as Promise<boolean>;
+  }
+
+  setPageRotation(doc: PdfDocHandle, page: number, degrees: number): Promise<boolean> {
+    return this.request({ type: 'setPageRotation', id: 0, doc, page, degrees }) as Promise<boolean>;
+  }
+
+  save(doc: PdfDocHandle): Promise<Uint8Array> {
+    return this.request({ type: 'save', id: 0, doc }) as Promise<Uint8Array>;
+  }
+
   renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number): PdfRenderTask {
     const id = this.nextId++;
     const promise = new Promise<unknown>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ type: 'render', id, doc, page, cssWidth, dpr });
+      this.workerReady.then((w) => {
+        // Skip if cancelled before the worker was ready.
+        if (this.pending.has(id)) w.postMessage({ type: 'render', id, doc, page, cssWidth, dpr });
+      }, reject);
     }).then((r) => r as Awaited<PdfRenderTask['promise']>);
     return {
       promise,
@@ -83,20 +160,22 @@ export class PdfiumEngine implements PdfEngine {
         const p = this.pending.get(id);
         if (!p) return;
         this.pending.delete(id);
-        this.worker.postMessage({ type: 'cancel', id });
+        // Best-effort: tell the worker (no-op if it never received the render).
+        this.workerReady.then((w) => w.postMessage({ type: 'cancel', id })).catch(() => undefined);
         p.reject(new DOMException('render cancelled', 'AbortError'));
       },
     };
   }
 
   dispose(doc: PdfDocHandle): void {
-    this.worker.postMessage({ type: 'dispose', doc });
+    this.workerReady.then((w) => w.postMessage({ type: 'dispose', doc })).catch(() => undefined);
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.failAll(new DOMException('engine destroyed', 'AbortError'));
-    this.worker.terminate();
-    this.revokeWorker();
+    this.worker?.terminate();
+    this.revokeWorker?.();
   }
 
   /** Post a correlated request and await its `ok`/`error` reply. */
@@ -104,7 +183,9 @@ export class PdfiumEngine implements PdfEngine {
     const id = this.nextId++;
     return new Promise<unknown>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ ...msg, id }, transfer);
+      this.workerReady.then((w) => {
+        if (this.pending.has(id)) w.postMessage({ ...msg, id }, transfer);
+      }, reject);
     });
   }
 

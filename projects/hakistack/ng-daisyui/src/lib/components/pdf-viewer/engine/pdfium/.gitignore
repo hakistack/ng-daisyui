@@ -1,0 +1,6 @@
+# Vendored PDFium binary — fetched by `npm run pdfium:fetch`, not committed.
+pdfium.js
+pdfium.wasm
+# The committed file here is pdfium_worker_inline.ts (placeholder). A real build
+# overwrites it with the ~9 MB bundled worker; don't commit that — restore the
+# placeholder with `git checkout` before committing if needed.

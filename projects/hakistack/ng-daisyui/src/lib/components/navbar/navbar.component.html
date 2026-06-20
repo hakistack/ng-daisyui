@@ -1,0 +1,28 @@
+<nav class="navbar" [class]="navClass()" [attr.aria-label]="resolvedAriaLabel()">
+  <div class="navbar-start gap-1">
+    @if (resolvedShowToggle()) {
+      <button
+        type="button"
+        class="btn btn-ghost btn-square"
+        [class]="toggleHideClass()"
+        (click)="menuToggle.emit()"
+        aria-label="Toggle navigation"
+      >
+        <svg [lucideIcon]="menuIcon" [size]="20"></svg>
+      </button>
+    }
+    <ng-content select="[hk-navbar-start]" />
+    <ng-content />
+  </div>
+
+  <div class="navbar-center hidden" [class]="centerShowClass()">
+    <ng-content select="[hk-navbar-center]" />
+    @if (resolvedMenu(); as m) {
+      <hk-menu [config]="m" orientation="horizontal" [background]="false" [rounded]="false" />
+    }
+  </div>
+
+  <div class="navbar-end gap-1">
+    <ng-content select="[hk-navbar-end]" />
+  </div>
+</nav>

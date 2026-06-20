@@ -18,7 +18,7 @@ js-sys = { workspace = true }
 # (we read raw RGBA straight out of the PDFium bitmap) and keeps only the
 # version-matched FFI surface. `pdfium_latest` must match the vendored
 # pdfium.wasm build (see PDFIUM_ENGINE.md).
-pdfium-render = { version = "0.8.37", default-features = false, features = ["pdfium_latest"] }
+pdfium-render = { version = "0.9.2", default-features = false, features = ["pdfium_latest"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"

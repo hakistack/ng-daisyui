@@ -66,9 +66,11 @@ export interface PdfLinkRect {
   readonly uri: string;
 }
 
-/** A document annotation for the sidebar list. `pageIndex` is 0-based. */
+/** A document annotation for the sidebar list. `pageIndex` is 0-based; `index`
+ *  is the annotation's position in that page's array (the delete/edit address). */
 export interface PdfAnnotationRow {
   readonly pageIndex: number;
+  readonly index: number;
   readonly subtype: string;
   readonly contents: string;
 }
@@ -77,6 +79,28 @@ export interface PdfAnnotationRow {
 export interface PdfAttachmentFile {
   readonly name: string;
   readonly bytes: Uint8Array;
+}
+
+/** Interactive form field type. */
+export type PdfFormFieldType = 'text' | 'checkbox' | 'radio' | 'combo' | 'list' | 'button' | 'signature';
+
+/**
+ * An interactive form field (widget) on a page. Rect is in PDF points, top-left
+ * origin (same convention as {@link PdfTextSegment}). `text`/`combo` carry
+ * `value`; `checkbox`/`radio` use `checked`; `combo`/`list` list `options`.
+ * `combo`/`list` are render-only (the binding has no value setter).
+ */
+export interface PdfFormField {
+  readonly name: string;
+  readonly type: PdfFormFieldType;
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+  readonly value: string;
+  readonly readOnly: boolean;
+  readonly checked: boolean;
+  readonly options: string[];
 }
 
 /**
@@ -89,6 +113,8 @@ export interface PdfEngine {
   open(bytes: ArrayBuffer, opts?: { password?: string }): Promise<PdfDocHandle>;
   pageCount(doc: PdfDocHandle): Promise<number>;
   pageSize(doc: PdfDocHandle, page: number): Promise<PdfPageSize>;
+  /** Embedded document Title from metadata (`''` if unset). */
+  documentTitle(doc: PdfDocHandle): Promise<string>;
   /** Rasterize a page at `cssWidth * dpr` device pixels. Cancellable handle. */
   renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number): PdfRenderTask;
   /** Extract a page's positioned text segments (reading order) for text + search. */
@@ -101,6 +127,39 @@ export interface PdfEngine {
   documentAnnotations(doc: PdfDocHandle): Promise<PdfAnnotationRow[]>;
   /** Embedded files. */
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]>;
+  /** Interactive form fields on a page (for the fillable-widget overlay). */
+  formFields(doc: PdfDocHandle, page: number): Promise<PdfFormField[]>;
+  /** Set a field's value by name on a page; resolves true if a writable field matched. */
+  setFieldValue(doc: PdfDocHandle, page: number, name: string, value: string): Promise<boolean>;
+  /** Add a highlight over `[x,y,w,h]` (top-left PDF points). `color` = `0xRRGGBBAA`. */
+  addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean>;
+  /** Add a sticky-note (Text) annotation at `[x,y]` with a comment body. */
+  addTextNote(doc: PdfDocHandle, page: number, x: number, y: number, contents: string, color: number): Promise<boolean>;
+  /** Add a free-text box over `[x,y,w,h]` (top-left PDF points) with typed text. */
+  addFreeText(
+    doc: PdfDocHandle,
+    page: number,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    contents: string,
+    color: number,
+  ): Promise<boolean>;
+  /** Add a freehand ink stroke. `points` is a flat `[x0,y0,…]` polyline in top-left PDF points; `width` in points. */
+  addInk(doc: PdfDocHandle, page: number, points: number[], color: number, width: number): Promise<boolean>;
+  /** Delete the annotation at `[page, index]` (page-local index from {@link documentAnnotations}). */
+  deleteAnnotation(doc: PdfDocHandle, page: number, index: number): Promise<boolean>;
+  /** Replace the text contents of the annotation at `[page, index]`. */
+  setAnnotationContents(doc: PdfDocHandle, page: number, index: number, contents: string): Promise<boolean>;
+  /** Delete the page at 0-based `index`. Page count + indices shift after. */
+  deletePage(doc: PdfDocHandle, index: number): Promise<boolean>;
+  /** Insert a blank page (`width`×`height` PDF points) at 0-based `index`. */
+  insertBlankPage(doc: PdfDocHandle, index: number, width: number, height: number): Promise<boolean>;
+  /** Set a page's rotation (`degrees` ∈ {0,90,180,270}) — used transiently to bake rotation into `save`. */
+  setPageRotation(doc: PdfDocHandle, page: number, degrees: number): Promise<boolean>;
+  /** Serialize the (form-filled) document back to PDF bytes for save/download. */
+  save(doc: PdfDocHandle): Promise<Uint8Array>;
   /** Release the document + free its WASM memory. */
   dispose(doc: PdfDocHandle): void;
   /** Tear down the worker + engine. */
@@ -120,12 +179,36 @@ export type PdfWorkerRequest =
   | { type: 'open'; id: number; bytes: ArrayBuffer; password?: string }
   | { type: 'pageCount'; id: number; doc: PdfDocHandle }
   | { type: 'pageSize'; id: number; doc: PdfDocHandle; page: number }
+  | { type: 'documentTitle'; id: number; doc: PdfDocHandle }
   | { type: 'render'; id: number; doc: PdfDocHandle; page: number; cssWidth: number; dpr: number }
   | { type: 'pageText'; id: number; doc: PdfDocHandle; page: number }
   | { type: 'outline'; id: number; doc: PdfDocHandle }
   | { type: 'pageLinks'; id: number; doc: PdfDocHandle; page: number }
   | { type: 'documentAnnotations'; id: number; doc: PdfDocHandle }
   | { type: 'attachments'; id: number; doc: PdfDocHandle }
+  | { type: 'formFields'; id: number; doc: PdfDocHandle; page: number }
+  | { type: 'setFieldValue'; id: number; doc: PdfDocHandle; page: number; name: string; value: string }
+  | { type: 'addHighlight'; id: number; doc: PdfDocHandle; page: number; x: number; y: number; w: number; h: number; color: number }
+  | { type: 'addTextNote'; id: number; doc: PdfDocHandle; page: number; x: number; y: number; contents: string; color: number }
+  | {
+      type: 'addFreeText';
+      id: number;
+      doc: PdfDocHandle;
+      page: number;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      contents: string;
+      color: number;
+    }
+  | { type: 'addInk'; id: number; doc: PdfDocHandle; page: number; points: number[]; color: number; width: number }
+  | { type: 'deleteAnnotation'; id: number; doc: PdfDocHandle; page: number; index: number }
+  | { type: 'setAnnotationContents'; id: number; doc: PdfDocHandle; page: number; index: number; contents: string }
+  | { type: 'deletePage'; id: number; doc: PdfDocHandle; index: number }
+  | { type: 'insertBlankPage'; id: number; doc: PdfDocHandle; index: number; width: number; height: number }
+  | { type: 'setPageRotation'; id: number; doc: PdfDocHandle; page: number; degrees: number }
+  | { type: 'save'; id: number; doc: PdfDocHandle }
   | { type: 'cancel'; id: number }
   | { type: 'dispose'; doc: PdfDocHandle };
 

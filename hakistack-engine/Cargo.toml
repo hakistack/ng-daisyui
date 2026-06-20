@@ -51,6 +51,13 @@ rustc-hash      = "2"          # FxHash — fast, deterministic, no DoS resistan
 memchr          = "2"          # SIMD substring search
 nucleo-matcher  = "0.3"        # fuzzy matching (the matcher behind helix / fzf)
 
+# Vendored fork of pdfium-render 0.9.2 with a tiny patch: public `set_value` on
+# combo/list form fields (+ `as_combo_box_field_mut` / `as_list_box_field_mut`),
+# mirroring what upstream already exposes for text fields. Everything else is
+# verbatim 0.9.2. See vendor/pdfium-render and PDFIUM_ENGINE.md §9h.
+[patch.crates-io]
+pdfium-render = { path = "vendor/pdfium-render" }
+
 [profile.release]
 opt-level     = 3
 lto           = "fat"

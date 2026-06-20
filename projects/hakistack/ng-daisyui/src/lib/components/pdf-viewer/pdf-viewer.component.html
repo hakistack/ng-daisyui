@@ -176,6 +176,79 @@
 
         <div class="grow"></div>
 
+        <!-- ── Group: annotation tools (highlight / note / free-text + colour) ── -->
+        <div class="hidden @lg:flex items-center gap-1" role="group" [attr.aria-label]="'Annotation tools'">
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs btn-square"
+            [class.btn-active]="annotationTool() === 'highlight'"
+            [attr.aria-pressed]="annotationTool() === 'highlight'"
+            [attr.aria-label]="'Highlight'"
+            title="Highlight"
+            [disabled]="!showPages()"
+            (click)="toggleAnnotationTool('highlight')"
+          >
+            <svg lucideSquare [size]="16"></svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs btn-square"
+            [class.btn-active]="annotationTool() === 'note'"
+            [attr.aria-pressed]="annotationTool() === 'note'"
+            [attr.aria-label]="'Sticky note'"
+            title="Sticky note"
+            [disabled]="!showPages()"
+            (click)="toggleAnnotationTool('note')"
+          >
+            <svg lucideMessageSquare [size]="16"></svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs btn-square"
+            [class.btn-active]="annotationTool() === 'freetext'"
+            [attr.aria-pressed]="annotationTool() === 'freetext'"
+            [attr.aria-label]="'Text box'"
+            title="Text box"
+            [disabled]="!showPages()"
+            (click)="toggleAnnotationTool('freetext')"
+          >
+            <svg lucideType [size]="16"></svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs btn-square"
+            [class.btn-active]="annotationTool() === 'ink'"
+            [attr.aria-pressed]="annotationTool() === 'ink'"
+            [attr.aria-label]="'Draw'"
+            title="Draw (freehand)"
+            [disabled]="!showPages()"
+            (click)="toggleAnnotationTool('ink')"
+          >
+            <svg lucidePen [size]="16"></svg>
+          </button>
+          <input
+            type="color"
+            class="h-6 w-6 cursor-pointer rounded border border-base-300 bg-transparent p-0"
+            [value]="annotationColor()"
+            [attr.aria-label]="'Annotation colour'"
+            title="Annotation colour"
+            [disabled]="!showPages()"
+            (input)="onAnnotationColorInput($event)"
+          />
+        </div>
+
+        <!-- ── Rotate current page ─────────────────────────────────────── -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
+          [attr.aria-label]="'Rotate page'"
+          title="Rotate page 90°"
+          [disabled]="!showPages()"
+          (click)="rotateCurrentPage()"
+        >
+          <svg lucideRotateCw [size]="16"></svg>
+        </button>
+
         <!-- ── Group: file ops (icon buttons, inline at ≥ @lg) ─────────── -->
         <button
           type="button"
@@ -398,15 +471,27 @@
                 <div
                   #pageWrapper
                   class="hk-pdf-page bg-base-100 shadow-md"
+                  [class.hk-pdf-page-rotated]="pageRotation(n) !== 0"
                   role="region"
                   [attr.aria-label]="'Page ' + n"
                   [attr.aria-current]="state()?.page === n ? 'page' : null"
                   [attr.data-page-number]="n"
                   [hidden]="pageHidden(n)"
+                  [style.width.px]="pageBoxWidth(n)"
+                  [style.height.px]="pageBoxHeight(n)"
                 >
-                  <canvas></canvas>
-                  <div class="hk-pdf-text-layer"></div>
-                  <div class="hk-pdf-annotation-layer"></div>
+                  <div class="hk-pdf-page-rotor" [style.transform]="pageRotorTransform(n)">
+                    <canvas></canvas>
+                    <div class="hk-pdf-text-layer"></div>
+                    <div class="hk-pdf-annotation-layer"></div>
+                    <div
+                      class="hk-pdf-edit-layer"
+                      [class.hk-pdf-edit-active]="annotationTool() !== 'none'"
+                      (pointerdown)="onEditPointerDown($event, n)"
+                      (pointermove)="onEditPointerMove($event)"
+                      (pointerup)="onEditPointerUp($event, n)"
+                    ></div>
+                  </div>
                 </div>
               }
             </div>
@@ -535,7 +620,7 @@
               @if (pageNumbers().length > 0) {
                 <ul class="flex flex-col gap-2 items-center p-2">
                   @for (n of pageNumbers(); track n) {
-                    <li>
+                    <li class="group relative">
                       <button
                         type="button"
                         class="hk-pdf-thumbnail"
@@ -547,6 +632,38 @@
                         <canvas [attr.data-thumb-page]="n"></canvas>
                         <span class="text-xs text-base-content/70 mt-1">{{ n }}</span>
                       </button>
+                      <div
+                        class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
+                      >
+                        <button
+                          type="button"
+                          class="btn btn-xs btn-square btn-neutral"
+                          [attr.aria-label]="'Rotate page ' + n"
+                          title="Rotate page 90°"
+                          (click)="rotatePage(n)"
+                        >
+                          <svg lucideRotateCw [size]="12"></svg>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-xs btn-square btn-neutral"
+                          [attr.aria-label]="'Insert blank page after page ' + n"
+                          title="Insert blank page after"
+                          (click)="insertBlankPage(n + 1)"
+                        >
+                          <svg lucidePlus [size]="12"></svg>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-xs btn-square btn-error"
+                          [attr.aria-label]="'Delete page ' + n"
+                          title="Delete page"
+                          [disabled]="pageNumbers().length <= 1"
+                          (click)="deletePage(n)"
+                        >
+                          <svg lucideTrash2 [size]="12"></svg>
+                        </button>
+                      </div>
                     </li>
                   }
                 </ul>
@@ -576,12 +693,8 @@
                 } @else {
                   <ul class="flex flex-col p-1">
                     @for (a of annotations(); track $index) {
-                      <li>
-                        <button
-                          type="button"
-                          class="w-full text-left px-2 py-2 rounded-md hover:bg-base-200 transition-colors flex flex-col gap-1"
-                          (click)="goToAnnotation(a)"
-                        >
+                      <li class="flex items-stretch gap-0.5 rounded-md hover:bg-base-200 transition-colors">
+                        <button type="button" class="grow text-left px-2 py-2 flex flex-col gap-1" (click)="goToAnnotation(a)">
                           <div class="flex items-center justify-between gap-2 text-xs">
                             <span class="font-medium text-base-content/80">{{ a.subtype }}</span>
                             <span class="text-base-content/50 tabular-nums">p. {{ a.pageNumber }}</span>
@@ -593,6 +706,26 @@
                             <span class="text-[10px] text-base-content/40">— {{ a.author }}</span>
                           }
                         </button>
+                        <div class="flex items-center gap-0.5 pr-1">
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-xs btn-square"
+                            [attr.aria-label]="'Edit comment'"
+                            title="Edit comment"
+                            (click)="editAnnotation(a)"
+                          >
+                            <svg lucidePen [size]="14"></svg>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-xs btn-square text-error"
+                            [attr.aria-label]="'Delete annotation'"
+                            title="Delete annotation"
+                            (click)="deleteAnnotation(a)"
+                          >
+                            <svg lucideTrash2 [size]="14"></svg>
+                          </button>
+                        </div>
                       </li>
                     }
                   </ul>
@@ -644,15 +777,27 @@
                 <div
                   #pageWrapper
                   class="hk-pdf-page bg-base-100 shadow-md"
+                  [class.hk-pdf-page-rotated]="pageRotation(n) !== 0"
                   role="region"
                   [attr.aria-label]="'Page ' + n"
                   [attr.aria-current]="state()?.page === n ? 'page' : null"
                   [attr.data-page-number]="n"
                   [hidden]="pageHidden(n)"
+                  [style.width.px]="pageBoxWidth(n)"
+                  [style.height.px]="pageBoxHeight(n)"
                 >
-                  <canvas></canvas>
-                  <div class="hk-pdf-text-layer"></div>
-                  <div class="hk-pdf-annotation-layer"></div>
+                  <div class="hk-pdf-page-rotor" [style.transform]="pageRotorTransform(n)">
+                    <canvas></canvas>
+                    <div class="hk-pdf-text-layer"></div>
+                    <div class="hk-pdf-annotation-layer"></div>
+                    <div
+                      class="hk-pdf-edit-layer"
+                      [class.hk-pdf-edit-active]="annotationTool() !== 'none'"
+                      (pointerdown)="onEditPointerDown($event, n)"
+                      (pointermove)="onEditPointerMove($event)"
+                      (pointerup)="onEditPointerUp($event, n)"
+                    ></div>
+                  </div>
                 </div>
               }
             </div>
@@ -686,3 +831,24 @@
     }
   </li>
 </ng-template>
+
+<!-- Inline annotation text editor (replaces prompt() for notes / free-text / edit). -->
+@if (textEditor(); as ed) {
+  <div class="hk-pdf-text-editor-backdrop" (click)="cancelTextEditor()">
+    <div class="hk-pdf-text-editor" role="dialog" [attr.aria-label]="ed.label" (click)="$event.stopPropagation()">
+      <label class="text-sm font-medium text-base-content/80 mb-1 block">{{ ed.label }}</label>
+      <textarea
+        class="textarea textarea-bordered w-full text-sm"
+        rows="3"
+        autofocus
+        [value]="textEditorDraft()"
+        (input)="textEditorDraft.set($any($event.target).value)"
+        (keydown)="onTextEditorKeydown($event)"
+      ></textarea>
+      <div class="flex justify-end gap-2 mt-2">
+        <button type="button" class="btn btn-ghost btn-sm" (click)="cancelTextEditor()">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="saveTextEditor()">Save</button>
+      </div>
+    </div>
+  </div>
+}

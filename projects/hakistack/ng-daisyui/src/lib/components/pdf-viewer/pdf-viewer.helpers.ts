@@ -108,7 +108,7 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     showToolbar: input.showToolbar ?? layout !== 'preview',
     showSidebar: input.showSidebar ?? true,
     defaultSidebarTab: input.defaultSidebarTab ?? DEFAULT_SIDEBAR_TAB,
-    workerSrc: input.workerSrc,
+    renderPoolSize: input.renderPoolSize,
     onLoaded: input.onLoaded,
     onPageChange: input.onPageChange,
     onError: input.onError,
@@ -155,6 +155,13 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
 
     save: () => handlers.save?.() ?? Promise.reject(new Error('Viewer not mounted')),
     saveAndDownload: (filename) => handlers.saveAndDownload?.(filename) ?? Promise.reject(new Error('Viewer not mounted')),
+    exportPageAsImage: (options) => handlers.exportPageAsImage?.(options) ?? Promise.reject(new Error('Viewer not mounted')),
+    exportText: (filename) => handlers.exportText?.(filename) ?? Promise.reject(new Error('Viewer not mounted')),
+    setAnnotationTool: (tool) => handlers.setAnnotationTool?.(tool),
+    setAnnotationColor: (color) => handlers.setAnnotationColor?.(color),
+    deletePage: (pageNumber) => handlers.deletePage?.(pageNumber) ?? Promise.reject(new Error('Viewer not mounted')),
+    insertBlankPage: (atPageNumber) => handlers.insertBlankPage?.(atPageNumber) ?? Promise.reject(new Error('Viewer not mounted')),
+    rotatePage: (pageNumber, delta) => handlers.rotatePage?.(pageNumber, delta),
   };
 
   return controller;

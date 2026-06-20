@@ -1,0 +1,33 @@
+<div class="drawer min-h-screen" [class]="drawerClass()">
+  <input #tgl class="drawer-toggle" type="checkbox" [id]="drawerId" [checked]="drawerOpen()" (change)="onToggleChange(tgl.checked)" />
+
+  <!-- Content side -->
+  <div class="drawer-content flex flex-col min-h-screen">
+    <hk-navbar
+      [config]="navbarConfig()"
+      [sticky]="navbarConfig()?.sticky ?? true"
+      [showMenuToggle]="true"
+      [menuToggleBreakpoint]="toggleBreakpoint()"
+      (menuToggle)="toggleDrawer()"
+    >
+      <ng-content select="[hk-brand]" ngProjectAs="[hk-navbar-start]" />
+      <ng-content select="[hk-navbar-center]" ngProjectAs="[hk-navbar-center]" />
+      <ng-content select="[hk-navbar-end]" ngProjectAs="[hk-navbar-end]" />
+    </hk-navbar>
+
+    <main class="flex-1">
+      <ng-content />
+    </main>
+
+    <ng-content select="[hk-footer]" />
+  </div>
+
+  <!-- Sidebar side -->
+  <div class="drawer-side z-40" [cdkTrapFocus]="trapActive()" [cdkTrapFocusAutoCapture]="trapActive()">
+    <label [attr.for]="drawerId" aria-label="Close sidebar" class="drawer-overlay"></label>
+    <hk-sidebar [config]="sidebarConfig()" [side]="sidebarSide()" [(collapsed)]="collapsed" (itemSelect)="onItemSelect()">
+      <ng-content select="[hk-sidebar-header]" ngProjectAs="[hk-sidebar-header]" />
+      <ng-content select="[hk-sidebar-footer]" ngProjectAs="[hk-sidebar-footer]" />
+    </hk-sidebar>
+  </div>
+</div>

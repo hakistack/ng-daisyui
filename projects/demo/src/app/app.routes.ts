@@ -63,6 +63,13 @@ export const routes: Routes = [
   { path: 'editor', redirectTo: 'editor/basic', pathMatch: 'full' },
   { path: 'editor/:feature', loadComponent: () => import('@shared-demos/demos/editor-demo.component').then((m) => m.EditorDemoComponent) },
   // Navigation
+  { path: 'menu', redirectTo: 'menu/basic', pathMatch: 'full' },
+  { path: 'menu/:feature', loadComponent: () => import('@shared-demos/demos/menu-demo.component').then((m) => m.MenuDemoComponent) },
+  { path: 'app-shell', redirectTo: 'app-shell/navbar', pathMatch: 'full' },
+  {
+    path: 'app-shell/:feature',
+    loadComponent: () => import('@shared-demos/demos/app-shell-demo.component').then((m) => m.AppShellDemoComponent),
+  },
   { path: 'tabs', redirectTo: 'tabs/basic', pathMatch: 'full' },
   { path: 'tabs/:feature', loadComponent: () => import('@shared-demos/demos/tabs-demo.component').then((m) => m.TabsDemoComponent) },
   { path: 'command-palette', redirectTo: 'command-palette/basic', pathMatch: 'full' },

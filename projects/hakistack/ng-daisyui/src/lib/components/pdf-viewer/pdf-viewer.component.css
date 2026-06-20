@@ -94,6 +94,22 @@
   z-index: 0;
 }
 
+/* Rotation rotor — wraps the canvas + all overlay layers so a CSS rotate spins
+   them together (overlays stay aligned). The outer .hk-pdf-page is sized to the
+   rotated bounding box (90/270 swap dims) and centers the rotor. */
+:host .hk-pdf-page-rotor {
+  position: relative;
+  display: block;
+  transform-origin: center center;
+}
+
+:host .hk-pdf-page.hk-pdf-page-rotated {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
 /* ── Text layer ────────────────────────────────────────────────────────────
    Adapted from pdfjs-dist's `web/pdf_viewer.css`. The text layer overlays the
    canvas with transparent absolute-positioned spans so users can select +
@@ -256,4 +272,57 @@
 
 :host ::ng-deep .hk-pdf-annotation-layer button {
   cursor: pointer;
+}
+
+/* Annotation-editing capture layer. Inert until a tool is active, then it sits
+   above the text/annotation layers and captures pointer gestures. */
+:host ::ng-deep .hk-pdf-edit-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+:host ::ng-deep .hk-pdf-edit-layer.hk-pdf-edit-active {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+/* Live drag-rectangle preview for highlight / free-text tools. */
+:host ::ng-deep .hk-pdf-edit-layer .hk-pdf-edit-preview {
+  position: absolute;
+  border: 1px solid hsl(var(--p));
+  background: rgb(255 220 0 / 20%);
+  pointer-events: none;
+}
+
+/* Live freehand-stroke preview for the ink tool. */
+:host ::ng-deep .hk-pdf-edit-layer .hk-pdf-edit-ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Inline annotation text editor (centered popover). */
+.hk-pdf-text-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 35%);
+}
+
+.hk-pdf-text-editor {
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 1rem;
+  border-radius: var(--rounded-box, 0.75rem);
+  background: hsl(var(--b1));
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.2),
+    0 4px 6px -4px rgb(0 0 0 / 0.2);
 }

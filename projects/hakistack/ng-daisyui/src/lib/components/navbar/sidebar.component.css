@@ -1,0 +1,18 @@
+:host {
+  display: contents;
+}
+
+.hk-sidebar {
+  transition: width 0.2s ease;
+}
+
+.hk-sidebar-chevron {
+  transition: transform 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-sidebar,
+  .hk-sidebar-chevron {
+    transition: none;
+  }
+}

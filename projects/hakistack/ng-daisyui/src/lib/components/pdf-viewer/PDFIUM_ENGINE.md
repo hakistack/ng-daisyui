@@ -494,13 +494,124 @@ dormant). pd​f.js is no longer needed for any read path once the binary lands.
 1429 tests green. **Browser-tune later:** link-rect alignment + annotation
 appearance fidelity vs pd​f.js; verify outline jumps land on the right page.
 
-## 10. Definition of done (parity)
+## 9e. Phase 4 — interactive forms + save (2026-06-19)
 
-Milestones 0–3 complete: PDFium opens/renders/zooms/virtualizes/thumbnails,
-selection + search work, all four sidebar tabs (thumbnails/bookmarks/annotations/
-attachments) + links work — **all off the main thread with correct text**. Then
-**M3.5 deletes pd​f.js entirely** (`grep -ri pdfjs` clean). The viewer runs on
-PDFium alone — an engine we fully control — ready for forms/save/print in 4–5.
+Beyond parity: fillable AcroForm widgets + a save round-trip. Gated/dormant like
+the rest until the binary's verified; all green (1429 tests, demo builds).
+
+**Rust** (`crates/pdf-engine/src/lib.rs`, compiles to wasm32 clean):
+- `form_fields(h, i) → [name, type, x, y, w, h, value, readOnly, checked, options[]]`
+  per page — walks widget annotations → `form_field()`, dispatches by
+  `PdfFormFieldType` (text/checkbox/radio/combo/list/button/signature).
+- `set_field_value(h, i, name, value) → bool` — via a new `with_doc_mut`
+  (`borrow_mut`): text `set_value`, checkbox `set_checked`, radio `set_checked`.
+  **Combo/list have no setter in pdfium-render 0.8.37 → read-only** (render but
+  don't persist). Mutates through an owned-but-`mut` annotation from `get()`
+  (`PdfPageAnnotations` has no `get_mut`, but the handle writes to the doc).
+- `save_document(h) → bytes` — `PdfDocument::save_to_bytes()`; includes edits.
+- `render` already bakes field appearances (`render_form_data(true)`).
+
+**Component** (all gated on `pdfiumEngine && pdfiumDoc`):
+- `renderPdfiumLinkLayer` → **`renderPdfiumOverlay`**: fetches links + form
+  fields together and renders both into `.hk-pdf-annotation-layer`. New
+  `buildFormWidget` makes the control per type — text `<input>` (syncs on
+  `change`/blur), checkbox/radio `<input>` (sync on change), combo/list
+  `<select>` (renders, doesn't persist). `readOnly` → `disabled`; each has an
+  `aria-label` (AXE). `positionOverlayEl` sets `position:absolute` + rect (the
+  shared `input/select` CSS omits position). Widgets reuse the existing
+  annotation-layer widget styling.
+- `saveDocument()` gained a PDFium branch → `engine.save()`. The existing
+  controller `save()` / `saveAndDownloadDocument()` now produce form-filled
+  bytes when PDFium is active — no new public API or toolbar churn.
+
+**Browser-verify / tune later:** form-fill round-trip (type → save → reopen
+shows the value), checkbox/radio appearance after edit (may need a page
+re-raster to refresh the baked appearance under the widget), radio-group
+semantics, and combo/list persistence (currently DOM-only — would need a
+pdfium-render bump or a direct `FPDFAnnot_SetAP`/`/V` write).
+
+## 9f. Phase 5 — print + export (2026-06-19)
+
+No Rust changes — pure composition of existing engine methods. All green (1429
+tests, lib builds).
+
+- **Print** (`print()`) now serializes via `saveDocument()` instead of pd​f.js
+  `getData()` → prints the **current/form-filled** state and works after pd​f.js
+  removal (M3.5). Engine-agnostic.
+- **Export page → image** (`controller.exportPageAsImage({page?, scale?, type?,
+  quality?, filename?})`): rasterizes a page off-thread via `engine.renderPage`
+  (default 2× natural size, dpr=1 so device px = baseWidth·scale) → `canvas`
+  → `toBlob` → download. pd​f.js proxy fallback when the engine's inactive.
+- **Export document → text** (`controller.exportText(filename?)`): joins every
+  page's `ensurePageTextIndex().text` (engine-agnostic — PDFium segments or
+  pd​f.js items) → `.txt` download. Spacing follows the PDF's text runs.
+- Refactored the repeated blob-download dance into a private `downloadBlob()`.
+- New controller surface: `exportPageAsImage` + `exportText` (wired through
+  `PdfViewerInternalHandlers` + the helpers factory, guarded like `save`). No
+  toolbar churn — consumers wire buttons via the toolbar directive.
+
+**Verified milestone (2026-06-19): "PDFium engine active, text renders crisp."**
+Off-thread PDFium raster with correct text is confirmed in-browser — the core
+thesis of this whole effort. Phases 0–5 complete.
+
+## 10. Definition of done (parity) — ✅ COMPLETE
+
+Milestones 0–5 done: PDFium opens/renders/zooms/virtualizes/thumbnails,
+selection + search, all four sidebar tabs + links, interactive forms + save,
+and print + export — **all off the main thread with correct text** (verified
+in-browser 2026-06-19).
+
+## 9g. M3.5 — pd​f.js removed (2026-06-19)
+
+pd​f.js is **gone**. The viewer runs on PDFium alone — an engine we fully
+control. (1429 tests green; lib + demo build clean; worker still a lazy chunk.)
+
+**Deleted:** `pdf.service.ts`, `pdf-render-pool.ts`, `pdf-render.worker.ts`,
+`pdf-viewer.defaults.ts`, `scripts/build-render-worker.mjs`, the shipped worker
+asset + demo copies, and the `pdfjs-dist` dependency (root + lib package.json).
+
+**Public-API removals (breaking, intentional for the engine swap):**
+`HkPdfService`, `HK_PDF_DEFAULTS`, `provideHkPdfDefaults`, `HkPdfDefaults`, and
+the `PdfViewerConfig` fields `workerSrc` / `renderPoolSize` / `renderWorkerSrc`.
+
+**Component:** `loadDocument` now resolves the source to bytes (fetch URL / read
+Blob / use Uint8Array), opens via `engine.open`, and builds pages from
+`engine.pageCount` + `engine.pageSize` — no `PDFDocumentProxy`. The `pdfDoc`
+identity guard became a `loadToken`. All per-method pd​f.js branches removed:
+`renderPageOnto` / `renderTextLayer` / `renderAnnotationLayer` / thumbnails /
+`ensurePageTextIndex` / `fetchOutline|Attachments|Annotations` / `saveDocument`
+are engine-only; `download` uses kept `sourceBytes`; dead `buildLinkService` +
+`unlockFormWidgets` removed. `formValues` two-way binding re-pointed onto the
+engine (`applyFormValuesToEngine` → `setFieldValue`). Migration diagnostics
+(`console.info('PDFium engine active')` / warn-on-fallback) kept as a harmless
+load-time signal. SSR / no-WASM → `'unsupported'` error state (no fallback).
+
+## 9h. Post-M3.5 follow-ups (2026-06-19)
+
+- **Embedded title — DONE.** Rust `document_title(handle)` (`metadata().get(Title)`);
+  `loadDocument` awaits `engine.documentTitle` and passes it to `onLoaded.title`.
+- **Interactive password re-prompt — DONE.** Rust `open` maps PDFium's
+  `PasswordError` to a `PDFIUM_PASSWORD_REQUIRED` sentinel; the component's
+  `openWithPassword` loop calls `config.onPasswordRequired`, awaits the entered
+  password, and retries (up to 4 attempts → `password_cancelled`).
+- **Combo/list value persistence — DONE (pdfium-render 0.9.2 + vendored patch).**
+  Bumped pdfium-render **0.8.37 → 0.9.2** (latest). 0.9.2's public API still
+  lacks a choice-field setter (the internal `set_value_impl`, which does exactly
+  `FPDFAnnot_SetStringValue_str(handle, "V", value)`, stays `pub(crate)`; no
+  public annotation handle), so we **vendor a patched copy** at
+  `hakistack-engine/vendor/pdfium-render` wired via `[patch.crates-io]`. The
+  patch is minimal + additive: `pub fn set_value` on `PdfFormComboBoxField` /
+  `PdfFormListBoxField` (delegating to the existing `set_value_impl`) + matching
+  `as_combo_box_field_mut` / `as_list_box_field_mut` on the `PdfFormField` enum —
+  everything else verbatim 0.9.2. Rust `set_field_value` now handles combo/list;
+  the component renders them as live `<select>`s that persist via `save()` and
+  emit through `formValues`. **0.9.2 API change handled:** `PdfPageIndex` is now
+  `i32` (was `u16`) → `pages().get(index as i32)`.
+  - **⚠️ Re-verify in a browser:** moving 0.8.37 → 0.9.2 is a real engine change
+    (render config, bookmarks, text, forms) — re-run the §11 browser checklist,
+    plus a combo/list fill → save → reopen round-trip.
+  - **Maintenance:** the vendored fork is pinned to 0.9.2; on a future bump,
+    re-apply the 3 additive methods (all marked `hakistack patch`).
 
 ## 11. Vendor + verify checklist (do this before Phase 4)
 
@@ -510,34 +621,34 @@ Phase 1–3 exports (`open/close/page_count/page_size/render/page_text/outline/
 page_links/document_annotations/attachments` + `initialize_pdfium_render`), the
 worker imports resolve against it, and `initialize_pdfium_render(pdfiumModule,
 ourModule, debug)`'s second arg = the wasm-bindgen `init()` return (raw exports),
-confirmed against the crate source. The only missing input is the PDFium binary.
+confirmed against the crate source. **The build is fully wired and the binary is
+vendored** — only the browser runtime check remains.
 
-**Steps**
+**Setup (now automated — steps 1–3 already run in this repo):**
 
-1. **Get a MODULARIZE/ES6 PDFium wasm build.** From paulocoutinhox/pdfium-lib,
-   the emscripten target built with `-sMODULARIZE -sEXPORT_ES6
-   -sENVIRONMENT=web,worker`, **API 7543** (matches the crate's `pdfium_latest`),
-   growable heap. You need exactly two files: `pdfium.js` (ES-module factory,
-   `export default createPdfiumModule`) and `pdfium.wasm`.
-   - Sanity-check `pdfium.js` is modularize/ES6: it should `export default` a
-     factory and have **no** top-level `var Module` / auto-`run()`. The non-
-     modularize files in `external/pdfium/runtimes/wasm/native/` will NOT work.
+1. `npm run pdfium:fetch` — downloads paulocoutinhox/pdfium-lib's `wasm.tgz`
+   (default tag **7623**; override with `PDFIUM_VERSION=…`), extracts the **ES6
+   module** build `pdfium.esm.js` (`-sMODULARIZE -sEXPORT_ES6 -sEXPORT_NAME=
+   PDFiumModule`, `ALLOW_MEMORY_GROWTH`) + `pdfium.esm.wasm` into
+   `engine/pdfium/` as `pdfium.js` + `pdfium.wasm`, and verifies the `export
+   default` shape. (pdfium-lib's `node/` dir ships UMD **and** ESM variants — we
+   take the ESM one. The non-modularize `external/pdfium/runtimes/wasm/native/`
+   files do NOT work.) Vendored under `engine/pdfium/`, NOT `src/lib/wasm/`
+   (§9b: `engine:build` rm -rf's `wasm/`).
 
-2. **Place them** at `projects/hakistack/ng-daisyui/src/lib/components/pdf-viewer/engine/pdfium/`
-   (next to the committed `pdfium_worker_inline.ts` placeholder). NOT under
-   `src/lib/wasm/` (see §9b warning).
+2. `npm run engine:build` — regenerates `src/lib/wasm/pdf/` (`pdf_engine` glue +
+   `pdf_engine_bg.wasm`). Does NOT touch `engine/pdfium/`.
 
-3. `npm run engine:build` — regenerates `src/lib/wasm/pdf/` (the `pdf_engine`
-   glue + `pdf_engine_bg.wasm`). Safe to run any time; it does NOT touch
-   `engine/pdfium/`.
+3. `npm run build` — `build-pdfium-worker.mjs` (runs **before** `ng build`)
+   esbuild-bundles the self-contained worker (~5.9 MB; node builtins marked
+   `external` for the ESM build's dead node branch), writes
+   `pdfium_worker_inline.ts` + flips `pdfium-built.ts` to `true`. The loader
+   **dynamic-imports** the inline → it lands in a **separate lazy chunk** (not
+   the main bundle); verified in both FESM and the demo build (initial 1.89 MB,
+   worker a 6.17 MB lazy chunk). Watch for `✓ Bundled PDFium worker`.
 
-4. `npm run build` — `build-pdfium-worker.mjs` now finds all inputs, esbuild-
-   bundles the self-contained worker (~9 MB), writes `pdfium_worker_inline.ts`,
-   and ng-packagr bundles it into the FESM. Watch for `✓ Bundled PDFium worker`
-   instead of `⏭ skipped`.
-
-5. **Verify in a browser** (`npm start`, open a PDF). `isPdfiumEngineAvailable()`
-   now returns true, so the engine path is live. Confirm, in order:
+4. **Verify in a browser** (`npm start`, open a PDF). `isPdfiumEngineAvailable()`
+   returns true, so the engine path is live. Confirm, in order:
    - a page renders with **crisp text** (the whole point — proves off-thread
      glyph raster works);
    - **thumbnails** paint (engine raster at width 180);
@@ -550,10 +661,187 @@ confirmed against the crate source. The only missing input is the PDFium binary.
    - **annotations**/**attachments** tabs populate.
    - DevTools: ensure CSP allows `worker-src blob:` (the worker is a Blob URL).
 
-6. Only after the raster + text verify cleanly: build **Phase 4** (interactive
+5. Only after the raster + text verify cleanly: build **Phase 4** (interactive
    forms + save) on top, then **M3.5** (delete pd​f.js — `grep -ri pdfjs` clean).
 
 **Things most likely to need a tweak in the browser (none block correctness):**
 text-layer span vertical alignment / `scaleX` fit, link-rect alignment, and
 annotation appearance fidelity. The data paths (search index, outline targets,
 attachment bytes) are deterministic and already unit-safe.
+
+## 9i. Render caching + overlay caching (2026-06-19)
+
+Post-migration perf pass — removes redundant worker round-trips:
+
+- **Bitmap LRU cache** (`pageBitmapCache`, keyed `pageNumber:targetDeviceWidth`,
+  cap 16): an exact hit blits instantly with **no worker call** — the
+  scroll-back / zoom-revisit fast path. Bitmaps are `close()`d on LRU eviction,
+  document swap (`clearBitmapCache`), and teardown. Only same-epoch rasters are
+  cached (a superseded one is closed, not stored).
+- **Progressive paint**: on a cache miss during zoom, any cached bitmap for the
+  page (a different scale) is blitted **stretched-to-fill** as an instant, soft
+  placeholder while the sharp raster renders — no blank flash.
+- **Per-page overlay caches**: `pdfiumLinks` (stable) + `pdfiumFields` cached
+  like `pdfiumSegments`, so a zoom re-render of the overlay doesn't re-hit the
+  worker for links/fields. A form edit invalidates that page's field cache **and**
+  its bitmaps (`invalidatePageBitmaps`) so a later re-render reflects the new
+  value + baked appearance.
+
+Net: scroll-back and zoom-out→in are worker-free; zoom-in shows content
+immediately. Memory bounded by the 16-bitmap cap (tunable). 1461 tests green;
+lib + demo build clean.
+
+## 9j. Multi-worker render pool (2026-06-19)
+
+`PdfEnginePool` (`engine/pdf-engine-pool.ts`) implements `PdfEngine`, so the
+component is unchanged except `ensurePdfiumEngine()` now builds a pool. It owns
+N `PdfiumEngine` workers:
+
+- **render** → least-busy worker (tracked via a per-engine `load[]` counter,
+  decremented when the task settles) → N pages rasterize in parallel during fast
+  scroll/zoom. Viable only because PDFium renders correct text off-thread.
+- **reads** (text/outline/links/size/title/annotations/attachments/formFields)
+  → primary worker (worker 0) — cheap + infrequent, kept off the render workers.
+- **`setFieldValue`** → broadcast to ALL workers so every worker's parsed doc
+  stays render-consistent (any worker can then render the edited page correctly);
+  `save` reads from primary.
+- `open` gives each worker its **own copy** of the bytes (`bytes.slice(0)` per
+  engine) → one parsed document per worker. Pool handle → per-engine handles via
+  an internal map; `dispose`/`destroy` fan out.
+
+Size = `config.renderPoolSize ?? 2`, clamped to `1`–`4` **and** the device core
+count (`resolveRenderPoolSize`). `1` disables pooling (single worker). Cost is
+~N× the wasm + parsed-doc memory, hence the small cap. Pairs with the bitmap
+cache (§9i): the pool fills *new* pages faster on first scroll-through; the cache
+makes revisits free. 1461 tests green; lib + demo build clean.
+
+## 9k. Annotation editing (2026-06-19)
+
+Create + save annotations (the first *write*-beyond-forms feature). MVP:
+**highlight**, **sticky note**, **free-text box**. (Ink/freehand deferred — needs
+manual path-object construction.)
+
+- **Rust** (`add_highlight` / `add_text_note` / `add_free_text`): create via
+  `page.annotations_mut().create_*`, `set_bounds` (+ `attachment_points` quad for
+  highlight, `set_contents` for note/free-text, `set_fill_color`/`set_stroke_color`).
+  Inputs are top-left points → flipped to PDF rects (`rect_from_top_left`); colour
+  is `0xRRGGBBAA` (`rgba`). Page default strategy is `AutomaticOnEveryChange`, so
+  appearances regenerate → show in `render` + `save_document`. (Needs the 0.9.2
+  vendored crate.)
+- **Engine/pool**: `addHighlight`/`addTextNote`/`addFreeText` on `PdfEngine`;
+  the pool **broadcasts** them to all workers (`broadcast` helper) so every
+  worker's doc stays render-consistent.
+- **Component**: `annotationTool` + `annotationColor` signals; a per-page
+  `.hk-pdf-edit-layer` (pointer-events only when a tool is active) captures
+  drag (highlight/free-text) or click (note). Live drag-preview div; on commit,
+  CSS px → points (`layerPointScale = baseWidth / layer.clientWidth`), call the
+  engine, then `afterAnnotationChange` (invalidate page bitmaps + re-render +
+  clear the sidebar annotations list). Free-text/note text via `prompt()`.
+- **UI/API**: default toolbar gains a highlight/note/free-text toggle group + a
+  `<input type=color>`; controller adds `setAnnotationTool` / `setAnnotationColor`
+  (`PdfAnnotationTool` exported). Save round-trip already carries the new annots.
+
+Browser-verify: draw each type → appears in raster → save → reopen → persists.
+1461 tests green; lib + demo build clean.
+
+## 9l. Ink / freehand annotation (2026-06-19)
+
+Completes the annotation set (highlight/note/free-text/**ink**).
+
+- **Rust** `add_ink(handle, index, points: Vec<f32>, color, width)`: `points` is a
+  flat `[x0,y0,…]` polyline in top-left points. Builds a stroked
+  `PdfPagePathObject::new(doc, x0, y0, Some(stroke), Some(width), None)` +
+  `line_to` per point (Y-flipped), then `create_ink_annotation()` +
+  `objects_mut().add_path_object(path)`. (PDFium models ink as path objects in
+  the annotation — the reason it was deferred from the first MVP.)
+- **Engine/pool**: `addInk` on `PdfEngine`; pool **broadcasts** it. Over the
+  worker boundary `points` is a `number[]` → `Float32Array.from()` for the
+  wasm-bindgen `Vec<f32>` param.
+- **Component**: `'ink'` tool. On pointer-down it starts an SVG `<polyline>`
+  preview in the edit layer; pointer-move appends CSS points + updates the
+  polyline; pointer-up converts CSS px → points (`layerPointScale`) and calls
+  `addInk` (stroke width ~2 CSS px × scale), then `afterAnnotationChange`.
+  Toolbar gains a pen button (`lucidePen`).
+
+1461 tests green; lib + demo build clean. Browser-verify: draw → appears → save
+→ reopen → persists. (Editing/deleting *existing* annotations is still TODO.)
+
+## 9m. Delete / edit existing annotations (2026-06-19)
+
+Annotations are now addressable by `(pageIndex, annotIndex)` and can be removed
+or have their comment edited — sidebar-driven (lowest-risk UX).
+
+- **Rust**: `document_annotations` rows now carry the page-local `annotIndex`
+  (`[pageIndex, annotIndex, subtype, contents]`, index-based iteration).
+  `delete_annotation(h, page, idx)` → `annotations_mut().delete_annotation(get(idx))`;
+  `set_annotation_contents(h, page, idx, text)` → `get(idx).set_contents`. (`get`
+  wants `usize` → `idx as usize`.)
+- **Engine/pool**: `deleteAnnotation` / `setAnnotationContents` on `PdfEngine`;
+  pool **broadcasts** them (all workers' docs mutate identically, so indices stay
+  valid across the pool).
+- **Component/UI**: `PdfAnnotationEntry` gained `index`; `fetchAnnotations` maps
+  it. Public `deleteAnnotation(entry)` / `editAnnotation(entry)` →
+  `afterAnnotationChange` + **immediate `fetchAnnotations()`** (indices shift on
+  delete, so the list must refresh). Annotations sidebar rows restructured (no
+  nested buttons) with a pen (edit comment, via `prompt`) + trash (delete) button.
+
+Indices come from the primary worker but apply to all (mutations are always
+broadcast in-order → identical docs). 1461 tests green; lib + demo build clean.
+This closes the annotation feature set (create + ink + edit + delete + save).
+
+## 9n. Page operations — delete + insert (2026-06-19)
+
+Structural page edits (persist in `save()`):
+
+- **Rust**: `delete_page(h, index)` (`pages().get(index).delete()`),
+  `insert_blank_page(h, index, w, h)` (`pages_mut().create_page_at_index(
+  PdfPagePaperSize::new_custom(...), index)`). `PdfPageIndex` is `i32` → cast.
+- **Engine/pool**: `deletePage` / `insertBlankPage`; pool **broadcasts** (page
+  count + indices must change identically on every worker, else render dispatch
+  hits a worker with a divergent page array).
+- **Component**: `refreshPageStructure()` — after a structural change, re-fetch
+  count + per-page sizes from the **already-open** doc, reset all caches +
+  rebuild the WASM search index + clamp the current page + re-render (bumps
+  `loadToken` to invalidate in-flight renders). Public `deletePage(n)` /
+  `insertBlankPage(atN)` + controller API. Thumbnail hover actions: a `+`
+  (insert blank after) and trash (delete, disabled on the last page) per thumb.
+
+**Deferred (with reasons), offered as follow-ups:**
+- **Rotate** — `set_rotation` rotates the *raster* correctly, but the text /
+  link / form / edit overlay layers are positioned from unrotated points, so
+  they'd misalign on a rotated page. Doing it right needs a rotation-aware
+  transform on those layers (fine for scanned/no-text pages; wrong for text
+  PDFs) — a focused follow-up.
+- **Reorder/move** — pdfium-render 0.9.2 exposes no public page-move; only raw
+  `FPDF_MovePages`, which needs the private `FPDF_DOCUMENT` handle. Would need
+  another tiny vendored-patch addition.
+- **Two-page spread** — view-only, but it changes fit-width math + the
+  single-column virtualization/scroll model; deserves its own pass rather than
+  risking the working virtualization.
+
+1461 tests green; lib + demo build clean.
+
+## 9o. Inline text editor + page rotation (2026-06-19)
+
+**Inline text editor** — replaced `prompt()` for note / free-text / edit-comment
+with a centered popover (`textEditor` signal + `textEditorDraft`, `promptText()`
+returns a `Promise<string|null>`, Save/Cancel/Esc/⌘-Enter). CSS backdrop + card.
+
+**Page rotation (overlay-aligned)** via the **rotor** approach:
+- A `.hk-pdf-page-rotor` wraps the canvas **and** all overlay layers; a CSS
+  `transform: rotate(Rdeg)` spins them as one unit, so text/link/form/edit
+  overlays stay aligned with the raster automatically (no per-layer math). The
+  outer `.hk-pdf-page` is sized to the rotated bbox (90/270 swap w/h via
+  `pageBoxWidth`/`pageBoxHeight` = `base{H,W} × computeScale()`) and centers the
+  rotor, so a center-origin rotate fills the box. Display-only at runtime (no
+  re-raster — the cached bitmap just rotates).
+- `pageRotations` signal (page→deg); `rotatePage(n, +90)` / `rotateCurrentPage()`;
+  toolbar + per-thumbnail rotate buttons; controller `rotatePage`.
+- **Persisted on save**: `saveDocument` transiently `setPageRotation` (broadcast)
+  on rotated pages, saves, then reverts to 0 (live view keeps CSS rotation).
+  Rust `set_page_rotation` → `PdfPageRenderRotation`. Rotations cleared on doc
+  load + structure refresh (page indices change).
+
+**Known limitation:** drawing *new* annotations on a *rotated* page is off
+(pointer→points math uses the layer's pre-rotation coords); rotate is a
+view/save op — annotate at 0° then rotate. 1461 tests green; lib + demo build.

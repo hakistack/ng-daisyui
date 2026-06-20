@@ -1,6 +1,124 @@
 /* @ts-self-types="./pdf_engine.d.ts" */
 
 /**
+ * Add a free-text box over the rect `[x,y,w,h]` (top-left points) with the
+ * typed `contents`.
+ * @param {number} handle
+ * @param {number} index
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @param {string} contents
+ * @param {number} color
+ * @returns {boolean}
+ */
+export function add_free_text(handle, index, x, y, w, h, contents, color) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.add_free_text(retptr, handle, index, x, y, w, h, ptr0, len0, color);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Add a highlight annotation over the rect `[x,y,w,h]` (top-left points) with
+ * `color` (`0xRRGGBBAA`). Appearance regenerates automatically (default page
+ * strategy), so it shows in `render` + `save_document`.
+ * @param {number} handle
+ * @param {number} index
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @param {number} color
+ * @returns {boolean}
+ */
+export function add_highlight(handle, index, x, y, w, h, color) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.add_highlight(retptr, handle, index, x, y, w, h, color);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Add a freehand ink stroke. `points` is a flat `[x0,y0,x1,y1,…]` polyline in
+ * top-left PDF points; `color` = `0xRRGGBBAA`; `width` in points. Built as a
+ * stroked path object inside an Ink annotation.
+ * @param {number} handle
+ * @param {number} index
+ * @param {Float32Array} points
+ * @param {number} color
+ * @param {number} width
+ * @returns {boolean}
+ */
+export function add_ink(handle, index, points, color, width) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passArrayF32ToWasm0(points, wasm.__wbindgen_export);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.add_ink(retptr, handle, index, ptr0, len0, color, width);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Add a sticky-note (Text) annotation at `[x,y]` (top-left points) carrying
+ * `contents` as the comment body.
+ * @param {number} handle
+ * @param {number} index
+ * @param {number} x
+ * @param {number} y
+ * @param {string} contents
+ * @param {number} color
+ * @returns {boolean}
+ */
+export function add_text_note(handle, index, x, y, contents, color) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.add_text_note(retptr, handle, index, x, y, ptr0, len0, color);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * Embedded files. Each row is `[name, Uint8Array(bytes)]`.
  * @param {number} handle
  * @returns {Array<any>}
@@ -30,9 +148,58 @@ export function close(handle) {
 }
 
 /**
+ * Delete the annotation at `[page_index, annot_index]` (page-local index from
+ * `document_annotations`). Indices shift after a delete — re-query first.
+ * @param {number} handle
+ * @param {number} page_index
+ * @param {number} annot_index
+ * @returns {boolean}
+ */
+export function delete_annotation(handle, page_index, annot_index) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.delete_annotation(retptr, handle, page_index, annot_index);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Delete the page at `index` (0-based). Page count + indices shift after —
+ * the caller must refresh its page structure.
+ * @param {number} handle
+ * @param {number} index
+ * @returns {boolean}
+ */
+export function delete_page(handle, index) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.delete_page(retptr, handle, index);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * User-meaningful annotations across the whole document, for the sidebar list.
- * Each row is `[pageIndex (0-based), subtype, contents]`. Subtypes the sidebar
- * doesn't display (links, popups, widgets, …) are skipped.
+ * Each row is `[pageIndex (0-based), annotIndex (page-local), subtype, contents]`.
+ * `annotIndex` is the annotation's position in the page's annotation array —
+ * the address `delete_annotation` / `set_annotation_contents` take. Subtypes
+ * the sidebar doesn't display (links, popups, widgets, …) are skipped.
  * @param {number} handle
  * @returns {Array<any>}
  */
@@ -40,6 +207,56 @@ export function document_annotations(handle) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         wasm.document_annotations(retptr, handle);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return takeObject(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Embedded document Title (from the metadata dictionary), or `""` if unset.
+ * @param {number} handle
+ * @returns {string}
+ */
+export function document_title(handle) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.document_title(retptr, handle);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+        if (r3) {
+            throw takeObject(r2);
+        }
+        var v1 = getCachedStringFromWasm0(r0, r1);
+        if (r0 !== 0) { wasm.__wbindgen_export4(r0, r1, 1); }
+        return v1;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Interactive form fields on one page, for the form-widget overlay. Each row is
+ * `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[]]`.
+ * Rect is top-left-origin PDF points. `type` ∈ text|checkbox|radio|combo|list|
+ * button|signature. `value` is the text/selected value; `checked` applies to
+ * checkbox/radio; `options` lists choice labels (combo/list).
+ * @param {number} handle
+ * @param {number} index
+ * @returns {Array<any>}
+ */
+export function form_fields(handle, index) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.form_fields(retptr, handle, index);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
@@ -69,7 +286,34 @@ export function initialize_pdfium_render(pdfium_wasm_module, local_wasm_module, 
 }
 
 /**
+ * Insert a blank page of `width`×`height` points at `index` (0-based; clamped
+ * to the page count, so `index == count` appends).
+ * @param {number} handle
+ * @param {number} index
+ * @param {number} width
+ * @param {number} height
+ * @returns {boolean}
+ */
+export function insert_blank_page(handle, index, width, height) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.insert_blank_page(retptr, handle, index, width, height);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * Parse a document from raw bytes and return a handle for later calls.
+ * On a password-protected document with a missing/wrong password, rejects with
+ * the {@link PASSWORD_REQUIRED} sentinel so the caller can prompt + retry.
  * @param {Uint8Array} bytes
  * @param {string | null} [password]
  * @returns {number}
@@ -250,6 +494,111 @@ export function render(handle, index, target_width) {
     }
 }
 
+/**
+ * Serialize the (possibly form-filled) document back to PDF bytes — for save /
+ * download. Includes any `set_field_value` edits.
+ * @param {number} handle
+ * @returns {Uint8Array}
+ */
+export function save_document(handle) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.save_document(retptr, handle);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return takeObject(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Replace the text contents of the annotation at `[page_index, annot_index]`
+ * (e.g. a note or free-text comment body).
+ * @param {number} handle
+ * @param {number} page_index
+ * @param {number} annot_index
+ * @param {string} contents
+ * @returns {boolean}
+ */
+export function set_annotation_contents(handle, page_index, annot_index, contents) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.set_annotation_contents(retptr, handle, page_index, annot_index, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Set a form field's value by name on a page. `value` is the text (text/combo),
+ * or `"true"`/`"false"` for checkbox, or any non-empty string to select a radio.
+ * Combo/list value-setting is not supported by the binding (read-only). Returns
+ * `true` if a writable field was matched + updated.
+ * @param {number} handle
+ * @param {number} index
+ * @param {string} name
+ * @param {string} value
+ * @returns {boolean}
+ */
+export function set_field_value(handle, index, name, value) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(value, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.set_field_value(retptr, handle, index, ptr0, len0, ptr1, len1);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Set a page's rotation (`degrees` ∈ {0, 90, 180, 270}). Applied to the saved
+ * document; the viewer also rotates its display via CSS so overlays stay
+ * aligned, so this is used transiently around `save_document`.
+ * @param {number} handle
+ * @param {number} index
+ * @param {number} degrees
+ * @returns {boolean}
+ */
+export function set_page_rotation(handle, index, degrees) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.set_page_rotation(retptr, handle, index, degrees);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 !== 0;
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
 export function start() {
     wasm.start();
 }
@@ -316,9 +665,6 @@ function __wbg_get_imports() {
             const ret = getObject(arg0).call(getObject(arg1), getObject(arg2));
             return addHeapObject(ret);
         }, arguments); },
-        __wbg_debug_83758bc0b77ada71: function(arg0) {
-            console.debug(getObject(arg0));
-        },
         __wbg_decode_e60261b6bfb4c0a5: function() { return handleError(function (arg0, arg1, arg2, arg3) {
             const ret = getObject(arg1).decode(getArrayU8FromWasm0(arg2, arg3));
             const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_export, wasm.__wbindgen_export2);
@@ -330,9 +676,6 @@ function __wbg_get_imports() {
             var v0 = getCachedStringFromWasm0(arg0, arg1);
             if (arg0 !== 0) { wasm.__wbindgen_export4(arg0, arg1, 1); }
             console.error(v0);
-        },
-        __wbg_error_f085d7e62279b703: function(arg0) {
-            console.error(getObject(arg0));
         },
         __wbg_from_fa561fa561dc8031: function(arg0) {
             const ret = Array.from(getObject(arg0));
@@ -358,9 +701,6 @@ function __wbg_get_imports() {
             const ret = getObject(arg0)[arg1 >>> 0];
             return addHeapObject(ret);
         },
-        __wbg_info_d2226ca1698bd09c: function(arg0) {
-            console.info(getObject(arg0));
-        },
         __wbg_isArray_94898ed3aad6947b: function(arg0) {
             const ret = Array.isArray(getObject(arg0));
             return ret;
@@ -380,9 +720,6 @@ function __wbg_get_imports() {
         __wbg_length_56fcd3e2b7e0299d: function(arg0) {
             const ret = getObject(arg0).length;
             return ret;
-        },
-        __wbg_log_eb752234eec406d1: function(arg0) {
-            console.log(getObject(arg0));
         },
         __wbg_new_0_2722fcdb71a888a6: function() {
             const ret = new Date();
@@ -475,9 +812,6 @@ function __wbg_get_imports() {
         __wbg_subarray_7c6a0da8f3b4a1ba: function(arg0, arg1, arg2) {
             const ret = getObject(arg0).subarray(arg1 >>> 0, arg2 >>> 0);
             return addHeapObject(ret);
-        },
-        __wbg_warn_c4e0780980765a86: function(arg0) {
-            console.warn(getObject(arg0));
         },
         __wbindgen_cast_0000000000000001: function(arg0) {
             // Cast intrinsic for `F64 -> Externref`.
@@ -610,6 +944,14 @@ function getDataViewMemory0() {
     return cachedDataViewMemory0;
 }
 
+let cachedFloat32ArrayMemory0 = null;
+function getFloat32ArrayMemory0() {
+    if (cachedFloat32ArrayMemory0 === null || cachedFloat32ArrayMemory0.byteLength === 0) {
+        cachedFloat32ArrayMemory0 = new Float32Array(wasm.memory.buffer);
+    }
+    return cachedFloat32ArrayMemory0;
+}
+
 function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
 }
@@ -644,6 +986,13 @@ function isLikeNone(x) {
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function passArrayF32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getFloat32ArrayMemory0().set(arg, ptr / 4);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
@@ -726,6 +1075,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedDataViewMemory0 = null;
+    cachedFloat32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;

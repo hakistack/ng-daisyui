@@ -464,6 +464,29 @@ export class App implements OnInit {
       title: 'Navigation',
       items: [
         {
+          path: '/menu',
+          label: 'Menu',
+          icon: 'menu',
+          children: [
+            { id: 'basic', label: 'Basic' },
+            { id: 'horizontal', label: 'Horizontal' },
+            { id: 'nested', label: 'Nested & Accordion' },
+            { id: 'rich', label: 'Icons & Badges' },
+            { id: 'collapsed', label: 'Collapsed Rail' },
+            { id: 'rbac', label: 'Visibility (RBAC)' },
+          ],
+        },
+        {
+          path: '/app-shell',
+          label: 'Navbar & Sidebar',
+          icon: 'layout-grid',
+          children: [
+            { id: 'navbar', label: 'Navbar' },
+            { id: 'sidebar', label: 'Sidebar' },
+            { id: 'shell', label: 'App Shell' },
+          ],
+        },
+        {
           path: '/tabs',
           label: 'Tabs',
           icon: 'panel-top',

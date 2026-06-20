@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+
+/* Icon-only rail (vertical collapsed): center icons and drop the disclosure
+   marker so each row is a single, centered glyph. */
+.hk-menu-rail :is(a, button, summary) {
+  justify-content: center;
+  padding-inline: 0.5rem;
+}
+
+.hk-menu-rail summary::after {
+  display: none;
+}
+
+/* Don't render nested submenus inline in the rail — they'd be indented and
+   cramped. Top-level icons only; expand the sidebar to reach sub-items. */
+.hk-menu-rail :is(details > ul, li > ul) {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-menu details > ul {
+    transition: none;
+  }
+}

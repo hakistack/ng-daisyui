@@ -18,6 +18,13 @@ export type PdfDisplayMode = 'single' | 'continuous';
 export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annotations';
 
 /**
+ * Active annotation-editing tool. `'none'` = normal interaction (select/scroll);
+ * `'highlight'`/`'freetext'` drag a rectangle; `'note'` clicks to drop a sticky
+ * note; `'ink'` draws freehand.
+ */
+export type PdfAnnotationTool = 'none' | 'highlight' | 'note' | 'freetext' | 'ink';
+
+/**
  * Lightweight view-model for a PDF annotation — what the sidebar's
  * Annotations tab needs to list it. The component scans every page's
  * `getAnnotations()` once at document load and projects the subset of
@@ -28,6 +35,8 @@ export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annota
 export interface PdfAnnotationEntry {
   /** 1-indexed page the annotation lives on — click navigates here. */
   readonly pageNumber: number;
+  /** Position of this annotation within its page's array — the delete/edit address. */
+  readonly index: number;
   /** PDF annotation subtype: `'Text'`, `'Highlight'`, `'FreeText'`, `'Ink'`, etc. */
   readonly subtype: string;
   /** User-authored text (comment body) when available. Empty for ink / shapes. */
@@ -45,6 +54,20 @@ export interface PdfAttachmentEntry {
   readonly description: string;
   /** Raw bytes — provided so the sidebar can offer "download" without re-fetching. */
   readonly content: Uint8Array;
+}
+
+/** Options for {@link PdfViewerController.exportPageAsImage}. */
+export interface PdfImageExportOptions {
+  /** 1-indexed page to export. Defaults to the current page. */
+  readonly page?: number;
+  /** Render scale relative to the page's natural size. Default `2` (crisp). */
+  readonly scale?: number;
+  /** Image MIME type. Default `'image/png'`. */
+  readonly type?: 'image/png' | 'image/jpeg';
+  /** JPEG quality 0–1 (ignored for PNG). */
+  readonly quality?: number;
+  /** Download filename. Defaults to `<doc>-p<N>.<ext>`. */
+  readonly filename?: string;
 }
 
 /**
@@ -83,43 +106,14 @@ export interface PdfViewerConfig {
   readonly showSidebar?: boolean;
   /** Which sidebar tab is active by default. Default: `'thumbnails'`. */
   readonly defaultSidebarTab?: PdfSidebarTab;
-
   /**
-   * Override the PDF.js worker URL. By default the lib **inlines** the worker
-   * source into its own JS bundle and creates a Blob URL at runtime —
-   * consumers don't have to configure anything.
-   *
-   * Set this only if your CSP forbids `worker-src 'blob:'`, or if you want
-   * to share a single worker URL across multiple viewers / serve from a CDN.
-   *
-   * @example workerSrc: '/assets/pdfjs/pdf.worker.min.mjs'
-   */
-  readonly workerSrc?: string;
-
-  /**
-   * Number of off-main-thread render workers. **Defaults to `0` (main-thread
-   * rendering).**
-   *
-   * ⚠️ Experimental: pdf.js rasterizes text using the main-thread document's
-   * font machinery, which isn't available inside a Web Worker — so off-thread
-   * rendering (`> 0`) currently draws glyphs as `.notdef` boxes. Left here for
-   * experimentation; true off-thread raster needs a self-rasterizing engine
-   * (pdfium/Rust). Also requires {@link renderWorkerSrc} + `OffscreenCanvas`.
-   * Clamped to 1–4; falls back to main thread if the worker can't load.
+   * Number of off-thread PDFium render workers. Pages rasterize in parallel
+   * across the pool during fast scroll/zoom. Default `2`; clamped to `1`–`4`
+   * and to the device's core count. Each worker holds its own parsed copy of
+   * the document, so higher values cost ~N× the engine memory — set `1` to
+   * disable pooling on memory-constrained targets.
    */
   readonly renderPoolSize?: number;
-
-  /**
-   * URL of the bundled render worker asset shipped with the library
-   * (`@hakistack/ng-daisyui/workers/pdf-render.worker.mjs`). ng-packagr can't
-   * bundle workers, so the library can't auto-resolve it — provide it per
-   * instance or app-wide via `provideHkPdfDefaults`. Without it, rendering
-   * stays on the main thread.
-   *
-   * @example
-   *   renderWorkerSrc: new URL('@hakistack/ng-daisyui/workers/pdf-render.worker.mjs', import.meta.url).href
-   */
-  readonly renderWorkerSrc?: string;
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 
@@ -162,6 +156,13 @@ export interface PdfViewerInternalHandlers {
   reload?: () => void;
   save?: () => Promise<Uint8Array>;
   saveAndDownload?: (filename?: string) => Promise<void>;
+  exportPageAsImage?: (options?: PdfImageExportOptions) => Promise<void>;
+  exportText?: (filename?: string) => Promise<void>;
+  setAnnotationTool?: (tool: PdfAnnotationTool) => void;
+  setAnnotationColor?: (color: string) => void;
+  deletePage?: (pageNumber: number) => Promise<void>;
+  insertBlankPage?: (atPageNumber: number) => Promise<void>;
+  rotatePage?: (pageNumber: number, delta?: number) => void;
 }
 
 /**
@@ -190,7 +191,7 @@ export interface PdfLoadedInfo {
 
 /** Error payload emitted via `onError`. */
 export interface PdfViewerError {
-  readonly code: 'load_failed' | 'invalid_pdf' | 'password_cancelled' | 'render_failed' | 'unknown';
+  readonly code: 'load_failed' | 'invalid_pdf' | 'password_cancelled' | 'render_failed' | 'unsupported' | 'unknown';
   readonly message: string;
   /** Whether the consumer can recover by retrying (e.g. password prompt cancelled — they can retry). */
   readonly recoverable: boolean;
@@ -307,12 +308,9 @@ export interface PdfViewerController {
   // ── Persistence (Phase 4 — forms + annotations) ─────────────────────────
 
   /**
-   * Serialize the current document — including any form edits from the
-   * `formValues` two-way binding and any AnnotationEditor changes — back to
-   * a `Uint8Array`. Resolves to fresh PDF bytes the consumer can upload to
-   * a server, store, or pass to another PDF tool. Built on PDF.js's
-   * `pdfDoc.saveDocument()`; falls back to the original bytes if the
-   * pdfjs-dist version doesn't expose that method.
+   * Serialize the current document — including form-field edits — back to a
+   * `Uint8Array` via the PDFium engine. Resolves to fresh PDF bytes the
+   * consumer can upload to a server, store, or pass to another PDF tool.
    */
   save(): Promise<Uint8Array>;
 
@@ -322,4 +320,42 @@ export interface PdfViewerController {
    * button that hands the user the filled / annotated PDF.
    */
   saveAndDownload(filename?: string): Promise<void>;
+
+  // ── Export (Phase 5) ─────────────────────────────────────────────────────
+
+  /**
+   * Rasterize a page (default: the current page) to a PNG/JPEG image and
+   * trigger a browser download. Uses the off-thread PDFium raster at the
+   * requested scale.
+   */
+  exportPageAsImage(options?: PdfImageExportOptions): Promise<void>;
+
+  /**
+   * Extract the document's text content and trigger a `.txt` download.
+   * Spacing fidelity follows the PDF's own text runs.
+   */
+  exportText(filename?: string): Promise<void>;
+
+  // ── Annotation editing ───────────────────────────────────────────────────
+
+  /**
+   * Set the active annotation tool. `'highlight'`/`'freetext'` drag a rectangle
+   * on the page; `'note'` drops a sticky note on click; `'none'` returns to
+   * normal interaction. New annotations are baked in + included in `save()`.
+   */
+  setAnnotationTool(tool: PdfAnnotationTool): void;
+
+  /** Set the colour (hex, e.g. `'#ffeb3b'`) used for new annotations. */
+  setAnnotationColor(color: string): void;
+
+  // ── Page operations ──────────────────────────────────────────────────────
+
+  /** Delete a page (1-based). No-op on the last remaining page. Persists in `save()`. */
+  deletePage(pageNumber: number): Promise<void>;
+
+  /** Insert a blank page so it becomes page `atPageNumber` (1-based; clamped). */
+  insertBlankPage(atPageNumber: number): Promise<void>;
+
+  /** Rotate a page (1-based) by `delta`° (default +90). Baked into `save()`. */
+  rotatePage(pageNumber: number, delta?: number): void;
 }

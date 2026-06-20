@@ -9,21 +9,20 @@ import { DocumentRendererInputs } from '../document-viewer.types';
  * existing `<hk-pdf-viewer>`. We don't duplicate the PDF viewer's logic —
  * we just bridge inputs and stand up a default controller.
  *
- * The PDF viewer itself lazy-loads `pdfjs-dist` via `HkPdfService.load()`
- * on first use, so importing `PdfViewerComponent` here doesn't pull
- * `pdfjs-dist` into the initial bundle.
+ * The PDF viewer renders via the PDFium (Rust→WASM) engine, whose worker +
+ * wasm are lazy-loaded on first use, so importing `PdfViewerComponent` here
+ * doesn't pull the engine into the initial bundle.
  */
 @Component({
   selector: 'hk-document-pdf-renderer',
   imports: [PdfViewerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <hk-pdf-viewer [src]="source()" [config]="viewer.config()" /> `,
-  // `<hk-pdf-viewer>` is `h-full` — it needs a bounded-height parent or its
-  // scrolling viewport collapses, leaving a big blank area under the first
-  // page. Give it a sensible default viewport height (matching the standalone
-  // pdf-viewer demo's `h-[75vh]` wrapper). Consumers wanting a different size
-  // can wrap the document viewer in a fixed-height box.
-  host: { class: 'block w-full h-[75vh]' },
+  // Layout-neutral: fill the parent. `<hk-pdf-viewer>` is `h-full` and needs a
+  // bounded-height ancestor; the consumer (or demo) sizes the document viewer,
+  // and this `h-full` chain passes that height down. No fixed height is baked
+  // into the library — sizing is the consumer's decision.
+  host: { class: 'block w-full h-full' },
 })
 export class DocumentPdfRenderer {
   readonly source = input.required<DocumentRendererInputs['source']>();

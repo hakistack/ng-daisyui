@@ -1,13 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import {
-  provideToast,
-  provideAlert,
-  provideHkTheme,
-  provideFormState,
-  provideNotification,
-  provideHkPdfDefaults,
-} from '@hakistack/ng-daisyui';
+import { provideToast, provideAlert, provideHkTheme, provideFormState, provideNotification } from '@hakistack/ng-daisyui';
 import {
   provideLucideIcons,
   provideLucideConfig,
@@ -148,9 +141,6 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideHkTheme('daisyui-v5'),
-    // Off-thread PDF rendering is on by default when supported; point it at the
-    // worker asset served from the demo's public/ dir.
-    provideHkPdfDefaults({ renderWorkerSrc: '/pdf-render.worker.mjs' }),
     providePipes(),
     provideRouter(routes),
     provideToast(),

@@ -79,8 +79,10 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
                 <strong>Detected:</strong>
                 <span class="font-mono">{{ detectedSummary() }}</span>
               </div>
-              <div class="border border-base-content/10 rounded-md overflow-hidden">
-                <hk-document-viewer [src]="src" [config]="viewerConfig()" />
+              <!-- Bounded height so PDF/spreadsheet renderers get a real viewport
+                   (the library viewer fills its parent — sizing is the consumer's). -->
+              <div class="border border-base-content/10 rounded-md overflow-hidden h-[75vh]">
+                <hk-document-viewer class="h-full" [src]="src" [config]="viewerConfig()" />
               </div>
             } @else {
               <div class="text-base-content/40 text-sm py-12 text-center">Pick a file above, or jump to a sample in the next tab.</div>
@@ -161,8 +163,11 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
               <button class="btn btn-sm" (click)="clear()">Clear</button>
             </div>
             @if (currentSource(); as src) {
-              <div class="border border-base-content/10 rounded-md overflow-hidden">
-                <hk-document-viewer [src]="src" [config]="viewerConfig()" />
+              <!-- The consumer sizes the viewer: a bounded height gives the PDF
+                   renderer's scrolling viewport room to fill (no blank space).
+                   The library component stays layout-neutral (fills its parent). -->
+              <div class="border border-base-content/10 rounded-md overflow-hidden h-[75vh]">
+                <hk-document-viewer class="h-full" [src]="src" [config]="viewerConfig()" />
               </div>
             }
           </app-doc-section>

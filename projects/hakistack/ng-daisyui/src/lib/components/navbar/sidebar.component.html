@@ -1,0 +1,38 @@
+<aside
+  class="hk-sidebar flex flex-col min-h-full bg-base-100"
+  [class]="borderClass()"
+  [style.width]="asideWidth()"
+  [attr.aria-label]="resolvedAriaLabel()"
+>
+  <ng-content select="[hk-sidebar-header]" />
+
+  <nav class="flex-1 overflow-y-auto">
+    @if (resolvedMenu(); as m) {
+      <hk-menu
+        [config]="m"
+        orientation="vertical"
+        [background]="false"
+        [rounded]="false"
+        [collapsed]="collapsed()"
+        (itemSelect)="itemSelect.emit($event)"
+      />
+    }
+    <ng-content />
+  </nav>
+
+  @if (resolvedCollapsible()) {
+    <div class="p-2 border-t border-base-content/10" [class]="{ 'flex justify-center': collapsed() }">
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm btn-square"
+        (click)="toggleCollapsed()"
+        [attr.aria-pressed]="collapsed()"
+        [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      >
+        <svg [lucideIcon]="panelIcon" [size]="18" class="hk-sidebar-chevron" [class]="{ 'rotate-180': collapsed() }"></svg>
+      </button>
+    </div>
+  }
+
+  <ng-content select="[hk-sidebar-footer]" />
+</aside>

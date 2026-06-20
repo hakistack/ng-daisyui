@@ -1,0 +1,139 @@
+<!-- Optional header slot (e.g. sidebar user card / logo) -->
+<ng-content select="[hk-menu-header]" />
+
+<ul
+  class="menu"
+  [class]="menuClass()"
+  [attr.role]="resolvedConfig().orientation === 'horizontal' ? 'menubar' : 'menu'"
+  [attr.aria-orientation]="resolvedConfig().orientation"
+  [attr.aria-label]="resolvedConfig().ariaLabel ?? null"
+>
+  @for (node of processedItems(); track node.id) {
+    <ng-container *ngTemplateOutlet="menuNode; context: { $implicit: node, siblings: processedItems(), depth: 0, rail: isRail() }" />
+  }
+</ul>
+
+<!-- Optional footer slot (e.g. sign-out / version) -->
+<ng-content select="[hk-menu-footer]" />
+
+<!-- Recursive node template -->
+<ng-template #menuNode let-item let-siblings="siblings" let-depth="depth" let-rail="rail">
+  @switch (kindOf(item)) {
+    @case ('divider') {
+      <li role="separator" class="px-2 py-1"><div class="border-t border-base-content/10"></div></li>
+    }
+    @case ('title') {
+      <li role="presentation" class="menu-title" [class]="item.class">{{ item.label }}</li>
+    }
+    @case ('group') {
+      <li [class]="item.class" role="none" (mouseleave)="onGroupLeave()">
+        <details #d [open]="isOpen(item)" (toggle)="onToggle(item, d.open, siblings)">
+          <summary
+            role="menuitem"
+            [attr.aria-haspopup]="'menu'"
+            [attr.aria-expanded]="rail ? null : isOpen(item)"
+            [attr.aria-label]="rail ? item.label : null"
+            [attr.aria-disabled]="item.disabled ? true : null"
+            [class]="{ 'menu-disabled': item.disabled, tooltip: rail, 'tooltip-right': rail }"
+            [attr.data-tip]="rail ? item.label : null"
+            (mouseenter)="onGroupEnter(item, $event)"
+            (focusin)="onGroupEnter(item, $event)"
+          >
+            <ng-container *ngTemplateOutlet="itemInner; context: { $implicit: item, rail }" />
+          </summary>
+          <ul role="menu" [class]="submenuClass(depth)">
+            @for (child of item.children; track child.id) {
+              <ng-container *ngTemplateOutlet="menuNode; context: { $implicit: child, siblings: item.children, depth: depth + 1, rail }" />
+            }
+          </ul>
+        </details>
+      </li>
+    }
+    @default {
+      <li [class]="item.class" role="none">
+        @if (item.href) {
+          <a
+            role="menuitem"
+            [href]="item.href"
+            [attr.target]="item.target ?? null"
+            [attr.rel]="item.target === '_blank' ? 'noopener noreferrer' : null"
+            [attr.aria-disabled]="item.disabled ? true : null"
+            [attr.aria-label]="rail ? item.label : null"
+            [attr.data-tip]="rail ? item.label : null"
+            [class]="{ 'menu-disabled': item.disabled, tooltip: rail, 'tooltip-right': rail }"
+            (click)="select(item, $event)"
+          >
+            <ng-container *ngTemplateOutlet="itemInner; context: { $implicit: item, rail }" />
+          </a>
+        } @else if (item.routerLink != null) {
+          <a
+            role="menuitem"
+            [routerLink]="item.disabled ? null : item.routerLink"
+            routerLinkActive="menu-active"
+            [attr.aria-disabled]="item.disabled ? true : null"
+            [attr.aria-label]="rail ? item.label : null"
+            [attr.data-tip]="rail ? item.label : null"
+            [class]="{ 'menu-disabled': item.disabled, tooltip: rail, 'tooltip-right': rail }"
+            (click)="select(item, $event)"
+          >
+            <ng-container *ngTemplateOutlet="itemInner; context: { $implicit: item, rail }" />
+          </a>
+        } @else {
+          <button
+            type="button"
+            role="menuitem"
+            [disabled]="item.disabled"
+            [attr.aria-label]="rail ? item.label : null"
+            [attr.data-tip]="rail ? item.label : null"
+            [class]="{ 'menu-disabled': item.disabled, tooltip: rail, 'tooltip-right': rail }"
+            (click)="select(item, $event)"
+          >
+            <ng-container *ngTemplateOutlet="itemInner; context: { $implicit: item, rail }" />
+          </button>
+        }
+      </li>
+    }
+  }
+</ng-template>
+
+<!-- Shared inner content: icon + label + shortcut + badge -->
+<ng-template #itemInner let-it let-rail="rail">
+  @if (it.icon) {
+    <svg [lucideIcon]="it.icon" [size]="18" class="shrink-0"></svg>
+  }
+  @if (!rail) {
+    <span class="hk-menu-label grow truncate">{{ it.label }}</span>
+    @if (it.shortcut) {
+      <kbd class="kbd kbd-sm">{{ it.shortcut }}</kbd>
+    }
+    @if (it.badge != null) {
+      <span class="badge badge-sm" [class]="it.badgeClass ?? ''">{{ it.badge }}</span>
+    }
+  }
+</ng-template>
+
+<!-- Rail flyout: a hovered/focused collapsed group's children, in a CDK overlay
+     so it escapes the sidebar's overflow clipping. -->
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="flyoutOrigin()!"
+  [cdkConnectedOverlayOpen]="!!flyoutGroup() && !!flyoutOrigin()"
+  [cdkConnectedOverlayPositions]="flyoutPositions"
+  [cdkConnectedOverlayPush]="true"
+>
+  <ul
+    class="menu menu-sm bg-base-100 rounded-box shadow-lg border border-base-content/10 w-56 p-2"
+    role="menu"
+    (mouseenter)="onFlyoutEnter()"
+    (mouseleave)="onGroupLeave()"
+  >
+    @if (flyoutGroup()?.label; as lbl) {
+      <li role="presentation" class="menu-title">{{ lbl }}</li>
+    }
+    @for (child of flyoutGroup()?.children ?? []; track child.id) {
+      <ng-container
+        *ngTemplateOutlet="menuNode; context: { $implicit: child, siblings: flyoutGroup()?.children ?? [], depth: 0, rail: false }"
+      />
+    }
+  </ul>
+</ng-template>

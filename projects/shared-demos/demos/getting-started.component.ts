@@ -439,7 +439,12 @@ export class GettingStartedComponent {
           icon: 'scroll-text',
           desc: 'Vertical, horizontal, grid, lazy-load — for huge lists.',
         },
-        { path: '/pdf-viewer', label: 'PDF Viewer', icon: 'file-text', desc: 'pdfjs-dist wrapper with controller API and preview layout.' },
+        {
+          path: '/pdf-viewer',
+          label: 'PDF Viewer',
+          icon: 'file-text',
+          desc: 'PDFium (WASM) viewer with controller API and preview layout.',
+        },
       ],
     },
     {

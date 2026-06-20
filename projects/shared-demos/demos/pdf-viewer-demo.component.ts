@@ -46,20 +46,12 @@ const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemon
             </app-doc-section>
 
             <app-doc-section
-              title="Off-thread rendering (experimental — known limitation)"
-              description="Toggling ON routes raster through an OffscreenCanvas worker pool. ⚠️ pdf.js renders text via the main-thread document's font machinery, which a Web Worker lacks — so ON currently draws glyphs as boxes. Kept here to demonstrate why it's off by default; true off-thread raster needs a self-rasterizing engine (pdfium/Rust)."
+              title="Off-thread rendering (always on)"
+              description="Rendering, text extraction, and form handling all run in a Web Worker via the PDFium (Rust→WASM) engine — glyphs rasterize off the main thread with correct text. There's nothing to toggle; the main thread only blits the resulting bitmaps."
             >
-              <div class="flex flex-wrap items-center gap-3 mb-3">
-                <button class="btn btn-sm" [class.btn-primary]="perfPoolOn()" (click)="togglePerfPool()">
-                  Off-thread rendering: {{ perfPoolOn() ? 'ON (2 workers)' : 'OFF (main thread)' }}
-                </button>
-                <span class="text-xs text-base-content/60">renderPoolSize: {{ perfPoolOn() ? 2 : 0 }}</span>
+              <div class="h-[75vh]">
+                <hk-pdf-viewer [src]="pdfUrl()" [config]="perfViewer.config()" />
               </div>
-              @if (perfMounted()) {
-                <div class="h-[75vh]">
-                  <hk-pdf-viewer [src]="pdfUrl()" [config]="perfViewer().config()" />
-                </div>
-              }
             </app-doc-section>
           </div>
         }
@@ -275,34 +267,11 @@ export class PdfViewerDemoComponent {
     zoom: 'fit-page',
   });
 
-  // ── Off-thread rendering A/B ──────────────────────────────────────────────
-  // The render worker is served as a static asset from the demo's public/ dir
-  // (mirrored there by scripts/build-render-worker.mjs). Toggling recreates the
-  // controller + remounts the viewer so loadDocument re-inits (or tears down)
-  // the worker pool.
-  readonly perfPoolOn = signal(false);
-  readonly perfMounted = signal(true);
-  readonly perfViewer = signal(this.makePerfViewer(false));
-
-  private makePerfViewer(poolOn: boolean): ReturnType<typeof createPdfViewer> {
-    return createPdfViewer({
-      zoom: 'fit-width',
-      mode: 'continuous',
-      renderPoolSize: poolOn ? 2 : 0,
-      renderWorkerSrc: '/pdf-render.worker.mjs',
-      onError: (e) => console.error('[pdf-viewer-demo perf] error:', e),
-    });
-  }
-
-  togglePerfPool(): void {
-    const next = !this.perfPoolOn();
-    this.perfPoolOn.set(next);
-    this.perfViewer.set(this.makePerfViewer(next));
-    // Remount so the viewer re-runs loadDocument (which wires up / tears down
-    // the worker pool) rather than just swapping the config.
-    this.perfMounted.set(false);
-    setTimeout(() => this.perfMounted.set(true));
-  }
+  readonly perfViewer = createPdfViewer({
+    zoom: 'fit-width',
+    mode: 'continuous',
+    onError: (e) => console.error('[pdf-viewer-demo perf] error:', e),
+  });
 
   readonly minimalViewer = createPdfViewer({
     showToolbar: false,
