@@ -408,6 +408,18 @@ export interface PdfViewerLabels {
   importFailed?: string;
   /** Default: "Apply" */
   apply?: string;
+  /** Default: "The value doesn't match the field's format." */
+  formInvalidFormat?: string;
+  /** Default: "Enter a value from {min} to {max}." */
+  formOutOfRange?: string;
+  /** Default: "Form" */
+  form?: string;
+  /** Default: "Reset form" */
+  resetForm?: string;
+  /** Default: "Export form data" */
+  exportFormData?: string;
+  /** Default: "Import form data…" */
+  importFormData?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -608,6 +620,12 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   exportJson: 'Export JSON',
   importFailed: "The file couldn't be imported.",
   apply: 'Apply',
+  formInvalidFormat: "The value doesn't match the field's format.",
+  formOutOfRange: 'Enter a value from {min} to {max}.',
+  form: 'Form',
+  resetForm: 'Reset form',
+  exportFormData: 'Export form data',
+  importFormData: 'Import form data…',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');

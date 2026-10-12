@@ -11,6 +11,8 @@ import {
   LucideMinus,
   LucidePanelLeft,
   LucidePenLine,
+  LucideClipboardList,
+  LucideRotateCcw,
   LucidePlus,
   LucidePrinter,
   LucideRotateCw,
@@ -21,6 +23,7 @@ import {
 import { PdfAnnotationToolsService } from '../services/pdf-annotation-tools.service';
 import { PdfDocumentService } from '../services/pdf-document.service';
 import { PdfFindService } from '../services/pdf-find.service';
+import { PdfFormsService } from '../services/pdf-forms.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { PdfViewportService } from '../services/pdf-viewport.service';
 import { ResolvedPdfViewerLabels } from '../pdf-viewer.labels';
@@ -36,6 +39,8 @@ import { PdfDisplayMode } from '../pdf-viewer.types';
   imports: [
     LucidePanelLeft,
     LucidePenLine,
+    LucideClipboardList,
+    LucideRotateCcw,
     LucideChevronsLeft,
     LucideChevronLeft,
     LucideChevronRight,
@@ -62,6 +67,15 @@ export class PdfToolbarComponent {
   protected readonly find = inject(PdfFindService);
   protected readonly document = inject(PdfDocumentService);
   protected readonly tools = inject(PdfAnnotationToolsService);
+  protected readonly forms = inject(PdfFormsService);
+  protected readonly formFormats = ['json', 'xfdf', 'fdf'] as const;
+
+  protected async importFormData(input: HTMLInputElement, menu: HTMLDetailsElement): Promise<void> {
+    const file = input.files?.[0];
+    input.value = '';
+    menu.open = false;
+    if (file) await this.document.importFormDataFile(file);
+  }
 
   protected toggleAnnotationBar(): void {
     if (this.store.annotationBarOpen()) this.tools.closeBar();

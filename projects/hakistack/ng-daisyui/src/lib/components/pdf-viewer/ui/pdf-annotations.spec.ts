@@ -91,7 +91,6 @@ describe('PDF annotation editing', () => {
       pageText: async () => [],
       pagesText: async (_d, pages) => pages.map(() => []),
       pageLinks: async () => [],
-      formFields: async () => [],
       outline: async () => [],
       attachments: async () => [],
       setHiddenAnnotations: async (_d, entries) => void hidden.push([...entries]),

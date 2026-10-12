@@ -1,6 +1,9 @@
 import { Injectable, PLATFORM_ID, effect, inject, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { annotationOps, paintOps } from '../core/annotations/shapes';
+import { annotationOps, decodeImages, paintOps } from '../core/annotations/shapes';
+import { writeDocumentChanges } from '../core/forms/document-writer';
+import { widgetOps } from '../core/forms/form-appearance';
+import { PdfDoc } from '../core/pdf-writer/document';
 import { BitmapCache, defaultBitmapBudgetBytes } from '../core/bitmap-cache';
 import { isQuarterTurn, normalizeRotation } from '../core/geometry';
 import { PdfPageEntry } from '../core/types';
@@ -9,6 +12,7 @@ import { PdfAttachmentEntry, PdfDocumentSource, PdfImageExportOptions, PdfViewer
 import { PdfAnnotationsService } from './pdf-annotations.service';
 import { PdfFindService } from './pdf-find.service';
 import { PdfFormsService } from './pdf-forms.service';
+import { PdfRasterHiddenService } from './pdf-raster-hidden.service';
 import { PdfPageDataService } from './pdf-page-data.service';
 import { PdfThumbnailsService } from './pdf-thumbnails.service';
 import { PDF_BITMAP_CACHE, PdfViewerStore } from './pdf-viewer.store';
@@ -32,6 +36,7 @@ export class PdfDocumentService {
   private readonly find = inject(PdfFindService);
   private readonly thumbnails = inject(PdfThumbnailsService);
   private readonly forms = inject(PdfFormsService);
+  private readonly hidden = inject(PdfRasterHiddenService);
   private readonly annotations = inject(PdfAnnotationsService);
   private readonly bitmaps = inject<BitmapCache<ImageBitmap>>(PDF_BITMAP_CACHE);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -78,6 +83,8 @@ export class PdfDocumentService {
     store.outline.set(null);
     store.attachments.set(null);
     this.annotations.reset();
+    this.forms.reset();
+    this.hidden.reset();
     store.pageRotations.set(new Map());
     store.pageLabels.set([]);
     store.resetDocumentEdited();
@@ -130,8 +137,8 @@ export class PdfDocumentService {
       if (store.loadToken !== token) return;
       store.pages = pages;
       const numPages = pages.length;
-      // Editable annotations are read (with hk-pdf-writer) alongside the first renders.
-      void this.annotations.load(store.sourceBytes, numPages);
+      // Editable annotations and the form are read (with hk-pdf-writer) alongside the first renders.
+      void this.loadEditables(store.sourceBytes, numPages, token);
 
       // Resolve the initial page before mounting wrappers: the viewport scrolls
       // to `state.page` once every wrapper exists.
@@ -145,13 +152,22 @@ export class PdfDocumentService {
       const title = await engine.documentTitle(handle).catch(() => '');
       if (store.loadToken !== token) return;
       store.notifyLoaded({ numPages, title, fingerprint: '', fileSize });
-
-      // Pre-fill consumer form values before the widgets paint.
-      await this.forms.applyToEngine(store.formValues());
     } catch (err: unknown) {
       if (store.loadToken !== token) return;
       store.emitError(toViewerError(err));
     }
+  }
+
+  /** Parse the bytes once with hk-pdf-writer for the annotation and form models (null when it can't read them). */
+  private async loadEditables(bytes: Uint8Array, numPages: number, token: number): Promise<void> {
+    let doc: PdfDoc | null = null;
+    try {
+      doc = await PdfDoc.load(bytes);
+    } catch {
+      doc = null;
+    }
+    if (this.store.loadToken !== token) return;
+    await Promise.all([this.annotations.load(doc, numPages), this.forms.load(doc)]);
   }
 
   /**
@@ -227,6 +243,7 @@ export class PdfDocumentService {
     try {
       await session.engine.deletePage(session.doc, pageNumber - 1);
       this.annotations.onPageRemoved(pageNumber - 1);
+      this.forms.onPageRemoved(pageNumber - 1);
       await this.refreshPageStructure();
     } catch (err) {
       this.store.reportOperationError({ code: 'render_failed', message: 'Failed to delete page.', recoverable: true, cause: err });
@@ -243,6 +260,7 @@ export class PdfDocumentService {
     try {
       await session.engine.insertBlankPage(session.doc, idx, ref?.baseWidth ?? 612, ref?.baseHeight ?? 792);
       this.annotations.onPageInserted(idx, ref?.baseWidth ?? 612, ref?.baseHeight ?? 792);
+      this.forms.onPageInserted(idx);
       await this.refreshPageStructure();
     } catch (err) {
       this.store.reportOperationError({ code: 'render_failed', message: 'Failed to insert page.', recoverable: true, cause: err });
@@ -296,7 +314,10 @@ export class PdfDocumentService {
     const rotations = [...this.store.pageRotations()].filter(([, r]) => r !== 0);
     const source = this.store.sourceBytes;
     const base = this.store.engineEdited || rotations.length > 0 || !source ? await this.saveFromEngine(rotations) : source.slice();
-    return this.annotations.writeTo(base);
+    const annotations = this.annotations.changes();
+    const formValues = this.forms.changedValues();
+    if (!annotations && formValues.size === 0) return base;
+    return writeDocumentChanges(base, { formValues, annotations: annotations ?? undefined });
   }
 
   /** A PDFium save with the display rotations baked in (and reverted afterwards). */
@@ -338,7 +359,10 @@ export class PdfDocumentService {
     const bytes = this.store.sourceBytes;
     if (!bytes) return;
     const edited =
-      this.store.documentEdited || this.annotations.hasChanges() || [...this.store.pageRotations().values()].some((r) => r !== 0);
+      this.store.documentEdited ||
+      this.annotations.hasChanges() ||
+      this.forms.changedValues().size > 0 ||
+      [...this.store.pageRotations().values()].some((r) => r !== 0);
     if (!edited) {
       downloadBlob(new Blob([bytes.slice().buffer], { type: 'application/pdf' }), filename || this.deriveFilename());
       return;
@@ -400,12 +424,18 @@ export class PdfDocumentService {
     ctx.rotate((deg * Math.PI) / 180);
     ctx.drawImage(bitmap, -width / 2, -height / 2);
     bitmap.close();
-    // The raster leaves out the annotations the viewer draws itself; paint them in.
-    const annotations = this.annotations.list().filter((a) => a.page === pageNumber - 1);
-    if (annotations.length && typeof Path2D !== 'undefined') {
+    // The raster leaves out what the viewer draws itself (annotations, form widgets); paint them in.
+    if (typeof Path2D !== 'undefined') {
       ctx.translate(-width / 2, -height / 2);
       ctx.scale(width / page.baseWidth, height / page.baseHeight);
-      for (const a of annotations) paintOps(ctx, annotationOps(a));
+      for (const { field, widget } of this.forms.widgetsForPage(pageNumber))
+        paintOps(ctx, widgetOps(field, widget, this.forms.value(field.name)));
+      const ops = this.annotations
+        .list()
+        .filter((a) => a.page === pageNumber - 1)
+        .map(annotationOps);
+      const images = await decodeImages(ops.flat());
+      for (const list of ops) paintOps(ctx, list, images);
     }
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, options?.quality));
@@ -424,6 +454,23 @@ export class PdfDocumentService {
       new Blob([parts.join('\n\n')], { type: 'text/plain;charset=utf-8' }),
       filename || this.deriveFilename().replace(/\.pdf$/i, '.txt'),
     );
+  }
+
+  /** Download the form data as JSON, XFDF or FDF. */
+  exportFormData(format: 'json' | 'xfdf' | 'fdf'): void {
+    const base = this.deriveFilename().replace(/\.pdf$/i, '');
+    const type = format === 'json' ? 'application/json' : format === 'xfdf' ? 'application/vnd.adobe.xfdf' : 'application/vnd.fdf';
+    downloadBlob(new Blob([this.forms.exportData(format)], { type }), `${base}-data.${format}`);
+  }
+
+  /** Import form data from a JSON, XFDF or FDF file; a bad file is reported, not thrown. */
+  async importFormDataFile(file: File): Promise<number> {
+    try {
+      return this.forms.importData(await file.text());
+    } catch (err) {
+      this.store.reportOperationError({ code: 'unknown', message: this.store.labels().importFailed, recoverable: true, cause: err });
+      return 0;
+    }
   }
 
   /** Download the annotations as XFDF or JSON. */

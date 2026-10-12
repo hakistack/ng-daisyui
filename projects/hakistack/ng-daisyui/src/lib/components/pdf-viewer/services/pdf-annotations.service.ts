@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { ImportedAnnotation, readAnnotations, sameAnnotation, writeAnnotationChanges } from '../core/annotations/annotation-io';
+import { ImportedAnnotation, readAnnotations, sameAnnotation } from '../core/annotations/annotation-io';
 import {
   HkAnnotation,
   HkAnnotationInit,
@@ -24,6 +24,7 @@ import { PdfDoc } from '../core/pdf-writer/document';
 import type { StandardFont } from '../core/pdf-writer/standard-fonts';
 import { PdfAnnotationTool } from '../pdf-viewer.types';
 import { PdfViewerStore } from './pdf-viewer.store';
+import { PdfRasterHiddenService } from './pdf-raster-hidden.service';
 import { PdfViewportService } from './pdf-viewport.service';
 
 /** Style applied to new annotations of a tool (the fields a tool doesn't use are ignored). */
@@ -147,6 +148,7 @@ export const DRAFT_ID = 'draft';
 export class PdfAnnotationsService {
   private readonly store = inject(PdfViewerStore);
   private readonly viewport = inject(PdfViewportService);
+  private readonly hidden = inject(PdfRasterHiddenService);
 
   /** Current annotations, in paint order. */
   readonly list = signal<readonly HkAnnotation[]>([]);
@@ -264,11 +266,12 @@ export class PdfAnnotationsService {
    * or disagreeing with PDFium on the page count) stays read-only: its
    * annotations remain in the raster and the tools are disabled.
    */
-  async load(bytes: Uint8Array, pageCount: number): Promise<void> {
+  async load(doc: PdfDoc | null, pageCount: number): Promise<void> {
     this.reset();
     const seq = this.loadSeq;
     try {
-      const pages = await readAnnotations(await PdfDoc.load(bytes));
+      if (!doc) throw new Error('document not readable');
+      const pages = await readAnnotations(doc);
       if (seq !== this.loadSeq) return;
       if (pages.length !== pageCount) throw new Error(`page count mismatch (${pages.length} vs ${pageCount})`);
       this.baseline = new Map(pages.flatMap((p) => p.annotations.map((a) => [a.annotation.id, a] as const)));
@@ -281,19 +284,13 @@ export class PdfAnnotationsService {
     }
   }
 
-  /** Send the hidden set (every imported annotation and its thread) to the render workers and repaint those pages. */
+  /** Leave every imported annotation and its thread out of the rasters (this layer draws them). */
   private async syncHidden(): Promise<void> {
-    const session = this.store.session();
-    if (!session) return;
     const entries: number[] = [];
-    const pages = new Set<number>();
     for (const b of this.baseline.values()) {
-      const page = b.annotation.page;
-      pages.add(page);
-      for (const index of [b.index, ...b.threadIndices]) entries.push(page, index);
+      for (const index of [b.index, ...b.threadIndices]) entries.push(b.annotation.page, index);
     }
-    await session.engine.setHiddenAnnotations(session.doc, entries);
-    for (const page of pages) this.viewport.rerenderPage(page + 1);
+    await this.hidden.set('annotations', entries);
   }
 
   // ── Editing ─────────────────────────────────────────────────────────────
@@ -685,10 +682,9 @@ export class PdfAnnotationsService {
     });
   }
 
-  /** Apply the annotation changes to `bytes` (the document as PDFium saved it, or the original) as an incremental update. */
-  async writeTo(bytes: Uint8Array): Promise<Uint8Array> {
-    if (!this.supported() || !this.hasChanges()) return bytes;
-    return writeAnnotationChanges(bytes, this.baseline, this.list());
+  /** What a save writes (the imported baseline and the current annotations), or null when nothing changed. */
+  changes(): { baseline: ReadonlyMap<string, ImportedAnnotation>; current: readonly HkAnnotation[] } | null {
+    return this.supported() && this.hasChanges() ? { baseline: this.baseline, current: this.list() } : null;
   }
 
   // ── Internals ───────────────────────────────────────────────────────────

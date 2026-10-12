@@ -2,7 +2,6 @@ import {
   PdfAttachmentFile,
   PdfDocHandle,
   PdfEngine,
-  PdfFormField,
   PdfLinkRect,
   PdfOutlineNode,
   PdfPageSize,
@@ -95,14 +94,6 @@ export class PdfiumEngine implements PdfEngine {
 
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]> {
     return this.request({ type: 'attachments', id: 0, doc }) as Promise<PdfAttachmentFile[]>;
-  }
-
-  formFields(doc: PdfDocHandle, page: number): Promise<PdfFormField[]> {
-    return this.request({ type: 'formFields', id: 0, doc, page }) as Promise<PdfFormField[]>;
-  }
-
-  setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean> {
-    return this.request({ type: 'setFieldValue', id: 0, doc, page, annotIndex, name, value }) as Promise<boolean>;
   }
 
   deletePage(doc: PdfDocHandle, index: number): Promise<boolean> {

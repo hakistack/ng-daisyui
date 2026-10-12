@@ -207,6 +207,9 @@ export interface PdfViewerInternalHandlers {
   exportAnnotations?: (format: 'xfdf' | 'json') => string;
   importAnnotations?: (data: string) => Promise<number>;
   setMeasureScale?: (scale: PdfMeasureScale) => void;
+  resetForm?: () => void;
+  exportFormData?: (format: 'json' | 'xfdf' | 'fdf') => string;
+  importFormData?: (data: string) => number;
   deletePage?: (pageNumber: number) => Promise<void>;
   insertBlankPage?: (atPageNumber: number) => Promise<void>;
   rotatePage?: (pageNumber: number, delta?: number) => void;
@@ -415,6 +418,15 @@ export interface PdfViewerController {
   importAnnotations(data: string): Promise<number>;
   /** The scale new measurements use, e.g. `{ ratio: 10 / 72, unit: 'ft', label: '1 in = 10 ft' }`. */
   setMeasureScale(scale: PdfMeasureScale): void;
+
+  // ── Forms ────────────────────────────────────────────────────────────────
+
+  /** Reset every form field to its default value. */
+  resetForm(): void;
+  /** The form's values as JSON (`name → value`, like `formValues`), XFDF or FDF. Empty before a form loads. */
+  exportFormData(format: 'json' | 'xfdf' | 'fdf'): string;
+  /** Fill the form from JSON, XFDF or FDF (auto-detected); returns how many fields were set. */
+  importFormData(data: string): number;
 
   // ── Page operations ──────────────────────────────────────────────────────
 

@@ -22,6 +22,7 @@ import { PdfDocumentSource, PdfLoadedInfo, PdfViewerConfig, PdfViewerError, PdfV
 import { PdfAnnotationToolsService } from './services/pdf-annotation-tools.service';
 import { ANNOTATION_CLIPBOARD_TYPE, PdfAnnotationsService } from './services/pdf-annotations.service';
 import { PdfAnnotationDialogsService } from './services/pdf-annotation-dialogs.service';
+import { PdfRasterHiddenService } from './services/pdf-raster-hidden.service';
 import { PdfDocumentService } from './services/pdf-document.service';
 import { PdfFindService } from './services/pdf-find.service';
 import { PdfFormsService } from './services/pdf-forms.service';
@@ -99,6 +100,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfFormsService,
     PdfFindService,
     PdfThumbnailsService,
+    PdfRasterHiddenService,
     PdfAnnotationsService,
     PdfAnnotationDialogsService,
     PdfAnnotationToolsService,
@@ -124,6 +126,7 @@ export class PdfViewerComponent implements OnInit {
   private readonly find = inject(PdfFindService);
   private readonly tools = inject(PdfAnnotationToolsService);
   private readonly annotations = inject(PdfAnnotationsService);
+  private readonly forms = inject(PdfFormsService);
 
   /**
    * The PDF document source. Accepts a URL string, a `Uint8Array` of bytes,
@@ -231,7 +234,7 @@ export class PdfViewerComponent implements OnInit {
   private attachController(internal: PdfViewerInternalApi): void {
     this.unbindController?.();
     this.store.internal = internal;
-    const { viewport, document: doc, find, tools, store, annotations } = this;
+    const { viewport, document: doc, find, tools, store, annotations, forms } = this;
     this.unbindController = internal.bind({
       goToPage: (page) => viewport.goToPage(page),
       nextPage: () => viewport.nextPage(),
@@ -263,6 +266,9 @@ export class PdfViewerComponent implements OnInit {
       exportAnnotations: (format) => (format === 'xfdf' ? annotations.exportXfdf() : annotations.exportJson()),
       importAnnotations: (data) => annotations.importAnnotations(data),
       setMeasureScale: (scale) => annotations.scale.set(scale),
+      resetForm: () => forms.resetForm(),
+      exportFormData: (format) => forms.exportData(format),
+      importFormData: (data) => forms.importData(data),
       deletePage: (pageNumber) => doc.deletePage(pageNumber),
       insertBlankPage: (atPageNumber) => doc.insertBlankPage(atPageNumber),
       rotatePage: (pageNumber, delta) => doc.rotatePage(pageNumber, delta),

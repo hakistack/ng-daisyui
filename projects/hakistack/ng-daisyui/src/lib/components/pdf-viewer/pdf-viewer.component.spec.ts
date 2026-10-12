@@ -163,7 +163,6 @@ function fakeEngine(count: number): PdfEngine {
     pageText: async () => [],
     pagesText: async (_d, pages) => pages.map((i) => [{ text: `Page ${i + 1}`, x: 0, y: 0, w: 50, h: 10 }]),
     pageLinks: async () => [],
-    formFields: async () => [],
     outline: async () => [],
     attachments: async () => [],
     setHiddenAnnotations: async () => undefined,

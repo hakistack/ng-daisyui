@@ -89,11 +89,12 @@ export class PdfLayersService {
    */
   async renderOverlay(container: HTMLElement, viewportWidth: number, epoch: number, pageNumber: number): Promise<void> {
     if (!this.store.session()) return;
-    const [links, fields] = await Promise.all([this.pageData.links(pageNumber), this.pageData.fields(pageNumber)]);
+    const links = await this.pageData.links(pageNumber);
     if (epoch !== this.store.renderEpoch) return;
 
     container.replaceChildren();
-    if (links.length === 0 && fields.length === 0) return;
+    const widgets = this.forms.widgetsForPage(pageNumber);
+    if (links.length === 0 && widgets.length === 0) return;
 
     const page = this.store.findPage(pageNumber);
     if (!page) return;
@@ -129,10 +130,11 @@ export class PdfLayersService {
       frag.appendChild(el);
     }
 
-    for (const field of fields) {
-      const el = this.forms.buildWidget(field, pageNumber - 1);
+    // Form controls, in the page's tab order (the rasters leave these widgets out).
+    for (const { field, widget } of widgets) {
+      const el = this.forms.buildControl(field, widget, scale);
       if (!el) continue;
-      positionOverlayEl(el, field, scale);
+      positionOverlayEl(el, widget.rect, scale);
       el.style.pointerEvents = 'auto';
       frag.appendChild(el);
     }

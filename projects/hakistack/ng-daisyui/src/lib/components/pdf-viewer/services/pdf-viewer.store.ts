@@ -212,8 +212,8 @@ export class PdfViewerStore {
   renderEpoch = 0;
   /** The engine's document differs from `sourceBytes` (forms, page structure). */
   private edited = false;
-  /** Annotation edits not yet saved (tracked by the annotation history). */
-  private annotationsDirty = false;
+  /** Unsaved edits outside the engine, by source (`annotations`, `forms`). */
+  private readonly dirtySources = new Set<string>();
 
   findPage(pageNumber: number): PdfPageEntry | undefined {
     return this.pages.find((p) => p.pageNumber === pageNumber);
@@ -224,9 +224,9 @@ export class PdfViewerStore {
     return this.engine && this.doc !== null ? { engine: this.engine, doc: this.doc } : null;
   }
 
-  /** Whether there are unsaved edits: in the engine's document or in the annotations. */
+  /** Whether there are unsaved edits: in the engine's document, the annotations or the form. */
   get documentEdited(): boolean {
-    return this.edited || this.annotationsDirty;
+    return this.edited || this.dirtySources.size > 0;
   }
 
   /** Whether the engine's own document was edited (so saving starts from a PDFium save, not `sourceBytes`). */
@@ -239,13 +239,18 @@ export class PdfViewerStore {
   }
 
   setAnnotationsDirty(dirty: boolean): void {
-    this.updateDirty(() => (this.annotationsDirty = dirty));
+    this.setDirty('annotations', dirty);
+  }
+
+  /** Record whether a source (`annotations`, `forms`) has unsaved edits. */
+  setDirty(source: string, dirty: boolean): void {
+    this.updateDirty(() => (dirty ? this.dirtySources.add(source) : this.dirtySources.delete(source)));
   }
 
   resetDocumentEdited(): void {
     this.updateDirty(() => {
       this.edited = false;
-      this.annotationsDirty = false;
+      this.dirtySources.clear();
     });
   }
 

@@ -2,7 +2,7 @@ import { DestroyRef, Injectable, inject } from '@angular/core';
 import { PdfSearchHandle, PdfSearchService } from '../../../services';
 import { buildTextIndex, segmentStrings } from '../core/text-index';
 import { PdfPageTextIndex } from '../core/types';
-import { PdfFormField, PdfLinkRect, PdfOutlineNode, PdfTaskPriority, PdfTextSegment } from '../engine/pdf-engine.types';
+import { PdfLinkRect, PdfOutlineNode, PdfTaskPriority, PdfTextSegment } from '../engine/pdf-engine.types';
 import { PdfViewerStore } from './pdf-viewer.store';
 
 /**
@@ -17,7 +17,6 @@ export class PdfPageDataService {
 
   private readonly segmentsCache = new Map<number, PdfTextSegment[]>();
   private readonly linksCache = new Map<number, PdfLinkRect[]>();
-  private readonly fieldsCache = new Map<number, PdfFormField[]>();
   /** Joined text per page; built on first search or text-layer render. */
   readonly textIndexes = new Map<number, PdfPageTextIndex>();
   /** WASM search index for the open document (`null` until created or when unavailable). */
@@ -35,7 +34,6 @@ export class PdfPageDataService {
   reset(): void {
     this.segmentsCache.clear();
     this.linksCache.clear();
-    this.fieldsCache.clear();
     this.textIndexes.clear();
     this.disposeSearchHandle();
   }
@@ -68,25 +66,6 @@ export class PdfPageDataService {
     } catch {
       return [];
     }
-  }
-
-  /** A page's form-field widgets. Invalidated per page when a value changes. */
-  async fields(pageNumber: number): Promise<PdfFormField[]> {
-    const session = this.store.session();
-    if (!session) return [];
-    const cached = this.fieldsCache.get(pageNumber);
-    if (cached) return cached;
-    try {
-      const fields = await session.engine.formFields(session.doc, pageNumber - 1);
-      this.fieldsCache.set(pageNumber, fields);
-      return fields;
-    } catch {
-      return [];
-    }
-  }
-
-  invalidateFields(pageNumber: number): void {
-    this.fieldsCache.delete(pageNumber);
   }
 
   /** Index a page's segment strings (first call wins) and mirror it into the search engine. */

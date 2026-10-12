@@ -77,35 +77,6 @@ export interface PdfAttachmentFile {
 }
 
 /** Interactive form field type. */
-export type PdfFormFieldType = 'text' | 'checkbox' | 'radio' | 'combo' | 'list' | 'button' | 'signature';
-
-/**
- * An interactive form field **widget** on a page. Rect is in PDF points,
- * top-left origin (same convention as {@link PdfTextSegment}). `text`/`combo`
- * carry `value`; `checkbox`/`radio` use `checked`; `combo`/`list` list `options`.
- *
- * Several widgets can share one `name` (every option of a radio group). Writes
- * target a widget by `annotIndex`. A radio's `exportValue` is the group value
- * it stands for when selected.
- */
-export interface PdfFormField {
-  readonly name: string;
-  readonly type: PdfFormFieldType;
-  readonly x: number;
-  readonly y: number;
-  readonly w: number;
-  readonly h: number;
-  readonly value: string;
-  readonly readOnly: boolean;
-  readonly checked: boolean;
-  readonly options: string[];
-  /** Annotation index of this widget on its page — the write target. */
-  readonly annotIndex: number;
-  /** Radio only: the group value this option represents (`''` otherwise). */
-  readonly exportValue: string;
-  /** The field's `/TU` tooltip — its accessible label (`''` if unset). */
-  readonly alternateName: string;
-}
 
 /**
  * The engine contract. All calls are async (they cross the worker boundary).
@@ -140,14 +111,6 @@ export interface PdfEngine {
   pageLinks(doc: PdfDocHandle, page: number): Promise<PdfLinkRect[]>;
   /** Embedded files. */
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]>;
-  /** Interactive form fields on a page (for the fillable-widget overlay). */
-  formFields(doc: PdfDocHandle, page: number): Promise<PdfFormField[]>;
-  /**
-   * Set a field's value on a page; resolves true if a writable field matched.
-   * `annotIndex` targets one widget (from {@link PdfFormField.annotIndex}); `-1`
-   * matches the first widget named `name`. Checkbox/radio take `'true'`/`'false'`.
-   */
-  setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean>;
   /** Delete the page at 0-based `index`. Page count + indices shift after. */
   deletePage(doc: PdfDocHandle, index: number): Promise<boolean>;
   /** Insert a blank page (`width`×`height` PDF points) at 0-based `index`. */
@@ -205,8 +168,6 @@ export type PdfWorkerRequest = (
   | { type: 'outline'; id: number; doc: PdfDocHandle }
   | { type: 'pageLinks'; id: number; doc: PdfDocHandle; page: number }
   | { type: 'attachments'; id: number; doc: PdfDocHandle }
-  | { type: 'formFields'; id: number; doc: PdfDocHandle; page: number }
-  | { type: 'setFieldValue'; id: number; doc: PdfDocHandle; page: number; annotIndex: number; name: string; value: string }
   | { type: 'deletePage'; id: number; doc: PdfDocHandle; index: number }
   | { type: 'insertBlankPage'; id: number; doc: PdfDocHandle; index: number; width: number; height: number }
   | { type: 'setPageRotation'; id: number; doc: PdfDocHandle; page: number; degrees: number }

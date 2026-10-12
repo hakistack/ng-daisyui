@@ -2,7 +2,6 @@ import {
   PdfAttachmentFile,
   PdfDocHandle,
   PdfEngine,
-  PdfFormField,
   PdfLinkRect,
   PdfOutlineNode,
   PdfPageSize,
@@ -24,7 +23,7 @@ import { PdfiumEngine } from './pdfium-engine';
  * - **Reads** (text/outline/links/size/…) go to the primary worker (worker 0);
  *   they're cheap + infrequent, and keeping them off the render workers avoids
  *   contention.
- * - **Mutations** (`setFieldValue`, annotations, pages) broadcast to **all**
+ * - **Mutations** (page structure and rotation) broadcast to **all**
  *   workers so every worker's copy of the document stays consistent — any worker
  *   can then render any page with the correct (edited) appearance. `save` reads
  *   from primary. If a mutation fails on only some workers, the pool heals
@@ -126,16 +125,8 @@ export class PdfEnginePool implements PdfEngine {
     return this.engines[0].attachments(this.primary(doc));
   }
 
-  formFields(doc: PdfDocHandle, page: number): Promise<PdfFormField[]> {
-    return this.engines[0].formFields(this.primary(doc), page);
-  }
-
   save(doc: PdfDocHandle): Promise<Uint8Array> {
     return this.engines[0].save(this.primary(doc));
-  }
-
-  setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean> {
-    return this.broadcast(doc, (e, h) => e.setFieldValue(h, page, annotIndex, name, value));
   }
 
   deletePage(doc: PdfDocHandle, index: number): Promise<boolean> {

@@ -187,6 +187,41 @@
     <svg lucidePenLine [size]="16"></svg>
   </button>
 
+  <!-- ── Form: reset, export / import data (documents with a form) ── -->
+  @if (forms.model()) {
+    <details #formMenu class="dropdown dropdown-end">
+      <summary class="btn btn-ghost btn-xs btn-square" [attr.aria-label]="store.labels().form" [title]="store.labels().form">
+        <svg lucideClipboardList [size]="16"></svg>
+      </summary>
+      <ul class="menu menu-sm dropdown-content z-[40] mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+        <li>
+          <button type="button" (click)="forms.resetForm(); formMenu.open = false">
+            <svg lucideRotateCcw [size]="14"></svg>
+            {{ store.labels().resetForm }}
+          </button>
+        </li>
+        <li class="menu-title">{{ store.labels().exportFormData }}</li>
+        @for (f of formFormats; track f) {
+          <li>
+            <button type="button" (click)="document.exportFormData(f); formMenu.open = false">{{ f.toUpperCase() }}</button>
+          </li>
+        }
+        <li class="mt-1 border-t border-base-300 pt-1">
+          <label class="flex cursor-pointer items-center gap-2">
+            {{ store.labels().importFormData }}
+            <input
+              #formFile
+              type="file"
+              class="sr-only"
+              accept=".json,.xfdf,.fdf,application/json,application/vnd.adobe.xfdf,application/vnd.fdf"
+              (change)="importFormData(formFile, formMenu)"
+            />
+          </label>
+        </li>
+      </ul>
+    </details>
+  }
+
   <!-- ── Rotate current page ─────────────────────────────────────── -->
   <button
     type="button"
