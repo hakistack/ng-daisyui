@@ -430,6 +430,48 @@ Decisiones:
 
 **Pendiente para la fase 2:** el scheduler del protocolo v2 (no se creó en la fase 1).
 
+### Estado de la fase 2 (2026-10-12)
+
+**Hecho** (un commit por punto, todos con tests):
+
+1. **Protocolo v2 del worker:**
+   - Cola con prioridad `high`/`normal`/`low`; las mutaciones actúan como barreras.
+   - Cancelación real de renders encolados.
+   - `pageSizes` y `pagesText` en lote.
+   - Verificado con el worker real en `worker_threads` (`npm run test:pdf-engine`).
+2. **Caché de rasters con presupuesto en bytes:** 96 MB o 256 MB según `deviceMemory`, configurable con `config.bitmapCacheMB`.
+3. **Ventana de DOM con layout aritmético** (`core/page-layout`):
+   - Solo existen las páginas cercanas a la vista; los espaciadores reproducen la altura exacta. Un documento de 1,000 páginas monta menos de 10.
+   - Navegación a páginas no montadas.
+   - El zoom conserva la posición de lectura.
+   - El IntersectionObserver desaparece.
+4. **Búsqueda en streaming:**
+   - Lotes de 25 páginas a prioridad baja.
+   - Muestra la primera coincidencia en cuanto existe.
+   - Una consulta nueva cancela la anterior.
+   - El índice WASM se reutiliza en las búsquedas siguientes.
+   - Estado accesible (`role=status`).
+5. **Zoom por gestos:**
+   - Pinch de trackpad (Ctrl+rueda), Ctrl/⌘+rueda, eventos `gesture*` de Safari y pinch táctil.
+   - Vista previa con transform CSS y commit anclado al puntero.
+6. **Modos `spread` y `spread-cover`** (layout por filas) y **etiquetas de página** (`/PageLabels`): el campo de página las acepta y las miniaturas las muestran.
+7. **Tiles de detalle:**
+   - Con zoom por encima del límite de canvas, la región visible se renderiza nítida con `render_tile`.
+   - Verificado píxel a píxel contra el render completo.
+8. **Miniaturas virtualizadas** con el mismo layout.
+
+**Bugs encontrados de paso (con commit propio):**
+- **Búsqueda WASM rota desde su origen:** `new WasmPdfIndex()` en lugar del factory `WasmPdfIndex.new()` escribía en la dirección 0 del heap compartido con tablas, árboles y formularios.
+- **Colores de miniaturas:** usaban variables de daisyUI v3, inexistentes en v4/v5.
+- **Fallo de build de las demos** por el presupuesto de tamaño.
+- **Lint de la librería.**
+
+**Diferido:**
+- La "ruta caliente con `cwrap`": hay que medir en navegador antes de tocarla.
+- Tiles para páginas rotadas (hoy usan el raster reducido).
+- Caché de bitmaps de miniaturas.
+- **Los benchmarks de §7 no se han medido:** necesitan navegador. Hay que pasarlos en la demo de rendimiento antes de dar la fase por cerrada.
+
 ## 6. Theming (daisyUI v5 / Tailwind v4)
 
 | Pieza | Componente daisyUI |
