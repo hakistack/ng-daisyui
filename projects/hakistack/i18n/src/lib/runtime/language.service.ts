@@ -23,11 +23,11 @@ export class LanguageService {
 
   private readonly defaultLanguage = this.transloco.getDefaultLang();
 
-  /** Current active language (reactive signal). */
-  readonly language = signal<string>(this.getStoredLanguage());
-
   /** Available languages from Transloco config. */
   readonly availableLanguages: AvailableLangs = this.transloco.getAvailableLangs();
+
+  /** Current active language (reactive signal). */
+  readonly language = signal<string>(this.getStoredLanguage());
 
   async initializeLanguage(): Promise<void> {
     await this.setLanguage(this.getStoredLanguage());
@@ -48,9 +48,22 @@ export class LanguageService {
     }
   }
 
+  /** Is `lang` one of the configured available languages? */
+  isAvailable(lang: string): boolean {
+    return this.availableLanguages.some((l) => (typeof l === 'string' ? l : l.id) === lang);
+  }
+
+  /**
+   * Stored language, or the default when nothing is stored, storage is
+   * unavailable (SSR), or the stored value is no longer an available language
+   * (stale/garbage localStorage must never become the active `<html lang>`).
+   */
   private getStoredLanguage(): string {
+    const storage = this.storage();
+    if (!storage) return this.defaultLanguage;
     try {
-      return localStorage.getItem(this.STORAGE_KEY) ?? this.defaultLanguage;
+      const stored = storage.getItem(this.STORAGE_KEY);
+      return stored && this.isAvailable(stored) ? stored : this.defaultLanguage;
     } catch (error) {
       console.warn('Failed to read language from localStorage:', error);
       return this.defaultLanguage;
@@ -58,10 +71,17 @@ export class LanguageService {
   }
 
   private saveLanguage(lang: string): void {
+    const storage = this.storage();
+    if (!storage) return;
     try {
-      localStorage.setItem(this.STORAGE_KEY, lang);
+      storage.setItem(this.STORAGE_KEY, lang);
     } catch (error) {
       console.warn('Failed to save language to localStorage:', error);
     }
+  }
+
+  /** `localStorage` when it exists (browser); `null` on the server. */
+  private storage(): Storage | null {
+    return typeof localStorage === 'undefined' ? null : localStorage;
   }
 }

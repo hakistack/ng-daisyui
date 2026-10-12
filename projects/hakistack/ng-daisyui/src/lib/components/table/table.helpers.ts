@@ -23,6 +23,7 @@ import {
   TableInstance,
   TreeTableConfig,
 } from './table.types';
+import { ColumnsMap, DeclarativeTableConfig, TableColumn } from './table.schema';
 
 // ============================================================================
 // Export Utilities (CSV & JSON)
@@ -193,10 +194,24 @@ export function _detachTableInstance<T extends object>(
  * @returns A `FieldConfiguration` containing the resolved config plus a
  *          `controller` signal to forward to the table component.
  */
-export function createTable<T extends object>(config: FieldConfig<T>): FieldConfiguration<T> {
-  const normalizedConfig = createFieldConfig(config);
+// Overloads: declarative `columns` map and legacy projection config (`visible` + parallel maps).
+// The two are mutually exclusive — each requires a property the other omits — so resolution is unambiguous.
+// Legacy is listed last so `Parameters<typeof createTable<T>>[0]` resolves to `FieldConfig<T>` (back-compat).
+export function createTable<T extends object>(config: DeclarativeTableConfig<T>): FieldConfiguration<T>;
+export function createTable<T extends object>(config: FieldConfig<T>): FieldConfiguration<T>;
+export function createTable<T extends object>(config: FieldConfig<T> | DeclarativeTableConfig<T>): FieldConfiguration<T> {
+  const declarative = isColumnsMap((config as { columns?: unknown }).columns);
+  const baseConfig = declarative ? declarativeToFieldConfig(config as DeclarativeTableConfig<T>) : (config as FieldConfig<T>);
+
+  const normalizedConfig = createFieldConfig(baseConfig);
 
   const schema = buildColumnSchema(normalizedConfig);
+
+  // Overlay the rich per-column props that `buildColumnSchema` does not read (sticky, filter, resizable,
+  // min/maxWidth, reorderable, a flat editType, and a function-valued footer). Nothing is lost.
+  if (declarative) {
+    overlayRichColumnProps(schema, (config as DeclarativeTableConfig<T>).columns);
+  }
 
   // Resolve multi-row footer
   const resolvedFooterRows = resolveFooterRows(normalizedConfig.footerRows, schema);
@@ -264,6 +279,105 @@ export function createTable<T extends object>(config: FieldConfig<T>): FieldConf
 
   controllerRegistry.set(controller, state);
   return controller;
+}
+
+// ── Declarative `columns` map → FieldConfig conversion ───────────────────────
+
+/** A declarative config carries a `columns` *map* (plain object), never an array. */
+function isColumnsMap(columns: unknown): columns is ColumnsMap<object> {
+  return typeof columns === 'object' && columns !== null && !Array.isArray(columns);
+}
+
+/** Props on a `TableColumn` that `buildColumnSchema` already understands (handled via the parallel maps). */
+const SCHEMA_HANDLED_COLUMN_PROPS = new Set([
+  'header',
+  'format',
+  'fallback',
+  'footer',
+  'editType',
+  'editOptions',
+  'editValidator',
+  'width',
+]);
+
+/**
+ * Decompose the declarative `columns` map into the legacy `FieldConfig` shape so the existing
+ * `createFieldConfig` → `buildColumnSchema` pipeline (pipe formatters, footer aggregates, default headers,
+ * cellEditor merge) can be reused verbatim. Rich props that `buildColumnSchema` ignores are overlaid later.
+ */
+function declarativeToFieldConfig<T extends object>(config: DeclarativeTableConfig<T>): FieldConfig<T> {
+  const { columns, ...rest } = config;
+  const keys = Object.keys(columns) as (keyof T)[];
+
+  const headers: Partial<Record<StringKey<T>, string>> = {};
+  const formatters: Partial<Record<StringKey<T>, Formatter<T>>> = {};
+  const fallbacks: Partial<Record<StringKey<T>, string>> = {};
+  const footers: NonNullable<FieldConfig<T>['footers']> = {};
+  const cellEditors: Partial<Record<StringKey<T>, CellEditorConfig>> = {};
+  const columnWidths: Partial<Record<StringKey<T>, number>> = {};
+
+  for (const key of keys) {
+    const col = columns[key] as TableColumn<T> | undefined;
+    if (!col) continue;
+    const k = key as StringKey<T>;
+
+    if (col.header !== undefined) headers[k] = col.header;
+    if (col.format !== undefined) formatters[k] = col.format as Formatter<T>;
+    if (col.fallback !== undefined) fallbacks[k] = col.fallback;
+    if (col.width !== undefined) columnWidths[k] = col.width;
+
+    // Aggregate / FooterConfig footers go through buildColumnSchema; function footers are overlaid later.
+    if (col.footer !== undefined && typeof col.footer !== 'function') {
+      footers[k] = col.footer;
+    }
+
+    // Any inline-edit prop maps to a cell editor so buildColumnSchema marks the column editable and wires the
+    // validator. `editType` defaults to `'text'` (same default as `ColumnDefinition.editType`) so that
+    // `{ editValidator }` or `{ editOptions }` on their own are not silently dropped.
+    if (col.editType !== undefined || col.editOptions !== undefined || col.editValidator !== undefined) {
+      cellEditors[k] = {
+        type: col.editType ?? 'text',
+        options: col.editOptions,
+        validator: col.editValidator as CellEditorConfig['validator'],
+      };
+    }
+  }
+
+  return {
+    ...(rest as Omit<FieldConfig<T>, 'visible' | 'headers' | 'formatters' | 'fallbacks' | 'footers' | 'cellEditors' | 'columnWidths'>),
+    visible: keys as StringKey<T>[],
+    headers,
+    formatters,
+    fallbacks,
+    footers,
+    cellEditors,
+    columnWidths,
+  };
+}
+
+/**
+ * Copy the per-column props that `buildColumnSchema` does not read from the declarative map onto the resolved
+ * column schema: `sticky`, `filter`, `resizable`, `minWidth`, `maxWidth`, `reorderable`, and a
+ * function-valued `footer`. (`header` / `format` / `fallback` / aggregate-`footer` / `editType*` / `width`
+ * were already resolved by the pipeline.)
+ */
+function overlayRichColumnProps<T extends object>(schema: ColumnDefinition<T>[], columns: ColumnsMap<T>): void {
+  for (const column of schema) {
+    const col = columns[column.field as keyof T] as TableColumn<T> | undefined;
+    if (!col) continue;
+
+    const target = column as unknown as Record<string, unknown>;
+    const source = col as unknown as Record<string, unknown>;
+    for (const prop of Object.keys(col)) {
+      if (SCHEMA_HANDLED_COLUMN_PROPS.has(prop)) continue;
+      target[prop] = source[prop];
+    }
+
+    // Function-valued footer wasn't handled by buildColumnSchema — apply it directly.
+    if (typeof col.footer === 'function') {
+      column.footer = col.footer as ColumnDefinition<T>['footer'];
+    }
+  }
 }
 
 /**

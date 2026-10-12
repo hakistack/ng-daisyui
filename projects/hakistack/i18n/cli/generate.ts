@@ -10,7 +10,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { isTranslationValue } from '../engine/define-translations';
+import { isTranslationValue, SOURCE_LANG } from '../engine/define-translations';
 import { buildLanguageTree, buildScopedTree, LanguageTree, scopeToFilesystemPath } from '../engine/build-tree';
 import { I18nCliConfig } from './config';
 import { loadRegistry } from './load-registry';
@@ -56,8 +56,8 @@ export async function runGenerate(config: I18nCliConfig): Promise<void> {
     translatedByLang[lang] = 0;
     missingByLang[lang] = [];
     for (const mod of registry) {
-      const a = analyze(mod.translations as Record<string, unknown>, lang, config.sourceLang, mod.scope);
-      if (lang === config.sourceLang) totalKeys += a.total;
+      const a = analyze(mod.translations as Record<string, unknown>, lang, SOURCE_LANG, mod.scope);
+      if (lang === SOURCE_LANG) totalKeys += a.total;
       translatedByLang[lang] += a.translated;
       missingByLang[lang].push(...a.missing);
     }
@@ -66,13 +66,13 @@ export async function runGenerate(config: I18nCliConfig): Promise<void> {
   const scopedModules = registry.filter((m) => m.scoped);
 
   for (const lang of config.locales) {
-    const rootTree: LanguageTree = buildLanguageTree(registry, lang, config.sourceLang);
+    const rootTree: LanguageTree = buildLanguageTree(registry, lang, SOURCE_LANG);
     const rootPath = path.join(config.outputDir, `${lang}.json`);
     fs.writeFileSync(rootPath, JSON.stringify(rootTree, null, 2) + '\n');
     console.log(`✓ ${path.relative(config.cwd, rootPath)}`);
 
     for (const mod of scopedModules) {
-      const scopedTree = buildScopedTree(registry, lang, config.sourceLang, mod.scope);
+      const scopedTree = buildScopedTree(registry, lang, SOURCE_LANG, mod.scope);
       if (!scopedTree) continue;
       const scopeDir = path.join(config.outputDir, scopeToFilesystemPath(mod.scope));
       fs.mkdirSync(scopeDir, { recursive: true });
@@ -88,7 +88,7 @@ export async function runGenerate(config: I18nCliConfig): Promise<void> {
     const pct = totalKeys > 0 ? Math.round((translated / totalKeys) * 100) : 100;
     console.log(`${pct === 100 ? '✓' : '⚠'} ${lang.toUpperCase()}: ${translated}/${totalKeys} (${pct}%)`);
     const missing = missingByLang[lang];
-    if (missing.length && lang !== config.sourceLang) {
+    if (missing.length && lang !== SOURCE_LANG) {
       console.log(
         `  Missing ${missing.length}: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? `, … +${missing.length - 3}` : ''}`,
       );

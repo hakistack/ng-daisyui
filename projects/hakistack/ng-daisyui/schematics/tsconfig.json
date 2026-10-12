@@ -17,5 +17,6 @@
     "rootDir": ".",
     "outDir": "../../../../dist/hakistack/ng-daisyui/schematics"
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["**/*.spec.ts"]
 }

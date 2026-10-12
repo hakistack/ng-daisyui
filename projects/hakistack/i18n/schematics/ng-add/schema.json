@@ -7,18 +7,15 @@
     "project": {
       "type": "string",
       "description": "Target project in angular.json. Defaults to the first application project.",
-      "$default": { "$source": "projectName" }
+      "$default": {
+        "$source": "projectName"
+      }
     },
     "locales": {
       "type": "string",
-      "description": "Comma-separated locale ids (the first is the source locale).",
+      "description": "Comma-separated locale ids. `en` is always the source locale and is included automatically.",
       "default": "en,es",
       "x-prompt": "Which locales do you want to support? (comma-separated, e.g. en,es)"
-    },
-    "sourceLang": {
-      "type": "string",
-      "description": "Source/required locale. Defaults to the first entry in `locales`.",
-      "default": "en"
     },
     "skipInstall": {
       "type": "boolean",

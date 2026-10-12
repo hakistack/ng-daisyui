@@ -911,37 +911,35 @@ export class TableDemoComponent {
       .join(', '),
   );
 
+  // Declarative columns map — recommended API. One entry per column; `value` is typed per column.
   basicConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Full Name',
-      email: 'Email Address',
-      role: 'Role',
-      status: 'Status',
-    },
-    formatters: {
-      role: (value) => String(value).charAt(0).toUpperCase() + String(value).slice(1),
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge ${colors[String(value)] || ''}">${value}</span>`;
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Full Name' },
+      email: { header: 'Email Address' },
+      role: { header: 'Role', format: (value) => value.charAt(0).toUpperCase() + value.slice(1) }, // value: 'admin' | 'editor' | 'viewer'
+      status: {
+        header: 'Status',
+        format: (value) => {
+          const colors: Record<User['status'], string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge ${colors[value] || ''}">${value}</span>`;
+        },
       },
     },
   });
 
   cellTemplateConfig = createTable<User>({
-    visible: ['name', 'email', 'role', 'salary', 'status', 'joinDate'],
-    headers: {
-      name: 'Employee',
-      email: 'Email',
-      role: 'Role',
-      salary: 'Salary',
-      status: 'Status',
-      joinDate: 'Joined',
+    columns: {
+      name: { header: 'Employee' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      salary: { header: 'Salary' },
+      status: { header: 'Status' },
+      joinDate: { header: 'Joined' },
     },
   });
 
@@ -968,27 +966,25 @@ export class TableDemoComponent {
   }
 
   selectableRowConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Full Name',
-      email: 'Email',
-      role: 'Role',
-      department: 'Department',
-      status: 'Status',
-    },
-    selectableRows: true,
-    formatters: {
-      role: (value) => `<span class="capitalize">${value}</span>`,
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Full Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role', format: (value) => `<span class="capitalize">${value}</span>` },
+      department: { header: 'Department' },
+      status: {
+        header: 'Status',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
       },
     },
+    selectableRows: true,
     rowClass: (row) => ({
       'bg-error/10': row.status === 'inactive',
       'bg-warning/10': row.status === 'pending',
@@ -996,40 +992,48 @@ export class TableDemoComponent {
   });
 
   multiSelectableRowConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Full Name',
-      email: 'Email',
-      role: 'Role',
-      department: 'Department',
-      status: 'Status',
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Full Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role', format: (value) => `<span class="capitalize">${value}</span>` },
+      department: { header: 'Department' },
+      status: {
+        header: 'Status',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
+      },
     },
     selectableRows: 'multi',
     selectedRowClass: 'bg-accent/20',
-    formatters: {
-      role: (value) => `<span class="capitalize">${value}</span>`,
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
-      },
-    },
   });
 
   selectionLimitOneConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department'],
-    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', department: 'Department' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      department: { header: 'Department' },
+    },
     hasSelection: true,
     selectionLimit: 1,
   });
 
   selectionLimitThreeConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department'],
-    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', department: 'Department' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      department: { header: 'Department' },
+    },
     hasSelection: true,
     selectionLimit: 3,
   });
@@ -1056,31 +1060,40 @@ export class TableDemoComponent {
   ];
 
   actionsEndConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'status'],
-    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', status: 'Status' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      status: { header: 'Status' },
+    },
     hasActions: true,
     actions: this.commonActions,
   });
 
   actionsStartConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'status'],
-    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', status: 'Status' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      status: { header: 'Status' },
+    },
     hasActions: true,
     actionsPosition: 'start',
     actions: this.commonActions,
   });
 
   actionsStartStickyConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      email: 'Email',
-      role: 'Role',
-      department: 'Department',
-      salary: 'Salary',
-      status: 'Status',
-      joinDate: 'Join Date',
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      department: { header: 'Department' },
+      salary: { header: 'Salary' },
+      status: { header: 'Status' },
+      joinDate: { header: 'Join Date' },
     },
     hasSelection: true,
     hasActions: true,
@@ -1089,8 +1102,13 @@ export class TableDemoComponent {
   });
 
   actionsSplitConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'status'],
-    headers: { id: 'ID', name: 'Name', email: 'Email', role: 'Role', status: 'Status' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      status: { header: 'Status' },
+    },
     hasActions: true,
     startActionsLabel: 'Quick',
     endActionsLabel: 'Manage',
@@ -1118,33 +1136,38 @@ export class TableDemoComponent {
   });
 
   fullConfig = createTable<User>({
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: {
+        header: 'Role',
+        format: (value) => {
+          return `<span class="capitalize">${value}</span>`;
+        },
+      },
+      department: { header: 'Department' },
+      salary: {
+        header: 'Salary',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+      status: {
+        header: 'Status',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
+      },
+      joinDate: {
+        header: 'Join Date',
+        format: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      },
+    },
     pagination: { mode: 'offset', pageSize: 5, pageSizeOptions: [5, 10, 25], totalItems: 8 },
-    visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      email: 'Email',
-      role: 'Role',
-      department: 'Department',
-      salary: 'Salary',
-      status: 'Status',
-      joinDate: 'Join Date',
-    },
-    formatters: {
-      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
-      joinDate: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
-      },
-      role: (value) => {
-        return `<span class="capitalize">${value}</span>`;
-      },
-    },
     hasSelection: true,
     hasActions: true,
     actions: [
@@ -1227,27 +1250,30 @@ export class TableDemoComponent {
 
   // --- Filtering Showcase Config (one filter of every FilterType) ---
   filteringConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
-    headers: {
-      id: 'ID',
-      name: 'Name (text)',
-      email: 'Email (text)',
-      role: 'Role (multiselect)',
-      department: 'Dept (select)',
-      salary: 'Salary (numberRange)',
-      status: 'Active (boolean)',
-      joinDate: 'Joined (dateRange)',
-    },
-    formatters: {
-      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
-      joinDate: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name (text)' },
+      email: { header: 'Email (text)' },
+      role: { header: 'Role (multiselect)' },
+      department: { header: 'Dept (select)' },
+      salary: {
+        header: 'Salary (numberRange)',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+      status: {
+        header: 'Active (boolean)',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
+      },
+      joinDate: {
+        header: 'Joined (dateRange)',
+        format: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
       },
     },
     enableFiltering: true,
@@ -1300,23 +1326,24 @@ export class TableDemoComponent {
   // --- Grid Filter Bar (top panel) ---
   // Controller returned by createTable() — we drive it directly, no viewChild required.
   filterGridConfig = createTable<User>({
-    visible: ['name', 'department', 'joinDate', 'role', 'status'],
-    headers: {
-      name: 'Nombre',
-      department: 'Oficina',
-      joinDate: 'Inicio',
-      role: 'Rol',
-      status: 'Estatus',
-    },
-    formatters: {
-      joinDate: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+    columns: {
+      name: { header: 'Nombre' },
+      department: { header: 'Oficina' },
+      joinDate: {
+        header: 'Inicio',
+        format: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      },
+      role: { header: 'Rol' },
+      status: {
+        header: 'Estatus',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
       },
     },
     // enableFiltering: false hides the column-header filter icons while keeping
@@ -1348,20 +1375,21 @@ export class TableDemoComponent {
 
   // --- Sticky Columns Config ---
   stickyConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status', 'joinDate'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      email: 'Email',
-      role: 'Role',
-      department: 'Department',
-      salary: 'Salary',
-      status: 'Status',
-      joinDate: 'Join Date',
-    },
-    formatters: {
-      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
-      joinDate: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      department: { header: 'Department' },
+      salary: {
+        header: 'Salary',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+      status: { header: 'Status' },
+      joinDate: {
+        header: 'Join Date',
+        format: (value) => new Date(value as Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      },
     },
     hasSelection: true,
     hasActions: true,
@@ -1377,18 +1405,17 @@ export class TableDemoComponent {
 
   // --- Resizable Columns Config ---
   resizableConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      email: 'Email',
-      role: 'Role',
-      department: 'Department',
-      salary: 'Salary',
-      status: 'Status',
-    },
-    formatters: {
-      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      department: { header: 'Department' },
+      salary: {
+        header: 'Salary',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+      status: { header: 'Status' },
     },
     enableColumnResizing: true,
     resizeMode: 'expand',
@@ -1398,18 +1425,17 @@ export class TableDemoComponent {
   virtualScrollUsers = signal<User[]>(this.generateVirtualScrollData(1000));
 
   virtualScrollConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department', 'salary', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      email: 'Email',
-      role: 'Role',
-      department: 'Department',
-      salary: 'Salary',
-      status: 'Status',
-    },
-    formatters: {
-      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      department: { header: 'Department' },
+      salary: {
+        header: 'Salary',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+      status: { header: 'Status' },
     },
     virtualScroll: {
       enabled: true,
@@ -1422,54 +1448,48 @@ export class TableDemoComponent {
   editableUsers = signal<User[]>([...this.users()]);
 
   editableConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'salary', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      email: 'Email',
-      role: 'Role',
-      salary: 'Salary',
-      status: 'Status',
-    },
-    formatters: {
-      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
-      },
-    },
-    enableInlineEditing: true,
-    cellEditors: {
-      name: { type: 'text' },
-      email: { type: 'text' },
-      salary: { type: 'number', validator: (v) => Number(v) > 0 || 'Salary must be positive' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name', editType: 'text' },
+      email: { header: 'Email', editType: 'text' },
       role: {
-        type: 'select',
-        options: [
+        header: 'Role',
+        editType: 'select',
+        editOptions: [
           { label: 'Admin', value: 'admin' },
           { label: 'Editor', value: 'editor' },
           { label: 'Viewer', value: 'viewer' },
         ],
       },
+      salary: {
+        header: 'Salary',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+        editType: 'number',
+        editValidator: (v) => Number(v) > 0 || 'Salary must be positive',
+      },
+      status: {
+        header: 'Status',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
+      },
     },
+    enableInlineEditing: true,
   });
 
   // --- Footer Config (multi-row) ---
   footerConfig = createTable<User>({
-    visible: ['id', 'name', 'department', 'salary', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      department: 'Department',
-      salary: 'Salary',
-      status: 'Status',
-    },
-    formatters: {
-      salary: ['currency', 'USD'],
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      department: { header: 'Department' },
+      salary: { header: 'Salary', format: ['currency', 'USD'] },
+      status: { header: 'Status' },
     },
     footerRows: [
       {
@@ -1495,16 +1515,12 @@ export class TableDemoComponent {
 
   // --- Colspan Footer Config ---
   colspanFooterConfig = createTable<User>({
-    visible: ['id', 'name', 'department', 'salary', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      department: 'Department',
-      salary: 'Salary',
-      status: 'Status',
-    },
-    formatters: {
-      salary: ['currency', 'USD'],
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      department: { header: 'Department' },
+      salary: { header: 'Salary', format: ['currency', 'USD'] },
+      status: { header: 'Status' },
     },
     footerRows: [
       {
@@ -1526,16 +1542,12 @@ export class TableDemoComponent {
 
   // --- Custom Footer Template Config (hkFooter) ---
   customFooterConfig = createTable<User>({
-    visible: ['id', 'name', 'department', 'salary', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      department: 'Department',
-      salary: 'Salary',
-      status: 'Status',
-    },
-    formatters: {
-      salary: ['currency', 'USD'],
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      department: { header: 'Department' },
+      salary: { header: 'Salary', format: ['currency', 'USD'] },
+      status: { header: 'Status' },
     },
   });
 
@@ -1555,22 +1567,21 @@ export class TableDemoComponent {
 
   // --- Expandable Config ---
   expandableConfig = createTable<User>({
-    visible: ['id', 'name', 'role', 'department', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      role: 'Role',
-      department: 'Department',
-      status: 'Status',
-    },
-    formatters: {
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      role: { header: 'Role' },
+      department: { header: 'Department' },
+      status: {
+        header: 'Status',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
       },
     },
     expandableDetail: true,
@@ -1579,23 +1590,21 @@ export class TableDemoComponent {
 
   // --- Grouped Config ---
   groupedConfig = createTable<User>({
-    visible: ['id', 'name', 'role', 'salary', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      role: 'Role',
-      salary: 'Salary',
-      status: 'Status',
-    },
-    formatters: {
-      salary: ['currency', 'USD'],
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      role: { header: 'Role' },
+      salary: { header: 'Salary', format: ['currency', 'USD'] },
+      status: {
+        header: 'Status',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
       },
     },
     grouping: {
@@ -1618,17 +1627,16 @@ export class TableDemoComponent {
   reorderableUsers = signal<User[]>([...this.users()]);
 
   reorderableConfig = createTable<User>({
-    visible: ['id', 'name', 'email', 'role', 'department', 'salary'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      email: 'Email',
-      role: 'Role',
-      department: 'Department',
-      salary: 'Salary',
-    },
-    formatters: {
-      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      email: { header: 'Email' },
+      role: { header: 'Role' },
+      department: { header: 'Department' },
+      salary: {
+        header: 'Salary',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
     },
     enableColumnReorder: true,
     enableRowReorder: true,
@@ -1637,56 +1645,68 @@ export class TableDemoComponent {
 
   // --- Keyboard Navigation Config ---
   keyboardConfig = createTable<User>({
-    pagination: { mode: 'offset', pageSize: 8, pageSizeOptions: [5, 8, 10], totalItems: 8 },
-    visible: ['id', 'name', 'email', 'role', 'salary', 'status'],
-    headers: {
-      id: 'ID',
-      name: 'Name',
-      email: 'Email',
-      role: 'Role',
-      salary: 'Salary',
-      status: 'Status',
-    },
-    formatters: {
-      salary: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
-      status: (value) => {
-        const colors: Record<string, string> = {
-          active: 'badge-success',
-          inactive: 'badge-error',
-          pending: 'badge-warning',
-        };
-        return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
-      },
-    },
-    hasSelection: true,
-    enableKeyboardNavigation: true,
-    enableInlineEditing: true,
-    cellEditors: {
-      name: { type: 'text' },
-      email: { type: 'text' },
-      salary: { type: 'number', validator: (v) => Number(v) > 0 || 'Salary must be positive' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name', editType: 'text' },
+      email: { header: 'Email', editType: 'text' },
       role: {
-        type: 'select',
-        options: [
+        header: 'Role',
+        editType: 'select',
+        editOptions: [
           { label: 'Admin', value: 'admin' },
           { label: 'Editor', value: 'editor' },
           { label: 'Viewer', value: 'viewer' },
         ],
       },
+      salary: {
+        header: 'Salary',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+        editType: 'number',
+        editValidator: (v) => Number(v) > 0 || 'Salary must be positive',
+      },
+      status: {
+        header: 'Status',
+        format: (value) => {
+          const colors: Record<string, string> = {
+            active: 'badge-success',
+            inactive: 'badge-error',
+            pending: 'badge-warning',
+          };
+          return `<span class="badge badge-sm ${colors[String(value)] || ''}">${value}</span>`;
+        },
+      },
     },
+    pagination: { mode: 'offset', pageSize: 8, pageSizeOptions: [5, 8, 10], totalItems: 8 },
+    hasSelection: true,
+    enableKeyboardNavigation: true,
+    enableInlineEditing: true,
   });
 
   // --- Hierarchy Grid Config (3-level: Employee → Order → OrderItem) ---
   orderItemChildConfig = createTable<OrderItem>({
-    visible: ['itemId', 'sku', 'description', 'qty', 'price'],
-    headers: { itemId: 'Item ID', sku: 'SKU', description: 'Description', qty: 'Qty', price: 'Price' },
-    formatters: { price: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)) },
+    columns: {
+      itemId: { header: 'Item ID' },
+      sku: { header: 'SKU' },
+      description: { header: 'Description' },
+      qty: { header: 'Qty' },
+      price: {
+        header: 'Price',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+    },
   });
 
   orderChildConfig = createTable<Order>({
-    visible: ['orderId', 'product', 'quantity', 'unitPrice', 'orderDate'],
-    headers: { orderId: 'Order ID', product: 'Product', quantity: 'Qty', unitPrice: 'Price', orderDate: 'Date' },
-    formatters: { unitPrice: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)) },
+    columns: {
+      orderId: { header: 'Order ID' },
+      product: { header: 'Product' },
+      quantity: { header: 'Qty' },
+      unitPrice: {
+        header: 'Price',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+      orderDate: { header: 'Date' },
+    },
     childGrid: {
       config: this.orderItemChildConfig,
       childDataProperty: 'items',
@@ -1695,8 +1715,12 @@ export class TableDemoComponent {
   });
 
   hierarchyConfig = createTable<Employee>({
-    visible: ['id', 'name', 'title', 'hireDate'],
-    headers: { id: 'ID', name: 'Name', title: 'Title', hireDate: 'Hire Date' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      title: { header: 'Title' },
+      hireDate: { header: 'Hire Date' },
+    },
     childGrid: {
       config: this.orderChildConfig,
       childDataProperty: 'orders',
@@ -2030,15 +2054,29 @@ export class TableDemoComponent {
 
   // --- Nested Master-Detail Grid Config (3-level: Employee → Order → OrderItem) ---
   nestedMasterDetailItemConfig = createTable<OrderItem>({
-    visible: ['itemId', 'sku', 'description', 'qty', 'price'],
-    headers: { itemId: 'Item ID', sku: 'SKU', description: 'Description', qty: 'Qty', price: 'Price' },
-    formatters: { price: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)) },
+    columns: {
+      itemId: { header: 'Item ID' },
+      sku: { header: 'SKU' },
+      description: { header: 'Description' },
+      qty: { header: 'Qty' },
+      price: {
+        header: 'Price',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+    },
   });
 
   nestedMasterDetailOrderConfig = createTable<Order>({
-    visible: ['orderId', 'product', 'quantity', 'unitPrice', 'orderDate'],
-    headers: { orderId: 'Order ID', product: 'Product', quantity: 'Qty', unitPrice: 'Price', orderDate: 'Date' },
-    formatters: { unitPrice: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)) },
+    columns: {
+      orderId: { header: 'Order ID' },
+      product: { header: 'Product' },
+      quantity: { header: 'Qty' },
+      unitPrice: {
+        header: 'Price',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+      orderDate: { header: 'Date' },
+    },
     masterDetail: {
       config: this.nestedMasterDetailItemConfig,
       detailDataProperty: 'items',
@@ -2047,8 +2085,12 @@ export class TableDemoComponent {
   });
 
   nestedMasterDetailConfig = createTable<Employee>({
-    visible: ['id', 'name', 'title', 'hireDate'],
-    headers: { id: 'ID', name: 'Name', title: 'Title', hireDate: 'Hire Date' },
+    columns: {
+      id: { header: 'ID' },
+      name: { header: 'Name' },
+      title: { header: 'Title' },
+      hireDate: { header: 'Hire Date' },
+    },
     masterDetail: {
       config: this.nestedMasterDetailOrderConfig,
       detailDataProperty: 'orders',
@@ -2059,23 +2101,27 @@ export class TableDemoComponent {
 
   // --- Master-Detail Grid Config ---
   masterDetailOrderConfig = createTable<CustomerOrder>({
-    visible: ['orderId', 'freight', 'shipName', 'shipCountry', 'shipAddress', 'orderDate'],
-    headers: {
-      orderId: 'Order ID',
-      freight: 'Freight',
-      shipName: 'Ship Name',
-      shipCountry: 'Ship Country',
-      shipAddress: 'Ship Address',
-      orderDate: 'Order Date',
-    },
-    formatters: {
-      freight: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+    columns: {
+      orderId: { header: 'Order ID' },
+      freight: {
+        header: 'Freight',
+        format: (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value)),
+      },
+      shipName: { header: 'Ship Name' },
+      shipCountry: { header: 'Ship Country' },
+      shipAddress: { header: 'Ship Address' },
+      orderDate: { header: 'Order Date' },
     },
   });
 
   masterDetailConfig = createTable<Customer>({
-    visible: ['customerId', 'customerName', 'companyName', 'contactTitle', 'country'],
-    headers: { customerId: 'ID', customerName: 'Customer Name', companyName: 'Company', contactTitle: 'Title', country: 'Country' },
+    columns: {
+      customerId: { header: 'ID' },
+      customerName: { header: 'Customer Name' },
+      companyName: { header: 'Company' },
+      contactTitle: { header: 'Title' },
+      country: { header: 'Country' },
+    },
     masterDetail: {
       config: this.masterDetailOrderConfig,
       detailDataProperty: 'orders',

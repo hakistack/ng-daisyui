@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "HakistackNgDaisyuiMigrateTableColumns",
+  "title": "Migrate createTable() projection configs to the declarative columns map",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Restrict the migration to files under this path (relative to the workspace root)."
+    }
+  },
+  "required": []
+}

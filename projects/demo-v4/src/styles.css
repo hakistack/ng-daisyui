@@ -10,8 +10,9 @@
  * Then this app's own Tailwind + daisyUI (below) styles the demo shell / pages.
  *
  * NOTE: `styles-v4.css` is a build artifact (generated from the FESM by
- * `build:lib-css`). Run `npm run build` before serving this app, or it won't
- * resolve. This is intentional — it proves the precompiled CSS is complete.
+ * `scripts/build-lib-css.mjs`, part of `npm run build`). Run `npm run build`
+ * before serving this app, or it won't resolve. This is intentional — it proves
+ * the precompiled CSS is complete.
  */
 @import "../../../dist/hakistack/ng-daisyui/styles-v4.css";
 

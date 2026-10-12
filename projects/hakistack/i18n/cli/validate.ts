@@ -9,7 +9,7 @@
  * Stubs (report only): English-only leaves — discoverable, never blocking.
  */
 
-import { isTranslationValue, TranslationModule } from '../engine/define-translations';
+import { isTranslationValue, SOURCE_LANG, TranslationModule } from '../engine/define-translations';
 import { I18nCliConfig } from './config';
 import { loadRegistry } from './load-registry';
 
@@ -115,7 +115,7 @@ export async function runValidate(config: I18nCliConfig): Promise<void> {
   const errors: ValidationError[] = [];
   const stubs: Stub[] = [];
   for (const mod of registry as readonly TranslationModule[]) {
-    validateNode(mod.translations as Record<string, unknown>, mod.scope, config.locales, config.sourceLang, errors, stubs);
+    validateNode(mod.translations as Record<string, unknown>, mod.scope, config.locales, SOURCE_LANG, errors, stubs);
   }
 
   const actualErrors = errors.filter((e) => e.severity === 'error');

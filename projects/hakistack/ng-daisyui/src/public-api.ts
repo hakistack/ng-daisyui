@@ -94,6 +94,7 @@ export { TableFilterComponent } from './lib/components/table/table-filter.compon
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
 export { createTable, exportToCsv, exportToJson, projectFields, clearHeaderFormatCache } from './lib/components/table/table.helpers';
+export type { TableColumn, ColumnsMap, DeclarativeTableConfig } from './lib/components/table/table.schema';
 export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
 
 // Table — WASM engine bridge (lazy-loaded). Type names are prefixed with

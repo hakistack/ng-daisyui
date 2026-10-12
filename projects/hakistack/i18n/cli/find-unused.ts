@@ -24,16 +24,19 @@ const SCANNABLE_RE = /\.(ts|html)$/;
 const LITERAL_RE = /['"`]([a-z][a-zA-Z0-9_.]*?)['"`]/g;
 const ACCESSOR_RE = /\bTK(?:\.[a-zA-Z][a-zA-Z0-9_]*)+\b/g;
 const MARKER_RE = /\/\*\s*i18n-used:\s*([^*]+?)\s*\*\//g;
-// Context vars bound by the translate directive, e.g. `*appTranslate="let t"`.
-const CONTEXT_VAR_RE = /\*?appTranslate\s*=\s*["'][^"']*?let\s+([a-zA-Z_$][\w$]*)/g;
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function contextVars(content: string): string[] {
+/** Context vars bound by the (configurable) translate directive, e.g. `*appTranslate="let t"`. */
+function contextVarRegex(directiveSelector: string): RegExp {
+  return new RegExp(`\\*?${escapeRegex(directiveSelector)}\\s*=\\s*["'][^"']*?let\\s+([a-zA-Z_$][\\w$]*)`, 'g');
+}
+
+function contextVars(content: string, re: RegExp): string[] {
   const vars = new Set<string>();
-  for (const m of content.matchAll(CONTEXT_VAR_RE)) vars.add(m[1]);
+  for (const m of content.matchAll(re)) vars.add(m[1]);
   return [...vars];
 }
 
@@ -108,6 +111,7 @@ export async function runFindUnused(config: I18nCliConfig, opts: { strict?: bool
     status.set(key, { key, accessors: keyToAccessors.get(key) ?? [], prodRefs: [], testRefs: [], claimedByMarker: false });
   }
 
+  const contextVarRe = contextVarRegex(config.directiveSelector);
   for (const file of walkSourceFiles(config.srcRoot)) {
     if (I18N_FILE_RE.test(file) || GENERATED_RE.test(file)) continue;
     const isTest = TEST_FILE_RE.test(file);
@@ -133,7 +137,7 @@ export async function runFindUnused(config: I18nCliConfig, opts: { strict?: bool
     // Template proxy access: `*appTranslate="let t"` then `t.home.welcome()`.
     // The dotted path after the context var IS the key string (TK is flat
     // camelCase), so count any access whose path is a known key.
-    for (const varName of contextVars(content)) {
+    for (const varName of contextVars(content, contextVarRe)) {
       const re = new RegExp(`\\b${escapeRegex(varName)}((?:\\.[a-zA-Z_$][\\w$]*)+)`, 'g');
       for (const m of content.matchAll(re)) {
         const st = status.get(m[1].slice(1));

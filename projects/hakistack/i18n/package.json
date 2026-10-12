@@ -29,6 +29,7 @@
     "rxjs": ">=7.8.0"
   },
   "dependencies": {
+    "jiti": "^2.7.0",
     "tslib": "^2.3.0"
   },
   "optionalDependencies": {

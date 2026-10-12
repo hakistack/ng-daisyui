@@ -35,7 +35,9 @@ export class TranslocoRegistryLoader implements TranslocoLoader {
     }
 
     // Scoped request — return ONLY that scope's data, unwrapped (Transloco
-    // namespaces it back under the scope key in its internal store).
+    // namespaces it back under the scope key in its internal store). The scope
+    // arrives in slash form (`administration/users`); `buildScopedTree`
+    // normalizes it against the registry's dotted scopes.
     const scope = input.substring(0, slashIdx);
     const lang = input.substring(slashIdx + 1);
     const tree = buildScopedTree(this.config.registry, lang, this.config.fallbackLang, scope);
