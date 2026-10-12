@@ -389,6 +389,28 @@ export function page_count(handle) {
 }
 
 /**
+ * Each page's label from the document's `/PageLabels` ("iv", "A-1"), or `""`
+ * where none is defined. Read without loading the pages.
+ * @param {number} handle
+ * @returns {Array<any>}
+ */
+export function page_labels(handle) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.page_labels(retptr, handle);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return takeObject(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * Link rectangles for one page, for the clickable overlay. Each row is
  * `[x, y, w, h, pageIndex, uri]`: rect in PDF points with a top-left origin
  * (already Y-flipped); `pageIndex` is the 0-based jump target (`-1` if none);

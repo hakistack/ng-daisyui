@@ -131,6 +131,13 @@
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }
 
+/* `[hidden]` must win over the display set by our rules and Tailwind utilities
+   (`.hk-pdf-page { display: block }`, `.flex` on rows): single-page mode hides
+   pages and rows with it, and the TW3 preflight doesn't use !important. */
+:host ::ng-deep [hidden] {
+  display: none !important;
+}
+
 :host ::ng-deep .hk-pdf-page {
   display: block;
   position: relative;

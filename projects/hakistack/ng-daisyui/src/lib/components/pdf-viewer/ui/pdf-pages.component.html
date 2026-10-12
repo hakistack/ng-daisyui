@@ -32,42 +32,47 @@
         @if (viewport.spacerBefore() > 0) {
           <div class="shrink-0 w-px" aria-hidden="true" [style.height.px]="viewport.spacerBefore()"></div>
         }
-        @for (n of viewport.mountedPages(); track n) {
-          <div
-            #pageWrapper
-            class="hk-pdf-page bg-base-100 shadow-md"
-            [class.hk-pdf-page-rotated]="store.pageRotation(n) !== 0"
-            role="region"
-            [attr.aria-label]="'Page ' + n"
-            [attr.aria-current]="store.state()?.page === n ? 'page' : null"
-            [attr.data-page-number]="n"
-            [hidden]="store.pageHidden(n)"
-            [style.width.px]="viewport.pageBoxWidth(n)"
-            [style.height.px]="viewport.pageBoxHeight(n)"
-          >
-            <div class="hk-pdf-page-rotor" [style.transform]="viewport.pageRotorTransform(n)">
-              <!-- Sized from the layout before any pixel paints, so the page never shifts when its raster arrives. -->
-              <canvas [style.width.px]="viewport.pageCssWidth(n)" [style.height.px]="viewport.pageCssHeight(n)"></canvas>
+        @for (row of viewport.mountedRows(); track row.key) {
+          <!-- A row holds one page, or two side by side in the spread modes. -->
+          <div class="hk-pdf-page-row flex items-start justify-center gap-4" [hidden]="viewport.rowHidden(row.pages)">
+            @for (n of row.pages; track n) {
               <div
-                class="hk-pdf-text-layer"
-                [style.width.px]="viewport.pageCssWidth(n)"
-                [style.height.px]="viewport.pageCssHeight(n)"
-                [style.--scale-factor]="viewport.scale()"
-              ></div>
-              <div
-                class="hk-pdf-annotation-layer"
-                [style.width.px]="viewport.pageCssWidth(n)"
-                [style.height.px]="viewport.pageCssHeight(n)"
-                [style.--scale-factor]="viewport.scale()"
-              ></div>
-              <div
-                class="hk-pdf-edit-layer"
-                [class.hk-pdf-edit-active]="store.annotationTool() !== 'none'"
-                (pointerdown)="tools.onPointerDown($event, n)"
-                (pointermove)="tools.onPointerMove($event)"
-                (pointerup)="tools.onPointerUp($event, n)"
-              ></div>
-            </div>
+                #pageWrapper
+                class="hk-pdf-page bg-base-100 shadow-md"
+                [class.hk-pdf-page-rotated]="store.pageRotation(n) !== 0"
+                role="region"
+                [attr.aria-label]="'Page ' + n"
+                [attr.aria-current]="store.state()?.page === n ? 'page' : null"
+                [attr.data-page-number]="n"
+                [hidden]="store.pageHidden(n)"
+                [style.width.px]="viewport.pageBoxWidth(n)"
+                [style.height.px]="viewport.pageBoxHeight(n)"
+              >
+                <div class="hk-pdf-page-rotor" [style.transform]="viewport.pageRotorTransform(n)">
+                  <!-- Sized from the layout before any pixel paints, so the page never shifts when its raster arrives. -->
+                  <canvas [style.width.px]="viewport.pageCssWidth(n)" [style.height.px]="viewport.pageCssHeight(n)"></canvas>
+                  <div
+                    class="hk-pdf-text-layer"
+                    [style.width.px]="viewport.pageCssWidth(n)"
+                    [style.height.px]="viewport.pageCssHeight(n)"
+                    [style.--scale-factor]="viewport.scale()"
+                  ></div>
+                  <div
+                    class="hk-pdf-annotation-layer"
+                    [style.width.px]="viewport.pageCssWidth(n)"
+                    [style.height.px]="viewport.pageCssHeight(n)"
+                    [style.--scale-factor]="viewport.scale()"
+                  ></div>
+                  <div
+                    class="hk-pdf-edit-layer"
+                    [class.hk-pdf-edit-active]="store.annotationTool() !== 'none'"
+                    (pointerdown)="tools.onPointerDown($event, n)"
+                    (pointermove)="tools.onPointerMove($event)"
+                    (pointerup)="tools.onPointerUp($event, n)"
+                  ></div>
+                </div>
+              </div>
+            }
           </div>
         }
         @if (viewport.spacerAfter() > 0) {

@@ -130,8 +130,8 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     state: state.asReadonly(),
 
     goToPage: (page) => handlers.goToPage?.(clampPage(page)),
-    nextPage: () => handlers.goToPage?.(clampPage(state().page + 1)),
-    previousPage: () => handlers.goToPage?.(clampPage(state().page - 1)),
+    nextPage: () => (handlers.nextPage ? handlers.nextPage() : handlers.goToPage?.(clampPage(state().page + 1))),
+    previousPage: () => (handlers.previousPage ? handlers.previousPage() : handlers.goToPage?.(clampPage(state().page - 1))),
     firstPage: () => handlers.goToPage?.(clampPage(1)),
     lastPage: () => handlers.goToPage?.(clampPage(state().numPages)),
 

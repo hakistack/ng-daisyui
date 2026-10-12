@@ -154,6 +154,8 @@ function fakeEngine(count: number): PdfEngine {
     open: async () => 1,
     pageCount: async () => count,
     pageSizes: async () => Array.from({ length: count }, () => ({ width: 612, height: 792 })),
+    // Front matter in roman numerals, then the body restarts at 1.
+    pageLabels: async () => Array.from({ length: count }, (_, i) => (i < 3 ? ['i', 'ii', 'iii'][i] : String(i - 2))),
     documentTitle: async () => '',
     renderPage: () => ({ promise: never, cancel: () => undefined }),
     pageText: async () => [],
@@ -291,6 +293,52 @@ describe('PdfViewerComponent (virtualization)', () => {
     el.querySelector<HTMLElement>('.hk-pdf-viewport')!.dispatchEvent(wheel);
     expect(wheel.defaultPrevented).toBe(false);
     expect(el.querySelector<HTMLElement>('.hk-pdf-page-stack')!.style.transform).toBe('');
+  });
+
+  it('lays pages out in two-page rows in spread mode and steps by spread', async () => {
+    const { fixture, el, viewer } = await load();
+    viewer.setMode('spread');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const rows = Array.from(el.querySelectorAll<HTMLElement>('.hk-pdf-page-row')).map((row) =>
+      Array.from(row.querySelectorAll<HTMLElement>('.hk-pdf-page')).map((p) => Number(p.dataset['pageNumber'])),
+    );
+    expect(rows[0]).toEqual([1, 2]);
+    expect(rows[1]).toEqual([3, 4]);
+
+    viewer.nextPage();
+    expect(viewer.state().page).toBe(3); // next spread, not page 2
+    viewer.previousPage();
+    expect(viewer.state().page).toBe(1);
+  });
+
+  it('puts the cover page alone in spread-cover mode', async () => {
+    const { fixture, el, viewer } = await load();
+    viewer.setMode('spread-cover');
+    fixture.detectChanges();
+    const rows = Array.from(el.querySelectorAll<HTMLElement>('.hk-pdf-page-row')).map((row) => row.querySelectorAll('.hk-pdf-page').length);
+    expect(rows.slice(0, 3)).toEqual([1, 2, 2]);
+  });
+
+  it('shows page labels and accepts them in the page field', async () => {
+    const { fixture, el, viewer } = await load();
+    fixture.detectChanges();
+    const input = el.querySelector<HTMLInputElement>('hk-pdf-toolbar input[type="text"]')!;
+    expect(input.value).toBe('i');
+
+    input.value = 'iii';
+    input.dispatchEvent(new Event('change'));
+    expect(viewer.state().page).toBe(3);
+
+    input.value = '1'; // label "1" is page 4: labels win over numbers
+    input.dispatchEvent(new Event('change'));
+    expect(viewer.state().page).toBe(4);
+
+    input.value = 'nonsense';
+    input.dispatchEvent(new Event('change'));
+    expect(viewer.state().page).toBe(4);
+    expect(input.value).toBe('1'); // snapped back to the current page's label
   });
 
   it('sizes each mounted canvas from the layout before it renders', async () => {

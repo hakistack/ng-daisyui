@@ -6,8 +6,14 @@ export type PdfDocumentSource = string | Uint8Array | Blob;
 /** Zoom level. Numbers are absolute scales (1 = 100%); the named values fit-to-page/width or auto-detect. */
 export type PdfZoom = number | 'fit-page' | 'fit-width' | 'auto';
 
-/** Display mode. `'continuous'` is Adobe-like vertical scroll; `'single'` is one page at a time. */
-export type PdfDisplayMode = 'single' | 'continuous';
+/**
+ * Display mode.
+ * - `'continuous'`: vertical scroll through every page.
+ * - `'single'`: one page at a time.
+ * - `'spread'`: continuous scroll, two pages side by side (1–2, 3–4, …).
+ * - `'spread-cover'`: like `'spread'` with the first page alone, as in a book (1, 2–3, 4–5, …).
+ */
+export type PdfDisplayMode = 'single' | 'continuous' | 'spread' | 'spread-cover';
 
 /**
  * Sidebar tab. `thumbnails` (page previews) and `bookmarks` (PDF outline)
@@ -149,6 +155,9 @@ export interface PdfViewerConfig {
  */
 export interface PdfViewerInternalHandlers {
   goToPage?: (page: number) => void;
+  /** Step forward / back. Optional: falls back to `goToPage(page ± 1)`; the viewer steps by spread in two-page modes. */
+  nextPage?: () => void;
+  previousPage?: () => void;
   setZoom?: (zoom: PdfZoom) => void;
   setMode?: (mode: PdfDisplayMode) => void;
   toggleSidebar?: () => void;

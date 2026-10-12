@@ -82,7 +82,8 @@ function makeFormPdf() {
 /** An N-page PDF where page i (1-based) shows the text "Page i" in Helvetica. */
 function makeTextPdf(pageCount) {
   const objs = {
-    1: '<< /Type /Catalog /Pages 2 0 R >>',
+    // Page labels: i, ii, then decimal from 1 (an index restarts numbering).
+    1: '<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [0 << /S /r >> 2 << /S /D >>] >> >>',
     3: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
   };
   const kids = [];
@@ -255,15 +256,17 @@ try {
   worker.postMessage({ type: 'cancel', id: 5 });
   worker.postMessage({ type: 'pagesText', id: 6, doc: 1, pages: [0, 1, 2], priority: 'low' });
   worker.postMessage({ type: 'render', id: 7, doc: 1, page: 2, cssWidth: 100, dpr: 1, priority: 'low' });
+  worker.postMessage({ type: 'pageLabels', id: 8, doc: 1, priority: 'low' });
   try {
-    await waitFor([1, 2, 3, 4, 6, 7]);
+    await waitFor([1, 2, 3, 4, 6, 7, 8]);
     await new Promise((r) => setTimeout(r, 300)); // give a cancelled render time to (wrongly) reply
     const order = replies.map((r) => r.id);
     const err = replies.find((r) => r.type === 'error');
     check(`no worker errors${err ? ` (got: ${err.message})` : ''}`, !err);
     check('the open (a barrier) completes before anything queued after it', order[0] === 1);
     check('the high-priority render overtakes earlier normal-priority reads', order[1] === 4);
-    check('normal before low; FIFO within a priority', order.slice(2).join() === '2,3,6,7');
+    check('normal before low; FIFO within a priority', order.slice(2).join() === '2,3,6,7,8');
+    check('pageLabels reads /PageLabels (roman, then decimal)', replies.find((r) => r.id === 8).result.join() === 'i,ii,1');
     check('a render cancelled while queued never runs', !replies.some((r) => r.id === 5));
     const sizes = replies.find((r) => r.id === 2).result;
     check('pageSizes returns every page in one reply', sizes.length === 3 && sizes[2].width === 320 && sizes[0].height === 200);

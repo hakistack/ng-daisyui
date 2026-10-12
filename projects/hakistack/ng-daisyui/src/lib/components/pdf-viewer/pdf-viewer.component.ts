@@ -213,6 +213,8 @@ export class PdfViewerComponent implements OnInit {
     const { viewport, document: doc, find, tools, store } = this;
     this.unbindController = internal.bind({
       goToPage: (page) => viewport.goToPage(page),
+      nextPage: () => viewport.nextPage(),
+      previousPage: () => viewport.previousPage(),
       setZoom: (zoom) => viewport.setZoom(zoom),
       setMode: (mode) => viewport.setMode(mode),
       toggleSidebar: () => store.patchState((s) => ({ ...s, sidebarOpen: !s.sidebarOpen })),

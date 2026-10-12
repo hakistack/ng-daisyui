@@ -80,6 +80,7 @@ export class PdfDocumentService {
     store.attachments.set(null);
     store.annotations.set(null);
     store.pageRotations.set(new Map());
+    store.pageLabels.set([]);
     store.resetDocumentEdited();
     this.thumbnails.reset();
     this.find.reset();
@@ -137,6 +138,7 @@ export class PdfDocumentService {
       store.patchState((s) => ({ ...s, page: initialPage, numPages }));
       store.pageNumbers.set(pages.map((p) => p.pageNumber));
       this.pageData.createSearchIndex(numPages, token);
+      this.loadPageLabels(engine, handle, token);
 
       store.patchState((s) => ({ ...s, loaded: true, error: null }));
       const title = await engine.documentTitle(handle).catch(() => '');
@@ -180,6 +182,16 @@ export class PdfDocumentService {
     }
     this.store.emitError({ code: 'password_cancelled', message: 'Incorrect password.', recoverable: true });
     return null;
+  }
+
+  /** Read `/PageLabels` in the background; the toolbar and thumbnails switch to labels when they arrive. */
+  private loadPageLabels(engine: PdfEngine, handle: PdfDocHandle, token: number): void {
+    engine
+      .pageLabels(handle)
+      .then((labels) => {
+        if (this.store.loadToken === token) this.store.pageLabels.set(labels);
+      })
+      .catch(() => undefined);
   }
 
   /** Every page's size in one worker round-trip (was one per page). */
@@ -261,6 +273,8 @@ export class PdfDocumentService {
     store.pageNumbers.set(pages.map((p) => p.pageNumber));
     store.notifyPagesChange(numPages);
     this.pageData.createSearchIndex(numPages, token);
+    store.pageLabels.set([]);
+    this.loadPageLabels(session.engine, session.doc, token);
     // The new `pageNumbers` makes the viewport re-render and re-scroll.
   }
 

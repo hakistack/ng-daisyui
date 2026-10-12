@@ -69,6 +69,10 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'pageSizes', id: 0, doc }) as Promise<PdfPageSize[]>;
   }
 
+  pageLabels(doc: PdfDocHandle): Promise<string[]> {
+    return this.request({ type: 'pageLabels', id: 0, doc }) as Promise<string[]>;
+  }
+
   documentTitle(doc: PdfDocHandle): Promise<string> {
     return this.request({ type: 'documentTitle', id: 0, doc }) as Promise<string>;
   }

@@ -98,6 +98,12 @@ export interface PdfViewerLabels {
   errorPasswordWrong?: string;
   /** Default: "Retry" */
   retry?: string;
+  /** Default: "Continuous scroll" — display-mode button. */
+  continuousMode?: string;
+  /** Default: "Single page" — display-mode button. */
+  singlePageMode?: string;
+  /** Default: "Two pages" — display-mode button (side-by-side spreads). */
+  twoPageMode?: string;
   /** Default: "Searching…" — shown while a search is still scanning pages. */
   searching?: string;
   /** Default: "Dismiss" — closes the non-fatal operation-error alert. */
@@ -165,6 +171,9 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   retry: 'Retry',
   dismiss: 'Dismiss',
   searching: 'Searching…',
+  continuousMode: 'Continuous scroll',
+  singlePageMode: 'Single page',
+  twoPageMode: 'Two pages',
   linkToPage: 'Go to page {page}',
   passwordPromptTitle: 'Enter password',
   passwordPromptDescription: 'This PDF is password-protected.',

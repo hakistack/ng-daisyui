@@ -83,7 +83,7 @@
                 (click)="viewport.goToPage(n)"
               >
                 <canvas [attr.data-thumb-page]="n"></canvas>
-                <span class="text-xs text-base-content/70 mt-1">{{ n }}</span>
+                <span class="text-xs text-base-content/70 mt-1">{{ store.labelFor(n) }}</span>
               </button>
               <div
                 class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"

@@ -128,6 +128,8 @@ export interface PdfEngine {
   pageSize(doc: PdfDocHandle, page: number): Promise<PdfPageSize>;
   /** Every page's size, in one round-trip. */
   pageSizes(doc: PdfDocHandle): Promise<PdfPageSize[]>;
+  /** Every page's label from `/PageLabels` ("iv", "A-1"), `''` where none applies. */
+  pageLabels(doc: PdfDocHandle): Promise<string[]>;
   /** Embedded document Title from metadata (`''` if unset). */
   documentTitle(doc: PdfDocHandle): Promise<string>;
   /**
@@ -204,6 +206,7 @@ export type PdfWorkerRequest = (
   | { type: 'pageCount'; id: number; doc: PdfDocHandle }
   | { type: 'pageSize'; id: number; doc: PdfDocHandle; page: number }
   | { type: 'pageSizes'; id: number; doc: PdfDocHandle }
+  | { type: 'pageLabels'; id: number; doc: PdfDocHandle }
   | { type: 'pagesText'; id: number; doc: PdfDocHandle; pages: number[] }
   | { type: 'documentTitle'; id: number; doc: PdfDocHandle }
   | { type: 'render'; id: number; doc: PdfDocHandle; page: number; cssWidth: number; dpr: number }

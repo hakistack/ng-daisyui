@@ -129,6 +129,10 @@ export class PdfViewerStore {
   /** Active annotation tool (`'none'` = select/scroll) and colour for new annotations. */
   readonly annotationTool = signal<PdfAnnotationTool>('none');
   readonly annotationColor = signal<string>('#ffeb3b');
+  /** Page labels from the document's `/PageLabels` (`''` where none applies); empty until read. */
+  readonly pageLabels = signal<readonly string[]>([]);
+  /** Whether any page has a label that differs from its number (e.g. "iv", "A-1"). */
+  readonly hasPageLabels = computed(() => this.pageLabels().some((label, i) => label !== '' && label !== String(i + 1)));
   /** Per-page display rotation (degrees); CSS-only until `save()` bakes it in. */
   readonly pageRotations = signal<ReadonlyMap<number, number>>(new Map());
   /** Inline text-editor popover (replaces `prompt()` for annotation text). */
@@ -168,6 +172,20 @@ export class PdfViewerStore {
     const s = this.state();
     return !!s && (s.mode === 'single' || s.numPages <= 1);
   });
+
+  /** The label to show for a page: its `/PageLabels` label, else its number. */
+  labelFor(pageNumber: number): string {
+    return this.pageLabels()[pageNumber - 1] || String(pageNumber);
+  }
+
+  /** Page number for what the user typed: an exact page label first, then a number. */
+  pageFromInput(value: string): number | null {
+    const text = value.trim();
+    const byLabel = this.pageLabels().indexOf(text);
+    if (text && byLabel >= 0) return byLabel + 1;
+    const n = Number(text);
+    return Number.isFinite(n) && text !== '' ? n : null;
+  }
 
   pageRotation(pageNumber: number): number {
     return this.pageRotations().get(pageNumber) ?? 0;

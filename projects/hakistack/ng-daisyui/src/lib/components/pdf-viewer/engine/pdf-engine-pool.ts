@@ -98,6 +98,10 @@ export class PdfEnginePool implements PdfEngine {
     return this.engines[0].pageSizes(this.primary(doc));
   }
 
+  pageLabels(doc: PdfDocHandle): Promise<string[]> {
+    return this.engines[0].pageLabels(this.primary(doc));
+  }
+
   documentTitle(doc: PdfDocHandle): Promise<string> {
     return this.engines[0].documentTitle(this.primary(doc));
   }

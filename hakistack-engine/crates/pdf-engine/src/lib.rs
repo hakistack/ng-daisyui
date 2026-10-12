@@ -146,6 +146,20 @@ pub fn page_text(handle: u32, index: u16) -> Result<Array, JsValue> {
     })
 }
 
+/// Each page's label from the document's `/PageLabels` ("iv", "A-1"), or `""`
+/// where none is defined. Read without loading the pages.
+#[wasm_bindgen]
+pub fn page_labels(handle: u32) -> Result<Array, JsValue> {
+    with_doc(handle, |doc| {
+        let pages = doc.pages();
+        let out = Array::new();
+        for i in 0..pages.len() {
+            out.push(&JsValue::from_str(&pages.label(i).unwrap_or_default()));
+        }
+        Ok(out)
+    })
+}
+
 /// Embedded document Title (from the metadata dictionary), or `""` if unset.
 #[wasm_bindgen]
 pub fn document_title(handle: u32) -> Result<String, JsValue> {

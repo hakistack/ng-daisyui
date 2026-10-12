@@ -117,21 +117,59 @@ export class PdfViewportService {
   readonly scale = computed(() => this.store.state()?.zoom ?? 1);
 
   private readonly isSingleMode = computed(() => this.store.state()?.mode === 'single');
+  private readonly isSpreadMode = computed(() => {
+    const mode = this.store.state()?.mode;
+    return mode === 'spread' || mode === 'spread-cover';
+  });
 
-  /** Page positions at the current scale and rotations. */
+  /** Pages grouped into rows: one per row, or two side by side in the spread modes. */
+  readonly rows = computed<readonly (readonly number[])[]>(() => {
+    const numbers = this.store.pageNumbers();
+    const mode = this.store.state()?.mode;
+    if (mode !== 'spread' && mode !== 'spread-cover') return numbers.map((n) => [n]);
+    const rows: number[][] = [];
+    let i = 0;
+    if (mode === 'spread-cover' && numbers.length > 0) rows.push([numbers[i++]]);
+    for (; i < numbers.length; i += 2) rows.push(numbers.slice(i, i + 2));
+    return rows;
+  });
+
+  /** Row index of each page (`[pageNumber - 1]`). */
+  private readonly rowOfPage = computed(() => {
+    const rows = this.rows();
+    const index = new Int32Array(this.store.pageNumbers().length);
+    rows.forEach((row, r) => row.forEach((n) => (index[n - 1] = r)));
+    return index;
+  });
+
+  /** Row positions at the current scale and rotations (a row is as tall as its tallest page). */
   readonly layout = computed(() => {
-    this.store.pageNumbers(); // document or page structure changed
     const scale = this.scale();
     const rotations = this.store.pageRotations();
-    const heights = this.store.pages.map((p) => (isQuarterTurn(rotations.get(p.pageNumber) ?? 0) ? p.baseWidth : p.baseHeight) * scale);
-    return new PageLayout(heights, this.gap());
+    const pageHeight = (n: number) => {
+      const p = this.store.pages[n - 1];
+      return p ? (isQuarterTurn(rotations.get(n) ?? 0) ? p.baseWidth : p.baseHeight) * scale : 0;
+    };
+    return new PageLayout(
+      this.rows().map((row) => Math.max(...row.map(pageHeight))),
+      this.gap(),
+    );
   });
 
   /** Pages to keep rendered. In single mode: the current page ± 1 (pre-rendered for instant Prev/Next). */
   private readonly liveBuffer = computed<ReadonlySet<number>>(() => this.pagesNearViewport(LIVE_BUFFER_MARGIN_PX));
 
-  /** Pages mounted in the DOM, in order (a superset of the live buffer). */
-  readonly mountedPages = computed<number[]>(() => [...this.pagesNearViewport(MOUNT_MARGIN_PX)].sort((a, b) => a - b));
+  /** Rows mounted in the DOM, in order (their pages are a superset of the live buffer). */
+  readonly mountedRows = computed<readonly { readonly key: number; readonly pages: readonly number[] }[]>(() => {
+    const rows = this.rows();
+    const [first, last] = this.rowRangeNearViewport(MOUNT_MARGIN_PX) ?? [0, -1];
+    const out: { key: number; pages: readonly number[] }[] = [];
+    for (let r = first; r <= last; r++) out.push({ key: rows[r][0], pages: rows[r] });
+    return out;
+  });
+
+  /** Pages mounted in the DOM, in order. */
+  readonly mountedPages = computed<number[]>(() => this.mountedRows().flatMap((row) => [...row.pages]));
 
   /** Spacer heights standing in for unmounted pages above and below the window (continuous mode). */
   readonly spacerBefore = computed(() => this.spacer('before'));
@@ -200,32 +238,46 @@ export class PdfViewportService {
     return this.stackEl()?.offsetTop ?? 0;
   }
 
-  /** Pages intersecting the viewport extended by `margin` px above and below. */
-  private pagesNearViewport(margin: number): Set<number> {
+  /**
+   * Rows intersecting the viewport extended by `margin` px above and below.
+   * Single mode: the current page's row ± 1 (non-current pages are hidden;
+   * pre-rendering the neighbours makes Prev/Next instant).
+   */
+  private rowRangeNearViewport(margin: number): [first: number, last: number] | null {
     const s = this.store.state();
-    if (!s || s.numPages === 0) return new Set();
+    const count = this.rows().length;
+    if (!s || count === 0) return null;
     if (this.isSingleMode()) {
-      const set = new Set<number>();
-      if (s.page > 0) {
-        set.add(s.page);
-        if (s.page > 1) set.add(s.page - 1);
-        if (s.page < s.numPages) set.add(s.page + 1);
-      }
-      return set;
+      if (s.page <= 0) return null;
+      const r = this.rowOfPage()[s.page - 1];
+      return [Math.max(0, r - 1), Math.min(count - 1, r + 1)];
     }
     const top = this.scrollTop() - this.stackOffset();
-    const range = this.layout().range(top - margin, top + this.viewportHeight() + margin);
+    return this.layout().range(top - margin, top + this.viewportHeight() + margin);
+  }
+
+  /** Pages of the rows within `margin` px of the viewport. */
+  private pagesNearViewport(margin: number): Set<number> {
+    const range = this.rowRangeNearViewport(margin);
     const set = new Set<number>();
-    if (range) for (let i = range[0]; i <= range[1]; i++) set.add(i + 1);
+    if (!range) return set;
+    const rows = this.rows();
+    for (let r = range[0]; r <= range[1]; r++) for (const n of rows[r]) set.add(n);
     return set;
   }
 
   private spacer(side: 'before' | 'after'): number {
     if (this.isSingleMode()) return 0;
-    const mounted = this.mountedPages();
-    if (mounted.length === 0) return 0;
+    const range = this.rowRangeNearViewport(MOUNT_MARGIN_PX);
+    if (!range) return 0;
     const layout = this.layout();
-    return side === 'before' ? layout.spacerBefore(mounted[0] - 1) : layout.spacerAfter(mounted[mounted.length - 1] - 1);
+    return side === 'before' ? layout.spacerBefore(range[0]) : layout.spacerAfter(range[1]);
+  }
+
+  /** Single mode hides every row but the current page's. */
+  rowHidden(pages: readonly number[]): boolean {
+    const s = this.store.state();
+    return !!s && s.mode === 'single' && !pages.includes(s.page);
   }
 
   /** Page sizes in CSS px at the current scale (unrotated; the rotor turns them). */
@@ -258,6 +310,17 @@ export class PdfViewportService {
       width: Math.max(0, Math.min(vp.clientWidth, winW) - VIEWPORT_PAD_X),
       height: Math.max(0, Math.min(vp.clientHeight, winH) - VIEWPORT_PAD_Y),
     };
+    if (this.isSpreadMode()) {
+      // Fit a full two-page row: both widths side by side, less the gap between them.
+      const row = this.rows().find((r) => r.length > 1) ?? this.rows()[0];
+      const pages = row.map((n) => this.store.pages[n - 1]).filter((p): p is PdfPageEntry => !!p);
+      const spread: PdfPageEntry = {
+        pageNumber: row[0],
+        baseWidth: pages.reduce((w, p) => w + p.baseWidth, 0),
+        baseHeight: Math.max(...pages.map((p) => p.baseHeight)),
+      };
+      return resolveZoomScale(zoom, { ...available, width: Math.max(0, available.width - this.gap() * (pages.length - 1)) }, spread);
+    }
     return resolveZoomScale(zoom, available, first);
   }
 
@@ -277,19 +340,28 @@ export class PdfViewportService {
    * only; single mode shows the page by hiding the others.
    */
   scrollToPage(page: number): void {
-    if (page < 1 || page > this.layout().count) return;
-    if ((this.store.snapshot()?.mode ?? 'continuous') !== 'continuous') return;
+    if (page < 1 || page > this.store.pages.length || this.isSingleMode()) return;
     const vp = this.viewportEl();
     if (!vp) return;
-    this.scrollViewportTo(vp, this.stackOffset() + this.layout().top(page - 1) - paddingTop(vp));
+    this.scrollViewportTo(vp, this.stackOffset() + this.layout().top(this.rowOfPage()[page - 1]) - paddingTop(vp));
   }
 
+  /** Next page; in the spread modes, the first page of the next row. */
   nextPage(): void {
-    this.goToPage((this.store.snapshot()?.page ?? 0) + 1);
+    this.goToPage(this.pageInRowOffset(1));
   }
 
   previousPage(): void {
-    this.goToPage((this.store.snapshot()?.page ?? 0) - 1);
+    this.goToPage(this.pageInRowOffset(-1));
+  }
+
+  /** The page `delta` steps away; in the spread modes, the first page of the row `delta` rows away. */
+  private pageInRowOffset(delta: number): number {
+    const page = this.store.snapshot()?.page ?? 0;
+    if (!this.isSpreadMode() || page < 1) return page + delta;
+    const rows = this.rows();
+    const target = this.rowOfPage()[page - 1] + delta;
+    return target < 0 || target >= rows.length ? page + delta : rows[target][0];
   }
 
   firstPage(): void {
@@ -325,8 +397,11 @@ export class PdfViewportService {
     this.restoreAnchorAfterRender(anchor);
   }
 
+  /** Switching between one- and two-page rows changes the fit scale, so re-render. */
   setMode(mode: PdfDisplayMode): void {
+    const wasSpread = this.isSpreadMode();
     this.store.patchState((s) => ({ ...s, mode }));
+    if (wasSpread !== this.isSpreadMode()) void this.renderAll();
     requestAnimationFrame(() => this.scrollToPage(this.store.snapshot()?.page ?? 1));
   }
 
@@ -801,8 +876,11 @@ export class PdfViewportService {
     const layout = this.layout();
     if (layout.count === 0) return;
     const center = vp.scrollTop + vp.clientHeight / 2 - this.stackOffset();
-    const current = layout.nearestIndex(center) + 1;
-    if (current !== (this.store.snapshot()?.page ?? 0)) {
+    const row = this.rows()[layout.nearestIndex(center)];
+    const page = this.store.snapshot()?.page ?? 0;
+    // Within a spread, keep the page the user picked; otherwise the row's first page.
+    const current = row.includes(page) ? page : row[0];
+    if (current !== page) {
       this.store.patchState((s) => ({ ...s, page: current }));
       this.store.notifyPageChange(current);
     }

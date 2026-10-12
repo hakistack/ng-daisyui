@@ -41,18 +41,26 @@
     <svg lucideChevronLeft [size]="16"></svg>
   </button>
   <div class="flex items-center gap-1 px-1">
+    <!-- Text, not number: documents with page labels ("iv", "A-1") accept those too. -->
     <input
       #pageInput
-      type="number"
-      class="input input-xs input-bordered w-12 text-center tabular-nums"
+      type="text"
+      class="input input-xs input-bordered text-center tabular-nums"
+      [class.w-12]="!store.hasPageLabels()"
+      [class.w-16]="store.hasPageLabels()"
+      [attr.inputmode]="store.hasPageLabels() ? null : 'numeric'"
       [attr.aria-label]="store.labels().pageInputAriaLabel"
-      [value]="store.state()?.page ?? 0"
-      [min]="1"
-      [max]="store.state()?.numPages ?? 1"
+      [value]="store.labelFor(store.state()?.page ?? 0)"
       [disabled]="!store.showPages()"
-      (change)="onPageInput(pageInput.value)"
+      (change)="onPageInput(pageInput)"
     />
-    <span class="text-xs text-base-content/60 tabular-nums hidden @xs:inline">/ {{ store.state()?.numPages ?? 0 }}</span>
+    <span class="text-xs text-base-content/60 tabular-nums hidden @xs:inline">
+      @if (store.hasPageLabels()) {
+        ({{ store.state()?.page ?? 0 }} / {{ store.state()?.numPages ?? 0 }})
+      } @else {
+        / {{ store.state()?.numPages ?? 0 }}
+      }
+    </span>
   </div>
   <button
     type="button"
@@ -121,29 +129,31 @@
   <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
 
   <!-- ── Group: display mode ─────────────────────────────────────── -->
-  <div class="join hidden @md:inline-flex">
-    <button
-      type="button"
-      class="btn btn-xs btn-square join-item"
-      [attr.aria-label]="'Continuous scroll'"
-      [title]="'Continuous scroll'"
-      [class.btn-active]="store.state()?.mode === 'continuous'"
-      [disabled]="!store.showPages()"
-      (click)="viewport.setMode('continuous')"
-    >
-      <svg lucideScrollText [size]="16"></svg>
-    </button>
-    <button
-      type="button"
-      class="btn btn-xs btn-square join-item"
-      [attr.aria-label]="'Single page'"
-      [title]="'Single page'"
-      [class.btn-active]="store.state()?.mode === 'single'"
-      [disabled]="!store.showPages()"
-      (click)="viewport.setMode('single')"
-    >
-      <svg lucideSquare [size]="16"></svg>
-    </button>
+  <div class="join hidden @md:inline-flex" role="group" [attr.aria-label]="'Display mode'">
+    @for (m of modes; track m.mode) {
+      <button
+        type="button"
+        class="btn btn-xs btn-square join-item"
+        [attr.aria-label]="store.labels()[m.label]"
+        [title]="store.labels()[m.label]"
+        [attr.aria-pressed]="isMode(m.mode)"
+        [class.btn-active]="isMode(m.mode)"
+        [disabled]="!store.showPages()"
+        (click)="viewport.setMode(m.mode)"
+      >
+        @switch (m.mode) {
+          @case ('continuous') {
+            <svg lucideScrollText [size]="16"></svg>
+          }
+          @case ('single') {
+            <svg lucideSquare [size]="16"></svg>
+          }
+          @default {
+            <svg lucideColumns2 [size]="16"></svg>
+          }
+        }
+      </button>
+    }
   </div>
 
   <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
@@ -298,21 +308,31 @@
           {{ store.labels().lastPage }}
         </button>
       </li>
-      <li class="@md:hidden">
-        <button
-          type="button"
-          [disabled]="!store.showPages()"
-          (click)="viewport.setMode(store.state()?.mode === 'continuous' ? 'single' : 'continuous'); overflowMenu.open = false"
-        >
-          @if (store.state()?.mode === 'continuous') {
-            <svg lucideSquare [size]="14"></svg>
-            Single page
-          } @else {
-            <svg lucideScrollText [size]="14"></svg>
-            Continuous
-          }
-        </button>
-      </li>
+      @for (m of modes; track m.mode) {
+        <li class="@md:hidden">
+          <button
+            type="button"
+            [class.menu-active]="isMode(m.mode)"
+            [class.active]="isMode(m.mode)"
+            [attr.aria-pressed]="isMode(m.mode)"
+            [disabled]="!store.showPages()"
+            (click)="viewport.setMode(m.mode); overflowMenu.open = false"
+          >
+            @switch (m.mode) {
+              @case ('continuous') {
+                <svg lucideScrollText [size]="14"></svg>
+              }
+              @case ('single') {
+                <svg lucideSquare [size]="14"></svg>
+              }
+              @default {
+                <svg lucideColumns2 [size]="14"></svg>
+              }
+            }
+            {{ store.labels()[m.label] }}
+          </button>
+        </li>
+      }
       <li>
         <button type="button" [disabled]="!store.showPages()" (click)="document.print(); overflowMenu.open = false">
           <svg lucidePrinter [size]="14"></svg>
