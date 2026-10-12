@@ -22,9 +22,10 @@ const VIEWPORT_CLASSES = {
 
 /**
  * The scrollable page area: the error panel, the non-fatal operation alert,
- * one wrapper per page (canvas + text layer + overlay + edit layer), the
- * page-change live region, and the loading state. Registers its viewport and
- * page wrappers with {@link PdfViewportService}, which renders into them.
+ * the mounted window of pages (canvas + text layer + overlay + edit layer)
+ * between two spacers, the page-change live region, and the loading state.
+ * Registers its viewport, stack and page wrappers with
+ * {@link PdfViewportService}, which windows and renders into them.
  */
 @Component({
   selector: 'hk-pdf-pages',
@@ -43,14 +44,21 @@ export class PdfPagesComponent {
   protected readonly viewportClass = computed(() => VIEWPORT_CLASSES[this.variant()]);
 
   private readonly viewportRef = viewChild.required<ElementRef<HTMLElement>>('scroller');
+  private readonly stackRef = viewChild<ElementRef<HTMLElement>>('stack');
   private readonly wrapperRefs = viewChildren<ElementRef<HTMLElement>>('pageWrapper');
 
   constructor() {
     effect(() => this.viewport.viewportEl.set(this.viewportRef().nativeElement));
-    effect(() => this.viewport.pageWrappers.set(this.wrapperRefs().map((r) => r.nativeElement)));
+    effect(() => this.viewport.stackEl.set(this.stackRef()?.nativeElement ?? null));
+    effect(() => {
+      const byPage = new Map<number, HTMLElement>();
+      for (const ref of this.wrapperRefs()) byPage.set(Number(ref.nativeElement.dataset['pageNumber']), ref.nativeElement);
+      this.viewport.pageWrappers.set(byPage);
+    });
     inject(DestroyRef).onDestroy(() => {
       this.viewport.viewportEl.set(null);
-      this.viewport.pageWrappers.set([]);
+      this.viewport.stackEl.set(null);
+      this.viewport.pageWrappers.set(new Map());
     });
   }
 }

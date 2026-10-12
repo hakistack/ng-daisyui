@@ -4,6 +4,8 @@ import { PdfViewerComponent } from './pdf-viewer.component';
 import { HkPdfToolbarDirective } from './pdf-viewer.directives';
 import { createPdfViewer } from './pdf-viewer.helpers';
 import { PdfViewerConfig, PdfViewerError } from './pdf-viewer.types';
+import { PdfEngine } from './engine/pdf-engine.types';
+import { PdfViewerStore } from './services/pdf-viewer.store';
 
 /**
  * Shell wiring tests. The test environment has no Web Worker, so the PDFium
@@ -138,5 +140,104 @@ describe('PdfViewerComponent (shell)', () => {
     expect((f.nativeElement as HTMLElement).querySelectorAll('hk-pdf-sidebar').length).toBe(1);
     expect(a.state().sidebarOpen).toBe(false);
     expect(b.state().sidebarOpen).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Virtualization with a loaded document (fake engine, no worker)
+// ---------------------------------------------------------------------------
+
+/** Just enough engine for a document of `count` letter pages; renders never settle. */
+function fakeEngine(count: number): PdfEngine {
+  const never = new Promise<never>(() => undefined);
+  const engine: Partial<PdfEngine> = {
+    open: async () => 1,
+    pageCount: async () => count,
+    pageSizes: async () => Array.from({ length: count }, () => ({ width: 612, height: 792 })),
+    documentTitle: async () => '',
+    renderPage: () => ({ promise: never, cancel: () => undefined }),
+    pageText: async () => [],
+    pagesText: async (_d, pages) => pages.map(() => []),
+    pageLinks: async () => [],
+    formFields: async () => [],
+    outline: async () => [],
+    attachments: async () => [],
+    documentAnnotations: async () => [],
+    dispose: () => undefined,
+    destroy: () => undefined,
+  };
+  return engine as PdfEngine;
+}
+
+describe('PdfViewerComponent (virtualization)', () => {
+  const PAGES = 1000;
+  const GAP = 16;
+
+  afterEach(() => vi.restoreAllMocks());
+
+  beforeEach(() => {
+    vi.spyOn(PdfViewerStore.prototype, 'ensureEngine').mockImplementation(function (this: PdfViewerStore) {
+      this.engine ??= fakeEngine(PAGES);
+      return this.engine;
+    });
+    // jsdom has no layout; make scrollTo move scrollTop so navigation is observable.
+    HTMLElement.prototype.scrollTo = function (this: HTMLElement, opts?: ScrollToOptions | number) {
+      this.scrollTop = typeof opts === 'number' ? opts : (opts?.top ?? 0);
+    } as typeof HTMLElement.prototype.scrollTo;
+  });
+
+  async function load() {
+    const fixture = TestBed.createComponent(HostComponent);
+    const viewer = createPdfViewer({ zoom: 1 });
+    fixture.componentInstance.config.set(viewer.config());
+    for (let i = 0; i < 6; i++) {
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
+    return { fixture, viewer, el: fixture.nativeElement as HTMLElement };
+  }
+
+  const mountedPages = (el: HTMLElement) =>
+    Array.from(el.querySelectorAll<HTMLElement>('.hk-pdf-page')).map((p) => Number(p.dataset['pageNumber']));
+
+  it('mounts only a small window of a 1,000-page document', async () => {
+    const { el, viewer } = await load();
+    expect(viewer.state().numPages).toBe(PAGES);
+    const mounted = mountedPages(el);
+    expect(mounted[0]).toBe(1);
+    expect(mounted.length).toBeGreaterThan(0);
+    expect(mounted.length).toBeLessThan(10);
+  });
+
+  it('sizes the spacer so the stack has the full document height', async () => {
+    const { el } = await load();
+    const mounted = mountedPages(el);
+    const spacers = Array.from(el.querySelectorAll<HTMLElement>('.hk-pdf-page-stack > [aria-hidden="true"]'));
+    expect(spacers.length).toBe(1); // nothing above page 1
+    const after = parseFloat(spacers[0].style.height);
+    // Mounted pages + gaps + spacer + its gap == the whole document at zoom 1.
+    const total = PAGES * 792 + (PAGES - 1) * GAP;
+    expect(mounted.length * (792 + GAP) + after).toBeCloseTo(total, 6);
+  });
+
+  it('mounts the target page when navigating far away', async () => {
+    const { fixture, el, viewer } = await load();
+    viewer.goToPage(500);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const mounted = mountedPages(el);
+    expect(mounted).toContain(500);
+    expect(mounted.length).toBeLessThan(10);
+    expect(viewer.state().page).toBe(500);
+    const spacers = el.querySelectorAll('.hk-pdf-page-stack > [aria-hidden="true"]');
+    expect(spacers.length).toBe(2); // above and below the window
+  });
+
+  it('sizes each mounted canvas from the layout before it renders', async () => {
+    const { el } = await load();
+    const canvas = el.querySelector<HTMLCanvasElement>('.hk-pdf-page canvas')!;
+    expect(canvas.style.width).toBe('612px');
+    expect(canvas.style.height).toBe('792px');
   });
 });

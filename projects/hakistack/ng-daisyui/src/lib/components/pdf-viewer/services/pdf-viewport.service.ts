@@ -1,6 +1,7 @@
-import { DestroyRef, Injectable, Injector, computed, effect, inject, signal, untracked } from '@angular/core';
+import { DestroyRef, Injectable, Injector, afterNextRender, computed, effect, inject, signal, untracked } from '@angular/core';
 import { BitmapCache } from '../core/bitmap-cache';
 import { VIEWPORT_PAD_X, VIEWPORT_PAD_Y, fitDevicePixelRatio, isQuarterTurn, resolveZoomScale } from '../core/geometry';
+import { PageLayout } from '../core/page-layout';
 import { PdfPageEntry } from '../core/types';
 import { PdfDisplayMode, PdfZoom } from '../pdf-viewer.types';
 import { PdfFindService } from './pdf-find.service';
@@ -8,13 +9,19 @@ import { PdfLayersService } from './pdf-layers.service';
 import { PDF_BITMAP_CACHE, PdfViewerStore } from './pdf-viewer.store';
 
 /**
- * IntersectionObserver `rootMargin` defining the "live" page buffer. Pages
- * within this many px of the viewport keep their canvas, text layer and overlay;
- * pages outside are evicted so the browser doesn't hold tens of MB of bitmaps
- * and thousands of spans nobody can see. At 800px the user reaches a freshly
- * rendered page before scrolling into a blank one.
+ * Pages within this many px of the viewport stay rendered (canvas, text layer,
+ * overlay); the rest are evicted so the browser doesn't hold bitmaps and spans
+ * nobody can see. At 800px the user reaches a freshly rendered page before
+ * scrolling into a blank one.
  */
 const LIVE_BUFFER_MARGIN_PX = 800;
+/**
+ * Pages within this many px stay mounted in the DOM. Larger than the live
+ * buffer, so a page is mounted (and sized) before it needs rendering, and DOM
+ * churn trails the scroll. Everything else is a spacer: a 5,000-page document
+ * keeps a few dozen page nodes, not 5,000.
+ */
+const MOUNT_MARGIN_PX = 2400;
 /** Hysteresis before cancelling an out-of-buffer render (ms), so brief scroll-pasts keep their work. */
 const RENDER_CANCEL_HYSTERESIS_MS = 200;
 
@@ -23,13 +30,22 @@ interface RenderHandle {
   promise: Promise<unknown>;
 }
 
+/** Reading position to restore after a zoom change: a page and how far down it the viewport top was. */
+interface ScrollAnchor {
+  readonly index: number;
+  readonly fraction: number;
+}
+
 /**
- * The scrolling page area: page virtualization (which pages are live),
- * rasterizing pages onto their canvases, zoom resolution, and navigation.
+ * The scrolling page area: page virtualization, rasterizing pages onto their
+ * canvases, zoom resolution, and navigation.
  *
- * The page-stack component registers its viewport element and page wrappers;
- * this service observes them, keeps the live buffer rendered, and evicts the
- * rest.
+ * Virtualization is arithmetic, not observation: a {@link PageLayout} built
+ * from page sizes and the zoom gives every page's position, so the visible
+ * range, the live (rendered) buffer, the mounted window and the current page
+ * all come from the scroll offset by binary search. Only the mounted window
+ * exists in the DOM; spacers stand in for the rest and keep the scroll height
+ * exact.
  */
 @Injectable()
 export class PdfViewportService {
@@ -44,19 +60,26 @@ export class PdfViewportService {
 
   /** Scroll container, registered by the page stack. */
   readonly viewportEl = signal<HTMLElement | null>(null);
-  /** Page wrappers in page order, registered by the page stack. */
-  readonly pageWrappers = signal<readonly HTMLElement[]>([]);
+  /** The page stack (flex column) inside the viewport, registered by the page stack. */
+  readonly stackEl = signal<HTMLElement | null>(null);
+  /** Mounted page wrappers by page number, registered by the page stack. */
+  readonly pageWrappers = signal<ReadonlyMap<number, HTMLElement>>(new Map());
 
-  private intersectionObserver: IntersectionObserver | null = null;
+  /** Viewport scroll offset and height, updated at most once per frame. */
+  private readonly scrollTop = signal(0);
+  private readonly viewportHeight = signal(0);
+  /** Gap between pages, read from the stack's CSS. */
+  private readonly gap = signal(16);
+
+  private listenedViewport: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
-  /** Synchronous accumulator of intersection ratios; flushed into `visibleEntries` once per frame. */
-  private readonly rawVisible = new Map<number, number>();
-  private visibilityFlushRaf: number | null = null;
-  /** rAF-paced snapshot of `rawVisible`; drives the live buffer and page tracking. */
-  private readonly visibleEntries = signal<ReadonlyMap<number, number>>(new Map());
+  private scrollRaf: number | null = null;
+  private resizeRafHandle: number | null = null;
   /** Last fit-* scale rendered at; resize only re-renders when the resolved scale changes. */
   private lastRenderScale = 0;
-  private resizeRafHandle: number | null = null;
+  /** `pageNumbers` array the initial render ran for (one initial render per document / structure). */
+  private initializedFor: readonly number[] | null = null;
+  private lastMounted: ReadonlyMap<number, HTMLElement> = new Map();
 
   private readonly renderTasksByPage = new Map<number, RenderHandle>();
   private readonly pendingCancellations = new Map<number, ReturnType<typeof setTimeout>>();
@@ -71,40 +94,42 @@ export class PdfViewportService {
   /** Bumped per page when its content changes, so a raster that predates the edit isn't kept. */
   private readonly pageContentVersion = new Map<number, number>();
 
-  /**
-   * Pages that should be live: the rAF-paced visible set, plus page ± 1 in
-   * single-page mode (non-current pages are `display:none`, so the observer
-   * never sees them; pre-rendering neighbours makes Prev/Next instant).
-   */
-  private readonly liveBuffer = computed<ReadonlySet<number>>(() => {
-    const buffer = new Set<number>(this.visibleEntries().keys());
-    const s = this.store.state();
-    if (s && s.mode === 'single' && s.page > 0) {
-      buffer.add(s.page);
-      if (s.page > 1) buffer.add(s.page - 1);
-      if (s.page < s.numPages) buffer.add(s.page + 1);
-    }
-    return buffer;
+  /** Resolved CSS scale (px per point), published by `renderAll`. */
+  readonly scale = computed(() => this.store.state()?.zoom ?? 1);
+
+  private readonly isSingleMode = computed(() => this.store.state()?.mode === 'single');
+
+  /** Page positions at the current scale and rotations. */
+  readonly layout = computed(() => {
+    this.store.pageNumbers(); // document or page structure changed
+    const scale = this.scale();
+    const rotations = this.store.pageRotations();
+    const heights = this.store.pages.map((p) => (isQuarterTurn(rotations.get(p.pageNumber) ?? 0) ? p.baseWidth : p.baseHeight) * scale);
+    return new PageLayout(heights, this.gap());
   });
 
-  private readonly isContinuousMode = computed(() => (this.store.state()?.mode ?? 'continuous') === 'continuous');
+  /** Pages to keep rendered. In single mode: the current page ± 1 (pre-rendered for instant Prev/Next). */
+  private readonly liveBuffer = computed<ReadonlySet<number>>(() => this.pagesNearViewport(LIVE_BUFFER_MARGIN_PX));
+
+  /** Pages mounted in the DOM, in order (a superset of the live buffer). */
+  readonly mountedPages = computed<number[]>(() => [...this.pagesNearViewport(MOUNT_MARGIN_PX)].sort((a, b) => a - b));
+
+  /** Spacer heights standing in for unmounted pages above and below the window (continuous mode). */
+  readonly spacerBefore = computed(() => this.spacer('before'));
+  readonly spacerAfter = computed(() => this.spacer('after'));
 
   constructor() {
-    // Once the page stack has mounted a wrapper for every page, install the
-    // observers, render, and scroll to the initial page. viewChildren only
-    // updates on the next change detection, hence an effect rather than a call
-    // at the end of loading.
+    // Once the page stack exists for a document (or a new page structure),
+    // wire scroll/resize tracking, render, and scroll to the current page.
     effect(() => {
-      const wrappers = this.pageWrappers();
       const numbers = this.store.pageNumbers();
-      if (numbers.length === 0) {
-        this.intersectionObserver?.disconnect();
-        this.intersectionObserver = null;
-        return;
-      }
-      if (wrappers.length !== numbers.length) return;
+      const vp = this.viewportEl();
+      const stack = this.stackEl();
+      if (numbers.length === 0 || !vp || !stack) return;
       untracked(() => {
-        this.installObservers();
+        this.listen(vp, stack);
+        if (this.initializedFor === numbers) return;
+        this.initializedFor = numbers;
         void this.renderAll().then(() => this.scrollToPage(this.store.snapshot()?.page ?? 1));
       });
     });
@@ -115,58 +140,82 @@ export class PdfViewportService {
       untracked(() => void this.applyBufferDiff(this.store.renderEpoch));
     });
 
-    // Continuous mode: the current page is the one straddling the viewport's
-    // vertical centre (nearest page if the centre is in a gap). Position-based,
-    // so it changes exactly once per boundary and ignores scroll speed and zoom.
+    // Pages entering the DOM need rendering; pages leaving it took their
+    // canvas and layers with them, so forget them.
     effect(() => {
-      if (!this.isContinuousMode()) return;
-      const visible = this.visibleEntries();
-      const vp = this.viewportEl();
-      if (!vp || visible.size === 0) return;
+      const mounted = this.pageWrappers();
       untracked(() => {
-        const vpRect = vp.getBoundingClientRect();
-        const center = vpRect.top + vpRect.height / 2;
-        let current = -1;
-        let bestDist = Infinity;
-        for (const num of visible.keys()) {
-          const wrapper = this.pageWrappers()[num - 1];
-          if (!wrapper) continue;
-          const r = wrapper.getBoundingClientRect();
-          if (r.top <= center && r.bottom >= center) {
-            current = num;
-            break;
-          }
-          const dist = center < r.top ? r.top - center : center - r.bottom;
-          if (dist < bestDist) {
-            bestDist = dist;
-            current = num;
-          }
+        for (const [n, wrapper] of this.lastMounted) {
+          if (mounted.get(n) === wrapper) continue;
+          this.renderedPages.delete(n);
+          this.cancelPageWork(n);
+          const textLayer = wrapper.querySelector<HTMLElement>('.hk-pdf-text-layer');
+          if (textLayer) this.find.forgetTextLayer(textLayer);
         }
-        if (current <= 0) return;
-        if (current !== (this.store.snapshot()?.page ?? 0)) {
-          this.store.patchState((s) => ({ ...s, page: current }));
-          this.store.notifyPageChange(current);
-        }
+        this.lastMounted = mounted;
+        void this.applyBufferDiff(this.store.renderEpoch);
       });
     });
 
     inject(DestroyRef).onDestroy(() => this.teardown());
   }
 
-  /** Wrapper element for a page, or `null` if not mounted. */
+  /** Wrapper element for a page, or `null` if it isn't mounted. */
   wrapperFor(pageNumber: number): HTMLElement | null {
-    return this.pageWrappers()[pageNumber - 1] ?? null;
+    return this.pageWrappers().get(pageNumber) ?? null;
   }
 
   /** Forget per-document render state (new document or structural change). */
   resetForDocument(): void {
     this.cancelInflightRenders();
     this.bitmaps.clear();
-    this.rawVisible.clear();
-    this.visibleEntries.set(new Map());
     this.renderedPages.clear();
     this.inFlightPages.clear();
     this.pageContentVersion.clear();
+  }
+
+  // ── Windowing ───────────────────────────────────────────────────────────
+
+  /** Distance from the viewport's scroll origin to the top of the page stack. */
+  private stackOffset(): number {
+    return this.stackEl()?.offsetTop ?? 0;
+  }
+
+  /** Pages intersecting the viewport extended by `margin` px above and below. */
+  private pagesNearViewport(margin: number): Set<number> {
+    const s = this.store.state();
+    if (!s || s.numPages === 0) return new Set();
+    if (this.isSingleMode()) {
+      const set = new Set<number>();
+      if (s.page > 0) {
+        set.add(s.page);
+        if (s.page > 1) set.add(s.page - 1);
+        if (s.page < s.numPages) set.add(s.page + 1);
+      }
+      return set;
+    }
+    const top = this.scrollTop() - this.stackOffset();
+    const range = this.layout().range(top - margin, top + this.viewportHeight() + margin);
+    const set = new Set<number>();
+    if (range) for (let i = range[0]; i <= range[1]; i++) set.add(i + 1);
+    return set;
+  }
+
+  private spacer(side: 'before' | 'after'): number {
+    if (this.isSingleMode()) return 0;
+    const mounted = this.mountedPages();
+    if (mounted.length === 0) return 0;
+    const layout = this.layout();
+    return side === 'before' ? layout.spacerBefore(mounted[0] - 1) : layout.spacerAfter(mounted[mounted.length - 1] - 1);
+  }
+
+  /** Page sizes in CSS px at the current scale (unrotated; the rotor turns them). */
+  pageCssWidth(pageNumber: number): number {
+    return (this.store.findPage(pageNumber)?.baseWidth ?? 0) * this.scale();
+  }
+
+  pageCssHeight(pageNumber: number): number {
+    return (this.store.findPage(pageNumber)?.baseHeight ?? 0) * this.scale();
   }
 
   // ── Zoom & navigation ───────────────────────────────────────────────────
@@ -204,19 +253,16 @@ export class PdfViewportService {
 
   /**
    * Scroll only our viewport (never `scrollIntoView`, which also scrolls every
-   * ancestor) so the page's top meets the viewport's content start.
-   * Continuous mode only; single mode shows the page by hiding the others.
+   * ancestor) so the page's top meets the viewport's content start. Works for
+   * unmounted pages too: the position comes from the layout. Continuous mode
+   * only; single mode shows the page by hiding the others.
    */
   scrollToPage(page: number): void {
-    if (page < 1) return;
-    const wrapper = this.wrapperFor(page);
-    if (!wrapper) return;
+    if (page < 1 || page > this.layout().count) return;
     if ((this.store.snapshot()?.mode ?? 'continuous') !== 'continuous') return;
     const vp = this.viewportEl();
     if (!vp) return;
-    const padTop = parseFloat(getComputedStyle(vp).paddingTop) || 0;
-    const delta = wrapper.getBoundingClientRect().top - vp.getBoundingClientRect().top - padTop;
-    vp.scrollTo({ top: vp.scrollTop + delta, behavior: 'auto' });
+    this.scrollViewportTo(vp, this.stackOffset() + this.layout().top(page - 1) - paddingTop(vp));
   }
 
   nextPage(): void {
@@ -249,9 +295,12 @@ export class PdfViewportService {
     this.setZoom(this.store.config().zoom ?? 'fit-width');
   }
 
+  /** Change zoom, keeping the same point of the same page at the top of the viewport. */
   setZoom(zoom: PdfZoom): void {
+    const anchor = this.captureAnchor();
     this.store.patchState((s) => ({ ...s, zoomMode: zoom }));
     void this.renderAll();
+    this.restoreAnchorAfterRender(anchor);
   }
 
   setMode(mode: PdfDisplayMode): void {
@@ -271,7 +320,7 @@ export class PdfViewportService {
   private rotatedBoxSide(pageNumber: number, side: (p: PdfPageEntry) => number): number | null {
     if (!isQuarterTurn(this.store.pageRotation(pageNumber))) return null;
     const page = this.store.findPage(pageNumber);
-    return page ? side(page) * this.computeScale() : null;
+    return page ? side(page) * this.scale() : null;
   }
 
   /** CSS transform for a page's rotor (`null` when unrotated). */
@@ -280,13 +329,44 @@ export class PdfViewportService {
     return r ? `rotate(${r}deg)` : null;
   }
 
+  /** The page at the top of the viewport and how far down it the top is (0–1). */
+  private captureAnchor(): ScrollAnchor | null {
+    const vp = this.viewportEl();
+    const layout = this.layout();
+    if (!vp || this.isSingleMode() || layout.count === 0) return null;
+    const y = vp.scrollTop - this.stackOffset() + paddingTop(vp);
+    const index = layout.indexAt(y);
+    const height = layout.height(index);
+    return { index, fraction: height > 0 ? Math.max(0, Math.min(1, (y - layout.top(index)) / height)) : 0 };
+  }
+
+  /** After the new zoom has laid out (spacers resized), scroll back to `anchor`. */
+  private restoreAnchorAfterRender(anchor: ScrollAnchor | null): void {
+    if (!anchor) return;
+    afterNextRender(
+      () => {
+        const vp = this.viewportEl();
+        const layout = this.layout();
+        if (!vp || anchor.index >= layout.count) return;
+        const y = layout.top(anchor.index) + anchor.fraction * layout.height(anchor.index);
+        this.scrollViewportTo(vp, this.stackOffset() + y - paddingTop(vp));
+      },
+      { injector: this.injector },
+    );
+  }
+
+  private scrollViewportTo(vp: HTMLElement, top: number): void {
+    vp.scrollTo({ top, behavior: 'auto' });
+    this.scrollTop.set(vp.scrollTop); // update the window now, not a frame later
+  }
+
   // ── Rendering ───────────────────────────────────────────────────────────
 
   /**
-   * Re-baseline the whole stack at the current zoom: cancel in-flight work,
-   * size every canvas and layer synchronously (stable layout before any pixel
-   * paints), evict every rendered page (wrong scale now), then render the
-   * live buffer.
+   * Re-baseline at the current zoom: cancel in-flight work, publish the
+   * resolved scale (the template sizes every mounted page from it, so layout
+   * is stable before any pixel paints), evict rendered pages (wrong scale
+   * now), then render the live buffer.
    */
   async renderAll(): Promise<void> {
     this.cancelInflightRenders();
@@ -296,27 +376,6 @@ export class PdfViewportService {
     if (scale <= 0) return;
     this.lastRenderScale = scale;
     this.store.patchState((s) => ({ ...s, zoom: scale }));
-
-    const wrappers = this.pageWrappers();
-    for (let i = 0; i < this.store.pages.length; i++) {
-      const wrapper = wrappers[i];
-      const canvas = wrapper?.querySelector<HTMLCanvasElement>('canvas');
-      if (!wrapper || !canvas) continue;
-      const page = this.store.pages[i];
-      const w = page.baseWidth * scale;
-      const h = page.baseHeight * scale;
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-      for (const layer of [
-        wrapper.querySelector<HTMLElement>('.hk-pdf-text-layer'),
-        wrapper.querySelector<HTMLElement>('.hk-pdf-annotation-layer'),
-      ]) {
-        if (!layer) continue;
-        layer.style.width = `${w}px`;
-        layer.style.height = `${h}px`;
-        layer.style.setProperty('--scale-factor', String(scale));
-      }
-    }
 
     for (const num of Array.from(this.renderedPages)) this.evictPage(num);
     this.renderedPages.clear();
@@ -335,7 +394,6 @@ export class PdfViewportService {
 
     const buffer = this.liveBuffer();
     const wrappers = this.pageWrappers();
-    if (wrappers.length !== this.store.pages.length) return; // not yet mounted
     const scale = this.store.snapshot()?.zoom ?? this.computeScale();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
 
@@ -370,8 +428,8 @@ export class PdfViewportService {
     for (const page of todo) {
       if (epoch !== this.store.renderEpoch) return;
       if (this.renderedPages.has(page.pageNumber) || this.inFlightPages.has(page.pageNumber)) continue;
-      const canvas = wrappers[page.pageNumber - 1]?.querySelector<HTMLCanvasElement>('canvas');
-      if (!canvas) continue;
+      const canvas = wrappers.get(page.pageNumber)?.querySelector<HTMLCanvasElement>('canvas');
+      if (!canvas) continue; // not mounted (yet); the wrappers effect re-runs the diff on mount
 
       this.inFlightPages.add(page.pageNumber);
       const version = this.pageContentVersion.get(page.pageNumber) ?? 0;
@@ -554,43 +612,30 @@ export class PdfViewportService {
     this.renderTasksByPage.clear();
   }
 
-  // ── Observers ───────────────────────────────────────────────────────────
+  // ── Scroll & resize tracking ────────────────────────────────────────────
 
   /**
-   * One IntersectionObserver drives both virtualization (the live buffer,
-   * extended by `LIVE_BUFFER_MARGIN_PX`) and continuous-mode page tracking.
-   * Bursts are coalesced into one signal update per animation frame. A
-   * ResizeObserver re-renders fit-* zoom when the resolved scale changes.
+   * Track scrolling (passive, once per frame) and size changes of the
+   * viewport. Scrolling moves the window and, in continuous mode, the current
+   * page. A resize re-renders fit-* zoom only when the resolved scale changes.
    */
-  private installObservers(): void {
-    const vp = this.viewportEl();
-    if (!vp) return;
+  private listen(vp: HTMLElement, stack: HTMLElement): void {
+    const gap = parseFloat(getComputedStyle(stack).rowGap);
+    if (Number.isFinite(gap)) this.gap.set(gap);
+    this.viewportHeight.set(vp.clientHeight);
+    this.scrollTop.set(vp.scrollTop);
+    if (this.listenedViewport === vp) return;
 
-    this.intersectionObserver?.disconnect();
-    this.intersectionObserver = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          const num = Number((e.target as HTMLElement).dataset['pageNumber']);
-          if (!num) continue;
-          if (e.isIntersecting) this.rawVisible.set(num, e.intersectionRatio);
-          else this.rawVisible.delete(num);
-        }
-        if (this.visibilityFlushRaf === null) {
-          this.visibilityFlushRaf = requestAnimationFrame(() => {
-            this.visibilityFlushRaf = null;
-            this.visibleEntries.set(new Map(this.rawVisible));
-          });
-        }
-      },
-      { root: vp, rootMargin: `${LIVE_BUFFER_MARGIN_PX}px 0px`, threshold: [0, 0.25, 0.5, 0.75] },
-    );
-    for (const w of this.pageWrappers()) this.intersectionObserver.observe(w);
+    this.unlisten();
+    this.listenedViewport = vp;
+    vp.addEventListener('scroll', this.onScroll, { passive: true });
 
     // Seed the baseline before observing: ResizeObserver delivers the initial
     // measurement right away, which would otherwise cancel the first render.
     this.lastRenderScale = this.computeScale();
-    this.resizeObserver?.disconnect();
+    if (typeof ResizeObserver === 'undefined') return; // e.g. SSR shims, test DOMs
     this.resizeObserver = new ResizeObserver(() => {
+      this.viewportHeight.set(vp.clientHeight);
       const zoomMode = this.store.snapshot()?.zoomMode;
       if (zoomMode !== 'fit-width' && zoomMode !== 'fit-page' && zoomMode !== 'auto') return;
       // Gate on the resolved scale, not raw size: a scrollbar appearing under
@@ -602,25 +647,63 @@ export class PdfViewportService {
       if (this.resizeRafHandle !== null) cancelAnimationFrame(this.resizeRafHandle);
       this.resizeRafHandle = requestAnimationFrame(() => {
         this.resizeRafHandle = null;
+        const anchor = this.captureAnchor();
         void this.renderAll();
+        this.restoreAnchorAfterRender(anchor);
       });
     });
     this.resizeObserver.observe(vp);
   }
 
+  private readonly onScroll = (): void => {
+    if (this.scrollRaf !== null) return;
+    this.scrollRaf = requestAnimationFrame(() => {
+      this.scrollRaf = null;
+      const vp = this.listenedViewport;
+      if (!vp) return;
+      this.scrollTop.set(vp.scrollTop);
+      this.trackCurrentPage(vp);
+    });
+  };
+
+  /**
+   * Continuous mode: the current page is the one under the viewport's
+   * vertical centre (the nearest one if the centre is in a gap). It changes
+   * exactly once per boundary, regardless of scroll speed or zoom.
+   */
+  private trackCurrentPage(vp: HTMLElement): void {
+    if (this.isSingleMode()) return;
+    const layout = this.layout();
+    if (layout.count === 0) return;
+    const center = vp.scrollTop + vp.clientHeight / 2 - this.stackOffset();
+    const current = layout.nearestIndex(center) + 1;
+    if (current !== (this.store.snapshot()?.page ?? 0)) {
+      this.store.patchState((s) => ({ ...s, page: current }));
+      this.store.notifyPageChange(current);
+    }
+  }
+
+  private unlisten(): void {
+    this.listenedViewport?.removeEventListener('scroll', this.onScroll);
+    this.listenedViewport = null;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+  }
+
   private teardown(): void {
     this.cancelInflightRenders();
     this.bitmaps.clear();
-    this.intersectionObserver?.disconnect();
-    this.intersectionObserver = null;
-    this.resizeObserver?.disconnect();
-    this.resizeObserver = null;
+    this.unlisten();
     if (this.resizeRafHandle !== null) cancelAnimationFrame(this.resizeRafHandle);
     this.resizeRafHandle = null;
-    if (this.visibilityFlushRaf !== null) cancelAnimationFrame(this.visibilityFlushRaf);
-    this.visibilityFlushRaf = null;
-    this.rawVisible.clear();
+    if (this.scrollRaf !== null) cancelAnimationFrame(this.scrollRaf);
+    this.scrollRaf = null;
     this.renderedPages.clear();
     this.inFlightPages.clear();
   }
+}
+
+/** A viewport's top padding in px (page positions are measured from its content box). */
+function paddingTop(el: HTMLElement): number {
+  return parseFloat(getComputedStyle(el).paddingTop) || 0;
 }

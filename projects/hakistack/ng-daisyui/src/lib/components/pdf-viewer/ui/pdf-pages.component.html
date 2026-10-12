@@ -19,14 +19,20 @@
       </div>
     }
     @if (store.pageNumbers().length > 0) {
+      <!-- Only pages near the viewport are mounted; spacers stand in for the rest, sized from the page layout
+           so the scroll height and every page position stay exact. -->
       <div
+        #stack
         class="hk-pdf-page-stack flex flex-col items-center gap-4"
         [class.hk-pdf-page-stack-centered]="store.centerPages()"
         role="document"
         aria-label="PDF document"
         [class.invisible]="!store.firstRenderComplete()"
       >
-        @for (n of store.pageNumbers(); track n) {
+        @if (viewport.spacerBefore() > 0) {
+          <div class="shrink-0 w-px" aria-hidden="true" [style.height.px]="viewport.spacerBefore()"></div>
+        }
+        @for (n of viewport.mountedPages(); track n) {
           <div
             #pageWrapper
             class="hk-pdf-page bg-base-100 shadow-md"
@@ -40,9 +46,20 @@
             [style.height.px]="viewport.pageBoxHeight(n)"
           >
             <div class="hk-pdf-page-rotor" [style.transform]="viewport.pageRotorTransform(n)">
-              <canvas></canvas>
-              <div class="hk-pdf-text-layer"></div>
-              <div class="hk-pdf-annotation-layer"></div>
+              <!-- Sized from the layout before any pixel paints, so the page never shifts when its raster arrives. -->
+              <canvas [style.width.px]="viewport.pageCssWidth(n)" [style.height.px]="viewport.pageCssHeight(n)"></canvas>
+              <div
+                class="hk-pdf-text-layer"
+                [style.width.px]="viewport.pageCssWidth(n)"
+                [style.height.px]="viewport.pageCssHeight(n)"
+                [style.--scale-factor]="viewport.scale()"
+              ></div>
+              <div
+                class="hk-pdf-annotation-layer"
+                [style.width.px]="viewport.pageCssWidth(n)"
+                [style.height.px]="viewport.pageCssHeight(n)"
+                [style.--scale-factor]="viewport.scale()"
+              ></div>
               <div
                 class="hk-pdf-edit-layer"
                 [class.hk-pdf-edit-active]="store.annotationTool() !== 'none'"
@@ -52,6 +69,9 @@
               ></div>
             </div>
           </div>
+        }
+        @if (viewport.spacerAfter() > 0) {
+          <div class="shrink-0 w-px" aria-hidden="true" [style.height.px]="viewport.spacerAfter()"></div>
         }
       </div>
     }

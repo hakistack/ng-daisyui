@@ -261,7 +261,7 @@ export class PdfDocumentService {
     store.pageNumbers.set(pages.map((p) => p.pageNumber));
     store.notifyPagesChange(numPages);
     this.pageData.createSearchIndex(numPages, token);
-    void this.viewport.renderAll();
+    // The new `pageNumbers` makes the viewport re-render and re-scroll.
   }
 
   // ── Save / download / print / export ────────────────────────────────────
