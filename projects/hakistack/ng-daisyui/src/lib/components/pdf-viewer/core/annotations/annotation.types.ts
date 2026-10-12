@@ -43,6 +43,33 @@ export interface PdfAnnotationReply {
   readonly modified?: string;
 }
 
+/** Real-world units a page scale converts to (`'ft-in'` shows feet and inches). */
+export type PdfMeasureUnit = 'pt' | 'in' | 'cm' | 'mm' | 'pica' | 'ft' | 'ft-in' | 'm';
+
+/** A page scale: `ratio` real units per PDF point, e.g. "1 in = 10 ft" is 10 ft / 72 pt. */
+export interface PdfMeasureScale {
+  readonly ratio: number;
+  readonly unit: PdfMeasureUnit;
+  /** Human-readable scale, written as the `/Measure` `/R` (e.g. `1 in = 10 ft`). */
+  readonly label: string;
+  /** Decimals shown (default 2). */
+  readonly precision?: number;
+}
+
+export type PdfMeasureKind = 'distance' | 'perimeter' | 'area' | 'radius' | 'volume';
+
+/**
+ * Makes a line (distance), polyline (perimeter), polygon (area or volume) or
+ * ellipse (radius) a measurement: it shows its value and is written with a
+ * `/Measure` dictionary. The scale is captured when it's drawn.
+ */
+export interface PdfMeasurement {
+  readonly kind: PdfMeasureKind;
+  readonly scale: PdfMeasureScale;
+  /** Depth for volumes, in the scale's unit. */
+  readonly depth?: number;
+}
+
 interface PdfAnnotationBase {
   /** Unique within the document (`/NM`). */
   readonly id: string;
@@ -87,6 +114,8 @@ export interface PdfShapeAnnotation extends PdfAnnotationBase {
   readonly dash?: readonly number[];
   /** Cloudy border (`/BE /S /C`). */
   readonly cloudy?: boolean;
+  /** An ellipse can measure its radius. */
+  readonly measure?: PdfMeasurement;
 }
 
 /** A straight line; an arrow is a line with an arrow ending. */
@@ -100,6 +129,8 @@ export interface PdfLineAnnotation extends PdfAnnotationBase {
   /** Fill for closed endings, or `null`. */
   readonly fill: string | null;
   readonly dash?: readonly number[];
+  /** A measured distance. */
+  readonly measure?: PdfMeasurement;
 }
 
 /** Polygon (closed, optionally cloudy) or polyline (open, with endings). */
@@ -113,6 +144,8 @@ export interface PdfPolyAnnotation extends PdfAnnotationBase {
   readonly cloudy?: boolean;
   readonly startEnding?: PdfLineEnding;
   readonly endEnding?: PdfLineEnding;
+  /** A measured perimeter (polyline) or area / volume (polygon). */
+  readonly measure?: PdfMeasurement;
 }
 
 /** Freehand ink: one flat point list per stroke. */
@@ -141,6 +174,45 @@ export interface PdfNoteAnnotation extends PdfAnnotationBase {
   readonly icon: string;
 }
 
+/**
+ * What a stamp shows: text in a frame (standard, dynamic and custom stamps,
+ * "Sign here" arrows), or an image (base64 PNG or JPEG).
+ */
+export type PdfStampContent =
+  | {
+      readonly kind: 'text';
+      readonly text: string;
+      /** Second line (dynamic stamps: who and when). */
+      readonly subtext?: string;
+      readonly shape: 'rounded' | 'rect' | 'arrow';
+    }
+  | {
+      readonly kind: 'image';
+      /** Base64 file bytes. */
+      readonly data: string;
+      readonly mime: 'image/png' | 'image/jpeg';
+      /** Pixel size. */
+      readonly width: number;
+      readonly height: number;
+    };
+
+/** A rubber stamp (`/Stamp`). `name` is its `/Name` (`Approved`, `Draft`, … or a custom name). */
+export interface PdfStampAnnotation extends PdfAnnotationBase {
+  readonly type: 'stamp';
+  readonly name: string;
+  readonly stamp: PdfStampContent;
+}
+
+/** Where a link goes: a web address or a page (0-based) of this document. */
+export type PdfLinkTarget = { readonly kind: 'uri'; readonly uri: string } | { readonly kind: 'page'; readonly page: number };
+
+/** A link area (`/Link`). `color` is its border colour, drawn when `strokeWidth` > 0. */
+export interface PdfLinkAnnotation extends PdfAnnotationBase {
+  readonly type: 'link';
+  readonly target: PdfLinkTarget;
+  readonly strokeWidth: number;
+}
+
 /** An annotation the viewer can display, edit and save. */
 export type HkAnnotation =
   | PdfTextMarkupAnnotation
@@ -149,7 +221,9 @@ export type HkAnnotation =
   | PdfPolyAnnotation
   | PdfInkAnnotation
   | PdfFreeTextAnnotation
-  | PdfNoteAnnotation;
+  | PdfNoteAnnotation
+  | PdfStampAnnotation
+  | PdfLinkAnnotation;
 
 export type HkAnnotationType = HkAnnotation['type'];
 

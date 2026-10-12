@@ -1,5 +1,6 @@
 import { StandardFont, textWidth, wrapText } from '../pdf-writer/standard-fonts';
-import type { HkAnnotation, PdfLineEnding, PdfRect } from './annotation.types';
+import type { HkAnnotation, PdfLineEnding, PdfRect, PdfStampAnnotation } from './annotation.types';
+import { measureLabel, measurementOf, polygonCentroid } from './measure';
 
 /**
  * Annotation geometry as a small display list in displayed page space
@@ -49,7 +50,16 @@ export interface TextOp {
   readonly clip: PdfRect;
 }
 
-export type DrawOp = PathOp | TextOp;
+/** A raster image (stamps), base64-encoded, stretched to `rect`. */
+export interface ImageOp {
+  readonly kind: 'image';
+  readonly rect: PdfRect;
+  readonly data: string;
+  readonly mime: 'image/png' | 'image/jpeg';
+  readonly opacity: number;
+}
+
+export type DrawOp = PathOp | TextOp | ImageOp;
 
 /** Padding between a free-text box's border and its text, in points. */
 export const FREE_TEXT_PADDING = 2;
@@ -62,8 +72,15 @@ const KAPPA = 0.5522847498;
 
 // ── Display list ────────────────────────────────────────────────────────────
 
-/** The display list for an annotation. */
+/** The display list for an annotation: its shape, plus the value label of a measurement. */
 export function annotationOps(a: HkAnnotation): DrawOp[] {
+  const ops = shapeOps(a);
+  const label = measureLabel(a);
+  if (label) ops.push(...measureOps(a, label));
+  return ops;
+}
+
+function shapeOps(a: HkAnnotation): DrawOp[] {
   const opacity = a.opacity;
   switch (a.type) {
     case 'highlight':
@@ -145,7 +162,151 @@ export function annotationOps(a: HkAnnotation): DrawOp[] {
     }
     case 'note':
       return noteIconOps(a.rect, a.color, opacity);
+    case 'stamp':
+      return stampOps(a);
+    case 'link':
+      return a.strokeWidth > 0 ? [shapePath(rectSegs(inset(a.rect, a.strokeWidth / 2)), a.color, a.strokeWidth, null, opacity)] : [];
   }
+}
+
+function inset(r: PdfRect, by: number): PdfRect {
+  return { x: r.x + by, y: r.y + by, w: Math.max(0, r.w - 2 * by), h: Math.max(0, r.h - 2 * by) };
+}
+
+/** Font size that fits `text` in `width`, capped at `max`. */
+function fitFontSize(text: string, font: StandardFont, width: number, max: number): number {
+  const at1 = textWidth(text, font, 1);
+  return Math.max(1, Math.min(max, at1 > 0 ? width / at1 : max));
+}
+
+/** Text stamps: a tinted frame (rounded, square or a "Sign here" arrow) with bold centred text; image stamps: the image. */
+function stampOps(a: PdfStampAnnotation): DrawOp[] {
+  const content = a.stamp;
+  if (content.kind === 'image') return [{ kind: 'image', rect: a.rect, data: content.data, mime: content.mime, opacity: a.opacity }];
+  const border = Math.max(1, Math.min(a.rect.h, a.rect.w) * 0.05);
+  const box = inset(a.rect, border / 2);
+  let frame: PathSeg[];
+  if (content.shape === 'arrow') {
+    const tip = Math.min(box.h / 2, box.w / 3);
+    frame = polySegs(
+      [
+        box.x,
+        box.y,
+        box.x + box.w - tip,
+        box.y,
+        box.x + box.w,
+        box.y + box.h / 2,
+        box.x + box.w - tip,
+        box.y + box.h,
+        box.x,
+        box.y + box.h,
+      ],
+      true,
+    );
+  } else if (content.shape === 'rounded') {
+    frame = roundedRectSegs(box, Math.min(box.h * 0.22, 10));
+  } else {
+    frame = rectSegs(box);
+  }
+  const solid = content.shape === 'arrow';
+  const ops: DrawOp[] = [
+    { kind: 'path', segs: frame, fill: a.color, opacity: a.opacity * (solid ? 1 : 0.08) },
+    { kind: 'path', segs: frame, stroke: { color: a.color, width: border, cap: 'butt', join: 'round' }, opacity: a.opacity },
+  ];
+  const font: StandardFont = 'Helvetica-Bold';
+  const textBox = inset(box, border * 2);
+  const textRight = content.shape === 'arrow' ? Math.min(box.h / 2, box.w / 3) : 0;
+  const width = Math.max(1, textBox.w - textRight);
+  const color = solid ? '#ffffff' : a.color;
+  const mainSize = fitFontSize(content.text, font, width, textBox.h * (content.subtext ? 0.52 : 0.72));
+  const subSize = content.subtext ? fitFontSize(content.subtext, 'Helvetica', width, textBox.h * 0.24) : 0;
+  const total = mainSize + (content.subtext ? subSize * 1.25 : 0);
+  const top = textBox.y + (textBox.h - total) / 2;
+  const line = (text: string, f: StandardFont, size: number, y: number) => ({
+    kind: 'text' as const,
+    lines: [{ text, x: textBox.x + (width - textWidth(text, f, size)) / 2, y }],
+    font: f,
+    fontSize: size,
+    color,
+    opacity: a.opacity,
+    clip: a.rect,
+  });
+  ops.push(line(content.text, font, mainSize, top + mainSize * 0.8));
+  if (content.subtext) ops.push(line(content.subtext, 'Helvetica', subSize, top + mainSize + subSize * 1.05));
+  return ops;
+}
+
+function roundedRectSegs(r: PdfRect, radius: number): PathSeg[] {
+  const k = radius * KAPPA;
+  const { x, y, w, h } = r;
+  return [
+    ['M', x + radius, y],
+    ['L', x + w - radius, y],
+    ['C', x + w - radius + k, y, x + w, y + radius - k, x + w, y + radius],
+    ['L', x + w, y + h - radius],
+    ['C', x + w, y + h - radius + k, x + w - radius + k, y + h, x + w - radius, y + h],
+    ['L', x + radius, y + h],
+    ['C', x + radius - k, y + h, x, y + h - radius + k, x, y + h - radius],
+    ['L', x, y + radius],
+    ['C', x, y + radius - k, x + radius - k, y, x + radius, y],
+    ['Z'],
+  ];
+}
+
+/** Font size of measurement labels, in points. */
+const MEASURE_FONT_SIZE = 9;
+
+/** A measurement's value label on a light plate (and, for radii, the radius line). */
+function measureOps(a: HkAnnotation, label: string): DrawOp[] {
+  const m = measurementOf(a)!;
+  const size = MEASURE_FONT_SIZE;
+  const w = textWidth(label, 'Helvetica', size) + 6;
+  const h = size * 1.2 + 2;
+  let cx: number;
+  let cy: number;
+  const ops: DrawOp[] = [];
+  if (a.type === 'line') {
+    cx = (a.points[0] + a.points[2]) / 2;
+    cy = (a.points[1] + a.points[3]) / 2 - h / 2 - 3;
+  } else if (a.type === 'polyline') {
+    const v = a.vertices;
+    cx = v[v.length - 2] + w / 2 + 4;
+    cy = v[v.length - 1] + h / 2 + 4;
+  } else if (a.type === 'polygon') {
+    [cx, cy] = polygonCentroid(a.vertices);
+  } else {
+    cx = a.rect.x + a.rect.w / 2;
+    cy = a.rect.y + a.rect.h / 2;
+    if (m.kind === 'radius') {
+      ops.push(
+        shapePath(
+          [
+            ['M', cx, cy],
+            ['L', a.rect.x + a.rect.w, cy],
+          ],
+          a.color,
+          0.75,
+          null,
+          a.opacity,
+          [2, 2],
+        ),
+      );
+      cy -= h / 2 + 2;
+      cx += a.rect.w / 4;
+    }
+  }
+  const plate = { x: cx - w / 2, y: cy - h / 2, w, h };
+  ops.push({ kind: 'path', segs: rectSegs(plate), fill: '#ffffff', opacity: 0.85 * a.opacity });
+  ops.push({
+    kind: 'text',
+    lines: [{ text: label, x: plate.x + 3, y: plate.y + 1 + size * 0.85 }],
+    font: 'Helvetica',
+    fontSize: size,
+    color: a.color,
+    opacity: a.opacity,
+    clip: plate,
+  });
+  return ops;
 }
 
 /** Free-text layout: wrapped lines with baselines, clipped to the box. */
@@ -510,6 +671,10 @@ export function opsBounds(ops: readonly DrawOp[]): PdfRect | null {
       rects.push(op.clip);
       continue;
     }
+    if (op.kind === 'image') {
+      rects.push(op.rect);
+      continue;
+    }
     const pts: number[] = [];
     for (const s of op.segs) if (s[0] !== 'Z') pts.push(...(s.slice(1) as number[]));
     if (pts.length === 0) continue;
@@ -522,7 +687,8 @@ export function opsBounds(ops: readonly DrawOp[]): PdfRect | null {
 
 /** The annotation's `/Rect`: everything it paints, plus its selection box, rounded outward. */
 export function outerBounds(a: HkAnnotation): PdfRect {
-  if (a.type === 'note') return a.rect; // the icon is drawn inset within its box
+  // Notes, stamps and links draw inside their box: it is their /Rect exactly.
+  if (a.type === 'note' || a.type === 'stamp' || a.type === 'link') return a.rect;
   const painted = opsBounds(annotationOps(a));
   const u = painted ? unionRects([painted, a.rect]) : a.rect;
   const x = Math.floor(u.x - 1);
@@ -656,12 +822,19 @@ export function cssFontFamily(font: StandardFont): string {
       : 'Helvetica, Arial, sans-serif';
 }
 
-/** Paint a display list on a 2D canvas whose transform already maps points to pixels. */
-export function paintOps(ctx: CanvasRenderingContext2D, ops: readonly DrawOp[]): void {
+/**
+ * Paint a display list on a 2D canvas whose transform already maps points to
+ * pixels. Images must be decoded beforehand (`images`, keyed by their base64
+ * data; see {@link decodeImages}); missing ones are skipped.
+ */
+export function paintOps(ctx: CanvasRenderingContext2D, ops: readonly DrawOp[], images?: ReadonlyMap<string, CanvasImageSource>): void {
   for (const op of ops) {
     ctx.save();
     ctx.globalAlpha = op.opacity;
-    if (op.kind === 'text') {
+    if (op.kind === 'image') {
+      const img = images?.get(op.data);
+      if (img) ctx.drawImage(img, op.rect.x, op.rect.y, op.rect.w, op.rect.h);
+    } else if (op.kind === 'text') {
       ctx.beginPath();
       ctx.rect(op.clip.x, op.clip.y, op.clip.w, op.clip.h);
       ctx.clip();
@@ -686,6 +859,39 @@ export function paintOps(ctx: CanvasRenderingContext2D, ops: readonly DrawOp[]):
     }
     ctx.restore();
   }
+}
+
+/** Decode the images of display lists for {@link paintOps} (browser only; failures are skipped). */
+export async function decodeImages(ops: readonly DrawOp[]): Promise<Map<string, CanvasImageSource>> {
+  const out = new Map<string, CanvasImageSource>();
+  if (typeof createImageBitmap === 'undefined') return out;
+  for (const op of ops) {
+    if (op.kind !== 'image' || out.has(op.data)) continue;
+    try {
+      out.set(op.data, await createImageBitmap(new Blob([base64ToBytes(op.data) as BlobPart], { type: op.mime })));
+    } catch {
+      /* undecodable: skipped */
+    }
+  }
+  return out;
+}
+
+/** `data:` URL of an image op (for SVG `<image>`). */
+export function imageDataUrl(op: Pick<ImageOp, 'data' | 'mime'>): string {
+  return `data:${op.mime};base64,${op.data}`;
+}
+
+export function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
 }
 
 /** `#rgb` / `#rrggbb` → channels in 0–1 (black when invalid). */

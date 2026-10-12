@@ -1,5 +1,6 @@
 import { Injectable, Injector, inject } from '@angular/core';
 import { isSafeLinkUri } from '../pdf-viewer.helpers';
+import { PdfAnnotationsService } from './pdf-annotations.service';
 import { PdfFindService } from './pdf-find.service';
 import { PdfFormsService } from './pdf-forms.service';
 import { PdfPageDataService } from './pdf-page-data.service';
@@ -23,6 +24,9 @@ export class PdfLayersService {
   }
   private get viewport(): PdfViewportService {
     return this.injector.get(PdfViewportService);
+  }
+  private get annotations(): PdfAnnotationsService {
+    return this.injector.get(PdfAnnotationsService);
   }
 
   /**
@@ -97,7 +101,10 @@ export class PdfLayersService {
     const labels = this.store.labels();
     const frag = document.createDocumentFragment();
 
+    // Links the annotation layer manages (and may have moved or deleted) aren't PDFium's to show.
+    const managed = this.annotations.managedLinkRects(pageNumber);
     for (const link of links) {
+      if (managed.some((r) => sameRect(r, link))) continue;
       const isUri = link.uri.length > 0;
       // A hostile PDF can carry `javascript:`/`data:` URIs; only open safe schemes.
       if (isUri && !isSafeLinkUri(link.uri)) continue;
@@ -132,6 +139,11 @@ export class PdfLayersService {
 
     container.appendChild(frag);
   }
+}
+
+/** Whether two rects (points) are the same within half a point. */
+function sameRect(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }): boolean {
+  return Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.w - b.w) < 0.5 && Math.abs(a.h - b.h) < 0.5;
 }
 
 /** Absolutely position an overlay element from a points rect × render scale. */

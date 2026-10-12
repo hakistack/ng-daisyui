@@ -1,9 +1,10 @@
 import { ContentBuilder } from '../pdf-writer/content';
-import { PdfDict, PdfName, PdfStream } from '../pdf-writer/objects';
+import { PdfDict, PdfName, PdfRef, PdfStream, PdfValue } from '../pdf-writer/objects';
 import type { StandardFont } from '../pdf-writer/standard-fonts';
 import type { HkAnnotation } from './annotation.types';
+import { imageXObject } from './images';
 import { PageSpace } from './page-space';
-import { DrawOp, PathSeg, annotationOps, hexToRgb, outerBounds } from './shapes';
+import { DrawOp, PathSeg, annotationOps, base64ToBytes, hexToRgb, outerBounds } from './shapes';
 
 /** Acrobat's default-resource names for the standard fonts (also used in `/DA`). */
 export const FONT_RESOURCE: Record<StandardFont, string> = {
@@ -20,12 +21,18 @@ export const FONT_RESOURCE: Record<StandardFont, string> = {
  * (the displayed page with y flipped up) under a `cm` that maps them to user
  * space, so the appearance is upright on rotated pages too.
  */
-export function buildAppearance(a: HkAnnotation, space: PageSpace): PdfStream {
+export async function buildAppearance(
+  a: HkAnnotation,
+  space: PageSpace,
+  addObject: (value: PdfValue) => PdfRef,
+  images: Map<string, PdfRef> = new Map(),
+): Promise<PdfStream> {
   const bbox = space.rectToUser(outerBounds(a));
   const ops = annotationOps(a);
   const content = new ContentBuilder();
   const states = new Map<string, { name: string; dict: PdfDict }>();
   const fonts = new Map<string, StandardFont>();
+  const xobjects = new Map<string, PdfRef>();
   const [ma, mb, mc, md, me, mf] = space.matrix;
   const up = (y: number) => space.height - y;
 
@@ -34,7 +41,20 @@ export function buildAppearance(a: HkAnnotation, space: PageSpace): PdfStream {
     content.save();
     const gs = graphicsState(op, states);
     if (gs) content.extGState(gs);
-    if (op.kind === 'text') {
+    if (op.kind === 'image') {
+      // Images are shared within a save (the same stamp placed twice is stored once).
+      let ref = images.get(op.data);
+      if (!ref) {
+        const { image, smask } = await imageXObject(base64ToBytes(op.data), op.mime);
+        if (smask) image.dict.set('SMask', addObject(smask));
+        ref = addObject(image);
+        images.set(op.data, ref);
+      }
+      const resource = `Im${xobjects.size}`;
+      xobjects.set(resource, ref);
+      const r = op.rect;
+      content.transform(r.w, 0, 0, r.h, r.x, up(r.y + r.h)).raw(`/${resource} Do`);
+    } else if (op.kind === 'text') {
       const resource = FONT_RESOURCE[op.font];
       fonts.set(resource, op.font);
       content
@@ -66,6 +86,7 @@ export function buildAppearance(a: HkAnnotation, space: PageSpace): PdfStream {
 
   const resources = new PdfDict();
   if (states.size) resources.set('ExtGState', new PdfDict([...states.values()].map((st): [string, PdfDict] => [st.name, st.dict])));
+  if (xobjects.size) resources.set('XObject', new PdfDict([...xobjects]));
   if (fonts.size) {
     const fontDict = new PdfDict();
     for (const [resource, font] of fonts) fontDict.set(resource, standardFontDict(font));

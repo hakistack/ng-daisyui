@@ -32,6 +32,27 @@
           [attr.opacity]="p.opacity"
         />
       }
+      @for (img of v.images; track $index) {
+        <image
+          [attr.x]="img.rect.x"
+          [attr.y]="img.rect.y"
+          [attr.width]="img.rect.w"
+          [attr.height]="img.rect.h"
+          [attr.href]="img.href"
+          [attr.opacity]="img.opacity"
+          preserveAspectRatio="none"
+        />
+      }
+      @if (v.link && editingLinks()) {
+        <rect
+          class="hk-pdf-annot-link-outline"
+          [attr.x]="v.link.rect.x"
+          [attr.y]="v.link.rect.y"
+          [attr.width]="v.link.rect.w"
+          [attr.height]="v.link.rect.h"
+          vector-effect="non-scaling-stroke"
+        />
+      }
       @for (t of v.texts; track $index) {
         <svg [attr.x]="t.clip.x" [attr.y]="t.clip.y" [attr.width]="t.clip.w" [attr.height]="t.clip.h" overflow="hidden">
           @for (line of t.lines; track $index) {
@@ -53,17 +74,19 @@
     <path
       class="hk-pdf-annot-hit"
       [class.hk-pdf-annot-locked]="v.locked"
+      [class.hk-pdf-annot-link]="!!v.link && !editingLinks()"
       [attr.d]="v.hit.d"
       [attr.fill]="v.hit.area ? 'transparent' : 'none'"
       stroke="transparent"
       [attr.stroke-width]="v.hit.width"
       [attr.pointer-events]="v.hit.area ? 'all' : 'stroke'"
       tabindex="0"
-      role="button"
+      [attr.role]="v.link && !editingLinks() ? 'link' : 'button'"
       [attr.aria-label]="v.label"
-      [attr.aria-pressed]="annotations.selectedId() === v.id"
+      [attr.aria-pressed]="v.link && !editingLinks() ? null : annotations.selectedId() === v.id"
       [attr.data-annotation-id]="v.id"
       (pointerdown)="onAnnotationPointerDown($event, v.id)"
+      (click)="onAnnotationClick($event, v.id)"
       (dblclick)="onAnnotationDoubleClick(v.id)"
       (keydown)="onAnnotationKeydown($event, v.id)"
       (focus)="onAnnotationFocus(v.id)"

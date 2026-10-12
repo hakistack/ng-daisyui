@@ -1,5 +1,5 @@
 <div
-  class="flex items-center gap-0.5 px-2 py-1 border-b border-base-300 bg-base-100 text-sm overflow-x-auto"
+  class="flex flex-wrap items-center gap-0.5 px-2 py-1 border-b border-base-300 bg-base-100 text-sm"
   role="toolbar"
   [attr.aria-label]="store.labels().annotationToolbar"
 >
@@ -77,6 +77,113 @@
       }
     }
 
+    <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
+
+    <!-- Stamps: standard, dynamic (who and when), sign here, custom text, image. -->
+    <details #stampMenu class="dropdown">
+      <summary
+        class="btn btn-ghost btn-xs btn-square"
+        [class.btn-active]="store.annotationTool() === 'stamp'"
+        [attr.aria-label]="store.labels().stamp"
+        [title]="store.labels().stamp"
+      >
+        <svg lucideStamp [size]="16"></svg>
+      </summary>
+      <div class="dropdown-content z-[40] mt-1 w-64 max-h-96 overflow-y-auto rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+        <ul class="menu menu-sm p-0">
+          <li class="menu-title">{{ store.labels().standardStamps }}</li>
+          @for (s of standardStamps; track s.name) {
+            <li>
+              <button type="button" (click)="chooseStamp(s, false, stampMenu)">
+                <span class="font-bold tracking-wide" [style.color]="s.color">{{ store.labels()[s.label] }}</span>
+              </button>
+            </li>
+          }
+          <li class="menu-title">{{ store.labels().dynamicStamps }}</li>
+          @for (s of dynamicStamps; track s.label) {
+            <li>
+              <button type="button" (click)="chooseStamp(s, true, stampMenu)">
+                <span class="flex flex-col items-start">
+                  <span class="font-bold tracking-wide" [style.color]="s.color">{{ store.labels()[s.label] }}</span>
+                  <span class="text-[10px] text-base-content/70">{{ annotations.author() }}</span>
+                </span>
+              </button>
+            </li>
+          }
+          <li class="menu-title">{{ store.labels().signHereStamps }}</li>
+          @for (s of signHereStamps; track s.name) {
+            <li>
+              <button type="button" (click)="chooseStamp(s, false, stampMenu)">
+                <span class="rounded px-2 py-0.5 text-xs font-bold text-white" [style.background]="s.color"
+                  >{{ store.labels()[s.label] }} ▸</span
+                >
+              </button>
+            </li>
+          }
+          <li class="mt-1 border-t border-base-300 pt-1">
+            <button type="button" (click)="openStampDesigner(stampMenu)">{{ store.labels().customStamp }}</button>
+          </li>
+          <li>
+            <label class="flex cursor-pointer items-center gap-2">
+              <svg lucideImageUp [size]="14"></svg>
+              {{ store.labels().imageStamp }}
+              <input
+                #stampFile
+                type="file"
+                class="sr-only"
+                accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                (change)="onStampImage(stampFile, stampMenu)"
+              />
+            </label>
+          </li>
+        </ul>
+      </div>
+    </details>
+
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-square"
+      [class.btn-active]="store.annotationTool() === 'link'"
+      [attr.aria-pressed]="store.annotationTool() === 'link'"
+      [attr.aria-label]="store.labels().link"
+      [title]="store.labels().link"
+      [disabled]="!store.showPages()"
+      (click)="tools.toggleTool('link')"
+    >
+      <svg lucideLink [size]="16"></svg>
+    </button>
+
+    <!-- Measurement tools, in the current scale. -->
+    <details #measureMenu class="dropdown">
+      <summary
+        class="btn btn-ghost btn-xs btn-square"
+        [class.btn-active]="measuring()"
+        [attr.aria-label]="store.labels().measure"
+        [title]="store.labels().measure"
+      >
+        <svg lucideRuler [size]="16"></svg>
+      </summary>
+      <ul class="menu menu-sm dropdown-content z-[40] mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+        @for (m of measureTools; track m.tool) {
+          <li>
+            <button
+              type="button"
+              [class.menu-active]="store.annotationTool() === m.tool"
+              [class.active]="store.annotationTool() === m.tool"
+              [attr.aria-pressed]="store.annotationTool() === m.tool"
+              (click)="chooseMeasure(m.tool, measureMenu)"
+            >
+              {{ store.labels()[m.label] }}
+            </button>
+          </li>
+        }
+        <li class="mt-1 border-t border-base-300 pt-1">
+          <button type="button" (click)="openCalibrate(measureMenu)">{{ store.labels().calibrate }}</button>
+        </li>
+        <li class="menu-title text-[11px] font-normal">{{ store.labels().currentScale.replace('{scale}', annotations.scale().label) }}</li>
+      </ul>
+    </details>
+
     @if (showsColor()) {
       <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
       <input
@@ -94,6 +201,41 @@
   }
 
   <div class="grow"></div>
+
+  <!-- Import / export (XFDF, JSON). -->
+  <details #fileMenu class="dropdown dropdown-end">
+    <summary class="btn btn-ghost btn-xs btn-square" [attr.aria-label]="store.labels().exportXfdf" [title]="store.labels().exportXfdf">
+      <svg lucideFileDown [size]="16"></svg>
+    </summary>
+    <ul class="menu menu-sm dropdown-content z-[40] mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+      <li>
+        <label class="flex cursor-pointer items-center gap-2" [class.menu-disabled]="!annotations.canAdd()">
+          <svg lucideFileUp [size]="14"></svg>
+          {{ store.labels().importAnnotations }}
+          <input
+            #importFile
+            type="file"
+            class="sr-only"
+            accept=".xfdf,.json,application/vnd.adobe.xfdf,application/json,application/xml,text/xml"
+            [disabled]="!annotations.canAdd()"
+            (change)="onImportFile(importFile, fileMenu)"
+          />
+        </label>
+      </li>
+      <li>
+        <button type="button" (click)="exportAs('xfdf', fileMenu)">
+          <svg lucideFileDown [size]="14"></svg>
+          {{ store.labels().exportXfdf }}
+        </button>
+      </li>
+      <li>
+        <button type="button" (click)="exportAs('json', fileMenu)">
+          <svg lucideFileDown [size]="14"></svg>
+          {{ store.labels().exportJson }}
+        </button>
+      </li>
+    </ul>
+  </details>
 
   <button
     type="button"

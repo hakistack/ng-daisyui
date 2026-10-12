@@ -548,6 +548,44 @@ Decisiones:
 - **Documentos cifrados:** las anotaciones quedan en solo lectura hasta que exista `security/`.
 - **Después de guardar:** recargar los workers con los bytes nuevos como base (hoy cada guardado vuelve a hacer el replay desde el original).
 
+### Estado de la fase 4 (2026-10-12)
+
+**Hecho:**
+
+- **Sellos:**
+  - 14 estándar (con los `/Name` de Acrobat), dinámicos (quién y cuándo, resueltos al colocarlos), "Sign here" / "Initial here" / "Witness" en forma de flecha.
+  - Diseñador de sellos de texto con vista previa (texto, segunda línea, forma, color).
+  - Sellos de imagen: un JPEG en gris o RGB se embebe tal cual (DCTDecode); el resto se redibuja como PNG y se escribe como imagen Flate con su `/SMask`. Una misma imagen se guarda una sola vez por guardado.
+  - Se reeditan gracias a una clave privada `/HKStamp` y a la imagen que se relee del XObject. Los sellos de otros editores siguen en el raster, en solo lectura.
+- **Medición:**
+  - Distancia, perímetro, área, radio y volumen, con calibración al estilo de Acrobat ("1 in = 10 ft"), unidades in/cm/mm/pt/pica/ft/ft-in/m, decimales y profundidad.
+  - La etiqueta forma parte de la misma lista de dibujo (pantalla, miniaturas y `/AP`).
+  - Se escribe el `/Measure` estándar (RL, NumberFormat) con su `/IT`. Para volumen y radio se usan `PolygonVolume` y `CircleDimension`, como otros editores.
+- **Links editables:**
+  - Destino URI, página o destino con nombre (`/Dests` y el árbol `/Names`).
+  - Mientras se lee, navegan; con las herramientas de anotación abiertas, se pueden seleccionar, mover y editar en el panel (URL validada, página).
+  - El overlay de links de PDFium omite los que gestiona el modelo, así que cada link solo se hace clic una vez.
+- **XFDF (ISO 19444-1) y JSON:**
+  - Exportar e importar todos los tipos, con hilos (`inreplyto`, `state`).
+  - Lo que XFDF no expresa (contenido de sellos, escalas) viaja en un namespace propio que otros lectores ignoran.
+  - La importación es un solo paso de deshacer.
+- **Portapapeles:** copiar, cortar y pegar con un MIME propio, también entre visores. Si el navegador descarta el tipo propio, se usa el texto plano como respaldo. También hay "Duplicar".
+- **Orden z:** traer al frente, adelante, atrás y al fondo. Al guardar se reescribe `/Annots` respetando la posición de lo que no gestionamos (widgets, links ajenos). Si solo cambió el orden, no se reescribe ninguna anotación.
+- **Permisos:**
+  - `annotationMode`: `edit`, `review` (solo comentarios, respuestas y estado) o `view`.
+  - `restrictAnnotationsToAuthor`.
+  - `/F ReadOnly` se trata como bloqueo.
+- **API pública:** `exportAnnotations`, `importAnnotations`, `setMeasureScale`.
+- **Verificación:**
+  - 31 tests del núcleo y 14 de integración.
+  - `test:pdf-engine` comprueba por píxel en PDFium el sello de imagen (opaco, transparente, semitransparente), el marco del sello de texto y la línea de medición. También que PDFium resuelve nuestros links y que todo se relee después de un guardado de PDFium.
+
+**Pendiente:**
+
+- El criterio de salida ("XFDF valida contra Acrobat") no se ha probado en Acrobat; solo hay round-trip propio y la estructura del spec.
+- En páginas con `/Rotate`, el overlay de PDFium no puede emparejar sus rects con los links gestionados (usa otra convención), así que un link movido en una página rotada también navega desde su posición original.
+- Sellos de texto con caracteres fuera de WinAnsi (necesitan TrueType, fase 5).
+
 ## 6. Theming (daisyUI v5 / Tailwind v4)
 
 | Pieza | Componente daisyUI |

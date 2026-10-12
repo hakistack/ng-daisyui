@@ -149,7 +149,7 @@ const dir = mkdtempSync(join(tmpdir(), 'hk-pdf-engine-'));
 const entry = join(dir, 'entry.mjs');
 writeFileSync(
   entry,
-  `export { default as initPdfEngine, initialize_pdfium_render, open, close, page_count, document_title, form_fields, set_field_value, set_hidden_annotations, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
+  `export { default as initPdfEngine, initialize_pdfium_render, open, close, page_count, document_title, page_links, form_fields, set_field_value, set_hidden_annotations, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
 export { default as createPdfiumModule } from ${JSON.stringify(inputs.pdfium)};
 export { default as pdfEngineWasm } from ${JSON.stringify(inputs.engineWasm)};
 export { default as pdfiumWasm } from ${JSON.stringify(inputs.pdfiumWasm)};`,
@@ -252,7 +252,9 @@ try {
   writeFileSync(
     writerEntry,
     `export * from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/pdf-writer/index.ts'))};
-export { readAnnotations, writeAnnotationChanges } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/annotation-io.ts'))};`,
+export { readAnnotations, writeAnnotationChanges } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/annotation-io.ts'))};
+export { encodePng } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/images.ts'))};
+export { calibrate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/measure.ts'))};`,
   );
   const writerBuild = await build({
     entryPoints: [writerEntry],
@@ -380,6 +382,99 @@ export { readAnnotations, writeAnnotationChanges } from ${JSON.stringify(join(li
     check(
       `/Rotate ${rotate}: the annotation reads back after a PDFium save`,
       back?.type === 'rect' && Math.abs(back.rect.x - rect.x) < 0.01 && Math.abs(back.rect.h - rect.h) < 0.01,
+    );
+    e.close(h);
+  }
+
+  // ── Stamps, links and measurements, as PDFium sees them ──────────────────
+  console.log('\nstamps, links, measurements (hk-pdf-writer → PDFium)');
+  {
+    const base = serializePdf({
+      1: '<< /Type /Catalog /Pages 2 0 R >>',
+      2: '<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>',
+      3: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << >> >>',
+      4: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << >> >>',
+    });
+    // 2×2 image: red, transparent / green, half-transparent blue.
+    const png = await w.encodePng({
+      width: 2,
+      height: 2,
+      rgb: Uint8Array.from([255, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 255]),
+      alpha: Uint8Array.from([255, 0, 255, 128]),
+    });
+    const common = { page: 0, opacity: 1, author: 'Harness' };
+    const list = [
+      {
+        ...common,
+        id: 'img',
+        type: 'stamp',
+        name: 'Image',
+        color: '#000000',
+        rect: { x: 300, y: 50, w: 40, h: 40 },
+        stamp: { kind: 'image', data: Buffer.from(png).toString('base64'), mime: 'image/png', width: 2, height: 2 },
+      },
+      {
+        ...common,
+        id: 'txt',
+        type: 'stamp',
+        name: 'Approved',
+        color: '#1d4ed8',
+        rect: { x: 50, y: 50, w: 160, h: 46 },
+        stamp: { kind: 'text', text: 'APPROVED', shape: 'rect' },
+      },
+      {
+        ...common,
+        id: 'uri',
+        type: 'link',
+        color: '#2563eb',
+        rect: { x: 50, y: 200, w: 100, h: 20 },
+        target: { kind: 'uri', uri: 'https://example.com/' },
+        strokeWidth: 0,
+      },
+      {
+        ...common,
+        id: 'pg',
+        type: 'link',
+        color: '#2563eb',
+        rect: { x: 50, y: 240, w: 100, h: 20 },
+        target: { kind: 'page', page: 1 },
+        strokeWidth: 0,
+      },
+      {
+        ...common,
+        id: 'dist',
+        type: 'line',
+        color: '#1d4ed8',
+        rect: { x: 50, y: 300, w: 144, h: 0 },
+        points: [50, 300, 194, 300],
+        strokeWidth: 2,
+        startEnding: 'Butt',
+        endEnding: 'Butt',
+        fill: null,
+        measure: { kind: 'distance', scale: w.calibrate(1, 'in', 10, 'ft') },
+      },
+    ];
+    const saved = await w.writeAnnotationChanges(base, new Map(), list);
+    const h = e.open(saved, undefined);
+    const px = (x, y) => pixel(h, 0, 600, x, y);
+    const near = (p, rgb, tol = 40) => p.every((c, i) => Math.abs(c - rgb[i]) <= tol);
+    check('image stamp: opaque pixels paint', near(px(310, 60), [255, 0, 0]) && near(px(310, 80), [0, 255, 0]));
+    check('image stamp: the soft mask keeps transparent pixels see-through', isWhite(px(330, 60)));
+    check('image stamp: half-transparent pixels blend with the page', near(px(330, 80), [127, 127, 255], 50));
+    const frame = px(51, 73);
+    check('text stamp: the frame paints in its colour', frame[2] > frame[0] + 60);
+    const line = px(120, 300);
+    check('distance measurement: the line paints', line[2] > line[0] + 60);
+    const links = e.page_links(h, 0).map(([x, y, lw, lh, page, uri]) => ({ x, y, w: lw, h: lh, page, uri }));
+    check(
+      'links: PDFium resolves the URI and the page destination',
+      links.some((l) => l.uri === 'https://example.com/' && Math.abs(l.x - 50) < 1 && Math.abs(l.y - 200) < 1) &&
+        links.some((l) => l.page === 1),
+    );
+    const [page] = await w.readAnnotations(await w.PdfDoc.load(e.save_document(h)));
+    check(
+      'all of them read back after a PDFium save',
+      ['img', 'txt', 'uri', 'pg', 'dist'].every((id) => page.annotations.some((a) => a.annotation.id === id)),
     );
     e.close(h);
   }

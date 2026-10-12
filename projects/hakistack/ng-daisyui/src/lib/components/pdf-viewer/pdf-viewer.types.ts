@@ -1,5 +1,5 @@
 import { Signal, WritableSignal } from '@angular/core';
-import type { HkAnnotation, HkAnnotationInit } from './core/annotations/annotation.types';
+import type { HkAnnotation, HkAnnotationInit, PdfMeasureScale } from './core/annotations/annotation.types';
 
 /** A PDF document source. The component accepts a URL string, an in-memory byte array, or a Blob. */
 export type PdfDocumentSource = string | Uint8Array | Blob;
@@ -34,6 +34,9 @@ export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annota
  *   `'polyline'`, `'cloud'`.
  * - `'ink'` draws freehand; `'eraser'` erases ink.
  * - `'freetext'` places a text box; `'note'` drops a sticky note.
+ * - `'stamp'` places the stamp chosen in the stamp menu; `'link'` drags out a link area.
+ * - Measurements: `'distance'` (drag), `'perimeter'`, `'area'` and `'volume'`
+ *   (vertex by vertex), `'radius'` (drag a circle), in the current scale.
  */
 export type PdfAnnotationTool =
   | 'none'
@@ -51,7 +54,14 @@ export type PdfAnnotationTool =
   | 'ink'
   | 'eraser'
   | 'freetext'
-  | 'note';
+  | 'note'
+  | 'stamp'
+  | 'link'
+  | 'distance'
+  | 'perimeter'
+  | 'area'
+  | 'radius'
+  | 'volume';
 
 /**
  * Lightweight view-model for a PDF embedded file (attachment). Populated
@@ -130,6 +140,14 @@ export interface PdfViewerConfig {
   readonly bitmapCacheMB?: number;
   /** Author written on new annotations, replies and review states. Default: the `defaultAuthor` label ("Guest"). */
   readonly annotationAuthor?: string;
+  /**
+   * What users may do with annotations. `'edit'` (default): everything.
+   * `'review'`: read, comment, reply and set status, but not add, move or
+   * restyle. `'view'`: read only.
+   */
+  readonly annotationMode?: 'edit' | 'review' | 'view';
+  /** Users may only change annotations they authored (matched on `annotationAuthor`); others behave as locked. Default `false`. */
+  readonly restrictAnnotationsToAuthor?: boolean;
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 
@@ -186,6 +204,9 @@ export interface PdfViewerInternalHandlers {
   selectAnnotation?: (id: string | null) => void;
   undo?: () => Promise<boolean>;
   redo?: () => Promise<boolean>;
+  exportAnnotations?: (format: 'xfdf' | 'json') => string;
+  importAnnotations?: (data: string) => Promise<number>;
+  setMeasureScale?: (scale: PdfMeasureScale) => void;
   deletePage?: (pageNumber: number) => Promise<void>;
   insertBlankPage?: (atPageNumber: number) => Promise<void>;
   rotatePage?: (pageNumber: number, delta?: number) => void;
@@ -388,6 +409,12 @@ export interface PdfViewerController {
   undo(): Promise<boolean>;
   /** Redo the last undone edit. Resolves `false` when there is nothing to redo. */
   redo(): Promise<boolean>;
+  /** The annotations as XFDF (ISO 19444-1) or JSON (lossless, image stamps included). Empty before a document loads. */
+  exportAnnotations(format: 'xfdf' | 'json'): string;
+  /** Import XFDF or JSON (auto-detected) as one undo step; resolves with how many were imported. */
+  importAnnotations(data: string): Promise<number>;
+  /** The scale new measurements use, e.g. `{ ratio: 10 / 72, unit: 'ft', label: '1 in = 10 ft' }`. */
+  setMeasureScale(scale: PdfMeasureScale): void;
 
   // ── Page operations ──────────────────────────────────────────────────────
 

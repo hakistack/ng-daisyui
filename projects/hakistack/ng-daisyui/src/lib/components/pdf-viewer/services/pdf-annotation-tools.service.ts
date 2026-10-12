@@ -1,19 +1,39 @@
 import { Injectable, inject } from '@angular/core';
-import { HkAnnotation, PdfFreeTextAnnotation, PdfRect, TEXT_MARKUP_TYPES, PdfTextMarkupType } from '../core/annotations/annotation.types';
+import {
+  HkAnnotation,
+  PdfFreeTextAnnotation,
+  PdfMeasureKind,
+  PdfMeasurement,
+  PdfRect,
+  TEXT_MARKUP_TYPES,
+  PdfTextMarkupType,
+} from '../core/annotations/annotation.types';
 import { FREE_TEXT_PADDING, NOTE_ICON_SIZE, eraseStrokes, layoutFreeText, pointsBounds } from '../core/annotations/shapes';
+import { textWidth } from '../core/pdf-writer/standard-fonts';
 import { pointerToLocal } from '../core/geometry';
 import { PdfAnnotationTool } from '../pdf-viewer.types';
-import { DRAFT_ID, PdfAnnotationsService } from './pdf-annotations.service';
+import { PdfAnnotationDialogsService } from './pdf-annotation-dialogs.service';
+import { DRAFT_ID, PdfAnnotationsService, PendingStamp } from './pdf-annotations.service';
 import { PdfViewerStore } from './pdf-viewer.store';
 import { PdfViewportService } from './pdf-viewport.service';
 
 /** An in-progress drawing gesture on a page (0-based `page`, points). */
+type BoxTool = 'rect' | 'ellipse' | 'freetext' | 'stamp' | 'link' | 'radius';
+type LineTool = 'line' | 'arrow' | 'distance';
+type PolyTool = 'polygon' | 'polyline' | 'cloud' | 'perimeter' | 'area' | 'volume';
+
 type Gesture =
-  | { readonly kind: 'box'; readonly tool: 'rect' | 'ellipse' | 'freetext'; readonly page: number; readonly x: number; readonly y: number }
-  | { readonly kind: 'line'; readonly tool: 'line' | 'arrow'; readonly page: number; readonly x: number; readonly y: number }
+  | { readonly kind: 'box'; readonly tool: BoxTool; readonly page: number; readonly x: number; readonly y: number }
+  | { readonly kind: 'line'; readonly tool: LineTool; readonly page: number; readonly x: number; readonly y: number }
   | { readonly kind: 'ink'; readonly page: number; readonly points: number[] }
   | { readonly kind: 'erase'; readonly page: number }
-  | { readonly kind: 'poly'; readonly tool: 'polygon' | 'polyline' | 'cloud'; readonly page: number; readonly vertices: number[] };
+  | { readonly kind: 'poly'; readonly tool: PolyTool; readonly page: number; readonly vertices: number[] };
+
+const BOX_TOOLS: readonly PdfAnnotationTool[] = ['rect', 'ellipse', 'freetext', 'stamp', 'link', 'radius'];
+const LINE_TOOLS: readonly PdfAnnotationTool[] = ['line', 'arrow', 'distance'];
+const POLY_TOOLS: readonly PdfAnnotationTool[] = ['polygon', 'polyline', 'cloud', 'perimeter', 'area', 'volume'];
+/** Poly tools that draw an open path. */
+const OPEN_POLY: readonly PolyTool[] = ['polyline', 'perimeter'];
 
 /** Below this many points a drag counts as a click. */
 const MIN_DRAG = 4;
@@ -35,6 +55,7 @@ export class PdfAnnotationToolsService {
   private readonly store = inject(PdfViewerStore);
   private readonly viewport = inject(PdfViewportService);
   private readonly annotations = inject(PdfAnnotationsService);
+  private readonly dialogs = inject(PdfAnnotationDialogsService);
 
   private gesture: Gesture | null = null;
   /** Eraser hits run in order (each needs the strokes the previous one left). */
@@ -94,21 +115,20 @@ export class PdfAnnotationToolsService {
       void this.addNote(page, x, y);
       return;
     }
-    if (tool === 'polygon' || tool === 'polyline' || tool === 'cloud') {
-      this.addVertex(tool, page, x, y, pageNumber);
+    if (POLY_TOOLS.includes(tool)) {
+      this.addVertex(tool as PolyTool, page, x, y, pageNumber);
       return;
     }
     surface.setPointerCapture?.(ev.pointerId);
+    if (BOX_TOOLS.includes(tool)) {
+      this.gesture = { kind: 'box', tool: tool as BoxTool, page, x, y };
+      return;
+    }
+    if (LINE_TOOLS.includes(tool)) {
+      this.gesture = { kind: 'line', tool: tool as LineTool, page, x, y };
+      return;
+    }
     switch (tool) {
-      case 'rect':
-      case 'ellipse':
-      case 'freetext':
-        this.gesture = { kind: 'box', tool, page, x, y };
-        break;
-      case 'line':
-      case 'arrow':
-        this.gesture = { kind: 'line', tool, page, x, y };
-        break;
       case 'ink':
         this.gesture = { kind: 'ink', page, points: [x, y] };
         this.annotations.preview.set(this.inkDraft(page, [x, y]));
@@ -158,11 +178,20 @@ export class PdfAnnotationToolsService {
     this.annotations.preview.set(null);
     switch (g.kind) {
       case 'box': {
-        let rect = boxFrom(g.x, g.y, x, y, ev.shiftKey);
-        if (rect.w < MIN_DRAG && rect.h < MIN_DRAG) {
-          if (g.tool !== 'freetext') return;
+        let rect = boxFrom(g.x, g.y, x, y, ev.shiftKey || g.tool === 'radius');
+        const click = rect.w < MIN_DRAG && rect.h < MIN_DRAG;
+        if (click && g.tool === 'freetext') {
           const style = this.annotations.toolStyle('freetext');
           rect = { x: g.x, y: g.y, w: 180, h: Math.ceil(style.fontSize * 1.16 + 2 * (FREE_TEXT_PADDING + style.strokeWidth)) };
+        } else if (g.tool === 'stamp') {
+          void this.placeStamp(g.page, click ? null : rect, g.x, g.y);
+          return;
+        } else if (click) {
+          return;
+        }
+        if (g.tool === 'link') {
+          void this.addLink(g.page, rect);
+          return;
         }
         const annotation = this.boxDraft(g.tool, g.page, rect);
         if (annotation.type === 'freetext') this.annotations.textEdit.set({ annotation, isNew: true });
@@ -286,9 +315,26 @@ export class PdfAnnotationToolsService {
 
   // ── Drafts ──────────────────────────────────────────────────────────────
 
-  private boxDraft(tool: 'rect' | 'ellipse' | 'freetext', page: number, rect: PdfRect): Exclude<HkAnnotation, { type: 'line' }> {
+  private boxDraft(tool: BoxTool, page: number, rect: PdfRect): HkAnnotation {
     const s = this.annotations.toolStyle(tool);
     const base = { id: DRAFT_ID, page, rect, color: s.color, opacity: s.opacity, author: this.annotations.author() };
+    if (tool === 'stamp') {
+      const pending = this.annotations.pendingStamp();
+      return pending
+        ? { ...base, type: 'stamp', color: pending.color, name: pending.name, stamp: pending.stamp }
+        : { ...base, type: 'rect', strokeWidth: 1, fill: null, dash: [4, 3] };
+    }
+    if (tool === 'link') return { ...base, type: 'link', target: { kind: 'page', page: 0 }, strokeWidth: Math.max(1, s.strokeWidth) };
+    if (tool === 'radius') {
+      return {
+        ...base,
+        type: 'ellipse',
+        strokeWidth: s.strokeWidth,
+        fill: s.fill,
+        dash: s.dashed ? [4, 3] : undefined,
+        measure: this.measure('radius'),
+      };
+    }
     if (tool === 'freetext') {
       return {
         ...base,
@@ -311,7 +357,12 @@ export class PdfAnnotationToolsService {
     };
   }
 
-  private lineDraft(tool: 'line' | 'arrow', page: number, points: [number, number, number, number]): HkAnnotation {
+  /** A measurement in the current scale. */
+  private measure(kind: PdfMeasureKind): PdfMeasurement {
+    return { kind, scale: this.annotations.scale(), depth: kind === 'volume' ? this.annotations.depth() : undefined };
+  }
+
+  private lineDraft(tool: LineTool, page: number, points: [number, number, number, number]): HkAnnotation {
     const s = this.annotations.toolStyle(tool);
     return {
       id: DRAFT_ID,
@@ -327,10 +378,11 @@ export class PdfAnnotationToolsService {
       fill: s.fill,
       dash: s.dashed ? [4, 3] : undefined,
       author: this.annotations.author(),
+      measure: tool === 'distance' ? this.measure('distance') : undefined,
     };
   }
 
-  private polyDraft(tool: 'polygon' | 'polyline' | 'cloud', page: number, vertices: number[]): HkAnnotation {
+  private polyDraft(tool: PolyTool, page: number, vertices: number[]): HkAnnotation {
     const s = this.annotations.toolStyle(tool);
     const common = {
       id: DRAFT_ID,
@@ -344,8 +396,12 @@ export class PdfAnnotationToolsService {
       dash: s.dashed ? [4, 3] : undefined,
       author: this.annotations.author(),
     };
-    if (tool === 'polyline') return { ...common, type: 'polyline', startEnding: s.startEnding, endEnding: s.endEnding };
-    return { ...common, type: 'polygon', cloudy: tool === 'cloud' || s.cloudy || undefined };
+    if (tool === 'polyline' || tool === 'perimeter') {
+      const measure = tool === 'perimeter' ? this.measure('perimeter') : undefined;
+      return { ...common, type: 'polyline', startEnding: s.startEnding, endEnding: s.endEnding, measure };
+    }
+    const measure = tool === 'area' || tool === 'volume' ? this.measure(tool) : undefined;
+    return { ...common, type: 'polygon', cloudy: tool === 'cloud' || s.cloudy || undefined, measure };
   }
 
   private inkDraft(page: number, points: readonly number[]): HkAnnotation {
@@ -365,7 +421,7 @@ export class PdfAnnotationToolsService {
 
   // ── Gesture helpers ─────────────────────────────────────────────────────
 
-  private addVertex(tool: 'polygon' | 'polyline' | 'cloud', page: number, x: number, y: number, pageNumber: number): void {
+  private addVertex(tool: PolyTool, page: number, x: number, y: number, pageNumber: number): void {
     let g = this.gesture;
     if (g?.kind !== 'poly' || g.page !== page || g.tool !== tool) {
       g = { kind: 'poly', tool, page, vertices: [] };
@@ -373,7 +429,7 @@ export class PdfAnnotationToolsService {
     }
     const v = g.vertices;
     const closeRadius = CLOSE_RADIUS_PX / this.pxPerPoint(pageNumber);
-    if (tool !== 'polyline' && v.length >= 6 && Math.hypot(x - v[0], y - v[1]) <= closeRadius) {
+    if (!OPEN_POLY.includes(tool) && v.length >= 6 && Math.hypot(x - v[0], y - v[1]) <= closeRadius) {
       void this.finishPoly();
       return;
     }
@@ -388,8 +444,35 @@ export class PdfAnnotationToolsService {
     if (g?.kind !== 'poly') return;
     this.gesture = null;
     this.annotations.preview.set(null);
-    const enough = g.tool === 'polyline' ? g.vertices.length >= 4 : g.vertices.length >= 6;
+    const enough = OPEN_POLY.includes(g.tool) ? g.vertices.length >= 4 : g.vertices.length >= 6;
     if (enough) await this.annotations.add(this.polyDraft(g.tool, g.page, g.vertices));
+  }
+
+  /** Place the pending stamp: in the dragged box, or at its natural size centred on the click. Then back to selecting it. */
+  private async placeStamp(page: number, rect: PdfRect | null, x: number, y: number): Promise<void> {
+    const pending = this.annotations.pendingStamp();
+    if (!pending) return;
+    const size = stampSize(pending);
+    const box = rect ?? { x: x - size.w / 2, y: y - size.h / 2, w: size.w, h: size.h };
+    const id = await this.annotations.add({
+      type: 'stamp',
+      page,
+      rect: box,
+      color: pending.color,
+      opacity: 1,
+      name: pending.name,
+      stamp: pending.stamp,
+    });
+    this.setTool('none');
+    this.annotations.select(id);
+  }
+
+  /** Ask where the dragged link goes, then add it. */
+  private async addLink(page: number, rect: PdfRect): Promise<void> {
+    const target = await this.dialogs.askLink();
+    if (!target) return;
+    const s = this.annotations.toolStyle('link');
+    await this.annotations.add({ type: 'link', page, rect, target, color: s.color, opacity: 1, strokeWidth: s.strokeWidth });
   }
 
   private async addNote(page: number, x: number, y: number): Promise<void> {
@@ -441,6 +524,19 @@ export class PdfAnnotationToolsService {
     const width = this.viewport.pageCssWidth(pageNumber);
     return page && width > 0 ? width / page.baseWidth : this.viewport.scale() || 1;
   }
+}
+
+/** A stamp's natural size: text stamps fit their text, images keep their aspect within 160 pt. */
+function stampSize(p: PendingStamp): { w: number; h: number } {
+  const s = p.stamp;
+  if (s.kind === 'image') {
+    const k = 160 / Math.max(s.width, s.height, 1);
+    return { w: Math.max(8, s.width * k), h: Math.max(8, s.height * k) };
+  }
+  const h = s.subtext ? 46 : 34;
+  const text = Math.max(textWidth(s.text, 'Helvetica-Bold', h * 0.42), s.subtext ? textWidth(s.subtext, 'Helvetica', h * 0.2) : 0);
+  const w = Math.min(360, Math.max(90, text + h * 0.9 + (s.shape === 'arrow' ? h / 2 : 0)));
+  return { w, h };
 }
 
 /** The rectangle spanned by two points; `square` constrains it to a square. */

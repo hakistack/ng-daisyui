@@ -115,9 +115,9 @@ describe('PDF annotation editing', () => {
     }
   }
 
-  async function load() {
+  async function load(extra: Partial<PdfViewerConfig> = {}) {
     const fixture = TestBed.createComponent(HostComponent);
-    const viewer = createPdfViewer({ zoom: 1, annotationAuthor: 'Tester' });
+    const viewer = createPdfViewer({ zoom: 1, annotationAuthor: 'Tester', ...extra });
     fixture.componentInstance.config.set(viewer.config());
     fixture.componentInstance.src.set(annotatedPdf);
     await settle(fixture);
@@ -278,5 +278,107 @@ describe('PDF annotation editing', () => {
       author: 'Tester',
       contents: 'Hi',
     });
+  });
+
+  // ── Phase 4 ───────────────────────────────────────────────────────────
+
+  it('places a chosen stamp with one click, then selects it', async () => {
+    const { el, viewer, fixture } = await load();
+    viewer.setAnnotationTool('none');
+    await settle(fixture);
+    // Open the annotation toolbar and pick a standard stamp from its menu.
+    el.querySelector<HTMLButtonElement>('button[aria-label="Annotate"]')!.click();
+    await settle(fixture);
+    const approved = Array.from(el.querySelectorAll<HTMLButtonElement>('details.dropdown button')).find(
+      (b) => b.textContent?.trim() === 'APPROVED',
+    )!;
+    approved.click();
+    await settle(fixture);
+    const surface = el.querySelector<HTMLElement>('.hk-pdf-edit-layer.hk-pdf-edit-active')!;
+    pointer(surface, 'pointerdown', 300, 300);
+    pointer(surface, 'pointerup', 300, 300);
+    await settle(fixture);
+    const stamp = viewer.getAnnotations().find((a) => a.type === 'stamp');
+    expect(stamp).toMatchObject({ name: 'Approved', stamp: { kind: 'text', text: 'APPROVED' } });
+    expect(stamp!.rect.x + stamp!.rect.w / 2).toBeCloseTo(300, 6); // centred on the click
+    expect(el.querySelector('[aria-label="Stamp by Tester"]')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('follows links while reading and edits them with the annotation tools open', async () => {
+    const { el, viewer, fixture } = await load();
+    const id = await viewer.addAnnotation({
+      type: 'link',
+      page: 0,
+      rect: { x: 10, y: 10, w: 100, h: 20 },
+      color: '#2563eb',
+      opacity: 1,
+      target: { kind: 'uri', uri: 'https://example.com/' },
+      strokeWidth: 0,
+    });
+    await settle(fixture);
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const link = () => el.querySelector<SVGPathElement>('[aria-label="https://example.com/"]')!;
+    expect(link().getAttribute('role')).toBe('link');
+    link().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(open).toHaveBeenCalledWith('https://example.com/', '_blank', 'noopener,noreferrer');
+
+    el.querySelector<HTMLButtonElement>('button[aria-label="Annotate"]')!.click();
+    await settle(fixture);
+    expect(link().getAttribute('role')).toBe('button');
+    link().dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+    await settle(fixture);
+    expect(viewer.getAnnotations().find((a) => a.id === id)).toBeTruthy();
+    expect(el.querySelector('hk-pdf-annotation-panel section')?.textContent).toContain('Web address');
+  });
+
+  it('measures a distance in the calibrated scale', async () => {
+    const { el, viewer, fixture } = await load();
+    viewer.setMeasureScale({ ratio: 10 / 72, unit: 'ft', label: '1 in = 10 ft' });
+    viewer.setAnnotationTool('distance');
+    await settle(fixture);
+    const surface = el.querySelector<HTMLElement>('.hk-pdf-edit-layer.hk-pdf-edit-active')!;
+    pointer(surface, 'pointerdown', 100, 500);
+    pointer(surface, 'pointermove', 244, 500);
+    pointer(surface, 'pointerup', 244, 500);
+    await settle(fixture);
+    const m = viewer.getAnnotations().find((a) => a.type === 'line');
+    expect(m).toMatchObject({ measure: { kind: 'distance', scale: { unit: 'ft' } } });
+    const labels = Array.from(el.querySelectorAll('.hk-pdf-annot-text')).map((t) => t.textContent);
+    expect(labels).toContain('20 ft');
+  });
+
+  it('reorders, duplicates and imports/exports annotations', async () => {
+    const { viewer, fixture } = await load();
+    const second = await viewer.addAnnotation({ ...SQUARE, id: undefined, rect: { x: 120, y: 120, w: 50, h: 50 } });
+    await settle(fixture);
+    expect(viewer.getAnnotations().map((a) => a.id)).toEqual(['sq-1', second]);
+
+    viewer.selectAnnotation('sq-1');
+    await settle(fixture);
+    const el = fixture.nativeElement as HTMLElement;
+    el.querySelector<HTMLButtonElement>('button[aria-label="Bring to front"]')!.click();
+    await settle(fixture);
+    expect(viewer.getAnnotations().map((a) => a.id)).toEqual([second, 'sq-1']);
+    el.querySelector<HTMLButtonElement>('button[aria-label="Duplicate"]')!.click();
+    await settle(fixture);
+    expect(viewer.getAnnotations()).toHaveLength(3);
+
+    const xfdf = viewer.exportAnnotations('xfdf');
+    expect(xfdf).toContain('<square ');
+    await viewer.deleteAnnotation('sq-1');
+    expect(await viewer.importAnnotations(xfdf)).toBe(3);
+    expect(viewer.getAnnotations().map((a) => a.id)).toContain('sq-1');
+    // One import is one undo step.
+    await viewer.undo();
+    expect(viewer.getAnnotations().map((a) => a.id)).not.toContain('sq-1');
+  });
+
+  it('review mode allows comments but not edits', async () => {
+    const { el, viewer, key } = await load({ annotationMode: 'review' });
+    await key(hits(el)[0], 'Delete');
+    await viewer.updateAnnotation('sq-1', { color: '#000000' });
+    await viewer.updateAnnotation('sq-1', { contents: 'Reviewed' });
+    expect(viewer.getAnnotations()[0]).toMatchObject({ color: '#dc2626', contents: 'Reviewed' });
+    await expect(viewer.addAnnotation({ ...SQUARE, id: undefined })).rejects.toThrow();
   });
 });

@@ -457,3 +457,16 @@
   outline: 2px solid var(--hk-pdf-primary);
   outline-offset: 1px;
 }
+
+/* Link areas: a pointer while reading; a dashed outline while the annotation tools are open. */
+:host ::ng-deep .hk-pdf-annot-hit.hk-pdf-annot-link {
+  cursor: pointer;
+}
+
+:host ::ng-deep .hk-pdf-annot-link-outline {
+  fill: color-mix(in oklab, var(--hk-pdf-primary) 8%, transparent);
+  stroke: var(--hk-pdf-primary);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+  pointer-events: none;
+}

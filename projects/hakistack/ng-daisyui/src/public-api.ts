@@ -430,6 +430,14 @@ export type {
   PdfInkAnnotation,
   PdfFreeTextAnnotation,
   PdfNoteAnnotation,
+  PdfStampAnnotation,
+  PdfStampContent,
+  PdfLinkAnnotation,
+  PdfLinkTarget,
+  PdfMeasureUnit,
+  PdfMeasureScale,
+  PdfMeasureKind,
+  PdfMeasurement,
 } from './lib/components/pdf-viewer/core/annotations/annotation.types';
 
 // Tree

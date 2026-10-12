@@ -6,13 +6,18 @@ import {
   PdfAnnotationReply,
   PdfFreeTextAnnotation,
   PdfLineEnding,
+  PdfMeasureScale,
   PdfRect,
   PdfReviewStatus,
+  PdfStampContent,
   PdfTextMarkupType,
   newAnnotationId,
 } from '../core/annotations/annotation.types';
+import { DEFAULT_SCALE } from '../core/annotations/measure';
+import { PageSpace } from '../core/annotations/page-space';
 import { mergeSelectionRects } from '../core/annotations/selection';
-import { withDerivedRect } from '../core/annotations/shapes';
+import { translateAnnotation, withDerivedRect } from '../core/annotations/shapes';
+import { exportAnnotationsJson, exportXfdf, importAnnotationsJson, importXfdf } from '../core/annotations/xfdf';
 import { CommandStack, PdfCommand, PdfCommandStackState } from '../core/command-stack';
 import { pointerToLocal } from '../core/geometry';
 import { PdfDoc } from '../core/pdf-writer/document';
@@ -40,6 +45,16 @@ export interface AnnotationToolStyle {
 
 type DrawingTool = Exclude<PdfAnnotationTool, 'none'>;
 
+/** A stamp chosen in the stamp menu, placed by the next click on a page. */
+export interface PendingStamp {
+  readonly name: string;
+  readonly stamp: PdfStampContent;
+  readonly color: string;
+}
+
+/** Where an annotation moves in its page's paint order. */
+export type AnnotationArrange = 'front' | 'forward' | 'backward' | 'back';
+
 const BASE_STYLE: AnnotationToolStyle = {
   color: '#dc2626',
   opacity: 1,
@@ -66,6 +81,12 @@ const TOOL_DEFAULTS: Partial<Record<DrawingTool, Partial<AnnotationToolStyle>>> 
   ink: { color: '#2563eb' },
   freetext: { color: '#111827', strokeWidth: 0, fontSize: 14 },
   note: { color: '#facc15' },
+  link: { color: '#2563eb', strokeWidth: 0 },
+  distance: { color: '#2563eb', strokeWidth: 1, startEnding: 'Butt', endEnding: 'Butt' },
+  perimeter: { color: '#2563eb', strokeWidth: 1 },
+  area: { color: '#2563eb', strokeWidth: 1 },
+  volume: { color: '#7c3aed', strokeWidth: 1 },
+  radius: { color: '#2563eb', strokeWidth: 1 },
 };
 
 const TOOLS: readonly DrawingTool[] = [
@@ -84,10 +105,23 @@ const TOOLS: readonly DrawingTool[] = [
   'eraser',
   'freetext',
   'note',
+  'stamp',
+  'link',
+  'distance',
+  'perimeter',
+  'area',
+  'radius',
+  'volume',
 ];
 
-/** Keys a locked annotation still accepts (its comment thread and the lock itself, per the Locked flag). */
-const LOCK_EXEMPT = new Set(['contents', 'replies', 'status', 'locked', 'modified']);
+/** Changes that only touch the comment thread (allowed on locked annotations and in review mode). */
+const COMMENT_KEYS = new Set(['contents', 'replies', 'status']);
+
+/** What a pasted copy doesn't keep from the original. */
+const PASTE_DROPPED = ['id', 'replies', 'status', 'locked', 'created', 'author'] as const;
+
+/** Clipboard format for annotations copied between viewers. */
+export const ANNOTATION_CLIPBOARD_TYPE = 'application/x-hk-pdf-annotations+json';
 
 interface AnnotationCommand extends PdfCommand {
   readonly id: string;
@@ -128,6 +162,16 @@ export class PdfAnnotationsService {
   readonly textEdit = signal<{ readonly annotation: PdfFreeTextAnnotation; readonly isNew: boolean } | null>(null);
   /** Ask the comments panel to reveal an annotation's thread (`seq` re-triggers for the same id). */
   readonly commentsFocus = signal<{ readonly id: string; readonly seq: number } | null>(null);
+  /** The scale new measurements use ("1 in = 10 ft"), and the depth new volumes get. */
+  readonly scale = signal<PdfMeasureScale>(DEFAULT_SCALE);
+  readonly depth = signal(1);
+  /** The stamp the stamp tool places. */
+  readonly pendingStamp = signal<PendingStamp | null>(null);
+
+  /** `edit` (default): everything; `review`: comments, replies and status only; `view`: read-only. */
+  readonly mode = computed(() => this.store.config().annotationMode ?? 'edit');
+  /** New annotations can be added. */
+  readonly canAdd = computed(() => this.supported() && this.mode() === 'edit');
 
   private readonly styles = signal<Partial<Record<DrawingTool, AnnotationToolStyle>>>({});
 
@@ -162,6 +206,10 @@ export class PdfAnnotationsService {
   private chain: Promise<unknown> = Promise.resolve();
   private loadSeq = 0;
   private focusSeq = 0;
+  /** Each page's display ↔ user-space mapping (for XFDF). */
+  private spaces: PageSpace[] = [];
+  /** Last copied annotations (when the system clipboard drops the custom format). */
+  private clipboard: HkAnnotation[] = [];
 
   constructor() {
     this.stack.subscribe((state) => {
@@ -178,6 +226,22 @@ export class PdfAnnotationsService {
   /** Author for new annotations and replies. */
   author(): string {
     return this.store.config().annotationAuthor || this.store.labels().defaultAuthor;
+  }
+
+  /** Whether the user may change an annotation's shape and style (or its lock). */
+  canModify(a: HkAnnotation): boolean {
+    if (!this.supported() || this.mode() !== 'edit') return false;
+    return !this.store.config().restrictAnnotationsToAuthor || !a.author || a.author === this.author();
+  }
+
+  /** Whether the user may move, restyle or delete it: allowed and not locked. */
+  canEdit(a: HkAnnotation): boolean {
+    return this.canModify(a) && !a.locked;
+  }
+
+  /** Whether the user may edit its comment, replies and status. */
+  canComment(_a: HkAnnotation): boolean {
+    return this.supported() && this.mode() !== 'view';
   }
 
   // ── Loading ─────────────────────────────────────────────────────────────
@@ -208,6 +272,7 @@ export class PdfAnnotationsService {
       if (seq !== this.loadSeq) return;
       if (pages.length !== pageCount) throw new Error(`page count mismatch (${pages.length} vs ${pageCount})`);
       this.baseline = new Map(pages.flatMap((p) => p.annotations.map((a) => [a.annotation.id, a] as const)));
+      this.spaces = pages.map((p) => p.space);
       this.list.set(pages.flatMap((p) => p.annotations.map((a) => a.annotation)));
       this.supported.set(true);
       await this.syncHidden();
@@ -239,7 +304,7 @@ export class PdfAnnotationsService {
   }
 
   private async addNow(init: HkAnnotationInit, label?: string): Promise<string> {
-    if (!this.supported()) throw new Error('Annotations are not editable in this document');
+    if (!this.canAdd()) throw new Error('Annotations are not editable in this document');
     const now = new Date().toISOString();
     const annotation = withDerivedRect({
       ...init,
@@ -273,7 +338,13 @@ export class PdfAnnotationsService {
     const before = this.list().find((a) => a.id === id);
     if (!before) return;
     const changed = typeof changes === 'function' ? changes(before) : ({ ...before, ...changes } as HkAnnotation);
-    if (before.locked && !onlyExemptChanges(before, changed)) return;
+    const keys = changedKeys(before, changed);
+    const allowed = keys.every((k) => COMMENT_KEYS.has(k))
+      ? this.canComment(before)
+      : keys.every((k) => k === 'locked' || COMMENT_KEYS.has(k))
+        ? this.canModify(before)
+        : this.canEdit(before);
+    if (!allowed) return;
     const after = withDerivedRect({ ...changed, id, type: before.type, page: before.page, modified: before.modified } as HkAnnotation);
     if (sameAnnotation(before, after)) return;
     await this.record(opts.label ?? 'Edit annotation', before, { ...after, modified: new Date().toISOString() }, opts.mergeKey);
@@ -283,7 +354,7 @@ export class PdfAnnotationsService {
   remove(id: string): Promise<void> {
     return this.serial(async () => {
       const before = this.list().find((a) => a.id === id);
-      if (!before || before.locked) return;
+      if (!before || !this.canEdit(before)) return;
       await this.record(`Delete ${before.type}`, before, null);
     });
   }
@@ -310,6 +381,131 @@ export class PdfAnnotationsService {
       await this.stack.rollbackTransaction();
       throw err;
     }
+  }
+
+  // ── Arrange, clipboard ──────────────────────────────────────────────────
+
+  /** Move an annotation in its page's paint order (front = drawn last). */
+  arrange(id: string, where: AnnotationArrange): Promise<void> {
+    return this.serial(async () => {
+      const list = this.list();
+      const a = list.find((x) => x.id === id);
+      if (!a || !this.canEdit(a)) return;
+      const page = list.filter((x) => x.page === a.page);
+      const from = page.indexOf(a);
+      const to =
+        where === 'front'
+          ? page.length - 1
+          : where === 'back'
+            ? 0
+            : where === 'forward'
+              ? Math.min(page.length - 1, from + 1)
+              : Math.max(0, from - 1);
+      if (to === from) return;
+      const order = [...page];
+      order.splice(from, 1);
+      order.splice(to, 0, a);
+      let k = 0;
+      const next = list.map((x) => (x.page === a.page ? order[k++] : x));
+      await this.stack.execute({ label: 'Arrange', apply: () => this.list.set(next), revert: () => this.list.set(list) });
+    });
+  }
+
+  /** Copy annotations (for paste here or in another viewer); returns the clipboard data. */
+  copy(ids: readonly string[]): string {
+    this.clipboard = this.list().filter((a) => ids.includes(a.id));
+    return exportAnnotationsJson(this.clipboard);
+  }
+
+  /** Plain text put on the clipboard with a copy: the comments, or a marker when there are none. */
+  copyText(): string {
+    return (
+      this.clipboard
+        .map((a) => a.contents ?? '')
+        .join('\n')
+        .trim() || `[${this.clipboard.length} annotation(s)]`
+    );
+  }
+
+  /** Whether clipboard text is what our last copy put there (custom-format fallback). */
+  isLastCopy(text: string | null): boolean {
+    return !!text && this.clipboard.length > 0 && text === this.copyText();
+  }
+
+  lastCopy(): string | null {
+    return this.clipboard.length ? exportAnnotationsJson(this.clipboard) : null;
+  }
+
+  /**
+   * Paste annotations onto a page (0-based), as new ones: comment threads and
+   * locks aren't copied, and a paste onto the same page shifts down-right so
+   * the copy is visible. Returns the new ids (selecting the first).
+   */
+  async paste(text: string, page: number): Promise<string[]> {
+    let items: HkAnnotation[];
+    try {
+      items = importAnnotationsJson(text);
+    } catch {
+      return [];
+    }
+    if (!items.length || !this.canAdd() || page < 0 || page >= this.spaces.length) return [];
+    const ids: string[] = [];
+    await this.transaction('Paste', async () => {
+      for (const item of items) {
+        const shifted = item.page === page ? translateAnnotation(item, 12, 12) : { ...item, page };
+        // A paste is a new annotation by the user: no thread, lock, identity or history carries over.
+        const copy: Record<string, unknown> = { ...shifted, page };
+        for (const key of PASTE_DROPPED) delete copy[key];
+        ids.push(await this.add(copy as unknown as HkAnnotationInit, 'Paste'));
+      }
+    });
+    if (ids[0]) this.select(ids[0]);
+    return ids;
+  }
+
+  /** Copy an annotation in place (shifted). */
+  async duplicate(id: string): Promise<string | null> {
+    const a = this.list().find((x) => x.id === id);
+    if (!a) return null;
+    const [copy] = await this.paste(exportAnnotationsJson([a]), a.page);
+    return copy ?? null;
+  }
+
+  // ── Import / export ─────────────────────────────────────────────────────
+
+  exportXfdf(href?: string): string {
+    return exportXfdf(this.list(), this.spaces, href);
+  }
+
+  exportJson(): string {
+    return exportAnnotationsJson(this.list());
+  }
+
+  /**
+   * Import XFDF or JSON (detected from the text) as one undo step: an
+   * annotation whose id already exists replaces it, the rest are added.
+   * Annotations for pages this document doesn't have are skipped. Returns how
+   * many were imported.
+   */
+  async importAnnotations(text: string): Promise<number> {
+    if (!this.canAdd()) return 0;
+    const items = text.trimStart().startsWith('<') ? importXfdf(text, this.spaces) : importAnnotationsJson(text);
+    const valid = items.filter((a) => a.page >= 0 && a.page < this.spaces.length);
+    await this.transaction('Import annotations', async () => {
+      for (const a of valid) {
+        if (this.list().some((x) => x.id === a.id)) await this.update(a.id, () => a, { label: 'Import annotations' });
+        else await this.add(a, 'Import annotations');
+      }
+    });
+    return valid.length;
+  }
+
+  /** Rects (points) of the link annotations of a page as the file has them: the PDFium link overlay leaves these to the annotation layer. */
+  managedLinkRects(pageNumber: number): PdfRect[] {
+    const out: PdfRect[] = [];
+    for (const b of this.baseline.values())
+      if (b.annotation.type === 'link' && b.annotation.page === pageNumber - 1) out.push(b.annotation.rect);
+    return out;
   }
 
   // ── Comment threads ─────────────────────────────────────────────────────
@@ -444,11 +640,13 @@ export class PdfAnnotationsService {
 
   /** A page was deleted (0-based): its annotations go, later pages shift up. History is cleared. */
   onPageRemoved(index: number): void {
+    this.spaces.splice(index, 1);
     this.shiftPages((page) => (page === index ? null : page > index ? page - 1 : page));
   }
 
-  /** A page was inserted at `index` (0-based): later pages shift down. History is cleared. */
-  onPageInserted(index: number): void {
+  /** A page of `width` × `height` points was inserted at `index` (0-based): later pages shift down. History is cleared. */
+  onPageInserted(index: number, width = 612, height = 792): void {
+    this.spaces.splice(index, 0, new PageSpace([0, 0, width, height], 0));
     this.shiftPages((page) => (page >= index ? page + 1 : page));
   }
 
@@ -473,13 +671,17 @@ export class PdfAnnotationsService {
 
   // ── Saving ──────────────────────────────────────────────────────────────
 
-  /** Whether the annotations differ from the document's. */
+  /** Whether the annotations differ from the document's (content or paint order). */
   hasChanges(): boolean {
     const list = this.list();
     if (list.length !== this.baseline.size) return true;
+    const lastIndex = new Map<number, number>();
     return list.some((a) => {
       const b = this.baseline.get(a.id);
-      return !b || b.annotation.page !== a.page || !sameAnnotation(b.annotation, a);
+      if (!b || b.annotation.page !== a.page || !sameAnnotation(b.annotation, a)) return true;
+      const reordered = b.index < (lastIndex.get(a.page) ?? -1);
+      lastIndex.set(a.page, b.index);
+      return reordered;
     });
   }
 
@@ -539,8 +741,11 @@ export class PdfAnnotationsService {
   }
 }
 
-/** True when `after` differs from `before` only in the keys a locked annotation accepts. */
-function onlyExemptChanges(before: HkAnnotation, after: HkAnnotation): boolean {
-  const strip = (a: HkAnnotation) => Object.fromEntries(Object.entries(a).filter(([k]) => !LOCK_EXEMPT.has(k))) as unknown as HkAnnotation;
-  return sameAnnotation(strip(before), strip(after));
+/** The keys whose values differ between two versions (ignoring `modified`). */
+function changedKeys(before: HkAnnotation, after: HkAnnotation): string[] {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  keys.delete('modified');
+  const b = before as unknown as Record<string, unknown>;
+  const a = after as unknown as Record<string, unknown>;
+  return [...keys].filter((k) => JSON.stringify(b[k]) !== JSON.stringify(a[k]));
 }

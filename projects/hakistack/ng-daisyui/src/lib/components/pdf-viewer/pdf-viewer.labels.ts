@@ -272,6 +272,142 @@ export interface PdfViewerLabels {
   endingSlash?: string;
   /** Default: "Double-click or press Enter to finish; Esc cancels." */
   finishShape?: string;
+  /** Default: "Stamp" */
+  stamp?: string;
+  /** Default: "Standard" */
+  standardStamps?: string;
+  /** Default: "Dynamic" */
+  dynamicStamps?: string;
+  /** Default: "Sign here" */
+  signHereStamps?: string;
+  /** Default: "Custom stamp…" */
+  customStamp?: string;
+  /** Default: "Image stamp…" */
+  imageStamp?: string;
+  /** Default: "Custom stamp" */
+  textStampTitle?: string;
+  /** Default: "Text" */
+  stampText?: string;
+  /** Default: "Second line" */
+  stampSubtext?: string;
+  /** Default: "Shape" */
+  stampShape?: string;
+  /** Default: "Rounded" */
+  shapeRounded?: string;
+  /** Default: "Square corners" */
+  shapeRect?: string;
+  /** Default: "Arrow" */
+  shapeArrow?: string;
+  /** Default: "Add name and date" */
+  includeAuthorDate?: string;
+  /** Default: "{author} · {date}" */
+  dynamicStampSubtext?: string;
+  /** Default: "APPROVED" */
+  stampApproved?: string;
+  /** Default: "NOT APPROVED" */
+  stampNotApproved?: string;
+  /** Default: "DRAFT" */
+  stampDraft?: string;
+  /** Default: "FINAL" */
+  stampFinal?: string;
+  /** Default: "CONFIDENTIAL" */
+  stampConfidential?: string;
+  /** Default: "FOR COMMENT" */
+  stampForComment?: string;
+  /** Default: "FOR PUBLIC RELEASE" */
+  stampForPublicRelease?: string;
+  /** Default: "NOT FOR PUBLIC RELEASE" */
+  stampNotForPublicRelease?: string;
+  /** Default: "EXPERIMENTAL" */
+  stampExperimental?: string;
+  /** Default: "EXPIRED" */
+  stampExpired?: string;
+  /** Default: "AS IS" */
+  stampAsIs?: string;
+  /** Default: "DEPARTMENTAL" */
+  stampDepartmental?: string;
+  /** Default: "SOLD" */
+  stampSold?: string;
+  /** Default: "TOP SECRET" */
+  stampTopSecret?: string;
+  /** Default: "RECEIVED" */
+  stampReceived?: string;
+  /** Default: "REVIEWED" */
+  stampReviewed?: string;
+  /** Default: "REVISED" */
+  stampRevised?: string;
+  /** Default: "SIGN HERE" */
+  stampSignHere?: string;
+  /** Default: "WITNESS" */
+  stampWitness?: string;
+  /** Default: "INITIAL HERE" */
+  stampInitialHere?: string;
+  /** Default: "Link" */
+  link?: string;
+  /** Default: "Link to" */
+  linkTarget?: string;
+  /** Default: "Web address" */
+  linkUrl?: string;
+  /** Default: "Page" */
+  linkPage?: string;
+  /** Default: "Open link" */
+  openLink?: string;
+  /** Default: "Enter an http(s), mailto or tel address." */
+  invalidUrl?: string;
+  /** Default: "Measure" */
+  measure?: string;
+  /** Default: "Distance" */
+  distance?: string;
+  /** Default: "Perimeter" */
+  perimeter?: string;
+  /** Default: "Area" */
+  area?: string;
+  /** Default: "Radius" */
+  radius?: string;
+  /** Default: "Volume" */
+  volume?: string;
+  /** Default: "Calibrate scale…" */
+  calibrate?: string;
+  /** Default: "Measurement scale" */
+  calibrateTitle?: string;
+  /** Default: "On the page" */
+  scaleOnPage?: string;
+  /** Default: "In reality" */
+  scaleInReality?: string;
+  /** Default: "Depth" */
+  depth?: string;
+  /** Default: "Decimals" */
+  precision?: string;
+  /** Default: "Scale: {scale}" */
+  currentScale?: string;
+  /** Default: "Arrange" */
+  arrange?: string;
+  /** Default: "Bring to front" */
+  bringToFront?: string;
+  /** Default: "Bring forward" */
+  bringForward?: string;
+  /** Default: "Send backward" */
+  sendBackward?: string;
+  /** Default: "Send to back" */
+  sendToBack?: string;
+  /** Default: "Copy" */
+  copy?: string;
+  /** Default: "Cut" */
+  cut?: string;
+  /** Default: "Paste" */
+  paste?: string;
+  /** Default: "Duplicate" */
+  duplicate?: string;
+  /** Default: "Import annotations…" */
+  importAnnotations?: string;
+  /** Default: "Export XFDF" */
+  exportXfdf?: string;
+  /** Default: "Export JSON" */
+  exportJson?: string;
+  /** Default: "The file couldn't be imported." */
+  importFailed?: string;
+  /** Default: "Apply" */
+  apply?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -404,6 +540,74 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   endingButt: 'Bar',
   endingSlash: 'Slash',
   finishShape: 'Double-click or press Enter to finish; Esc cancels.',
+  stamp: 'Stamp',
+  standardStamps: 'Standard',
+  dynamicStamps: 'Dynamic',
+  signHereStamps: 'Sign here',
+  customStamp: 'Custom stamp…',
+  imageStamp: 'Image stamp…',
+  textStampTitle: 'Custom stamp',
+  stampText: 'Text',
+  stampSubtext: 'Second line',
+  stampShape: 'Shape',
+  shapeRounded: 'Rounded',
+  shapeRect: 'Square corners',
+  shapeArrow: 'Arrow',
+  includeAuthorDate: 'Add name and date',
+  dynamicStampSubtext: '{author} · {date}',
+  stampApproved: 'APPROVED',
+  stampNotApproved: 'NOT APPROVED',
+  stampDraft: 'DRAFT',
+  stampFinal: 'FINAL',
+  stampConfidential: 'CONFIDENTIAL',
+  stampForComment: 'FOR COMMENT',
+  stampForPublicRelease: 'FOR PUBLIC RELEASE',
+  stampNotForPublicRelease: 'NOT FOR PUBLIC RELEASE',
+  stampExperimental: 'EXPERIMENTAL',
+  stampExpired: 'EXPIRED',
+  stampAsIs: 'AS IS',
+  stampDepartmental: 'DEPARTMENTAL',
+  stampSold: 'SOLD',
+  stampTopSecret: 'TOP SECRET',
+  stampReceived: 'RECEIVED',
+  stampReviewed: 'REVIEWED',
+  stampRevised: 'REVISED',
+  stampSignHere: 'SIGN HERE',
+  stampWitness: 'WITNESS',
+  stampInitialHere: 'INITIAL HERE',
+  link: 'Link',
+  linkTarget: 'Link to',
+  linkUrl: 'Web address',
+  linkPage: 'Page',
+  openLink: 'Open link',
+  invalidUrl: 'Enter an http(s), mailto or tel address.',
+  measure: 'Measure',
+  distance: 'Distance',
+  perimeter: 'Perimeter',
+  area: 'Area',
+  radius: 'Radius',
+  volume: 'Volume',
+  calibrate: 'Calibrate scale…',
+  calibrateTitle: 'Measurement scale',
+  scaleOnPage: 'On the page',
+  scaleInReality: 'In reality',
+  depth: 'Depth',
+  precision: 'Decimals',
+  currentScale: 'Scale: {scale}',
+  arrange: 'Arrange',
+  bringToFront: 'Bring to front',
+  bringForward: 'Bring forward',
+  sendBackward: 'Send backward',
+  sendToBack: 'Send to back',
+  copy: 'Copy',
+  cut: 'Cut',
+  paste: 'Paste',
+  duplicate: 'Duplicate',
+  importAnnotations: 'Import annotations…',
+  exportXfdf: 'Export XFDF',
+  exportJson: 'Export JSON',
+  importFailed: "The file couldn't be imported.",
+  apply: 'Apply',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');

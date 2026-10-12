@@ -19,10 +19,19 @@ import {
   LucideUndo2,
   LucideWaves,
   LucideX,
+  LucideStamp,
+  LucideLink,
+  LucideRuler,
+  LucideFileUp,
+  LucideFileDown,
+  LucideImageUp,
 } from '@lucide/angular';
 import { ResolvedPdfViewerLabels } from '../pdf-viewer.labels';
 import { PdfAnnotationTool } from '../pdf-viewer.types';
+import { PdfAnnotationDialogsService } from '../services/pdf-annotation-dialogs.service';
 import { PdfAnnotationToolsService } from '../services/pdf-annotation-tools.service';
+import { PdfDocumentService } from '../services/pdf-document.service';
+import { DYNAMIC_STAMPS, SIGN_HERE_STAMPS, STANDARD_STAMPS, StampPreset, imageStampFromFile, presetStamp } from './pdf-stamps';
 import { PdfAnnotationsService } from '../services/pdf-annotations.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 
@@ -80,8 +89,9 @@ const GROUPS: readonly (readonly ToolButton[])[] = [
 
 /**
  * The annotation toolbar row, opened from the main toolbar's Annotate
- * button: the tools (toggle buttons), the active tool's colour, undo / redo,
- * and close. Scrolls horizontally when the viewer is narrow.
+ * button: the tools (toggle buttons), stamps, links, measurement, the active
+ * tool's colour, import / export, undo / redo, and close. Wraps when the
+ * viewer is narrow (a scrolling row would clip its menus).
  */
 @Component({
   selector: 'hk-pdf-annotation-toolbar',
@@ -105,6 +115,12 @@ const GROUPS: readonly (readonly ToolButton[])[] = [
     LucideUndo2,
     LucideRedo2,
     LucideX,
+    LucideStamp,
+    LucideLink,
+    LucideRuler,
+    LucideFileUp,
+    LucideFileDown,
+    LucideImageUp,
   ],
   templateUrl: './pdf-annotation-toolbar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -114,13 +130,76 @@ export class PdfAnnotationToolbarComponent {
   protected readonly store = inject(PdfViewerStore);
   protected readonly annotations = inject(PdfAnnotationsService);
   protected readonly tools = inject(PdfAnnotationToolsService);
+  protected readonly dialogs = inject(PdfAnnotationDialogsService);
+  private readonly document = inject(PdfDocumentService);
 
   protected readonly groups = GROUPS;
+  protected readonly standardStamps = STANDARD_STAMPS;
+  protected readonly dynamicStamps = DYNAMIC_STAMPS;
+  protected readonly signHereStamps = SIGN_HERE_STAMPS;
+  protected readonly measureTools: readonly { tool: PdfAnnotationTool; label: keyof ResolvedPdfViewerLabels }[] = [
+    { tool: 'distance', label: 'distance' },
+    { tool: 'perimeter', label: 'perimeter' },
+    { tool: 'area', label: 'area' },
+    { tool: 'radius', label: 'radius' },
+    { tool: 'volume', label: 'volume' },
+  ];
+  protected readonly measuring = computed(() => this.measureTools.some((m) => m.tool === this.store.annotationTool()));
 
   /** Colour new annotations of the active tool get. */
   protected readonly color = computed(() => this.annotations.toolStyle(this.store.annotationTool()).color);
   protected readonly showsColor = computed(() => this.store.annotationTool() !== 'none' && this.store.annotationTool() !== 'eraser');
   protected readonly polyHint = computed(() => ['polygon', 'polyline', 'cloud'].includes(this.store.annotationTool()));
+
+  /** Pick a stamp from the menu: the stamp tool then places it on the next click. */
+  protected chooseStamp(preset: StampPreset, dynamic: boolean, menu: HTMLDetailsElement): void {
+    menu.open = false;
+    const stamp = presetStamp(preset, this.store.labels(), dynamic ? { author: this.annotations.author(), date: new Date() } : null);
+    this.annotations.pendingStamp.set(stamp);
+    this.tools.setTool('stamp');
+  }
+
+  protected openStampDesigner(menu: HTMLDetailsElement): void {
+    menu.open = false;
+    this.dialogs.openStampDesigner();
+  }
+
+  /** An uploaded image becomes the pending stamp. */
+  protected async onStampImage(input: HTMLInputElement, menu: HTMLDetailsElement): Promise<void> {
+    const file = input.files?.[0];
+    input.value = '';
+    menu.open = false;
+    if (!file) return;
+    try {
+      const stamp = await imageStampFromFile(file);
+      this.annotations.pendingStamp.set({ name: 'Image', stamp, color: '#000000' });
+      this.tools.setTool('stamp');
+    } catch (err) {
+      this.store.reportOperationError({ code: 'unknown', message: this.store.labels().importFailed, recoverable: true, cause: err });
+    }
+  }
+
+  protected chooseMeasure(tool: PdfAnnotationTool, menu: HTMLDetailsElement): void {
+    menu.open = false;
+    this.tools.setTool(tool);
+  }
+
+  protected openCalibrate(menu: HTMLDetailsElement): void {
+    menu.open = false;
+    this.dialogs.openCalibrate();
+  }
+
+  protected exportAs(format: 'xfdf' | 'json', menu: HTMLDetailsElement): void {
+    menu.open = false;
+    this.document.exportAnnotations(format);
+  }
+
+  protected async onImportFile(input: HTMLInputElement, menu: HTMLDetailsElement): Promise<void> {
+    const file = input.files?.[0];
+    input.value = '';
+    menu.open = false;
+    if (file) await this.document.importAnnotationsFile(file);
+  }
 
   protected onColor(ev: Event): void {
     const value = (ev.target as HTMLInputElement | null)?.value;

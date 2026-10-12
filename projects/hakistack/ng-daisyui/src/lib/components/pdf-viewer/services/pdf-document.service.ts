@@ -242,7 +242,7 @@ export class PdfDocumentService {
     const ref = pages[Math.min(idx, pages.length - 1)];
     try {
       await session.engine.insertBlankPage(session.doc, idx, ref?.baseWidth ?? 612, ref?.baseHeight ?? 792);
-      this.annotations.onPageInserted(idx);
+      this.annotations.onPageInserted(idx, ref?.baseWidth ?? 612, ref?.baseHeight ?? 792);
       await this.refreshPageStructure();
     } catch (err) {
       this.store.reportOperationError({ code: 'render_failed', message: 'Failed to insert page.', recoverable: true, cause: err });
@@ -424,6 +424,27 @@ export class PdfDocumentService {
       new Blob([parts.join('\n\n')], { type: 'text/plain;charset=utf-8' }),
       filename || this.deriveFilename().replace(/\.pdf$/i, '.txt'),
     );
+  }
+
+  /** Download the annotations as XFDF or JSON. */
+  exportAnnotations(format: 'xfdf' | 'json'): void {
+    const base = this.deriveFilename().replace(/\.pdf$/i, '');
+    if (format === 'xfdf') {
+      const xml = this.annotations.exportXfdf(`${base}.pdf`);
+      downloadBlob(new Blob([xml], { type: 'application/vnd.adobe.xfdf' }), `${base}.xfdf`);
+    } else {
+      downloadBlob(new Blob([this.annotations.exportJson()], { type: 'application/json' }), `${base}-annotations.json`);
+    }
+  }
+
+  /** Import annotations from an XFDF or JSON file; a bad file is reported, not thrown. */
+  async importAnnotationsFile(file: File): Promise<number> {
+    try {
+      return await this.annotations.importAnnotations(await file.text());
+    } catch (err) {
+      this.store.reportOperationError({ code: 'unknown', message: this.store.labels().importFailed, recoverable: true, cause: err });
+      return 0;
+    }
   }
 
   private deriveFilename(): string {

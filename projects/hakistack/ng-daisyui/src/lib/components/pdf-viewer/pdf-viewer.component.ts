@@ -20,7 +20,8 @@ import { HkPdfToolbarContext, HkPdfToolbarDirective } from './pdf-viewer.directi
 import { INTERACTIVE_SELECTOR } from './pdf-viewer.helpers';
 import { PdfDocumentSource, PdfLoadedInfo, PdfViewerConfig, PdfViewerError, PdfViewerInternalApi } from './pdf-viewer.types';
 import { PdfAnnotationToolsService } from './services/pdf-annotation-tools.service';
-import { PdfAnnotationsService } from './services/pdf-annotations.service';
+import { ANNOTATION_CLIPBOARD_TYPE, PdfAnnotationsService } from './services/pdf-annotations.service';
+import { PdfAnnotationDialogsService } from './services/pdf-annotation-dialogs.service';
 import { PdfDocumentService } from './services/pdf-document.service';
 import { PdfFindService } from './services/pdf-find.service';
 import { PdfFormsService } from './services/pdf-forms.service';
@@ -29,6 +30,7 @@ import { PdfPageDataService } from './services/pdf-page-data.service';
 import { PdfThumbnailsService } from './services/pdf-thumbnails.service';
 import { PdfViewerStore, providePdfBitmapCache } from './services/pdf-viewer.store';
 import { PdfViewportService } from './services/pdf-viewport.service';
+import { PdfAnnotationDialogsComponent } from './ui/pdf-annotation-dialogs.component';
 import { PdfAnnotationPanelComponent } from './ui/pdf-annotation-panel.component';
 import { PdfAnnotationToolbarComponent } from './ui/pdf-annotation-toolbar.component';
 import { PdfFindBarComponent } from './ui/pdf-find-bar.component';
@@ -79,6 +81,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfToolbarComponent,
     PdfAnnotationToolbarComponent,
     PdfAnnotationPanelComponent,
+    PdfAnnotationDialogsComponent,
     PdfFindBarComponent,
     PdfSidebarComponent,
     PdfPagesComponent,
@@ -97,6 +100,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfFindService,
     PdfThumbnailsService,
     PdfAnnotationsService,
+    PdfAnnotationDialogsService,
     PdfAnnotationToolsService,
     PdfDocumentService,
   ],
@@ -106,6 +110,9 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     // without making each page wrapper tabbable.
     tabindex: '0',
     '(keydown)': 'onKeyDown($event)',
+    '(copy)': 'onClipboard($event, false)',
+    '(cut)': 'onClipboard($event, true)',
+    '(paste)': 'onPaste($event)',
   },
 })
 export class PdfViewerComponent implements OnInit {
@@ -253,6 +260,9 @@ export class PdfViewerComponent implements OnInit {
       selectAnnotation: (id) => annotations.select(id, true),
       undo: () => annotations.undo(),
       redo: () => annotations.redo(),
+      exportAnnotations: (format) => (format === 'xfdf' ? annotations.exportXfdf() : annotations.exportJson()),
+      importAnnotations: (data) => annotations.importAnnotations(data),
+      setMeasureScale: (scale) => annotations.scale.set(scale),
       deletePage: (pageNumber) => doc.deletePage(pageNumber),
       insertBlankPage: (atPageNumber) => doc.insertBlankPage(atPageNumber),
       rotatePage: (pageNumber, delta) => doc.rotatePage(pageNumber, delta),
@@ -325,6 +335,44 @@ export class PdfViewerComponent implements OnInit {
       event.preventDefault();
       run();
     }
+  }
+
+  /**
+   * Copy / cut the selected annotation (when no text is selected and focus
+   * isn't in a field): as our clipboard format, readable by another viewer,
+   * plus its comment as plain text.
+   */
+  onClipboard(event: ClipboardEvent, cut: boolean): void {
+    const id = this.annotations.selectedId();
+    if (!id || this.isEditableTarget(event.target) || this.hasTextSelection()) return;
+    const data = this.annotations.copy([id]);
+    event.clipboardData?.setData(ANNOTATION_CLIPBOARD_TYPE, data);
+    event.clipboardData?.setData('text/plain', this.annotations.copyText());
+    event.preventDefault();
+    if (cut) void this.annotations.remove(id);
+  }
+
+  /** Paste annotations (ours, from this or another viewer) onto the current page. */
+  onPaste(event: ClipboardEvent): void {
+    if (this.isEditableTarget(event.target)) return;
+    // Browsers that drop custom clipboard types still carry our plain text: then paste the last copy.
+    const data =
+      event.clipboardData?.getData(ANNOTATION_CLIPBOARD_TYPE) ||
+      (this.annotations.isLastCopy(event.clipboardData?.getData('text/plain') ?? null) ? this.annotations.lastCopy() : null);
+    if (!data) return;
+    event.preventDefault();
+    void this.annotations.paste(data, (this.store.state()?.page ?? 1) - 1);
+  }
+
+  private isEditableTarget(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null;
+    const tag = el?.tagName?.toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || !!el?.isContentEditable;
+  }
+
+  private hasTextSelection(): boolean {
+    const sel = this.store.element.ownerDocument.getSelection();
+    return !!sel && !sel.isCollapsed && sel.toString().length > 0;
   }
 
   /** Annotation shortcuts (see {@link onKeyDown}). Returns true when the key was handled. */

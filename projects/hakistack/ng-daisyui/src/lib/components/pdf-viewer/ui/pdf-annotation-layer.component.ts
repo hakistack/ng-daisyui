@@ -4,6 +4,7 @@ import {
   DrawOp,
   annotationOps,
   cssFontFamily,
+  imageDataUrl,
   isResizable,
   outerBounds,
   rectSegs,
@@ -17,6 +18,7 @@ import { PdfAnnotationToolsService } from '../services/pdf-annotation-tools.serv
 import { PdfAnnotationsService } from '../services/pdf-annotations.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { PdfViewportService } from '../services/pdf-viewport.service';
+import { isSafeLinkUri } from '../pdf-viewer.helpers';
 import { annotationTypeLabel } from './pdf-annotation-labels';
 
 /** One painted path, ready for the template. */
@@ -42,11 +44,21 @@ interface TextView {
   readonly opacity: number;
 }
 
+/** An embedded image (image stamps). */
+interface ImageView {
+  readonly rect: PdfRect;
+  readonly href: string;
+  readonly opacity: number;
+}
+
 interface AnnotationView {
   readonly id: string;
   readonly blend: readonly PathView[];
   readonly paths: readonly PathView[];
   readonly texts: readonly TextView[];
+  readonly images: readonly ImageView[];
+  /** Link areas: where they go (they navigate while the annotation tools are closed). */
+  readonly link: { readonly href: string | null; readonly page: number | null; readonly rect: PdfRect } | null;
   /** Hit target: filled shapes are hit anywhere inside, outlines only near the stroke. */
   readonly hit: { readonly d: string; readonly area: boolean; readonly width: number };
   readonly label: string;
@@ -109,6 +121,8 @@ export class PdfAnnotationLayerComponent {
   private readonly k = computed(() => (this.pageWidth() > 0 ? this.cssWidth() / this.pageWidth() : 1));
   protected readonly viewBox = computed(() => `0 0 ${this.pageWidth()} ${this.pageHeight()}`);
   protected readonly drawing = computed(() => this.tools.isDrawingTool(this.store.annotationTool()));
+  /** Links are edited only while the annotation tools are open; otherwise they navigate. */
+  protected readonly editingLinks = computed(() => this.store.annotationBarOpen());
 
   protected readonly views = computed(() => {
     const k = this.k();
@@ -179,6 +193,7 @@ export class PdfAnnotationLayerComponent {
 
   protected onAnnotationPointerDown(ev: PointerEvent, id: string): void {
     if (ev.button !== 0 || this.drawing()) return;
+    if (this.isNavigableLink(id)) return; // its click navigates
     ev.stopPropagation();
     ev.preventDefault();
     const a = this.annotations.list().find((x) => x.id === id);
@@ -237,7 +252,26 @@ export class PdfAnnotationLayerComponent {
     void this.annotations.update(d.original.id, () => result, { label });
   }
 
+  /** Follow a link (while the annotation tools are closed). */
+  protected onAnnotationClick(ev: MouseEvent, id: string): void {
+    if (!this.isNavigableLink(id)) return;
+    ev.preventDefault();
+    this.followLink(id);
+  }
+
+  private isNavigableLink(id: string): boolean {
+    return !this.editingLinks() && this.annotations.list().find((a) => a.id === id)?.type === 'link';
+  }
+
+  private followLink(id: string): void {
+    const a = this.annotations.list().find((x) => x.id === id);
+    if (a?.type !== 'link') return;
+    if (a.target.kind === 'page') this.viewport.goToPage(a.target.page + 1);
+    else if (isSafeLinkUri(a.target.uri)) window.open(a.target.uri, '_blank', 'noopener,noreferrer');
+  }
+
   protected onAnnotationDoubleClick(id: string): void {
+    if (this.isNavigableLink(id)) return;
     const a = this.annotations.list().find((x) => x.id === id);
     if (!a) return;
     if (a.type === 'freetext') this.tools.editText(id);
@@ -252,6 +286,14 @@ export class PdfAnnotationLayerComponent {
   protected onAnnotationKeydown(ev: KeyboardEvent, id: string): void {
     const a = this.annotations.list().find((x) => x.id === id);
     if (!a) return;
+    if (this.isNavigableLink(id)) {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        ev.stopPropagation();
+        this.followLink(id);
+      }
+      return;
+    }
     const step = ev.ctrlKey || ev.metaKey ? 10 : 1;
     const arrows: Record<string, [number, number]> = {
       ArrowLeft: [-step, 0],
@@ -298,6 +340,7 @@ export class PdfAnnotationLayerComponent {
   }
 
   protected onAnnotationFocus(id: string): void {
+    if (this.isNavigableLink(id)) return;
     if (this.annotations.selectedId() !== id) this.annotations.select(id);
   }
 
@@ -402,7 +445,12 @@ function toView(a: HkAnnotation, k: number, labels: Parameters<typeof annotation
   const blend: PathView[] = [];
   const paths: PathView[] = [];
   const texts: TextView[] = [];
+  const images: ImageView[] = [];
   for (const op of ops) {
+    if (op.kind === 'image') {
+      images.push({ rect: op.rect, href: imageDataUrl(op), opacity: op.opacity });
+      continue;
+    }
     if (op.kind === 'text') {
       texts.push({
         clip: op.clip,
@@ -417,23 +465,35 @@ function toView(a: HkAnnotation, k: number, labels: Parameters<typeof annotation
     }
     (op.blend === 'multiply' ? blend : paths).push(pathView(op));
   }
-  const filled = isTextMarkup(a) || a.type === 'note' || a.type === 'freetext' || ops.some((op) => op.kind === 'path' && !!op.fill);
+  const boxed = a.type === 'freetext' || a.type === 'note' || a.type === 'stamp' || a.type === 'link';
+  const filled = isTextMarkup(a) || boxed || ops.some((op) => op.kind === 'path' && !!op.fill);
   const hitD = isTextMarkup(a)
     ? svgPath(a.quads.flatMap(rectSegs))
-    : a.type === 'freetext' || a.type === 'note'
+    : boxed
       ? svgPath(rectSegs(a.rect))
-      : ops.map((op) => (op.kind === 'path' ? svgPath(op.segs) : svgPath(rectSegs(op.clip)))).join('');
+      : ops.map((op) => (op.kind === 'path' ? svgPath(op.segs) : svgPath(rectSegs(op.kind === 'text' ? op.clip : op.rect)))).join('');
   const strokeWidth = 'strokeWidth' in a ? a.strokeWidth : 0;
   const type = annotationTypeLabel(a, labels);
   const author = a.author || labels.defaultAuthor;
+  const linkLabel =
+    a.type === 'link' ? (a.target.kind === 'uri' ? a.target.uri : labels.linkToPage.replace('{page}', String(a.target.page + 1))) : null;
   return {
     id: a.id,
     blend,
     paths,
     texts,
+    images,
+    link:
+      a.type === 'link'
+        ? {
+            href: a.target.kind === 'uri' && isSafeLinkUri(a.target.uri) ? a.target.uri : null,
+            page: a.target.kind === 'page' ? a.target.page : null,
+            rect: a.rect,
+          }
+        : null,
     hit: { d: hitD || svgPath(rectSegs(outerBounds(a))), area: filled, width: Math.max(strokeWidth, (2 * HIT_PX) / k) },
-    label: labels.annotationAriaLabel.replace('{type}', type).replace('{author}', author),
-    title: a.contents ? `${author}: ${a.contents}` : `${type} — ${author}`,
+    label: linkLabel ?? labels.annotationAriaLabel.replace('{type}', type).replace('{author}', author),
+    title: linkLabel ?? (a.contents ? `${author}: ${a.contents}` : `${type} — ${author}`),
     locked: !!a.locked,
   };
 }

@@ -1,9 +1,14 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
   LucideAlignCenter,
   LucideAlignLeft,
   LucideAlignRight,
+  LucideArrowDown,
+  LucideArrowDownToLine,
+  LucideArrowUp,
+  LucideArrowUpToLine,
+  LucideCopy,
   LucideLock,
   LucideLockOpen,
   LucideMessageSquareText,
@@ -11,6 +16,9 @@ import {
   LucideX,
 } from '@lucide/angular';
 import { HkAnnotation, HkAnnotationType, PdfLineEnding } from '../core/annotations/annotation.types';
+import { measureLabel, measurementOf } from '../core/annotations/measure';
+import { isSafeLinkUri } from '../pdf-viewer.helpers';
+import { AnnotationArrange } from '../services/pdf-annotations.service';
 import type { StandardFont } from '../core/pdf-writer/standard-fonts';
 import { PdfAnnotationTool } from '../pdf-viewer.types';
 import { AnnotationToolStyle, PdfAnnotationsService } from '../services/pdf-annotations.service';
@@ -42,6 +50,13 @@ const TOOL_TYPE: Record<Exclude<PdfAnnotationTool, 'none' | 'eraser'>, HkAnnotat
   ink: 'ink',
   freetext: 'freetext',
   note: 'note',
+  stamp: 'stamp',
+  link: 'link',
+  distance: 'line',
+  perimeter: 'polyline',
+  area: 'polygon',
+  volume: 'polygon',
+  radius: 'ellipse',
 };
 
 /** Which fields apply to which annotation type. */
@@ -58,6 +73,8 @@ const FIELDS: Record<HkAnnotationType, readonly Field[]> = {
   ink: ['color', 'opacity', 'strokeWidth'],
   freetext: ['fontColor', 'font', 'fontSize', 'align', 'fill', 'color', 'strokeWidth', 'opacity'],
   note: ['color', 'icon', 'opacity'],
+  stamp: ['opacity'],
+  link: ['color', 'strokeWidth'],
 };
 
 /**
@@ -69,6 +86,11 @@ const FIELDS: Record<HkAnnotationType, readonly Field[]> = {
   selector: 'hk-pdf-annotation-panel',
   imports: [
     NgTemplateOutlet,
+    LucideCopy,
+    LucideArrowUpToLine,
+    LucideArrowUp,
+    LucideArrowDown,
+    LucideArrowDownToLine,
     LucideX,
     LucideTrash2,
     LucideLock,
@@ -110,7 +132,90 @@ export class PdfAnnotationPanelComponent {
       : annotationTypeLabel({ type: t.type, endEnding: t.style.endEnding, cloudy: t.style.cloudy }, labels);
   });
 
-  protected readonly locked = computed(() => !!this.target()?.annotation?.locked);
+  protected readonly locked = computed(() => {
+    const a = this.target()?.annotation;
+    return !!a && !this.annotations.canEdit(a);
+  });
+  /** Whether the lock can be toggled (the user may modify it). */
+  protected readonly canLock = computed(() => {
+    const a = this.target()?.annotation;
+    return !!a && this.annotations.canModify(a);
+  });
+
+  /** A measurement's value and scale, for the read-out. */
+  protected readonly measurement = computed(() => {
+    const a = this.target()?.annotation;
+    const m = a ? measurementOf(a) : null;
+    return a && m ? { value: measureLabel(a) ?? '', scale: m.scale.label, kind: m.kind, depth: m.depth ?? 1 } : null;
+  });
+
+  /** The selected link's target, for its editor. */
+  protected readonly link = computed(() => {
+    const a = this.target()?.annotation;
+    return a?.type === 'link' ? a.target : null;
+  });
+  protected readonly linkError = signal(false);
+
+  protected readonly arrangeActions: readonly {
+    where: AnnotationArrange;
+    label: 'bringToFront' | 'bringForward' | 'sendBackward' | 'sendToBack';
+  }[] = [
+    { where: 'front', label: 'bringToFront' },
+    { where: 'forward', label: 'bringForward' },
+    { where: 'backward', label: 'sendBackward' },
+    { where: 'back', label: 'sendToBack' },
+  ];
+
+  protected arrange(where: AnnotationArrange): void {
+    const a = this.target()?.annotation;
+    if (a) void this.annotations.arrange(a.id, where);
+  }
+
+  protected duplicate(): void {
+    const a = this.target()?.annotation;
+    if (a) void this.annotations.duplicate(a.id);
+  }
+
+  protected setDepth(ev: Event): void {
+    const a = this.target()?.annotation;
+    const depth = Number((ev.target as HTMLInputElement).value);
+    if (!a || !(depth > 0)) return;
+    void this.annotations.update(
+      a.id,
+      (cur) => ('measure' in cur && cur.measure ? ({ ...cur, measure: { ...cur.measure, depth } } as HkAnnotation) : cur),
+      { label: 'Change depth', mergeKey: 'measure:depth' },
+    );
+  }
+
+  /** Link target edits: a web address (validated) or a page number. */
+  protected setLinkKind(kind: 'uri' | 'page'): void {
+    const a = this.target()?.annotation;
+    if (a?.type !== 'link' || a.target.kind === kind) return;
+    this.linkError.set(false);
+    const target =
+      kind === 'page' ? ({ kind, page: Math.max(0, (this.store.state()?.page ?? 1) - 1) } as const) : ({ kind, uri: 'https://' } as const);
+    void this.annotations.update(a.id, { target }, { label: 'Edit link' });
+  }
+
+  protected setLinkUri(value: string): void {
+    const a = this.target()?.annotation;
+    const uri = value.trim();
+    if (a?.type !== 'link') return;
+    if (!isSafeLinkUri(uri)) {
+      this.linkError.set(true);
+      return;
+    }
+    this.linkError.set(false);
+    void this.annotations.update(a.id, { target: { kind: 'uri', uri } }, { label: 'Edit link' });
+  }
+
+  protected setLinkPage(value: string): void {
+    const a = this.target()?.annotation;
+    const page = this.store.pageFromInput(value);
+    const total = this.store.state()?.numPages ?? 0;
+    if (a?.type !== 'link' || page === null || page < 1 || page > total) return;
+    void this.annotations.update(a.id, { target: { kind: 'page', page: page - 1 } }, { label: 'Edit link' });
+  }
 
   protected has(field: Field): boolean {
     const t = this.target();

@@ -1,11 +1,12 @@
-import { HkAnnotation, PdfLineEnding, PdfReviewStatus } from '../core/annotations/annotation.types';
+import { HkAnnotation, PdfLineEnding, PdfMeasureKind, PdfReviewStatus } from '../core/annotations/annotation.types';
 import { ResolvedPdfViewerLabels } from '../pdf-viewer.labels';
 
 /** The localized name of an annotation's kind (a line with an arrow ending reads as an arrow). */
 export function annotationTypeLabel(
-  a: Pick<HkAnnotation, 'type'> & Partial<{ endEnding: PdfLineEnding; cloudy: boolean }>,
+  a: Pick<HkAnnotation, 'type'> & Partial<{ endEnding: PdfLineEnding; cloudy: boolean; measure: { kind: PdfMeasureKind } }>,
   labels: ResolvedPdfViewerLabels,
 ): string {
+  if (a.measure) return labels[a.measure.kind];
   switch (a.type) {
     case 'highlight':
       return labels.highlight;
@@ -31,6 +32,10 @@ export function annotationTypeLabel(
       return labels.textBox;
     case 'note':
       return labels.stickyNote;
+    case 'stamp':
+      return labels.stamp;
+    case 'link':
+      return labels.link;
   }
 }
 
