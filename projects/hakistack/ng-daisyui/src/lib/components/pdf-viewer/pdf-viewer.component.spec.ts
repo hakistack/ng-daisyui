@@ -268,6 +268,31 @@ describe('PdfViewerComponent (virtualization)', () => {
     expect(viewer.state().searchMatches).toBe(1);
   });
 
+  it('ctrl+wheel previews the zoom with a transform, then commits it when the gesture settles', async () => {
+    const { fixture, el, viewer } = await load();
+    const viewport = el.querySelector<HTMLElement>('.hk-pdf-viewport')!;
+    const stack = el.querySelector<HTMLElement>('.hk-pdf-page-stack')!;
+
+    const wheel = new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, clientX: 20, clientY: 20, cancelable: true });
+    viewport.dispatchEvent(wheel);
+    expect(wheel.defaultPrevented).toBe(true); // the browser must not zoom the whole page
+    expect(stack.style.transform).toBe('scale(1.25)');
+    expect(viewer.state().zoomMode).toBe(1); // not committed yet
+
+    await new Promise((r) => setTimeout(r, 200));
+    fixture.detectChanges();
+    expect(viewer.state().zoomMode).toBe(1.25);
+    expect(stack.style.transform).toBe('');
+  });
+
+  it('leaves a plain wheel to scroll', async () => {
+    const { el } = await load();
+    const wheel = new WheelEvent('wheel', { deltaY: 100, cancelable: true });
+    el.querySelector<HTMLElement>('.hk-pdf-viewport')!.dispatchEvent(wheel);
+    expect(wheel.defaultPrevented).toBe(false);
+    expect(el.querySelector<HTMLElement>('.hk-pdf-page-stack')!.style.transform).toBe('');
+  });
+
   it('sizes each mounted canvas from the layout before it renders', async () => {
     const { el } = await load();
     const canvas = el.querySelector<HTMLCanvasElement>('.hk-pdf-page canvas')!;

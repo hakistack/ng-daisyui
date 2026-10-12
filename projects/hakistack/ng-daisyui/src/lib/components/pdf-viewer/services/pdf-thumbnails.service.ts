@@ -79,6 +79,7 @@ export class PdfThumbnailsService {
    * later), so retry on the next frame until they do.
    */
   private install(panel: HTMLElement): void {
+    if (typeof IntersectionObserver === 'undefined') return; // e.g. SSR shims, test DOMs
     const buttons = panel.querySelectorAll<HTMLElement>('.hk-pdf-thumbnail');
     if (buttons.length === 0) {
       requestAnimationFrame(() => {

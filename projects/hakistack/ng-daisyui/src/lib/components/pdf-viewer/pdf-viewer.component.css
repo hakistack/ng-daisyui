@@ -52,6 +52,9 @@
      different cap (e.g. fill a flex container) can override `.hk-pdf-viewport`
      in their app stylesheet. */
   max-height: 75vh;
+  /* Keep native one-finger panning but hand two-finger pinches to the viewer,
+     which zooms the document instead of the whole page. */
+  touch-action: pan-x pan-y;
 }
 
 /* In fullscreen the host fills the whole screen, but the 75vh cap above would

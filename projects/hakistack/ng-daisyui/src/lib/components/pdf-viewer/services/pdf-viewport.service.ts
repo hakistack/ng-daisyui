@@ -2,6 +2,7 @@ import { DestroyRef, Injectable, Injector, afterNextRender, computed, effect, in
 import { BitmapCache } from '../core/bitmap-cache';
 import { VIEWPORT_PAD_X, VIEWPORT_PAD_Y, fitDevicePixelRatio, isQuarterTurn, resolveZoomScale } from '../core/geometry';
 import { PageLayout } from '../core/page-layout';
+import { accumulateZoomRatio, anchoredScrollLeft, touchDistance, wheelZoomFactor } from '../core/zoom-gesture';
 import { PdfPageEntry } from '../core/types';
 import { PdfDisplayMode, PdfZoom } from '../pdf-viewer.types';
 import { PdfFindService } from './pdf-find.service';
@@ -30,11 +31,29 @@ interface RenderHandle {
   promise: Promise<unknown>;
 }
 
-/** Reading position to restore after a zoom change: a page and how far down it the viewport top was. */
+/**
+ * Reading position to restore after a zoom change: a page, how far down it
+ * the anchored point was, and where in the viewport that point sat. Gesture
+ * zoom also keeps the point under the pointer horizontally.
+ */
 interface ScrollAnchor {
   readonly index: number;
   readonly fraction: number;
+  /** Distance of the anchored point from the viewport's top edge (px). */
+  readonly viewportY: number;
+  readonly horizontal?: { readonly scrollLeft: number; readonly viewportX: number };
 }
+
+/** An in-progress pinch / ctrl+wheel zoom, previewed with a CSS transform until it settles. */
+interface ZoomGesture {
+  readonly baseScale: number;
+  ratio: number;
+  clientX: number;
+  clientY: number;
+}
+
+/** Quiet time after the last gesture event before the zoom is committed and re-rendered (ms). */
+const GESTURE_COMMIT_MS = 150;
 
 /**
  * The scrolling page area: page virtualization, rasterizing pages onto their
@@ -297,7 +316,10 @@ export class PdfViewportService {
 
   /** Change zoom, keeping the same point of the same page at the top of the viewport. */
   setZoom(zoom: PdfZoom): void {
-    const anchor = this.captureAnchor();
+    this.applyZoom(zoom, this.captureAnchor());
+  }
+
+  private applyZoom(zoom: PdfZoom, anchor: ScrollAnchor | null): void {
     this.store.patchState((s) => ({ ...s, zoomMode: zoom }));
     void this.renderAll();
     this.restoreAnchorAfterRender(anchor);
@@ -329,19 +351,28 @@ export class PdfViewportService {
     return r ? `rotate(${r}deg)` : null;
   }
 
-  /** The page at the top of the viewport and how far down it the top is (0–1). */
-  private captureAnchor(): ScrollAnchor | null {
+  /**
+   * Anchor the point at `viewportY` px from the viewport's top (default: the
+   * content start below the padding): which page it's on and how far down it.
+   */
+  private captureAnchor(viewportY?: number, viewportX?: number): ScrollAnchor | null {
     const vp = this.viewportEl();
     const layout = this.layout();
     if (!vp || this.isSingleMode() || layout.count === 0) return null;
-    const y = vp.scrollTop - this.stackOffset() + paddingTop(vp);
+    const anchorY = viewportY ?? paddingTop(vp);
+    const y = vp.scrollTop - this.stackOffset() + anchorY;
     const index = layout.indexAt(y);
     const height = layout.height(index);
-    return { index, fraction: height > 0 ? Math.max(0, Math.min(1, (y - layout.top(index)) / height)) : 0 };
+    return {
+      index,
+      fraction: height > 0 ? Math.max(0, Math.min(1, (y - layout.top(index)) / height)) : 0,
+      viewportY: anchorY,
+      horizontal: viewportX === undefined ? undefined : { scrollLeft: vp.scrollLeft, viewportX },
+    };
   }
 
-  /** After the new zoom has laid out (spacers resized), scroll back to `anchor`. */
-  private restoreAnchorAfterRender(anchor: ScrollAnchor | null): void {
+  /** After the new zoom has laid out (spacers resized), scroll so the anchored point is back in place. */
+  private restoreAnchorAfterRender(anchor: ScrollAnchor | null, factor = 1): void {
     if (!anchor) return;
     afterNextRender(
       () => {
@@ -349,11 +380,98 @@ export class PdfViewportService {
         const layout = this.layout();
         if (!vp || anchor.index >= layout.count) return;
         const y = layout.top(anchor.index) + anchor.fraction * layout.height(anchor.index);
-        this.scrollViewportTo(vp, this.stackOffset() + y - paddingTop(vp));
+        if (anchor.horizontal) vp.scrollLeft = anchoredScrollLeft(anchor.horizontal.scrollLeft, anchor.horizontal.viewportX, factor);
+        this.scrollViewportTo(vp, this.stackOffset() + y - anchor.viewportY);
       },
       { injector: this.injector },
     );
   }
+
+  // ── Gesture zoom (pinch, ctrl/⌘ + wheel) ────────────────────────────────
+
+  private gesture: ZoomGesture | null = null;
+  private gestureTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Touch pinch: distance between the fingers and the gesture ratio when it started. */
+  private pinchStart: { distance: number; ratio: number } | null = null;
+  /** Safari gesture events: the ratio when the gesture started (`event.scale` is cumulative). */
+  private safariGestureStartRatio = 1;
+
+  /**
+   * Scale the in-progress gesture by `factor` around the client point. The
+   * stack is previewed with a CSS transform (instant, no re-raster); the zoom
+   * commits once the gesture has been quiet for {@link GESTURE_COMMIT_MS}.
+   */
+  private zoomGesture(factor: number, clientX: number, clientY: number): void {
+    const stack = this.stackEl();
+    if (!stack || this.store.pages.length === 0) return;
+    const baseScale = this.gesture?.baseScale ?? this.scale();
+    const g = (this.gesture ??= { baseScale, ratio: 1, clientX, clientY });
+    g.ratio = accumulateZoomRatio(g.ratio, factor, baseScale);
+    g.clientX = clientX;
+    g.clientY = clientY;
+    const rect = stack.getBoundingClientRect();
+    stack.style.transformOrigin = `${clientX - rect.left}px ${clientY - rect.top}px`;
+    stack.style.transform = `scale(${g.ratio})`;
+    if (this.gestureTimer !== null) clearTimeout(this.gestureTimer);
+    this.gestureTimer = setTimeout(() => this.commitGesture(), GESTURE_COMMIT_MS);
+  }
+
+  /** Drop the preview transform and zoom for real, keeping the gesture point under the pointer. */
+  private commitGesture(): void {
+    if (this.gestureTimer !== null) clearTimeout(this.gestureTimer);
+    this.gestureTimer = null;
+    const g = this.gesture;
+    this.gesture = null;
+    const stack = this.stackEl();
+    if (stack) {
+      stack.style.transform = '';
+      stack.style.transformOrigin = '';
+    }
+    const vp = this.viewportEl();
+    if (!g || !vp || Math.abs(g.ratio - 1) < 0.01) return;
+    const rect = vp.getBoundingClientRect();
+    const anchor = this.captureAnchor(g.clientY - rect.top, g.clientX - rect.left);
+    this.store.patchState((s) => ({ ...s, zoomMode: g.baseScale * g.ratio }));
+    void this.renderAll();
+    this.restoreAnchorAfterRender(anchor, g.ratio);
+  }
+
+  private readonly onWheel = (e: WheelEvent): void => {
+    if (!(e.ctrlKey || e.metaKey)) return; // plain wheel scrolls
+    e.preventDefault(); // keep the browser from zooming the whole page
+    this.zoomGesture(wheelZoomFactor(e.deltaY, e.deltaMode), e.clientX, e.clientY);
+  };
+
+  private readonly onTouchStart = (e: TouchEvent): void => {
+    if (e.touches.length !== 2) return;
+    this.pinchStart = { distance: touchDistance(e.touches[0], e.touches[1]), ratio: this.gesture?.ratio ?? 1 };
+  };
+
+  private readonly onTouchMove = (e: TouchEvent): void => {
+    const start = this.pinchStart;
+    if (!start || e.touches.length !== 2 || start.distance === 0) return;
+    e.preventDefault();
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const target = start.ratio * (touchDistance(a, b) / start.distance);
+    this.zoomGesture(target / (this.gesture?.ratio ?? 1), (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+  };
+
+  private readonly onTouchEnd = (e: TouchEvent): void => {
+    if (e.touches.length < 2) this.pinchStart = null;
+  };
+
+  // Safari (macOS trackpad, iOS) reports pinches as proprietary gesture events with a cumulative `scale`.
+  private readonly onGestureStart = (e: Event): void => {
+    e.preventDefault();
+    this.safariGestureStartRatio = this.gesture?.ratio ?? 1;
+  };
+
+  private readonly onGestureChange = (e: Event): void => {
+    e.preventDefault();
+    const { scale, clientX, clientY } = e as Event & { scale: number; clientX: number; clientY: number };
+    const target = this.safariGestureStartRatio * scale;
+    this.zoomGesture(target / (this.gesture?.ratio ?? 1), clientX, clientY);
+  };
 
   private scrollViewportTo(vp: HTMLElement, top: number): void {
     vp.scrollTo({ top, behavior: 'auto' });
@@ -629,6 +747,13 @@ export class PdfViewportService {
     this.unlisten();
     this.listenedViewport = vp;
     vp.addEventListener('scroll', this.onScroll, { passive: true });
+    // Gesture zoom: these call preventDefault, so they can't be passive.
+    vp.addEventListener('wheel', this.onWheel, { passive: false });
+    vp.addEventListener('touchstart', this.onTouchStart, { passive: true });
+    vp.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    vp.addEventListener('touchend', this.onTouchEnd, { passive: true });
+    vp.addEventListener('gesturestart', this.onGestureStart, { passive: false });
+    vp.addEventListener('gesturechange', this.onGestureChange, { passive: false });
 
     // Seed the baseline before observing: ResizeObserver delivers the initial
     // measurement right away, which would otherwise cancel the first render.
@@ -684,7 +809,14 @@ export class PdfViewportService {
   }
 
   private unlisten(): void {
-    this.listenedViewport?.removeEventListener('scroll', this.onScroll);
+    const vp = this.listenedViewport;
+    vp?.removeEventListener('scroll', this.onScroll);
+    vp?.removeEventListener('wheel', this.onWheel);
+    vp?.removeEventListener('touchstart', this.onTouchStart);
+    vp?.removeEventListener('touchmove', this.onTouchMove);
+    vp?.removeEventListener('touchend', this.onTouchEnd);
+    vp?.removeEventListener('gesturestart', this.onGestureStart);
+    vp?.removeEventListener('gesturechange', this.onGestureChange);
     this.listenedViewport = null;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
@@ -698,6 +830,8 @@ export class PdfViewportService {
     this.resizeRafHandle = null;
     if (this.scrollRaf !== null) cancelAnimationFrame(this.scrollRaf);
     this.scrollRaf = null;
+    if (this.gestureTimer !== null) clearTimeout(this.gestureTimer);
+    this.gestureTimer = null;
     this.renderedPages.clear();
     this.inFlightPages.clear();
   }
