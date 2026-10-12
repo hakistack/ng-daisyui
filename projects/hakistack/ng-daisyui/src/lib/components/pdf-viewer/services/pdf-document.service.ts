@@ -1,6 +1,6 @@
 import { Injectable, PLATFORM_ID, effect, inject, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { BitmapCache } from '../core/bitmap-cache';
+import { BitmapCache, defaultBitmapBudgetBytes } from '../core/bitmap-cache';
 import { isQuarterTurn, normalizeRotation } from '../core/geometry';
 import { PdfPageEntry } from '../core/types';
 import { PdfDocHandle, PdfEngine } from '../engine/pdf-engine.types';
@@ -85,6 +85,8 @@ export class PdfDocumentService {
     this.find.reset();
     this.pageData.reset();
     store.closeDocument();
+    const budgetMb = store.config().bitmapCacheMB;
+    this.bitmaps.setBudget(budgetMb && budgetMb > 0 ? budgetMb * 1024 * 1024 : defaultBitmapBudgetBytes());
 
     if (!src || (typeof src === 'string' && src.length === 0)) {
       store.patchState((s) => ({ ...s, page: 0, numPages: 0, loaded: false, error: null }));

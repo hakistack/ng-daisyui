@@ -1,18 +1,38 @@
-/** Anything with a `close()` that releases its memory (e.g. `ImageBitmap`). */
-export interface Closable {
+/** A cached raster: something with pixel dimensions and a `close()` that frees it (e.g. `ImageBitmap`). */
+export interface CachedBitmap {
+  readonly width: number;
+  readonly height: number;
   close(): void;
 }
 
-/**
- * LRU cache of rendered page bitmaps keyed by page and device width. Lets
- * scroll-back and zoom-revisit skip the worker, and supplies a scaled
- * placeholder for progressive paint while a sharp raster is in flight.
- * Entries are `close()`d when evicted or invalidated. Capped by entry count.
- */
-export class BitmapCache<T extends Closable = ImageBitmap> {
-  private readonly entries = new Map<string, T>();
+/** Bytes a bitmap occupies (RGBA, 4 bytes per pixel). */
+export function bitmapBytes(b: { width: number; height: number }): number {
+  return b.width * b.height * 4;
+}
 
-  constructor(private readonly maxEntries: number) {}
+/**
+ * Default cache budget for this device: 96 MB where `navigator.deviceMemory`
+ * reports ≤ 4 GB (phones, low-end laptops), 256 MB otherwise. One fit-width
+ * letter page at DPR 2 is ~13 MB, so that's roughly 7 vs 20 pages.
+ */
+export function defaultBitmapBudgetBytes(): number {
+  const memoryGb = (typeof navigator !== 'undefined' && (navigator as { deviceMemory?: number }).deviceMemory) || 8;
+  return (memoryGb <= 4 ? 96 : 256) * 1024 * 1024;
+}
+
+/**
+ * LRU cache of rendered page bitmaps keyed by page and device width, bounded
+ * by total bytes. Lets scroll-back and zoom-revisit skip the worker, and
+ * supplies a scaled placeholder for progressive paint while a sharp raster is
+ * in flight. Entries are `close()`d when evicted or invalidated. A bitmap
+ * larger than the whole budget is still kept (alone), so the page on screen
+ * always has its raster.
+ */
+export class BitmapCache<T extends CachedBitmap = ImageBitmap> {
+  private readonly entries = new Map<string, T>();
+  private bytes = 0;
+
+  constructor(private maxBytes: number) {}
 
   static key(pageNumber: number, deviceWidth: number): string {
     return `${pageNumber}:${deviceWidth}`;
@@ -20,6 +40,21 @@ export class BitmapCache<T extends Closable = ImageBitmap> {
 
   get size(): number {
     return this.entries.size;
+  }
+
+  /** Total bytes currently held. */
+  get totalBytes(): number {
+    return this.bytes;
+  }
+
+  get budgetBytes(): number {
+    return this.maxBytes;
+  }
+
+  /** Change the budget, evicting least-recently-used entries if now over it. */
+  setBudget(maxBytes: number): void {
+    this.maxBytes = Math.max(0, maxBytes);
+    this.evictOverBudget();
   }
 
   /** Exact hit for `key`, marked most-recently-used. */
@@ -32,18 +67,17 @@ export class BitmapCache<T extends Closable = ImageBitmap> {
     return hit;
   }
 
-  /** Store a bitmap (owned by the cache from now on), evicting the least-recently-used. */
+  /** Store a bitmap (owned by the cache from now on), evicting least-recently-used entries past the budget. */
   set(key: string, bitmap: T): void {
     const prev = this.entries.get(key);
-    if (prev && prev !== bitmap) prev.close();
-    this.entries.delete(key);
-    this.entries.set(key, bitmap);
-    while (this.entries.size > this.maxEntries) {
-      const oldest = this.entries.keys().next().value as string | undefined;
-      if (oldest === undefined) break;
-      this.entries.get(oldest)?.close();
-      this.entries.delete(oldest);
+    if (prev) {
+      this.bytes -= bitmapBytes(prev);
+      if (prev !== bitmap) prev.close();
+      this.entries.delete(key);
     }
+    this.entries.set(key, bitmap);
+    this.bytes += bitmapBytes(bitmap);
+    this.evictOverBudget();
   }
 
   /** Any cached bitmap for `pageNumber` (any scale), for progressive paint. */
@@ -59,10 +93,7 @@ export class BitmapCache<T extends Closable = ImageBitmap> {
   invalidatePage(pageNumber: number): void {
     const prefix = `${pageNumber}:`;
     for (const [k, v] of Array.from(this.entries)) {
-      if (k.startsWith(prefix)) {
-        v.close();
-        this.entries.delete(k);
-      }
+      if (k.startsWith(prefix)) this.remove(k, v);
     }
   }
 
@@ -70,5 +101,20 @@ export class BitmapCache<T extends Closable = ImageBitmap> {
   clear(): void {
     for (const b of this.entries.values()) b.close();
     this.entries.clear();
+    this.bytes = 0;
+  }
+
+  private evictOverBudget(): void {
+    // Keep at least the most recent entry, even when it alone exceeds the budget.
+    while (this.bytes > this.maxBytes && this.entries.size > 1) {
+      const [oldestKey, oldest] = this.entries.entries().next().value as [string, T];
+      this.remove(oldestKey, oldest);
+    }
+  }
+
+  private remove(key: string, bitmap: T): void {
+    bitmap.close();
+    this.entries.delete(key);
+    this.bytes -= bitmapBytes(bitmap);
   }
 }

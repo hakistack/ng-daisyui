@@ -114,6 +114,12 @@ export interface PdfViewerConfig {
    * disable pooling on memory-constrained targets.
    */
   readonly renderPoolSize?: number;
+  /**
+   * Memory budget (MB) for cached page rasters, which make scroll-back and
+   * zoom-revisit instant. Default: 96 MB on devices reporting ≤ 4 GB of memory,
+   * 256 MB otherwise. The least recently used rasters are released first.
+   */
+  readonly bitmapCacheMB?: number;
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 

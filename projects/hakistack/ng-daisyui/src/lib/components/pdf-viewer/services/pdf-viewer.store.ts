@@ -1,5 +1,5 @@
 import { DestroyRef, Injectable, InjectionToken, ModelSignal, Signal, computed, inject, signal, untracked } from '@angular/core';
-import { BitmapCache } from '../core/bitmap-cache';
+import { BitmapCache, defaultBitmapBudgetBytes } from '../core/bitmap-cache';
 import { PdfPageEntry } from '../core/types';
 import { PdfEnginePool } from '../engine/pdf-engine-pool';
 import { PdfDocHandle, PdfEngine } from '../engine/pdf-engine.types';
@@ -17,17 +17,15 @@ import {
   PdfViewerState,
 } from '../pdf-viewer.types';
 
-/** Max page bitmaps kept for scroll-back / zoom-revisit / progressive paint. */
-const MAX_CACHED_BITMAPS = 16;
-
 /**
  * Rendered-page bitmap cache, shared by every service that paints or
  * invalidates pages. Provided per viewer instance.
  */
 export const PDF_BITMAP_CACHE = new InjectionToken<BitmapCache<ImageBitmap>>('PDF_BITMAP_CACHE');
 
+/** Budget starts at the device default; `config.bitmapCacheMB` overrides it on load. */
 export function providePdfBitmapCache() {
-  return { provide: PDF_BITMAP_CACHE, useFactory: () => new BitmapCache<ImageBitmap>(MAX_CACHED_BITMAPS) };
+  return { provide: PDF_BITMAP_CACHE, useFactory: () => new BitmapCache<ImageBitmap>(defaultBitmapBudgetBytes()) };
 }
 
 /** Outputs the viewer component exposes; the store fires them alongside the config callbacks. */

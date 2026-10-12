@@ -108,6 +108,7 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     showSidebar: input.showSidebar ?? true,
     defaultSidebarTab: input.defaultSidebarTab ?? DEFAULT_SIDEBAR_TAB,
     renderPoolSize: input.renderPoolSize,
+    bitmapCacheMB: input.bitmapCacheMB,
     onLoaded: input.onLoaded,
     onPageChange: input.onPageChange,
     onError: input.onError,
