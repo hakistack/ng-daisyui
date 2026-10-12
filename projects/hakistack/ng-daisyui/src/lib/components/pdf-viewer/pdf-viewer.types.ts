@@ -1,4 +1,5 @@
 import { Signal, WritableSignal } from '@angular/core';
+import type { HkAnnotation, HkAnnotationInit } from './core/annotations/annotation.types';
 
 /** A PDF document source. The component accepts a URL string, an in-memory byte array, or a Blob. */
 export type PdfDocumentSource = string | Uint8Array | Blob;
@@ -24,32 +25,33 @@ export type PdfDisplayMode = 'single' | 'continuous' | 'spread' | 'spread-cover'
 export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annotations';
 
 /**
- * Active annotation-editing tool. `'none'` = normal interaction (select/scroll);
- * `'highlight'`/`'freetext'` drag a rectangle; `'note'` clicks to drop a sticky
- * note; `'ink'` draws freehand.
+ * Active annotation tool. `'none'` = normal interaction (select, move and
+ * edit existing annotations; select text).
+ * - Text markup from the text selection: `'highlight'`, `'underline'`,
+ *   `'strikeout'`, `'squiggly'`.
+ * - Shapes, dragged out: `'rect'`, `'ellipse'`, `'line'`, `'arrow'`.
+ * - Click a vertex at a time, double-click (or Enter) to finish: `'polygon'`,
+ *   `'polyline'`, `'cloud'`.
+ * - `'ink'` draws freehand; `'eraser'` erases ink.
+ * - `'freetext'` places a text box; `'note'` drops a sticky note.
  */
-export type PdfAnnotationTool = 'none' | 'highlight' | 'note' | 'freetext' | 'ink';
-
-/**
- * Lightweight view-model for a PDF annotation — what the sidebar's
- * Annotations tab needs to list it. The component scans every page's
- * `getAnnotations()` once at document load and projects the subset of
- * annotation types that are user-meaningful (highlights, comments,
- * free-text, ink). Read-only at this layer; annotation *editing* is a
- * future phase.
- */
-export interface PdfAnnotationEntry {
-  /** 1-indexed page the annotation lives on — click navigates here. */
-  readonly pageNumber: number;
-  /** Position of this annotation within its page's array — the delete/edit address. */
-  readonly index: number;
-  /** PDF annotation subtype: `'Text'`, `'Highlight'`, `'FreeText'`, `'Ink'`, etc. */
-  readonly subtype: string;
-  /** User-authored text (comment body) when available. Empty for ink / shapes. */
-  readonly contents: string;
-  /** Document author of the annotation when available. */
-  readonly author: string;
-}
+export type PdfAnnotationTool =
+  | 'none'
+  | 'highlight'
+  | 'underline'
+  | 'strikeout'
+  | 'squiggly'
+  | 'rect'
+  | 'ellipse'
+  | 'line'
+  | 'arrow'
+  | 'polygon'
+  | 'polyline'
+  | 'cloud'
+  | 'ink'
+  | 'eraser'
+  | 'freetext'
+  | 'note';
 
 /**
  * Lightweight view-model for a PDF embedded file (attachment). Populated
@@ -126,6 +128,8 @@ export interface PdfViewerConfig {
    * 256 MB otherwise. The least recently used rasters are released first.
    */
   readonly bitmapCacheMB?: number;
+  /** Author written on new annotations, replies and review states. Default: the `defaultAuthor` label ("Guest"). */
+  readonly annotationAuthor?: string;
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 
@@ -175,6 +179,13 @@ export interface PdfViewerInternalHandlers {
   exportText?: (filename?: string) => Promise<void>;
   setAnnotationTool?: (tool: PdfAnnotationTool) => void;
   setAnnotationColor?: (color: string) => void;
+  getAnnotations?: () => readonly HkAnnotation[];
+  addAnnotation?: (annotation: HkAnnotationInit) => Promise<string>;
+  updateAnnotation?: (id: string, changes: Partial<HkAnnotation>) => Promise<void>;
+  deleteAnnotation?: (id: string) => Promise<void>;
+  selectAnnotation?: (id: string | null) => void;
+  undo?: () => Promise<boolean>;
+  redo?: () => Promise<boolean>;
   deletePage?: (pageNumber: number) => Promise<void>;
   insertBlankPage?: (atPageNumber: number) => Promise<void>;
   rotatePage?: (pageNumber: number, delta?: number) => void;
@@ -354,14 +365,29 @@ export interface PdfViewerController {
   // ── Annotation editing ───────────────────────────────────────────────────
 
   /**
-   * Set the active annotation tool. `'highlight'`/`'freetext'` drag a rectangle
-   * on the page; `'note'` drops a sticky note on click; `'none'` returns to
-   * normal interaction. New annotations are baked in + included in `save()`.
+   * Set the active annotation tool (see {@link PdfAnnotationTool}); `'none'`
+   * returns to normal interaction. A text-markup tool applies at once to a
+   * current text selection.
    */
   setAnnotationTool(tool: PdfAnnotationTool): void;
 
-  /** Set the colour (hex, e.g. `'#ffeb3b'`) used for new annotations. */
+  /** Set the colour (hex, e.g. `'#ffeb3b'`) of the active tool, or of every tool when none is active. */
   setAnnotationColor(color: string): void;
+
+  /** The document's editable annotations (positions in points on the displayed page, top-left origin). */
+  getAnnotations(): readonly HkAnnotation[];
+  /** Add an annotation; resolves with its id. Undoable; written by `save()`. */
+  addAnnotation(annotation: HkAnnotationInit): Promise<string>;
+  /** Change an annotation. Locked annotations only accept comment, reply, status and lock changes. */
+  updateAnnotation(id: string, changes: Partial<HkAnnotation>): Promise<void>;
+  /** Delete an annotation (not when locked). */
+  deleteAnnotation(id: string): Promise<void>;
+  /** Select an annotation (scrolling to its page), or clear the selection with `null`. */
+  selectAnnotation(id: string | null): void;
+  /** Undo the last annotation edit. Resolves `false` when there is nothing to undo. */
+  undo(): Promise<boolean>;
+  /** Redo the last undone edit. Resolves `false` when there is nothing to redo. */
+  redo(): Promise<boolean>;
 
   // ── Page operations ──────────────────────────────────────────────────────
 

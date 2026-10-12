@@ -1,11 +1,12 @@
 import { Injectable, PLATFORM_ID, effect, inject, untracked } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { annotationOps, paintOps } from '../core/annotations/shapes';
 import { BitmapCache, defaultBitmapBudgetBytes } from '../core/bitmap-cache';
 import { isQuarterTurn, normalizeRotation } from '../core/geometry';
 import { PdfPageEntry } from '../core/types';
 import { PdfDocHandle, PdfEngine } from '../engine/pdf-engine.types';
-import { PdfAnnotationEntry, PdfAttachmentEntry, PdfDocumentSource, PdfImageExportOptions, PdfViewerError } from '../pdf-viewer.types';
-import { PdfAnnotationToolsService } from './pdf-annotation-tools.service';
+import { PdfAttachmentEntry, PdfDocumentSource, PdfImageExportOptions, PdfViewerError } from '../pdf-viewer.types';
+import { PdfAnnotationsService } from './pdf-annotations.service';
 import { PdfFindService } from './pdf-find.service';
 import { PdfFormsService } from './pdf-forms.service';
 import { PdfPageDataService } from './pdf-page-data.service';
@@ -31,7 +32,7 @@ export class PdfDocumentService {
   private readonly find = inject(PdfFindService);
   private readonly thumbnails = inject(PdfThumbnailsService);
   private readonly forms = inject(PdfFormsService);
-  private readonly tools = inject(PdfAnnotationToolsService);
+  private readonly annotations = inject(PdfAnnotationsService);
   private readonly bitmaps = inject<BitmapCache<ImageBitmap>>(PDF_BITMAP_CACHE);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
@@ -54,9 +55,7 @@ export class PdfDocumentService {
           ? () => this.pageData.fetchOutline()
           : tab === 'attachments' && this.store.attachments() === null
             ? () => this.pageData.fetchAttachments()
-            : tab === 'annotations' && this.store.annotations() === null
-              ? () => this.pageData.fetchAnnotations()
-              : null;
+            : null;
       if (!fetch) return;
       untracked(() => {
         if (this.store.doc !== null) void fetch();
@@ -78,7 +77,7 @@ export class PdfDocumentService {
     store.operationError.set(null);
     store.outline.set(null);
     store.attachments.set(null);
-    store.annotations.set(null);
+    this.annotations.reset();
     store.pageRotations.set(new Map());
     store.pageLabels.set([]);
     store.resetDocumentEdited();
@@ -131,6 +130,8 @@ export class PdfDocumentService {
       if (store.loadToken !== token) return;
       store.pages = pages;
       const numPages = pages.length;
+      // Editable annotations are read (with hk-pdf-writer) alongside the first renders.
+      void this.annotations.load(store.sourceBytes, numPages);
 
       // Resolve the initial page before mounting wrappers: the viewport scrolls
       // to `state.page` once every wrapper exists.
@@ -225,6 +226,7 @@ export class PdfDocumentService {
     if (!session || this.store.pages.length <= 1) return;
     try {
       await session.engine.deletePage(session.doc, pageNumber - 1);
+      this.annotations.onPageRemoved(pageNumber - 1);
       await this.refreshPageStructure();
     } catch (err) {
       this.store.reportOperationError({ code: 'render_failed', message: 'Failed to delete page.', recoverable: true, cause: err });
@@ -240,6 +242,7 @@ export class PdfDocumentService {
     const ref = pages[Math.min(idx, pages.length - 1)];
     try {
       await session.engine.insertBlankPage(session.doc, idx, ref?.baseWidth ?? 612, ref?.baseHeight ?? 792);
+      this.annotations.onPageInserted(idx);
       await this.refreshPageStructure();
     } catch (err) {
       this.store.reportOperationError({ code: 'render_failed', message: 'Failed to insert page.', recoverable: true, cause: err });
@@ -261,7 +264,6 @@ export class PdfDocumentService {
     this.pageData.reset();
     this.thumbnails.reset();
     store.pageRotations.set(new Map()); // indices shifted
-    store.annotations.set(null);
     store.outline.set(null); // bookmark targets may have shifted
 
     const pages = await this.readPages(session.engine, session.doc);
@@ -281,15 +283,25 @@ export class PdfDocumentService {
   // ── Save / download / print / export ────────────────────────────────────
 
   /**
-   * Serialize the document with every edit (forms, annotations, pages) and the
-   * display rotations baked in. Rotations are applied for the save and then
-   * reverted, so the live, CSS-rotated view stays consistent.
+   * Serialize the document with every edit. Engine-side edits (forms, page
+   * structure, display rotations, baked in for the save and then reverted)
+   * come from a PDFium save; an unedited document starts from its original
+   * bytes. The annotation changes are then appended by hk-pdf-writer as an
+   * incremental update, so an annotation-only save leaves the original
+   * bytes (and any signatures over them) intact.
    */
   async save(): Promise<Uint8Array> {
     const session = this.store.session();
     if (!session) throw new Error('No PDF document loaded');
-    const { engine, doc } = session;
     const rotations = [...this.store.pageRotations()].filter(([, r]) => r !== 0);
+    const source = this.store.sourceBytes;
+    const base = this.store.engineEdited || rotations.length > 0 || !source ? await this.saveFromEngine(rotations) : source.slice();
+    return this.annotations.writeTo(base);
+  }
+
+  /** A PDFium save with the display rotations baked in (and reverted afterwards). */
+  private async saveFromEngine(rotations: readonly [number, number][]): Promise<Uint8Array> {
+    const { engine, doc } = this.store.session()!;
     let result: Uint8Array;
     try {
       // Inside the try so the finally always reverts, even if a mutation throws partway.
@@ -325,7 +337,8 @@ export class PdfDocumentService {
   async download(filename?: string): Promise<void> {
     const bytes = this.store.sourceBytes;
     if (!bytes) return;
-    const edited = this.store.documentEdited || [...this.store.pageRotations().values()].some((r) => r !== 0);
+    const edited =
+      this.store.documentEdited || this.annotations.hasChanges() || [...this.store.pageRotations().values()].some((r) => r !== 0);
     if (!edited) {
       downloadBlob(new Blob([bytes.slice().buffer], { type: 'application/pdf' }), filename || this.deriveFilename());
       return;
@@ -387,6 +400,13 @@ export class PdfDocumentService {
     ctx.rotate((deg * Math.PI) / 180);
     ctx.drawImage(bitmap, -width / 2, -height / 2);
     bitmap.close();
+    // The raster leaves out the annotations the viewer draws itself; paint them in.
+    const annotations = this.annotations.list().filter((a) => a.page === pageNumber - 1);
+    if (annotations.length && typeof Path2D !== 'undefined') {
+      ctx.translate(-width / 2, -height / 2);
+      ctx.scale(width / page.baseWidth, height / page.baseHeight);
+      for (const a of annotations) paintOps(ctx, annotationOps(a));
+    }
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, options?.quality));
     if (!blob) return;
@@ -424,32 +444,6 @@ export class PdfDocumentService {
   downloadAttachment(att: PdfAttachmentEntry): void {
     if (!this.isBrowser) return;
     downloadBlob(new Blob([att.content as BlobPart], { type: 'application/octet-stream' }), att.filename);
-  }
-
-  async deleteAnnotation(entry: PdfAnnotationEntry): Promise<void> {
-    const session = this.store.session();
-    if (!session) return;
-    try {
-      await session.engine.deleteAnnotation(session.doc, entry.pageNumber - 1, entry.index);
-      this.tools.afterChange(entry.pageNumber);
-      await this.pageData.fetchAnnotations(); // indices shifted; refresh now
-    } catch (err) {
-      this.store.reportOperationError({ code: 'render_failed', message: 'Failed to delete annotation.', recoverable: true, cause: err });
-    }
-  }
-
-  async editAnnotation(entry: PdfAnnotationEntry): Promise<void> {
-    const session = this.store.session();
-    if (!session) return;
-    const raw = await this.tools.promptText('Edit comment', entry.contents);
-    if (raw == null) return; // cancelled
-    try {
-      await session.engine.setAnnotationContents(session.doc, entry.pageNumber - 1, entry.index, raw.trim());
-      this.tools.afterChange(entry.pageNumber);
-      await this.pageData.fetchAnnotations();
-    } catch (err) {
-      this.store.reportOperationError({ code: 'render_failed', message: 'Failed to edit annotation.', recoverable: true, cause: err });
-    }
   }
 
   async toggleFullscreen(): Promise<void> {

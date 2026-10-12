@@ -498,6 +498,56 @@ Decisiones:
 - qpdf/veraPDF en CI: qpdf no está instalado en local, así que la validación externa usa `pdfinfo`.
 - Corpus amplio y fuzzing del parser.
 
+### Estado de la fase 3 (2026-10-12)
+
+**Hecho:**
+
+- **Modelo** (`core/annotations/`): `HkAnnotation` cubre text markup (4 tipos), rectángulo, elipse, línea/flecha, polígono, polilínea, nube, tinta, texto libre y nota.
+  - Incluye respuestas y estado de revisión.
+  - Coordenadas en puntos de la página mostrada; `PageSpace` las convierte a espacio de usuario para cualquier `/Rotate` y CropBox.
+- **Una sola lista de dibujo** por anotación alimenta tres salidas: SVG en pantalla, Canvas2D (miniaturas y exportar a imagen) y el `/AP` del archivo. Lo que se ve es lo que se guarda.
+- **Importación** con hk-pdf-writer:
+  - Los hilos (`/IRT`, `/State`) se adjuntan a su anotación.
+  - Medición, callouts, grupos y ocultas quedan en el raster, en solo lectura.
+  - En los workers, `set_hidden_annotations` las oculta solo mientras dura cada render, así que un guardado de PDFium no se ve afectado.
+- **Edición:**
+  - `PdfAnnotationsService` con `CommandStack`: undo/redo con Ctrl+Z, Ctrl+Shift+Z y Ctrl+Y; un arrastre de slider es un solo paso; estado sucio integrado en `dirtyChange`.
+  - El bloqueo respeta la semántica de `/F Locked`.
+  - Herramientas: markup desde la selección de texto, formas por arrastre (Shift fuerza cuadrado / 45°), polígonos vértice a vértice, tinta, borrador que parte trazos, texto libre editable en sitio, nota.
+  - Adorner SVG para mover, redimensionar y editar vértices.
+  - Teclado: Tab entre anotaciones, flechas mueven, Shift+flechas redimensionan, Supr borra, Enter edita o abre comentarios.
+- **UI daisyUI:**
+  - Fila de herramientas que se abre con "Annotate".
+  - Panel de propiedades flotante (colores, relleno, opacidad, grosor, línea discontinua, terminaciones, nube, fuente, tamaño, alineación, icono, bloqueo).
+  - Panel de comentarios agrupado por página, con filtros por tipo, autor y estado, respuestas, estado y edición.
+  - Todos los textos pasan por `provideHkPdfLabels`.
+- **Guardado por replay:**
+  - `writeAnnotationChanges` escribe solo la diferencia con lo importado, como actualización incremental. Si solo cambian anotaciones, los bytes originales y sus firmas quedan intactos.
+  - Ediciones de PDFium (formularios, páginas, rotación) → primero un guardado de PDFium y después el incremental encima.
+- **API pública:** `getAnnotations`, `addAnnotation`, `updateAnnotation`, `deleteAnnotation`, `selectAnnotation`, `undo`, `redo` y `annotationAuthor`.
+- Se eliminaron las rutas antiguas que escribían anotaciones con PDFium.
+- **Verificación:**
+  - Tests de round-trip en todos los tipos, con `/Rotate` 0 y 90.
+  - Tests de integración en jsdom: teclado, herramientas, comentarios, guardado.
+  - `test:pdf-engine` comprueba por píxel que PDFium pinta nuestros `/AP` donde dice el modelo y que ocultar no se persiste.
+
+**Desviaciones del plan:**
+
+- Las anotaciones se pintan en **SVG**, no en Canvas2D: nítidas a cualquier zoom, sin repintado y con destinos accesibles. Canvas2D queda para miniaturas y exportación.
+- No se escribe `/HKData`: las claves estándar bastan para todo lo que modela el editor.
+- El escritor corre **en el hilo principal**. Es lazy y O(cambios); moverlo a un worker queda para cuando haya medidas.
+
+**Pendiente:**
+
+- **Verificación en navegador:** no se ha probado en navegador (captura de puntero, `mix-blend-mode`, precisión de los quads desde la selección). Tampoco el round-trip en Acrobat y Chrome que pide el criterio de salida.
+- **Edición:**
+  - Editar respuestas desde la UI (la API existe).
+  - Agrupar trazos de tinta consecutivos.
+  - Conservar `/RC` (texto enriquecido) al editar.
+  - Markup con selección hecha solo con teclado (hoy se aplica pulsando la herramienta).
+- **Documentos cifrados:** las anotaciones quedan en solo lectura hasta que exista `security/`.
+- **Después de guardar:** recargar los workers con los bytes nuevos como base (hoy cada guardado vuelve a hacer el replay desde el original).
+
 ## 6. Theming (daisyUI v5 / Tailwind v4)
 
 | Pieza | Componente daisyUI |

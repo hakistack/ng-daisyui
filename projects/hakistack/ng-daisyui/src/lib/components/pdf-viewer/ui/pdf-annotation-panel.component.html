@@ -1,0 +1,258 @@
+@if (target(); as t) {
+  <section
+    class="absolute right-3 top-3 z-30 w-64 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-box border border-base-300 bg-base-100 shadow-lg text-sm"
+    [attr.aria-label]="store.labels().annotationProperties"
+  >
+    <header class="flex items-center gap-1 border-b border-base-300 px-3 py-2">
+      <h3 class="grow truncate font-medium">{{ title() }}</h3>
+      @if (t.annotation) {
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square"
+          [attr.aria-label]="store.labels().openComments"
+          [title]="store.labels().openComments"
+          (click)="openComments()"
+        >
+          <svg lucideMessageSquareText [size]="14"></svg>
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square"
+          [attr.aria-pressed]="locked()"
+          [attr.aria-label]="locked() ? store.labels().unlock : store.labels().lock"
+          [title]="locked() ? store.labels().unlock : store.labels().lock"
+          (click)="toggleLock()"
+        >
+          @if (locked()) {
+            <svg lucideLock [size]="14"></svg>
+          } @else {
+            <svg lucideLockOpen [size]="14"></svg>
+          }
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-square text-error"
+          [attr.aria-label]="store.labels().deleteAnnotation"
+          [title]="store.labels().deleteAnnotation"
+          [disabled]="locked()"
+          (click)="remove()"
+        >
+          <svg lucideTrash2 [size]="14"></svg>
+        </button>
+      }
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        [attr.aria-label]="store.labels().dismiss"
+        [title]="store.labels().dismiss"
+        (click)="close()"
+      >
+        <svg lucideX [size]="14"></svg>
+      </button>
+    </header>
+
+    <fieldset class="flex flex-col gap-3 px-3 py-3" [disabled]="locked()">
+      <legend class="sr-only">{{ store.labels().annotationProperties }}</legend>
+
+      @if (has('fontColor')) {
+        <ng-container
+          [ngTemplateOutlet]="colorRow"
+          [ngTemplateOutletContext]="{ field: 'fontColor', label: store.labels().textColor, value: t.style.fontColor, allowNone: false }"
+        />
+      }
+      @if (has('font')) {
+        <div class="flex items-end gap-2">
+          <label class="flex grow flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().font }}</span>
+            <select class="select select-bordered select-xs w-full" [value]="t.style.font" (change)="setText('font', $event)">
+              @for (f of fonts; track f) {
+                <option [value]="f" [selected]="f === t.style.font">{{ f }}</option>
+              }
+            </select>
+          </label>
+          <label class="flex w-16 flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().fontSize }}</span>
+            <input
+              type="number"
+              class="input input-bordered input-xs w-full tabular-nums"
+              min="4"
+              max="144"
+              step="1"
+              [value]="t.style.fontSize"
+              (change)="setNumber('fontSize', $event)"
+            />
+          </label>
+        </div>
+      }
+      @if (has('align')) {
+        <div class="join" role="group">
+          <button
+            type="button"
+            class="btn btn-xs join-item grow"
+            [class.btn-active]="t.style.align === 'left'"
+            [attr.aria-pressed]="t.style.align === 'left'"
+            [attr.aria-label]="store.labels().alignLeft"
+            (click)="set('align', 'left')"
+          >
+            <svg lucideAlignLeft [size]="14"></svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs join-item grow"
+            [class.btn-active]="t.style.align === 'center'"
+            [attr.aria-pressed]="t.style.align === 'center'"
+            [attr.aria-label]="store.labels().alignCenter"
+            (click)="set('align', 'center')"
+          >
+            <svg lucideAlignCenter [size]="14"></svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs join-item grow"
+            [class.btn-active]="t.style.align === 'right'"
+            [attr.aria-pressed]="t.style.align === 'right'"
+            [attr.aria-label]="store.labels().alignRight"
+            (click)="set('align', 'right')"
+          >
+            <svg lucideAlignRight [size]="14"></svg>
+          </button>
+        </div>
+      }
+      @if (has('color')) {
+        <ng-container
+          [ngTemplateOutlet]="colorRow"
+          [ngTemplateOutletContext]="{ field: 'color', label: store.labels().color, value: t.style.color, allowNone: false }"
+        />
+      }
+      @if (has('fill')) {
+        <ng-container
+          [ngTemplateOutlet]="colorRow"
+          [ngTemplateOutletContext]="{ field: 'fill', label: store.labels().fillColor, value: t.style.fill, allowNone: true }"
+        />
+      }
+      @if (has('icon')) {
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-base-content/70">{{ store.labels().noteIcon }}</span>
+          <select class="select select-bordered select-xs w-full" (change)="setText('icon', $event)">
+            @for (icon of noteIcons; track icon) {
+              <option [value]="icon" [selected]="icon === t.style.icon">{{ icon }}</option>
+            }
+          </select>
+        </label>
+      }
+      @if (has('strokeWidth')) {
+        <label class="flex flex-col gap-1">
+          <span class="flex justify-between text-xs text-base-content/70">
+            <span>{{ store.labels().strokeWidth }}</span>
+            <span class="tabular-nums">{{ t.style.strokeWidth }} pt</span>
+          </span>
+          <input
+            type="range"
+            class="range range-xs"
+            [min]="t.type === 'freetext' ? 0 : 0.5"
+            max="12"
+            step="0.5"
+            [value]="t.style.strokeWidth"
+            (input)="setNumber('strokeWidth', $event)"
+          />
+        </label>
+      }
+      @if (has('opacity')) {
+        <label class="flex flex-col gap-1">
+          <span class="flex justify-between text-xs text-base-content/70">
+            <span>{{ store.labels().opacity }}</span>
+            <span class="tabular-nums">{{ (t.style.opacity * 100).toFixed(0) }}%</span>
+          </span>
+          <input
+            type="range"
+            class="range range-xs"
+            min="10"
+            max="100"
+            step="5"
+            [value]="t.style.opacity * 100"
+            (input)="setNumber('opacity', $event, 100)"
+          />
+        </label>
+      }
+      @if (has('dashed')) {
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-base-content/70">{{ store.labels().lineStyle }}</span>
+          <select class="select select-bordered select-xs w-full" (change)="set('dashed', $any($event.target).value === 'dashed')">
+            <option value="solid" [selected]="!t.style.dashed">{{ store.labels().solid }}</option>
+            <option value="dashed" [selected]="t.style.dashed">{{ store.labels().dashed }}</option>
+          </select>
+        </label>
+      }
+      @if (has('startEnding')) {
+        <div class="flex gap-2">
+          <label class="flex grow flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().lineStart }}</span>
+            <select class="select select-bordered select-xs w-full" (change)="setText('startEnding', $event)">
+              @for (e of endings; track e.value) {
+                <option [value]="e.value" [selected]="e.value === t.style.startEnding">{{ store.labels()[e.label] }}</option>
+              }
+            </select>
+          </label>
+          <label class="flex grow flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().lineEnd }}</span>
+            <select class="select select-bordered select-xs w-full" (change)="setText('endEnding', $event)">
+              @for (e of endings; track e.value) {
+                <option [value]="e.value" [selected]="e.value === t.style.endEnding">{{ store.labels()[e.label] }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      }
+      @if (has('cloudy')) {
+        <label class="flex cursor-pointer items-center justify-between gap-2">
+          <span class="text-xs text-base-content/70">{{ store.labels().cloudyBorder }}</span>
+          <input
+            type="checkbox"
+            class="toggle toggle-xs"
+            [checked]="t.style.cloudy"
+            (change)="set('cloudy', $any($event.target).checked)"
+          />
+        </label>
+      }
+    </fieldset>
+  </section>
+}
+
+<!-- A colour row: swatches, "no fill" where allowed, and a free colour input. -->
+<ng-template #colorRow let-field="field" let-label="label" let-value="value" let-allowNone="allowNone">
+  <div class="flex flex-col gap-1" role="group" [attr.aria-label]="label">
+    <span class="text-xs text-base-content/70">{{ label }}</span>
+    <div class="flex flex-wrap items-center gap-1">
+      @if (allowNone) {
+        <button
+          type="button"
+          class="btn btn-xs h-6 min-h-6 px-1.5"
+          [class.btn-active]="value === null"
+          [attr.aria-pressed]="value === null"
+          (click)="set(field, null)"
+        >
+          {{ store.labels().noFill }}
+        </button>
+      }
+      @for (c of swatches; track c) {
+        <button
+          type="button"
+          class="h-5 w-5 rounded-full border border-base-300 outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary"
+          [class.ring-2]="value === c"
+          [class.ring-primary]="value === c"
+          [style.background]="c"
+          [attr.aria-label]="swatchLabel(c)"
+          [attr.aria-pressed]="value === c"
+          (click)="set(field, c)"
+        ></button>
+      }
+      <input
+        type="color"
+        class="h-6 w-6 cursor-pointer rounded border border-base-300 bg-transparent p-0"
+        [value]="value ?? '#ffffff'"
+        [attr.aria-label]="label"
+        (input)="setColorInput(field, $event)"
+      />
+    </div>
+  </div>
+</ng-template>

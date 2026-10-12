@@ -1,124 +1,6 @@
 /* @ts-self-types="./pdf_engine.d.ts" */
 
 /**
- * Add a free-text box over the rect `[x,y,w,h]` (top-left points) with the
- * typed `contents`.
- * @param {number} handle
- * @param {number} index
- * @param {number} x
- * @param {number} y
- * @param {number} w
- * @param {number} h
- * @param {string} contents
- * @param {number} color
- * @returns {boolean}
- */
-export function add_free_text(handle, index, x, y, w, h, contents, color) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.add_free_text(retptr, handle, index, x, y, w, h, ptr0, len0, color);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * Add a highlight annotation over the rect `[x,y,w,h]` (top-left points) with
- * `color` (`0xRRGGBBAA`). Appearance regenerates automatically (default page
- * strategy), so it shows in `render` + `save_document`.
- * @param {number} handle
- * @param {number} index
- * @param {number} x
- * @param {number} y
- * @param {number} w
- * @param {number} h
- * @param {number} color
- * @returns {boolean}
- */
-export function add_highlight(handle, index, x, y, w, h, color) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.add_highlight(retptr, handle, index, x, y, w, h, color);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * Add a freehand ink stroke. `points` is a flat `[x0,y0,x1,y1,…]` polyline in
- * top-left PDF points; `color` = `0xRRGGBBAA`; `width` in points. Built as a
- * stroked path object inside an Ink annotation.
- * @param {number} handle
- * @param {number} index
- * @param {Float32Array} points
- * @param {number} color
- * @param {number} width
- * @returns {boolean}
- */
-export function add_ink(handle, index, points, color, width) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passArrayF32ToWasm0(points, wasm.__wbindgen_export);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.add_ink(retptr, handle, index, ptr0, len0, color, width);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * Add a sticky-note (Text) annotation at `[x,y]` (top-left points) carrying
- * `contents` as the comment body.
- * @param {number} handle
- * @param {number} index
- * @param {number} x
- * @param {number} y
- * @param {string} contents
- * @param {number} color
- * @returns {boolean}
- */
-export function add_text_note(handle, index, x, y, contents, color) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.add_text_note(retptr, handle, index, x, y, ptr0, len0, color);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
  * Embedded files. Each row is `[name, Uint8Array(bytes)]`.
  * @param {number} handle
  * @returns {Array<any>}
@@ -148,30 +30,6 @@ export function close(handle) {
 }
 
 /**
- * Delete the annotation at `[page_index, annot_index]` (page-local index from
- * `document_annotations`). Indices shift after a delete — re-query first.
- * @param {number} handle
- * @param {number} page_index
- * @param {number} annot_index
- * @returns {boolean}
- */
-export function delete_annotation(handle, page_index, annot_index) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.delete_annotation(retptr, handle, page_index, annot_index);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
  * Delete the page at `index` (0-based). Page count + indices shift after —
  * the caller must refresh its page structure.
  * @param {number} handle
@@ -189,31 +47,6 @@ export function delete_page(handle, index) {
             throw takeObject(r1);
         }
         return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * User-meaningful annotations across the whole document, for the sidebar list.
- * Each row is `[pageIndex (0-based), annotIndex (page-local), subtype, contents]`.
- * `annotIndex` is the annotation's position in the page's annotation array —
- * the address `delete_annotation` / `set_annotation_contents` take. Subtypes
- * the sidebar doesn't display (links, popups, widgets, …) are skipped.
- * @param {number} handle
- * @returns {Array<any>}
- */
-export function document_annotations(handle) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.document_annotations(retptr, handle);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return takeObject(r0);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
     }
@@ -569,33 +402,6 @@ export function save_document(handle) {
             throw takeObject(r1);
         }
         return takeObject(r0);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * Replace the text contents of the annotation at `[page_index, annot_index]`
- * (e.g. a note or free-text comment body).
- * @param {number} handle
- * @param {number} page_index
- * @param {number} annot_index
- * @param {string} contents
- * @returns {boolean}
- */
-export function set_annotation_contents(handle, page_index, annot_index, contents) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.set_annotation_contents(retptr, handle, page_index, annot_index, ptr0, len0);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
     }
@@ -1027,14 +833,6 @@ function getDataViewMemory0() {
     return cachedDataViewMemory0;
 }
 
-let cachedFloat32ArrayMemory0 = null;
-function getFloat32ArrayMemory0() {
-    if (cachedFloat32ArrayMemory0 === null || cachedFloat32ArrayMemory0.byteLength === 0) {
-        cachedFloat32ArrayMemory0 = new Float32Array(wasm.memory.buffer);
-    }
-    return cachedFloat32ArrayMemory0;
-}
-
 function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
 }
@@ -1084,13 +882,6 @@ function passArray32ToWasm0(arg, malloc) {
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
-}
-
-function passArrayF32ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 4, 4) >>> 0;
-    getFloat32ArrayMemory0().set(arg, ptr / 4);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
@@ -1173,7 +964,6 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedDataViewMemory0 = null;
-    cachedFloat32ArrayMemory0 = null;
     cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();

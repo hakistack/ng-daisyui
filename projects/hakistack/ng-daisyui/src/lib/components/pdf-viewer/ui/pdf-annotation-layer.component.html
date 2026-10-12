@@ -1,0 +1,140 @@
+<!-- Highlights multiply with the page so the text under them stays legible: they get their own blended SVG. -->
+<svg class="hk-pdf-annot-blend" [attr.viewBox]="viewBox()" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  @for (v of views(); track v.id) {
+    @for (p of v.blend; track $index) {
+      <path [attr.d]="p.d" [attr.fill]="p.fill" [attr.fill-opacity]="p.opacity" />
+    }
+  }
+</svg>
+
+<svg
+  #svg
+  class="hk-pdf-annot-svg"
+  [attr.viewBox]="viewBox()"
+  preserveAspectRatio="none"
+  role="group"
+  [attr.aria-label]="store.labels().annotationsTab"
+  (pointermove)="onSvgPointerMove($event)"
+  (pointerup)="onSvgPointerUp()"
+  (pointercancel)="onSvgPointerUp()"
+>
+  @for (v of views(); track v.id) {
+    <g aria-hidden="true">
+      @for (p of v.paths; track $index) {
+        <path
+          [attr.d]="p.d"
+          [attr.fill]="p.fill"
+          [attr.stroke]="p.stroke"
+          [attr.stroke-width]="p.width"
+          [attr.stroke-dasharray]="p.dash"
+          [attr.stroke-linecap]="p.cap"
+          [attr.stroke-linejoin]="p.join"
+          [attr.opacity]="p.opacity"
+        />
+      }
+      @for (t of v.texts; track $index) {
+        <svg [attr.x]="t.clip.x" [attr.y]="t.clip.y" [attr.width]="t.clip.w" [attr.height]="t.clip.h" overflow="hidden">
+          @for (line of t.lines; track $index) {
+            <text
+              class="hk-pdf-annot-text"
+              [attr.x]="line.x"
+              [attr.y]="line.y"
+              [attr.font-family]="t.family"
+              [attr.font-weight]="t.weight"
+              [attr.font-size]="t.size"
+              [attr.fill]="t.color"
+              [attr.opacity]="t.opacity"
+              [textContent]="line.text"
+            ></text>
+          }
+        </svg>
+      }
+    </g>
+    <path
+      class="hk-pdf-annot-hit"
+      [class.hk-pdf-annot-locked]="v.locked"
+      [attr.d]="v.hit.d"
+      [attr.fill]="v.hit.area ? 'transparent' : 'none'"
+      stroke="transparent"
+      [attr.stroke-width]="v.hit.width"
+      [attr.pointer-events]="v.hit.area ? 'all' : 'stroke'"
+      tabindex="0"
+      role="button"
+      [attr.aria-label]="v.label"
+      [attr.aria-pressed]="annotations.selectedId() === v.id"
+      [attr.data-annotation-id]="v.id"
+      (pointerdown)="onAnnotationPointerDown($event, v.id)"
+      (dblclick)="onAnnotationDoubleClick(v.id)"
+      (keydown)="onAnnotationKeydown($event, v.id)"
+      (focus)="onAnnotationFocus(v.id)"
+    >
+      <title>{{ v.title }}</title>
+    </path>
+  }
+
+  @if (adorner(); as ad) {
+    <g class="hk-pdf-annot-adorner">
+      <rect
+        class="hk-pdf-annot-outline"
+        [attr.x]="ad.box.x"
+        [attr.y]="ad.box.y"
+        [attr.width]="ad.box.w"
+        [attr.height]="ad.box.h"
+        vector-effect="non-scaling-stroke"
+      />
+      @for (h of ad.handles; track h.handle) {
+        <rect
+          class="hk-pdf-annot-handle"
+          [attr.x]="h.x"
+          [attr.y]="h.y"
+          [attr.width]="h.size"
+          [attr.height]="h.size"
+          [style.cursor]="h.cursor"
+          vector-effect="non-scaling-stroke"
+          (pointerdown)="onHandlePointerDown($event, h.handle)"
+        />
+      }
+      @for (vx of ad.vertices; track vx.index) {
+        <circle
+          class="hk-pdf-annot-handle"
+          [attr.cx]="vx.x"
+          [attr.cy]="vx.y"
+          [attr.r]="vx.r"
+          vector-effect="non-scaling-stroke"
+          (pointerdown)="onVertexPointerDown($event, vx.index)"
+        />
+      }
+    </g>
+  }
+</svg>
+
+<!-- Drawing surface: takes the pointer only while a drawing tool is active. -->
+<div
+  class="hk-pdf-edit-layer"
+  [class.hk-pdf-edit-active]="drawing() && annotations.supported()"
+  (pointerdown)="tools.onPointerDown($event, page())"
+  (pointermove)="tools.onPointerMove($event, page())"
+  (pointerup)="tools.onPointerUp($event, page())"
+  (dblclick)="tools.onDoubleClick()"
+></div>
+
+@if (editorView(); as ed) {
+  <textarea
+    #editor
+    class="hk-pdf-annot-editor"
+    [attr.aria-label]="store.labels().textBox"
+    [value]="ed.value"
+    [style.left.px]="ed.left"
+    [style.top.px]="ed.top"
+    [style.width.px]="ed.width"
+    [style.height.px]="ed.height"
+    [style.font-size.px]="ed.fontSize"
+    [style.font-family]="ed.family"
+    [style.font-weight]="ed.weight"
+    [style.color]="ed.color"
+    [style.text-align]="ed.align"
+    (keydown)="onEditorKeydown($event, editor)"
+    (blur)="onEditorBlur(editor)"
+    (pointerdown)="$event.stopPropagation()"
+  ></textarea>
+}

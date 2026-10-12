@@ -173,66 +173,19 @@
 
   <div class="grow"></div>
 
-  <!-- ── Group: annotation tools (highlight / note / free-text + colour) ── -->
-  <div class="hidden @lg:flex items-center gap-1" role="group" [attr.aria-label]="'Annotation tools'">
-    <button
-      type="button"
-      class="btn btn-ghost btn-xs btn-square"
-      [class.btn-active]="store.annotationTool() === 'highlight'"
-      [attr.aria-pressed]="store.annotationTool() === 'highlight'"
-      [attr.aria-label]="'Highlight'"
-      title="Highlight"
-      [disabled]="!store.showPages()"
-      (click)="tools.toggleTool('highlight')"
-    >
-      <svg lucideSquare [size]="16"></svg>
-    </button>
-    <button
-      type="button"
-      class="btn btn-ghost btn-xs btn-square"
-      [class.btn-active]="store.annotationTool() === 'note'"
-      [attr.aria-pressed]="store.annotationTool() === 'note'"
-      [attr.aria-label]="'Sticky note'"
-      title="Sticky note"
-      [disabled]="!store.showPages()"
-      (click)="tools.toggleTool('note')"
-    >
-      <svg lucideMessageSquare [size]="16"></svg>
-    </button>
-    <button
-      type="button"
-      class="btn btn-ghost btn-xs btn-square"
-      [class.btn-active]="store.annotationTool() === 'freetext'"
-      [attr.aria-pressed]="store.annotationTool() === 'freetext'"
-      [attr.aria-label]="'Text box'"
-      title="Text box"
-      [disabled]="!store.showPages()"
-      (click)="tools.toggleTool('freetext')"
-    >
-      <svg lucideType [size]="16"></svg>
-    </button>
-    <button
-      type="button"
-      class="btn btn-ghost btn-xs btn-square"
-      [class.btn-active]="store.annotationTool() === 'ink'"
-      [attr.aria-pressed]="store.annotationTool() === 'ink'"
-      [attr.aria-label]="'Draw'"
-      title="Draw (freehand)"
-      [disabled]="!store.showPages()"
-      (click)="tools.toggleTool('ink')"
-    >
-      <svg lucidePen [size]="16"></svg>
-    </button>
-    <input
-      type="color"
-      class="h-6 w-6 cursor-pointer rounded border border-base-300 bg-transparent p-0"
-      [value]="store.annotationColor()"
-      [attr.aria-label]="'Annotation colour'"
-      title="Annotation colour"
-      [disabled]="!store.showPages()"
-      (input)="tools.onColorInput($event)"
-    />
-  </div>
+  <!-- ── Annotate: opens the annotation toolbar row ─────────────── -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [class.btn-active]="store.annotationBarOpen()"
+    [attr.aria-pressed]="store.annotationBarOpen()"
+    [attr.aria-label]="store.labels().annotate"
+    [title]="store.labels().annotate"
+    [disabled]="!store.showPages()"
+    (click)="toggleAnnotationBar()"
+  >
+    <svg lucidePenLine [size]="16"></svg>
+  </button>
 
   <!-- ── Rotate current page ─────────────────────────────────────── -->
   <button

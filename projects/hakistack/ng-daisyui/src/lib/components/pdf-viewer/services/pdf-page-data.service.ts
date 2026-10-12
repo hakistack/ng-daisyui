@@ -201,21 +201,4 @@ export class PdfPageDataService {
       this.store.attachments.set([]);
     }
   }
-
-  /** User-facing annotations across the document (the engine filters subtypes). */
-  async fetchAnnotations(): Promise<void> {
-    const session = this.store.session();
-    if (!session || this.store.pages.length === 0) {
-      this.store.annotations.set([]);
-      return;
-    }
-    try {
-      const rows = await session.engine.documentAnnotations(session.doc);
-      this.store.annotations.set(
-        rows.map((r) => ({ pageNumber: r.pageIndex + 1, index: r.index, subtype: r.subtype, contents: r.contents.trim(), author: '' })),
-      );
-    } catch {
-      this.store.annotations.set([]);
-    }
-  }
 }

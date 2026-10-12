@@ -1,55 +1,254 @@
 import { Injectable, inject } from '@angular/core';
-import { packRgba, pointerToLocal } from '../core/geometry';
+import { HkAnnotation, PdfFreeTextAnnotation, PdfRect, TEXT_MARKUP_TYPES, PdfTextMarkupType } from '../core/annotations/annotation.types';
+import { FREE_TEXT_PADDING, NOTE_ICON_SIZE, eraseStrokes, layoutFreeText, pointsBounds } from '../core/annotations/shapes';
+import { pointerToLocal } from '../core/geometry';
 import { PdfAnnotationTool } from '../pdf-viewer.types';
+import { DRAFT_ID, PdfAnnotationsService } from './pdf-annotations.service';
 import { PdfViewerStore } from './pdf-viewer.store';
 import { PdfViewportService } from './pdf-viewport.service';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
+/** An in-progress drawing gesture on a page (0-based `page`, points). */
+type Gesture =
+  | { readonly kind: 'box'; readonly tool: 'rect' | 'ellipse' | 'freetext'; readonly page: number; readonly x: number; readonly y: number }
+  | { readonly kind: 'line'; readonly tool: 'line' | 'arrow'; readonly page: number; readonly x: number; readonly y: number }
+  | { readonly kind: 'ink'; readonly page: number; readonly points: number[] }
+  | { readonly kind: 'erase'; readonly page: number }
+  | { readonly kind: 'poly'; readonly tool: 'polygon' | 'polyline' | 'cloud'; readonly page: number; readonly vertices: number[] };
+
+/** Below this many points a drag counts as a click. */
+const MIN_DRAG = 4;
+/** Eraser radius, in CSS px (converted to points at the current zoom). */
+const ERASER_RADIUS_PX = 8;
+/** A click this close (CSS px) to the first vertex closes a polygon. */
+const CLOSE_RADIUS_PX = 8;
+
+const isMarkupTool = (tool: PdfAnnotationTool): tool is PdfTextMarkupType => (TEXT_MARKUP_TYPES as readonly string[]).includes(tool);
 
 /**
- * Annotation authoring on the page edit layer: the active tool and colour,
- * pointer gestures (rectangle drag, note click, freehand ink), committing to
- * the engine, and the inline text editor that collects annotation text.
+ * Annotation authoring: the active tool, its pointer gestures on a page's
+ * drawing surface (boxes, lines, vertices, ink, eraser, notes, text boxes),
+ * text markup from the selection, and the inline text editor that collects
+ * free text and note comments.
  */
 @Injectable()
 export class PdfAnnotationToolsService {
   private readonly store = inject(PdfViewerStore);
   private readonly viewport = inject(PdfViewportService);
+  private readonly annotations = inject(PdfAnnotationsService);
 
-  /** In-progress drag for rectangle tools (highlight / free text). */
-  private drag: { layer: HTMLElement; startX: number; startY: number; preview: HTMLElement; pageNumber: number } | null = null;
-  /** In-progress freehand stroke: CSS-px points plus the live SVG preview. */
-  private ink: { layer: HTMLElement; pageNumber: number; points: number[]; svg: SVGSVGElement; poly: SVGPolylineElement } | null = null;
+  private gesture: Gesture | null = null;
+  /** Eraser hits run in order (each needs the strokes the previous one left). */
+  private eraseChain: Promise<void> = Promise.resolve();
   private editorResolve: ((value: string | null) => void) | null = null;
 
+  /** Whether the tool draws on the page (the drawing surface takes the pointer). Markup tools work on the text selection instead. */
+  isDrawingTool(tool: PdfAnnotationTool = this.store.annotationTool()): boolean {
+    return tool !== 'none' && !isMarkupTool(tool);
+  }
+
   setTool(tool: PdfAnnotationTool): void {
+    this.cancel();
+    if (tool !== 'none') {
+      this.annotations.select(null);
+      this.store.annotationBarOpen.set(true);
+    }
     this.store.annotationTool.set(tool);
   }
 
-  /** Clicking the active tool turns editing off. */
-  toggleTool(tool: PdfAnnotationTool): void {
-    this.store.annotationTool.update((cur) => (cur === tool ? 'none' : tool));
+  /**
+   * Toolbar click: a markup tool applies at once to a current text selection;
+   * otherwise the tool toggles (clicking the active tool turns it off).
+   */
+  async toggleTool(tool: PdfAnnotationTool): Promise<void> {
+    if (isMarkupTool(tool) && (await this.annotations.markupFromSelection(tool))) return;
+    this.setTool(this.store.annotationTool() === tool ? 'none' : tool);
   }
 
   setColor(color: string): void {
-    this.store.annotationColor.set(color);
+    this.annotations.setColor(color);
   }
 
-  onColorInput(ev: Event): void {
-    const value = (ev.target as HTMLInputElement | null)?.value;
-    if (value) this.store.annotationColor.set(value);
+  /** Close the annotation toolbar row and return to normal interaction. */
+  closeBar(): void {
+    this.setTool('none');
+    this.store.annotationBarOpen.set(false);
   }
 
-  /** After an annotation change: mark the document edited, re-render that page, refresh the list. */
-  afterChange(pageNumber: number): void {
-    this.store.markDocumentEdited();
-    this.store.annotations.set(null); // re-fetched on the next Annotations-tab view
-    this.viewport.rerenderPage(pageNumber);
+  /** Abandon any in-progress gesture or draft. */
+  cancel(): void {
+    this.gesture = null;
+    this.annotations.preview.set(null);
   }
 
-  // ── Inline text editor ──────────────────────────────────────────────────
+  // ── Pointer gestures on the drawing surface ─────────────────────────────
 
-  /** Open the editor; resolves with the text, or `null` if cancelled. */
+  onPointerDown(ev: PointerEvent, pageNumber: number): void {
+    const tool = this.store.annotationTool();
+    if (!this.isDrawingTool(tool) || ev.button !== 0 || !this.annotations.supported()) return;
+    ev.preventDefault();
+    const surface = ev.currentTarget as HTMLElement;
+    const page = pageNumber - 1;
+    const [x, y] = this.toPoint(surface, pageNumber, ev);
+
+    if (tool === 'note') {
+      void this.addNote(page, x, y);
+      return;
+    }
+    if (tool === 'polygon' || tool === 'polyline' || tool === 'cloud') {
+      this.addVertex(tool, page, x, y, pageNumber);
+      return;
+    }
+    surface.setPointerCapture?.(ev.pointerId);
+    switch (tool) {
+      case 'rect':
+      case 'ellipse':
+      case 'freetext':
+        this.gesture = { kind: 'box', tool, page, x, y };
+        break;
+      case 'line':
+      case 'arrow':
+        this.gesture = { kind: 'line', tool, page, x, y };
+        break;
+      case 'ink':
+        this.gesture = { kind: 'ink', page, points: [x, y] };
+        this.annotations.preview.set(this.inkDraft(page, [x, y]));
+        break;
+      case 'eraser':
+        this.gesture = { kind: 'erase', page };
+        this.queueErase(page, x, y, pageNumber);
+        break;
+    }
+  }
+
+  onPointerMove(ev: PointerEvent, pageNumber: number): void {
+    const g = this.gesture;
+    if (!g || g.page !== pageNumber - 1) return;
+    const [x, y] = this.toPoint(ev.currentTarget as HTMLElement, pageNumber, ev);
+    switch (g.kind) {
+      case 'box':
+        this.annotations.preview.set(this.boxDraft(g.tool, g.page, boxFrom(g.x, g.y, x, y, ev.shiftKey)));
+        break;
+      case 'line': {
+        const [ex, ey] = ev.shiftKey ? snap45(g.x, g.y, x, y) : [x, y];
+        this.annotations.preview.set(this.lineDraft(g.tool, g.page, [g.x, g.y, ex, ey]));
+        break;
+      }
+      case 'ink': {
+        const n = g.points.length;
+        if (Math.hypot(x - g.points[n - 2], y - g.points[n - 1]) < 0.75) return;
+        g.points.push(x, y);
+        this.annotations.preview.set(this.inkDraft(g.page, g.points));
+        break;
+      }
+      case 'erase':
+        if (ev.buttons & 1) this.queueErase(g.page, x, y, pageNumber);
+        break;
+      case 'poly':
+        this.annotations.preview.set(this.polyDraft(g.tool, g.page, [...g.vertices, x, y]));
+        break;
+    }
+  }
+
+  onPointerUp(ev: PointerEvent, pageNumber: number): void {
+    const g = this.gesture;
+    if (!g || g.kind === 'poly' || g.page !== pageNumber - 1) return;
+    this.gesture = null;
+    const [x, y] = this.toPoint(ev.currentTarget as HTMLElement, pageNumber, ev);
+    const draft = this.annotations.preview();
+    this.annotations.preview.set(null);
+    switch (g.kind) {
+      case 'box': {
+        let rect = boxFrom(g.x, g.y, x, y, ev.shiftKey);
+        if (rect.w < MIN_DRAG && rect.h < MIN_DRAG) {
+          if (g.tool !== 'freetext') return;
+          const style = this.annotations.toolStyle('freetext');
+          rect = { x: g.x, y: g.y, w: 180, h: Math.ceil(style.fontSize * 1.16 + 2 * (FREE_TEXT_PADDING + style.strokeWidth)) };
+        }
+        const annotation = this.boxDraft(g.tool, g.page, rect);
+        if (annotation.type === 'freetext') this.annotations.textEdit.set({ annotation, isNew: true });
+        else void this.annotations.add(annotation);
+        break;
+      }
+      case 'line':
+        if (
+          draft &&
+          draft.type === 'line' &&
+          Math.hypot(draft.points[2] - draft.points[0], draft.points[3] - draft.points[1]) >= MIN_DRAG
+        ) {
+          void this.annotations.add(draft);
+        }
+        break;
+      case 'ink':
+        void this.annotations.add(this.inkDraft(g.page, g.points));
+        break;
+      case 'erase':
+        break;
+    }
+  }
+
+  /** Double-click finishes a polygon / polyline / cloud. */
+  onDoubleClick(): void {
+    void this.finishPoly();
+  }
+
+  /** Keys while drawing: Enter finishes a shape, Backspace drops its last vertex, Escape cancels. */
+  onKeydown(ev: KeyboardEvent): boolean {
+    const g = this.gesture;
+    if (ev.key === 'Escape' && (g || this.annotations.preview())) {
+      this.cancel();
+      return true;
+    }
+    if (g?.kind !== 'poly') return false;
+    if (ev.key === 'Enter') {
+      void this.finishPoly();
+      return true;
+    }
+    if (ev.key === 'Backspace') {
+      g.vertices.splice(-2, 2);
+      if (g.vertices.length === 0) this.cancel();
+      else this.annotations.preview.set(this.polyDraft(g.tool, g.page, g.vertices));
+      return true;
+    }
+    return false;
+  }
+
+  /** After a text selection ends with a markup tool active, mark it up. */
+  onSelectionEnd(): void {
+    const tool = this.store.annotationTool();
+    if (isMarkupTool(tool)) void this.annotations.markupFromSelection(tool);
+  }
+
+  // ── Free text editing ───────────────────────────────────────────────────
+
+  /** Start editing an existing text box's text in place. */
+  editText(id: string): void {
+    const a = this.annotations.list().find((x) => x.id === id);
+    if (a?.type === 'freetext' && !a.locked) this.annotations.textEdit.set({ annotation: a, isNew: false });
+  }
+
+  /** Finish in-place text editing: a new box is added with its text (dropped if empty); an existing one is updated. */
+  async commitText(text: string): Promise<void> {
+    const edit = this.annotations.textEdit();
+    if (!edit) return;
+    this.annotations.textEdit.set(null);
+    const contents = text.replace(/\s+$/, '');
+    const fitted = fitFreeText({ ...edit.annotation, contents });
+    if (edit.isNew) {
+      if (contents) await this.annotations.add(fitted, 'Add text box');
+    } else if (contents) {
+      await this.annotations.update(edit.annotation.id, { contents, rect: fitted.rect }, { label: 'Edit text' });
+    } else {
+      await this.annotations.remove(edit.annotation.id);
+    }
+  }
+
+  cancelText(): void {
+    this.annotations.textEdit.set(null);
+  }
+
+  // ── Inline text prompt (note comments) ──────────────────────────────────
+
+  /** Open the text prompt; resolves with the text, or `null` if cancelled. */
   promptText(label: string, value = ''): Promise<string | null> {
     this.editorResolve?.(null); // cancel any open prompt
     this.store.textEditorDraft.set(value);
@@ -85,166 +284,189 @@ export class PdfAnnotationToolsService {
     resolve?.(value);
   }
 
-  // ── Pointer gestures on the edit layer ──────────────────────────────────
+  // ── Drafts ──────────────────────────────────────────────────────────────
 
-  /** Start a rectangle drag or ink stroke, or drop a note. */
-  onPointerDown(ev: PointerEvent, pageNumber: number): void {
-    const tool = this.store.annotationTool();
-    if (tool === 'none') return;
-    ev.preventDefault();
-    const layer = ev.currentTarget as HTMLElement;
-    const { x, y } = this.toLayer(layer, pageNumber, ev);
-    if (tool === 'note') {
-      void this.commitNote(layer, pageNumber, x, y);
+  private boxDraft(tool: 'rect' | 'ellipse' | 'freetext', page: number, rect: PdfRect): Exclude<HkAnnotation, { type: 'line' }> {
+    const s = this.annotations.toolStyle(tool);
+    const base = { id: DRAFT_ID, page, rect, color: s.color, opacity: s.opacity, author: this.annotations.author() };
+    if (tool === 'freetext') {
+      return {
+        ...base,
+        type: 'freetext',
+        font: s.font,
+        fontSize: s.fontSize,
+        fontColor: s.fontColor,
+        align: s.align,
+        strokeWidth: s.strokeWidth,
+        fill: s.fill,
+      };
+    }
+    return {
+      ...base,
+      type: tool,
+      strokeWidth: s.strokeWidth,
+      fill: s.fill,
+      dash: s.dashed ? [4, 3] : undefined,
+      cloudy: s.cloudy || undefined,
+    };
+  }
+
+  private lineDraft(tool: 'line' | 'arrow', page: number, points: [number, number, number, number]): HkAnnotation {
+    const s = this.annotations.toolStyle(tool);
+    return {
+      id: DRAFT_ID,
+      type: 'line',
+      page,
+      rect: pointsBounds(points),
+      points,
+      color: s.color,
+      opacity: s.opacity,
+      strokeWidth: s.strokeWidth,
+      startEnding: s.startEnding,
+      endEnding: s.endEnding,
+      fill: s.fill,
+      dash: s.dashed ? [4, 3] : undefined,
+      author: this.annotations.author(),
+    };
+  }
+
+  private polyDraft(tool: 'polygon' | 'polyline' | 'cloud', page: number, vertices: number[]): HkAnnotation {
+    const s = this.annotations.toolStyle(tool);
+    const common = {
+      id: DRAFT_ID,
+      page,
+      rect: pointsBounds(vertices),
+      vertices: [...vertices],
+      color: s.color,
+      opacity: s.opacity,
+      strokeWidth: s.strokeWidth,
+      fill: s.fill,
+      dash: s.dashed ? [4, 3] : undefined,
+      author: this.annotations.author(),
+    };
+    if (tool === 'polyline') return { ...common, type: 'polyline', startEnding: s.startEnding, endEnding: s.endEnding };
+    return { ...common, type: 'polygon', cloudy: tool === 'cloud' || s.cloudy || undefined };
+  }
+
+  private inkDraft(page: number, points: readonly number[]): HkAnnotation {
+    const s = this.annotations.toolStyle('ink');
+    return {
+      id: DRAFT_ID,
+      type: 'ink',
+      page,
+      rect: pointsBounds(points),
+      strokes: [[...points]],
+      color: s.color,
+      opacity: s.opacity,
+      strokeWidth: s.strokeWidth,
+      author: this.annotations.author(),
+    };
+  }
+
+  // ── Gesture helpers ─────────────────────────────────────────────────────
+
+  private addVertex(tool: 'polygon' | 'polyline' | 'cloud', page: number, x: number, y: number, pageNumber: number): void {
+    let g = this.gesture;
+    if (g?.kind !== 'poly' || g.page !== page || g.tool !== tool) {
+      g = { kind: 'poly', tool, page, vertices: [] };
+      this.gesture = g;
+    }
+    const v = g.vertices;
+    const closeRadius = CLOSE_RADIUS_PX / this.pxPerPoint(pageNumber);
+    if (tool !== 'polyline' && v.length >= 6 && Math.hypot(x - v[0], y - v[1]) <= closeRadius) {
+      void this.finishPoly();
       return;
     }
-    layer.setPointerCapture(ev.pointerId);
-    if (tool === 'ink') {
-      const svg = document.createElementNS(SVG_NS, 'svg');
-      svg.setAttribute('class', 'hk-pdf-edit-ink');
-      const poly = document.createElementNS(SVG_NS, 'polyline');
-      poly.setAttribute('fill', 'none');
-      poly.setAttribute('stroke', this.store.annotationColor());
-      poly.setAttribute('stroke-width', '2');
-      poly.setAttribute('stroke-linecap', 'round');
-      poly.setAttribute('stroke-linejoin', 'round');
-      poly.setAttribute('points', `${x},${y}`);
-      svg.appendChild(poly);
-      layer.appendChild(svg);
-      this.ink = { layer, pageNumber, points: [x, y], svg, poly };
-      return;
-    }
-    const preview = document.createElement('div');
-    preview.className = 'hk-pdf-edit-preview';
-    preview.style.left = `${x}px`;
-    preview.style.top = `${y}px`;
-    layer.appendChild(preview);
-    this.drag = { layer, startX: x, startY: y, preview, pageNumber };
+    // The two clicks of a double-click land on the same spot: keep one vertex.
+    if (v.length >= 2 && Math.hypot(x - v[v.length - 2], y - v[v.length - 1]) < 1) return;
+    v.push(x, y);
+    this.annotations.preview.set(this.polyDraft(tool, page, v));
   }
 
-  /** Grow the rectangle preview or extend the ink stroke. */
-  onPointerMove(ev: PointerEvent): void {
-    const ink = this.ink;
-    if (ink) {
-      const p = this.toLayer(ink.layer, ink.pageNumber, ev);
-      ink.points.push(p.x, p.y);
-      let pts = '';
-      for (let i = 0; i < ink.points.length; i += 2) pts += `${ink.points[i]},${ink.points[i + 1]} `;
-      ink.poly.setAttribute('points', pts.trim());
-      return;
-    }
-    const d = this.drag;
-    if (!d) return;
-    const { x, y } = this.toLayer(d.layer, d.pageNumber, ev);
-    const s = d.preview.style;
-    s.left = `${Math.min(d.startX, x)}px`;
-    s.top = `${Math.min(d.startY, y)}px`;
-    s.width = `${Math.abs(x - d.startX)}px`;
-    s.height = `${Math.abs(y - d.startY)}px`;
+  private async finishPoly(): Promise<void> {
+    const g = this.gesture;
+    if (g?.kind !== 'poly') return;
+    this.gesture = null;
+    this.annotations.preview.set(null);
+    const enough = g.tool === 'polyline' ? g.vertices.length >= 4 : g.vertices.length >= 6;
+    if (enough) await this.annotations.add(this.polyDraft(g.tool, g.page, g.vertices));
   }
 
-  /** Commit the rectangle (highlight / free text) or ink stroke. */
-  onPointerUp(ev: PointerEvent, pageNumber: number): void {
-    const ink = this.ink;
-    if (ink) {
-      this.ink = null;
-      ink.svg.remove();
-      if (ink.points.length >= 4) void this.commitInk(ink.layer, pageNumber, ink.points);
-      return;
-    }
-    const d = this.drag;
-    if (!d) return;
-    this.drag = null;
-    const { x, y } = this.toLayer(d.layer, d.pageNumber, ev);
-    const left = Math.min(d.startX, x);
-    const top = Math.min(d.startY, y);
-    const w = Math.abs(x - d.startX);
-    const h = Math.abs(y - d.startY);
-    d.preview.remove();
-    if (w < 4 || h < 4) return; // ignore taps and tiny drags
-    void this.commitRect(this.store.annotationTool(), d.layer, pageNumber, left, top, w, h);
-  }
-
-  /**
-   * Pointer → the page's unrotated layer-local CSS coordinates. Annotations
-   * live in unrotated page space (rotation is display-only until `save()`), so
-   * this places them where the user drew on the rotated page.
-   */
-  private toLayer(layer: HTMLElement, pageNumber: number, ev: PointerEvent): { x: number; y: number } {
-    return pointerToLocal(
-      ev.clientX,
-      ev.clientY,
-      layer.getBoundingClientRect(),
-      { width: layer.clientWidth, height: layer.clientHeight },
-      this.store.pageRotation(pageNumber),
-    );
-  }
-
-  /** PDF points per CSS px on a page's edit layer. */
-  private pointScale(layer: HTMLElement, pageNumber: number): number {
-    const page = this.store.findPage(pageNumber);
-    if (!page || layer.clientWidth <= 0) return 1;
-    return page.baseWidth / layer.clientWidth;
-  }
-
-  /** Active colour as `0xRRGGBBAA`; highlights are semi-transparent. */
-  private colorRgba(tool: PdfAnnotationTool): number {
-    return packRgba(this.store.annotationColor(), tool === 'highlight' ? 0x66 : 0xff);
-  }
-
-  private async commitRect(
-    tool: PdfAnnotationTool,
-    layer: HTMLElement,
-    pageNumber: number,
-    left: number,
-    top: number,
-    w: number,
-    h: number,
-  ) {
-    const session = this.store.session();
-    if (!session) return;
-    const s = this.pointScale(layer, pageNumber);
-    const color = this.colorRgba(tool);
-    try {
-      if (tool === 'highlight') {
-        await session.engine.addHighlight(session.doc, pageNumber - 1, left * s, top * s, w * s, h * s, color);
-      } else if (tool === 'freetext') {
-        const text = (await this.promptText('Text'))?.trim();
-        if (!text) return;
-        await session.engine.addFreeText(session.doc, pageNumber - 1, left * s, top * s, w * s, h * s, text, color);
-      } else {
-        return;
-      }
-      this.afterChange(pageNumber);
-    } catch (err) {
-      this.store.reportOperationError({ code: 'render_failed', message: 'Failed to add annotation.', recoverable: true, cause: err });
-    }
-  }
-
-  private async commitNote(layer: HTMLElement, pageNumber: number, cssX: number, cssY: number): Promise<void> {
-    const session = this.store.session();
-    if (!session) return;
-    const text = (await this.promptText('Note'))?.trim();
+  private async addNote(page: number, x: number, y: number): Promise<void> {
+    const text = (await this.promptText(this.store.labels().comment))?.trim();
     if (!text) return;
-    const s = this.pointScale(layer, pageNumber);
-    try {
-      await session.engine.addTextNote(session.doc, pageNumber - 1, cssX * s, cssY * s, text, this.colorRgba('note'));
-      this.afterChange(pageNumber);
-    } catch (err) {
-      this.store.reportOperationError({ code: 'render_failed', message: 'Failed to add note.', recoverable: true, cause: err });
+    const s = this.annotations.toolStyle('note');
+    const half = NOTE_ICON_SIZE / 2;
+    await this.annotations.add({
+      type: 'note',
+      page,
+      rect: { x: x - half, y: y - half, w: NOTE_ICON_SIZE, h: NOTE_ICON_SIZE },
+      color: s.color,
+      opacity: s.opacity,
+      icon: s.icon,
+      contents: text,
+    });
+  }
+
+  private queueErase(page: number, x: number, y: number, pageNumber: number): void {
+    this.eraseChain = this.eraseChain.then(() => this.erase(page, x, y, pageNumber)).catch(() => undefined);
+  }
+
+  /** Erase ink around a point on a page. Successive erasing of one stroke folds into one undo step. */
+  private async erase(page: number, x: number, y: number, pageNumber: number): Promise<void> {
+    const radius = ERASER_RADIUS_PX / this.pxPerPoint(pageNumber);
+    for (const a of this.annotations.list()) {
+      if (a.page !== page || a.type !== 'ink' || a.locked) continue;
+      const r = a.rect;
+      if (x < r.x - radius || x > r.x + r.w + radius || y < r.y - radius || y > r.y + r.h + radius) continue;
+      const strokes = eraseStrokes(a.strokes, x, y, radius);
+      const removed = strokes.reduce((n, s) => n + s.length, 0) !== a.strokes.reduce((n, s) => n + s.length, 0);
+      if (!removed) continue;
+      if (strokes.length) await this.annotations.update(a.id, { strokes }, { label: 'Erase', mergeKey: `erase:${a.id}` });
+      else await this.annotations.remove(a.id);
     }
   }
 
-  private async commitInk(layer: HTMLElement, pageNumber: number, cssPoints: number[]): Promise<void> {
-    const session = this.store.session();
-    if (!session) return;
-    const s = this.pointScale(layer, pageNumber);
-    const points = cssPoints.map((v) => v * s); // CSS px → PDF points (top-left)
-    try {
-      await session.engine.addInk(session.doc, pageNumber - 1, points, this.colorRgba('ink'), 2 * s);
-      this.afterChange(pageNumber);
-    } catch (err) {
-      this.store.reportOperationError({ code: 'render_failed', message: 'Failed to add ink.', recoverable: true, cause: err });
-    }
+  /** Pointer → points on the page (unrotated by the view, top-left origin). */
+  private toPoint(surface: HTMLElement, pageNumber: number, ev: PointerEvent): [number, number] {
+    const size = { width: this.viewport.pageCssWidth(pageNumber), height: this.viewport.pageCssHeight(pageNumber) };
+    const local = pointerToLocal(ev.clientX, ev.clientY, surface.getBoundingClientRect(), size, this.store.pageRotation(pageNumber));
+    const k = this.pxPerPoint(pageNumber);
+    return [local.x / k, local.y / k];
   }
+
+  /** CSS px per point at the current zoom. */
+  private pxPerPoint(pageNumber: number): number {
+    const page = this.store.findPage(pageNumber);
+    const width = this.viewport.pageCssWidth(pageNumber);
+    return page && width > 0 ? width / page.baseWidth : this.viewport.scale() || 1;
+  }
+}
+
+/** The rectangle spanned by two points; `square` constrains it to a square. */
+function boxFrom(x0: number, y0: number, x1: number, y1: number, square: boolean): PdfRect {
+  let w = x1 - x0;
+  let h = y1 - y0;
+  if (square) {
+    const side = Math.max(Math.abs(w), Math.abs(h));
+    w = Math.sign(w || 1) * side;
+    h = Math.sign(h || 1) * side;
+  }
+  return { x: Math.min(x0, x0 + w), y: Math.min(y0, y0 + h), w: Math.abs(w), h: Math.abs(h) };
+}
+
+/** Snap a line's end to the nearest 45°. */
+function snap45(x0: number, y0: number, x1: number, y1: number): [number, number] {
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  const angle = Math.round(Math.atan2(y1 - y0, x1 - x0) / (Math.PI / 4)) * (Math.PI / 4);
+  return [x0 + Math.cos(angle) * len, y0 + Math.sin(angle) * len];
+}
+
+/** Grow a text box downward so all of its text fits. */
+function fitFreeText(a: PdfFreeTextAnnotation): PdfFreeTextAnnotation {
+  const layout = layoutFreeText(a);
+  const last = layout.lines.at(-1);
+  if (!last) return a;
+  const needed = last.y + a.fontSize * 0.3 + FREE_TEXT_PADDING + a.strokeWidth - a.rect.y;
+  return needed > a.rect.h ? { ...a, rect: { ...a.rect, h: Math.ceil(needed) } } : a;
 }

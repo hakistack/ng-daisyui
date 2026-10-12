@@ -1,5 +1,4 @@
 import {
-  PdfAnnotationRow,
   PdfAttachmentFile,
   PdfDocHandle,
   PdfEngine,
@@ -94,10 +93,6 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'pageLinks', id: 0, doc, page }) as Promise<PdfLinkRect[]>;
   }
 
-  documentAnnotations(doc: PdfDocHandle): Promise<PdfAnnotationRow[]> {
-    return this.request({ type: 'documentAnnotations', id: 0, doc }) as Promise<PdfAnnotationRow[]>;
-  }
-
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]> {
     return this.request({ type: 'attachments', id: 0, doc }) as Promise<PdfAttachmentFile[]>;
   }
@@ -108,39 +103,6 @@ export class PdfiumEngine implements PdfEngine {
 
   setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean> {
     return this.request({ type: 'setFieldValue', id: 0, doc, page, annotIndex, name, value }) as Promise<boolean>;
-  }
-
-  addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean> {
-    return this.request({ type: 'addHighlight', id: 0, doc, page, x, y, w, h, color }) as Promise<boolean>;
-  }
-
-  addTextNote(doc: PdfDocHandle, page: number, x: number, y: number, contents: string, color: number): Promise<boolean> {
-    return this.request({ type: 'addTextNote', id: 0, doc, page, x, y, contents, color }) as Promise<boolean>;
-  }
-
-  addFreeText(
-    doc: PdfDocHandle,
-    page: number,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    contents: string,
-    color: number,
-  ): Promise<boolean> {
-    return this.request({ type: 'addFreeText', id: 0, doc, page, x, y, w, h, contents, color }) as Promise<boolean>;
-  }
-
-  addInk(doc: PdfDocHandle, page: number, points: number[], color: number, width: number): Promise<boolean> {
-    return this.request({ type: 'addInk', id: 0, doc, page, points, color, width }) as Promise<boolean>;
-  }
-
-  deleteAnnotation(doc: PdfDocHandle, page: number, index: number): Promise<boolean> {
-    return this.request({ type: 'deleteAnnotation', id: 0, doc, page, index }) as Promise<boolean>;
-  }
-
-  setAnnotationContents(doc: PdfDocHandle, page: number, index: number, contents: string): Promise<boolean> {
-    return this.request({ type: 'setAnnotationContents', id: 0, doc, page, index, contents }) as Promise<boolean>;
   }
 
   deletePage(doc: PdfDocHandle, index: number): Promise<boolean> {

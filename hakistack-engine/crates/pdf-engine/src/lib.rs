@@ -293,69 +293,6 @@ pub fn page_links(handle: u32, index: u16) -> Result<Array, JsValue> {
     })
 }
 
-/// User-meaningful annotations across the whole document, for the sidebar list.
-/// Each row is `[pageIndex (0-based), annotIndex (page-local), subtype, contents]`.
-/// `annotIndex` is the annotation's position in the page's annotation array —
-/// the address `delete_annotation` / `set_annotation_contents` take. Subtypes
-/// the sidebar doesn't display (links, popups, widgets, …) are skipped.
-#[wasm_bindgen]
-pub fn document_annotations(handle: u32) -> Result<Array, JsValue> {
-    with_doc(handle, |doc| {
-        let out = Array::new();
-        let pages = doc.pages();
-        let count = pages.len();
-        for i in 0..count {
-            let page = match pages.get(i) {
-                Ok(p) => p,
-                Err(_) => continue,
-            };
-            let annots = page.annotations();
-            for j in 0..annots.len() {
-                let annot = match annots.get(j) {
-                    Ok(a) => a,
-                    Err(_) => continue,
-                };
-                let subtype = annotation_type_str(annot.annotation_type());
-                if subtype.is_empty() {
-                    continue;
-                }
-                let row = Array::new();
-                row.push(&JsValue::from_f64(i as f64));
-                row.push(&JsValue::from_f64(j as f64));
-                row.push(&JsValue::from_str(subtype));
-                row.push(&JsValue::from_str(&annot.contents().unwrap_or_default()));
-                out.push(&row);
-            }
-        }
-        Ok(out)
-    })
-}
-
-/// Delete the annotation at `[page_index, annot_index]` (page-local index from
-/// `document_annotations`). Indices shift after a delete — re-query first.
-#[wasm_bindgen]
-pub fn delete_annotation(handle: u32, page_index: u16, annot_index: u16) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(page_index as i32).map_err(to_js)?;
-        let annots = page.annotations_mut();
-        let annot = annots.get(annot_index as usize).map_err(to_js)?;
-        annots.delete_annotation(annot).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
-/// Replace the text contents of the annotation at `[page_index, annot_index]`
-/// (e.g. a note or free-text comment body).
-#[wasm_bindgen]
-pub fn set_annotation_contents(handle: u32, page_index: u16, annot_index: u16, contents: &str) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let page = doc.pages().get(page_index as i32).map_err(to_js)?;
-        let mut annot = page.annotations().get(annot_index as usize).map_err(to_js)?;
-        annot.set_contents(contents).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
 /// Embedded files. Each row is `[name, Uint8Array(bytes)]`.
 #[wasm_bindgen]
 pub fn attachments(handle: u32) -> Result<Array, JsValue> {
@@ -572,98 +509,6 @@ pub fn set_field_value(handle: u32, index: u16, annot_index: i32, name: &str, va
     })
 }
 
-/// Pack a `0xRRGGBBAA` value into a `PdfColor`.
-fn rgba(color: u32) -> PdfColor {
-    PdfColor::new(((color >> 24) & 0xFF) as u8, ((color >> 16) & 0xFF) as u8, ((color >> 8) & 0xFF) as u8, (color & 0xFF) as u8)
-}
-
-/// Build a PDF rect (bottom-left origin) from a top-left-origin box in points.
-fn rect_from_top_left(page_height: f32, x: f32, y: f32, w: f32, h: f32) -> PdfRect {
-    PdfRect::new_from_values(page_height - (y + h), x, page_height - y, x + w)
-}
-
-/// Add a highlight annotation over the rect `[x,y,w,h]` (top-left points) with
-/// `color` (`0xRRGGBBAA`). Appearance regenerates automatically (default page
-/// strategy), so it shows in `render` + `save_document`.
-#[wasm_bindgen]
-pub fn add_highlight(handle: u32, index: u16, x: f32, y: f32, w: f32, h: f32, color: u32) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(index as i32).map_err(to_js)?;
-        let rect = rect_from_top_left(page.height().value, x, y, w, h);
-        let mut annot = page.annotations_mut().create_highlight_annotation().map_err(to_js)?;
-        annot.set_bounds(rect).map_err(to_js)?;
-        annot.set_fill_color(rgba(color)).map_err(to_js)?;
-        annot
-            .attachment_points_mut()
-            .create_attachment_point_at_end(PdfQuadPoints::from_rect(&rect))
-            .map_err(to_js)?;
-        Ok(true)
-    })
-}
-
-/// Add a sticky-note (Text) annotation at `[x,y]` (top-left points) carrying
-/// `contents` as the comment body.
-#[wasm_bindgen]
-pub fn add_text_note(handle: u32, index: u16, x: f32, y: f32, contents: &str, color: u32) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(index as i32).map_err(to_js)?;
-        // A note is a fixed-size icon; give it a ~18pt box at the click point.
-        let rect = rect_from_top_left(page.height().value, x, y, 18.0, 18.0);
-        let mut annot = page.annotations_mut().create_text_annotation(contents).map_err(to_js)?;
-        annot.set_bounds(rect).map_err(to_js)?;
-        annot.set_fill_color(rgba(color)).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
-/// Add a free-text box over the rect `[x,y,w,h]` (top-left points) with the
-/// typed `contents`.
-#[wasm_bindgen]
-pub fn add_free_text(handle: u32, index: u16, x: f32, y: f32, w: f32, h: f32, contents: &str, color: u32) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(index as i32).map_err(to_js)?;
-        let rect = rect_from_top_left(page.height().value, x, y, w, h);
-        let mut annot = page.annotations_mut().create_free_text_annotation(contents).map_err(to_js)?;
-        annot.set_bounds(rect).map_err(to_js)?;
-        annot.set_stroke_color(rgba(color)).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
-/// Add a freehand ink stroke. `points` is a flat `[x0,y0,x1,y1,…]` polyline in
-/// top-left PDF points; `color` = `0xRRGGBBAA`; `width` in points. Built as a
-/// stroked path object inside an Ink annotation.
-#[wasm_bindgen]
-pub fn add_ink(handle: u32, index: u16, points: Vec<f32>, color: u32, width: f32) -> Result<bool, JsValue> {
-    if points.len() < 4 {
-        return Ok(false); // need at least two points
-    }
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(index as i32).map_err(to_js)?;
-        let page_height = page.height().value;
-
-        // Path objects use bottom-left origin → flip each y.
-        let mut path = PdfPagePathObject::new(
-            doc,
-            PdfPoints::new(points[0]),
-            PdfPoints::new(page_height - points[1]),
-            Some(rgba(color)),
-            Some(PdfPoints::new(width)),
-            None,
-        )
-        .map_err(to_js)?;
-        let mut i = 2;
-        while i + 1 < points.len() {
-            path.line_to(PdfPoints::new(points[i]), PdfPoints::new(page_height - points[i + 1])).map_err(to_js)?;
-            i += 2;
-        }
-
-        let mut ink = page.annotations_mut().create_ink_annotation().map_err(to_js)?;
-        ink.objects_mut().add_path_object(path).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
 /// Delete the page at `index` (0-based). Page count + indices shift after —
 /// the caller must refresh its page structure.
 #[wasm_bindgen]
@@ -726,23 +571,6 @@ fn bookmark_node(b: &PdfBookmark) -> Array {
     }
     node.push(&children);
     node
-}
-
-/// Map a PDFium annotation type to the pd​f.js-style subtype string the sidebar
-/// expects. Returns `""` for types the sidebar doesn't list (so they're filtered).
-fn annotation_type_str(t: PdfPageAnnotationType) -> &'static str {
-    match t {
-        PdfPageAnnotationType::Highlight => "Highlight",
-        PdfPageAnnotationType::Underline => "Underline",
-        PdfPageAnnotationType::Strikeout => "StrikeOut",
-        PdfPageAnnotationType::Squiggly => "Squiggly",
-        PdfPageAnnotationType::Text => "Text",
-        PdfPageAnnotationType::FreeText => "FreeText",
-        PdfPageAnnotationType::Ink => "Ink",
-        PdfPageAnnotationType::Stamp => "Stamp",
-        PdfPageAnnotationType::Caret => "Caret",
-        _ => "",
-    }
 }
 
 /// Borrow an open document by handle, mapping a missing handle to a JS error.

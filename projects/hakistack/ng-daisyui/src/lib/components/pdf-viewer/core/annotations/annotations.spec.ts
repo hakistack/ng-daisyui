@@ -3,6 +3,7 @@ import { PdfDict, PdfRef, PdfStream } from '../pdf-writer/objects';
 import { HkAnnotation } from './annotation.types';
 import { ImportedAnnotation, parseDefaultAppearance, parsePdfDate, readAnnotations, writeAnnotationChanges } from './annotation-io';
 import { PageSpace, visibleBox } from './page-space';
+import { mergeSelectionRects } from './selection';
 import { annotationOps, cloudSegs, eraseStrokes, outerBounds, resizeAnnotation, svgPath, translateAnnotation } from './shapes';
 
 const enc = new TextEncoder();
@@ -318,5 +319,29 @@ describe('annotation parsing helpers', () => {
     expect(parsePdfDate("D:20260102030405+02'00'")).toBe('2026-01-02T01:04:05.000Z');
     expect(parsePdfDate('D:2026')).toBe('2026-01-01T00:00:00.000Z');
     expect(parsePdfDate('garbage')).toBeUndefined();
+  });
+});
+
+describe('mergeSelectionRects', () => {
+  it('joins the spans of a line and keeps lines apart', () => {
+    const merged = mergeSelectionRects([
+      { x: 50, y: 10, w: 30, h: 12 },
+      { x: 10, y: 10, w: 38, h: 12 }, // same line, out of order, a small gap
+      { x: 10, y: 30, w: 60, h: 12 }, // next line
+      { x: 90, y: 11, w: 0.2, h: 12 }, // degenerate
+    ]);
+    expect(merged).toEqual([
+      { x: 10, y: 10, w: 70, h: 12 },
+      { x: 10, y: 30, w: 60, h: 12 },
+    ]);
+  });
+
+  it('keeps distant fragments of one line separate (columns)', () => {
+    expect(
+      mergeSelectionRects([
+        { x: 10, y: 10, w: 50, h: 10 },
+        { x: 300, y: 10, w: 50, h: 10 },
+      ]),
+    ).toHaveLength(2);
   });
 });

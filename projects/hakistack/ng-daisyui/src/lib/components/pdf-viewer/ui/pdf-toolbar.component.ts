@@ -8,17 +8,15 @@ import {
   LucideDownload,
   LucideEllipsis,
   LucideMaximize,
-  LucideMessageSquare,
   LucideMinus,
   LucidePanelLeft,
-  LucidePen,
+  LucidePenLine,
   LucidePlus,
   LucidePrinter,
   LucideRotateCw,
   LucideScrollText,
   LucideSearch,
   LucideSquare,
-  LucideType,
 } from '@lucide/angular';
 import { PdfAnnotationToolsService } from '../services/pdf-annotation-tools.service';
 import { PdfDocumentService } from '../services/pdf-document.service';
@@ -37,6 +35,7 @@ import { PdfDisplayMode } from '../pdf-viewer.types';
   selector: 'hk-pdf-toolbar',
   imports: [
     LucidePanelLeft,
+    LucidePenLine,
     LucideChevronsLeft,
     LucideChevronLeft,
     LucideChevronRight,
@@ -50,9 +49,6 @@ import { PdfDisplayMode } from '../pdf-viewer.types';
     LucideEllipsis,
     LucideScrollText,
     LucideSquare,
-    LucideMessageSquare,
-    LucideType,
-    LucidePen,
     LucideRotateCw,
     LucideColumns2,
   ],
@@ -66,6 +62,11 @@ export class PdfToolbarComponent {
   protected readonly find = inject(PdfFindService);
   protected readonly document = inject(PdfDocumentService);
   protected readonly tools = inject(PdfAnnotationToolsService);
+
+  protected toggleAnnotationBar(): void {
+    if (this.store.annotationBarOpen()) this.tools.closeBar();
+    else this.store.annotationBarOpen.set(true);
+  }
 
   protected toggleSidebar(): void {
     this.store.patchState((s) => ({ ...s, sidebarOpen: !s.sidebarOpen }));

@@ -8,6 +8,10 @@
     }
   }
 
+  @if (store.annotationBarOpen() && store.layout() === 'default') {
+    <hk-pdf-annotation-toolbar />
+  }
+
   @if (store.findBarOpen()) {
     <hk-pdf-find-bar />
   }
@@ -62,11 +66,13 @@
     </div>
   } @else {
     <!-- ── DEFAULT LAYOUT ────────────────────────────────────────────────── -->
-    <div class="flex flex-1 min-h-0 overflow-hidden">
+    <!-- `relative` anchors the floating annotation properties panel (out of the flex flow). -->
+    <div class="relative flex flex-1 min-h-0 overflow-hidden">
       @if (store.config().showSidebar !== false && store.state()?.sidebarOpen) {
         <hk-pdf-sidebar />
       }
       <hk-pdf-pages />
+      <hk-pdf-annotation-panel />
     </div>
   }
 </div>

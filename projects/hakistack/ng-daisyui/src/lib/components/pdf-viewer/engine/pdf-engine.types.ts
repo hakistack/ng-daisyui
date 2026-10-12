@@ -70,15 +70,6 @@ export interface PdfLinkRect {
   readonly uri: string;
 }
 
-/** A document annotation for the sidebar list. `pageIndex` is 0-based; `index`
- *  is the annotation's position in that page's array (the delete/edit address). */
-export interface PdfAnnotationRow {
-  readonly pageIndex: number;
-  readonly index: number;
-  readonly subtype: string;
-  readonly contents: string;
-}
-
 /** An embedded file. */
 export interface PdfAttachmentFile {
   readonly name: string;
@@ -147,8 +138,6 @@ export interface PdfEngine {
   outline(doc: PdfDocHandle): Promise<PdfOutlineNode[]>;
   /** Clickable link rects on a page (for the overlay). */
   pageLinks(doc: PdfDocHandle, page: number): Promise<PdfLinkRect[]>;
-  /** User-meaningful annotations across the whole document, for the sidebar. */
-  documentAnnotations(doc: PdfDocHandle): Promise<PdfAnnotationRow[]>;
   /** Embedded files. */
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]>;
   /** Interactive form fields on a page (for the fillable-widget overlay). */
@@ -159,27 +148,6 @@ export interface PdfEngine {
    * matches the first widget named `name`. Checkbox/radio take `'true'`/`'false'`.
    */
   setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean>;
-  /** Add a highlight over `[x,y,w,h]` (top-left PDF points). `color` = `0xRRGGBBAA`. */
-  addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean>;
-  /** Add a sticky-note (Text) annotation at `[x,y]` with a comment body. */
-  addTextNote(doc: PdfDocHandle, page: number, x: number, y: number, contents: string, color: number): Promise<boolean>;
-  /** Add a free-text box over `[x,y,w,h]` (top-left PDF points) with typed text. */
-  addFreeText(
-    doc: PdfDocHandle,
-    page: number,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    contents: string,
-    color: number,
-  ): Promise<boolean>;
-  /** Add a freehand ink stroke. `points` is a flat `[x0,y0,…]` polyline in top-left PDF points; `width` in points. */
-  addInk(doc: PdfDocHandle, page: number, points: number[], color: number, width: number): Promise<boolean>;
-  /** Delete the annotation at `[page, index]` (page-local index from {@link documentAnnotations}). */
-  deleteAnnotation(doc: PdfDocHandle, page: number, index: number): Promise<boolean>;
-  /** Replace the text contents of the annotation at `[page, index]`. */
-  setAnnotationContents(doc: PdfDocHandle, page: number, index: number, contents: string): Promise<boolean>;
   /** Delete the page at 0-based `index`. Page count + indices shift after. */
   deletePage(doc: PdfDocHandle, index: number): Promise<boolean>;
   /** Insert a blank page (`width`×`height` PDF points) at 0-based `index`. */
@@ -236,27 +204,9 @@ export type PdfWorkerRequest = (
   | ({ type: 'renderTile'; id: number; doc: PdfDocHandle; page: number } & PdfTileRequest)
   | { type: 'outline'; id: number; doc: PdfDocHandle }
   | { type: 'pageLinks'; id: number; doc: PdfDocHandle; page: number }
-  | { type: 'documentAnnotations'; id: number; doc: PdfDocHandle }
   | { type: 'attachments'; id: number; doc: PdfDocHandle }
   | { type: 'formFields'; id: number; doc: PdfDocHandle; page: number }
   | { type: 'setFieldValue'; id: number; doc: PdfDocHandle; page: number; annotIndex: number; name: string; value: string }
-  | { type: 'addHighlight'; id: number; doc: PdfDocHandle; page: number; x: number; y: number; w: number; h: number; color: number }
-  | { type: 'addTextNote'; id: number; doc: PdfDocHandle; page: number; x: number; y: number; contents: string; color: number }
-  | {
-      type: 'addFreeText';
-      id: number;
-      doc: PdfDocHandle;
-      page: number;
-      x: number;
-      y: number;
-      w: number;
-      h: number;
-      contents: string;
-      color: number;
-    }
-  | { type: 'addInk'; id: number; doc: PdfDocHandle; page: number; points: number[]; color: number; width: number }
-  | { type: 'deleteAnnotation'; id: number; doc: PdfDocHandle; page: number; index: number }
-  | { type: 'setAnnotationContents'; id: number; doc: PdfDocHandle; page: number; index: number; contents: string }
   | { type: 'deletePage'; id: number; doc: PdfDocHandle; index: number }
   | { type: 'insertBlankPage'; id: number; doc: PdfDocHandle; index: number; width: number; height: number }
   | { type: 'setPageRotation'; id: number; doc: PdfDocHandle; page: number; degrees: number }

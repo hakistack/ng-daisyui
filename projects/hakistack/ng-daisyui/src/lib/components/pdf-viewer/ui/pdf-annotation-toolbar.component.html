@@ -1,0 +1,128 @@
+<div
+  class="flex items-center gap-0.5 px-2 py-1 border-b border-base-300 bg-base-100 text-sm overflow-x-auto"
+  role="toolbar"
+  [attr.aria-label]="store.labels().annotationToolbar"
+>
+  @if (!annotations.supported() && store.showPages()) {
+    <span class="text-xs text-base-content/70 px-1" role="status">{{ store.labels().annotationsReadOnly }}</span>
+  } @else {
+    @for (group of groups; track $index; let last = $last) {
+      <div class="flex items-center gap-0.5" role="group">
+        @for (b of group; track b.tool) {
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs btn-square"
+            [class.btn-active]="store.annotationTool() === b.tool"
+            [attr.aria-pressed]="store.annotationTool() === b.tool"
+            [attr.aria-label]="store.labels()[b.label]"
+            [title]="store.labels()[b.label]"
+            [disabled]="!store.showPages()"
+            (click)="b.tool === 'none' ? tools.setTool('none') : tools.toggleTool(b.tool)"
+          >
+            @switch (b.icon) {
+              @case ('select') {
+                <svg lucideMousePointer2 [size]="16"></svg>
+              }
+              @case ('highlight') {
+                <svg lucideHighlighter [size]="16"></svg>
+              }
+              @case ('underline') {
+                <svg lucideUnderline [size]="16"></svg>
+              }
+              @case ('strikeout') {
+                <svg lucideStrikethrough [size]="16"></svg>
+              }
+              @case ('squiggly') {
+                <svg lucideWaves [size]="16"></svg>
+              }
+              @case ('rect') {
+                <svg lucideSquare [size]="16"></svg>
+              }
+              @case ('ellipse') {
+                <svg lucideCircle [size]="16"></svg>
+              }
+              @case ('line') {
+                <svg lucideSlash [size]="16"></svg>
+              }
+              @case ('arrow') {
+                <svg lucideMoveUpRight [size]="16"></svg>
+              }
+              @case ('polygon') {
+                <svg lucidePentagon [size]="16"></svg>
+              }
+              @case ('polyline') {
+                <svg lucideSpline [size]="16"></svg>
+              }
+              @case ('cloud') {
+                <svg lucideCloud [size]="16"></svg>
+              }
+              @case ('ink') {
+                <svg lucidePenLine [size]="16"></svg>
+              }
+              @case ('eraser') {
+                <svg lucideEraser [size]="16"></svg>
+              }
+              @case ('freetext') {
+                <svg lucideType [size]="16"></svg>
+              }
+              @case ('note') {
+                <svg lucideStickyNote [size]="16"></svg>
+              }
+            }
+          </button>
+        }
+      </div>
+      @if (!last) {
+        <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
+      }
+    }
+
+    @if (showsColor()) {
+      <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
+      <input
+        type="color"
+        class="h-6 w-6 shrink-0 cursor-pointer rounded border border-base-300 bg-transparent p-0"
+        [value]="color()"
+        [attr.aria-label]="store.labels().color"
+        [title]="store.labels().color"
+        (input)="onColor($event)"
+      />
+    }
+    @if (polyHint()) {
+      <span class="text-xs text-base-content/70 px-2 whitespace-nowrap" role="status">{{ store.labels().finishShape }}</span>
+    }
+  }
+
+  <div class="grow"></div>
+
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="undoTitle()"
+    [title]="undoTitle() + ' (⌘Z)'"
+    [disabled]="!annotations.history().canUndo"
+    (click)="annotations.undo()"
+  >
+    <svg lucideUndo2 [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="redoTitle()"
+    [title]="redoTitle() + ' (⇧⌘Z)'"
+    [disabled]="!annotations.history().canRedo"
+    (click)="annotations.redo()"
+  >
+    <svg lucideRedo2 [size]="16"></svg>
+  </button>
+  <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().closeAnnotationToolbar"
+    [title]="store.labels().closeAnnotationToolbar"
+    (click)="tools.closeBar()"
+  >
+    <svg lucideX [size]="16"></svg>
+  </button>
+</div>

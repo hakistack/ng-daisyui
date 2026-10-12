@@ -166,7 +166,7 @@ function fakeEngine(count: number): PdfEngine {
     formFields: async () => [],
     outline: async () => [],
     attachments: async () => [],
-    documentAnnotations: async () => [],
+    setHiddenAnnotations: async () => undefined,
     dispose: () => undefined,
     destroy: () => undefined,
   };

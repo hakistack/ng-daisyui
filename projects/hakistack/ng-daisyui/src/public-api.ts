@@ -414,6 +414,23 @@ export type {
   PdfSearchResult,
   PdfImageExportOptions,
 } from './lib/components/pdf-viewer/pdf-viewer.types';
+export type {
+  HkAnnotation,
+  HkAnnotationInit,
+  HkAnnotationType,
+  PdfRect,
+  PdfLineEnding,
+  PdfReviewStatus,
+  PdfAnnotationReply,
+  PdfTextMarkupType,
+  PdfTextMarkupAnnotation,
+  PdfShapeAnnotation,
+  PdfLineAnnotation,
+  PdfPolyAnnotation,
+  PdfInkAnnotation,
+  PdfFreeTextAnnotation,
+  PdfNoteAnnotation,
+} from './lib/components/pdf-viewer/core/annotations/annotation.types';
 
 // Tree
 export { TreeComponent } from './lib/components/tree/tree.component';

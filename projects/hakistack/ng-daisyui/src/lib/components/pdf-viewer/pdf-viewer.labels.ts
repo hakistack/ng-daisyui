@@ -122,6 +122,156 @@ export interface PdfViewerLabels {
   passwordSubmit?: string;
   /** Default: "Cancel" */
   passwordCancel?: string;
+
+  // Annotations
+  /** Default: "Annotate" */
+  annotate?: string;
+  /** Default: "Annotation tools" */
+  annotationToolbar?: string;
+  /** Default: "Close annotation tools" */
+  closeAnnotationToolbar?: string;
+  /** Default: "Select" */
+  selectTool?: string;
+  /** Default: "Highlight" */
+  highlight?: string;
+  /** Default: "Underline" */
+  underline?: string;
+  /** Default: "Strikethrough" */
+  strikeout?: string;
+  /** Default: "Squiggly underline" */
+  squiggly?: string;
+  /** Default: "Rectangle" */
+  rectangle?: string;
+  /** Default: "Ellipse" */
+  ellipse?: string;
+  /** Default: "Line" */
+  line?: string;
+  /** Default: "Arrow" */
+  arrow?: string;
+  /** Default: "Polygon" */
+  polygon?: string;
+  /** Default: "Polyline" */
+  polyline?: string;
+  /** Default: "Cloud" */
+  cloud?: string;
+  /** Default: "Freehand" */
+  ink?: string;
+  /** Default: "Eraser" */
+  eraser?: string;
+  /** Default: "Text box" */
+  textBox?: string;
+  /** Default: "Sticky note" */
+  stickyNote?: string;
+  /** Default: "Undo" */
+  undo?: string;
+  /** Default: "Redo" */
+  redo?: string;
+  /** Default: "Annotation properties" */
+  annotationProperties?: string;
+  /** Default: "Colour" */
+  color?: string;
+  /** Default: "Fill" */
+  fillColor?: string;
+  /** Default: "No fill" */
+  noFill?: string;
+  /** Default: "Opacity" */
+  opacity?: string;
+  /** Default: "Thickness" */
+  strokeWidth?: string;
+  /** Default: "Line style" */
+  lineStyle?: string;
+  /** Default: "Solid" */
+  solid?: string;
+  /** Default: "Dashed" */
+  dashed?: string;
+  /** Default: "Start" */
+  lineStart?: string;
+  /** Default: "End" */
+  lineEnd?: string;
+  /** Default: "Cloudy border" */
+  cloudyBorder?: string;
+  /** Default: "Font" */
+  font?: string;
+  /** Default: "Size" */
+  fontSize?: string;
+  /** Default: "Text colour" */
+  textColor?: string;
+  /** Default: "Align left" */
+  alignLeft?: string;
+  /** Default: "Align centre" */
+  alignCenter?: string;
+  /** Default: "Align right" */
+  alignRight?: string;
+  /** Default: "Icon" */
+  noteIcon?: string;
+  /** Default: "Lock" */
+  lock?: string;
+  /** Default: "Unlock" */
+  unlock?: string;
+  /** Default: "Delete" */
+  deleteAnnotation?: string;
+  /** Default: "Comments" */
+  openComments?: string;
+  /** Default: "Type" */
+  filterType?: string;
+  /** Default: "Author" */
+  filterAuthor?: string;
+  /** Default: "Status" */
+  filterStatus?: string;
+  /** Default: "All" */
+  all?: string;
+  /** Default: "Reply" */
+  reply?: string;
+  /** Default: "Write a reply…" */
+  replyPlaceholder?: string;
+  /** Default: "Edit" */
+  edit?: string;
+  /** Default: "Save" */
+  save?: string;
+  /** Default: "Cancel" */
+  cancel?: string;
+  /** Default: "Delete reply" */
+  deleteReply?: string;
+  /** Default: "No status" */
+  statusNone?: string;
+  /** Default: "Accepted" */
+  statusAccepted?: string;
+  /** Default: "Rejected" */
+  statusRejected?: string;
+  /** Default: "Cancelled" */
+  statusCancelled?: string;
+  /** Default: "Completed" */
+  statusCompleted?: string;
+  /** Default: "Comment" */
+  comment?: string;
+  /** Default: "No comment" */
+  noComment?: string;
+  /** Default: "Page {page}" */
+  pageGroup?: string;
+  /** Default: "{type} by {author}" */
+  annotationAriaLabel?: string;
+  /** Default: "Annotations can't be edited in this document (it is encrypted or damaged)." */
+  annotationsReadOnly?: string;
+  /** Default: "Guest" */
+  defaultAuthor?: string;
+  /** Default: "None" */
+  endingNone?: string;
+  /** Default: "Open arrow" */
+  endingOpenArrow?: string;
+  /** Default: "Closed arrow" */
+  endingClosedArrow?: string;
+  /** Default: "Circle" */
+  endingCircle?: string;
+  /** Default: "Square" */
+  endingSquare?: string;
+  /** Default: "Diamond" */
+  endingDiamond?: string;
+  /** Default: "Bar" */
+  endingButt?: string;
+  /** Default: "Slash" */
+  endingSlash?: string;
+  /** Default: "Double-click or press Enter to finish; Esc cancels." */
+  finishShape?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -180,6 +330,80 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   passwordInputLabel: 'Password',
   passwordSubmit: 'Submit',
   passwordCancel: 'Cancel',
+  annotate: 'Annotate',
+  annotationToolbar: 'Annotation tools',
+  closeAnnotationToolbar: 'Close annotation tools',
+  selectTool: 'Select',
+  highlight: 'Highlight',
+  underline: 'Underline',
+  strikeout: 'Strikethrough',
+  squiggly: 'Squiggly underline',
+  rectangle: 'Rectangle',
+  ellipse: 'Ellipse',
+  line: 'Line',
+  arrow: 'Arrow',
+  polygon: 'Polygon',
+  polyline: 'Polyline',
+  cloud: 'Cloud',
+  ink: 'Freehand',
+  eraser: 'Eraser',
+  textBox: 'Text box',
+  stickyNote: 'Sticky note',
+  undo: 'Undo',
+  redo: 'Redo',
+  annotationProperties: 'Annotation properties',
+  color: 'Colour',
+  fillColor: 'Fill',
+  noFill: 'No fill',
+  opacity: 'Opacity',
+  strokeWidth: 'Thickness',
+  lineStyle: 'Line style',
+  solid: 'Solid',
+  dashed: 'Dashed',
+  lineStart: 'Start',
+  lineEnd: 'End',
+  cloudyBorder: 'Cloudy border',
+  font: 'Font',
+  fontSize: 'Size',
+  textColor: 'Text colour',
+  alignLeft: 'Align left',
+  alignCenter: 'Align centre',
+  alignRight: 'Align right',
+  noteIcon: 'Icon',
+  lock: 'Lock',
+  unlock: 'Unlock',
+  deleteAnnotation: 'Delete',
+  openComments: 'Comments',
+  filterType: 'Type',
+  filterAuthor: 'Author',
+  filterStatus: 'Status',
+  all: 'All',
+  reply: 'Reply',
+  replyPlaceholder: 'Write a reply…',
+  edit: 'Edit',
+  save: 'Save',
+  cancel: 'Cancel',
+  deleteReply: 'Delete reply',
+  statusNone: 'No status',
+  statusAccepted: 'Accepted',
+  statusRejected: 'Rejected',
+  statusCancelled: 'Cancelled',
+  statusCompleted: 'Completed',
+  comment: 'Comment',
+  noComment: 'No comment',
+  pageGroup: 'Page {page}',
+  annotationAriaLabel: '{type} by {author}',
+  annotationsReadOnly: "Annotations can't be edited in this document (it is encrypted or damaged).",
+  defaultAuthor: 'Guest',
+  endingNone: 'None',
+  endingOpenArrow: 'Open arrow',
+  endingClosedArrow: 'Closed arrow',
+  endingCircle: 'Circle',
+  endingSquare: 'Square',
+  endingDiamond: 'Diamond',
+  endingButt: 'Bar',
+  endingSlash: 'Slash',
+  finishShape: 'Double-click or press Enter to finish; Esc cancels.',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');

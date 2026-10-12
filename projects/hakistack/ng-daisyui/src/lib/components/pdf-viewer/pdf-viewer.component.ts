@@ -20,6 +20,7 @@ import { HkPdfToolbarContext, HkPdfToolbarDirective } from './pdf-viewer.directi
 import { INTERACTIVE_SELECTOR } from './pdf-viewer.helpers';
 import { PdfDocumentSource, PdfLoadedInfo, PdfViewerConfig, PdfViewerError, PdfViewerInternalApi } from './pdf-viewer.types';
 import { PdfAnnotationToolsService } from './services/pdf-annotation-tools.service';
+import { PdfAnnotationsService } from './services/pdf-annotations.service';
 import { PdfDocumentService } from './services/pdf-document.service';
 import { PdfFindService } from './services/pdf-find.service';
 import { PdfFormsService } from './services/pdf-forms.service';
@@ -28,6 +29,8 @@ import { PdfPageDataService } from './services/pdf-page-data.service';
 import { PdfThumbnailsService } from './services/pdf-thumbnails.service';
 import { PdfViewerStore, providePdfBitmapCache } from './services/pdf-viewer.store';
 import { PdfViewportService } from './services/pdf-viewport.service';
+import { PdfAnnotationPanelComponent } from './ui/pdf-annotation-panel.component';
+import { PdfAnnotationToolbarComponent } from './ui/pdf-annotation-toolbar.component';
 import { PdfFindBarComponent } from './ui/pdf-find-bar.component';
 import { PdfPagesComponent } from './ui/pdf-pages.component';
 import { PdfSidebarComponent } from './ui/pdf-sidebar.component';
@@ -71,7 +74,16 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
  */
 @Component({
   selector: 'hk-pdf-viewer',
-  imports: [NgTemplateOutlet, PdfToolbarComponent, PdfFindBarComponent, PdfSidebarComponent, PdfPagesComponent, PdfTextEditorComponent],
+  imports: [
+    NgTemplateOutlet,
+    PdfToolbarComponent,
+    PdfAnnotationToolbarComponent,
+    PdfAnnotationPanelComponent,
+    PdfFindBarComponent,
+    PdfSidebarComponent,
+    PdfPagesComponent,
+    PdfTextEditorComponent,
+  ],
   templateUrl: './pdf-viewer.component.html',
   styleUrl: './pdf-viewer.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -84,6 +96,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfFormsService,
     PdfFindService,
     PdfThumbnailsService,
+    PdfAnnotationsService,
     PdfAnnotationToolsService,
     PdfDocumentService,
   ],
@@ -103,6 +116,7 @@ export class PdfViewerComponent implements OnInit {
   protected readonly document = inject(PdfDocumentService);
   private readonly find = inject(PdfFindService);
   private readonly tools = inject(PdfAnnotationToolsService);
+  private readonly annotations = inject(PdfAnnotationsService);
 
   /**
    * The PDF document source. Accepts a URL string, a `Uint8Array` of bytes,
@@ -210,7 +224,7 @@ export class PdfViewerComponent implements OnInit {
   private attachController(internal: PdfViewerInternalApi): void {
     this.unbindController?.();
     this.store.internal = internal;
-    const { viewport, document: doc, find, tools, store } = this;
+    const { viewport, document: doc, find, tools, store, annotations } = this;
     this.unbindController = internal.bind({
       goToPage: (page) => viewport.goToPage(page),
       nextPage: () => viewport.nextPage(),
@@ -232,6 +246,13 @@ export class PdfViewerComponent implements OnInit {
       exportText: (filename) => doc.exportText(filename),
       setAnnotationTool: (tool) => tools.setTool(tool),
       setAnnotationColor: (color) => tools.setColor(color),
+      getAnnotations: () => annotations.list(),
+      addAnnotation: (annotation) => annotations.add(annotation),
+      updateAnnotation: (id, changes) => annotations.update(id, changes),
+      deleteAnnotation: (id) => annotations.remove(id),
+      selectAnnotation: (id) => annotations.select(id, true),
+      undo: () => annotations.undo(),
+      redo: () => annotations.redo(),
       deletePage: (pageNumber) => doc.deletePage(pageNumber),
       insertBlankPage: (atPageNumber) => doc.insertBlankPage(atPageNumber),
       rotatePage: (pageNumber, delta) => doc.rotatePage(pageNumber, delta),
@@ -246,6 +267,10 @@ export class PdfViewerComponent implements OnInit {
    * - Home / End → first / last page
    * - ⌘/Ctrl + `+` / `=` → zoom in; ⌘/Ctrl + `-` → zoom out; ⌘/Ctrl + 0 → reset zoom
    * - ⌘/Ctrl + F → open the find bar; Escape → close it
+   * - ⌘/Ctrl + Z → undo; ⇧⌘/Ctrl + Z or Ctrl + Y → redo (annotation edits)
+   * - While drawing: Enter finishes a polygon, Backspace drops its last vertex,
+   *   Escape cancels; otherwise Escape leaves the active tool, then the selection
+   * - Delete / Backspace → delete the selected annotation
    */
   onKeyDown(event: KeyboardEvent): void {
     const target = event.target as HTMLElement | null;
@@ -260,6 +285,10 @@ export class PdfViewerComponent implements OnInit {
       return;
     }
     if (inEditable) return;
+    if (this.onAnnotationKey(event)) {
+      event.preventDefault();
+      return;
+    }
 
     if (!(event.metaKey || event.ctrlKey)) {
       // Space/arrows/Home/End belong to a focused button, link, tab, menu item,
@@ -296,5 +325,36 @@ export class PdfViewerComponent implements OnInit {
       event.preventDefault();
       run();
     }
+  }
+
+  /** Annotation shortcuts (see {@link onKeyDown}). Returns true when the key was handled. */
+  private onAnnotationKey(event: KeyboardEvent): boolean {
+    const key = event.key;
+    const mod = event.metaKey || event.ctrlKey;
+    if (mod && (key === 'z' || key === 'Z')) {
+      void (event.shiftKey ? this.annotations.redo() : this.annotations.undo());
+      return true;
+    }
+    if (mod && (key === 'y' || key === 'Y')) {
+      void this.annotations.redo();
+      return true;
+    }
+    if (mod) return false;
+    if (this.tools.onKeydown(event)) return true;
+    if (key === 'Escape' && this.store.annotationTool() !== 'none') {
+      this.tools.setTool('none');
+      return true;
+    }
+    const selected = this.annotations.selectedId();
+    if (key === 'Escape' && selected) {
+      this.annotations.select(null);
+      return true;
+    }
+    // Not while a button, link or field has focus (the annotation's own hit target handles its keys).
+    if ((key === 'Delete' || key === 'Backspace') && selected && !(event.target as HTMLElement | null)?.closest?.(INTERACTIVE_SELECTOR)) {
+      void this.annotations.remove(selected);
+      return true;
+    }
+    return false;
   }
 }

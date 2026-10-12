@@ -6,7 +6,6 @@ import { PdfDocHandle, PdfEngine } from '../engine/pdf-engine.types';
 import { isPdfiumEngineAvailable } from '../engine/pdfium-worker.loader';
 import { DEFAULT_PDF_VIEWER_LABELS, HK_PDF_LABELS, ResolvedPdfViewerLabels } from '../pdf-viewer.labels';
 import {
-  PdfAnnotationEntry,
   PdfAnnotationTool,
   PdfAttachmentEntry,
   PdfDocumentSource,
@@ -125,10 +124,10 @@ export class PdfViewerStore {
   /** Sidebar data, fetched lazily when its tab opens. `null` until fetched. */
   readonly outline = signal<unknown[] | null>(null);
   readonly attachments = signal<PdfAttachmentEntry[] | null>(null);
-  readonly annotations = signal<PdfAnnotationEntry[] | null>(null);
-  /** Active annotation tool (`'none'` = select/scroll) and colour for new annotations. */
+  /** Active annotation tool (`'none'` = select / move / edit). */
   readonly annotationTool = signal<PdfAnnotationTool>('none');
-  readonly annotationColor = signal<string>('#ffeb3b');
+  /** The annotation toolbar row is open. */
+  readonly annotationBarOpen = signal(false);
   /** Page labels from the document's `/PageLabels` (`''` where none applies); empty until read. */
   readonly pageLabels = signal<readonly string[]>([]);
   /** Whether any page has a label that differs from its number (e.g. "iv", "A-1"). */
@@ -211,7 +210,10 @@ export class PdfViewerStore {
   loadToken = 0;
   /** Bumped on each full re-render; stale layer work compares against it. */
   renderEpoch = 0;
+  /** The engine's document differs from `sourceBytes` (forms, page structure). */
   private edited = false;
+  /** Annotation edits not yet saved (tracked by the annotation history). */
+  private annotationsDirty = false;
 
   findPage(pageNumber: number): PdfPageEntry | undefined {
     return this.pages.find((p) => p.pageNumber === pageNumber);
@@ -222,23 +224,35 @@ export class PdfViewerStore {
     return this.engine && this.doc !== null ? { engine: this.engine, doc: this.doc } : null;
   }
 
-  /** Whether the open document differs from `sourceBytes`. */
+  /** Whether there are unsaved edits: in the engine's document or in the annotations. */
   get documentEdited(): boolean {
+    return this.edited || this.annotationsDirty;
+  }
+
+  /** Whether the engine's own document was edited (so saving starts from a PDFium save, not `sourceBytes`). */
+  get engineEdited(): boolean {
     return this.edited;
   }
 
   markDocumentEdited(): void {
-    this.setEdited(true);
+    this.updateDirty(() => (this.edited = true));
+  }
+
+  setAnnotationsDirty(dirty: boolean): void {
+    this.updateDirty(() => (this.annotationsDirty = dirty));
   }
 
   resetDocumentEdited(): void {
-    this.setEdited(false);
+    this.updateDirty(() => {
+      this.edited = false;
+      this.annotationsDirty = false;
+    });
   }
 
-  private setEdited(value: boolean): void {
-    if (this.edited === value) return;
-    this.edited = value;
-    this.host?.events.dirtyChange(value);
+  private updateDirty(change: () => void): void {
+    const before = this.documentEdited;
+    change();
+    if (this.documentEdited !== before) this.host?.events.dirtyChange(this.documentEdited);
   }
 
   /**

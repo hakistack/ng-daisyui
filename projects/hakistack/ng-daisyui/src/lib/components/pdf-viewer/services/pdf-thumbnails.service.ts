@@ -1,6 +1,8 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { annotationOps, paintOps } from '../core/annotations/shapes';
 import { isQuarterTurn } from '../core/geometry';
 import { PageLayout } from '../core/page-layout';
+import { PdfAnnotationsService } from './pdf-annotations.service';
 import { PdfViewerStore } from './pdf-viewer.store';
 
 /** CSS width of a sidebar thumbnail. */
@@ -19,6 +21,7 @@ const MOUNT_MARGIN_PX = 1500;
 @Injectable()
 export class PdfThumbnailsService {
   private readonly store = inject(PdfViewerStore);
+  private readonly annotations = inject(PdfAnnotationsService);
 
   /** The panel's scroll container, registered by the sidebar (`null` while closed). */
   readonly panel = signal<HTMLElement | null>(null);
@@ -86,6 +89,19 @@ export class PdfThumbnailsService {
       if (!this.tabActive()) return;
       this.mountedPages(); // re-run when items mount
       untracked(() => queueMicrotask(() => void this.paint(pages)));
+    });
+
+    // Repaint the thumbnails of pages whose annotations changed (the raster leaves them out; they're drawn on top).
+    let signatures = new Map<number, string>();
+    effect(() => {
+      const next = new Map<number, string>();
+      for (const a of this.annotations.list()) next.set(a.page, `${next.get(a.page) ?? ''}${a.id}@${a.modified ?? ''};`);
+      untracked(() => {
+        for (const page of new Set([...next.keys(), ...signatures.keys()])) {
+          if (next.get(page) !== signatures.get(page)) this.refresh(page + 1);
+        }
+        signatures = next;
+      });
     });
 
     // Keep the active page's thumbnail visible as the page changes.
@@ -204,11 +220,22 @@ export class PdfThumbnailsService {
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((deg * Math.PI) / 180);
       ctx.drawImage(bitmap, -width / 2, -height / 2);
+      this.paintAnnotations(ctx, pageNumber, width, height);
       ctx.restore();
       bitmap.close();
     } catch {
       this.painted.delete(canvas); // retry when it comes into view again
     }
+  }
+
+  /** Draw the page's annotations over its raster (the context is centred on the unrotated bitmap). */
+  private paintAnnotations(ctx: CanvasRenderingContext2D, pageNumber: number, width: number, height: number): void {
+    const page = this.store.findPage(pageNumber);
+    const list = this.annotations.list().filter((a) => a.page === pageNumber - 1);
+    if (!page || list.length === 0 || typeof Path2D === 'undefined') return;
+    ctx.translate(-width / 2, -height / 2);
+    ctx.scale(width / page.baseWidth, height / page.baseHeight);
+    for (const a of list) paintOps(ctx, annotationOps(a));
   }
 
   /** Scroll the panel just enough to show the active thumbnail (never the outer page). Works for unmounted items. */

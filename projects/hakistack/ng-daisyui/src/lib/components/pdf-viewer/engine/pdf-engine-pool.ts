@@ -1,5 +1,4 @@
 import {
-  PdfAnnotationRow,
   PdfAttachmentFile,
   PdfDocHandle,
   PdfEngine,
@@ -123,10 +122,6 @@ export class PdfEnginePool implements PdfEngine {
     return this.engines[0].pageLinks(this.primary(doc), page);
   }
 
-  documentAnnotations(doc: PdfDocHandle): Promise<PdfAnnotationRow[]> {
-    return this.engines[0].documentAnnotations(this.primary(doc));
-  }
-
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]> {
     return this.engines[0].attachments(this.primary(doc));
   }
@@ -141,39 +136,6 @@ export class PdfEnginePool implements PdfEngine {
 
   setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean> {
     return this.broadcast(doc, (e, h) => e.setFieldValue(h, page, annotIndex, name, value));
-  }
-
-  addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean> {
-    return this.broadcast(doc, (e, hd) => e.addHighlight(hd, page, x, y, w, h, color));
-  }
-
-  addTextNote(doc: PdfDocHandle, page: number, x: number, y: number, contents: string, color: number): Promise<boolean> {
-    return this.broadcast(doc, (e, hd) => e.addTextNote(hd, page, x, y, contents, color));
-  }
-
-  addFreeText(
-    doc: PdfDocHandle,
-    page: number,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    contents: string,
-    color: number,
-  ): Promise<boolean> {
-    return this.broadcast(doc, (e, hd) => e.addFreeText(hd, page, x, y, w, h, contents, color));
-  }
-
-  addInk(doc: PdfDocHandle, page: number, points: number[], color: number, width: number): Promise<boolean> {
-    return this.broadcast(doc, (e, hd) => e.addInk(hd, page, points, color, width));
-  }
-
-  deleteAnnotation(doc: PdfDocHandle, page: number, index: number): Promise<boolean> {
-    return this.broadcast(doc, (e, hd) => e.deleteAnnotation(hd, page, index));
-  }
-
-  setAnnotationContents(doc: PdfDocHandle, page: number, index: number, contents: string): Promise<boolean> {
-    return this.broadcast(doc, (e, hd) => e.setAnnotationContents(hd, page, index, contents));
   }
 
   deletePage(doc: PdfDocHandle, index: number): Promise<boolean> {

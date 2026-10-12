@@ -1,7 +1,7 @@
 <!-- Scrollable page area. In the default layout `min-w-0` is critical: without it this flex item won't shrink below
      its content's min-width, so a rotated (wider) page would widen the viewport, which `computeScale` reads back as a
      larger clientWidth — a feedback loop that explodes the zoom. With it, the wide page overflows into a scroll. -->
-<div #scroller [class]="viewportClass()">
+<div #scroller [class]="viewportClass()" (pointerdown)="onBackgroundPointerDown()" (pointerup)="tools.onSelectionEnd()">
   @if (store.state()?.error; as err) {
     <div role="alert" class="flex flex-col items-center justify-center gap-3 py-12 text-center">
       <span class="text-error text-sm font-medium">{{ store.errorTitle() }}</span>
@@ -65,13 +65,7 @@
                     [style.height.px]="viewport.pageCssHeight(n)"
                     [style.--scale-factor]="viewport.scale()"
                   ></div>
-                  <div
-                    class="hk-pdf-edit-layer"
-                    [class.hk-pdf-edit-active]="store.annotationTool() !== 'none'"
-                    (pointerdown)="tools.onPointerDown($event, n)"
-                    (pointermove)="tools.onPointerMove($event)"
-                    (pointerup)="tools.onPointerUp($event, n)"
-                  ></div>
+                  <hk-pdf-annotation-layer [page]="n" />
                 </div>
               </div>
             }

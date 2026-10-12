@@ -5,7 +5,6 @@ import {
   LucideFileText,
   LucideMessageSquare,
   LucidePaperclip,
-  LucidePen,
   LucidePlus,
   LucideRotateCw,
   LucideTrash2,
@@ -15,6 +14,7 @@ import { PdfDocumentService } from '../services/pdf-document.service';
 import { PdfThumbnailsService } from '../services/pdf-thumbnails.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { PdfViewportService } from '../services/pdf-viewport.service';
+import { PdfCommentsComponent } from './pdf-comments.component';
 
 /**
  * The viewer sidebar: thumbnails (with rotate / insert / delete page actions),
@@ -25,6 +25,7 @@ import { PdfViewportService } from '../services/pdf-viewport.service';
   selector: 'hk-pdf-sidebar',
   imports: [
     NgTemplateOutlet,
+    PdfCommentsComponent,
     LucideFileText,
     LucideBookOpen,
     LucideMessageSquare,
@@ -32,7 +33,6 @@ import { PdfViewportService } from '../services/pdf-viewport.service';
     LucideRotateCw,
     LucidePlus,
     LucideTrash2,
-    LucidePen,
   ],
   templateUrl: './pdf-sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
