@@ -71,9 +71,13 @@
          persist across tab switches — re-entry is instant, no re-raster. -->
     <div [hidden]="(store.state()?.sidebarTab ?? 'thumbnails') !== 'thumbnails'">
       @if (store.pageNumbers().length > 0) {
-        <ul class="flex flex-col gap-2 items-center p-2">
-          @for (n of store.pageNumbers(); track n) {
-            <li class="group relative">
+        <!-- Virtualized like the page stack: only items near the panel's view are mounted. -->
+        <ul #thumbnailList class="flex flex-col gap-2 items-center p-2">
+          @if (thumbnails.spacerBefore() > 0) {
+            <li class="shrink-0 w-px" aria-hidden="true" [style.height.px]="thumbnails.spacerBefore()"></li>
+          }
+          @for (n of thumbnails.mountedPages(); track n) {
+            <li class="group relative" data-thumb-item>
               <button
                 type="button"
                 class="hk-pdf-thumbnail"
@@ -82,7 +86,7 @@
                 [attr.aria-current]="store.state()?.page === n ? 'page' : null"
                 (click)="viewport.goToPage(n)"
               >
-                <canvas [attr.data-thumb-page]="n"></canvas>
+                <canvas [attr.data-thumb-page]="n" [style.width.px]="180" [style.height.px]="thumbnails.canvasHeight(n)"></canvas>
                 <span class="text-xs text-base-content/70 mt-1">{{ store.labelFor(n) }}</span>
               </button>
               <div
@@ -118,6 +122,9 @@
                 </button>
               </div>
             </li>
+          }
+          @if (thumbnails.spacerAfter() > 0) {
+            <li class="shrink-0 w-px" aria-hidden="true" [style.height.px]="thumbnails.spacerAfter()"></li>
           }
         </ul>
       } @else {

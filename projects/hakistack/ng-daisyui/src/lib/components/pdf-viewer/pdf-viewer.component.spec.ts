@@ -386,6 +386,17 @@ describe('PdfViewerComponent (virtualization)', () => {
     }
   });
 
+  it('virtualizes the sidebar thumbnails too', async () => {
+    const { el } = await load(); // the sidebar starts open on the thumbnails tab
+    const items = el.querySelectorAll('hk-pdf-sidebar li[data-thumb-item]');
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.length).toBeLessThan(30);
+    const canvas = el.querySelector<HTMLCanvasElement>('hk-pdf-sidebar canvas[data-thumb-page="1"]')!;
+    expect(canvas.style.width).toBe('180px');
+    expect(canvas.style.height).toBe(`${Math.round((180 * 792) / 612)}px`); // sized from the page aspect before painting
+    expect(el.querySelectorAll('hk-pdf-sidebar li[aria-hidden="true"]').length).toBe(1); // spacer below the window
+  });
+
   it('sizes each mounted canvas from the layout before it renders', async () => {
     const { el } = await load();
     const canvas = el.querySelector<HTMLCanvasElement>('.hk-pdf-page canvas')!;

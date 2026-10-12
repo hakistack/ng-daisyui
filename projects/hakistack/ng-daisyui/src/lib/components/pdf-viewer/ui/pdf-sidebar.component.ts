@@ -42,13 +42,18 @@ export class PdfSidebarComponent {
   protected readonly store = inject(PdfViewerStore);
   protected readonly viewport = inject(PdfViewportService);
   protected readonly document = inject(PdfDocumentService);
-  private readonly thumbnails = inject(PdfThumbnailsService);
+  protected readonly thumbnails = inject(PdfThumbnailsService);
 
   private readonly thumbnailPanel = viewChild.required<ElementRef<HTMLElement>>('thumbnailPanel');
+  private readonly thumbnailList = viewChild<ElementRef<HTMLElement>>('thumbnailList');
 
   constructor() {
     effect(() => this.thumbnails.panel.set(this.thumbnailPanel().nativeElement));
-    inject(DestroyRef).onDestroy(() => this.thumbnails.panel.set(null));
+    effect(() => this.thumbnails.list.set(this.thumbnailList()?.nativeElement ?? null));
+    inject(DestroyRef).onDestroy(() => {
+      this.thumbnails.panel.set(null);
+      this.thumbnails.list.set(null);
+    });
   }
 
   protected setTab(tab: PdfSidebarTab): void {
