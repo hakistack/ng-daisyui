@@ -1,3 +1,7 @@
+import type { PdfTaskPriority } from './worker-queue';
+
+export type { PdfTaskPriority } from './worker-queue';
+
 /**
  * PDF engine boundary for `hk-pdf-viewer`.
  *
@@ -114,20 +118,27 @@ export interface PdfFormField {
 
 /**
  * The engine contract. All calls are async (they cross the worker boundary).
- * Phase 1 covers open/pageCount/pageSize/renderPage/dispose; text, outline,
- * links, annotations, forms, and save are layered in Phases 2–4.
+ * Reads accept a {@link PdfTaskPriority}: the worker runs higher-priority work
+ * first, but never reorders a read across a mutation (see `worker-queue.ts`).
  */
 export interface PdfEngine {
   /** Parse a document from raw bytes; resolves to a handle for later calls. */
   open(bytes: ArrayBuffer, opts?: { password?: string }): Promise<PdfDocHandle>;
   pageCount(doc: PdfDocHandle): Promise<number>;
   pageSize(doc: PdfDocHandle, page: number): Promise<PdfPageSize>;
+  /** Every page's size, in one round-trip. */
+  pageSizes(doc: PdfDocHandle): Promise<PdfPageSize[]>;
   /** Embedded document Title from metadata (`''` if unset). */
   documentTitle(doc: PdfDocHandle): Promise<string>;
-  /** Rasterize a page at `cssWidth * dpr` device pixels. Cancellable handle. */
-  renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number): PdfRenderTask;
+  /**
+   * Rasterize a page at `cssWidth * dpr` device pixels. Cancellable: a render
+   * cancelled before the worker starts it never runs.
+   */
+  renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number, priority?: PdfTaskPriority): PdfRenderTask;
   /** Extract a page's positioned text segments (reading order) for text + search. */
-  pageText(doc: PdfDocHandle, page: number): Promise<PdfTextSegment[]>;
+  pageText(doc: PdfDocHandle, page: number, priority?: PdfTaskPriority): Promise<PdfTextSegment[]>;
+  /** Text segments for several pages (0-based indices), in one round-trip. */
+  pagesText(doc: PdfDocHandle, pages: readonly number[], priority?: PdfTaskPriority): Promise<PdfTextSegment[][]>;
   /** Document outline (bookmark tree). Empty array when the PDF has none. */
   outline(doc: PdfDocHandle): Promise<PdfOutlineNode[]>;
   /** Clickable link rects on a page (for the overlay). */
@@ -187,11 +198,13 @@ export interface PdfRenderTask {
 }
 
 // ── Worker message protocol ────────────────────────────────────────────────
-// Main thread → worker.
-export type PdfWorkerRequest =
+// Main thread → worker. Every request may carry a `priority` (default `normal`).
+export type PdfWorkerRequest = (
   | { type: 'open'; id: number; bytes: ArrayBuffer; password?: string }
   | { type: 'pageCount'; id: number; doc: PdfDocHandle }
   | { type: 'pageSize'; id: number; doc: PdfDocHandle; page: number }
+  | { type: 'pageSizes'; id: number; doc: PdfDocHandle }
+  | { type: 'pagesText'; id: number; doc: PdfDocHandle; pages: number[] }
   | { type: 'documentTitle'; id: number; doc: PdfDocHandle }
   | { type: 'render'; id: number; doc: PdfDocHandle; page: number; cssWidth: number; dpr: number }
   | { type: 'pageText'; id: number; doc: PdfDocHandle; page: number }
@@ -223,7 +236,8 @@ export type PdfWorkerRequest =
   | { type: 'setPageRotation'; id: number; doc: PdfDocHandle; page: number; degrees: number }
   | { type: 'save'; id: number; doc: PdfDocHandle }
   | { type: 'cancel'; id: number }
-  | { type: 'dispose'; doc: PdfDocHandle };
+  | { type: 'dispose'; doc: PdfDocHandle }
+) & { readonly priority?: PdfTaskPriority };
 
 // Worker → main thread.
 export type PdfWorkerResponse =

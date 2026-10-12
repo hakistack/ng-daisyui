@@ -180,14 +180,10 @@ export class PdfDocumentService {
     return null;
   }
 
+  /** Every page's size in one worker round-trip (was one per page). */
   private async readPages(engine: PdfEngine, handle: PdfDocHandle): Promise<PdfPageEntry[]> {
-    const numPages = await engine.pageCount(handle);
-    const pages: PdfPageEntry[] = [];
-    for (let i = 1; i <= numPages; i++) {
-      const size = await engine.pageSize(handle, i - 1);
-      pages.push({ pageNumber: i, baseWidth: size.width, baseHeight: size.height });
-    }
-    return pages;
+    const sizes = await engine.pageSizes(handle);
+    return sizes.map((size, i) => ({ pageNumber: i + 1, baseWidth: size.width, baseHeight: size.height }));
   }
 
   // ── Page operations ─────────────────────────────────────────────────────

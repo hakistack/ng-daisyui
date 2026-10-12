@@ -135,7 +135,8 @@ export class PdfThumbnailsService {
     if (!session || !ctx) return;
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     try {
-      const { bitmap, width, height } = await session.engine.renderPage(session.doc, pageNumber - 1, THUMBNAIL_WIDTH, dpr).promise;
+      // Low priority: thumbnails never delay the pages the user is reading.
+      const { bitmap, width, height } = await session.engine.renderPage(session.doc, pageNumber - 1, THUMBNAIL_WIDTH, dpr, 'low').promise;
       const deg = this.store.pageRotation(pageNumber);
       const swap = isQuarterTurn(deg);
       canvas.width = swap ? height : width;

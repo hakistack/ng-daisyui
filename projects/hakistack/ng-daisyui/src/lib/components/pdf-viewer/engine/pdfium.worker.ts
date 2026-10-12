@@ -41,6 +41,7 @@ import pdfEngineWasm from '../../../wasm/pdf/pdf_engine_bg.wasm';
 import pdfiumWasm from './pdfium/pdfium.wasm';
 
 import type { PdfWorkerRequest } from './pdf-engine.types';
+import { WorkerTaskQueue, createMessageChannelScheduler } from './worker-queue';
 
 const ctx = self as unknown as Worker;
 
@@ -87,8 +88,42 @@ function bootstrap(): Promise<void> {
 // once in `open` and keeps the `PdfDocument` alive, so `render`/`page_text`/
 // `page_size` reuse it with no re-parse. No bytes are retained on the JS side.
 
-ctx.onmessage = async (e: MessageEvent<PdfWorkerRequest>) => {
+/** Requests that only read the document; everything else is a queue barrier. */
+const READ_ONLY = new Set<PdfWorkerRequest['type']>([
+  'pageCount',
+  'pageSize',
+  'pageSizes',
+  'documentTitle',
+  'render',
+  'pageText',
+  'pagesText',
+  'outline',
+  'pageLinks',
+  'documentAnnotations',
+  'attachments',
+  'formFields',
+]);
+
+// One task at a time, highest priority first, cancellable while queued. The
+// queue yields between tasks so cancellations arriving mid-burst are applied
+// before the next task starts (see worker-queue.ts).
+const queue = new WorkerTaskQueue(createMessageChannelScheduler());
+
+ctx.onmessage = (e: MessageEvent<PdfWorkerRequest>) => {
   const msg = e.data;
+  if (msg.type === 'cancel') {
+    queue.cancel(msg.id);
+    return;
+  }
+  queue.enqueue({
+    id: 'id' in msg ? msg.id : -1,
+    priority: msg.priority ?? 'normal',
+    barrier: !READ_ONLY.has(msg.type),
+    run: () => handle(msg),
+  });
+};
+
+async function handle(msg: PdfWorkerRequest): Promise<void> {
   try {
     await bootstrap();
     switch (msg.type) {
@@ -105,6 +140,29 @@ ctx.onmessage = async (e: MessageEvent<PdfWorkerRequest>) => {
       case 'pageSize': {
         const [w, h] = page_size(msg.doc, msg.page) as unknown as [number, number];
         ctx.postMessage({ type: 'ok', id: msg.id, result: { width: w, height: h } });
+        break;
+      }
+      case 'pageSizes': {
+        const count = page_count(msg.doc) as number;
+        const sizes = new Array(count);
+        for (let i = 0; i < count; i++) {
+          const [width, height] = page_size(msg.doc, i) as unknown as [number, number];
+          sizes[i] = { width, height };
+        }
+        ctx.postMessage({ type: 'ok', id: msg.id, result: sizes });
+        break;
+      }
+      case 'pagesText': {
+        const result = msg.pages.map((page) =>
+          (page_text(msg.doc, page) as unknown as Array<[string, number, number, number, number]>).map(([text, x, y, w, h]) => ({
+            text,
+            x,
+            y,
+            w,
+            h,
+          })),
+        );
+        ctx.postMessage({ type: 'ok', id: msg.id, result });
         break;
       }
       case 'documentTitle': {
@@ -247,4 +305,4 @@ ctx.onmessage = async (e: MessageEvent<PdfWorkerRequest>) => {
   } catch (err) {
     if ('id' in msg) ctx.postMessage({ type: 'error', id: (msg as { id: number }).id, message: String((err as Error)?.message ?? err) });
   }
-};
+}

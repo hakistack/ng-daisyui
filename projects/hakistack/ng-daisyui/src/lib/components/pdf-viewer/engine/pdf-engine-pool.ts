@@ -8,6 +8,7 @@ import {
   PdfOutlineNode,
   PdfPageSize,
   PdfRenderTask,
+  PdfTaskPriority,
   PdfTextSegment,
 } from './pdf-engine.types';
 import { PdfiumEngine } from './pdfium-engine';
@@ -93,12 +94,20 @@ export class PdfEnginePool implements PdfEngine {
     return this.engines[0].pageSize(this.primary(doc), page);
   }
 
+  pageSizes(doc: PdfDocHandle): Promise<PdfPageSize[]> {
+    return this.engines[0].pageSizes(this.primary(doc));
+  }
+
   documentTitle(doc: PdfDocHandle): Promise<string> {
     return this.engines[0].documentTitle(this.primary(doc));
   }
 
-  pageText(doc: PdfDocHandle, page: number): Promise<PdfTextSegment[]> {
-    return this.engines[0].pageText(this.primary(doc), page);
+  pageText(doc: PdfDocHandle, page: number, priority?: PdfTaskPriority): Promise<PdfTextSegment[]> {
+    return this.engines[0].pageText(this.primary(doc), page, priority);
+  }
+
+  pagesText(doc: PdfDocHandle, pages: readonly number[], priority?: PdfTaskPriority): Promise<PdfTextSegment[][]> {
+    return this.engines[0].pagesText(this.primary(doc), pages, priority);
   }
 
   outline(doc: PdfDocHandle): Promise<PdfOutlineNode[]> {
@@ -235,7 +244,7 @@ export class PdfEnginePool implements PdfEngine {
     );
   }
 
-  renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number): PdfRenderTask {
+  renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number, priority?: PdfTaskPriority): PdfRenderTask {
     const handles = this.docs.get(doc);
     if (!handles) {
       // Unknown handle — return an immediately-rejecting task.
@@ -247,7 +256,7 @@ export class PdfEnginePool implements PdfEngine {
       if (this.load[k] < this.load[i]) i = k;
     }
     this.load[i]++;
-    const task = this.engines[i].renderPage(handles[i], page, cssWidth, dpr);
+    const task = this.engines[i].renderPage(handles[i], page, cssWidth, dpr, priority);
     const settle = () => {
       this.load[i] = Math.max(0, this.load[i] - 1);
     };

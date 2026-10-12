@@ -8,6 +8,7 @@ import {
   PdfOutlineNode,
   PdfPageSize,
   PdfRenderTask,
+  PdfTaskPriority,
   PdfTextSegment,
   PdfWorkerResponse,
 } from './pdf-engine.types';
@@ -64,12 +65,20 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'pageSize', id: 0, doc, page }) as Promise<PdfPageSize>;
   }
 
+  pageSizes(doc: PdfDocHandle): Promise<PdfPageSize[]> {
+    return this.request({ type: 'pageSizes', id: 0, doc }) as Promise<PdfPageSize[]>;
+  }
+
   documentTitle(doc: PdfDocHandle): Promise<string> {
     return this.request({ type: 'documentTitle', id: 0, doc }) as Promise<string>;
   }
 
-  pageText(doc: PdfDocHandle, page: number): Promise<PdfTextSegment[]> {
-    return this.request({ type: 'pageText', id: 0, doc, page }) as Promise<PdfTextSegment[]>;
+  pageText(doc: PdfDocHandle, page: number, priority?: PdfTaskPriority): Promise<PdfTextSegment[]> {
+    return this.request({ type: 'pageText', id: 0, doc, page, priority }) as Promise<PdfTextSegment[]>;
+  }
+
+  pagesText(doc: PdfDocHandle, pages: readonly number[], priority?: PdfTaskPriority): Promise<PdfTextSegment[][]> {
+    return this.request({ type: 'pagesText', id: 0, doc, pages: [...pages], priority }) as Promise<PdfTextSegment[][]>;
   }
 
   outline(doc: PdfDocHandle): Promise<PdfOutlineNode[]> {
@@ -145,13 +154,13 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'save', id: 0, doc }) as Promise<Uint8Array>;
   }
 
-  renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number): PdfRenderTask {
+  renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number, priority?: PdfTaskPriority): PdfRenderTask {
     const id = this.nextId++;
     const promise = new Promise<unknown>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
       this.workerReady.then((w) => {
         // Skip if cancelled before the worker was ready.
-        if (this.pending.has(id)) w.postMessage({ type: 'render', id, doc, page, cssWidth, dpr });
+        if (this.pending.has(id)) w.postMessage({ type: 'render', id, doc, page, cssWidth, dpr, priority });
       }, reject);
     }).then((r) => r as Awaited<PdfRenderTask['promise']>);
     return {
@@ -160,7 +169,7 @@ export class PdfiumEngine implements PdfEngine {
         const p = this.pending.get(id);
         if (!p) return;
         this.pending.delete(id);
-        // Best-effort: tell the worker (no-op if it never received the render).
+        // The worker drops it if it hasn't started yet (no-op once running or done).
         this.workerReady.then((w) => w.postMessage({ type: 'cancel', id })).catch(() => undefined);
         p.reject(new DOMException('render cancelled', 'AbortError'));
       },

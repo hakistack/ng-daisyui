@@ -3,12 +3,17 @@
  * Integration test for the PDF engine WASM (PDFium + the `pdf-engine` crate):
  * the exact binaries the viewer's worker runs, driven from Node.
  *
- * Covers AcroForm checkbox/radio round-trips, which unit tests can't reach:
+ * Part 1 covers AcroForm checkbox/radio round-trips, which unit tests can't reach:
  * per-widget writes by annotation index, real on-state names ("On", option
  * names; not a hard-coded "Yes"), `/TU` alternate names, and that saved bytes
  * reopen with the same state. These broke silently before (every radio read
  * as checked; selecting any option selected the first one; non-"Yes"
  * checkboxes never persisted).
+ *
+ * Part 2 runs the real worker bundle (pdfium.worker.ts, exactly what the
+ * browser loads) in a worker_threads thread and checks the message protocol:
+ * priority ordering, barriers, cancellation of queued renders, and the batched
+ * pageSizes / pagesText requests.
  *
  * Requires the built inputs (skips with a notice when missing):
  *   - `npm run pdfium:fetch` → engine/pdfium/pdfium.{js,wasm}
@@ -16,6 +21,7 @@
  */
 import { build } from 'esbuild';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { Worker } from 'node:worker_threads';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -73,6 +79,64 @@ function makeFormPdf() {
   return new TextEncoder().encode(out);
 }
 
+/** An N-page PDF where page i (1-based) shows the text "Page i" in Helvetica. */
+function makeTextPdf(pageCount) {
+  const objs = {
+    1: '<< /Type /Catalog /Pages 2 0 R >>',
+    3: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  };
+  const kids = [];
+  for (let i = 0; i < pageCount; i++) {
+    const pageObj = 10 + i * 2;
+    const content = `BT /F1 18 Tf 40 100 Td (Page ${i + 1}) Tj ET`;
+    objs[pageObj] =
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${300 + i * 10} 200] ` +
+      `/Resources << /Font << /F1 3 0 R >> >> /Contents ${pageObj + 1} 0 R >>`;
+    objs[pageObj + 1] = `<< /Length ${content.length} >>\nstream\n${content}\nendstream`;
+    kids.push(`${pageObj} 0 R`);
+  }
+  objs[2] = `<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${pageCount} >>`;
+  return serializePdf(objs);
+}
+
+function serializePdf(objs) {
+  let out = '%PDF-1.7\n';
+  const offsets = {};
+  const nums = Object.keys(objs)
+    .map(Number)
+    .sort((a, b) => a - b);
+  for (const n of nums) {
+    offsets[n] = out.length;
+    out += `${n} 0 obj\n${objs[n]}\nendobj\n`;
+  }
+  const size = nums[nums.length - 1] + 1;
+  const xref = out.length;
+  out += `xref\n0 ${size}\n0000000000 65535 f \n`;
+  for (let n = 1; n < size; n++) {
+    out += offsets[n] !== undefined ? `${String(offsets[n]).padStart(10, '0')} 00000 n \n` : '0000000000 65535 f \n';
+  }
+  out += `trailer\n<< /Size ${size} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return new TextEncoder().encode(out);
+}
+
+/**
+ * Prepended to the worker bundle: presents worker_threads as a dedicated
+ * worker (self, onmessage, postMessage) and stubs the two browser APIs the
+ * render path needs. The bitmap stub is a plain object so it can be cloned.
+ */
+const WORKER_SHIM = `
+import { parentPort } from 'node:worker_threads';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+globalThis.self = globalThis;
+globalThis.WorkerGlobalScope ??= function () {};
+Uint8Array.fromBase64 ??= (s) => new Uint8Array(Buffer.from(s, 'base64'));
+globalThis.postMessage = (message) => parentPort.postMessage(message);
+parentPort.on('message', (data) => globalThis.onmessage?.({ data }));
+globalThis.ImageData = class { constructor(data, width, height) { this.data = data; this.width = width; this.height = height; } };
+globalThis.createImageBitmap = async (img) => ({ width: img.width, height: img.height });
+`;
+
 // Bundle the glue + both wasm binaries the same way the worker build does.
 const dir = mkdtempSync(join(tmpdir(), 'hk-pdf-engine-'));
 const entry = join(dir, 'entry.mjs');
@@ -102,7 +166,12 @@ await build({
 });
 
 let failures = 0;
+const check = (label, cond) => {
+  console.log(`${cond ? '✓' : '✗'} ${label}`);
+  if (!cond) failures++;
+};
 try {
+  console.log('forms');
   const e = await import(pathToFileURL(outfile).href);
   const [pdfium, ours] = await Promise.all([
     e.createPdfiumModule({ wasmBinary: e.pdfiumWasm, locateFile: (p) => p }),
@@ -118,10 +187,6 @@ try {
   const radios = (h) => fields(h).filter((f) => f.type === 'radio');
   const box = (h) => fields(h).find((f) => f.type === 'checkbox');
   const reopen = (h) => e.open(e.save_document(h), undefined);
-  const check = (label, cond) => {
-    console.log(`${cond ? '✓' : '✗'} ${label}`);
-    if (!cond) failures++;
-  };
   const states = (h) =>
     radios(h)
       .map((r) => (r.checked ? 1 : 0))
@@ -153,9 +218,76 @@ try {
   h = reopen(h);
   check('switching to option c persists through save', states(h) === '001');
   check('unchecking the checkbox persists through save', !box(h).checked);
+
+  // ── Part 2: worker protocol ────────────────────────────────────────────
+  console.log('\nworker protocol');
+  const workerBuild = await build({
+    entryPoints: [join(lib, 'components/pdf-viewer/engine/pdfium.worker.ts')],
+    bundle: true,
+    write: false,
+    format: 'esm',
+    platform: 'browser',
+    target: 'es2022',
+    loader: { '.wasm': 'binary' },
+    external: ['module', 'fs', 'path', 'url', 'crypto', 'node:module', 'node:fs', 'node:path', 'node:url', 'node:crypto'],
+    logLevel: 'error',
+  });
+  const workerFile = join(dir, 'worker.mjs');
+  writeFileSync(workerFile, WORKER_SHIM + workerBuild.outputFiles[0].text);
+  const worker = new Worker(workerFile);
+  const replies = [];
+  worker.on('message', (m) => replies.push(m));
+  const waitFor = async (ids, timeoutMs = 20_000) => {
+    const start = Date.now();
+    while (!ids.every((id) => replies.some((r) => r.id === id))) {
+      if (Date.now() - start > timeoutMs) throw new Error(`timed out waiting for replies ${ids}`);
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  };
+
+  // Posted in one burst, so all are queued before the open (a barrier) finishes.
+  const bytes = makeTextPdf(3).buffer;
+  worker.postMessage({ type: 'open', id: 1, bytes });
+  worker.postMessage({ type: 'pageSizes', id: 2, doc: 1 });
+  worker.postMessage({ type: 'render', id: 3, doc: 1, page: 0, cssWidth: 100, dpr: 1 });
+  worker.postMessage({ type: 'render', id: 4, doc: 1, page: 1, cssWidth: 100, dpr: 1, priority: 'high' });
+  worker.postMessage({ type: 'render', id: 5, doc: 1, page: 2, cssWidth: 100, dpr: 1, priority: 'low' });
+  worker.postMessage({ type: 'cancel', id: 5 });
+  worker.postMessage({ type: 'pagesText', id: 6, doc: 1, pages: [0, 1, 2], priority: 'low' });
+  worker.postMessage({ type: 'render', id: 7, doc: 1, page: 2, cssWidth: 100, dpr: 1, priority: 'low' });
+  try {
+    await waitFor([1, 2, 3, 4, 6, 7]);
+    await new Promise((r) => setTimeout(r, 300)); // give a cancelled render time to (wrongly) reply
+    const order = replies.map((r) => r.id);
+    const err = replies.find((r) => r.type === 'error');
+    check(`no worker errors${err ? ` (got: ${err.message})` : ''}`, !err);
+    check('the open (a barrier) completes before anything queued after it', order[0] === 1);
+    check('the high-priority render overtakes earlier normal-priority reads', order[1] === 4);
+    check('normal before low; FIFO within a priority', order.slice(2).join() === '2,3,6,7');
+    check('a render cancelled while queued never runs', !replies.some((r) => r.id === 5));
+    const sizes = replies.find((r) => r.id === 2).result;
+    check('pageSizes returns every page in one reply', sizes.length === 3 && sizes[2].width === 320 && sizes[0].height === 200);
+    const texts = replies.find((r) => r.id === 6).result;
+    check(
+      "pagesText returns each requested page's text",
+      texts.length === 3 &&
+        texts
+          .map((segs) =>
+            segs
+              .map((s) => s.text)
+              .join('')
+              .trim(),
+          )
+          .join('|') === 'Page 1|Page 2|Page 3',
+    );
+    const rendered = replies.find((r) => r.id === 4);
+    check('render replies with the bitmap size', rendered.type === 'rendered' && rendered.width === 100);
+  } finally {
+    await worker.terminate();
+  }
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log(failures === 0 ? '\n✓ pdf-engine form round-trips OK' : `\n✗ ${failures} check(s) failed`);
+console.log(failures === 0 ? '\n✓ pdf-engine checks OK' : `\n✗ ${failures} check(s) failed`);
 process.exit(failures === 0 ? 0 : 1);
