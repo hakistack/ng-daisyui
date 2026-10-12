@@ -149,6 +149,8 @@ Conectar `hk-table` editable al `ParsedSpreadsheet`; grid mejorado (rango, copy/
 Writer `.xlsx` vía WASM (`rust_xlsxwriter`). **Sin fórmulas calculadas todavía.**
 
 ### Fase 3 — PDF anotación / formularios  *(alto valor, riesgo medio — es overlay, no toca internals)*
+
+> **Reemplazado (2026-10-12):** el PDF ya no usa pdf.js ni `pdf-lib`. La edición PDF (anotaciones, formularios + diseñador, firmas, páginas, redacción) se planifica en `projects/hakistack/ng-daisyui/src/lib/components/pdf-viewer/REFACTOR_PLAN.md`: PDFium para leer y pintar + `hk-pdf-writer` propio para escribir de forma incremental.
 Capa de anotación (resaltado, dibujo, notas, sellos, firma) + rellenar AcroForms.
 Guardar/aplanar vía `pdf-lib`. Export PDF nativo.
 

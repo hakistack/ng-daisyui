@@ -23,9 +23,11 @@ import { PdfiumEngine } from './pdfium-engine';
  * - **Reads** (text/outline/links/size/…) go to the primary worker (worker 0);
  *   they're cheap + infrequent, and keeping them off the render workers avoids
  *   contention.
- * - **Mutations** (`setFieldValue`) broadcast to **all** workers so every
- *   worker's copy of the document stays consistent — any worker can then render
- *   any page with the correct (edited) appearance. `save` reads from primary.
+ * - **Mutations** (`setFieldValue`, annotations, pages) broadcast to **all**
+ *   workers so every worker's copy of the document stays consistent — any worker
+ *   can then render any page with the correct (edited) appearance. `save` reads
+ *   from primary. If a mutation fails on only some workers, the pool heals
+ *   itself (see {@link broadcast}).
  *
  * Each worker opens its **own copy** of the bytes (one parsed document per
  * worker) — the cost of parallelism is ~N× the wasm + parsed-doc memory, so
@@ -38,17 +40,23 @@ export class PdfEnginePool implements PdfEngine {
   /** Pool handle → per-engine document handles (parallel to `engines`). */
   private readonly docs = new Map<PdfDocHandle, number[]>();
   private nextHandle = 1;
+  /** Open passwords per pool doc, so a resync can reopen saved bytes. */
+  private readonly passwords = new Map<PdfDocHandle, string | undefined>();
   /**
-   * Set when a broadcast mutation failed on some-but-not-all workers, so their
-   * documents may have diverged. Once true, reads from the primary worker can no
-   * longer be trusted to match what other workers render — the document must be
-   * reloaded to clear it.
+   * Set when a broadcast mutation failed on some-but-not-all workers **and** the
+   * automatic resync also failed, so the workers' documents may disagree. Once
+   * true, reads from the primary worker can no longer be trusted to match what
+   * other workers render; the document must be reloaded to clear it.
    */
   private desynced = false;
 
-  constructor(size: number) {
+  /**
+   * @param size Worker count, clamped 1–4.
+   * @param createEngine Engine factory; tests pass fakes, production uses real workers.
+   */
+  constructor(size: number, createEngine: () => PdfiumEngine = () => new PdfiumEngine()) {
     const n = Math.max(1, Math.min(4, Math.floor(size) || 1));
-    this.engines = Array.from({ length: n }, () => new PdfiumEngine());
+    this.engines = Array.from({ length: n }, createEngine);
     this.load = new Array(n).fill(0);
   }
 
@@ -58,8 +66,9 @@ export class PdfEnginePool implements PdfEngine {
   }
 
   /**
-   * True if a mutation half-applied across the pool and the workers' documents
-   * may now disagree. Reload the document to recover.
+   * True if a mutation half-applied across the pool, the automatic resync
+   * failed, and the workers' documents may now disagree. Reload the document to
+   * recover.
    */
   get isDesynced(): boolean {
     return this.desynced;
@@ -70,6 +79,7 @@ export class PdfEnginePool implements PdfEngine {
     const handles = await Promise.all(this.engines.map((e) => e.open(bytes.slice(0), opts)));
     const handle = this.nextHandle++;
     this.docs.set(handle, handles);
+    this.passwords.set(handle, opts?.password);
     // A fresh open re-syncs every worker from the same bytes.
     this.desynced = false;
     return handle;
@@ -115,8 +125,8 @@ export class PdfEnginePool implements PdfEngine {
     return this.engines[0].save(this.primary(doc));
   }
 
-  setFieldValue(doc: PdfDocHandle, page: number, name: string, value: string): Promise<boolean> {
-    return this.broadcast(doc, (e, h) => e.setFieldValue(h, page, name, value));
+  setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean> {
+    return this.broadcast(doc, (e, h) => e.setFieldValue(h, page, annotIndex, name, value));
   }
 
   addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean> {
@@ -166,36 +176,63 @@ export class PdfEnginePool implements PdfEngine {
 
   /**
    * Apply a mutation to **every** worker's copy of the doc so they stay
-   * render-consistent. Hardened against partial failure: we wait for *all*
-   * workers (not bail on the first rejection), and if any worker's mutation
-   * failed we **reject** — because the workers' documents may now disagree, and
-   * a later render dispatched to a diverged worker would show wrong content.
-   * The caller surfaces this (the document should be reloaded to resynchronize;
-   * we can't silently "succeed" on a half-applied mutation).
+   * render-consistent. We wait for *all* workers (not bail on the first
+   * rejection):
+   *
+   * - All succeeded: return the result.
+   * - All failed: every copy is still identical, so rethrow the original error.
+   * - Some failed: the copies now disagree. **Heal**: serialize a worker where
+   *   the mutation succeeded and reopen those bytes in the failed workers, then
+   *   return the successful result. Only if that resync also fails is the pool
+   *   marked {@link isDesynced} and the error rethrown (reload to recover).
    */
   private async broadcast(doc: PdfDocHandle, op: (engine: PdfiumEngine, handle: PdfDocHandle) => Promise<boolean>): Promise<boolean> {
     const handles = this.docs.get(doc);
     if (!handles) return false;
     const results = await Promise.allSettled(this.engines.map((e, i) => op(e, handles[i])));
 
-    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
-    if (rejected.length > 0) {
-      this.desynced = true;
-      const cause = rejected[0].reason;
-      throw new Error(
-        `PDFium pool desynchronized: a document mutation failed on ${rejected.length}/${this.engines.length} ` +
-          `worker(s); their documents may now differ. Reload the document to resynchronize. ` +
-          `Cause: ${cause instanceof Error ? cause.message : String(cause)}`,
-      );
+    const failed = results.flatMap((r, i) => (r.status === 'rejected' ? [i] : []));
+    if (failed.length === results.length) {
+      throw (results[0] as PromiseRejectedResult).reason;
+    }
+    const values = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+    if (failed.length > 0) {
+      const healthy = results.findIndex((r) => r.status === 'fulfilled');
+      try {
+        await this.resync(doc, handles, healthy, failed);
+      } catch (err) {
+        this.desynced = true;
+        const cause = (results[failed[0]] as PromiseRejectedResult).reason;
+        throw new Error(
+          `PDFium pool desynchronized: a document mutation failed on ${failed.length}/${this.engines.length} ` +
+            `worker(s) and resync failed (${err instanceof Error ? err.message : String(err)}). ` +
+            `Reload the document. Cause: ${cause instanceof Error ? cause.message : String(cause)}`,
+        );
+      }
     }
 
-    // All workers hold identical documents, so the boolean results should agree;
-    // disagreement signals a logic bug (diagnostic, not fatal).
-    const values = results.map((r) => (r as PromiseFulfilledResult<boolean>).value);
+    // The successful workers held identical documents, so their results should
+    // agree; disagreement signals a logic bug (diagnostic, not fatal).
     if (values.some((v) => v !== values[0])) {
       console.warn('[hk-pdf-viewer] PDFium pool mutation results diverged across workers:', values);
     }
     return values[0] ?? false;
+  }
+
+  /**
+   * Bring `failed` workers back in line with the `healthy` one: save the healthy
+   * worker's document and reopen those bytes in each failed worker, replacing
+   * its handle in place (so `handles` stays parallel to `engines`).
+   */
+  private async resync(doc: PdfDocHandle, handles: number[], healthy: number, failed: number[]): Promise<void> {
+    const bytes = await this.engines[healthy].save(handles[healthy]);
+    const password = this.passwords.get(doc);
+    await Promise.all(
+      failed.map(async (i) => {
+        this.engines[i].dispose(handles[i]);
+        handles[i] = await this.engines[i].open(bytes.slice().buffer, { password });
+      }),
+    );
   }
 
   renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number): PdfRenderTask {
@@ -223,11 +260,13 @@ export class PdfEnginePool implements PdfEngine {
     if (!handles) return;
     this.engines.forEach((e, i) => e.dispose(handles[i]));
     this.docs.delete(doc);
+    this.passwords.delete(doc);
   }
 
   destroy(): void {
     for (const e of this.engines) e.destroy();
     this.docs.clear();
+    this.passwords.clear();
   }
 
   /** The primary engine's handle for a pool doc (worker 0). */

@@ -92,8 +92,8 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'formFields', id: 0, doc, page }) as Promise<PdfFormField[]>;
   }
 
-  setFieldValue(doc: PdfDocHandle, page: number, name: string, value: string): Promise<boolean> {
-    return this.request({ type: 'setFieldValue', id: 0, doc, page, name, value }) as Promise<boolean>;
+  setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean> {
+    return this.request({ type: 'setFieldValue', id: 0, doc, page, annotIndex, name, value }) as Promise<boolean>;
   }
 
   addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean> {

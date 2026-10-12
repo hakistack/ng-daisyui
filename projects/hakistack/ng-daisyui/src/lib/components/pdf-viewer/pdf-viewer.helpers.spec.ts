@@ -1,4 +1,4 @@
-import { clampZoom, inverseRotateDelta, nextZoomStep, previousZoomStep } from './pdf-viewer.helpers';
+import { clampZoom, inverseRotateDelta, isSafeLinkUri, nextZoomStep, previousZoomStep } from './pdf-viewer.helpers';
 
 /** Forward clockwise rotation R(deg) — the transform the page rotor applies. */
 function rotateDelta(dx: number, dy: number, deg: number): { dx: number; dy: number } {
@@ -66,5 +66,30 @@ describe('zoom step helpers', () => {
     expect(previousZoomStep(1)).toBeCloseTo(0.75, 9);
     expect(previousZoomStep(0.3)).toBe(0.25);
     expect(previousZoomStep(0.25)).toBe(0.25);
+  });
+});
+
+describe('isSafeLinkUri', () => {
+  it('allows web, mail and phone links', () => {
+    expect(isSafeLinkUri('https://example.com/a?b=c')).toBe(true);
+    expect(isSafeLinkUri('http://example.com')).toBe(true);
+    expect(isSafeLinkUri('mailto:someone@example.com')).toBe(true);
+    expect(isSafeLinkUri('tel:+15551234567')).toBe(true);
+    expect(isSafeLinkUri('  HTTPS://EXAMPLE.COM  ')).toBe(true);
+  });
+
+  it('rejects script-capable and local schemes', () => {
+    expect(isSafeLinkUri('javascript:alert(1)')).toBe(false);
+    expect(isSafeLinkUri('JaVaScRiPt:alert(1)')).toBe(false);
+    expect(isSafeLinkUri('data:text/html,<script>alert(1)</script>')).toBe(false);
+    expect(isSafeLinkUri('vbscript:msgbox(1)')).toBe(false);
+    expect(isSafeLinkUri('file:///etc/passwd')).toBe(false);
+    expect(isSafeLinkUri('blob:https://example.com/uuid')).toBe(false);
+  });
+
+  it('rejects relative and malformed URIs', () => {
+    expect(isSafeLinkUri('/relative/path')).toBe(false);
+    expect(isSafeLinkUri('not a url')).toBe(false);
+    expect(isSafeLinkUri('')).toBe(false);
   });
 });

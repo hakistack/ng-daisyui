@@ -63,6 +63,15 @@ impl<'a> PdfFormRadioButtonField<'a> {
         self.value_impl()
     }
 
+    /// Returns the export value of this radio button, i.e. the group value it represents
+    /// when selected (its on-state name, or the matching `/Opt` entry).
+    ///
+    /// (hakistack patch — the shared implementation existed but wasn't exposed.)
+    #[inline]
+    pub fn export_value(&self) -> Option<String> {
+        self.export_value_impl()
+    }
+
     /// Returns `true` if this [PdfFormRadioButtonField] object has its radio button selected.
     #[inline]
     pub fn is_checked(&self) -> Result<bool, PdfiumError> {
@@ -72,12 +81,20 @@ impl<'a> PdfFormRadioButtonField<'a> {
         // function doesn't check for this; so if FPDFAnnot_IsChecked() comes back with
         // anything other than Ok(true), we also check the appearance stream.
 
+        // (hakistack patch) The fallback must ignore the "Off" state: when no
+        // option is selected, both the group value and every widget's /AS are
+        // "Off", and comparing them reported every radio as checked.
+        let appearance = self.appearance_stream_impl();
+        let selected_by_appearance = |group_value: Option<String>| {
+            appearance.as_deref().is_some_and(|a| a != "Off") && group_value == appearance
+        };
+
         match self.is_checked_impl() {
             Ok(true) => Ok(true),
-            Ok(false) => Ok(self.group_value() == self.appearance_stream_impl()),
+            Ok(false) => Ok(selected_by_appearance(self.group_value())),
             Err(err) => match self.group_value() {
                 None => Err(err),
-                group_value => Ok(group_value == self.appearance_stream_impl()),
+                group_value => Ok(selected_by_appearance(group_value)),
             },
         }
     }

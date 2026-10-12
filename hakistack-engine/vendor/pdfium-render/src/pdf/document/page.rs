@@ -217,6 +217,17 @@ impl<'a> PdfPage<'a> {
 
         result.set_content_regeneration_strategy(Self::DEFAULT_CONTENT_REGENERATION_STRATEGY);
 
+        // (hakistack patch) Register the page with the form-fill environment, as
+        // Pdfium requires after FPDF_LoadPage when a form is present. Without it
+        // Pdfium can't resolve the page's widget controls: FPDFAnnot_IsChecked()
+        // and FPDFAnnot_GetFormFieldExportValue() come back empty, and form clicks
+        // have no page to land on. Paired with FORM_OnBeforeClosePage() in drop.
+        if let Some(form_handle) = form_handle {
+            unsafe {
+                result.bindings().FORM_OnAfterLoadPage(page_handle, form_handle);
+            }
+        }
+
         result
     }
 
@@ -224,6 +235,41 @@ impl<'a> PdfPage<'a> {
     #[inline]
     pub(crate) fn page_handle(&self) -> FPDF_PAGE {
         self.page_handle
+    }
+
+    /// Simulates a left mouse click at `(x, y)` — page user-space points, PDF origin
+    /// bottom-left — through Pdfium's form-fill environment, so Pdfium applies its own
+    /// widget semantics: a checkbox toggles, and a radio button selects itself within
+    /// its group. Pdfium then updates the parent field's `/V` and every kid widget's
+    /// `/AS`, using each widget's real on-state name.
+    ///
+    /// (hakistack patch — pdfium-render doesn't drive the form-fill environment, and
+    /// its checkbox/radio setters hard-code `/Yes` or reuse the widget's current `/AS`,
+    /// which is `/Off` for an unchecked radio.)
+    pub fn click_form_point(
+        &self,
+        form: &crate::pdf::document::form::PdfForm,
+        x: f32,
+        y: f32,
+    ) -> Result<(), PdfiumError> {
+        let bindings = self.bindings();
+        let form_handle = form.handle();
+        // The page is already registered with the form-fill environment
+        // (FORM_OnAfterLoadPage() in from_pdfium()).
+        let (down, up) = unsafe {
+            let down =
+                bindings.FORM_OnLButtonDown(form_handle, self.page_handle, 0, x as f64, y as f64);
+            let up = bindings.FORM_OnLButtonUp(form_handle, self.page_handle, 0, x as f64, y as f64);
+            bindings.FORM_ForceToKillFocus(form_handle);
+            (down, up)
+        };
+        if bindings.is_true(down) || bindings.is_true(up) {
+            Ok(())
+        } else {
+            Err(PdfiumError::PdfiumLibraryInternalError(
+                PdfiumInternalError::Unknown,
+            ))
+        }
     }
 
     /// Returns the internal `FPDF_DOCUMENT` handle of the [PdfDocument] containing this [PdfPage].
@@ -997,6 +1043,11 @@ impl<'a> PdfPage<'a> {
         }
 
         unsafe {
+            // (hakistack patch) Unregister from the form-fill environment first;
+            // see the matching FORM_OnAfterLoadPage() in from_pdfium().
+            if let Some(form_handle) = self.form_handle {
+                self.bindings().FORM_OnBeforeClosePage(self.page_handle, form_handle);
+            }
             self.bindings().FPDF_ClosePage(self.page_handle);
         }
 

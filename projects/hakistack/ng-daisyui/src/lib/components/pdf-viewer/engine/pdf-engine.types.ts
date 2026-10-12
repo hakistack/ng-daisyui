@@ -85,10 +85,13 @@ export interface PdfAttachmentFile {
 export type PdfFormFieldType = 'text' | 'checkbox' | 'radio' | 'combo' | 'list' | 'button' | 'signature';
 
 /**
- * An interactive form field (widget) on a page. Rect is in PDF points, top-left
- * origin (same convention as {@link PdfTextSegment}). `text`/`combo` carry
- * `value`; `checkbox`/`radio` use `checked`; `combo`/`list` list `options`.
- * `combo`/`list` are render-only (the binding has no value setter).
+ * An interactive form field **widget** on a page. Rect is in PDF points,
+ * top-left origin (same convention as {@link PdfTextSegment}). `text`/`combo`
+ * carry `value`; `checkbox`/`radio` use `checked`; `combo`/`list` list `options`.
+ *
+ * Several widgets can share one `name` (every option of a radio group). Writes
+ * target a widget by `annotIndex`. A radio's `exportValue` is the group value
+ * it stands for when selected.
  */
 export interface PdfFormField {
   readonly name: string;
@@ -101,6 +104,12 @@ export interface PdfFormField {
   readonly readOnly: boolean;
   readonly checked: boolean;
   readonly options: string[];
+  /** Annotation index of this widget on its page — the write target. */
+  readonly annotIndex: number;
+  /** Radio only: the group value this option represents (`''` otherwise). */
+  readonly exportValue: string;
+  /** The field's `/TU` tooltip — its accessible label (`''` if unset). */
+  readonly alternateName: string;
 }
 
 /**
@@ -129,8 +138,12 @@ export interface PdfEngine {
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]>;
   /** Interactive form fields on a page (for the fillable-widget overlay). */
   formFields(doc: PdfDocHandle, page: number): Promise<PdfFormField[]>;
-  /** Set a field's value by name on a page; resolves true if a writable field matched. */
-  setFieldValue(doc: PdfDocHandle, page: number, name: string, value: string): Promise<boolean>;
+  /**
+   * Set a field's value on a page; resolves true if a writable field matched.
+   * `annotIndex` targets one widget (from {@link PdfFormField.annotIndex}); `-1`
+   * matches the first widget named `name`. Checkbox/radio take `'true'`/`'false'`.
+   */
+  setFieldValue(doc: PdfDocHandle, page: number, annotIndex: number, name: string, value: string): Promise<boolean>;
   /** Add a highlight over `[x,y,w,h]` (top-left PDF points). `color` = `0xRRGGBBAA`. */
   addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean>;
   /** Add a sticky-note (Text) annotation at `[x,y]` with a comment body. */
@@ -187,7 +200,7 @@ export type PdfWorkerRequest =
   | { type: 'documentAnnotations'; id: number; doc: PdfDocHandle }
   | { type: 'attachments'; id: number; doc: PdfDocHandle }
   | { type: 'formFields'; id: number; doc: PdfDocHandle; page: number }
-  | { type: 'setFieldValue'; id: number; doc: PdfDocHandle; page: number; name: string; value: string }
+  | { type: 'setFieldValue'; id: number; doc: PdfDocHandle; page: number; annotIndex: number; name: string; value: string }
   | { type: 'addHighlight'; id: number; doc: PdfDocHandle; page: number; x: number; y: number; w: number; h: number; color: number }
   | { type: 'addTextNote'; id: number; doc: PdfDocHandle; page: number; x: number; y: number; contents: string; color: number }
   | {

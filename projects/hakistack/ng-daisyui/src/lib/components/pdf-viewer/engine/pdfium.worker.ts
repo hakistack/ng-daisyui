@@ -162,11 +162,11 @@ ctx.onmessage = async (e: MessageEvent<PdfWorkerRequest>) => {
         break;
       }
       case 'formFields': {
-        // Each row is [name, type, x, y, w, h, value, readOnly, checked, options].
+        // Each row is [name, type, x, y, w, h, value, readOnly, checked, options, annotIndex, exportValue, alternateName].
         const rows = form_fields(msg.doc, msg.page) as unknown as Array<
-          [string, string, number, number, number, number, string, number, number, string[]]
+          [string, string, number, number, number, number, string, number, number, string[], number, string, string]
         >;
-        const fields = rows.map(([name, type, x, y, w, h, value, readOnly, checked, options]) => ({
+        const fields = rows.map(([name, type, x, y, w, h, value, readOnly, checked, options, annotIndex, exportValue, alternateName]) => ({
           name,
           type,
           x,
@@ -177,12 +177,15 @@ ctx.onmessage = async (e: MessageEvent<PdfWorkerRequest>) => {
           readOnly: readOnly === 1,
           checked: checked === 1,
           options,
+          annotIndex,
+          exportValue,
+          alternateName,
         }));
         ctx.postMessage({ type: 'ok', id: msg.id, result: fields });
         break;
       }
       case 'setFieldValue': {
-        const ok = set_field_value(msg.doc, msg.page, msg.name, msg.value) as boolean;
+        const ok = set_field_value(msg.doc, msg.page, msg.annotIndex, msg.name, msg.value) as boolean;
         ctx.postMessage({ type: 'ok', id: msg.id, result: ok });
         break;
       }

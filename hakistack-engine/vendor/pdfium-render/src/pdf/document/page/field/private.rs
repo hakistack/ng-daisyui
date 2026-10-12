@@ -224,6 +224,47 @@ pub(crate) mod internal {
             }
         }
 
+        /// Internal implementation of [PdfFormFieldCommon::alternate_name()] (hakistack patch).
+        fn alternate_name_impl(&self) -> Option<String> {
+            // Retrieving the alternate name from Pdfium is a two-step operation. First, we call
+            // FPDFAnnot_GetFormFieldAlternateName() with a null buffer; this will retrieve the length of
+            // the alternate name text in bytes. If the length is zero, then the alternate name is not set.
+
+            // If the length is non-zero, then we reserve a byte buffer of the given
+            // length and call FPDFAnnot_GetFormFieldAlternateName() again with a pointer to the buffer;
+            // this will write the alternate name to the buffer in UTF16LE format.
+
+            let buffer_length = unsafe {
+                self.bindings().FPDFAnnot_GetFormFieldAlternateName(
+                    self.form_handle(),
+                    self.annotation_handle(),
+                    std::ptr::null_mut(),
+                    0,
+                )
+            };
+
+            if buffer_length == 0 {
+                // The alternate name is not present.
+
+                None
+            } else {
+                let mut buffer = create_byte_buffer(buffer_length as usize);
+
+                let result = unsafe {
+                    self.bindings().FPDFAnnot_GetFormFieldAlternateName(
+                        self.form_handle(),
+                        self.annotation_handle(),
+                        buffer.as_mut_ptr() as *mut FPDF_WCHAR,
+                        buffer_length,
+                    )
+                };
+
+                debug_assert_eq!(result, buffer_length);
+
+                get_string_from_pdfium_utf16le_bytes(buffer)
+            }
+        }
+
         /// Internal implementation of `value()` function shared by value-carrying form field widgets
         /// such as text fields. Not exposed directly by [PdfFormFieldCommon].
         fn value_impl(&self) -> Option<String> {

@@ -292,10 +292,15 @@ pub fn attachments(handle: u32) -> Result<Array, JsValue> {
 }
 
 /// Interactive form fields on one page, for the form-widget overlay. Each row is
-/// `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[]]`.
+/// `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[],
+/// annotIndex, exportValue, alternateName]`.
 /// Rect is top-left-origin PDF points. `type` ∈ text|checkbox|radio|combo|list|
 /// button|signature. `value` is the text/selected value; `checked` applies to
-/// checkbox/radio; `options` lists choice labels (combo/list).
+/// checkbox/radio; `options` lists choice labels (combo/list). `annotIndex` is the
+/// widget's annotation index on the page: several widgets share one field name
+/// (radio groups), so writes target the widget by index. `exportValue` is the
+/// value a radio/checkbox widget represents when on. `alternateName` is the
+/// field's `/TU` tooltip, the accessible label.
 #[wasm_bindgen]
 pub fn form_fields(handle: u32, index: u16) -> Result<Array, JsValue> {
     with_doc(handle, |doc| {
@@ -363,6 +368,13 @@ pub fn form_fields(handle: u32, index: u16) -> Result<Array, JsValue> {
                 PdfFormFieldType::Unknown => continue,
             };
 
+            let export_value = match field.field_type() {
+                PdfFormFieldType::RadioButton => field.as_radio_button_field().and_then(|r| r.export_value()),
+                _ => None,
+            }
+            .unwrap_or_default();
+            let alternate_name = field.alternate_name().unwrap_or_default();
+
             let opts = Array::new();
             for o in options {
                 opts.push(&JsValue::from_str(&o));
@@ -378,26 +390,46 @@ pub fn form_fields(handle: u32, index: u16) -> Result<Array, JsValue> {
             row.push(&JsValue::from_f64(if field.is_read_only() { 1.0 } else { 0.0 }));
             row.push(&JsValue::from_f64(if checked { 1.0 } else { 0.0 }));
             row.push(&opts);
+            row.push(&JsValue::from_f64(i as f64));
+            row.push(&JsValue::from_str(&export_value));
+            row.push(&JsValue::from_str(&alternate_name));
             out.push(&row);
         }
         Ok(out)
     })
 }
 
-/// Set a form field's value by name on a page. `value` is the text (text/combo),
-/// or `"true"`/`"false"` for checkbox, or any non-empty string to select a radio.
-/// Combo/list value-setting is not supported by the binding (read-only). Returns
-/// `true` if a writable field was matched + updated.
+/// Set a form field's value on a page. `value` is the text (text/combo/list),
+/// `"true"`/`"false"` for a checkbox, or `"true"` to select a radio button.
+///
+/// `annot_index` is the widget's annotation index from `form_fields`. Pass `-1`
+/// to target the first widget named `name`. The index matters for radio groups,
+/// where every option's widget shares one field name.
+///
+/// Checkboxes and radios are toggled through Pdfium's form-fill environment
+/// (a simulated click at the widget centre). Pdfium then writes the parent
+/// field's `/V` and every kid widget's `/AS` using each widget's real on-state
+/// name. A direct dictionary write can't do that correctly; see the
+/// `click_form_point` vendored patch.
+///
+/// Returns `true` if a writable field was matched and updated.
 #[wasm_bindgen]
-pub fn set_field_value(handle: u32, index: u16, name: &str, value: &str) -> Result<bool, JsValue> {
+pub fn set_field_value(handle: u32, index: u16, annot_index: i32, name: &str, value: &str) -> Result<bool, JsValue> {
     with_doc_mut(handle, |doc| {
+        let doc: &PdfDocument<'static> = doc;
         let page = doc.pages().get(index as i32).map_err(to_js)?;
         let annotations = page.annotations();
-        for i in 0..annotations.len() {
+        let range: Vec<usize> = if annot_index >= 0 {
+            vec![annot_index as usize]
+        } else {
+            (0..annotations.len()).collect()
+        };
+        for i in range {
             let mut annot = match annotations.get(i) {
                 Ok(a) => a,
                 Err(_) => continue,
             };
+            let bounds = annot.bounds().ok();
             let widget = match annot.as_widget_annotation_mut() {
                 Some(w) => w,
                 None => continue,
@@ -409,6 +441,7 @@ pub fn set_field_value(handle: u32, index: u16, name: &str, value: &str) -> Resu
             if field.name().as_deref() != Some(name) {
                 continue;
             }
+            let want_on = value == "true" || value == "on" || value == "1";
             match field.field_type() {
                 PdfFormFieldType::Text => {
                     if let Some(t) = field.as_text_field_mut() {
@@ -416,17 +449,26 @@ pub fn set_field_value(handle: u32, index: u16, name: &str, value: &str) -> Resu
                         return Ok(true);
                     }
                 }
-                PdfFormFieldType::Checkbox => {
-                    if let Some(c) = field.as_checkbox_field_mut() {
-                        c.set_checked(value == "true" || value == "on" || value == "1").map_err(to_js)?;
+                PdfFormFieldType::Checkbox | PdfFormFieldType::RadioButton => {
+                    let is_on = match field.field_type() {
+                        PdfFormFieldType::Checkbox => field.as_checkbox_field().and_then(|c| c.is_checked().ok()),
+                        _ => field.as_radio_button_field().and_then(|r| r.is_checked().ok()),
+                    }
+                    .unwrap_or(false);
+                    // A radio can't be switched off by clicking it; another option
+                    // in the group is selected instead.
+                    let is_radio = field.field_type() == PdfFormFieldType::RadioButton;
+                    if is_on == want_on || (is_radio && !want_on) {
                         return Ok(true);
                     }
-                }
-                PdfFormFieldType::RadioButton => {
-                    if let Some(r) = field.as_radio_button_field_mut() {
-                        r.set_checked().map_err(to_js)?;
-                        return Ok(true);
-                    }
+                    let (form, bounds) = match (doc.form(), bounds) {
+                        (Some(f), Some(b)) => (f, b),
+                        _ => return Ok(false),
+                    };
+                    let x = (bounds.left().value + bounds.right().value) / 2.0;
+                    let y = (bounds.bottom().value + bounds.top().value) / 2.0;
+                    page.click_form_point(form, x, y).map_err(to_js)?;
+                    return Ok(true);
                 }
                 // Choice fields: settable via the vendored pdfium-render patch
                 // (public `set_value` on combo/list — see vendor/pdfium-render).

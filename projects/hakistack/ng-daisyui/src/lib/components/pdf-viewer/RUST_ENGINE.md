@@ -1,5 +1,7 @@
 # Rust/WASM Engine for `hk-pdf-viewer`
 
+> ⚠️ **OBSOLETO (2026-10-12).** Escrito cuando pdf.js rasterizaba ("PDF.js stays"). Hoy el motor es PDFium (ver [`PDFIUM_ENGINE.md`](./PDFIUM_ENGINE.md)) y la hoja de ruta está en [`REFACTOR_PLAN.md`](./REFACTOR_PLAN.md). Se conserva solo como historia.
+
 > Goal: replace the JS-side full-document text search with a Rust/WASM kernel. Everything else (rendering, virtualization, DOM) stays in TS — PDF.js already does the rasterization in optimized C++/WASM.
 
 ---

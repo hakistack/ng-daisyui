@@ -98,6 +98,10 @@ export interface PdfViewerLabels {
   errorPasswordWrong?: string;
   /** Default: "Retry" */
   retry?: string;
+  /** Default: "Dismiss" — closes the non-fatal operation-error alert. */
+  dismiss?: string;
+  /** Default: "Go to page {page}" — aria-label for an internal (same-document) link. */
+  linkToPage?: string;
 
   // Password prompt
   /** Default: "Enter password" */
@@ -157,6 +161,8 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   errorPasswordRequired: 'Password is required to open this PDF.',
   errorPasswordWrong: 'The password you entered is incorrect.',
   retry: 'Retry',
+  dismiss: 'Dismiss',
+  linkToPage: 'Go to page {page}',
   passwordPromptTitle: 'Enter password',
   passwordPromptDescription: 'This PDF is password-protected.',
   passwordInputLabel: 'Password',

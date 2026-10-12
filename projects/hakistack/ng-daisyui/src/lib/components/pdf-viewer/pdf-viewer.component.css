@@ -1,9 +1,9 @@
 /* PDF viewer custom styles. Most of layout is Tailwind utility classes
    in the template; this file is reserved for things that don't fit utilities
-   well — primarily the PDF.js text layer + annotation layer styling.
+   well — primarily the text layer + annotation/form overlay styling.
 
-   IMPORTANT: PDF.js's TextLayer/AnnotationLayer create DOM elements at
-   runtime (spans, sections, anchors). Those nodes are NOT decorated with
+   IMPORTANT: the text layer and the link/form overlay are built imperatively
+   at runtime (spans, marks, anchors, inputs). Those nodes are NOT decorated with
    Angular's view-encapsulation attribute (`_ngcontent-xxx`), so plain
    `.hk-pdf-text-layer span { ... }` rules from a CSS-encapsulated component
    never match them. We use `:host ::ng-deep` to pierce encapsulation while
@@ -90,7 +90,9 @@
   border-radius: 0.375rem;
   background: transparent;
   cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
 }
 
 :host .hk-pdf-thumbnail:hover {
@@ -144,10 +146,9 @@
 }
 
 /* ── Text layer ────────────────────────────────────────────────────────────
-   Adapted from pdfjs-dist's `web/pdf_viewer.css`. The text layer overlays the
-   canvas with transparent absolute-positioned spans so users can select +
-   copy text. PDF.js sizes spans via `var(--scale-factor)`, which we set on
-   the container right before rendering. */
+   The text layer overlays the canvas with transparent, absolutely positioned
+   spans (one per PDFium text segment, stretched with `scaleX`) so users can
+   select + copy text. `--scale-factor` is set on the container per render. */
 :host ::ng-deep .hk-pdf-text-layer {
   position: absolute;
   inset: 0;
@@ -160,8 +161,8 @@
   line-height: 1;
   z-index: 1;
   user-select: text;
-  /* PDF.js's renderer sets --scale-factor on the container. Default to 1 so
-     the cascade has a value if rendering hasn't happened yet. */
+  /* Set on the container per render. Default to 1 so the cascade has a value
+     before the first render. */
   --scale-factor: 1;
 }
 
@@ -174,41 +175,31 @@
   transform-origin: 0% 0%;
 }
 
+/* Colours come from daisyUI tokens so they follow the active theme. Each var()
+   falls back to the daisyUI v4 channel variable (`--p`, `--wa`, `--a`) and then
+   to a literal, because the library also ships a daisyUI v4 build. */
 :host ::ng-deep .hk-pdf-text-layer ::selection {
-  background-color: rgb(0 100 255 / 25%);
+  background-color: color-mix(in oklab, var(--color-primary, oklch(var(--p, 0.55 0.2 260))) 25%, transparent);
 }
 
-/* Search hit highlight — overlays the matching text spans without changing
-   their bounding boxes. The "active" variant marks the currently focused
-   match (one at a time, driven by next/prev navigation). */
-:host ::ng-deep .hk-pdf-text-layer .hk-pdf-text-match {
-  background-color: rgb(255 220 0 / 35%);
+/* Search hits: a <mark> around just the matched characters inside the span.
+   The text stays transparent (the canvas shows the glyphs); only the
+   background paints. The "active" variant is the focused match. */
+:host ::ng-deep .hk-pdf-text-layer mark.hk-pdf-text-match {
+  color: transparent;
+  background-color: color-mix(in oklab, var(--color-warning, oklch(var(--wa, 0.84 0.16 84))) 45%, transparent);
   border-radius: 2px;
 }
 
-:host ::ng-deep .hk-pdf-text-layer .hk-pdf-text-match-active {
-  background-color: rgb(255 140 0 / 55%);
-  outline: 2px solid rgb(255 140 0 / 80%);
+:host ::ng-deep .hk-pdf-text-layer mark.hk-pdf-text-match-active {
+  background-color: color-mix(in oklab, var(--color-accent, oklch(var(--a, 0.7 0.18 50))) 55%, transparent);
+  outline: 2px solid var(--color-accent, oklch(var(--a, 0.7 0.18 50)));
   outline-offset: 1px;
 }
 
-/* PDF.js inserts these helper elements; size + position via class hooks. */
-:host ::ng-deep .hk-pdf-text-layer .endOfContent {
-  display: block;
-  position: absolute;
-  inset: 100% 0 0;
-  z-index: -1;
-  cursor: default;
-  user-select: none;
-}
-
-:host ::ng-deep .hk-pdf-text-layer.selecting .endOfContent {
-  inset: 0;
-}
-
 /* ── Annotation layer ──────────────────────────────────────────────────────
-   PDF.js renders link / form / popup annotations as positioned <section>
-   elements. We just need them clickable and styled to match the canvas. */
+   Link and form-widget overlays, positioned in CSS px from PDFium rects. We
+   just need them clickable and styled to match the canvas. */
 :host ::ng-deep .hk-pdf-annotation-layer {
   position: absolute;
   inset: 0;
@@ -269,8 +260,8 @@
   outline-offset: 1px;
 }
 
-/* Form widgets — rendered when renderForms: true. PDF.js places them
-   absolutely with the right size; we just ensure they're visually
+/* Form widgets — HTML controls positioned over each PDFium widget rect; we
+   just ensure they're visually
    discoverable (subtle tint when empty) and styled consistently. */
 :host ::ng-deep .hk-pdf-annotation-layer input,
 :host ::ng-deep .hk-pdf-annotation-layer textarea,

@@ -245,10 +245,15 @@ export function document_title(handle) {
 
 /**
  * Interactive form fields on one page, for the form-widget overlay. Each row is
- * `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[]]`.
+ * `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[],
+ * annotIndex, exportValue, alternateName]`.
  * Rect is top-left-origin PDF points. `type` ∈ text|checkbox|radio|combo|list|
  * button|signature. `value` is the text/selected value; `checked` applies to
- * checkbox/radio; `options` lists choice labels (combo/list).
+ * checkbox/radio; `options` lists choice labels (combo/list). `annotIndex` is the
+ * widget's annotation index on the page: several widgets share one field name
+ * (radio groups), so writes target the widget by index. `exportValue` is the
+ * value a radio/checkbox widget represents when on. `alternateName` is the
+ * field's `/TU` tooltip, the accessible label.
  * @param {number} handle
  * @param {number} index
  * @returns {Array<any>}
@@ -544,24 +549,35 @@ export function set_annotation_contents(handle, page_index, annot_index, content
 }
 
 /**
- * Set a form field's value by name on a page. `value` is the text (text/combo),
- * or `"true"`/`"false"` for checkbox, or any non-empty string to select a radio.
- * Combo/list value-setting is not supported by the binding (read-only). Returns
- * `true` if a writable field was matched + updated.
+ * Set a form field's value on a page. `value` is the text (text/combo/list),
+ * `"true"`/`"false"` for a checkbox, or `"true"` to select a radio button.
+ *
+ * `annot_index` is the widget's annotation index from `form_fields`. Pass `-1`
+ * to target the first widget named `name`. The index matters for radio groups,
+ * where every option's widget shares one field name.
+ *
+ * Checkboxes and radios are toggled through Pdfium's form-fill environment
+ * (a simulated click at the widget centre). Pdfium then writes the parent
+ * field's `/V` and every kid widget's `/AS` using each widget's real on-state
+ * name. A direct dictionary write can't do that correctly; see the
+ * `click_form_point` vendored patch.
+ *
+ * Returns `true` if a writable field was matched and updated.
  * @param {number} handle
  * @param {number} index
+ * @param {number} annot_index
  * @param {string} name
  * @param {string} value
  * @returns {boolean}
  */
-export function set_field_value(handle, index, name, value) {
+export function set_field_value(handle, index, annot_index, name, value) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         const ptr0 = passStringToWasm0(name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(value, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len1 = WASM_VECTOR_LEN;
-        wasm.set_field_value(retptr, handle, index, ptr0, len0, ptr1, len1);
+        wasm.set_field_value(retptr, handle, index, annot_index, ptr0, len0, ptr1, len1);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);

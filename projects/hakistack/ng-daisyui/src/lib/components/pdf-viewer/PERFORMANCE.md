@@ -1,5 +1,7 @@
 # Performance Roadmap for `hk-pdf-viewer`
 
+> ⚠️ **OBSOLETO (2026-10-12).** Este documento describe la era pdf.js, que ya se eliminó; sus referencias de línea y premisas no aplican. Los presupuestos de rendimiento vigentes están en [`REFACTOR_PLAN.md`](./REFACTOR_PLAN.md) §3.4 y §7. Se conserva solo como historia.
+
 > Goal: enterprise-grade performance on top of PDF.js — smooth scrolling on
 > 500-page documents, sub-second time-to-first-page, frame-rate-stable
 > selection/search/annotation. The biggest wins are architectural, not

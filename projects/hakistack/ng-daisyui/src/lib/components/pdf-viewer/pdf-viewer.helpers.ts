@@ -201,3 +201,25 @@ export function inverseRotateDelta(dx: number, dy: number, deg: number): { dx: n
   const sin = Math.sin(rad);
   return { dx: cos * dx + sin * dy, dy: -sin * dx + cos * dy };
 }
+
+/** URI schemes a PDF link may open. Everything else (`javascript:`, `data:`,
+ *  `file:`, `blob:`, `vbscript:`, …) is dropped from the link overlay. */
+const SAFE_LINK_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+
+/**
+ * Whether a PDF link URI is safe to put in an `<a href>`. PDFs are untrusted
+ * input: a `javascript:` URI would run script in the host page on click.
+ * Relative URIs (no scheme) are rejected too, since a PDF has no base URL of its own.
+ */
+export function isSafeLinkUri(uri: string): boolean {
+  try {
+    return SAFE_LINK_SCHEMES.has(new URL(uri.trim()).protocol);
+  } catch {
+    return false;
+  }
+}
+
+/** Focus targets that own Space/arrow/Home/End themselves, so the viewer's
+ *  page-navigation shortcuts must not intercept those keys on them. */
+export const INTERACTIVE_SELECTOR =
+  'button, a[href], summary, select, [role="button"], [role="tab"], [role="menuitem"], [role="option"], [role="slider"], [role="treeitem"], [role="checkbox"], [role="radio"], [role="switch"]';

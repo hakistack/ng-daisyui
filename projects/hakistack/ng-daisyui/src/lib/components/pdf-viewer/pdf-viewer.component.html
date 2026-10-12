@@ -455,11 +455,15 @@
         class="hk-pdf-viewport hk-pdf-preview-viewport relative overflow-auto bg-base-200/30 rounded-box border border-base-300 p-4"
       >
         @if (state()?.error; as err) {
-          <div class="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <span class="text-error text-sm font-medium">{{ labels().errorGeneric }}</span>
+          <div role="alert" class="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span class="text-error text-sm font-medium">{{ errorTitle() }}</span>
             <span class="text-xs text-base-content/60 max-w-md">{{ err.message }}</span>
+            @if (err.recoverable) {
+              <button type="button" class="btn btn-sm btn-outline" (click)="retryLoad()">{{ labels().retry }}</button>
+            }
           </div>
         } @else {
+          <ng-container [ngTemplateOutlet]="operationErrorAlert" />
           @if (pageNumbers().length > 0) {
             <div
               class="hk-pdf-page-stack flex flex-col items-center gap-4"
@@ -765,11 +769,15 @@
            clientWidth — a feedback loop that explodes the zoom. With it, the wide page overflows into a scroll. -->
       <div #viewport class="hk-pdf-viewport relative flex-1 min-h-0 min-w-0 overflow-auto bg-base-200 p-4">
         @if (state()?.error; as err) {
-          <div class="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <span class="text-error text-sm font-medium">{{ labels().errorGeneric }}</span>
+          <div role="alert" class="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span class="text-error text-sm font-medium">{{ errorTitle() }}</span>
             <span class="text-xs text-base-content/60 max-w-md">{{ err.message }}</span>
+            @if (err.recoverable) {
+              <button type="button" class="btn btn-sm btn-outline" (click)="retryLoad()">{{ labels().retry }}</button>
+            }
           </div>
         } @else {
+          <ng-container [ngTemplateOutlet]="operationErrorAlert" />
           @if (pageNumbers().length > 0) {
             <div
               class="hk-pdf-page-stack flex flex-col items-center gap-4"
@@ -857,3 +865,13 @@
     </div>
   </div>
 }
+
+<!-- Non-fatal operation error (render, form sync, annotation, save): the document stays visible. -->
+<ng-template #operationErrorAlert>
+  @if (operationError(); as opErr) {
+    <div role="alert" class="alert sticky top-0 z-20 mb-3 border-error/20 bg-error/10 text-error text-sm">
+      <span class="flex-1">{{ opErr.message }}</span>
+      <button type="button" class="btn btn-ghost btn-xs" (click)="dismissOperationError()">{{ labels().dismiss }}</button>
+    </div>
+  }
+</ng-template>

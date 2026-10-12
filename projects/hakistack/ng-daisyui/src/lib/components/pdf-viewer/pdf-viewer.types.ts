@@ -183,7 +183,7 @@ export interface PdfLoadedInfo {
   readonly numPages: number;
   /** PDF metadata title (from the document's `/Title` info dict). May be empty. */
   readonly title: string;
-  /** PDF.js fingerprint — stable identifier for the document instance. */
+  /** Reserved; always `''` (the PDFium engine doesn't expose a fingerprint). Kept for API compatibility. */
   readonly fingerprint: string;
   /** Document size in bytes, when known. */
   readonly fileSize?: number;

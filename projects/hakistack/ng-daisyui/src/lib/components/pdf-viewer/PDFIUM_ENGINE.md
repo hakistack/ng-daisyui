@@ -1,5 +1,16 @@
 # PDFium Rendering Engine for `hk-pdf-viewer`
 
+> **Estado (2026-10-12): implementado.** PDFium es el único motor; pdf.js y `pdfjs-dist` se eliminaron (§9g). Este documento es la referencia del motor (build, worker inline, pool, patches vendorizados de pdfium-render §9h). La hoja de ruta del visor/editor está en [`REFACTOR_PLAN.md`](./REFACTOR_PLAN.md).
+>
+> **Patches vendorizados de pdfium-render (reaplicar al subir de versión; todos marcados `hakistack patch` en el código):**
+> - `set_value` público en combo/list.
+> - `PdfPage` llama `FORM_OnAfterLoadPage`/`FORM_OnBeforeClosePage` cuando hay formulario. Sin esto PDFium no resuelve los controles de la página: `IsChecked` y `GetFormFieldExportValue` devuelven vacío y los clics de form-fill no tienen dónde caer.
+> - `PdfPage::click_form_point`: clic vía form-fill para checkbox/radio, que escribe `/V` del padre y `/AS` de cada widget con el estado "on" real.
+> - `is_checked` de radio ya no da `true` cuando `/V` y `/AS` valen `Off`; el de checkbox usa `FPDFAnnot_IsChecked` en vez de comparar `/AS` con `"Yes"`.
+> - `export_value()` en radio; `alternate_name()` (`/TU`) en `PdfFormFieldCommon`.
+>
+> Verificación: `npm run test:pdf-engine` (round-trip de radios/checkbox contra el WASM real).
+
 > **Goal:** replace pdf.js with **PDFium (Google's Chrome PDF engine) compiled to
 > WASM, driven from Rust**, as the rendering + parsing backend — for full control,
 > higher fidelity, and **correct off-main-thread rendering** (the thing pdf.js

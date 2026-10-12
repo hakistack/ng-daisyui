@@ -1,4 +1,4 @@
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -47,7 +47,7 @@ import {
 } from '@lucide/angular';
 import { HK_THEME } from '../../theme/theme.config';
 import { HkPdfToolbarContext, HkPdfToolbarDirective } from './pdf-viewer.directives';
-import { inverseRotateDelta } from './pdf-viewer.helpers';
+import { INTERACTIVE_SELECTOR, inverseRotateDelta, isSafeLinkUri } from './pdf-viewer.helpers';
 import { DEFAULT_PDF_VIEWER_LABELS, HK_PDF_LABELS, ResolvedPdfViewerLabels } from './pdf-viewer.labels';
 import { PdfDocHandle, PdfEngine, PdfFormField, PdfLinkRect, PdfOutlineNode, PdfTextSegment } from './engine/pdf-engine.types';
 import { PdfEnginePool } from './engine/pdf-engine-pool';
@@ -168,7 +168,7 @@ interface PdfSearchHit {
 @Component({
   selector: 'hk-pdf-viewer',
   imports: [
-    CommonModule,
+    NgTemplateOutlet,
     LucidePanelLeft,
     LucideChevronsLeft,
     LucideChevronLeft,
@@ -257,13 +257,14 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * depending on widget type).
    *
    * Flow:
-   * - The bound value is pushed into PDF.js's `annotationStorage` after
-   *   each document load, so re-mounting a viewer with pre-filled state
-   *   immediately renders those values in the form widgets.
+   * - The bound value is written into the PDFium document after each load
+   *   (and whenever the binding changes), so re-mounting a viewer with
+   *   pre-filled state immediately shows those values in the form widgets.
+   *   A radio group's value is the export value of its selected option.
    * - When the user edits a widget, the new value flows back through the
    *   binding so consumer code can persist or display it.
-   * - `controller.save()` returns the document with the current values
-   *   baked in.
+   * - `controller.save()`, `saveAndDownload()` and the toolbar's Download
+   *   return the document with the current values baked in.
    *
    * Empty object by default — non-form PDFs ignore this binding entirely.
    */
@@ -318,6 +319,10 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * default-sized blank canvases and painting them.
    */
   readonly firstRenderComplete = signal(false);
+
+  /** Last non-fatal operation failure (render, form sync, annotation, save). The
+   *  document stays visible; the template shows a dismissible alert. */
+  readonly operationError = signal<PdfViewerError | null>(null);
 
   /** UI-only — whether the find bar is open. Toggled by ⌘F / the close button. */
   readonly findBarOpen = signal(false);
@@ -390,6 +395,9 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   /** Raw bytes of the current document — kept for `download()` (the engine
    *  parses a transferred copy). `null` until a document loads. */
   private sourceBytes: Uint8Array | null = null;
+  /** True once the open document differs from `sourceBytes` (forms, annotations,
+   *  page structure). `download()` then serializes the edited document. */
+  private documentEdited = false;
   /** Bumped per `loadDocument` call; async continuations bail when it changes
    *  (doc-swap guard — replaces the old `pdfDoc` identity check). */
   private loadToken = 0;
@@ -397,7 +405,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   /**
    * In-flight render tasks keyed by page number. Per-page lookup lets
    * `applyBufferDiff` cancel renders for pages that scrolled out before they
-   * finish, freeing the PDF.js worker for what the user is now looking at.
+   * finish, freeing the render workers for what the user is now looking at.
    */
   private renderTasksByPage = new Map<number, { cancel: () => void; promise: Promise<unknown> }>();
   /** In-flight text-layer instances, keyed the same way for the same reason. */
@@ -441,18 +449,25 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private textLayerMatchedSpans = new Map<HTMLElement, HTMLElement[]>();
   /** Text-layer elements with active highlight classes — iteration target for the clear path. */
   private highlightedLayers = new Set<HTMLElement>();
+  /** Which search hit each highlight `<mark>` belongs to (for the active match). */
+  private markHits = new WeakMap<HTMLElement, PdfSearchHit>();
   /** Pending find-bar input debounce — coalesces typing into one search call. */
   private findInputDebounce: ReturnType<typeof setTimeout> | null = null;
-  /** Pages whose sidebar thumbnail has been painted. Lazy-only — never evicted. */
+  /**
+   * Pages whose sidebar thumbnail has been painted into the *current* panel's canvases. Reset on document
+   * swap and whenever the panel element is destroyed/recreated (closing the sidebar unmounts the canvases).
+   */
   private renderedThumbs = new Set<number>();
   /** Sidebar thumbnails IO. Disconnects when the panel hides. */
   private thumbnailObserver: IntersectionObserver | null = null;
+  /** Panel element the thumbnail observer + `renderedThumbs` belong to. */
+  private thumbnailPanelEl: HTMLElement | null = null;
   /**
    * Skip-flag for the form-values write-through effect. When the user types
    * into a form widget and we propagate the new value out via the model,
    * setting the model re-fires the effect that watches `formValues()`. This
    * flag suppresses the round-trip so we don't write the value we just read
-   * back into PDF.js's storage.
+   * back into the engine.
    */
   private formValuesEmittedByUs = false;
   /** PDF outline (bookmarks tree) — populated lazily when the bookmarks tab opens. `null` until fetched. */
@@ -486,12 +501,11 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private renderEpoch = 0;
 
   /**
-   * PDFium engine (Rust→WASM, in a worker) — the off-thread rasterizer that
-   * replaces pd​f.js. Long-lived: created lazily on first document, reused
-   * across loads (one document open at a time, tracked by {@link pdfiumDoc}).
-   * `null` until the PDFium worker is built + the browser supports it; until
-   * then pages render via pd​f.js (transitional — that path is removed at M3.5
-   * once PDFium is verified). See PDFIUM_ENGINE.md.
+   * PDFium engine (a pool of Rust→WASM workers): the only engine. Long-lived:
+   * created lazily on first document, reused across loads (one document open
+   * at a time, tracked by {@link pdfiumDoc}). `null` when the PDFium worker
+   * isn't built or the browser lacks the primitives; the viewer then reports
+   * `unsupported`. See PDFIUM_ENGINE.md.
    */
   private pdfiumEngine: PdfEngine | null = null;
   /** Handle to the document currently open in {@link pdfiumEngine}; `null` if none. */
@@ -553,14 +567,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * "live" (i.e. populated). Mutated by `applyBufferDiff`.
    */
   private renderedPages = new Set<number>();
+  /** Bumped per page when its content changes, so an in-flight raster that
+   *  predates the edit is not treated as current. */
+  private pageContentVersion = new Map<number, number>();
   /**
    * Pages currently mid-render. The buffer-change effect can fire while a
    * previous diff is still iterating; without this guard, two diffs sharing
-   * the same epoch can both call `proxy.render()` on the same page and
-   * PDF.js throws "Failed to render page" because a `PDFPageProxy` doesn't
-   * support concurrent render tasks. We add to this set BEFORE awaiting the
-   * render and only flip the page into `renderedPages` after success — so
-   * a parallel diff sees the page as "claimed" and skips it.
+   * the same epoch could both rasterize the same page (wasted worker time and
+   * two blits racing onto one canvas). We add to this set BEFORE awaiting the
+   * render and only flip the page into `renderedPages` after success, so a
+   * parallel diff sees the page as "claimed" and skips it.
    */
   private inFlightPages = new Set<number>();
 
@@ -610,7 +626,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     // Lazy thumbnails — install an IntersectionObserver scoped to the
     // sidebar's thumbnail panel so we only paint thumbnails for items that
     // actually scroll into view. Critical for big docs: a 100-page PDF
-    // would otherwise queue 100 PDF.js render tasks the moment the sidebar
+    // would otherwise queue 100 render tasks the moment the sidebar
     // opens, blocking the worker for the main canvas.
     //
     // Deps must be reactive signals: `pageNumbers()` (not the plain `pages`
@@ -623,13 +639,21 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       // instant, no re-raster. We install once pages + panel exist; while the
       // panel is hidden it has no layout, so the observer fires no intersections
       // and nothing renders until the user actually views the thumbnails. The
-      // rendered set is reset only on document swap (see `loadDocument`).
+      // rendered set is reset on document swap (see `loadDocument`) and when the
+      // panel itself is destroyed: closing the sidebar unmounts the `<aside>` and
+      // every thumbnail canvas, so on reopen the fresh canvases must be repainted.
+      const panel = this.thumbnailPanel()?.nativeElement ?? null;
+      if (panel !== this.thumbnailPanelEl) {
+        this.thumbnailPanelEl = panel;
+        this.renderedThumbs.clear();
+        this.thumbnailObserver?.disconnect();
+        this.thumbnailObserver = null;
+      }
       if (this.pageNumbers().length === 0) {
         this.thumbnailObserver?.disconnect();
         this.thumbnailObserver = null;
         return;
       }
-      const panel = this.thumbnailPanel()?.nativeElement;
       if (!panel) return;
       untracked(() => this.installThumbnailObserver(panel));
     });
@@ -740,24 +764,41 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
   /**
    * Push consumer-supplied `formValues` into the engine's form fields, matched
-   * by name across pages. No-op until a document is open. Best-effort: unknown
-   * names and non-settable fields (combo/list) are skipped. Drives both the
-   * initial pre-fill and reactive updates from the `formValues` binding.
+   * by name across pages. No-op until a document is open. Unknown names and
+   * non-settable fields (buttons, signatures) are skipped. A radio group's value
+   * selects the option whose export value matches it. Drives both the initial
+   * pre-fill and reactive updates from the `formValues` binding.
    */
   private async applyFormValuesToEngine(values: Record<string, unknown>): Promise<void> {
     const engine = this.pdfiumEngine;
     const doc = this.pdfiumDoc;
     if (!engine || doc === null || this.pages.length === 0) return;
+    const pending = new Map(Object.entries(values).map(([name, val]) => [name, val == null ? '' : String(val)]));
+    if (pending.size === 0) return;
     try {
-      for (const [name, val] of Object.entries(values)) {
-        const str = val == null ? '' : String(val);
-        for (const page of this.pages) {
-          if (await engine.setFieldValue(doc, page.pageNumber - 1, name, str)) break;
+      for (const page of this.pages) {
+        if (pending.size === 0) break;
+        const fields = await this.pdfiumFields(page.pageNumber);
+        let changed = false;
+        for (const field of fields) {
+          const value = pending.get(field.name);
+          if (value === undefined) continue;
+          if (field.type === 'radio') {
+            if (field.exportValue !== value) continue; // another option of the group
+            changed = (await engine.setFieldValue(doc, page.pageNumber - 1, field.annotIndex, field.name, 'true')) || changed;
+          } else {
+            changed = (await engine.setFieldValue(doc, page.pageNumber - 1, field.annotIndex, field.name, value)) || changed;
+          }
+          pending.delete(field.name);
+        }
+        if (changed) {
+          this.markDocumentEdited();
+          this.pdfiumFieldsCache.delete(page.pageNumber);
+          this.invalidatePageBitmaps(page.pageNumber);
         }
       }
     } catch (err) {
-      // A pool-desync (mutation half-applied across workers) lands here.
-      this.emitError({ code: 'render_failed', message: 'Failed to apply form values.', recoverable: true, cause: err });
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to apply form values.', recoverable: true, cause: err });
     }
   }
 
@@ -863,6 +904,9 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     this.visibleEntries.set(new Map());
     this.renderedPages.clear();
     this.inFlightPages.clear();
+    this.pageContentVersion.clear();
+    this.documentEdited = false;
+    this.operationError.set(null);
     this.disposeEngineHandle();
     await this.destroyDocument();
 
@@ -963,24 +1007,61 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Map a load failure to a viewer error. Sources, in order: our HTTP fetch
+   * (`hkCode`), the browser's network layer (`TypeError` from `fetch`), and
+   * PDFium, whose errors arrive as the Rust `Debug` string of
+   * `PdfiumError::PdfiumLibraryInternalError(<FPDF_ERR_*>)`.
+   */
   private toViewerError(err: unknown): PdfViewerError {
-    const e = err as { name?: string; message?: string };
-    const name = e?.name ?? '';
-    if (name === 'PasswordException') {
-      return { code: 'password_cancelled', message: e?.message ?? 'Password required.', recoverable: true, cause: err };
+    const e = err as { name?: string; message?: string; hkCode?: string };
+    const message = e?.message ?? String(err);
+    if (e?.hkCode === 'load_failed' || e?.name === 'TypeError') {
+      return { code: 'load_failed', message: message || 'Failed to load PDF.', recoverable: true, cause: err };
     }
-    if (name === 'InvalidPDFException') {
-      return { code: 'invalid_pdf', message: e?.message ?? 'Invalid PDF.', recoverable: false, cause: err };
+    if (/FormatError/.test(message)) {
+      return { code: 'invalid_pdf', message: "This file isn't a valid PDF.", recoverable: false, cause: err };
     }
-    if (name === 'MissingPDFException' || name === 'UnexpectedResponseException') {
-      return { code: 'load_failed', message: e?.message ?? 'Failed to load PDF.', recoverable: true, cause: err };
+    if (/FileError/.test(message)) {
+      return { code: 'load_failed', message: 'The PDF could not be read.', recoverable: true, cause: err };
     }
-    return { code: 'unknown', message: e?.message ?? 'PDF viewer error.', recoverable: false, cause: err };
+    if (/SecurityError/.test(message)) {
+      return { code: 'unsupported', message: 'This PDF uses an unsupported security handler.', recoverable: false, cause: err };
+    }
+    if (/pdfium worker crashed|PDFium worker not built/.test(message)) {
+      return { code: 'unsupported', message, recoverable: false, cause: err };
+    }
+    return { code: 'unknown', message: message || 'PDF viewer error.', recoverable: true, cause: err };
   }
 
+  /**
+   * Document-level failure: there is nothing to show (load, parse, password).
+   * Sets `state.error`, which replaces the page stack with the error panel.
+   */
   private emitError(error: PdfViewerError): void {
     this.internal?.state.update((s) => ({ ...s, error, loaded: false }));
     this.config().onError?.(error);
+  }
+
+  /**
+   * An operation failed (render, form sync, annotation, page op, save) but the
+   * document is still usable. Keep it on screen, show a dismissible alert, and
+   * notify `onError`. If the render pool couldn't heal a half-applied mutation,
+   * the message says to reload, since the workers may now disagree.
+   */
+  private reportOperationError(error: PdfViewerError): void {
+    const engine = this.pdfiumEngine;
+    const desynced = engine instanceof PdfEnginePool && engine.isDesynced;
+    const reported: PdfViewerError = desynced
+      ? { ...error, message: `${error.message} The viewer lost sync with the document; reload it to continue.` }
+      : error;
+    this.operationError.set(reported);
+    this.config().onError?.(reported);
+  }
+
+  /** Close the operation-error alert. */
+  dismissOperationError(): void {
+    this.operationError.set(null);
   }
 
   /**
@@ -1111,7 +1192,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * - Pages in `liveBuffer` but not in `renderedPages` → render canvas +
    *   text + annotation layers, then add to `renderedPages`.
    *
-   * Sequential rendering keeps PDF.js's worker from getting saturated;
+   * Sequential rendering keeps the render workers from getting saturated;
    * one page at a time is still snappy because each page is small at the
    * resolved scale.
    *
@@ -1120,7 +1201,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * while a previous diff is still resolving). Both calls share the same
    * `renderEpoch`, so the epoch check alone won't separate them — they'd
    * both compute `todo` independently and could race to render the same
-   * page, which PDF.js refuses on a single `PDFPageProxy`. The
+   * page (wasted work, racing blits). The
    * `inFlightPages` set serializes per-page so two concurrent diffs don't
    * collide; pages already being rendered by a peer diff are simply
    * skipped (the peer will mark them `renderedPages` when it's done).
@@ -1148,7 +1229,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
     // Cancel-aggressive virtualization (PERFORMANCE.md Phase 1):
     //
-    // Pages mid-render that have scrolled out keep occupying the PDF.js
+    // Pages mid-render that have scrolled out keep occupying the render
     // worker until they finish — wasting time on bitmaps the user will
     // never see, and blocking the page they're scrolling toward. Cancel
     // them after a short hysteresis so brief scroll-pasts (exit + re-enter
@@ -1177,6 +1258,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const todo = this.pages.filter(
       (p) => buffer.has(p.pageNumber) && !this.renderedPages.has(p.pageNumber) && !this.inFlightPages.has(p.pageNumber),
     );
+    let staleAfterRender = false;
     for (const page of todo) {
       if (epoch !== this.renderEpoch) return;
       // Re-check at iteration time: a peer diff may have claimed the page
@@ -1189,10 +1271,15 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       if (!canvas) continue;
 
       this.inFlightPages.add(page.pageNumber);
+      const version = this.pageContentVersion.get(page.pageNumber) ?? 0;
       try {
         await this.renderPageOnto(page, canvas, scale, dpr, epoch);
-        if (epoch === this.renderEpoch) {
+        // An edit that landed mid-render bumps the version: that raster may
+        // predate the edit, so leave the page unrendered for another pass.
+        if (epoch === this.renderEpoch && version === (this.pageContentVersion.get(page.pageNumber) ?? 0)) {
           this.renderedPages.add(page.pageNumber);
+        } else if (epoch === this.renderEpoch) {
+          staleAfterRender = true;
         }
       } finally {
         this.inFlightPages.delete(page.pageNumber);
@@ -1205,6 +1292,20 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         this.firstRenderComplete.set(true);
       }
     }
+    if (staleAfterRender) await this.applyBufferDiff(epoch);
+  }
+
+  /**
+   * Re-rasterize one page after its content changed (annotation added, edited,
+   * or deleted). Only that page is redrawn; the rest of the buffer keeps its
+   * bitmaps. Pages outside the buffer just drop their cached bitmaps and render
+   * fresh when they scroll back in.
+   */
+  private rerenderPage(pageNumber: number): void {
+    this.pageContentVersion.set(pageNumber, (this.pageContentVersion.get(pageNumber) ?? 0) + 1);
+    this.invalidatePageBitmaps(pageNumber);
+    this.renderedPages.delete(pageNumber);
+    if (this.liveBuffer().has(pageNumber)) void this.applyBufferDiff(this.renderEpoch);
   }
 
   /**
@@ -1278,8 +1379,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     // FIT_ZOOM_MAX); only extreme manual zoom triggers it.
     const ideal = Math.max(viewport.width, viewport.height) * dpr;
     const renderDpr = ideal > MAX_CANVAS_DIM ? (dpr * MAX_CANVAS_DIM) / ideal : dpr;
-    canvas.width = Math.floor(viewport.width * renderDpr);
-    canvas.height = Math.floor(viewport.height * renderDpr);
+    // Only resize when the backing store changes size. Assigning `width`
+    // clears the canvas, so an unchanged size keeps the current pixels on screen
+    // until the fresh raster replaces them; a same-scale re-render after an edit
+    // then doesn't flash blank.
+    const deviceW = Math.floor(viewport.width * renderDpr);
+    const deviceH = Math.floor(viewport.height * renderDpr);
+    if (canvas.width !== deviceW || canvas.height !== deviceH) {
+      canvas.width = deviceW;
+      canvas.height = deviceH;
+    }
     canvas.style.width = `${viewport.width}px`;
     canvas.style.height = `${viewport.height}px`;
 
@@ -1352,7 +1461,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       }
     } catch (err) {
       if (epoch === this.renderEpoch && (err as { name?: string })?.name !== 'AbortError') {
-        this.emitError({ code: 'render_failed', message: 'Failed to render page.', recoverable: true, cause: err });
+        this.reportOperationError({ code: 'render_failed', message: 'Failed to render page.', recoverable: true, cause: err });
       }
     } finally {
       cleanup(handle);
@@ -1803,6 +1912,8 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     // Links.
     for (const link of links) {
       const isUri = link.uri.length > 0;
+      // A hostile PDF can carry `javascript:`/`data:` URIs; only open safe schemes.
+      if (isUri && !isSafeLinkUri(link.uri)) continue;
       const el = document.createElement(isUri ? 'a' : 'button');
       el.className = 'hk-pdf-link';
       this.positionOverlayEl(el, link, scale);
@@ -1815,7 +1926,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       } else {
         const target = link.pageIndex;
         el.setAttribute('type', 'button');
-        el.setAttribute('aria-label', labels.thumbnailAriaLabel.replace('{page}', String(target + 1)));
+        el.setAttribute('aria-label', labels.linkToPage.replace('{page}', String(target + 1)));
         el.addEventListener('click', (e) => {
           e.preventDefault();
           this.goToPage(target + 1);
@@ -1856,16 +1967,20 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    * signatures).
    */
   private buildFormWidget(field: PdfFormField, doc: PdfDocHandle, pageIdx: number, engine: PdfEngine): HTMLElement | null {
-    const ariaLabel = field.name || 'form field';
+    const ariaLabel = field.alternateName || field.name || 'form field';
     // Persist to the engine + mirror out through `formValues` (guarded so the
     // write-back effect doesn't echo it straight back into the field).
-    const sync = (value: string) => {
+    // `value` is what `formValues` records; `engineValue` is what the widget is
+    // set to (they differ for radios: the group records the chosen option's
+    // export value, while the clicked widget is switched on).
+    const sync = (value: string, engineValue = value) => {
       this.formValuesEmittedByUs = true;
       this.formValues.update((prev) => ({ ...prev, [field.name]: value }));
-      // Fire-and-forget, but surface a pool-desync (mutation half-applied across
-      // workers) instead of letting it become an unhandled rejection.
-      void engine.setFieldValue(doc, pageIdx, field.name, value).catch((err: unknown) => {
-        this.emitError({ code: 'render_failed', message: 'Failed to update form field.', recoverable: true, cause: err });
+      this.markDocumentEdited();
+      // Fire-and-forget, but surface a failure instead of letting it become an
+      // unhandled rejection.
+      void engine.setFieldValue(doc, pageIdx, field.annotIndex, field.name, engineValue).catch((err: unknown) => {
+        this.reportOperationError({ code: 'render_failed', message: 'Failed to update form field.', recoverable: true, cause: err });
       });
       // Invalidate caches for this page: the field's stored value changed, and
       // the baked-in raster appearance is now stale (re-render re-rasterizes).
@@ -1903,7 +2018,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         input.checked = field.checked;
         input.disabled = field.readOnly;
         input.setAttribute('aria-label', ariaLabel);
-        input.addEventListener('change', () => sync('true'));
+        input.addEventListener('change', () => sync(field.exportValue || 'true', 'true'));
         return input;
       }
       case 'combo':
@@ -2272,29 +2387,23 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Walk the text-layer's spans for one page and tag any whose character
-   * range overlaps a search hit. Reads from `textLayerAllSpans` cache
-   * populated when the layer paints, so we don't `querySelectorAll` per
-   * call. Stale highlights from a previous search round on the same layer
-   * are cleared via `textLayerMatchedSpans` (O(matched.length)) instead of
-   * scanning the full subtree for the match classes.
+   * Mark the exact matched characters on one page's text layer. Each span that
+   * overlaps a hit is rebuilt as text slices plus `<mark>` elements covering
+   * only the matched range (a hit spanning several spans gets one mark per
+   * span). The marks live inside the span, so they inherit its `scaleX` and the
+   * page's rotation transform and line up with the glyphs on the canvas.
+   * Spans touched this round are remembered in `textLayerMatchedSpans` so the
+   * next round can restore them in O(matched) instead of scanning the layer.
    */
   private applyHighlightsForPage(pageNumber: number, textLayer: HTMLElement): void {
-    // Clear any stale matches we placed on this layer during the previous
-    // round so re-running a search doesn't accumulate classes.
-    const stale = this.textLayerMatchedSpans.get(textLayer);
-    if (stale) {
-      for (const s of stale) s.classList.remove('hk-pdf-text-match', 'hk-pdf-text-match-active');
-      this.textLayerMatchedSpans.delete(textLayer);
-    }
-    this.highlightedLayers.delete(textLayer);
+    this.restoreMatchedSpans(textLayer);
 
     const hits = this.searchHitsByPage.get(pageNumber);
     if (!hits || hits.length === 0) return;
 
     let spans = this.textLayerAllSpans.get(textLayer);
     if (!spans) {
-      spans = Array.from(textLayer.querySelectorAll<HTMLElement>('span:not(.endOfContent)'));
+      spans = Array.from(textLayer.querySelectorAll<HTMLElement>(':scope > span'));
       this.textLayerAllSpans.set(textLayer, spans);
     }
     if (spans.length === 0) return;
@@ -2302,38 +2411,78 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const matched: HTMLElement[] = [];
     let charOffset = 0;
     for (const span of spans) {
-      const spanLen = (span.textContent ?? '').length;
+      const text = span.textContent ?? '';
       const spanStart = charOffset;
-      const spanEnd = charOffset + spanLen;
-      for (const hit of hits) {
-        const matchEnd = hit.charStart + hit.length;
-        if (hit.charStart < spanEnd && matchEnd > spanStart) {
-          span.classList.add('hk-pdf-text-match');
-          matched.push(span);
-          break;
-        }
-      }
+      const spanEnd = charOffset + text.length;
       charOffset = spanEnd;
+      const ranges: { start: number; end: number; hit: PdfSearchHit }[] = [];
+      for (const hit of hits) {
+        const start = Math.max(hit.charStart, spanStart);
+        const end = Math.min(hit.charStart + hit.length, spanEnd);
+        if (start < end) ranges.push({ start: start - spanStart, end: end - spanStart, hit });
+      }
+      if (ranges.length === 0) continue;
+      ranges.sort((a, b) => a.start - b.start);
+      const frag = document.createDocumentFragment();
+      let cursor = 0;
+      for (const r of ranges) {
+        const from = Math.max(r.start, cursor); // overlapping hits: never re-mark chars
+        if (from >= r.end) continue;
+        if (from > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, from)));
+        const mark = document.createElement('mark');
+        mark.className = 'hk-pdf-text-match';
+        mark.textContent = text.slice(from, r.end);
+        this.markHits.set(mark, r.hit);
+        frag.appendChild(mark);
+        cursor = r.end;
+      }
+      if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+      span.replaceChildren(frag);
+      matched.push(span);
     }
     if (matched.length > 0) {
       this.textLayerMatchedSpans.set(textLayer, matched);
       this.highlightedLayers.add(textLayer);
+      const cur = this.searchHits[this.internal?.state().currentMatchIndex ?? -1];
+      if (cur?.pageNumber === pageNumber) this.paintActiveMarks(textLayer, cur);
     }
   }
 
+  /** Collapse a layer's highlighted spans back to plain text nodes. */
+  private restoreMatchedSpans(textLayer: HTMLElement): void {
+    const matched = this.textLayerMatchedSpans.get(textLayer);
+    if (matched) {
+      for (const span of matched) span.textContent = span.textContent ?? '';
+      this.textLayerMatchedSpans.delete(textLayer);
+    }
+    this.highlightedLayers.delete(textLayer);
+  }
+
+  /** Flag the marks belonging to `hit` as the active match; returns the first. */
+  private paintActiveMarks(textLayer: HTMLElement, hit: PdfSearchHit): HTMLElement | null {
+    let first: HTMLElement | null = null;
+    for (const span of this.textLayerMatchedSpans.get(textLayer) ?? []) {
+      for (const mark of Array.from(span.getElementsByTagName('mark'))) {
+        if (this.markHits.get(mark) !== hit) continue;
+        mark.classList.add('hk-pdf-text-match-active');
+        first ??= mark;
+      }
+    }
+    return first;
+  }
+
   /**
-   * Pin the `*-match-active` class to the spans backing the currently
-   * focused match. Clearing the previous active class iterates the small
-   * `highlightedLayers` set (not the host subtree); painting the new one
-   * reuses the cached span list for the active page.
+   * Move the active-match styling to the currently focused match and centre it
+   * in the viewport. Clearing walks only `highlightedLayers` (bounded by the
+   * render buffer), not the host subtree.
    */
   private refreshActiveHighlight(): void {
-    // Clear the active class from currently-highlighted layers — bounded
-    // to the buffer size, not full document.
     for (const tl of this.highlightedLayers) {
-      const matched = this.textLayerMatchedSpans.get(tl);
-      if (!matched) continue;
-      for (const s of matched) s.classList.remove('hk-pdf-text-match-active');
+      for (const span of this.textLayerMatchedSpans.get(tl) ?? []) {
+        for (const mark of Array.from(span.getElementsByClassName('hk-pdf-text-match-active'))) {
+          mark.classList.remove('hk-pdf-text-match-active');
+        }
+      }
     }
 
     const cur = this.internal?.state().currentMatchIndex ?? -1;
@@ -2344,24 +2493,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const pageWrapper = this.hostRef.nativeElement.querySelector<HTMLElement>(`.hk-pdf-page[data-page-number="${hit.pageNumber}"]`);
     const textLayer = pageWrapper?.querySelector<HTMLElement>('.hk-pdf-text-layer');
     if (!textLayer) return;
-
-    let spans = this.textLayerAllSpans.get(textLayer);
-    if (!spans) {
-      spans = Array.from(textLayer.querySelectorAll<HTMLElement>('span:not(.endOfContent)'));
-      this.textLayerAllSpans.set(textLayer, spans);
-    }
-
-    let charOffset = 0;
-    const matchEnd = hit.charStart + hit.length;
-    let firstActive: HTMLElement | null = null;
-    for (const span of spans) {
-      const spanLen = (span.textContent ?? '').length;
-      if (hit.charStart < charOffset + spanLen && matchEnd > charOffset) {
-        span.classList.add('hk-pdf-text-match-active');
-        if (!firstActive) firstActive = span;
-      }
-      charOffset += spanLen;
-    }
+    const firstActive = this.paintActiveMarks(textLayer, hit);
 
     // Centre the match in our viewport only — not via `scrollIntoView`, which
     // would also scroll the outer document.
@@ -2375,18 +2507,12 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Clear every active highlight class. Walks only `highlightedLayers`
-   * (bounded to buffer size) and removes from the matched-span subset
-   * cached per layer — no full-host `querySelectorAll`.
+   * Clear every search highlight. Walks only `highlightedLayers` (bounded to
+   * buffer size) and restores the matched-span subset cached per layer — no
+   * full-host `querySelectorAll`.
    */
   private clearSearchHighlights(): void {
-    for (const tl of this.highlightedLayers) {
-      const matched = this.textLayerMatchedSpans.get(tl);
-      if (matched) {
-        for (const s of matched) s.classList.remove('hk-pdf-text-match', 'hk-pdf-text-match-active');
-      }
-      this.textLayerMatchedSpans.delete(tl);
-    }
+    for (const tl of Array.from(this.highlightedLayers)) this.restoreMatchedSpans(tl);
     this.highlightedLayers.clear();
     this.searchHitsByPage.clear();
   }
@@ -2402,12 +2528,29 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Download the current document. Untouched documents download their original
+   * bytes; once anything was edited (form values, annotations, page structure,
+   * rotation) the engine serializes the edited document instead, so the
+   * toolbar's Download never silently drops the user's work.
+   */
   private async download(filename?: string): Promise<void> {
-    // Download the original bytes as-loaded. (`save`/`saveAndDownload` emit the
-    // form-filled state via the engine.)
     if (!this.sourceBytes) return;
-    const blob = new Blob([this.sourceBytes.slice().buffer], { type: 'application/pdf' });
-    this.downloadBlob(blob, filename || this.deriveFilename());
+    const edited = this.documentEdited || [...this.pageRotations().values()].some((r) => r !== 0);
+    if (!edited) {
+      this.downloadBlob(new Blob([this.sourceBytes.slice().buffer], { type: 'application/pdf' }), filename || this.deriveFilename());
+      return;
+    }
+    try {
+      await this.saveAndDownloadDocument(filename);
+    } catch (err) {
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to save the edited PDF.', recoverable: true, cause: err });
+    }
+  }
+
+  /** Record that the open document differs from its source bytes. */
+  private markDocumentEdited(): void {
+    this.documentEdited = true;
   }
 
   private deriveFilename(): string {
@@ -2449,7 +2592,12 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         try {
           await engine.setPageRotation(doc, n - 1, 0);
         } catch (err) {
-          this.emitError({ code: 'render_failed', message: 'Failed to restore page rotation after save.', recoverable: true, cause: err });
+          this.reportOperationError({
+            code: 'render_failed',
+            message: 'Failed to restore page rotation after save.',
+            recoverable: true,
+            cause: err,
+          });
         }
         this.invalidatePageBitmaps(n); // drop any raster captured while rotated
       }
@@ -2464,15 +2612,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    */
   private async saveAndDownloadDocument(filename?: string): Promise<void> {
     const data = await this.saveDocument();
-    const blob = new Blob([data.slice().buffer], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || this.deriveFilename();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    this.downloadBlob(new Blob([data.slice().buffer], { type: 'application/pdf' }), filename || this.deriveFilename());
   }
 
   /** Create an `<a download>` for a Blob, click it, and clean up. */
@@ -2721,6 +2861,24 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   /** Whether to show the page list (loaded + no error). */
   readonly showPages = computed(() => !!this.state()?.loaded && !this.state()?.error);
 
+  /** Localized headline for the document-error panel, by error code. */
+  readonly errorTitle = computed(() => {
+    const labels = this.labels();
+    switch (this.state()?.error?.code) {
+      case 'invalid_pdf':
+        return labels.errorInvalidPdf;
+      case 'password_cancelled':
+        return labels.errorPasswordRequired;
+      default:
+        return labels.errorGeneric;
+    }
+  });
+
+  /** Retry a failed load (re-fetches `src`; re-prompts for a password). */
+  retryLoad(): void {
+    void this.loadDocument(this.src(), this.config().password ?? '');
+  }
+
   /**
    * Center the page stack vertically only when a single page is shown (single
    * mode, or a one-page document). In continuous multi-page mode we top-align so
@@ -2928,7 +3086,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       this.afterAnnotationChange(entry.pageNumber);
       await this.fetchAnnotations(); // indices shifted — refresh the list now
     } catch (err) {
-      this.emitError({ code: 'render_failed', message: 'Failed to delete annotation.', recoverable: true, cause: err });
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to delete annotation.', recoverable: true, cause: err });
     }
   }
 
@@ -2994,7 +3152,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       await engine.deletePage(doc, pageNumber - 1);
       await this.refreshPageStructure();
     } catch (err) {
-      this.emitError({ code: 'render_failed', message: 'Failed to delete page.', recoverable: true, cause: err });
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to delete page.', recoverable: true, cause: err });
     }
   }
 
@@ -3012,7 +3170,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       await engine.insertBlankPage(doc, idx, w, h);
       await this.refreshPageStructure();
     } catch (err) {
-      this.emitError({ code: 'render_failed', message: 'Failed to insert page.', recoverable: true, cause: err });
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to insert page.', recoverable: true, cause: err });
     }
   }
 
@@ -3025,6 +3183,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     const engine = this.pdfiumEngine;
     const doc = this.pdfiumDoc;
     if (!engine || doc === null) return;
+    this.markDocumentEdited();
     const token = ++this.loadToken; // invalidate in-flight renders of the old structure
     this.cancelInflightRenders();
     this.clearBitmapCache();
@@ -3080,7 +3239,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       this.afterAnnotationChange(entry.pageNumber);
       await this.fetchAnnotations();
     } catch (err) {
-      this.emitError({ code: 'render_failed', message: 'Failed to edit annotation.', recoverable: true, cause: err });
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to edit annotation.', recoverable: true, cause: err });
     }
   }
 
@@ -3288,7 +3447,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       }
       this.afterAnnotationChange(pageNumber);
     } catch (err) {
-      this.emitError({ code: 'render_failed', message: 'Failed to add annotation.', recoverable: true, cause: err });
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to add annotation.', recoverable: true, cause: err });
     }
   }
 
@@ -3303,7 +3462,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       await engine.addTextNote(doc, pageNumber - 1, cssX * s, cssY * s, text, this.annotationColorRgba('note'));
       this.afterAnnotationChange(pageNumber);
     } catch (err) {
-      this.emitError({ code: 'render_failed', message: 'Failed to add note.', recoverable: true, cause: err });
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to add note.', recoverable: true, cause: err });
     }
   }
 
@@ -3318,16 +3477,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       await engine.addInk(doc, pageNumber - 1, points, this.annotationColorRgba('ink'), width);
       this.afterAnnotationChange(pageNumber);
     } catch (err) {
-      this.emitError({ code: 'render_failed', message: 'Failed to add ink.', recoverable: true, cause: err });
+      this.reportOperationError({ code: 'render_failed', message: 'Failed to add ink.', recoverable: true, cause: err });
     }
   }
 
-  /** After creating an annotation: drop the page's stale raster + re-render, and
-   *  refresh the sidebar list. */
+  /** After an annotation change: re-render just that page and refresh the
+   *  sidebar list. */
   private afterAnnotationChange(pageNumber: number): void {
-    this.invalidatePageBitmaps(pageNumber);
+    this.markDocumentEdited();
     this.annotations.set(null); // re-fetch on next Annotations-tab view
-    void this.renderAll();
+    this.rerenderPage(pageNumber);
   }
 
   /**
@@ -3380,6 +3539,10 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     if (inEditable) return;
 
     if (!meta) {
+      // Space/arrows/Home/End belong to the focused control when it is a button,
+      // link, tab, menu item, etc. (activation, tablist navigation). Only
+      // PageUp/PageDown page the document from anywhere in the viewer.
+      if (key !== 'PageUp' && key !== 'PageDown' && target?.closest(INTERACTIVE_SELECTOR)) return;
       switch (key) {
         case 'PageUp':
         case 'ArrowLeft':
