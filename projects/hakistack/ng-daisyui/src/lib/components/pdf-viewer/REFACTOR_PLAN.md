@@ -409,6 +409,27 @@ Cada fase se puede publicar por separado, deja la demo en verde y no rompe la AP
 - El bug 10 (cancelación en el worker) va en la fase 2.
 - Las referencias restantes a pdf.js en comentarios internos desaparecen con la extracción de la fase 1.
 
+### Estado de la fase 1 (2026-10-12)
+
+El componente pasó de 3,435 líneas a un shell de 298, más estas capas:
+
+- **`core/`** (TS puro, con tests): `geometry`, `bitmap-cache`, `text-index`, `command-stack` y `types`.
+- **`services/`** (uno por visor, en los `providers` del shell): `store`, `page-data`, `viewport`, `layers`, `forms`, `find`, `thumbnails`, `annotation-tools` y `document`.
+- **`ui/`**: `toolbar`, `find-bar`, `sidebar`, `pages` y `text-editor`.
+
+Cambios de comportamiento:
+
+- **Outputs nuevos:** `loaded`, `pageChange`, `viewerError`, `dirtyChange` y `pagesChange`. Se emiten además de los callbacks de `config`, que siguen funcionando igual.
+- **El editor de texto es ahora un diálogo modal accesible** (`cdkTrapFocus`, `label` asociado, sin `autofocus`). Su fondo antes era transparente porque usaba `hsl(var(--b1))`, una variable que no existe en daisyUI v4 ni v5; ahora usa un token.
+
+Decisiones:
+
+- **El store lee el puente del controller desde `config`.** Así el estado funciona aunque el efecto de carga del documento se ejecute antes que el de enlazar el controller.
+- **Las dependencias circulares entre servicios se resuelven con `Injector.get` perezoso**, documentado en cada caso.
+- **Todo el CSS sigue en una sola hoja**, ahora con `:host ::ng-deep` en todas las reglas.
+
+**Pendiente para la fase 2:** el scheduler del protocolo v2 (no se creó en la fase 1).
+
 ## 6. Theming (daisyUI v5 / Tailwind v4)
 
 | Pieza | Componente daisyUI |

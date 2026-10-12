@@ -1,0 +1,68 @@
+<!-- Scrollable page area. In the default layout `min-w-0` is critical: without it this flex item won't shrink below
+     its content's min-width, so a rotated (wider) page would widen the viewport, which `computeScale` reads back as a
+     larger clientWidth — a feedback loop that explodes the zoom. With it, the wide page overflows into a scroll. -->
+<div #scroller [class]="viewportClass()">
+  @if (store.state()?.error; as err) {
+    <div role="alert" class="flex flex-col items-center justify-center gap-3 py-12 text-center">
+      <span class="text-error text-sm font-medium">{{ store.errorTitle() }}</span>
+      <span class="text-xs text-base-content/60 max-w-md">{{ err.message }}</span>
+      @if (err.recoverable) {
+        <button type="button" class="btn btn-sm btn-outline" (click)="document.reload()">{{ store.labels().retry }}</button>
+      }
+    </div>
+  } @else {
+    <!-- Non-fatal operation error (render, form sync, annotation, save): the document stays visible. -->
+    @if (store.operationError(); as opErr) {
+      <div role="alert" class="alert sticky top-0 z-20 mb-3 border-error/20 bg-error/10 text-error text-sm">
+        <span class="flex-1">{{ opErr.message }}</span>
+        <button type="button" class="btn btn-ghost btn-xs" (click)="store.dismissOperationError()">{{ store.labels().dismiss }}</button>
+      </div>
+    }
+    @if (store.pageNumbers().length > 0) {
+      <div
+        class="hk-pdf-page-stack flex flex-col items-center gap-4"
+        [class.hk-pdf-page-stack-centered]="store.centerPages()"
+        role="document"
+        aria-label="PDF document"
+        [class.invisible]="!store.firstRenderComplete()"
+      >
+        @for (n of store.pageNumbers(); track n) {
+          <div
+            #pageWrapper
+            class="hk-pdf-page bg-base-100 shadow-md"
+            [class.hk-pdf-page-rotated]="store.pageRotation(n) !== 0"
+            role="region"
+            [attr.aria-label]="'Page ' + n"
+            [attr.aria-current]="store.state()?.page === n ? 'page' : null"
+            [attr.data-page-number]="n"
+            [hidden]="store.pageHidden(n)"
+            [style.width.px]="viewport.pageBoxWidth(n)"
+            [style.height.px]="viewport.pageBoxHeight(n)"
+          >
+            <div class="hk-pdf-page-rotor" [style.transform]="viewport.pageRotorTransform(n)">
+              <canvas></canvas>
+              <div class="hk-pdf-text-layer"></div>
+              <div class="hk-pdf-annotation-layer"></div>
+              <div
+                class="hk-pdf-edit-layer"
+                [class.hk-pdf-edit-active]="store.annotationTool() !== 'none'"
+                (pointerdown)="tools.onPointerDown($event, n)"
+                (pointermove)="tools.onPointerMove($event)"
+                (pointerup)="tools.onPointerUp($event, n)"
+              ></div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+    <div class="sr-only" aria-live="polite" aria-atomic="true">{{ store.ariaPageAnnouncement() }}</div>
+    @if (!store.firstRenderComplete()) {
+      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div class="flex flex-col items-center gap-3 text-base-content/60">
+          <span class="loading loading-spinner loading-md"></span>
+          <span class="text-sm">{{ store.labels().loading }}</span>
+        </div>
+      </div>
+    }
+  }
+</div>

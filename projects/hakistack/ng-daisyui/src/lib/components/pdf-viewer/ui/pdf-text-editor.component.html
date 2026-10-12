@@ -1,0 +1,29 @@
+@if (store.textEditor(); as ed) {
+  <div class="hk-pdf-text-editor-backdrop">
+    <!-- Clicking the scrim cancels; it's not a tab stop (Escape and Cancel cover keyboard users). -->
+    <button type="button" class="hk-pdf-text-editor-scrim" tabindex="-1" aria-hidden="true" (click)="tools.cancelEditor()"></button>
+    <div
+      class="hk-pdf-text-editor"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="labelId"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      (keydown.escape)="tools.cancelEditor()"
+    >
+      <label [id]="labelId" [for]="inputId" class="text-sm font-medium text-base-content/80 mb-1 block">{{ ed.label }}</label>
+      <textarea
+        [id]="inputId"
+        class="textarea textarea-bordered w-full text-sm"
+        rows="3"
+        [value]="store.textEditorDraft()"
+        (input)="onDraftInput($event)"
+        (keydown)="tools.onEditorKeydown($event)"
+      ></textarea>
+      <div class="flex justify-end gap-2 mt-2">
+        <button type="button" class="btn btn-ghost btn-sm" (click)="tools.cancelEditor()">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="tools.saveEditor()">Save</button>
+      </div>
+    </div>
+  </div>
+}

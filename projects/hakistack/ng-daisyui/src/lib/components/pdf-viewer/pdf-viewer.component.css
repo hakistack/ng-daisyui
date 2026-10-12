@@ -7,7 +7,11 @@
    Angular's view-encapsulation attribute (`_ngcontent-xxx`), so plain
    `.hk-pdf-text-layer span { ... }` rules from a CSS-encapsulated component
    never match them. We use `:host ::ng-deep` to pierce encapsulation while
-   still scoping the rules to the component's DOM subtree. */
+   still scoping the rules to the component's DOM subtree.
+
+   The same applies to the viewer's chrome, which lives in child components
+   (`ui/`: toolbar, sidebar, pages, find bar, text editor): every rule here is
+   `:host ::ng-deep` so this one stylesheet styles the whole viewer. */
 
 /* Fill a sized parent (e.g. a `h-[80vh]` wrapper) so the viewer reads as a real
    full-height surface instead of a short floating box. With no definite parent
@@ -30,7 +34,7 @@
   contain: inline-size;
 }
 
-:host .hk-pdf-viewport {
+:host ::ng-deep .hk-pdf-viewport {
   /* min-height to keep the viewport visible even before pages load */
   min-height: 24rem;
   /* max-height bounds the scrollable region so the inner viewport actually
@@ -46,10 +50,10 @@
    pin the scroll area to 75% of it — leaving a dead band below the viewport.
    Let it fill the available height instead. (Separate rules: an unknown
    pseudo-class would invalidate the whole selector list, so don't combine.) */
-:host(:fullscreen) .hk-pdf-viewport {
+:host(:fullscreen) ::ng-deep .hk-pdf-viewport {
   max-height: none;
 }
-:host(:-webkit-full-screen) .hk-pdf-viewport {
+:host(:-webkit-full-screen) ::ng-deep .hk-pdf-viewport {
   max-height: none;
 }
 
@@ -58,7 +62,7 @@
    horizontal centering, but aligns a page wider than the viewport (e.g. a
    rotated landscape page) to the start so its left edge stays reachable by
    horizontal scroll instead of being clipped. */
-:host .hk-pdf-page-stack {
+:host ::ng-deep .hk-pdf-page-stack {
   min-height: 100%;
   justify-content: flex-start;
   align-items: safe center;
@@ -68,20 +72,20 @@
    vertically — `safe` falls back to top-align (scroll) if it overflows. This is
    what kills the dead space below a lone short page without affecting the
    continuous multi-page flow. */
-:host .hk-pdf-page-stack.hk-pdf-page-stack-centered {
+:host ::ng-deep .hk-pdf-page-stack.hk-pdf-page-stack-centered {
   justify-content: safe center;
 }
 
 /* Preview layout's viewport caps page height so the bottom controls stay
    visible without forcing the consumer to constrain the host. */
-:host .hk-pdf-preview-viewport {
+:host ::ng-deep .hk-pdf-preview-viewport {
   max-height: 70vh;
 }
 
 /* ── Thumbnails ─────────────────────────────────────────────────────────────
    Sidebar thumbnail buttons. The canvas inside is sized inline by the
    renderer; the wrapper provides the click target + selected-state outline. */
-:host .hk-pdf-thumbnail {
+:host ::ng-deep .hk-pdf-thumbnail {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -95,35 +99,35 @@
     background-color 120ms ease;
 }
 
-:host .hk-pdf-thumbnail:hover {
+:host ::ng-deep .hk-pdf-thumbnail:hover {
   background-color: hsl(var(--bc) / 0.05);
 }
 
-:host .hk-pdf-thumbnail:focus-visible {
+:host ::ng-deep .hk-pdf-thumbnail:focus-visible {
   outline: 2px solid hsl(var(--p));
   outline-offset: 2px;
 }
 
-:host .hk-pdf-thumbnail-active {
+:host ::ng-deep .hk-pdf-thumbnail-active {
   border-color: hsl(var(--p));
   background-color: hsl(var(--p) / 0.08);
 }
 
-:host .hk-pdf-thumbnail canvas {
+:host ::ng-deep .hk-pdf-thumbnail canvas {
   display: block;
   max-width: 100%;
   background: white;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }
 
-:host .hk-pdf-page {
+:host ::ng-deep .hk-pdf-page {
   display: block;
   position: relative;
   /* canvas dimensions are set inline by the renderer (high-DPI aware) — the
      wrapper just hugs them and provides the page shadow. */
 }
 
-:host .hk-pdf-page canvas {
+:host ::ng-deep .hk-pdf-page canvas {
   display: block;
   position: relative;
   z-index: 0;
@@ -132,13 +136,13 @@
 /* Rotation rotor — wraps the canvas + all overlay layers so a CSS rotate spins
    them together (overlays stay aligned). The outer .hk-pdf-page is sized to the
    rotated bounding box (90/270 swap dims) and centers the rotor. */
-:host .hk-pdf-page-rotor {
+:host ::ng-deep .hk-pdf-page-rotor {
   position: relative;
   display: block;
   transform-origin: center center;
 }
 
-:host .hk-pdf-page.hk-pdf-page-rotated {
+:host ::ng-deep .hk-pdf-page.hk-pdf-page-rotated {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -331,7 +335,7 @@
 }
 
 /* Inline annotation text editor (centered popover). */
-.hk-pdf-text-editor-backdrop {
+:host ::ng-deep .hk-pdf-text-editor-backdrop {
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -341,11 +345,22 @@
   background: rgb(0 0 0 / 35%);
 }
 
-.hk-pdf-text-editor {
+/* Full-size click target behind the dialog; clicking it cancels. */
+:host ::ng-deep .hk-pdf-text-editor-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+:host ::ng-deep .hk-pdf-text-editor {
   width: min(28rem, calc(100vw - 2rem));
   padding: 1rem;
-  border-radius: var(--rounded-box, 0.75rem);
-  background: hsl(var(--b1));
+  position: relative; /* above the scrim */
+  border-radius: var(--radius-box, var(--rounded-box, 0.75rem));
+  /* daisyUI v5 token, falling back to the v4 channel variable. */
+  background: var(--color-base-100, oklch(var(--b1, 1 0 0)));
   box-shadow:
     0 10px 15px -3px rgb(0 0 0 / 0.2),
     0 4px 6px -4px rgb(0 0 0 / 0.2);

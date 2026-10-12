@@ -1,7 +1,6 @@
 import { computed, signal } from '@angular/core';
 import {
   PdfDisplayMode,
-  PdfSearchResult,
   PdfSidebarTab,
   PdfViewerConfig,
   PdfViewerController,
@@ -182,25 +181,8 @@ export function previousZoomStep(zoom: number): number {
   return clampZoom(zoom - ZOOM_STEP);
 }
 
-/**
- * Invert a page's CSS display rotation for a pointer delta.
- *
- * The page rotor applies a clockwise `rotate(deg)` about its centre, so a
- * point at local (unrotated) offset `(x, y)` from the centre lands on screen at
- * `R(deg)·(x, y)` where `R(deg) = [[cos, -sin], [sin, cos]]` (y-down ⇒ positive
- * angle is clockwise). To recover the local offset from a screen-space delta we
- * apply the inverse `R(-deg)`. `deg` is typically 0/90/180/270 but any angle
- * works.
- *
- * Add the layer's half-width/height to the result to get the top-left-origin
- * local coordinate. For `deg = 0` this is the identity.
- */
-export function inverseRotateDelta(dx: number, dy: number, deg: number): { dx: number; dy: number } {
-  const rad = (deg * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  return { dx: cos * dx + sin * dy, dy: -sin * dx + cos * dy };
-}
+// Rotation math lives in core/geometry (framework-free); re-exported for existing importers.
+export { inverseRotateDelta } from './core/geometry';
 
 /** URI schemes a PDF link may open. Everything else (`javascript:`, `data:`,
  *  `file:`, `blob:`, `vbscript:`, …) is dropped from the link overlay. */

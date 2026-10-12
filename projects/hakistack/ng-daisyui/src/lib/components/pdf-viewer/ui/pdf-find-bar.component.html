@@ -1,0 +1,83 @@
+<div
+  class="flex items-center gap-1.5 px-3 py-2 border-b border-base-300 bg-base-200/40 text-sm"
+  role="search"
+  [attr.aria-label]="store.labels().searchAriaLabel"
+>
+  <span class="text-base-content/50">
+    <svg lucideSearch [size]="14"></svg>
+  </span>
+  <input
+    #findInput
+    type="text"
+    class="hk-pdf-find-input input input-sm input-bordered grow max-w-xs"
+    [placeholder]="store.labels().searchPlaceholder"
+    [attr.aria-label]="store.labels().searchAriaLabel"
+    [value]="store.state()?.searchQuery ?? ''"
+    (input)="find.onInput(findInput.value)"
+    (keydown.enter)="find.onEnter(findInput.value)"
+    (keydown.escape)="find.closeBar()"
+  />
+
+  <!-- Match toggles — Acrobat-style ghost icon buttons. `btn-active` when on. -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().findCaseSensitive"
+    [attr.aria-pressed]="store.state()?.searchCaseSensitive ?? false"
+    [title]="store.labels().findCaseSensitive"
+    [class.btn-active]="store.state()?.searchCaseSensitive ?? false"
+    (click)="find.toggleCaseSensitive()"
+  >
+    <svg lucideCaseSensitive [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().findWholeWord"
+    [attr.aria-pressed]="store.state()?.searchWholeWord ?? false"
+    [title]="store.labels().findWholeWord"
+    [class.btn-active]="store.state()?.searchWholeWord ?? false"
+    (click)="find.toggleWholeWord()"
+  >
+    <svg lucideWholeWord [size]="16"></svg>
+  </button>
+
+  <span class="text-xs text-base-content/60 tabular-nums whitespace-nowrap min-w-16 text-right">
+    @if (store.state()?.searchQuery) {
+      @if ((store.state()?.searchMatches ?? 0) > 0) {
+        {{ store.matchCounterText() }}
+      } @else {
+        {{ store.labels().noMatches }}
+      }
+    }
+  </span>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().previousMatch"
+    [title]="store.labels().previousMatch"
+    [disabled]="(store.state()?.searchMatches ?? 0) === 0"
+    (click)="find.previous()"
+  >
+    <svg lucideChevronLeft [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().nextMatch"
+    [title]="store.labels().nextMatch"
+    [disabled]="(store.state()?.searchMatches ?? 0) === 0"
+    (click)="find.next()"
+  >
+    <svg lucideChevronRight [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().clearSearch"
+    [title]="store.labels().clearSearch"
+    (click)="find.closeBar()"
+  >
+    <svg lucideX [size]="16"></svg>
+  </button>
+</div>
