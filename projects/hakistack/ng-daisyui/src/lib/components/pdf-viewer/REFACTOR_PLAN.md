@@ -472,6 +472,32 @@ Decisiones:
 - Caché de bitmaps de miniaturas.
 - **Los benchmarks de §7 no se han medido:** necesitan navegador. Hay que pasarlos en la demo de rendimiento antes de dar la fase por cerrada.
 
+### Estado de la fase 2W (2026-10-12)
+
+**Hecho:** el núcleo de `hk-pdf-writer` vive en `core/pdf-writer/`. Son ~1.7 k líneas de TS puro, sin dependencias.
+
+- **Lectura:**
+  - `objects`/`parser`: todos los tipos de objeto, escapes de nombres y strings, PDFDocEncoding y UTF-16BE. Si un `/Length` es erróneo, se recupera buscando `endstream`.
+  - `xref`: tabla clásica, xref streams con predictores PNG, object streams, híbridos (`/XRefStm`) y la cadena `/Prev`. Si la cadena está rota, el xref se reconstruye escaneando el archivo.
+  - `filters`: Flate con `CompressionStream` nativo, PNG/TIFF y ASCIIHex/85.
+- **Modelo:** `PdfDoc` es lazy: solo parsea el xref y los objetos que se tocan. Ofrece `add`/`update`/`delete`, `pages()` con herencia de atributos y `setInfo`.
+- **Escritura:** `saveIncremental` añade al final solo los objetos cambiados.
+  - Los bytes originales quedan intactos, así que las firmas siguen siendo válidas.
+  - Usa una sección del mismo tipo que la última del archivo (tabla o xref stream), con `/Prev` y un `/ID` nuevo.
+  - En un archivo reconstruido escribe una sección completa sin `/Prev`, lo que de paso lo repara.
+- **Contenido:** `ContentBuilder` (operadores de gráficos y de texto, elipses con Bézier) y métricas de las 14 fuentes estándar con ajuste de línea.
+- **Verificación:**
+  - 25 tests unitarios.
+  - `npm run test:pdf-engine` reabre en PDFium cada guardado incremental (título nuevo, anotación añadida, todas las páginas renderizan) y lo pasa por `pdfinfo` si Poppler está instalado.
+  - Se probaron tablas clásicas, PDFs escritos por PDFium y un PDF real (formulario W-9 del IRS: 3 xref streams, 17 object streams, varias actualizaciones incrementales).
+  - Con `PDF_CORPUS=<dir>` el mismo round-trip se ejecuta sobre un corpus propio.
+
+**Pendiente / diferido:**
+- `security/` (cifrado): `PdfDoc.load` rechaza los cifrados con `PdfUnsupportedError`.
+- Guardado completo con recolección de basura.
+- qpdf/veraPDF en CI: qpdf no está instalado en local, así que la validación externa usa `pdfinfo`.
+- Corpus amplio y fuzzing del parser.
+
 ## 6. Theming (daisyUI v5 / Tailwind v4)
 
 | Pieza | Componente daisyUI |

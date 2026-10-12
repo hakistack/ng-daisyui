@@ -15,12 +15,18 @@
  * priority ordering, barriers, cancellation of queued renders, and the batched
  * pageSizes / pagesText requests.
  *
+ * Part 3 checks hk-pdf-writer against PDFium: documents saved incrementally
+ * by our own writer must reopen in PDFium with the edit visible and every page
+ * still rendering. Set PDF_CORPUS to a directory of real-world PDFs to run the
+ * same round-trip over each of them (and `pdfinfo`, when Poppler is installed).
+ *
  * Requires the built inputs (skips with a notice when missing):
  *   - `npm run pdfium:fetch` → engine/pdfium/pdfium.{js,wasm}
  *   - `npm run engine:build` → src/lib/wasm/pdf/pdf_engine{.js,_bg.wasm}
  */
 import { build } from 'esbuild';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { Worker } from 'node:worker_threads';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -143,7 +149,7 @@ const dir = mkdtempSync(join(tmpdir(), 'hk-pdf-engine-'));
 const entry = join(dir, 'entry.mjs');
 writeFileSync(
   entry,
-  `export { default as initPdfEngine, initialize_pdfium_render, open, form_fields, set_field_value, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
+  `export { default as initPdfEngine, initialize_pdfium_render, open, close, page_count, document_title, form_fields, set_field_value, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
 export { default as createPdfiumModule } from ${JSON.stringify(inputs.pdfium)};
 export { default as pdfEngineWasm } from ${JSON.stringify(inputs.engineWasm)};
 export { default as pdfiumWasm } from ${JSON.stringify(inputs.pdfiumWasm)};`,
@@ -239,6 +245,87 @@ try {
   }
   check(`the tile matches the full render (max channel difference ${maxDiff})`, maxDiff <= 1);
   check('the tile actually contains the page text', inked > 50);
+
+  // ── Part 3: hk-pdf-writer output must reopen in PDFium ─────────────────
+  console.log('\nwriter (incremental save → PDFium)');
+  const writerBuild = await build({
+    entryPoints: [join(lib, 'components/pdf-viewer/core/pdf-writer/index.ts')],
+    bundle: true,
+    write: false,
+    format: 'esm',
+    platform: 'node',
+    target: 'es2022',
+    logLevel: 'error',
+  });
+  const writerFile = join(dir, 'writer.mjs');
+  writeFileSync(writerFile, writerBuild.outputFiles[0].text);
+  const w = await import(pathToFileURL(writerFile).href);
+  const pdfinfo = spawnSync('pdfinfo', ['-v']).error ? null : 'pdfinfo';
+
+  /** Edit /Info and append a square annotation to page 1, save incrementally, reopen in PDFium. */
+  const roundTrip = async (label, original) => {
+    const before = e.open(original, undefined);
+    const pages = e.page_count(before);
+    e.close(before);
+
+    const doc = await w.PdfDoc.load(original);
+    const title = `hk-pdf-writer ✓ ${label}`;
+    await doc.setInfo({ Title: title });
+    const [first] = await doc.pages();
+    const annot = doc.add(
+      new w.PdfDict({
+        Type: w.PdfName.of('Annot'),
+        Subtype: w.PdfName.of('Square'),
+        Rect: [10, 10, 60, 40],
+        C: [1, 0, 0],
+        F: 4,
+        P: first.ref,
+      }),
+    );
+    const page = first.dict.clone();
+    const annots = await doc.resolve(page.get('Annots'));
+    page.set('Annots', [...(Array.isArray(annots) ? annots : []), annot]);
+    doc.update(first.ref, page);
+    const saved = await w.saveIncremental(doc);
+
+    const prefixIntact = Buffer.from(saved.subarray(0, original.length)).equals(Buffer.from(original));
+    const h = e.open(saved, undefined);
+    const ok = e.document_title(h) === title && e.page_count(h) === pages;
+    let rendered = true;
+    for (let i = 0; i < pages && rendered; i++) rendered = e.render(h, i, 60)[0] === 60;
+    e.close(h);
+    check(`${label}: original bytes kept, PDFium reads the new title, ${pages} page(s) render`, prefixIntact && ok && rendered);
+    if (pdfinfo) {
+      const file = join(dir, 'saved.pdf');
+      writeFileSync(file, saved);
+      const r = spawnSync(pdfinfo, [file], { encoding: 'utf8' });
+      check(
+        `${label}: pdfinfo accepts it without errors`,
+        r.status === 0 && !/Syntax Error|error/i.test(r.stderr) && r.stdout.includes(title.slice(0, 13)),
+      );
+    }
+  };
+
+  await roundTrip('classic xref', makeTextPdf(3));
+  await roundTrip('form document', makeFormPdf());
+  // Xref-stream + object-stream input: PDFium writes those itself on save.
+  const pdfiumSaved = (() => {
+    const h = e.open(makeTextPdf(2), undefined);
+    const out = e.save_document(h);
+    e.close(h);
+    return out;
+  })();
+  await roundTrip('PDFium-written', pdfiumSaved);
+  const corpus = process.env.PDF_CORPUS;
+  if (corpus && existsSync(corpus)) {
+    for (const name of readdirSync(corpus).filter((f) => f.toLowerCase().endsWith('.pdf'))) {
+      try {
+        await roundTrip(name, new Uint8Array(readFileSync(join(corpus, name))));
+      } catch (err) {
+        check(`${name}: ${err.message}`, err instanceof w.PdfUnsupportedError); // encrypted files are skipped, not failures
+      }
+    }
+  }
 
   // ── Part 2: worker protocol ────────────────────────────────────────────
   console.log('\nworker protocol');
