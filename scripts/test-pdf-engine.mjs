@@ -149,7 +149,7 @@ const dir = mkdtempSync(join(tmpdir(), 'hk-pdf-engine-'));
 const entry = join(dir, 'entry.mjs');
 writeFileSync(
   entry,
-  `export { default as initPdfEngine, initialize_pdfium_render, open, close, page_count, document_title, form_fields, set_field_value, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
+  `export { default as initPdfEngine, initialize_pdfium_render, open, close, page_count, document_title, form_fields, set_field_value, set_hidden_annotations, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
 export { default as createPdfiumModule } from ${JSON.stringify(inputs.pdfium)};
 export { default as pdfEngineWasm } from ${JSON.stringify(inputs.engineWasm)};
 export { default as pdfiumWasm } from ${JSON.stringify(inputs.pdfiumWasm)};`,
@@ -248,8 +248,14 @@ try {
 
   // ── Part 3: hk-pdf-writer output must reopen in PDFium ─────────────────
   console.log('\nwriter (incremental save → PDFium)');
+  const writerEntry = join(dir, 'writer-entry.ts');
+  writeFileSync(
+    writerEntry,
+    `export * from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/pdf-writer/index.ts'))};
+export { readAnnotations, writeAnnotationChanges } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/annotation-io.ts'))};`,
+  );
   const writerBuild = await build({
-    entryPoints: [join(lib, 'components/pdf-viewer/core/pdf-writer/index.ts')],
+    entryPoints: [writerEntry],
     bundle: true,
     write: false,
     format: 'esm',
@@ -325,6 +331,57 @@ try {
         check(`${name}: ${err.message}`, err instanceof w.PdfUnsupportedError); // encrypted files are skipped, not failures
       }
     }
+  }
+
+  // ── Annotations written by hk-pdf-writer, as PDFium paints them ──────────
+  console.log('\nannotation appearances (hk-pdf-writer → PDFium)');
+  const pixel = (h, page, width, x, y) => {
+    const [w, , px] = e.render(h, page, width);
+    const i = (y * w + x) * 4;
+    return [px[i], px[i + 1], px[i + 2]];
+  };
+  const isRed = ([r, g, b]) => r > 200 && g < 80 && b < 80;
+  const isWhite = ([r, g, b]) => r > 240 && g > 240 && b > 240;
+  const square = (page, rect) => ({
+    id: 'sq',
+    page,
+    type: 'rect',
+    rect,
+    color: '#ff0000',
+    fill: '#ff0000',
+    strokeWidth: 2,
+    opacity: 1,
+  });
+  for (const rotate of [0, 90]) {
+    // MediaBox 300×200 pt; at /Rotate 90 it shows as 200×300. Rendered at 1 px/pt.
+    const base = serializePdf({
+      1: '<< /Type /Catalog /Pages 2 0 R >>',
+      2: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      3: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Rotate ${rotate} /Resources << >> >>`,
+    });
+    const rect = rotate ? { x: 20, y: 200, w: 60, h: 40 } : { x: 100, y: 50, w: 80, h: 60 };
+    const saved = await w.writeAnnotationChanges(base, new Map(), [square(0, rect)]);
+    const width = rotate ? 200 : 300;
+    const inside = [Math.round(rect.x + rect.w / 2), Math.round(rect.y + rect.h / 2)];
+    const outside = rotate ? [150, 50] : [20, 150];
+    let h = e.open(saved, undefined);
+    check(
+      `/Rotate ${rotate}: PDFium paints the square where the model put it`,
+      isRed(pixel(h, 0, width, ...inside)) && isWhite(pixel(h, 0, width, ...outside)),
+    );
+    e.set_hidden_annotations(h, Uint32Array.from([0, 0]));
+    check(`/Rotate ${rotate}: a hidden annotation is left out of the raster`, isWhite(pixel(h, 0, width, ...inside)));
+    const resaved = e.save_document(h);
+    e.close(h);
+    h = e.open(resaved, undefined);
+    check(`/Rotate ${rotate}: hiding is display-only (a PDFium save still shows it)`, isRed(pixel(h, 0, width, ...inside)));
+    const [page] = await w.readAnnotations(await w.PdfDoc.load(resaved));
+    const back = page.annotations[0]?.annotation;
+    check(
+      `/Rotate ${rotate}: the annotation reads back after a PDFium save`,
+      back?.type === 'rect' && Math.abs(back.rect.x - rect.x) < 0.01 && Math.abs(back.rect.h - rect.h) < 0.01,
+    );
+    e.close(h);
   }
 
   // ── Part 2: worker protocol ────────────────────────────────────────────

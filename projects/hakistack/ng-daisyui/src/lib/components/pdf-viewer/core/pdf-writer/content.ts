@@ -1,5 +1,6 @@
 import { formatNumber, serializeValue } from './serialize';
 import { PdfName, PdfString } from './objects';
+import { winAnsiBytes } from './standard-fonts';
 
 /** An RGB colour with channels in 0–1. */
 export type Rgb = readonly [r: number, g: number, b: number];
@@ -126,12 +127,13 @@ export class ContentBuilder {
   leading(l: number): this {
     return this.op('TL', l);
   }
+  /** Show text in a standard font (WinAnsi-encoded; see {@link winAnsiBytes}). */
   showText(text: string): this {
-    return this.op('Tj', serializeValue(PdfString.text(text)));
+    return this.op('Tj', serializeValue(new PdfString(winAnsiBytes(text))));
   }
   /** Move to the next line and show text (`'`). */
   nextLineShowText(text: string): this {
-    return this.op("'", serializeValue(PdfString.text(text)));
+    return this.op("'", serializeValue(new PdfString(winAnsiBytes(text))));
   }
 
   /** Append raw operators (trusted, already-formatted content). */

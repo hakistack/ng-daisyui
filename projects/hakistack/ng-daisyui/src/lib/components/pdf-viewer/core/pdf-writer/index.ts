@@ -12,4 +12,4 @@ export { readXref, type XrefEntry, type XrefTable } from './xref';
 export { PdfDoc, PdfUnsupportedError, pdfDate, type PdfPageRef } from './document';
 export { saveIncremental } from './incremental';
 export { ContentBuilder, type Rgb } from './content';
-export { charWidth, textWidth, wrapText, type StandardFont } from './standard-fonts';
+export { charWidth, textWidth, wrapText, winAnsiBytes, type StandardFont } from './standard-fonts';

@@ -188,6 +188,13 @@ export class PdfEnginePool implements PdfEngine {
     return this.broadcast(doc, (e, hd) => e.setPageRotation(hd, page, degrees));
   }
 
+  /** Every worker renders, so every worker gets the set (not a document mutation: nothing to resync). */
+  async setHiddenAnnotations(doc: PdfDocHandle, entries: readonly number[]): Promise<void> {
+    const handles = this.docs.get(doc);
+    if (!handles) return;
+    await Promise.all(this.engines.map((e, i) => e.setHiddenAnnotations(handles[i], entries)));
+  }
+
   /**
    * Apply a mutation to **every** worker's copy of the doc so they stay
    * render-consistent. We wait for *all* workers (not bail on the first

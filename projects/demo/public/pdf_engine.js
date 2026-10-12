@@ -644,6 +644,20 @@ export function set_field_value(handle, index, annot_index, name, value) {
 }
 
 /**
+ * Replace the set of annotations left out of rendered rasters (the ones the
+ * viewer draws in its own layer). `entries` is flat `[page, annotIndex, …]`;
+ * an empty list clears it. Rendering hides them only for the duration of the
+ * call, so a later save is unaffected.
+ * @param {number} handle
+ * @param {Uint32Array} entries
+ */
+export function set_hidden_annotations(handle, entries) {
+    const ptr0 = passArray32ToWasm0(entries, wasm.__wbindgen_export);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.set_hidden_annotations(handle, ptr0, len0);
+}
+
+/**
  * Set a page's rotation (`degrees` ∈ {0, 90, 180, 270}). Applied to the saved
  * document; the viewer also rotates its display via CSS so overlays stay
  * aligned, so this is used transiently around `save_document`.
@@ -1025,6 +1039,14 @@ function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
 }
 
+let cachedUint32ArrayMemory0 = null;
+function getUint32ArrayMemory0() {
+    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
+        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachedUint32ArrayMemory0;
+}
+
 let cachedUint8ArrayMemory0 = null;
 function getUint8ArrayMemory0() {
     if (cachedUint8ArrayMemory0 === null || cachedUint8ArrayMemory0.byteLength === 0) {
@@ -1050,6 +1072,13 @@ let heap_next = heap.length;
 
 function isLikeNone(x) {
     return x === undefined || x === null;
+}
+
+function passArray32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getUint32ArrayMemory0().set(arg, ptr / 4);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function passArray8ToWasm0(arg, malloc) {
@@ -1145,6 +1174,7 @@ function __wbg_finalize_init(instance, module) {
     wasmModule = module;
     cachedDataViewMemory0 = null;
     cachedFloat32ArrayMemory0 = null;
+    cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;

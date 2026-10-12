@@ -33,6 +33,9 @@ thread_local! {
     static DOCS: RefCell<HashMap<u32, PdfDocument<'static>>> = RefCell::new(HashMap::new());
     /// Monotonic handle allocator (never reused within a session).
     static NEXT_HANDLE: RefCell<u32> = const { RefCell::new(1) };
+    /// Annotations the viewer draws itself, per document and page: hidden while
+    /// rasterizing so they don't appear twice. Never persisted to the document.
+    static HIDDEN: RefCell<HashMap<u32, HashMap<u16, Vec<u16>>>> = RefCell::new(HashMap::new());
 }
 
 /// Sentinel error string the JS side detects to trigger the password prompt.
@@ -66,6 +69,50 @@ pub fn close(handle: u32) {
     DOCS.with(|d| {
         d.borrow_mut().remove(&handle);
     });
+    HIDDEN.with(|h| {
+        h.borrow_mut().remove(&handle);
+    });
+}
+
+/// Replace the set of annotations left out of rendered rasters (the ones the
+/// viewer draws in its own layer). `entries` is flat `[page, annotIndex, …]`;
+/// an empty list clears it. Rendering hides them only for the duration of the
+/// call, so a later save is unaffected.
+#[wasm_bindgen]
+pub fn set_hidden_annotations(handle: u32, entries: Vec<u32>) {
+    let mut by_page: HashMap<u16, Vec<u16>> = HashMap::new();
+    for pair in entries.chunks_exact(2) {
+        by_page.entry(pair[0] as u16).or_default().push(pair[1] as u16);
+    }
+    HIDDEN.with(|h| {
+        let mut h = h.borrow_mut();
+        if by_page.is_empty() {
+            h.remove(&handle);
+        } else {
+            h.insert(handle, by_page);
+        }
+    });
+}
+
+/// Run `f` (a render of `page`) with the page's hidden annotations flagged
+/// Hidden, restoring their flags afterwards.
+fn with_hidden_annotations<R>(handle: u32, index: u16, page: &PdfPage, f: impl FnOnce() -> R) -> R {
+    let list = HIDDEN.with(|h| h.borrow().get(&handle).and_then(|pages| pages.get(&index).cloned())).unwrap_or_default();
+    let mut restore = Vec::new();
+    for i in list {
+        if let Ok(mut annot) = page.annotations().get(i as usize) {
+            if !annot.is_hidden() && annot.set_is_hidden(true).is_ok() {
+                restore.push(i);
+            }
+        }
+    }
+    let result = f();
+    for i in restore {
+        if let Ok(mut annot) = page.annotations().get(i as usize) {
+            let _ = annot.set_is_hidden(false);
+        }
+    }
+    result
 }
 
 /// Number of pages in an open document.
@@ -92,18 +139,21 @@ pub fn page_size(handle: u32, index: u16) -> Result<Array, JsValue> {
 pub fn render(handle: u32, index: u16, target_width: i32) -> Result<Array, JsValue> {
     with_doc(handle, |doc| {
         let page = doc.pages().get(index as i32).map_err(to_js)?;
-        let bitmap = page
-            .render_with_config(
+        let bitmap = with_hidden_annotations(handle, index, &page, || {
+            page.render_with_config(
                 &PdfRenderConfig::new()
                     .set_target_width(target_width)
                     // Bake annotations (highlights, ink, stamps) and form-field
                     // appearances into the raster — pd​f.js drew these in DOM
                     // overlay layers; PDFium renders them directly. Links stay
                     // overlay-only (they need to be clickable — see page_links).
+                    // Annotations the viewer edits are drawn by its own layer
+                    // and hidden here (see set_hidden_annotations).
                     .render_annotations(true)
                     .render_form_data(true),
             )
-            .map_err(to_js)?;
+        })
+        .map_err(to_js)?;
         let w = bitmap.width() as u32;
         let h = bitmap.height() as u32;
         let rgba = bitmap.as_rgba_bytes();
@@ -123,7 +173,7 @@ pub fn render(handle: u32, index: u16, target_width: i32) -> Result<Array, JsVal
 pub fn render_tile(handle: u32, index: u16, page_width: i32, page_height: i32, x: i32, y: i32, w: i32, h: i32) -> Result<Array, JsValue> {
     with_doc(handle, |doc| {
         let page = doc.pages().get(index as i32).map_err(to_js)?;
-        let bitmap = page.render_region(page_width, page_height, x, y, w, h).map_err(to_js)?;
+        let bitmap = with_hidden_annotations(handle, index, &page, || page.render_region(page_width, page_height, x, y, w, h)).map_err(to_js)?;
         let out = Array::new();
         out.push(&JsValue::from_f64(bitmap.width() as f64));
         out.push(&JsValue::from_f64(bitmap.height() as f64));

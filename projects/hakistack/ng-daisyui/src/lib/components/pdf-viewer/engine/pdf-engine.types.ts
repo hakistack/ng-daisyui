@@ -186,6 +186,13 @@ export interface PdfEngine {
   insertBlankPage(doc: PdfDocHandle, index: number, width: number, height: number): Promise<boolean>;
   /** Set a page's rotation (`degrees` ∈ {0,90,180,270}) — used transiently to bake rotation into `save`. */
   setPageRotation(doc: PdfDocHandle, page: number, degrees: number): Promise<boolean>;
+  /**
+   * Leave these annotations out of every raster (render and tiles): the ones
+   * the viewer draws in its own layer. Flat `[page, annotIndex, …]` (0-based
+   * page, index in the page's `/Annots`); replaces the previous set. Display
+   * only: the document and its saved bytes are unchanged.
+   */
+  setHiddenAnnotations(doc: PdfDocHandle, entries: readonly number[]): Promise<void>;
   /** Serialize the (form-filled) document back to PDF bytes for save/download. */
   save(doc: PdfDocHandle): Promise<Uint8Array>;
   /** Release the document + free its WASM memory. */
@@ -253,6 +260,7 @@ export type PdfWorkerRequest = (
   | { type: 'deletePage'; id: number; doc: PdfDocHandle; index: number }
   | { type: 'insertBlankPage'; id: number; doc: PdfDocHandle; index: number; width: number; height: number }
   | { type: 'setPageRotation'; id: number; doc: PdfDocHandle; page: number; degrees: number }
+  | { type: 'setHiddenAnnotations'; id: number; doc: PdfDocHandle; entries: number[] }
   | { type: 'save'; id: number; doc: PdfDocHandle }
   | { type: 'cancel'; id: number }
   | { type: 'dispose'; doc: PdfDocHandle }
