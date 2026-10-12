@@ -1,7 +1,7 @@
 import { ContentBuilder } from '../pdf-writer/content';
 import { PdfDict, PdfName, PdfRef, PdfStream, PdfValue } from '../pdf-writer/objects';
 import type { StandardFont } from '../pdf-writer/standard-fonts';
-import type { HkAnnotation } from './annotation.types';
+import type { HkAnnotation, PdfRect } from './annotation.types';
 import { imageXObject } from './images';
 import { PageSpace } from './page-space';
 import { DrawOp, PathSeg, annotationOps, base64ToBytes, hexToRgb, outerBounds } from './shapes';
@@ -21,14 +21,24 @@ export const FONT_RESOURCE: Record<StandardFont, string> = {
  * (the displayed page with y flipped up) under a `cm` that maps them to user
  * space, so the appearance is upright on rotated pages too.
  */
-export async function buildAppearance(
+export function buildAppearance(
   a: HkAnnotation,
   space: PageSpace,
   addObject: (value: PdfValue) => PdfRef,
   images: Map<string, PdfRef> = new Map(),
 ): Promise<PdfStream> {
-  const bbox = space.rectToUser(outerBounds(a));
-  const ops = annotationOps(a);
+  return appearanceStream(annotationOps(a), outerBounds(a), space, addObject, images);
+}
+
+/** A form XObject drawing `ops` (displayed-page points) with `box` as its `/BBox`, for any annotation or widget. */
+export async function appearanceStream(
+  ops: readonly DrawOp[],
+  box: PdfRect,
+  space: PageSpace,
+  addObject: (value: PdfValue) => PdfRef,
+  images: Map<string, PdfRef> = new Map(),
+): Promise<PdfStream> {
+  const bbox = space.rectToUser(box);
   const content = new ContentBuilder();
   const states = new Map<string, { name: string; dict: PdfDict }>();
   const fonts = new Map<string, StandardFont>();

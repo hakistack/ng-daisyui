@@ -623,6 +623,17 @@ export async function writeAnnotationChanges(
   now = new Date(),
 ): Promise<Uint8Array> {
   const doc = await PdfDoc.load(bytes);
+  await applyAnnotationChanges(doc, baseline, current, now);
+  return saveIncremental(doc);
+}
+
+/** {@link writeAnnotationChanges} on an open document, without saving (for combined saves). */
+export async function applyAnnotationChanges(
+  doc: PdfDoc,
+  baseline: AnnotationBaseline,
+  current: readonly HkAnnotation[],
+  now = new Date(),
+): Promise<void> {
   const pages = await doc.pages();
   const byPage = new Map<number, HkAnnotation[]>();
   for (const a of current) byPage.set(a.page, [...(byPage.get(a.page) ?? []), a]);
@@ -717,7 +728,6 @@ export async function writeAnnotationChanges(
       doc.update(page.ref, pageDict);
     }
   }
-  return saveIncremental(doc);
 }
 
 /** Keys an annotation's geometry and style regenerate; stale copies are dropped from an edited dictionary. */

@@ -254,7 +254,9 @@ try {
     `export * from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/pdf-writer/index.ts'))};
 export { readAnnotations, writeAnnotationChanges } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/annotation-io.ts'))};
 export { encodePng } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/images.ts'))};
-export { calibrate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/measure.ts'))};`,
+export { calibrate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/measure.ts'))};
+export { readForm } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/form-reader.ts'))};
+export { writeDocumentChanges } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/document-writer.ts'))};`,
   );
   const writerBuild = await build({
     entryPoints: [writerEntry],
@@ -476,6 +478,61 @@ export { calibrate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core
       'all of them read back after a PDFium save',
       ['img', 'txt', 'uri', 'pg', 'dist'].every((id) => page.annotations.some((a) => a.annotation.id === id)),
     );
+    e.close(h);
+  }
+
+  // ── Form values written by hk-pdf-writer, as PDFium reads them ───────────
+  console.log('\nform values (hk-pdf-writer → PDFium)');
+  {
+    const base = makeFormPdf();
+    const saved = await w.writeDocumentChanges(base, {
+      formValues: new Map([
+        ['choice', 'c'],
+        ['agree', 'On'],
+      ]),
+    });
+    const h = e.open(saved, undefined);
+    check('radio: writing /V on the group and /AS on the widgets selects option c in PDFium', states(h) === '001');
+    check('checkbox: on-state "On" reads as checked', box(h).checked);
+    e.close(h);
+  }
+  const corpusForms =
+    process.env.PDF_CORPUS && existsSync(process.env.PDF_CORPUS)
+      ? readdirSync(process.env.PDF_CORPUS).filter((f) => f.toLowerCase().endsWith('.pdf'))
+      : [];
+  for (const file of corpusForms) {
+    const original = new Uint8Array(readFileSync(join(process.env.PDF_CORPUS, file)));
+    let form;
+    try {
+      form = await w.readForm(await w.PdfDoc.load(original));
+    } catch {
+      continue;
+    }
+    const texts = form.model.fields.filter((f) => f.kind === 'text' && !f.readOnly && !f.comb && !f.format).slice(0, 12);
+    if (!texts.length) continue;
+    const values = new Map(texts.map((f, i) => [f.name, `Value ${i + 1}`]));
+    const saved = await w.writeDocumentChanges(original, { formValues: values });
+    const h = e.open(saved, undefined);
+    const pages = e.page_count(h);
+    const read = new Map();
+    for (let p = 0; p < pages; p++) for (const f of e.form_fields(h, p)) read.set(f[0], f[6]);
+    const matched = texts.filter((f) => read.get(f.name) === values.get(f.name)).length;
+    check(
+      `${file}: ${form.model.fields.length} fields read; PDFium sees ${matched}/${texts.length} written values`,
+      matched === texts.length,
+    );
+    // The regenerated appearance paints in the first field's box.
+    const f0 = texts[0];
+    const wd = f0.widgets[0];
+    // Rendered at 2 px per point of a letter-size page width.
+    const [rw, , rpx] = e.render(h, wd.page, 1224);
+    const k = rw / 612;
+    let inked = 0;
+    for (let y = Math.floor(wd.rect.y); y < wd.rect.y + wd.rect.h; y++) {
+      for (let x = Math.floor(wd.rect.x); x < wd.rect.x + wd.rect.w; x++)
+        if (rpx[(Math.round(y * k) * rw + Math.round(x * k)) * 4] < 100) inked++;
+    }
+    check(`${file}: the new appearance of "${f0.name.split('.').pop()}" paints its text`, inked > 10);
     e.close(h);
   }
 
