@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs';
 
+import { PipeFormatter } from '../../types/base-pipes.type';
 import { AggregateFunction } from './table-aggregates';
 import { ColumnDefinition, FieldConfig, FooterConfig } from './table.types';
 
@@ -37,8 +38,11 @@ export interface TableColumn<T, K extends keyof T = keyof T> extends Omit<
 > {
   /** Column heading. Defaults to a humanized version of the field key when omitted. */
   header?: string;
-  /** Cell formatter. Receives the **typed** cell value `T[K]` and the full row. */
-  format?: (value: T[K], row: T) => string | Observable<string>;
+  /**
+   * Cell formatter. Either a function receiving the **typed** cell value `T[K]` and the full row, or a
+   * built-in pipe tuple (`['currency', 'USD']`, `['date', 'short']`) resolved through the PipeRegistry.
+   */
+  format?: ((value: T[K], row: T) => string | Observable<string>) | PipeFormatter;
   /** Inline-edit validator. Receives the **typed** proposed value `T[K]`. Return `true` or an error string. */
   editValidator?: (value: T[K], row: T) => boolean | string;
   /**
