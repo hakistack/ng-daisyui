@@ -362,7 +362,8 @@ export class CommandPaletteComponent implements OnInit {
   }
 
   toggle(): void {
-    this.openSignal() ? this.close() : this.open();
+    if (this.openSignal()) this.close();
+    else this.open();
   }
 
   setQuery(query: string): void {
