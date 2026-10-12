@@ -42,10 +42,20 @@
     <svg lucideWholeWord [size]="16"></svg>
   </button>
 
-  <span class="text-xs text-base-content/60 tabular-nums whitespace-nowrap min-w-16 text-right">
+  <!-- Polite live region: screen readers hear the count (and "searching") as it changes. -->
+  <span
+    class="flex items-center gap-1.5 text-xs text-base-content/60 tabular-nums whitespace-nowrap min-w-16 justify-end"
+    role="status"
+    aria-live="polite"
+  >
     @if (store.state()?.searchQuery) {
+      @if (store.searchInProgress()) {
+        <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+      }
       @if ((store.state()?.searchMatches ?? 0) > 0) {
         {{ store.matchCounterText() }}
+      } @else if (store.searchInProgress()) {
+        {{ store.labels().searching }}
       } @else {
         {{ store.labels().noMatches }}
       }

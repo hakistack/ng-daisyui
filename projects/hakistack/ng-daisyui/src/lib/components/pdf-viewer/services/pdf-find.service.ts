@@ -8,6 +8,8 @@ import { PdfViewportService } from './pdf-viewport.service';
 
 /** Find-bar typing debounce (ms). */
 const FIND_INPUT_DEBOUNCE_MS = 200;
+/** Pages whose text a streamed search fetches per worker round-trip. */
+const SEARCH_BATCH_PAGES = 25;
 
 /**
  * In-document search: running queries (WASM engine, JS fallback), stepping
@@ -33,6 +35,8 @@ export class PdfFindService {
   /** Which hit each highlight `<mark>` belongs to. */
   private markHits = new WeakMap<HTMLElement, PdfSearchHit>();
   private inputDebounce: ReturnType<typeof setTimeout> | null = null;
+  /** Bumped per search; a running streamed search stops when it moves. */
+  private searchToken = 0;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.cancelInputDebounce());
@@ -40,6 +44,8 @@ export class PdfFindService {
 
   /** Forget search state for a new document. */
   reset(): void {
+    this.searchToken++;
+    this.store.searchInProgress.set(false);
     this.hits = [];
     this.hitsByPage.clear();
     this.layerSpans.clear();
@@ -66,46 +72,70 @@ export class PdfFindService {
   // ── Search ──────────────────────────────────────────────────────────────
 
   /**
-   * Search every page. Uses the WASM index when available, else the JS
-   * fallback (same semantics). Updates the match state, highlights rendered
-   * layers, and navigates to the first match.
+   * Search every page. Once the document is fully indexed the WASM index
+   * answers in one shot. The first search streams instead: page text is
+   * fetched in batches at low priority (rendering stays ahead), matches are
+   * published as each batch completes, and the first match is shown as soon
+   * as it's found. A newer query (or clearing) abandons a running one.
    */
   async run(query: string): Promise<PdfSearchResult> {
+    const token = ++this.searchToken;
     this.clearHighlights();
     this.hits = [];
 
     const q = query.trim();
     if (!q) {
+      this.store.searchInProgress.set(false);
       this.store.patchState((s) => ({ ...s, searchMatches: 0, currentMatchIndex: -1, searchQuery: '' }));
       return { totalMatches: 0, query: '' };
     }
 
-    // The highlighter resolves spans through the JS index, so make sure every
-    // page is indexed (this also mirrors text into the WASM index).
-    for (const page of this.store.pages) await this.pageData.ensureTextIndex(page.pageNumber);
-
     const s0 = this.store.state();
     const options = { caseSensitive: s0?.searchCaseSensitive ?? false, wholeWord: s0?.searchWholeWord ?? false };
+    this.store.patchState((s) => ({ ...s, searchMatches: 0, currentMatchIndex: -1, searchQuery: q }));
+
     const handle = this.pageData.search;
-    const engineHits = handle && !handle.isDisposed ? handle.search(q, options) : null;
-    const hits: PdfSearchHit[] = engineHits
-      ? engineHits.map((h) => ({ pageNumber: h.page + 1, charStart: h.charStart, length: h.charLen }))
-      : findTextMatches(this.indexedPages(), q, options);
+    if (this.pageData.fullyIndexed && handle && !handle.isDisposed) {
+      const engineHits = handle.search(q, options);
+      if (engineHits) {
+        this.publish(engineHits.map((h) => ({ pageNumber: h.page + 1, charStart: h.charStart, length: h.charLen })));
+        return { totalMatches: this.hits.length, query: q };
+      }
+    }
 
-    this.hits = hits;
-    this.hitsByPage = groupHitsByPage(hits);
-    const initialIndex = hits.length > 0 ? 0 : -1;
-    this.store.patchState((s) => ({ ...s, searchMatches: hits.length, currentMatchIndex: initialIndex, searchQuery: q }));
-
-    this.applyAllHighlights();
-    if (initialIndex >= 0) this.gotoMatch(initialIndex);
-    return { totalMatches: hits.length, query: q };
+    this.store.searchInProgress.set(true);
+    try {
+      const pages = this.store.pages.map((p) => p.pageNumber);
+      for (let i = 0; i < pages.length; i += SEARCH_BATCH_PAGES) {
+        const batch = pages.slice(i, i + SEARCH_BATCH_PAGES);
+        await this.pageData.ensureTextIndexes(batch, 'low');
+        if (token !== this.searchToken) return { totalMatches: this.hits.length, query: q }; // superseded
+        const found = findTextMatches(this.indexedPages(batch), q, options);
+        if (found.length > 0) this.publish([...this.hits, ...found]);
+      }
+    } finally {
+      if (token === this.searchToken) this.store.searchInProgress.set(false);
+    }
+    return { totalMatches: this.hits.length, query: q };
   }
 
-  private *indexedPages(): Generator<readonly [number, PdfPageTextIndex]> {
-    for (const page of this.store.pages) {
-      const idx = this.pageData.textIndexes.get(page.pageNumber);
-      if (idx) yield [page.pageNumber, idx];
+  /**
+   * Publish the hit list: update the counter, highlight rendered pages, and
+   * jump to the first match the first time there is one.
+   */
+  private publish(hits: PdfSearchHit[]): void {
+    const firstHit = this.hits.length === 0 && hits.length > 0;
+    this.hits = hits;
+    this.hitsByPage = groupHitsByPage(hits);
+    this.store.patchState((s) => ({ ...s, searchMatches: hits.length }));
+    this.applyAllHighlights();
+    if (firstHit) this.gotoMatch(0);
+  }
+
+  private *indexedPages(pageNumbers: readonly number[]): Generator<readonly [number, PdfPageTextIndex]> {
+    for (const pageNumber of pageNumbers) {
+      const idx = this.pageData.textIndexes.get(pageNumber);
+      if (idx) yield [pageNumber, idx];
     }
   }
 
@@ -123,8 +153,10 @@ export class PdfFindService {
     this.gotoMatch((cur - 1 + this.hits.length) % this.hits.length);
   }
 
-  /** Clear results and highlights. */
+  /** Clear results and highlights (abandons a running search). */
   clear(): void {
+    this.searchToken++;
+    this.store.searchInProgress.set(false);
     this.hits = [];
     this.clearHighlights();
     this.store.patchState((s) => ({ ...s, searchMatches: 0, currentMatchIndex: -1, searchQuery: '' }));

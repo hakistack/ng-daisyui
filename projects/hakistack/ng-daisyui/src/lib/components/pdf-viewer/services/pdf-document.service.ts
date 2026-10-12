@@ -383,11 +383,9 @@ export class PdfDocumentService {
   /** Download the whole document's text as `.txt` (pages separated by a blank line). */
   async exportText(filename?: string): Promise<void> {
     if (this.store.pages.length === 0) return;
-    const parts: string[] = [];
-    for (const page of this.store.pages) {
-      const idx = await this.pageData.ensureTextIndex(page.pageNumber);
-      parts.push(idx?.text ?? '');
-    }
+    const pages = this.store.pages.map((p) => p.pageNumber);
+    for (let i = 0; i < pages.length; i += 50) await this.pageData.ensureTextIndexes(pages.slice(i, i + 50));
+    const parts = pages.map((n) => this.pageData.textIndexes.get(n)?.text ?? '');
     downloadBlob(
       new Blob([parts.join('\n\n')], { type: 'text/plain;charset=utf-8' }),
       filename || this.deriveFilename().replace(/\.pdf$/i, '.txt'),

@@ -2,7 +2,7 @@ import { DestroyRef, Injectable, inject } from '@angular/core';
 import { PdfSearchHandle, PdfSearchService } from '../../../services';
 import { buildTextIndex, segmentStrings } from '../core/text-index';
 import { PdfPageTextIndex } from '../core/types';
-import { PdfFormField, PdfLinkRect, PdfOutlineNode, PdfTextSegment } from '../engine/pdf-engine.types';
+import { PdfFormField, PdfLinkRect, PdfOutlineNode, PdfTaskPriority, PdfTextSegment } from '../engine/pdf-engine.types';
 import { PdfViewerStore } from './pdf-viewer.store';
 
 /**
@@ -108,6 +108,39 @@ export class PdfPageDataService {
       segs.map((s) => s.text),
     );
     return this.textIndexes.get(pageNumber) ?? null;
+  }
+
+  /**
+   * Make sure every page in `pageNumbers` is indexed, fetching the missing
+   * ones' text in a single worker round-trip. Extraction failures leave those
+   * pages unindexed (search skips them).
+   */
+  async ensureTextIndexes(pageNumbers: readonly number[], priority: PdfTaskPriority = 'normal'): Promise<void> {
+    const missing = pageNumbers.filter((n) => !this.textIndexes.has(n));
+    const session = this.store.session();
+    if (missing.length === 0 || !session) return;
+    try {
+      const texts = await session.engine.pagesText(
+        session.doc,
+        missing.map((n) => n - 1),
+        priority,
+      );
+      if (this.store.session()?.doc !== session.doc) return; // document swapped meanwhile
+      missing.forEach((pageNumber, i) => {
+        this.segmentsCache.set(pageNumber, texts[i]);
+        this.indexPageText(
+          pageNumber,
+          texts[i].map((s) => s.text),
+        );
+      });
+    } catch {
+      /* leave unindexed */
+    }
+  }
+
+  /** Whether every page of the document is indexed. */
+  get fullyIndexed(): boolean {
+    return this.store.pages.length > 0 && this.textIndexes.size >= this.store.pages.length;
   }
 
   /**

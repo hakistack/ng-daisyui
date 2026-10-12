@@ -120,6 +120,8 @@ export class PdfViewerStore {
   /** Last non-fatal operation failure; the document stays visible with a dismissible alert. */
   readonly operationError = signal<PdfViewerError | null>(null);
   readonly findBarOpen = signal(false);
+  /** A streamed search is still scanning pages (the counter may grow). */
+  readonly searchInProgress = signal(false);
   /** Sidebar data, fetched lazily when its tab opens. `null` until fetched. */
   readonly outline = signal<unknown[] | null>(null);
   readonly attachments = signal<PdfAttachmentEntry[] | null>(null);

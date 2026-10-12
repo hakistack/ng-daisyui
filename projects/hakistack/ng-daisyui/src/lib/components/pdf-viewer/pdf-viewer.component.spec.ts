@@ -157,7 +157,7 @@ function fakeEngine(count: number): PdfEngine {
     documentTitle: async () => '',
     renderPage: () => ({ promise: never, cancel: () => undefined }),
     pageText: async () => [],
-    pagesText: async (_d, pages) => pages.map(() => []),
+    pagesText: async (_d, pages) => pages.map((i) => [{ text: `Page ${i + 1}`, x: 0, y: 0, w: 50, h: 10 }]),
     pageLinks: async () => [],
     formFields: async () => [],
     outline: async () => [],
@@ -232,6 +232,40 @@ describe('PdfViewerComponent (virtualization)', () => {
     expect(viewer.state().page).toBe(500);
     const spacers = el.querySelectorAll('.hk-pdf-page-stack > [aria-hidden="true"]');
     expect(spacers.length).toBe(2); // above and below the window
+  });
+
+  it('streams search results in batches and jumps to the first match', async () => {
+    const { fixture, viewer } = await load();
+    const engine = (fixture.debugElement.query((d) => d.name === 'hk-pdf-viewer').injector.get(PdfViewerStore).engine as PdfEngine)!;
+    const pagesText = vi.spyOn(engine, 'pagesText');
+
+    const result = await viewer.search('Page 999');
+    fixture.detectChanges();
+
+    expect(result.totalMatches).toBe(1);
+    expect(viewer.state().page).toBe(999);
+    expect(viewer.state().currentMatchIndex).toBe(0);
+    expect(pagesText).toHaveBeenCalledTimes(PAGES / 25); // 25 pages per worker round-trip
+    expect(pagesText.mock.calls.every(([, , priority]) => priority === 'low')).toBe(true);
+  });
+
+  it('answers a repeat search from the full index without refetching text', async () => {
+    const { fixture, viewer } = await load();
+    const engine = fixture.debugElement.query((d) => d.name === 'hk-pdf-viewer').injector.get(PdfViewerStore).engine as PdfEngine;
+    await viewer.search('Page 1');
+    const pagesText = vi.spyOn(engine, 'pagesText');
+    const again = await viewer.search('Page 2');
+    expect(pagesText).not.toHaveBeenCalled();
+    expect(again.totalMatches).toBeGreaterThan(0);
+  });
+
+  it('abandons a search superseded by a newer one', async () => {
+    const { viewer } = await load();
+    const first = viewer.search('Page 5');
+    const second = viewer.search('Page 999');
+    await Promise.all([first, second]);
+    expect(viewer.state().searchQuery).toBe('Page 999');
+    expect(viewer.state().searchMatches).toBe(1);
   });
 
   it('sizes each mounted canvas from the layout before it renders', async () => {
