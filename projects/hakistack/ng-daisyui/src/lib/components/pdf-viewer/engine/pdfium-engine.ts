@@ -10,6 +10,7 @@ import {
   PdfRenderTask,
   PdfTaskPriority,
   PdfTextSegment,
+  PdfTileRequest,
   PdfWorkerResponse,
 } from './pdf-engine.types';
 import { createPdfiumWorker } from './pdfium-worker.loader';
@@ -159,12 +160,24 @@ export class PdfiumEngine implements PdfEngine {
   }
 
   renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number, priority?: PdfTaskPriority): PdfRenderTask {
+    return this.renderTask({ type: 'render', doc, page, cssWidth, dpr, priority });
+  }
+
+  renderTile(doc: PdfDocHandle, page: number, tile: PdfTileRequest, priority?: PdfTaskPriority): PdfRenderTask {
+    return this.renderTask({ type: 'renderTile', doc, page, ...tile, priority });
+  }
+
+  /**
+   * Post a render request and hand back a cancellable task. Cancelling rejects
+   * locally right away and tells the worker, which drops the request if it
+   * hasn't started it yet.
+   */
+  private renderTask(msg: Record<string, unknown>): PdfRenderTask {
     const id = this.nextId++;
     const promise = new Promise<unknown>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
       this.workerReady.then((w) => {
-        // Skip if cancelled before the worker was ready.
-        if (this.pending.has(id)) w.postMessage({ type: 'render', id, doc, page, cssWidth, dpr, priority });
+        if (this.pending.has(id)) w.postMessage({ ...msg, id }); // skipped if cancelled before the worker was ready
       }, reject);
     }).then((r) => r as Awaited<PdfRenderTask['promise']>);
     return {
@@ -173,7 +186,6 @@ export class PdfiumEngine implements PdfEngine {
         const p = this.pending.get(id);
         if (!p) return;
         this.pending.delete(id);
-        // The worker drops it if it hasn't started yet (no-op once running or done).
         this.workerReady.then((w) => w.postMessage({ type: 'cancel', id })).catch(() => undefined);
         p.reject(new DOMException('render cancelled', 'AbortError'));
       },

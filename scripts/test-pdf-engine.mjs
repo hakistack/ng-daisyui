@@ -143,7 +143,7 @@ const dir = mkdtempSync(join(tmpdir(), 'hk-pdf-engine-'));
 const entry = join(dir, 'entry.mjs');
 writeFileSync(
   entry,
-  `export { default as initPdfEngine, initialize_pdfium_render, open, form_fields, set_field_value, save_document } from ${JSON.stringify(inputs.glue)};
+  `export { default as initPdfEngine, initialize_pdfium_render, open, form_fields, set_field_value, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
 export { default as createPdfiumModule } from ${JSON.stringify(inputs.pdfium)};
 export { default as pdfEngineWasm } from ${JSON.stringify(inputs.engineWasm)};
 export { default as pdfiumWasm } from ${JSON.stringify(inputs.pdfiumWasm)};`,
@@ -219,6 +219,26 @@ try {
   h = reopen(h);
   check('switching to option c persists through save', states(h) === '001');
   check('unchecking the checkbox persists through save', !box(h).checked);
+
+  // ── Tiles: a tile must match the same region of a full render pixel-for-pixel ──
+  console.log('\ntiles');
+  const doc = e.open(makeTextPdf(1), undefined);
+  const [fullW, fullH, full] = e.render(doc, 0, 600);
+  const tile = { x: 37, y: 150, w: 210, h: 60 }; // the "Page 1" glyphs sit around y 165–200 at this scale
+  const [tw, th, tilePx] = e.render_tile(doc, 0, fullW, fullH, tile.x, tile.y, tile.w, tile.h);
+  check('a tile has the requested size', tw === tile.w && th === tile.h);
+  let maxDiff = 0;
+  let inked = 0;
+  for (let y = 0; y < th; y++) {
+    for (let x = 0; x < tw; x++) {
+      const t = (y * tw + x) * 4;
+      const f = ((tile.y + y) * fullW + tile.x + x) * 4;
+      for (let c = 0; c < 3; c++) maxDiff = Math.max(maxDiff, Math.abs(tilePx[t + c] - full[f + c]));
+      if (tilePx[t] < 128) inked++;
+    }
+  }
+  check(`the tile matches the full render (max channel difference ${maxDiff})`, maxDiff <= 1);
+  check('the tile actually contains the page text', inked > 50);
 
   // ── Part 2: worker protocol ────────────────────────────────────────────
   console.log('\nworker protocol');

@@ -137,6 +137,8 @@ export interface PdfEngine {
    * cancelled before the worker starts it never runs.
    */
   renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number, priority?: PdfTaskPriority): PdfRenderTask;
+  /** Rasterize one tile of a page (for zooms beyond the browser's canvas limits). Cancellable. */
+  renderTile(doc: PdfDocHandle, page: number, tile: PdfTileRequest, priority?: PdfTaskPriority): PdfRenderTask;
   /** Extract a page's positioned text segments (reading order) for text + search. */
   pageText(doc: PdfDocHandle, page: number, priority?: PdfTaskPriority): Promise<PdfTextSegment[]>;
   /** Text segments for several pages (0-based indices), in one round-trip. */
@@ -192,6 +194,19 @@ export interface PdfEngine {
   destroy(): void;
 }
 
+/**
+ * A tile of a page render: the page is scaled to `pageWidth × pageHeight`
+ * device px and the region `(x, y, width, height)` of that is rendered.
+ */
+export interface PdfTileRequest {
+  readonly pageWidth: number;
+  readonly pageHeight: number;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
 /** Cancellable render handle, shaped like a PDF.js `RenderTask` so the
  *  component's existing cancellation machinery drives it unchanged. */
 export interface PdfRenderTask {
@@ -211,6 +226,7 @@ export type PdfWorkerRequest = (
   | { type: 'documentTitle'; id: number; doc: PdfDocHandle }
   | { type: 'render'; id: number; doc: PdfDocHandle; page: number; cssWidth: number; dpr: number }
   | { type: 'pageText'; id: number; doc: PdfDocHandle; page: number }
+  | ({ type: 'renderTile'; id: number; doc: PdfDocHandle; page: number } & PdfTileRequest)
   | { type: 'outline'; id: number; doc: PdfDocHandle }
   | { type: 'pageLinks'; id: number; doc: PdfDocHandle; page: number }
   | { type: 'documentAnnotations'; id: number; doc: PdfDocHandle }

@@ -115,6 +115,23 @@ pub fn render(handle: u32, index: u16, target_width: i32) -> Result<Array, JsVal
     })
 }
 
+/// Render one tile: the region `(x, y, w, h)` (device px, top-left origin) of the
+/// page scaled to `page_width × page_height` device px. Returns `[w, h, rgba]`
+/// like `render`. Lets the viewer show a sharp viewport at zooms where the whole
+/// page would exceed the browser's canvas limits.
+#[wasm_bindgen]
+pub fn render_tile(handle: u32, index: u16, page_width: i32, page_height: i32, x: i32, y: i32, w: i32, h: i32) -> Result<Array, JsValue> {
+    with_doc(handle, |doc| {
+        let page = doc.pages().get(index as i32).map_err(to_js)?;
+        let bitmap = page.render_region(page_width, page_height, x, y, w, h).map_err(to_js)?;
+        let out = Array::new();
+        out.push(&JsValue::from_f64(bitmap.width() as f64));
+        out.push(&JsValue::from_f64(bitmap.height() as f64));
+        out.push(&Uint8Array::from(bitmap.as_rgba_bytes().as_slice()));
+        Ok(out)
+    })
+}
+
 /// Extract page text as positioned segments for the text layer + search index.
 /// Each entry is `[text, x, y, w, h]` where the rect is in PDF points with a
 /// **top-left** origin (already Y-flipped) so JS only has to multiply by the

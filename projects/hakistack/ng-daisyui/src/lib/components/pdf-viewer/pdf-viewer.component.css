@@ -151,6 +151,13 @@
   z-index: 0;
 }
 
+/* Detail tile: absolutely positioned over the base raster (later in the DOM,
+   so it paints on top at the same z-index); the text layer stays above it. */
+:host ::ng-deep .hk-pdf-page canvas.hk-pdf-detail {
+  position: absolute;
+  pointer-events: none;
+}
+
 /* Rotation rotor — wraps the canvas + all overlay layers so a CSS rotate spins
    them together (overlays stay aligned). The outer .hk-pdf-page is sized to the
    rotated bounding box (90/270 swap dims) and centers the rotor. */

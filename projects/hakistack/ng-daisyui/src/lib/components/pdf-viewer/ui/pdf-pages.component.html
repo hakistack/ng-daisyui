@@ -51,6 +51,8 @@
                 <div class="hk-pdf-page-rotor" [style.transform]="viewport.pageRotorTransform(n)">
                   <!-- Sized from the layout before any pixel paints, so the page never shifts when its raster arrives. -->
                   <canvas [style.width.px]="viewport.pageCssWidth(n)" [style.height.px]="viewport.pageCssHeight(n)"></canvas>
+                  <!-- Sharp tile of the visible area at zooms beyond the canvas limit (the base raster is downscaled there). -->
+                  <canvas class="hk-pdf-detail" hidden aria-hidden="true"></canvas>
                   <div
                     class="hk-pdf-text-layer"
                     [style.width.px]="viewport.pageCssWidth(n)"

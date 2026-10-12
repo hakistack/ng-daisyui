@@ -648,6 +648,55 @@ impl<'a> PdfPage<'a> {
         self.render_into_bitmap_with_config(bitmap, &config)
     }
 
+    /// Renders the region `(x, y, width, height)` — device pixels, top-left origin —
+    /// of this page scaled to `page_width × page_height` device pixels, into a new
+    /// `width × height` bitmap: one tile of a render too large to allocate whole.
+    /// Annotations and form data are drawn, as in a full render.
+    ///
+    /// (hakistack patch — Pdfium's `FPDF_RenderPageBitmap` and `FPDF_FFLDraw` take
+    /// a start offset, which pdfium-render's configuration API doesn't expose.)
+    pub fn render_region(
+        &self,
+        page_width: Pixels,
+        page_height: Pixels,
+        x: Pixels,
+        y: Pixels,
+        width: Pixels,
+        height: Pixels,
+    ) -> Result<PdfBitmap<'_>, PdfiumError> {
+        let bitmap = PdfBitmap::empty(width, height, PdfBitmapFormat::BGRA)?;
+        let handle = bitmap.handle();
+        let flags = crate::bindgen::FPDF_ANNOT as c_int;
+        unsafe {
+            self.bindings()
+                .FPDFBitmap_FillRect(handle, 0, 0, width as c_int, height as c_int, 0xFFFFFFFF);
+            self.bindings().FPDF_RenderPageBitmap(
+                handle,
+                self.page_handle,
+                -(x as c_int),
+                -(y as c_int),
+                page_width as c_int,
+                page_height as c_int,
+                0,
+                flags,
+            );
+            if let Some(form_handle) = self.form_handle {
+                self.bindings().FPDF_FFLDraw(
+                    form_handle,
+                    handle,
+                    self.page_handle,
+                    -(x as c_int),
+                    -(y as c_int),
+                    page_width as c_int,
+                    page_height as c_int,
+                    0,
+                    flags,
+                );
+            }
+        }
+        Ok(bitmap)
+    }
+
     /// Renders this [PdfPage] into the given [PdfBitmap] using pixel dimensions, page rotation settings,
     /// and rendering options configured in the given [PdfRenderConfig].
     ///

@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, Injector, afterNextRender, computed, effect, inject, signal, untracked } from '@angular/core';
 import { BitmapCache } from '../core/bitmap-cache';
-import { VIEWPORT_PAD_X, VIEWPORT_PAD_Y, fitDevicePixelRatio, isQuarterTurn, resolveZoomScale } from '../core/geometry';
+import { MAX_CANVAS_DIM, VIEWPORT_PAD_X, VIEWPORT_PAD_Y, fitDevicePixelRatio, isQuarterTurn, resolveZoomScale } from '../core/geometry';
 import { PageLayout } from '../core/page-layout';
 import { accumulateZoomRatio, anchoredScrollLeft, touchDistance, wheelZoomFactor } from '../core/zoom-gesture';
 import { PdfPageEntry } from '../core/types';
@@ -54,6 +54,25 @@ interface ZoomGesture {
 
 /** Quiet time after the last gesture event before the zoom is committed and re-rendered (ms). */
 const GESTURE_COMMIT_MS = 150;
+/** Quiet time after scrolling before the sharp detail tiles are updated (ms). */
+const DETAIL_DEBOUNCE_MS = 120;
+/** Extra area rendered around the visible part of a page, as a fraction of the visible size per side. */
+const DETAIL_MARGIN = 0.25;
+
+/** A region of a page in its CSS px. */
+interface PageRegion {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
+/** The sharp tile shown over a page whose full raster had to be downscaled. */
+interface DetailTile {
+  readonly scale: number;
+  readonly region: PageRegion;
+  task: RenderHandle | null;
+}
 
 /**
  * The scrolling page area: page virtualization, rasterizing pages onto their
@@ -101,6 +120,9 @@ export class PdfViewportService {
   private lastMounted: ReadonlyMap<number, HTMLElement> = new Map();
 
   private readonly renderTasksByPage = new Map<number, RenderHandle>();
+  /** Detail tiles by page (see {@link updateDetailTiles}). */
+  private readonly detailTiles = new Map<number, DetailTile>();
+  private detailTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly pendingCancellations = new Map<number, ReturnType<typeof setTimeout>>();
   /** Pages whose canvas + layers are currently populated. */
   readonly renderedPages = new Set<number>();
@@ -206,6 +228,7 @@ export class PdfViewportService {
           if (mounted.get(n) === wrapper) continue;
           this.renderedPages.delete(n);
           this.cancelPageWork(n);
+          this.dropDetail(n);
           const textLayer = wrapper.querySelector<HTMLElement>('.hk-pdf-text-layer');
           if (textLayer) this.find.forgetTextLayer(textLayer);
         }
@@ -572,6 +595,7 @@ export class PdfViewportService {
 
     for (const num of Array.from(this.renderedPages)) this.evictPage(num);
     this.renderedPages.clear();
+    for (const n of Array.from(this.detailTiles.keys())) this.dropDetail(n);
 
     await this.applyBufferDiff(epoch);
   }
@@ -645,6 +669,132 @@ export class PdfViewportService {
       }
     }
     if (staleAfterRender) await this.applyBufferDiff(epoch);
+    if (this.mayNeedDetailTiles()) this.scheduleDetailTiles();
+  }
+
+  // ── Detail tiles (zoom beyond the canvas limit) ─────────────────────────
+
+  /**
+   * At zooms where a page's full raster would exceed {@link MAX_CANVAS_DIM},
+   * `renderPageOnto` downscales it (soft). To keep what's on screen sharp, the
+   * visible part of each such page (plus a margin) is rendered at full
+   * resolution as one tile, drawn into the page's detail canvas on top of the
+   * base raster. Scrolling within the tile's margin reuses it; scrolling past
+   * re-renders it. Rotated pages keep the downscaled raster.
+   */
+  /** Longest page side in points, for a cheap "could any page exceed the canvas limit?" check. */
+  private readonly largestPageSide = computed(() => {
+    this.store.pageNumbers();
+    return this.store.pages.reduce((max, p) => Math.max(max, p.baseWidth, p.baseHeight), 0);
+  });
+
+  private mayNeedDetailTiles(): boolean {
+    return this.largestPageSide() * this.scale() * Math.max(1, window.devicePixelRatio || 1) > MAX_CANVAS_DIM;
+  }
+
+  private scheduleDetailTiles(): void {
+    if (this.detailTimer !== null) clearTimeout(this.detailTimer);
+    this.detailTimer = setTimeout(() => {
+      this.detailTimer = null;
+      this.updateDetailTiles();
+    }, DETAIL_DEBOUNCE_MS);
+  }
+
+  private updateDetailTiles(): void {
+    const vp = this.viewportEl();
+    const session = this.store.session();
+    if (!vp || !session) return;
+    const scale = this.scale();
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const vpRect = vp.getBoundingClientRect();
+
+    for (const [n, wrapper] of this.pageWrappers()) {
+      const page = this.store.findPage(n);
+      const base = wrapper.querySelector<HTMLCanvasElement>('canvas:not(.hk-pdf-detail)');
+      const detail = wrapper.querySelector<HTMLCanvasElement>('canvas.hk-pdf-detail');
+      if (!page || !base || !detail) continue;
+      const cssW = page.baseWidth * scale;
+      const cssH = page.baseHeight * scale;
+      const needsDetail = Math.max(cssW, cssH) * dpr > MAX_CANVAS_DIM && this.store.pageRotation(n) === 0 && this.renderedPages.has(n);
+      if (!needsDetail) {
+        this.dropDetail(n);
+        continue;
+      }
+
+      // The visible part of the page, in page CSS px.
+      const r = base.getBoundingClientRect();
+      const visible: PageRegion = {
+        left: Math.max(vpRect.left, r.left) - r.left,
+        top: Math.max(vpRect.top, r.top) - r.top,
+        right: Math.min(vpRect.right, r.right) - r.left,
+        bottom: Math.min(vpRect.bottom, r.bottom) - r.top,
+      };
+      if (visible.right <= visible.left || visible.bottom <= visible.top) {
+        this.dropDetail(n);
+        continue;
+      }
+      const current = this.detailTiles.get(n);
+      if (current && current.scale === scale && covers(current.region, visible)) continue;
+
+      // Visible part plus a margin, clamped to the page and to the canvas limit.
+      const mx = (visible.right - visible.left) * DETAIL_MARGIN;
+      const my = (visible.bottom - visible.top) * DETAIL_MARGIN;
+      const maxCss = MAX_CANVAS_DIM / dpr;
+      const left = Math.max(0, visible.left - mx);
+      const top = Math.max(0, visible.top - my);
+      const region: PageRegion = {
+        left,
+        top,
+        right: Math.min(cssW, visible.right + mx, left + maxCss),
+        bottom: Math.min(cssH, visible.bottom + my, top + maxCss),
+      };
+      const tile = {
+        pageWidth: Math.round(cssW * dpr),
+        pageHeight: Math.round(cssH * dpr),
+        x: Math.floor(region.left * dpr),
+        y: Math.floor(region.top * dpr),
+        width: Math.max(1, Math.ceil((region.right - region.left) * dpr)),
+        height: Math.max(1, Math.ceil((region.bottom - region.top) * dpr)),
+      };
+
+      current?.task?.cancel();
+      const task = session.engine.renderTile(session.doc, n - 1, tile, 'high');
+      const entry: DetailTile = { scale, region, task: { cancel: task.cancel, promise: task.promise } };
+      this.detailTiles.set(n, entry);
+      task.promise.then(
+        ({ bitmap, width, height }) => {
+          if (this.detailTiles.get(n) !== entry || this.scale() !== scale) {
+            bitmap.close(); // superseded
+            return;
+          }
+          entry.task = null;
+          detail.width = width;
+          detail.height = height;
+          detail.style.left = `${tile.x / dpr}px`;
+          detail.style.top = `${tile.y / dpr}px`;
+          detail.style.width = `${width / dpr}px`;
+          detail.style.height = `${height / dpr}px`;
+          detail.getContext('2d')?.drawImage(bitmap, 0, 0);
+          bitmap.close();
+          detail.hidden = false;
+        },
+        () => undefined, // cancelled or failed: the downscaled base raster stays visible
+      );
+    }
+  }
+
+  /** Cancel and hide a page's detail tile. */
+  private dropDetail(pageNumber: number): void {
+    const entry = this.detailTiles.get(pageNumber);
+    if (!entry) return;
+    entry.task?.cancel();
+    this.detailTiles.delete(pageNumber);
+    const detail = this.wrapperFor(pageNumber)?.querySelector<HTMLCanvasElement>('canvas.hk-pdf-detail');
+    if (detail) {
+      detail.hidden = true;
+      detail.width = 1; // free the backing store
+      detail.height = 1;
+    }
   }
 
   /**
@@ -669,6 +819,7 @@ export class PdfViewportService {
    * layout doesn't shift. `canvas.width = 1` frees the backing store.
    */
   private evictPage(pageNumber: number): void {
+    this.dropDetail(pageNumber);
     const wrapper = this.wrapperFor(pageNumber);
     if (!wrapper) return;
     const canvas = wrapper.querySelector<HTMLCanvasElement>('canvas');
@@ -863,6 +1014,7 @@ export class PdfViewportService {
       if (!vp) return;
       this.scrollTop.set(vp.scrollTop);
       this.trackCurrentPage(vp);
+      if (this.detailTiles.size > 0 || this.mayNeedDetailTiles()) this.scheduleDetailTiles();
     });
   };
 
@@ -910,9 +1062,18 @@ export class PdfViewportService {
     this.scrollRaf = null;
     if (this.gestureTimer !== null) clearTimeout(this.gestureTimer);
     this.gestureTimer = null;
+    if (this.detailTimer !== null) clearTimeout(this.detailTimer);
+    this.detailTimer = null;
+    for (const entry of this.detailTiles.values()) entry.task?.cancel();
+    this.detailTiles.clear();
     this.renderedPages.clear();
     this.inFlightPages.clear();
   }
+}
+
+/** Whether region `a` fully contains region `b`. */
+function covers(a: PageRegion, b: PageRegion): boolean {
+  return a.left <= b.left && a.top <= b.top && a.right >= b.right && a.bottom >= b.bottom;
 }
 
 /** A viewport's top padding in px (page positions are measured from its content box). */

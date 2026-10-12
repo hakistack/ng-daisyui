@@ -10,6 +10,7 @@ import {
   PdfRenderTask,
   PdfTaskPriority,
   PdfTextSegment,
+  PdfTileRequest,
 } from './pdf-engine.types';
 import { PdfiumEngine } from './pdfium-engine';
 
@@ -249,18 +250,23 @@ export class PdfEnginePool implements PdfEngine {
   }
 
   renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number, priority?: PdfTaskPriority): PdfRenderTask {
+    return this.onLeastBusy(doc, (engine, handle) => engine.renderPage(handle, page, cssWidth, dpr, priority));
+  }
+
+  renderTile(doc: PdfDocHandle, page: number, tile: PdfTileRequest, priority?: PdfTaskPriority): PdfRenderTask {
+    return this.onLeastBusy(doc, (engine, handle) => engine.renderTile(handle, page, tile, priority));
+  }
+
+  /** Dispatch a render to the worker with the fewest renders in flight. */
+  private onLeastBusy(doc: PdfDocHandle, start: (engine: PdfiumEngine, handle: PdfDocHandle) => PdfRenderTask): PdfRenderTask {
     const handles = this.docs.get(doc);
-    if (!handles) {
-      // Unknown handle — return an immediately-rejecting task.
-      return { promise: Promise.reject(new Error('unknown document handle')), cancel: () => undefined };
-    }
-    // Least-busy worker.
+    if (!handles) return { promise: Promise.reject(new Error('unknown document handle')), cancel: () => undefined };
     let i = 0;
     for (let k = 1; k < this.load.length; k++) {
       if (this.load[k] < this.load[i]) i = k;
     }
     this.load[i]++;
-    const task = this.engines[i].renderPage(handles[i], page, cssWidth, dpr, priority);
+    const task = start(this.engines[i], handles[i]);
     const settle = () => {
       this.load[i] = Math.max(0, this.load[i] - 1);
     };

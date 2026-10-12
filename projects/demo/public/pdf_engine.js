@@ -522,6 +522,37 @@ export function render(handle, index, target_width) {
 }
 
 /**
+ * Render one tile: the region `(x, y, w, h)` (device px, top-left origin) of the
+ * page scaled to `page_width × page_height` device px. Returns `[w, h, rgba]`
+ * like `render`. Lets the viewer show a sharp viewport at zooms where the whole
+ * page would exceed the browser's canvas limits.
+ * @param {number} handle
+ * @param {number} index
+ * @param {number} page_width
+ * @param {number} page_height
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @returns {Array<any>}
+ */
+export function render_tile(handle, index, page_width, page_height, x, y, w, h) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.render_tile(retptr, handle, index, page_width, page_height, x, y, w, h);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return takeObject(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * Serialize the (possibly form-filled) document back to PDF bytes — for save /
  * download. Includes any `set_field_value` edits.
  * @param {number} handle

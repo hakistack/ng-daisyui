@@ -6,6 +6,7 @@ import { createPdfViewer } from './pdf-viewer.helpers';
 import { PdfViewerConfig, PdfViewerError } from './pdf-viewer.types';
 import { PdfEngine } from './engine/pdf-engine.types';
 import { PdfViewerStore } from './services/pdf-viewer.store';
+import { PdfViewportService } from './services/pdf-viewport.service';
 
 /**
  * Shell wiring tests. The test environment has no Web Worker, so the PDFium
@@ -158,6 +159,7 @@ function fakeEngine(count: number): PdfEngine {
     pageLabels: async () => Array.from({ length: count }, (_, i) => (i < 3 ? ['i', 'ii', 'iii'][i] : String(i - 2))),
     documentTitle: async () => '',
     renderPage: () => ({ promise: never, cancel: () => undefined }),
+    renderTile: () => ({ promise: never, cancel: () => undefined }),
     pageText: async () => [],
     pagesText: async (_d, pages) => pages.map((i) => [{ text: `Page ${i + 1}`, x: 0, y: 0, w: 50, h: 10 }]),
     pageLinks: async () => [],
@@ -339,6 +341,49 @@ describe('PdfViewerComponent (virtualization)', () => {
     input.dispatchEvent(new Event('change'));
     expect(viewer.state().page).toBe(4);
     expect(input.value).toBe('1'); // snapped back to the current page's label
+  });
+
+  it('renders a sharp tile of the visible area when a page exceeds the canvas limit', async () => {
+    const dpr = window.devicePixelRatio;
+    Object.defineProperty(window, 'devicePixelRatio', { value: 2, configurable: true });
+    const rect = (left: number, top: number, width: number, height: number) =>
+      ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
+    // jsdom has no layout: the viewport is 800×600 at the origin; the page is scrolled so (100, 200) is at its top-left.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('hk-pdf-viewport')) return rect(0, 0, 800, 600);
+      if (this.tagName === 'CANVAS') return rect(-100, -200, 612 * 5, 792 * 5);
+      return rect(0, 0, 0, 0);
+    });
+    try {
+      const { fixture } = await load();
+      const engine = fixture.debugElement.query((d) => d.name === 'hk-pdf-viewer').injector.get(PdfViewerStore).engine as PdfEngine;
+      const renderTile = vi.spyOn(engine, 'renderTile');
+      // 612 pt × 5 = 3060 css px × dpr 2 = 6120 device px > the 4096 canvas limit.
+      fixture.debugElement
+        .query((d) => d.name === 'hk-pdf-viewer')
+        .injector.get(PdfViewportService)
+        .setZoom(5);
+      for (let i = 0; i < 4; i++) {
+        fixture.detectChanges();
+        await fixture.whenStable();
+      }
+      await new Promise((r) => setTimeout(r, 200)); // detail debounce
+
+      expect(renderTile).toHaveBeenCalled();
+      const [, page, tile, priority] = renderTile.mock.calls[0];
+      expect(page).toBe(0);
+      expect(priority).toBe('high');
+      expect(tile.pageWidth).toBe(612 * 5 * 2);
+      // Visible part (x 100–900, y 200–800 css) plus a 25% margin (200 / 150 css), clamped
+      // to the page's left edge, in device px.
+      expect(tile.x).toBe(0);
+      expect(tile.y).toBe(2 * (200 - 150));
+      expect(tile.width).toBe(2 * (900 + 200));
+      expect(tile.width).toBeLessThanOrEqual(4096);
+      expect(tile.height).toBeLessThanOrEqual(4096);
+    } finally {
+      Object.defineProperty(window, 'devicePixelRatio', { value: dpr, configurable: true });
+    }
   });
 
   it('sizes each mounted canvas from the layout before it renders', async () => {
