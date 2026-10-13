@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, contentChild, inject, input } from '@angular/core';
+import { PdfDocumentSource } from './pdf-viewer.types';
 import { HK_THEME } from '../../theme/theme.config';
 import { PDF_VIEWER_PROVIDERS, PdfViewerHostBase } from './pdf-viewer-host';
 import { HkPdfToolbarContext, HkPdfToolbarDirective } from './pdf-viewer.directives';
@@ -81,6 +82,16 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
 export class PdfViewerComponent extends PdfViewerHostBase {
   private readonly theme = inject(HK_THEME);
 
+  /**
+   * The PDF document source. Accepts a URL string, a `Uint8Array` of bytes,
+   * or a `Blob` (e.g. from a `<input type="file">`). When this changes the
+   * viewer reloads the document.
+   */
+  readonly src = input.required<PdfDocumentSource>();
+
+  /** The document's file name, for downloads. Default: from the URL or `File`, else `document.pdf`. */
+  readonly fileName = input<string | null>(null);
+
   /** Headline above the page card in `layout: 'preview'`. Ignored in the default layout. Plain text. */
   readonly title = input<string>('');
 
@@ -96,6 +107,14 @@ export class PdfViewerComponent extends PdfViewerHostBase {
 
   /** Consumer toolbar (`<ng-template hkPdfToolbar>`); replaces the default toolbar when present. */
   readonly customToolbar = contentChild(HkPdfToolbarDirective);
+
+  protected currentSource(): PdfDocumentSource | null {
+    return this.src();
+  }
+
+  protected currentFileName(): string | null {
+    return this.fileName();
+  }
 
   /** Context for a custom toolbar template: runtime state and resolved labels. */
   readonly toolbarContext = computed<HkPdfToolbarContext>(() => ({

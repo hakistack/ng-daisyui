@@ -53,10 +53,10 @@ function threePages(): Uint8Array {
 
 @Component({
   imports: [PdfWorkspaceComponent],
-  template: `<hk-pdf-workspace [src]="src()" [config]="config()" [storageKey]="storageKey()" />`,
+  template: `<hk-pdf-workspace [documents]="documents" [config]="config()" [storageKey]="storageKey()" />`,
 })
 class WorkspaceHost {
-  readonly src = signal<PdfDocumentSource>(threePages());
+  readonly documents: WorkspaceDocument[] = [{ id: 'doc', name: 'document.pdf', src: threePages() }];
   readonly config = signal<PdfViewerConfig>({});
   readonly storageKey = signal<string | null>(null);
 }
@@ -66,16 +66,15 @@ class WorkspaceHost {
   template: `
     <ng-template #extra><p data-extra>My documents</p></ng-template>
     <hk-pdf-workspace
-      [src]="src()"
+      [documents]="documents"
       [config]="config()"
       [storageKey]="null"
       [extraRail]="{ label: 'Docs', title: 'Docs · 3', template: extra }"
-      fileName="Contract"
     />
   `,
 })
 class ExtraRailHost {
-  readonly src = signal<PdfDocumentSource>(threePages());
+  readonly documents: WorkspaceDocument[] = [{ id: 'contract', name: 'Contract.pdf', src: threePages() }];
   readonly config = signal<PdfViewerConfig>({});
 }
 
@@ -201,6 +200,10 @@ describe('hk-pdf-workspace', () => {
 
   it('toggleSidebar hides the rail (and stops painting its thumbnails); the choice is remembered', async () => {
     const { viewer, fixture, el, store } = await load({ storageKey: 'ws-test' });
+    // The rail opens on the document list; its Pages mode paints thumbnails.
+    expect(store.visiblePanels().has('thumbnails')).toBe(false);
+    buttonByText(el, 'Pages')!.click();
+    await settle(fixture);
     expect(store.visiblePanels().has('thumbnails')).toBe(true);
     viewer.toggleSidebar();
     await settle(fixture);
@@ -272,7 +275,7 @@ describe('hk-pdf-workspace', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('hk-mesa-layout')).toBeNull();
   });
 
-  it('shows a host’s extra rail mode first, and names the file from [fileName]', async () => {
+  it('shows a host’s extra rail mode first', async () => {
     const fixture = TestBed.createComponent(ExtraRailHost);
     const viewer = createPdfViewer({ zoom: 1 });
     fixture.componentInstance.config.set(viewer.config());

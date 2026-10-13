@@ -15,11 +15,11 @@
   <!-- PDFs get the full PDF workspace (annotations, forms, signatures, pages); the list is its first rail mode. -->
   <hk-pdf-workspace
     class="h-full"
-    [src]="source()!"
+    [documents]="pdfDocuments()"
+    [active]="activeDoc()?.id ?? null"
     [config]="pdf()"
     [storageKey]="storageKey()"
     [extraRail]="docsRail()"
-    [fileName]="filename()"
     (dirtyChange)="pdfDirty.set($event)"
   />
 } @else {

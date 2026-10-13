@@ -33,14 +33,14 @@ import { PdfWorkspaceToolbarComponent } from './pdf-workspace-toolbar.component'
 import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state';
 
 /**
- * The PDF viewer as a workspace: the same document, features and API as
- * `hk-pdf-viewer` (same `[src]`, `[config]` from `createPdfViewer()`,
- * `[(formValues)]` and outputs — swap the tag to switch), laid out as a Mesa
- * work block (docs/design/mesa-style-guide.md):
+ * A workspace of PDFs: several documents with every feature of
+ * `hk-pdf-viewer` (same `[config]` from `createPdfViewer()`, `[(formValues)]`
+ * and outputs, for whichever document is open), laid out as a Mesa work block
+ * (docs/design/mesa-style-guide.md). A workspace is for lists; a single
+ * document is `hk-pdf-viewer`.
  *
- * - **Rail** — the document list (`[documents]` + `[(active)]`: a workspace is
- *   for several documents; one alone is `[src]`), and the open one's page
- *   thumbnails, outline and attachments.
+ * - **Rail** — the document list (`[documents]` + `[(active)]`), and the open
+ *   one's page thumbnails, outline and attachments.
  * - **Main column** — a toolbar (the document, the save state, paging, zoom,
  *   the view, the tools), the annotation / form design / find bars, and the
  *   pages; or, in the Grid view, every page as a thumbnail to organize
@@ -48,13 +48,18 @@ import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state'
  * - **Inspector** — the selected annotation or field, the document's
  *   properties, its digital signatures and the comments.
  *
+ * Opening another document while the open one has unsaved edits asks first.
  * Side panes hide behind their divider and fold into disclosures on narrow
  * containers. `controller.toggleSidebar()` toggles the rail and
  * `controller.organizePages()` opens the Grid view.
  *
  * @example
  * viewer = createPdfViewer({ zoom: 'fit-width' });
- * // <hk-pdf-workspace class="h-[80vh]" [src]="pdfUrl()" [config]="viewer.config()" />
+ * documents: WorkspaceDocument[] = [
+ *   { id: 'contract', name: 'Contract.pdf', src: '/files/contract.pdf' },
+ *   { id: 'invoice', name: 'Invoice.pdf', src: invoiceBlob },
+ * ];
+ * // <hk-pdf-workspace class="h-[80vh]" [documents]="documents" [(active)]="activeId" [config]="viewer.config()" />
  */
 @Component({
   selector: 'hk-pdf-workspace',
@@ -95,8 +100,8 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
 
   /**
    * The PDFs of the workspace: the rail lists them and the one in
-   * `[(active)]` opens (the first, if none is set). Without a list, `[src]`
-   * shows one document.
+   * `[(active)]` opens (the first, if none is set). A workspace is for
+   * lists; for a single document use `hk-pdf-viewer`.
    */
   readonly documents = input<readonly WorkspaceDocument[]>([]);
   /** The open document's `id` (two-way). */
@@ -220,12 +225,12 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
     });
   }
 
-  protected override currentSource(): PdfDocumentSource | null {
-    return this.activeDoc()?.src ?? this.src();
+  protected currentSource(): PdfDocumentSource | null {
+    return this.activeDoc()?.src ?? null;
   }
 
-  protected override currentFileName(): string | null {
-    return this.activeDoc()?.name ?? this.fileName();
+  protected currentFileName(): string | null {
+    return this.activeDoc()?.name ?? null;
   }
 
   /** Open a listed document; with unsaved changes in the open one, ask first. */

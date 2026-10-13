@@ -25,7 +25,7 @@ import { createPdfViewer } from '../../pdf-viewer/pdf-viewer.helpers';
 import { PdfViewerConfig } from '../../pdf-viewer/pdf-viewer.types';
 import { PdfWorkspaceComponent } from '../../pdf-viewer/workspace/pdf-workspace.component';
 import { BUILT_IN_RENDERERS } from '../document-viewer.builtins';
-import { guessFilename, resolveFormat } from '../document-viewer.helpers';
+import { resolveFormat } from '../document-viewer.helpers';
 import { DocumentViewerHost } from '../document-viewer-host';
 import { resolveRenderer } from '../document-viewer.registry';
 import { DocumentSource, DocumentViewerConfig } from '../document-viewer.types';
@@ -45,10 +45,11 @@ import {
 const ZOOM_STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 
 /**
- * The document viewer as a workspace (docs/design/mesa-style-guide.md): the
- * same `[src]`, `[config]`, `[mode]` and `[editor]` as `hk-document-viewer`,
- * laid out as a Mesa work block — for one document, or for a list of them
- * (`[documents]` + `[(active)]`, any format) like a case file.
+ * A workspace of documents, like a case file (docs/design/mesa-style-guide.md):
+ * several documents of any format (`[documents]` + `[(active)]`), each shown
+ * with its own renderer, and the same `[config]`, `[mode]` and `[editor]` as
+ * `hk-document-viewer`. A workspace is for lists; one document is
+ * `hk-document-viewer`.
  *
  * - **Rail** — the document list (preview, name, meta line), and the open
  *   document's sections (a workbook's sheets, a DOCX's pages).
@@ -57,12 +58,18 @@ const ZOOM_STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
  * - **Inspector** — the file (name, format, type, size), the format's own
  *   properties (a message's headers, an image's dimensions…), Download.
  *
- * PDFs open in `hk-pdf-workspace` (configure it with `[pdfConfig]`).
- * Renderers publish sections and properties through {@link DocumentViewerHost};
- * custom renderers that don't simply show without a rail.
+ * PDFs open in `hk-pdf-workspace` (configure it with `[pdfConfig]`), with the
+ * same list in its rail. Opening another document while the open one has
+ * unsaved edits asks first. Renderers publish sections and properties through
+ * {@link DocumentViewerHost}; custom renderers that don't simply show without
+ * sections.
  *
  * @example
- * <hk-document-workspace class="h-[80vh]" [src]="file()" />
+ * documents: WorkspaceDocument[] = [
+ *   { id: 'contract', name: 'Contract.pdf', src: '/files/contract.pdf', description: 'Contracts' },
+ *   { id: 'payroll', name: 'Payroll.xlsx', src: payrollBlob },
+ * ];
+ * // <hk-document-workspace class="h-[80vh]" [documents]="documents" [(active)]="activeId" />
  */
 @Component({
   selector: 'hk-document-workspace',
@@ -100,11 +107,10 @@ export class DocumentWorkspaceComponent {
     pageCountShort: this.labels.pageCountShort,
   };
 
-  /** The document to show (URL, raw bytes, or a Blob/File), when there is no `[documents]` list. */
-  readonly src = input<DocumentSource | null>(null);
   /**
-   * A list of documents (any format) for the rail; the one in `[(active)]`
-   * opens (the first, if none is set). PDFs keep every PDF feature.
+   * The documents of the workspace (any format): the rail lists them and the
+   * one in `[(active)]` opens (the first, if none is set). PDFs keep every
+   * PDF feature. A workspace is for lists; one document is `hk-document-viewer`.
    */
   readonly documents = input<readonly WorkspaceDocument[]>([]);
   /** The open document's `id` (two-way). */
@@ -128,20 +134,20 @@ export class DocumentWorkspaceComponent {
     const docs = this.documents();
     return docs.find((d) => d.id === this.active()) ?? (docs.length ? docs[0] : null);
   });
-  /** What renders: the open document of the list, or `[src]`. */
-  protected readonly source = computed<DocumentSource | null>(() => this.activeDoc()?.src ?? this.src());
+  /** What renders: the open document. */
+  protected readonly source = computed<DocumentSource | null>(() => this.activeDoc()?.src ?? null);
+  /** The open PDF, as a one-document list for `hk-pdf-workspace` (the rail shows this workspace's list). */
+  protected readonly pdfDocuments = computed<WorkspaceDocument[]>(() => {
+    const doc = this.activeDoc();
+    return doc ? [doc] : [];
+  });
 
   protected readonly resolvedFormat = computed(() => {
     const cfg = this.config();
     const doc = this.activeDoc();
-    return resolveFormat(this.source() ?? '', doc?.mimeType ?? cfg.mimeType, doc?.name ?? cfg.filename);
+    return resolveFormat(this.source() ?? '', doc?.mimeType ?? cfg.mimeType, doc?.name);
   });
-  protected readonly filename = computed(() => {
-    const doc = this.activeDoc();
-    if (doc) return doc.name;
-    const src = this.source();
-    return this.config().filename ?? (src === null ? null : guessFilename(src));
-  });
+  protected readonly filename = computed(() => this.activeDoc()?.name ?? null);
   protected readonly renderer = computed(() => resolveRenderer(this.resolvedFormat().format, this.config().renderers, BUILT_IN_RENDERERS));
 
   /** Edit toggle, seeded from `mode` (a host-driven change wins). */

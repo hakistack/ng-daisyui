@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angu
 import { TestBed } from '@angular/core/testing';
 import { createDocumentEditor } from '../../document-editor/document-editor.helpers';
 import { DocumentViewerHost } from '../document-viewer-host';
-import { DocumentRendererInputs, DocumentSource, DocumentViewerConfig } from '../document-viewer.types';
+import { DocumentRendererInputs, DocumentViewerConfig } from '../document-viewer.types';
 import { DocumentWorkspaceComponent } from './document-workspace.component';
 import { WorkspaceDocument } from '../../mesa/workspace-document';
 
@@ -47,11 +47,16 @@ const editor = createDocumentEditor({});
 
 @Component({
   imports: [DocumentWorkspaceComponent],
-  template: `<hk-document-workspace [src]="src()" [config]="config()" [editor]="withEditor() ? editor : null" [storageKey]="null" />`,
+  template: `<hk-document-workspace
+    [documents]="documents()"
+    [config]="config()"
+    [editor]="withEditor() ? editor : null"
+    [storageKey]="null"
+  />`,
 })
 class Host {
-  readonly src = signal<DocumentSource>(new Blob(['hello'], { type: 'text/plain' }));
-  readonly config = signal<DocumentViewerConfig>({ filename: 'book.txt', renderers: [{ formats: ['text'], component: ChaptersRenderer }] });
+  readonly documents = signal<WorkspaceDocument[]>([{ id: 'book', name: 'book.txt', src: new Blob(['hello'], { type: 'text/plain' }) }]);
+  readonly config = signal<DocumentViewerConfig>({ renderers: [{ formats: ['text'], component: ChaptersRenderer }] });
   readonly withEditor = signal(false);
   readonly editor = editor;
 }
@@ -100,6 +105,11 @@ describe('hk-document-workspace', () => {
 
   it('lists the sections a renderer publishes in the rail, and pages through them', async () => {
     const { el, settle } = await render();
+    // The rail opens on the document list; Contents lists the open one's sections.
+    Array.from(el.querySelectorAll<HTMLButtonElement>('hk-mesa-layout button'))
+      .find((b) => b.textContent?.trim() === 'Contents')!
+      .click();
+    await settle();
     const rows = () => Array.from(el.querySelectorAll<HTMLButtonElement>('[data-section-index]'));
     expect(rows().map((r) => r.querySelector('.truncate')?.textContent?.trim())).toEqual(['Chapter 1', 'Chapter 2', 'Chapter 3']);
     expect(rows().map((r) => r.tabIndex)).toEqual([0, -1, -1]);
@@ -121,10 +131,10 @@ describe('hk-document-workspace', () => {
     expect(dd(el)).toEqual(['book.txt', 'TXT', '5 B', 'Ada']);
   });
 
-  it('works without a rail for renderers that publish nothing', async () => {
-    const { el } = await render((h) => h.config.set({ filename: 'a.txt', renderers: [{ formats: ['text'], component: PlainRenderer }] }));
+  it('has no Contents for renderers that publish nothing', async () => {
+    const { el } = await render((h) => h.config.set({ renderers: [{ formats: ['text'], component: PlainRenderer }] }));
     expect(el.querySelector('[data-plain]')).not.toBeNull();
-    expect(el.querySelector('hk-mesa-layout section[aria-label="Sections"]')).toBeNull();
+    expect(Array.from(el.querySelectorAll('hk-mesa-layout button')).some((b) => b.textContent?.trim() === 'Contents')).toBe(false);
     expect(el.querySelector('button[aria-label="Next section"]')).toBeNull();
   });
 
@@ -133,7 +143,8 @@ describe('hk-document-workspace', () => {
     el.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]')!.click();
     await settle();
     expect(el.querySelector('button[aria-label^="Reset zoom"]')?.textContent?.trim()).toBe('110%');
-    fixture.componentInstance.config.set({ filename: 'b.txt', renderers: [{ formats: ['text'], component: PlainRenderer }] });
+    fixture.componentInstance.documents.set([{ id: 'b', name: 'b.txt', src: new Blob(['b']) }]);
+    fixture.componentInstance.config.set({ renderers: [{ formats: ['text'], component: PlainRenderer }] });
     await settle();
     expect(el.querySelectorAll('[data-section-index]').length).toBe(0);
     expect(el.querySelector('button[aria-label^="Reset zoom"]')?.textContent?.trim()).toBe('100%');

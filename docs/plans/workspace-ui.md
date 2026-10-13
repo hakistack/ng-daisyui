@@ -417,3 +417,9 @@ implementará en la librería).
   `scrollable-region-focusable` con PDFs sin campos. Aplica también al visor clásico.
 - Demo: tres PDFs (`public/samples/service-agreement.pdf` e `invoice-0042.pdf`, generados, más el W-9).
 - Playwright local con 3 workers: más páginas con PDFium a la vez contra el dev server tumbaban un renderer.
+
+### W3d ✅ Solo listas
+Los workspaces ya no aceptan `[src]`: son para listas (`[documents]` + `[(active)]`); un solo documento es
+`hk-pdf-viewer` / `hk-document-viewer`. `[src]` y `[fileName]` salen de `PdfViewerHostBase` y vuelven a
+`hk-pdf-viewer` (`[src]` otra vez obligatorio); la base declara `currentSource()` / `currentFileName()` abstractos.
+`hk-document-workspace` entrega el PDF abierto a `hk-pdf-workspace` como lista de uno, con su propia lista en el rail.

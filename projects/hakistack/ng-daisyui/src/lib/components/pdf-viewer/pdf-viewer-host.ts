@@ -84,21 +84,10 @@ export abstract class PdfViewerHostBase implements OnInit {
   protected readonly designer = inject(PdfFormDesignerService);
 
   /**
-   * The PDF document source. Accepts a URL string, a `Uint8Array` of bytes,
-   * or a `Blob` (e.g. from a `<input type="file">`). When this changes the
-   * viewer reloads the document. (`hk-pdf-workspace` can take a `[documents]`
-   * list instead.)
-   */
-  readonly src = input<PdfDocumentSource | null>(null);
-
-  /**
    * Configuration object — pass `controller.config()` from a `createPdfViewer({...})`
    * call. See `PdfViewerConfig` for the full shape.
    */
   readonly config = input.required<PdfViewerConfig>();
-
-  /** The document's file name, for downloads and the workspace badge. Default: from the URL or `File`, else `document.pdf`. */
-  readonly fileName = input<string | null>(null);
 
   /**
    * Two-way binding for the document's form-field values. Use as
@@ -165,19 +154,15 @@ export abstract class PdfViewerHostBase implements OnInit {
   }
 
   ngOnInit(): void {
-    // Warm the engine (lazy worker + wasm) so it's ready when [src] resolves.
+    // Warm the engine (lazy worker + wasm) so it's ready when the document arrives.
     if (isPlatformBrowser(this.platformId)) this.store.ensureEngine();
   }
 
-  /** The document to show: `[src]` (the workspace's open list document, when it has a list). */
-  protected currentSource(): PdfDocumentSource | null {
-    return this.src();
-  }
+  /** The document to show: the viewer's `[src]`, the workspace's open list document. */
+  protected abstract currentSource(): PdfDocumentSource | null;
 
-  /** The document's file name: `[fileName]` (or the open list document's). */
-  protected currentFileName(): string | null {
-    return this.fileName();
-  }
+  /** The document's file name (downloads, the workspace badge); `null` derives it from the source. */
+  protected abstract currentFileName(): string | null;
 
   /** The chrome's answer to `controller.toggleSidebar()` (the workspace toggles its rail). */
   protected toggleSidebar(): void {
