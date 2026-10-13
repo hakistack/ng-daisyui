@@ -1,13 +1,10 @@
 @if (field(); as f) {
-  <section
-    class="absolute right-3 top-3 z-30 w-72 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-box border border-base-300 bg-base-100 text-sm shadow-lg"
-    [attr.aria-label]="store.labels().fieldProperties"
-  >
-    <header class="flex items-center gap-1 border-b border-base-300 px-3 py-2">
-      <h3 class="grow truncate font-medium">{{ store.labels().fieldProperties }}</h3>
+  <section [class]="ui.panel('w-72')" [attr.aria-label]="store.labels().fieldProperties">
+    <header [class]="ui.panelHeader">
+      <h3 [class]="ui.panelTitle">{{ store.labels().fieldProperties }}</h3>
       <button
         type="button"
-        class="btn btn-ghost btn-xs btn-square text-error"
+        [class]="ui.mesa ? ui.panelButton : ui.panelButton + ' text-error'"
         [attr.aria-label]="store.labels().deleteField"
         [title]="store.labels().deleteField"
         (click)="remove()"
@@ -16,7 +13,7 @@
       </button>
       <button
         type="button"
-        class="btn btn-ghost btn-xs btn-square"
+        [class]="ui.panelButton"
         [attr.aria-label]="store.labels().dismiss"
         [title]="store.labels().dismiss"
         (click)="designer.selection.set(null)"
@@ -25,7 +22,7 @@
       </button>
     </header>
 
-    <div class="flex flex-col gap-3 px-3 py-3">
+    <div [class]="ui.panelBody">
       <label class="flex flex-col gap-1">
         <span class="text-xs text-base-content/70">{{ store.labels().fieldName }}</span>
         <input
@@ -216,7 +213,8 @@
               <button
                 type="button"
                 class="btn btn-xs"
-                [class.btn-active]="!w.borderColor"
+                [class.btn-active]="!ui.mesa && !w.borderColor"
+                [class.btn-primary]="ui.mesa && !w.borderColor"
                 (click)="setWidgetColor('borderColor', undefined)"
               >
                 {{ store.labels().noFill }}
@@ -233,7 +231,13 @@
                 [value]="w.background ?? '#ffffff'"
                 (input)="setWidgetColor('background', str($event))"
               />
-              <button type="button" class="btn btn-xs" [class.btn-active]="!w.background" (click)="setWidgetColor('background', undefined)">
+              <button
+                type="button"
+                class="btn btn-xs"
+                [class.btn-active]="!ui.mesa && !w.background"
+                [class.btn-primary]="ui.mesa && !w.background"
+                (click)="setWidgetColor('background', undefined)"
+              >
                 {{ store.labels().noFill }}
               </button>
             </div>

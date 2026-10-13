@@ -1,14 +1,11 @@
 @if (target(); as t) {
-  <section
-    class="absolute right-3 top-3 z-30 w-64 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-box border border-base-300 bg-base-100 shadow-lg text-sm"
-    [attr.aria-label]="store.labels().annotationProperties"
-  >
-    <header class="flex items-center gap-1 border-b border-base-300 px-3 py-2">
-      <h3 class="grow truncate font-medium">{{ title() }}</h3>
+  <section [class]="ui.panel('w-64')" [attr.aria-label]="store.labels().annotationProperties">
+    <header [class]="ui.panelHeader">
+      <h3 [class]="ui.panelTitle">{{ title() }}</h3>
       @if (t.annotation) {
         <button
           type="button"
-          class="btn btn-ghost btn-xs btn-square"
+          [class]="ui.panelButton"
           [attr.aria-label]="store.labels().openComments"
           [title]="store.labels().openComments"
           (click)="openComments()"
@@ -17,7 +14,7 @@
         </button>
         <button
           type="button"
-          class="btn btn-ghost btn-xs btn-square"
+          [class]="ui.panelButton"
           [attr.aria-label]="store.labels().duplicate"
           [title]="store.labels().duplicate"
           [disabled]="!annotations.canAdd()"
@@ -27,7 +24,7 @@
         </button>
         <button
           type="button"
-          class="btn btn-ghost btn-xs btn-square"
+          [class]="ui.panelButton"
           [disabled]="!canLock()"
           [attr.aria-pressed]="locked()"
           [attr.aria-label]="locked() ? store.labels().unlock : store.labels().lock"
@@ -42,7 +39,7 @@
         </button>
         <button
           type="button"
-          class="btn btn-ghost btn-xs btn-square text-error"
+          [class]="ui.mesa ? ui.panelButton : ui.panelButton + ' text-error'"
           [attr.aria-label]="store.labels().deleteAnnotation"
           [title]="store.labels().deleteAnnotation"
           [disabled]="locked()"
@@ -53,7 +50,7 @@
       }
       <button
         type="button"
-        class="btn btn-ghost btn-xs btn-square"
+        [class]="ui.panelButton"
         [attr.aria-label]="store.labels().dismiss"
         [title]="store.labels().dismiss"
         (click)="close()"
@@ -62,12 +59,21 @@
       </button>
     </header>
 
-    <fieldset class="flex flex-col gap-3 px-3 py-3" [disabled]="locked()">
+    <fieldset [class]="ui.panelBody" [disabled]="locked()">
       <legend class="sr-only">{{ store.labels().annotationProperties }}</legend>
 
       @if (measurement(); as m) {
-        <div class="rounded-box border border-primary/20 bg-primary/10 px-2 py-1.5" role="status">
-          <div class="text-base font-semibold tabular-nums text-primary">{{ m.value }}</div>
+        <div
+          [class]="
+            ui.mesa
+              ? 'rounded-box border border-base-300 bg-base-200 px-2 py-1.5'
+              : 'rounded-box border border-primary/20 bg-primary/10 px-2 py-1.5'
+          "
+          role="status"
+        >
+          <div [class]="ui.mesa ? 'font-mono text-base font-semibold tabular-nums' : 'text-base font-semibold tabular-nums text-primary'">
+            {{ m.value }}
+          </div>
           <div class="text-xs text-base-content/70">{{ store.labels().currentScale.replace('{scale}', m.scale) }}</div>
         </div>
         @if (m.kind === 'volume') {
@@ -92,7 +98,8 @@
             <button
               type="button"
               class="btn btn-xs join-item grow"
-              [class.btn-active]="target.kind === 'uri'"
+              [class.btn-active]="!ui.mesa && target.kind === 'uri'"
+              [class.btn-primary]="ui.mesa && target.kind === 'uri'"
               [attr.aria-pressed]="target.kind === 'uri'"
               (click)="setLinkKind('uri')"
             >
@@ -101,7 +108,8 @@
             <button
               type="button"
               class="btn btn-xs join-item grow"
-              [class.btn-active]="target.kind === 'page'"
+              [class.btn-active]="!ui.mesa && target.kind === 'page'"
+              [class.btn-primary]="ui.mesa && target.kind === 'page'"
               [attr.aria-pressed]="target.kind === 'page'"
               (click)="setLinkKind('page')"
             >
@@ -171,7 +179,8 @@
           <button
             type="button"
             class="btn btn-xs join-item grow"
-            [class.btn-active]="t.style.align === 'left'"
+            [class.btn-active]="!ui.mesa && t.style.align === 'left'"
+            [class.btn-primary]="ui.mesa && t.style.align === 'left'"
             [attr.aria-pressed]="t.style.align === 'left'"
             [attr.aria-label]="store.labels().alignLeft"
             (click)="set('align', 'left')"
@@ -181,7 +190,8 @@
           <button
             type="button"
             class="btn btn-xs join-item grow"
-            [class.btn-active]="t.style.align === 'center'"
+            [class.btn-active]="!ui.mesa && t.style.align === 'center'"
+            [class.btn-primary]="ui.mesa && t.style.align === 'center'"
             [attr.aria-pressed]="t.style.align === 'center'"
             [attr.aria-label]="store.labels().alignCenter"
             (click)="set('align', 'center')"
@@ -191,7 +201,8 @@
           <button
             type="button"
             class="btn btn-xs join-item grow"
-            [class.btn-active]="t.style.align === 'right'"
+            [class.btn-active]="!ui.mesa && t.style.align === 'right'"
+            [class.btn-primary]="ui.mesa && t.style.align === 'right'"
             [attr.aria-pressed]="t.style.align === 'right'"
             [attr.aria-label]="store.labels().alignRight"
             (click)="set('align', 'right')"
@@ -346,7 +357,8 @@
         <button
           type="button"
           class="btn btn-xs h-6 min-h-6 px-1.5"
-          [class.btn-active]="value === null"
+          [class.btn-active]="!ui.mesa && value === null"
+          [class.btn-primary]="ui.mesa && value === null"
           [attr.aria-pressed]="value === null"
           (click)="set(field, null)"
         >

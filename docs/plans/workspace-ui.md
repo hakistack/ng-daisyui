@@ -1,6 +1,6 @@
 # Variantes «workspace» de los visores — Fase 1 (análisis)
 
-Estado: **informe para revisión**. No se ha tocado código.
+Estado: W0, W1 y W2 hechos (ver «Estado» al final). W3 (`hk-document-workspace`) pendiente.
 
 Objetivo: añadir una segunda presentación tipo workspace a los dos visores, con el lenguaje visual de la guía
 [«Mesa»](../design/mesa-style-guide.md). La presentación actual se queda como la vista «por documento».
@@ -320,3 +320,47 @@ contradice «Mesa». Se reconcilia en W1.
 6. **Bugs de §B.3 en W0**: algunos son ajenos a los visores (styles.css global, toast, command palette). ¿Los arreglo
    aquí, o los dejo anotados para otra sesión? Ojo con `styles.css`: el `!important` de los disabled cambia el aspecto
    en las apps consumidoras.
+
+---
+
+## Estado (2026-10-13)
+
+Decisiones tomadas por defecto (§G): el visor clásico conserva su aspecto (solo correcciones de bugs y de a11y);
+«Mesa» se aplica completa en los workspaces; color semántico solo en iconos; nombres `hk-pdf-workspace`,
+`hk-document-workspace` y «Mesa»; de los bugs ajenos a los visores se corrigieron `--hk-color-error` y `kbd-primary`,
+el resto queda anotado en §B.3.
+
+### W0 ✅ (`d186d75`)
+Pestañas `tabs-bordered` → `HK_THEME.tabsBorder` (firma, hoja de cálculo); `--hk-color-error` con `--color-error`;
+iframes HTML/EML/MSG sobre papel blanco; `kbd-primary`; etiqueta del select de zoom y textos fijos a `PdfViewerLabels`;
+enlace muerto del layout preview.
+
+### W1 ✅ Base compartida
+- `pdf-viewer-host.ts`: `PDF_VIEWER_PROVIDERS` + `PdfViewerHostBase` (inputs, outputs, `store.connect`, controlador,
+  teclado, portapapeles). `hk-pdf-viewer` y `hk-pdf-workspace` lo extienden: misma API por construcción. El CSS del
+  visor se reutiliza con `styleUrl` (el `:host` se aplica a cada host), sin cambiar la encapsulación.
+- Store: `dirty` (señal), `loadedInfo`, paneles visibles (`shownPanels` / `visiblePanels` / `revealPanel`). Miniaturas,
+  carga diferida de índice y adjuntos, «abrir comentarios» y «ver firmas» ya no dependen del sidebar.
+- `ui/pdf-chrome.ts` (`PDF_CHROME`): clases de barras, botones, pulsado y paneles. El clásico conserva sus clases
+  exactas; el workspace provee las de «Mesa» (joins, `btn-sm`, pulsado = `btn-primary`, paneles acoplados).
+- Organizador: modo `inline` (cuadrícula del workspace): cada edición se aplica al momento y el deshacer es el del
+  documento. Botones «Mover antes / después» (WCAG 2.5.7, también en el diálogo). Arreglado: Ctrl+Z dentro del
+  organizador también llegaba al atajo del visor (doble deshacer).
+- Piezas internas `components/mesa/`: `hk-mesa-layout` (rail · centro · inspector, paneles ocultables recordados,
+  pliegue por ancho del componente), `hk-mesa-toolbar`, `hk-mesa-state`, `hk-mesa-save-status`.
+- Contraste: textos `/40` y `/60` del visor a `/70` (axe lo detectó en cupcake).
+
+### W2 ✅ `hk-pdf-workspace`
+Rail (miniaturas virtualizadas con foco roving, índice, adjuntos) · toolbar (badge, estado sin guardar, paginador,
+zoom, vista Hoja/Cuadrícula, herramientas, menú; Descargar como único primario cuando hay cambios) · barras de
+anotación, diseño y búsqueda · inspector (selección acoplada, documento, firmas, comentarios). `toggleSidebar()`
+alterna el rail; `organizePages()` abre la cuadrícula, que se superpone a la hoja sin desmontarla.
+
+Verificado: 6 specs jsdom (`workspace/pdf-workspace.spec.ts`), suite completa 63 archivos / 1818 tests, e2e
+`e2e/pdf-workspace.spec.ts` (axe WCAG 2.2 AA en light, dark, kaizen y cupcake, cuadrícula y anotación; reflow a
+1280/900/600/375; teclado; paneles) 11/11, builds de lib, demo y demo-v4, capturas en daisyUI 5 y 4.
+axe: `target-size` se excluye solo en el contenido de las páginas (los campos del PDF tienen el tamaño que fija el
+documento, excepción «esencial» de 2.5.8).
+
+Pendiente: menús con Popover API (ver guía §7); `hk-pdf-comments` y `hk-pdf-signatures-panel` aún con su marcado
+clásico dentro del inspector.

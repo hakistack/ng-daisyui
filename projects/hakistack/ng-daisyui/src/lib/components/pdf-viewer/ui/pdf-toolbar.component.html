@@ -54,7 +54,7 @@
       [disabled]="!store.showPages()"
       (change)="onPageInput(pageInput)"
     />
-    <span class="text-xs text-base-content/60 tabular-nums hidden @xs:inline">
+    <span class="text-xs text-base-content/70 tabular-nums hidden @xs:inline">
       @if (store.hasPageLabels()) {
         ({{ store.state()?.page ?? 0 }} / {{ store.state()?.numPages ?? 0 }})
       } @else {
@@ -125,7 +125,7 @@
   >
     <svg lucidePlus [size]="16"></svg>
   </button>
-  <span class="text-xs text-base-content/60 w-10 text-right tabular-nums hidden @md:inline">{{ store.zoomPercent() }}</span>
+  <span class="text-xs text-base-content/70 w-10 text-right tabular-nums hidden @md:inline">{{ store.zoomPercent() }}</span>
 
   <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
 

@@ -125,7 +125,9 @@ el papel es blanco en todos los temas y `neutral` siempre es oscuro.
 
 ## 7. Overlays
 
-- Menús y desplegables con la **Popover API** (`popover` + `popovertarget`), `bg-base-100 rounded-box border border-base-300 shadow-lg`.
+- Menús y desplegables: `bg-base-100 rounded-box border border-base-300 shadow-lg`. Hoy con `details.dropdown`, que funciona
+  igual en daisyUI 4 y 5. La **Popover API** se adopta cuando el posicionamiento por anclaje (`anchor-name`) esté disponible
+  en todos los navegadores objetivo; sin él, un popover se abre centrado en pantalla, lejos de su botón.
   Los paneles que ya usan CDK Overlay (p. ej. `hk-select`) se mantienen.
 - Lo que se pinta **encima de la página** (insignias, sellos, controles flotantes) usa `neutral`.
 - En contenedores estrechos los paneles laterales **se pliegan** en `details.collapse.collapse-arrow` (o `<details>` nativo)

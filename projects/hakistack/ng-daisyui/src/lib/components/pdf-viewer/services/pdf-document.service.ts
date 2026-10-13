@@ -84,15 +84,14 @@ export class PdfDocumentService {
       );
     });
 
-    // Sidebar data loads lazily when its tab is open and the data is missing
-    // (first view, or invalidated by an edit while the tab is showing).
+    // Panel data loads lazily when its panel is on screen and the data is missing
+    // (first view, or invalidated by an edit while the panel is showing).
     effect(() => {
-      const s = this.store.state();
-      const tab = s?.sidebarOpen ? s.sidebarTab : null;
+      const panels = this.store.visiblePanels();
       const fetch =
-        tab === 'bookmarks' && this.store.outline() === null
+        panels.has('bookmarks') && this.store.outline() === null
           ? () => this.pageData.fetchOutline()
-          : tab === 'attachments' && this.store.attachments() === null
+          : panels.has('attachments') && this.store.attachments() === null
             ? () => this.pageData.fetchAttachments()
             : null;
       if (!fetch) return;
@@ -508,8 +507,14 @@ export class PdfDocumentService {
     }
   }
 
+  /** The document's file name: from the URL, the `File`'s name, or `document.pdf`. */
+  fileName(): string {
+    return this.deriveFilename();
+  }
+
   private deriveFilename(): string {
     const src = this.store.src();
+    if (typeof File !== 'undefined' && src instanceof File && src.name) return src.name;
     if (typeof src === 'string') {
       try {
         const last = new URL(src, window.location.href).pathname.split('/').pop();

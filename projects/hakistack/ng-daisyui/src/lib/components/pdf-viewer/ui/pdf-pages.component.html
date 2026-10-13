@@ -3,19 +3,40 @@
      larger clientWidth — a feedback loop that explodes the zoom. With it, the wide page overflows into a scroll. -->
 <div #scroller [class]="viewportClass()" (pointerdown)="onBackgroundPointerDown()" (pointerup)="tools.onSelectionEnd()">
   @if (store.state()?.error; as err) {
-    <div role="alert" class="flex flex-col items-center justify-center gap-3 py-12 text-center">
-      <span class="text-error text-sm font-medium">{{ store.errorTitle() }}</span>
-      <span class="text-xs text-base-content/60 max-w-md">{{ err.message }}</span>
-      @if (err.recoverable) {
-        <button type="button" class="btn btn-sm btn-outline" (click)="document.reload()">{{ store.labels().retry }}</button>
-      }
-    </div>
+    @if (ui.mesa) {
+      <div role="alert" class="alert alert-error mx-auto mt-10 max-w-md">
+        <div class="flex flex-col gap-1">
+          <span class="font-medium">{{ store.errorTitle() }}</span>
+          <span class="text-sm">{{ err.message }}</span>
+        </div>
+        @if (err.recoverable) {
+          <button type="button" class="btn btn-sm" (click)="document.reload()">{{ store.labels().retry }}</button>
+        }
+      </div>
+    } @else {
+      <div role="alert" class="flex flex-col items-center justify-center gap-3 py-12 text-center">
+        <span class="text-error text-sm font-medium">{{ store.errorTitle() }}</span>
+        <span class="text-xs text-base-content/70 max-w-md">{{ err.message }}</span>
+        @if (err.recoverable) {
+          <button type="button" class="btn btn-sm btn-outline" (click)="document.reload()">{{ store.labels().retry }}</button>
+        }
+      </div>
+    }
   } @else {
     <!-- Non-fatal operation error (render, form sync, annotation, save): the document stays visible. -->
     @if (store.operationError(); as opErr) {
-      <div role="alert" class="alert sticky top-0 z-20 mb-3 border-error/20 bg-error/10 text-error text-sm">
+      <div
+        role="alert"
+        [class]="
+          ui.mesa
+            ? 'alert alert-error sticky top-0 z-20 mx-auto mb-3 max-w-md text-sm'
+            : 'alert sticky top-0 z-20 mb-3 border-error/20 bg-error/10 text-error text-sm'
+        "
+      >
         <span class="flex-1">{{ opErr.message }}</span>
-        <button type="button" class="btn btn-ghost btn-xs" (click)="store.dismissOperationError()">{{ store.labels().dismiss }}</button>
+        <button type="button" [class]="ui.mesa ? 'btn btn-xs' : 'btn btn-ghost btn-xs'" (click)="store.dismissOperationError()">
+          {{ store.labels().dismiss }}
+        </button>
       </div>
     }
     @if (store.pageNumbers().length > 0) {
@@ -39,7 +60,7 @@
             @for (n of row.pages; track n) {
               <div
                 #pageWrapper
-                class="hk-pdf-page bg-base-100 shadow-md"
+                [class]="ui.page(store.state()?.page === n)"
                 [class.hk-pdf-page-rotated]="store.pageRotation(n) !== 0"
                 role="region"
                 [attr.aria-label]="pageAria(n)"
@@ -83,7 +104,7 @@
     <div class="sr-only" aria-live="polite" aria-atomic="true">{{ store.ariaPageAnnouncement() }}</div>
     @if (!store.firstRenderComplete()) {
       <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div class="flex flex-col items-center gap-3 text-base-content/60">
+        <div class="flex flex-col items-center gap-3 text-base-content/70">
           <span class="loading loading-spinner loading-md"></span>
           <span class="text-sm">{{ store.labels().loading }}</span>
         </div>

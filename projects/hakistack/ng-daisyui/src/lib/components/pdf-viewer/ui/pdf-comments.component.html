@@ -1,5 +1,5 @@
 @if (annotations.list().length === 0) {
-  <div class="text-xs text-base-content/60 italic p-4 text-center">{{ store.labels().noAnnotations }}</div>
+  <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().noAnnotations }}</div>
 } @else {
   <div class="flex flex-col gap-2 p-2">
     <!-- Filters -->
@@ -36,7 +36,7 @@
     @for (group of groups(); track group.page) {
       <details class="collapse collapse-arrow border border-base-300 bg-base-100" open>
         <summary class="collapse-title min-h-0 py-2 text-xs font-medium">
-          {{ pageLabel(group.page) }} <span class="text-base-content/60">({{ group.items.length }})</span>
+          {{ pageLabel(group.page) }} <span class="text-base-content/70">({{ group.items.length }})</span>
         </summary>
         <div class="collapse-content flex flex-col gap-2 px-2 pb-2">
           @for (a of group.items; track a.id) {
@@ -61,7 +61,7 @@
                   {{ statusLabel(a.status) }}
                 </span>
               </header>
-              <time class="text-[10px] text-base-content/60" [attr.datetime]="a.modified">{{ date(a.modified ?? a.created) }}</time>
+              <time class="text-[10px] text-base-content/70" [attr.datetime]="a.modified">{{ date(a.modified ?? a.created) }}</time>
 
               @if (editingId() === a.id) {
                 <textarea
@@ -81,7 +81,7 @@
               } @else if (a.contents) {
                 <p class="whitespace-pre-wrap break-words text-base-content/90">{{ a.contents }}</p>
               } @else {
-                <p class="italic text-base-content/60">{{ store.labels().noComment }}</p>
+                <p class="italic text-base-content/70">{{ store.labels().noComment }}</p>
               }
 
               @if (a.replies?.length) {
@@ -90,7 +90,7 @@
                     <li class="flex flex-col gap-0.5">
                       <div class="flex items-center gap-1">
                         <span class="font-medium">{{ r.author || store.labels().defaultAuthor }}</span>
-                        <time class="text-[10px] text-base-content/60" [attr.datetime]="r.created">{{
+                        <time class="text-[10px] text-base-content/70" [attr.datetime]="r.created">{{
                           date(r.created ?? r.modified)
                         }}</time>
                         <button

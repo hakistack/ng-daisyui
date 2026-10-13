@@ -25,6 +25,7 @@ import { AnnotationToolStyle, PdfAnnotationsService } from '../services/pdf-anno
 import { PdfAnnotationToolsService } from '../services/pdf-annotation-tools.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { LINE_ENDINGS, annotationTypeLabel } from './pdf-annotation-labels';
+import { PDF_CHROME } from './pdf-chrome';
 
 /** A style field the panel edits (the names of {@link AnnotationToolStyle}). */
 type Field = keyof AnnotationToolStyle;
@@ -105,6 +106,7 @@ const FIELDS: Record<HkAnnotationType, readonly Field[]> = {
   host: { class: 'contents' },
 })
 export class PdfAnnotationPanelComponent {
+  protected readonly ui = inject(PDF_CHROME);
   protected readonly store = inject(PdfViewerStore);
   protected readonly annotations = inject(PdfAnnotationsService);
   private readonly tools = inject(PdfAnnotationToolsService);

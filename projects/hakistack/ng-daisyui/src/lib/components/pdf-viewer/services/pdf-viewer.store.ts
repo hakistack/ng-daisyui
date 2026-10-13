@@ -11,6 +11,7 @@ import {
   PdfAttachmentEntry,
   PdfDocumentSource,
   PdfLoadedInfo,
+  PdfSidebarTab,
   PdfViewerConfig,
   PdfViewerError,
   PdfViewerInternalApi,
@@ -125,6 +126,31 @@ export class PdfViewerStore {
 
   patchState(update: (s: PdfViewerState) => PdfViewerState): void {
     this.api()?.state.update(update);
+  }
+
+  // ── Panels ──────────────────────────────────────────────────────────────
+
+  /**
+   * Panels an alternative chrome (the workspace) shows right now. `null`: the
+   * sidebar decides, from the controller's `sidebarOpen` / `sidebarTab`.
+   */
+  readonly shownPanels = signal<ReadonlySet<PdfSidebarTab> | null>(null);
+
+  /** Panels on screen: thumbnails paint and outline / attachments load only while theirs is. */
+  readonly visiblePanels = computed<ReadonlySet<PdfSidebarTab>>(() => {
+    const shown = this.shownPanels();
+    if (shown) return shown;
+    const s = this.state();
+    return new Set(s?.sidebarOpen ? [s.sidebarTab ?? 'thumbnails'] : []);
+  });
+
+  /** How an alternative chrome brings a panel into view; without one, the sidebar opens on its tab. */
+  revealHandler: ((panel: PdfSidebarTab) => void) | null = null;
+
+  /** Bring a panel into view (comments after "open thread", signatures after signing). */
+  revealPanel(panel: PdfSidebarTab): void {
+    if (this.revealHandler) this.revealHandler(panel);
+    else this.patchState((s) => ({ ...s, sidebarOpen: true, sidebarTab: panel }));
   }
 
   // ── UI signals ──────────────────────────────────────────────────────────
@@ -305,6 +331,9 @@ export class PdfViewerStore {
     return this.dirtySources.size > 0;
   }
 
+  /** {@link documentEdited} as a signal, for chrome that shows the save state. */
+  readonly dirty = signal(false);
+
   setAnnotationsDirty(dirty: boolean): void {
     this.setDirty('annotations', dirty);
   }
@@ -321,7 +350,9 @@ export class PdfViewerStore {
   private updateDirty(change: () => void): void {
     const before = this.documentEdited;
     change();
-    if (this.documentEdited !== before) this.host?.events.dirtyChange(this.documentEdited);
+    if (this.documentEdited === before) return;
+    this.dirty.set(this.documentEdited);
+    this.host?.events.dirtyChange(this.documentEdited);
   }
 
   /**
@@ -368,7 +399,11 @@ export class PdfViewerStore {
 
   // ── Events & errors ─────────────────────────────────────────────────────
 
+  /** What the last load reported (title, page count, size); `null` before a document loads. */
+  readonly loadedInfo = signal<PdfLoadedInfo | null>(null);
+
   notifyLoaded(info: PdfLoadedInfo): void {
+    this.loadedInfo.set(info);
     this.config().onLoaded?.(info);
     this.host?.events.loaded(info);
   }

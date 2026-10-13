@@ -34,6 +34,7 @@ import { PdfDocumentService } from '../services/pdf-document.service';
 import { DYNAMIC_STAMPS, SIGN_HERE_STAMPS, STANDARD_STAMPS, StampPreset, imageStampFromFile, presetStamp } from './pdf-stamps';
 import { PdfAnnotationsService } from '../services/pdf-annotations.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
+import { PDF_CHROME } from './pdf-chrome';
 
 type ToolIcon =
   | 'select'
@@ -127,6 +128,7 @@ const GROUPS: readonly (readonly ToolButton[])[] = [
   host: { class: 'contents' },
 })
 export class PdfAnnotationToolbarComponent {
+  protected readonly ui = inject(PDF_CHROME);
   protected readonly store = inject(PdfViewerStore);
   protected readonly annotations = inject(PdfAnnotationsService);
   protected readonly tools = inject(PdfAnnotationToolsService);

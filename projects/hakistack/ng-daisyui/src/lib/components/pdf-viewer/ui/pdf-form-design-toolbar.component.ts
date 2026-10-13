@@ -18,6 +18,7 @@ import {
 import { ResolvedPdfViewerLabels } from '../pdf-viewer.labels';
 import { FormDesignTool, PdfFormDesignerService } from '../services/pdf-form-designer.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
+import { PDF_CHROME } from './pdf-chrome';
 
 const TOOLS: readonly { tool: FormDesignTool; label: keyof ResolvedPdfViewerLabels }[] = [
   { tool: 'text', label: 'fieldText' },
@@ -57,6 +58,7 @@ const TOOLS: readonly { tool: FormDesignTool; label: keyof ResolvedPdfViewerLabe
   host: { class: 'contents' },
 })
 export class PdfFormDesignToolbarComponent {
+  protected readonly ui = inject(PDF_CHROME);
   protected readonly store = inject(PdfViewerStore);
   protected readonly designer = inject(PdfFormDesignerService);
   protected readonly tools = TOOLS;

@@ -706,6 +706,72 @@ export interface PdfViewerLabels {
   pageAria?: string;
   /** Default: "(untitled)" — Bookmark without a title. */
   untitledBookmark?: string;
+  /** Default: "Move earlier" — Moves the selected pages one place back. */
+  movePagesEarlier?: string;
+  /** Default: "Move later" — Moves the selected pages one place forward. */
+  movePagesLater?: string;
+
+  // Workspace (`hk-pdf-workspace`)
+  /** Default: "Document navigation" — Accessible name of the workspace rail. */
+  workspaceRail?: string;
+  /** Default: "Details" — The workspace inspector (accessible name, and its disclosure on narrow layouts). */
+  workspaceInspector?: string;
+  /** Default: "Show side panel" */
+  showRail?: string;
+  /** Default: "Hide side panel" */
+  hideRail?: string;
+  /** Default: "Show details" */
+  showInspector?: string;
+  /** Default: "Hide details" */
+  hideInspector?: string;
+  /** Default: "Skip to page list" */
+  skipToPages?: string;
+  /** Default: "Pages" — Rail mode: page thumbnails. */
+  railPages?: string;
+  /** Default: "Side panel content" */
+  railModeAria?: string;
+  /** Default: "View" */
+  viewModeAria?: string;
+  /** Default: "Sheet" — View: the pages, scrolling. */
+  viewSheet?: string;
+  /** Default: "Grid" — View: every page as a thumbnail, to organize. */
+  viewGrid?: string;
+  /** Default: "Tools" */
+  toolsAria?: string;
+  /** Default: "Page navigation" */
+  pagerAria?: string;
+  /** Default: "Zoom" */
+  zoomAria?: string;
+  /** Default: "Unsaved changes" */
+  unsavedChanges?: string;
+  /** Default: "Annotating" — Toolbar badge while the annotation tools are open. */
+  annotatingBadge?: string;
+  /** Default: "Preparing form" — Toolbar badge while designing the form. */
+  designingBadge?: string;
+  /** Default: "Leave {mode}" — Button that leaves the annotating / designing mode; `{mode}` is the badge text. */
+  exitMode?: string;
+  /** Default: "Selection" — Inspector section with the selected annotation or field. */
+  selectionSection?: string;
+  /** Default: "Document" — Inspector section with the document properties. */
+  documentSection?: string;
+  /** Default: "Comments" */
+  commentsSection?: string;
+  /** Default: "File" */
+  docFileName?: string;
+  /** Default: "Title" */
+  docTitle?: string;
+  /** Default: "Pages" */
+  docPages?: string;
+  /** Default: "Size" */
+  docFileSize?: string;
+  /** Default: "Form" — Whether the document has a form. */
+  docForm?: string;
+  /** Default: "{count} fields" */
+  docFormFields?: string;
+  /** Default: "None" */
+  docNoForm?: string;
+  /** Default: "{count} pages" — Toolbar badge page count. */
+  pageCountBadge?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -1053,6 +1119,38 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   documentAria: 'PDF document',
   pageAria: 'Page {page}',
   untitledBookmark: '(untitled)',
+  movePagesEarlier: 'Move earlier',
+  movePagesLater: 'Move later',
+  workspaceRail: 'Document navigation',
+  workspaceInspector: 'Details',
+  showRail: 'Show side panel',
+  hideRail: 'Hide side panel',
+  showInspector: 'Show details',
+  hideInspector: 'Hide details',
+  skipToPages: 'Skip to page list',
+  railPages: 'Pages',
+  railModeAria: 'Side panel content',
+  viewModeAria: 'View',
+  viewSheet: 'Sheet',
+  viewGrid: 'Grid',
+  toolsAria: 'Tools',
+  pagerAria: 'Page navigation',
+  zoomAria: 'Zoom',
+  unsavedChanges: 'Unsaved changes',
+  annotatingBadge: 'Annotating',
+  designingBadge: 'Preparing form',
+  exitMode: 'Leave {mode}',
+  selectionSection: 'Selection',
+  documentSection: 'Document',
+  commentsSection: 'Comments',
+  docFileName: 'File',
+  docTitle: 'Title',
+  docPages: 'Pages',
+  docFileSize: 'Size',
+  docForm: 'Form',
+  docFormFields: '{count} fields',
+  docNoForm: 'None',
+  pageCountBadge: '{count} pages',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');

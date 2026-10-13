@@ -61,10 +61,8 @@ export class PdfThumbnailsService {
   private resizeObserver: ResizeObserver | null = null;
   private scrollRaf: number | null = null;
 
-  readonly tabActive = computed(() => {
-    const s = this.store.state();
-    return !!s?.sidebarOpen && (s.sidebarTab ?? 'thumbnails') === 'thumbnails';
-  });
+  /** Whether the thumbnail panel is on screen (the sidebar's tab, or the workspace's rail). */
+  readonly tabActive = computed(() => this.store.visiblePanels().has('thumbnails'));
 
   /** Item positions in the list. */
   private readonly layout = computed(() => {

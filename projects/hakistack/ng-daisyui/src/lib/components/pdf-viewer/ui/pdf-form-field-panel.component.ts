@@ -5,6 +5,7 @@ import { DesignField } from '../core/forms/form-design';
 import { ResolvedPdfViewerLabels } from '../pdf-viewer.labels';
 import { PdfFormDesignerService } from '../services/pdf-form-designer.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
+import { PDF_CHROME } from './pdf-chrome';
 
 type FormatKind = 'none' | 'number' | 'percent' | 'date' | 'zip' | 'phone' | 'ssn';
 
@@ -27,6 +28,7 @@ const FORMATS: readonly { value: FormatKind; label: keyof ResolvedPdfViewerLabel
   host: { class: 'contents' },
 })
 export class PdfFormFieldPanelComponent {
+  protected readonly ui = inject(PDF_CHROME);
   protected readonly store = inject(PdfViewerStore);
   protected readonly designer = inject(PdfFormDesignerService);
   protected readonly formats = FORMATS;

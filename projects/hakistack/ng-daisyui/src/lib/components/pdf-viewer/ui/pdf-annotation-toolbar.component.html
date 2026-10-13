@@ -1,18 +1,13 @@
-<div
-  class="flex flex-wrap items-center gap-0.5 px-2 py-1 border-b border-base-300 bg-base-100 text-sm"
-  role="toolbar"
-  [attr.aria-label]="store.labels().annotationToolbar"
->
+<div [class]="ui.bar" role="toolbar" [attr.aria-label]="store.labels().annotationToolbar">
   @if (!annotations.canAdd() && store.showPages()) {
     <span class="text-xs text-base-content/70 px-1" role="status">{{ store.labels().annotationsReadOnly }}</span>
   } @else {
     @for (group of groups; track $index; let last = $last) {
-      <div class="flex items-center gap-0.5" role="group">
+      <div [class]="ui.group" role="group">
         @for (b of group; track b.tool) {
           <button
             type="button"
-            class="btn btn-ghost btn-xs btn-square"
-            [class.btn-active]="store.annotationTool() === b.tool"
+            [class]="ui.groupButton(store.annotationTool() === b.tool)"
             [attr.aria-pressed]="store.annotationTool() === b.tool"
             [attr.aria-label]="store.labels()[b.label]"
             [title]="store.labels()[b.label]"
@@ -73,17 +68,16 @@
         }
       </div>
       @if (!last) {
-        <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
+        <div [class]="ui.divider" aria-hidden="true"></div>
       }
     }
 
-    <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
+    <div [class]="ui.divider" aria-hidden="true"></div>
 
     <!-- Stamps: standard, dynamic (who and when), sign here, custom text, image. -->
     <details #stampMenu class="dropdown">
       <summary
-        class="btn btn-ghost btn-xs btn-square"
-        [class.btn-active]="store.annotationTool() === 'stamp'"
+        [class]="ui.button(store.annotationTool() === 'stamp')"
         [attr.aria-label]="store.labels().stamp"
         [title]="store.labels().stamp"
       >
@@ -142,8 +136,7 @@
 
     <button
       type="button"
-      class="btn btn-ghost btn-xs btn-square"
-      [class.btn-active]="store.annotationTool() === 'link'"
+      [class]="ui.button(store.annotationTool() === 'link')"
       [attr.aria-pressed]="store.annotationTool() === 'link'"
       [attr.aria-label]="store.labels().link"
       [title]="store.labels().link"
@@ -155,12 +148,7 @@
 
     <!-- Measurement tools, in the current scale. -->
     <details #measureMenu class="dropdown">
-      <summary
-        class="btn btn-ghost btn-xs btn-square"
-        [class.btn-active]="measuring()"
-        [attr.aria-label]="store.labels().measure"
-        [title]="store.labels().measure"
-      >
+      <summary [class]="ui.button(measuring())" [attr.aria-label]="store.labels().measure" [title]="store.labels().measure">
         <svg lucideRuler [size]="16"></svg>
       </summary>
       <ul class="menu menu-sm dropdown-content z-[40] mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
@@ -185,7 +173,7 @@
     </details>
 
     @if (showsColor()) {
-      <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
+      <div [class]="ui.divider" aria-hidden="true"></div>
       <input
         type="color"
         class="h-6 w-6 shrink-0 cursor-pointer rounded border border-base-300 bg-transparent p-0"
@@ -204,7 +192,7 @@
 
   <!-- Import / export (XFDF, JSON). -->
   <details #fileMenu class="dropdown dropdown-end">
-    <summary class="btn btn-ghost btn-xs btn-square" [attr.aria-label]="store.labels().exportXfdf" [title]="store.labels().exportXfdf">
+    <summary [class]="ui.button()" [attr.aria-label]="store.labels().exportXfdf" [title]="store.labels().exportXfdf">
       <svg lucideFileDown [size]="16"></svg>
     </summary>
     <ul class="menu menu-sm dropdown-content z-[40] mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
@@ -239,7 +227,7 @@
 
   <button
     type="button"
-    class="btn btn-ghost btn-xs btn-square"
+    [class]="ui.button()"
     [attr.aria-label]="undoTitle()"
     [title]="undoTitle() + ' (⌘Z)'"
     [disabled]="!annotations.history().canUndo"
@@ -249,7 +237,7 @@
   </button>
   <button
     type="button"
-    class="btn btn-ghost btn-xs btn-square"
+    [class]="ui.button()"
     [attr.aria-label]="redoTitle()"
     [title]="redoTitle() + ' (⇧⌘Z)'"
     [disabled]="!annotations.history().canRedo"
@@ -257,10 +245,10 @@
   >
     <svg lucideRedo2 [size]="16"></svg>
   </button>
-  <div class="w-px h-5 bg-base-300 mx-1 shrink-0" aria-hidden="true"></div>
+  <div [class]="ui.divider" aria-hidden="true"></div>
   <button
     type="button"
-    class="btn btn-ghost btn-xs btn-square"
+    [class]="ui.button()"
     [attr.aria-label]="store.labels().closeAnnotationToolbar"
     [title]="store.labels().closeAnnotationToolbar"
     (click)="tools.closeBar()"

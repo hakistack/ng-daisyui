@@ -1,6 +1,8 @@
 import { CdkDrag, CdkDragDrop, CdkDragPlaceholder, CdkDragPreview, CdkDropList } from '@angular/cdk/drag-drop';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
+  booleanAttribute,
   Component,
   DestroyRef,
   Directive,
@@ -14,7 +16,10 @@ import {
   viewChild,
 } from '@angular/core';
 import {
+  LucideChevronLeft,
+  LucideChevronRight,
   LucideCopy,
+  LucideLayoutGrid,
   LucideFilePlus,
   LucideFileOutput,
   LucideRedo2,
@@ -95,10 +100,14 @@ export class PdfOrganizerThumbDirective {
  * delete, insert blank pages or pages from another PDF, and extract. Edits
  * apply to a draft with its own undo; Apply makes it one step of the
  * document's history.
+ *
+ * `inline` (the workspace's page grid): no dialog and no draft step — each
+ * edit applies at once as its own step, and undo / redo are the document's.
  */
 @Component({
   selector: 'hk-pdf-page-organizer',
   imports: [
+    NgTemplateOutlet,
     CdkDropList,
     CdkDrag,
     CdkDragPreview,
@@ -113,6 +122,9 @@ export class PdfOrganizerThumbDirective {
     LucideSquarePlus,
     LucideFilePlus,
     LucideFileOutput,
+    LucideLayoutGrid,
+    LucideChevronLeft,
+    LucideChevronRight,
   ],
   templateUrl: './pdf-page-organizer.component.html',
   styles: `
@@ -131,7 +143,7 @@ export class PdfOrganizerThumbDirective {
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'contents' },
+  host: { '[class]': "inline() ? 'flex min-h-0 flex-1 flex-col' : 'contents'" },
 })
 export class PdfPageOrganizerComponent {
   protected readonly store = inject(PdfViewerStore);
@@ -139,6 +151,9 @@ export class PdfPageOrganizerComponent {
   private readonly document = inject(PdfDocumentService);
   private readonly annotations = inject(PdfAnnotationsService);
   private readonly forms = inject(PdfFormsService);
+
+  /** Render in place (the workspace grid view) instead of as a dialog. */
+  readonly inline = input(false, { transform: booleanAttribute });
 
   private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('dialog');
   private readonly grid = viewChild<ElementRef<HTMLElement>>('grid');
@@ -152,6 +167,8 @@ export class PdfPageOrganizerComponent {
   /** The page with the roving tab stop. */
   protected readonly focusUid = signal<number | null>(null);
   private anchor: number | null = null;
+  /** Inline edits being applied, in order. */
+  private applying: Promise<void> = Promise.resolve();
   /** Thumbnail square size (px). */
   protected readonly size = signal(160);
   protected readonly busy = signal(false);
@@ -159,8 +176,8 @@ export class PdfPageOrganizerComponent {
   protected readonly announcement = signal('');
   protected readonly dragging = signal<number | null>(null);
 
-  protected readonly canUndo = computed(() => this.past().length > 0);
-  protected readonly canRedo = computed(() => this.future().length > 0);
+  protected readonly canUndo = computed(() => (this.inline() ? this.annotations.history().canUndo : this.past().length > 0));
+  protected readonly canRedo = computed(() => (this.inline() ? this.annotations.history().canRedo : this.future().length > 0));
   protected readonly changed = computed(() => !sameLayout(this.draft(), this.store.pageLayout()));
   protected readonly selectionCount = computed(() => this.selected().size);
   protected readonly countText = computed(() => {
@@ -174,6 +191,15 @@ export class PdfPageOrganizerComponent {
     if (!this.pages.canExtract()) return l.extractUnavailable;
     return this.changed() ? l.applyBeforeExtract : l.extractPages;
   });
+
+  protected readonly itemClass = computed(() =>
+    this.inline()
+      ? 'bg-base-100 rounded-box border-base-300 flex cursor-grab touch-none select-none flex-col items-center gap-1.5 border p-1.5 shadow-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content aria-selected:ring-2 aria-selected:ring-base-content data-[dimmed]:opacity-40'
+      : 'flex cursor-grab touch-none select-none flex-col items-center gap-1 rounded-box border-2 border-transparent bg-base-200/60 p-2 outline-none transition-colors hover:bg-base-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 aria-selected:border-primary aria-selected:bg-primary/10 data-[dimmed]:opacity-40',
+  );
+  protected readonly thumbClass = computed(() =>
+    this.inline() ? 'bg-white rounded-sm ring-1 ring-base-content/45' : 'bg-white shadow-sm ring-1 ring-base-300',
+  );
 
   /** Thumbnail content per page, keyed by uid (annotations and widgets of the page it is, or copies). */
   protected readonly contents = computed(() => {
@@ -208,7 +234,14 @@ export class PdfPageOrganizerComponent {
   });
 
   constructor() {
+    // Inline, the grid always shows the document's layout (edits apply at once).
     effect(() => {
+      if (!this.inline()) return;
+      const layout = this.store.pageLayout();
+      untracked(() => this.sync(layout));
+    });
+    effect(() => {
+      if (this.inline()) return;
       const open = this.pages.organizerOpen();
       const el = this.dialog()?.nativeElement;
       if (!el) return;
@@ -217,6 +250,27 @@ export class PdfPageOrganizerComponent {
         else if (!open && el.open) el.close();
       });
     });
+  }
+
+  /** Inline: follow the document's layout, keeping the selection on pages that still exist. */
+  private sync(layout: readonly PdfVirtualPage[]): void {
+    const first = this.draft().length === 0;
+    this.draft.set(layout);
+    const alive = new Set(layout.map((p) => p.uid));
+    if (first) {
+      const current = layout[(this.store.state()?.page ?? 1) - 1]?.uid ?? layout[0]?.uid ?? null;
+      this.selected.set(current === null ? new Set() : new Set([current]));
+      this.focusUid.set(current);
+      this.anchor = current;
+      return;
+    }
+    this.selected.update((s) => new Set([...s].filter((u) => alive.has(u))));
+    if (this.focusUid() === null || !alive.has(this.focusUid()!)) this.focusUid.set(layout[0]?.uid ?? null);
+  }
+
+  /** Inline: the page the sheet shows (the grid shows the document's own order). */
+  protected isCurrent(index: number): boolean {
+    return this.store.state()?.page === index + 1;
   }
 
   private start(el: HTMLDialogElement): void {
@@ -239,6 +293,17 @@ export class PdfPageOrganizerComponent {
   private edit(next: readonly PdfVirtualPage[]): void {
     const now = this.draft();
     if (next === now || sameLayout(now, next)) return;
+    if (this.inline()) {
+      this.draft.set(next); // shown at once; the layout that comes back is the same
+      // Applied in order (an insert runs inside `run`, so this can't go through it).
+      this.applying = this.applying
+        .then(() => this.pages.apply(next))
+        .catch((err: unknown) => {
+          this.error.set((err as Error)?.message || String(err));
+          this.draft.set(this.store.pageLayout());
+        });
+      return;
+    }
     this.past.update((p) => [...p, now]);
     this.future.set([]);
     this.draft.set(next);
@@ -249,6 +314,10 @@ export class PdfPageOrganizerComponent {
   }
 
   protected undo(): void {
+    if (this.inline()) {
+      void this.annotations.undo();
+      return;
+    }
     const past = this.past();
     if (!past.length) return;
     this.future.update((f) => [...f, this.draft()]);
@@ -257,6 +326,10 @@ export class PdfPageOrganizerComponent {
   }
 
   protected redo(): void {
+    if (this.inline()) {
+      void this.annotations.redo();
+      return;
+    }
     const future = this.future();
     if (!future.length) return;
     this.past.update((p) => [...p, this.draft()]);
@@ -417,13 +490,18 @@ export class PdfPageOrganizerComponent {
     const draft = this.draft();
     const uid = draft[index]?.uid;
     if (uid === undefined) return;
+    // The viewer's own shortcuts (page keys, document undo) mustn't act on the same key.
+    if (this.handleItemKey(event, index, uid, draft)) event.stopPropagation();
+  }
+
+  private handleItemKey(event: KeyboardEvent, index: number, uid: number, draft: readonly PdfVirtualPage[]): boolean {
     const mod = event.metaKey || event.ctrlKey;
     const columns = this.columns();
     const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns };
     if (event.key in step && event.altKey) {
       event.preventDefault();
       this.moveSelection(step[event.key]);
-      return;
+      return true;
     }
     let to: number | null = null;
     if (event.key in step) to = index + step[event.key];
@@ -440,7 +518,7 @@ export class PdfPageOrganizerComponent {
         this.anchor = target;
       }
       this.focusItem(target);
-      return;
+      return true;
     }
     if (event.key === ' ' || event.key === 'Enter') {
       event.preventDefault();
@@ -453,20 +531,45 @@ export class PdfPageOrganizerComponent {
         });
         this.anchor = uid;
       }
-    } else if (mod && (event.key === 'a' || event.key === 'A')) {
+      return true;
+    }
+    if (mod && (event.key === 'a' || event.key === 'A')) {
       event.preventDefault();
       this.selectAll();
-    } else if (event.key === 'Delete' || event.key === 'Backspace') {
+      return true;
+    }
+    if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       this.remove();
-    } else if (mod && (event.key === 'z' || event.key === 'Z')) {
+      return true;
+    }
+    if (mod && (event.key === 'z' || event.key === 'Z')) {
       event.preventDefault();
       if (event.shiftKey) this.redo();
       else this.undo();
-    } else if (mod && (event.key === 'y' || event.key === 'Y')) {
+      return true;
+    }
+    if (mod && (event.key === 'y' || event.key === 'Y')) {
       event.preventDefault();
       this.redo();
+      return true;
     }
+    return false;
+  }
+
+  /** Whether the selection can move by `delta` positions. */
+  protected canMove(delta: number): boolean {
+    const draft = this.draft();
+    const targets = this.targets();
+    const indices = draft.flatMap((p, i) => (targets.has(p.uid) ? [i] : []));
+    if (!indices.length) return false;
+    const contiguous = indices[indices.length - 1] - indices[0] === indices.length - 1;
+    return delta < 0 ? indices[0] > 0 || !contiguous : indices[indices.length - 1] < draft.length - 1 || !contiguous;
+  }
+
+  /** Move the selection one place earlier or later (the buttons' single-pointer alternative to dragging). */
+  protected moveBy(delta: number): void {
+    this.moveSelection(delta);
   }
 
   /** Move the selection by `delta` positions (Alt + arrows). */

@@ -2,18 +2,18 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { createPdfViewer, HkPdfToolbarDirective, PdfViewerComponent } from '@hakistack/ng-daisyui';
+import { createPdfViewer, HkPdfToolbarDirective, PdfViewerComponent, PdfWorkspaceComponent } from '@hakistack/ng-daisyui';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 
-type PdfViewerTab = 'basic' | 'controller' | 'preview' | 'config';
+type PdfViewerTab = 'basic' | 'controller' | 'preview' | 'config' | 'workspace';
 
 /** Served from the demo app (`public/samples/`): the demo works offline and without CORS (IRS Form W-9, public domain). */
 const SAMPLE_PDF_URL = '/samples/fw9.pdf';
 
 @Component({
   selector: 'app-pdf-viewer-demo',
-  imports: [PdfViewerComponent, HkPdfToolbarDirective, DocSectionComponent, DemoPageComponent],
+  imports: [PdfViewerComponent, PdfWorkspaceComponent, HkPdfToolbarDirective, DocSectionComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="PDF Viewer"
@@ -96,6 +96,20 @@ const SAMPLE_PDF_URL = '/samples/fw9.pdf';
                 @if (basicViewer.state().error; as err) {
                   <div class="text-error"><strong>Error:</strong> {{ err.code }} — {{ err.message }}</div>
                 }
+              </div>
+            </app-doc-section>
+          </div>
+        }
+
+        @if (activeTab() === 'workspace') {
+          <div class="grid gap-6">
+            <app-doc-section
+              title="Workspace"
+              description="The same viewer as a workspace: page thumbnails, outline and attachments on the left, the document in the middle, the selection, document properties, signatures and comments on the right. Same [src], [config] and outputs as hk-pdf-viewer — swap the tag. Side panels hide behind their divider and fold away on narrow containers; the Grid view organizes pages in place."
+              [codeExample]="workspaceCode"
+            >
+              <div class="h-[85vh] min-h-[36rem]">
+                <hk-pdf-workspace [src]="formPdfUrl()" [config]="workspaceViewer.config()" [(formValues)]="workspaceValues" />
               </div>
             </app-doc-section>
           </div>
@@ -253,6 +267,20 @@ export class PdfViewerDemoComponent {
   readonly activeTab = computed(() => (this.featureParam() ?? 'basic') as PdfViewerTab);
 
   readonly pdfUrl = signal<string>(SAMPLE_PDF_URL);
+
+  readonly workspaceViewer = createPdfViewer({
+    zoom: 'fit-width',
+    onError: (error) => console.warn('[pdf-viewer-demo] workspace error:', error),
+  });
+  readonly workspaceValues = signal<Record<string, unknown>>({});
+
+  readonly workspaceCode = `// Same controller and inputs as <hk-pdf-viewer>
+viewer = createPdfViewer({ zoom: 'fit-width' });
+
+// The workspace fills its parent's height
+<div class="h-[85vh]">
+  <hk-pdf-workspace [src]="pdfUrl()" [config]="viewer.config()" />
+</div>`;
 
   readonly basicViewer = createPdfViewer({
     page: 1,

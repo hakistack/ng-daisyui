@@ -7,7 +7,7 @@
     <button
       type="button"
       role="tab"
-      class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+      class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
       [class.text-primary]="(store.state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
       [class.bg-base-100]="(store.state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
       [class.border-b-2]="(store.state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
@@ -22,7 +22,7 @@
     <button
       type="button"
       role="tab"
-      class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+      class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
       [class.text-primary]="store.state()?.sidebarTab === 'bookmarks'"
       [class.bg-base-100]="store.state()?.sidebarTab === 'bookmarks'"
       [class.border-b-2]="store.state()?.sidebarTab === 'bookmarks'"
@@ -37,7 +37,7 @@
     <button
       type="button"
       role="tab"
-      class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+      class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
       [class.text-primary]="store.state()?.sidebarTab === 'annotations'"
       [class.bg-base-100]="store.state()?.sidebarTab === 'annotations'"
       [class.border-b-2]="store.state()?.sidebarTab === 'annotations'"
@@ -52,7 +52,7 @@
     <button
       type="button"
       role="tab"
-      class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+      class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
       [class.text-primary]="store.state()?.sidebarTab === 'attachments'"
       [class.bg-base-100]="store.state()?.sidebarTab === 'attachments'"
       [class.border-b-2]="store.state()?.sidebarTab === 'attachments'"
@@ -68,7 +68,7 @@
       <button
         type="button"
         role="tab"
-        class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+        class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
         [class.text-primary]="store.state()?.sidebarTab === 'signatures'"
         [class.bg-base-100]="store.state()?.sidebarTab === 'signatures'"
         [class.border-b-2]="store.state()?.sidebarTab === 'signatures'"
@@ -163,15 +163,15 @@
           }
         </ul>
       } @else {
-        <div class="text-xs text-base-content/40 italic p-4 text-center">{{ store.labels().loading }}</div>
+        <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().loading }}</div>
       }
     </div>
     @switch (store.state()?.sidebarTab) {
       @case ('bookmarks') {
         @if (store.outline() === null) {
-          <div class="text-xs text-base-content/40 italic p-4 text-center">{{ store.labels().loading }}</div>
+          <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().loading }}</div>
         } @else if (store.outline()!.length === 0) {
-          <div class="text-xs text-base-content/60 italic p-4 text-center">{{ store.labels().noBookmarks }}</div>
+          <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().noBookmarks }}</div>
         } @else {
           <ul class="menu menu-sm w-full p-2">
             @for (node of store.outline()!; track $index) {
@@ -188,9 +188,9 @@
       }
       @case ('attachments') {
         @if (store.attachments() === null) {
-          <div class="text-xs text-base-content/40 italic p-4 text-center">{{ store.labels().loading }}</div>
+          <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().loading }}</div>
         } @else if (store.attachments()!.length === 0) {
-          <div class="text-xs text-base-content/60 italic p-4 text-center">{{ store.labels().noAttachments }}</div>
+          <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().noAttachments }}</div>
         } @else {
           <ul class="flex flex-col p-1">
             @for (att of store.attachments(); track $index) {

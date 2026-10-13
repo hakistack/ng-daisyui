@@ -7,7 +7,7 @@
 
   @if (signatures.digital(); as list) {
     @if (list.length === 0) {
-      <p class="p-2 text-center text-xs text-base-content/60">{{ store.labels().noSignatures }}</p>
+      <p class="p-2 text-center text-xs text-base-content/70">{{ store.labels().noSignatures }}</p>
     }
     <ul class="flex flex-col gap-2">
       @for (s of list; track s.field) {
@@ -61,12 +61,12 @@
 
           @if (s.reason) {
             <span class="text-base-content/80"
-              ><span class="text-base-content/60">{{ store.labels().sigReason }}:</span> {{ s.reason }}</span
+              ><span class="text-base-content/70">{{ store.labels().sigReason }}:</span> {{ s.reason }}</span
             >
           }
           @if (s.location) {
             <span class="text-base-content/80"
-              ><span class="text-base-content/60">{{ store.labels().sigLocation }}:</span> {{ s.location }}</span
+              ><span class="text-base-content/70">{{ store.labels().sigLocation }}:</span> {{ s.location }}</span
             >
           }
           @if (!s.coversWholeDocument) {
@@ -92,11 +92,11 @@
             <div class="mt-1 flex flex-col gap-1 border-l-2 border-base-300 pl-2 text-base-content/80">
               @if (s.certificate; as c) {
                 <div>
-                  <p class="text-base-content/60">{{ store.labels().sigCertificate }}</p>
+                  <p class="text-base-content/70">{{ store.labels().sigCertificate }}</p>
                   <p class="break-words">{{ c.subject.text }}</p>
                 </div>
                 <div>
-                  <p class="text-base-content/60">{{ store.labels().sigIssuer }}</p>
+                  <p class="text-base-content/70">{{ store.labels().sigIssuer }}</p>
                   <p class="break-words">{{ c.selfSigned ? store.labels().sigSelfSigned : c.issuer.text }}</p>
                 </div>
                 <p>{{ validity(s) }}</p>
@@ -112,11 +112,11 @@
               }
               @if (s.contactInfo) {
                 <div>
-                  <p class="text-base-content/60">{{ store.labels().sigContact }}</p>
+                  <p class="text-base-content/70">{{ store.labels().sigContact }}</p>
                   <p class="break-words">{{ s.contactInfo }}</p>
                 </div>
               }
-              <p class="font-mono text-[10px] text-base-content/60">{{ s.field }} · {{ s.subFilter }}</p>
+              <p class="font-mono text-[10px] text-base-content/70">{{ s.field }} · {{ s.subFilter }}</p>
             </div>
           </details>
 
@@ -138,7 +138,7 @@
       }
     </ul>
   } @else {
-    <p class="flex items-center justify-center gap-2 p-2 text-xs text-base-content/60" role="status">
+    <p class="flex items-center justify-center gap-2 p-2 text-xs text-base-content/70" role="status">
       <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
       {{ store.labels().sigVerifying }}
     </p>

@@ -598,7 +598,7 @@ export class PdfAnnotationsService {
   openComments(id: string): void {
     this.select(id);
     this.commentsFocus.set({ id, seq: ++this.focusSeq });
-    this.store.patchState((s) => ({ ...s, sidebarOpen: true, sidebarTab: 'annotations' }));
+    this.store.revealPanel('annotations');
   }
 
   // ── Tool styles ─────────────────────────────────────────────────────────

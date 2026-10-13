@@ -394,6 +394,7 @@ export { CommandStack, type EditorCommand } from './lib/utils/command-stack';
 
 // PDF Viewer
 export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
+export { PdfWorkspaceComponent } from './lib/components/pdf-viewer/workspace/pdf-workspace.component';
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';
 export { registerPdfFont } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
 export {

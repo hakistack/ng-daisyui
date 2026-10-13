@@ -400,6 +400,7 @@ export class App implements OnInit {
             { id: 'controller', label: 'Controller API' },
             { id: 'preview', label: 'Preview Layout' },
             { id: 'config', label: 'Config Variants' },
+            { id: 'workspace', label: 'Workspace' },
           ],
         },
       ],

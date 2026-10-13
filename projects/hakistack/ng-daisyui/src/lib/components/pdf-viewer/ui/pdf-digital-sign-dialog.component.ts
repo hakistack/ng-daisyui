@@ -80,7 +80,7 @@ export class PdfDigitalSignDialogComponent {
         certify: this.certify() || undefined,
       });
       this.signatures.closeDigital();
-      this.store.patchState((s) => ({ ...s, sidebarOpen: true, sidebarTab: 'signatures' }));
+      this.store.revealPanel('signatures');
     } catch (err) {
       this.error.set(this.store.labels().signFailed.replace('{error}', (err as Error)?.message ?? String(err)));
     } finally {

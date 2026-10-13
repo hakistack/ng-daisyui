@@ -1,13 +1,8 @@
-<div
-  class="flex flex-wrap items-center gap-0.5 border-b border-base-300 bg-base-100 px-2 py-1 text-sm"
-  role="toolbar"
-  [attr.aria-label]="store.labels().formDesignToolbar"
->
+<div [class]="ui.bar" role="toolbar" [attr.aria-label]="store.labels().formDesignToolbar">
   @for (t of tools; track t.tool) {
     <button
       type="button"
-      class="btn btn-ghost btn-xs btn-square"
-      [class.btn-active]="designer.tool() === t.tool"
+      [class]="ui.button(designer.tool() === t.tool)"
       [attr.aria-pressed]="designer.tool() === t.tool"
       [attr.aria-label]="store.labels()[t.label]"
       [title]="store.labels()[t.label]"
@@ -54,7 +49,7 @@
   <div class="grow"></div>
   <button
     type="button"
-    class="btn btn-ghost btn-xs btn-square"
+    [class]="ui.button()"
     [attr.aria-label]="store.labels().undo"
     [title]="store.labels().undo + ' (⌘Z)'"
     [disabled]="!designer.history().canUndo"
@@ -64,7 +59,7 @@
   </button>
   <button
     type="button"
-    class="btn btn-ghost btn-xs btn-square"
+    [class]="ui.button()"
     [attr.aria-label]="store.labels().redo"
     [title]="store.labels().redo + ' (⇧⌘Z)'"
     [disabled]="!designer.history().canRedo"
@@ -72,8 +67,8 @@
   >
     <svg lucideRedo2 [size]="16"></svg>
   </button>
-  <div class="mx-1 h-5 w-px shrink-0 bg-base-300" aria-hidden="true"></div>
-  <button type="button" class="btn btn-primary btn-xs" (click)="designer.finish()">
+  <div [class]="ui.divider" aria-hidden="true"></div>
+  <button type="button" [class]="ui.primaryButton" (click)="designer.finish()">
     <svg lucideCheck [size]="14"></svg>
     {{ store.labels().finishDesign }}
   </button>
