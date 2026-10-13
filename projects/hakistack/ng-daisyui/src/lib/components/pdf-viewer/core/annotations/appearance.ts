@@ -1,6 +1,8 @@
 import { ContentBuilder } from '../pdf-writer/content';
 import { PdfDict, PdfName, PdfRef, PdfStream, PdfValue } from '../pdf-writer/objects';
-import type { StandardFont } from '../pdf-writer/standard-fonts';
+import { FontEmbedder } from '../pdf-writer/font-embed';
+import { StandardFont, resolveFont } from '../pdf-writer/standard-fonts';
+import { TrueTypeFont } from '../pdf-writer/truetype';
 import type { HkAnnotation, PdfRect } from './annotation.types';
 import { imageXObject } from './images';
 import { PageSpace } from './page-space';
@@ -26,8 +28,9 @@ export function buildAppearance(
   space: PageSpace,
   addObject: (value: PdfValue) => PdfRef,
   images: Map<string, PdfRef> = new Map(),
+  fonts?: FontEmbedder,
 ): Promise<PdfStream> {
-  return appearanceStream(annotationOps(a), outerBounds(a), space, addObject, images);
+  return appearanceStream(annotationOps(a), outerBounds(a), space, addObject, images, fonts);
 }
 
 /** A form XObject drawing `ops` (displayed-page points) with `box` as its `/BBox`, for any annotation or widget. */
@@ -37,11 +40,13 @@ export async function appearanceStream(
   space: PageSpace,
   addObject: (value: PdfValue) => PdfRef,
   images: Map<string, PdfRef> = new Map(),
+  fonts?: FontEmbedder,
 ): Promise<PdfStream> {
   const bbox = space.rectToUser(box);
+  const embedded = new Map<PdfRef, string>();
   const content = new ContentBuilder();
   const states = new Map<string, { name: string; dict: PdfDict }>();
-  const fonts = new Map<string, StandardFont>();
+  const standardFonts = new Map<string, StandardFont>();
   const xobjects = new Map<string, PdfRef>();
   const [ma, mb, mc, md, me, mf] = space.matrix;
   const up = (y: number) => space.height - y;
@@ -66,14 +71,24 @@ export async function appearanceStream(
       content.transform(r.w, 0, 0, r.h, r.x, up(r.y + r.h)).raw(`/${resource} Do`);
     } else if (op.kind === 'text') {
       const resource = FONT_RESOURCE[op.font];
-      fonts.set(resource, op.font);
+      standardFonts.set(resource, op.font);
       content
         .rect(op.clip.x, up(op.clip.y + op.clip.h), op.clip.w, op.clip.h)
         .clip()
         .endPath();
-      content.beginText().font(resource, op.fontSize).fillColor(hexToRgb(op.color));
+      content.beginText().fillColor(hexToRgb(op.color));
       for (const line of op.lines) {
-        content.raw(`1 0 0 1 ${fmt(line.x)} ${fmt(up(line.y))} Tm`).showText(line.text);
+        content.raw(`1 0 0 1 ${fmt(line.x)} ${fmt(up(line.y))} Tm`);
+        // Each line in the font its layout measured it with: the standard one, or a registered fallback.
+        const resolved = resolveFont(op.font, line.text);
+        if (resolved instanceof TrueTypeFont && fonts) {
+          const ref = fonts.ref(resolved);
+          let name = embedded.get(ref);
+          if (!name) embedded.set(ref, (name = `HkF${embedded.size}`));
+          content.font(name, op.fontSize).raw(`${fonts.hex(resolved, line.text)} Tj`);
+        } else {
+          content.font(resource, op.fontSize).showText(line.text);
+        }
       }
       content.endText();
     } else {
@@ -97,9 +112,10 @@ export async function appearanceStream(
   const resources = new PdfDict();
   if (states.size) resources.set('ExtGState', new PdfDict([...states.values()].map((st): [string, PdfDict] => [st.name, st.dict])));
   if (xobjects.size) resources.set('XObject', new PdfDict([...xobjects]));
-  if (fonts.size) {
+  if (standardFonts.size || embedded.size) {
     const fontDict = new PdfDict();
-    for (const [resource, font] of fonts) fontDict.set(resource, standardFontDict(font));
+    for (const [resource, font] of standardFonts) fontDict.set(resource, standardFontDict(font));
+    for (const [ref, name] of embedded) fontDict.set(name, ref);
     resources.set('Font', fontDict);
   }
   const dict = new PdfDict({

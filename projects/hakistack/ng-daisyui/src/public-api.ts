@@ -395,6 +395,8 @@ export { CommandStack, type EditorCommand } from './lib/utils/command-stack';
 // PDF Viewer
 export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';
+export { registerPdfFont } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
+export type { PdfFontSource } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
 export { HK_PDF_LABELS, provideHkPdfLabels, DEFAULT_PDF_VIEWER_LABELS } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export type { PdfViewerLabels, ResolvedPdfViewerLabels } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export { HkPdfToolbarDirective } from './lib/components/pdf-viewer/pdf-viewer.directives';

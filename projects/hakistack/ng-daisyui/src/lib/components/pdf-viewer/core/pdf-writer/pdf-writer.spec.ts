@@ -347,3 +347,18 @@ describe('standard font metrics', () => {
     expect(wrapText('a\nb', 'Helvetica', 10, 100)).toEqual(['a', 'b']);
   });
 });
+
+describe('font resolution', () => {
+  it('keeps WinAnsi text in the standard font and falls back to a registered font that covers the rest', async () => {
+    const { fitsWinAnsi, registerCustomFont, resolveFont, registeredCustomFonts } = await import('./standard-fonts');
+    expect(fitsWinAnsi('Café – “quotes” €')).toBe(true);
+    expect(fitsWinAnsi('Ελληνικά')).toBe(false);
+    expect(resolveFont('Helvetica', 'Ελληνικά')).toBeNull(); // nothing registered covers it yet
+    const greek = { name: 'TestGreek', covers: (t: string) => /^[\sͰ-Ͽ]*$/.test(t), advance: (t: string, size: number) => t.length * size };
+    registerCustomFont(greek);
+    expect(resolveFont('Helvetica', 'Ελληνικά')).toBe(greek);
+    expect(resolveFont('Helvetica', 'Hello')).toBe('Helvetica');
+    expect(textWidth('Ελληνικά', 'Helvetica', 10)).toBe(80); // measured in the font it will be drawn with
+    expect(registeredCustomFonts().map((f) => f.name)).toContain('TestGreek');
+  });
+});

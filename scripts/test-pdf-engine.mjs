@@ -617,6 +617,101 @@ export { writeDocumentChanges } from ${JSON.stringify(join(lib, 'components/pdf-
     e.close(h2);
   }
 
+  // ── TrueType embedding (subset, Type0, ToUnicode) ────────────────────────
+  const unicodeFontPath = ['/System/Library/Fonts/Supplemental/Arial Unicode.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'].find(
+    (f) => existsSync(f),
+  );
+  if (unicodeFontPath) {
+    console.log('\nembedded TrueType fonts (hk-pdf-writer → PDFium, Poppler)');
+    const font = w.TrueTypeFont.parse('Unicode', new Uint8Array(readFileSync(unicodeFontPath)));
+    w.registerCustomFont(font);
+    const sample = 'Ελληνικά Привет 你好 ñ';
+    // A page whose content draws the sample with the embedded subset.
+    const base = serializePdf({
+      1: '<< /Type /Catalog /Pages 2 0 R >>',
+      2: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      3: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 200] /Resources << >> >>',
+    });
+    const doc = await w.PdfDoc.load(base);
+    const fonts = new w.FontEmbedder(doc);
+    const content = `BT /HkF0 20 Tf 20 100 Td ${fonts.hex(font, sample)} Tj ET`;
+    const stream = doc.add(new w.PdfStream(new w.PdfDict(), new TextEncoder().encode(content)));
+    const [page] = await doc.pages();
+    const pageDict = page.dict.clone();
+    pageDict.set('Contents', stream);
+    pageDict.set('Resources', new w.PdfDict({ Font: new w.PdfDict({ HkF0: fonts.ref(font) }) }));
+    doc.update(page.ref, pageDict);
+    await fonts.finish();
+    const saved = await w.saveIncremental(doc);
+    check(
+      `the subset of a ${(readFileSync(unicodeFontPath).length / 1e6).toFixed(0)} MB font is small (${(saved.length / 1024).toFixed(0)} KB)`,
+      saved.length < 400_000,
+    );
+    const h = e.open(saved, undefined);
+    const text = e
+      .page_text(h, 0)
+      .map((s) => s[0])
+      .join('');
+    check('PDFium extracts the exact Unicode text (ToUnicode, widths, CID→GID)', text.replace(/\s+/g, ' ').trim() === sample);
+    const [rw, rh, px] = e.render(h, 0, 400);
+    let inked = 0;
+    for (let i = 0; i < rw * rh; i++) if (px[i * 4] < 100) inked++;
+    check('PDFium paints the glyphs', inked > 400);
+    e.close(h);
+    if (!spawnSync('pdftotext', ['-v']).error) {
+      const file = join(dir, 'unicode.pdf');
+      writeFileSync(file, saved);
+      const out = spawnSync('pdftotext', [file, '-'], { encoding: 'utf8' });
+      check(
+        'Poppler (pdftotext) extracts the same text, without errors',
+        out.stdout.replace(/\s+/g, ' ').trim() === sample && !/Error/i.test(out.stderr),
+      );
+      const fontsOut = spawnSync('pdffonts', [file], { encoding: 'utf8' }).stdout;
+      check(
+        'Poppler (pdffonts) lists it as an embedded Identity-H CID TrueType subset',
+        /CID TrueType\s+Identity-H\s+yes\s+yes\s+yes/.test(fontsOut),
+      );
+    }
+
+    // A free-text annotation in those scripts falls back to the registered font.
+    const annotated = await w.writeAnnotationChanges(base, new Map(), [
+      {
+        id: 'ft',
+        type: 'freetext',
+        page: 0,
+        rect: { x: 20, y: 20, w: 360, h: 40 },
+        color: '#000000',
+        opacity: 1,
+        contents: sample,
+        font: 'Helvetica',
+        fontSize: 18,
+        fontColor: '#000000',
+        align: 'left',
+        strokeWidth: 0,
+        fill: null,
+      },
+    ]);
+    const h2 = e.open(annotated, undefined);
+    const [aw, , apx] = e.render(h2, 0, 400);
+    let annotInk = 0;
+    for (let y = 20; y < 60; y++) for (let x = 20; x < 380; x++) if (apx[(y * aw + x) * 4] < 100) annotInk++;
+    check('a free-text annotation in Greek, Cyrillic and Chinese paints with the embedded font', annotInk > 300);
+    e.close(h2);
+
+    // Form values outside WinAnsi get real appearances too (no /NeedAppearances fallback).
+    for (const file of corpusForms) {
+      const original = new Uint8Array(readFileSync(join(process.env.PDF_CORPUS, file)));
+      const { model } = await w.readForm(await w.PdfDoc.load(original));
+      const field = model.fields.find((f) => f.kind === 'text' && !f.readOnly && !f.comb && !f.format);
+      if (!field) continue;
+      const filled = await w.writeDocumentChanges(original, { formValues: new Map([[field.name, 'Ωμέγα Жук 中文']]) });
+      check(
+        `${file}: a Unicode value is drawn with the embedded font`,
+        !new TextDecoder('latin1').decode(filled.subarray(original.length)).includes('/NeedAppearances true'),
+      );
+    }
+  }
+
   // ── Part 2: worker protocol ────────────────────────────────────────────
   console.log('\nworker protocol');
   const workerBuild = await build({

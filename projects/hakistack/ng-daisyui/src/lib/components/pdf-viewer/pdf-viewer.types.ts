@@ -1,5 +1,6 @@
 import { Signal, WritableSignal } from '@angular/core';
 import type { HkAnnotation, HkAnnotationInit, PdfMeasureScale } from './core/annotations/annotation.types';
+import type { PdfFontSource } from './core/pdf-writer/fonts';
 
 /** A PDF document source. The component accepts a URL string, an in-memory byte array, or a Blob. */
 export type PdfDocumentSource = string | Uint8Array | Blob;
@@ -148,6 +149,13 @@ export interface PdfViewerConfig {
   readonly annotationMode?: 'edit' | 'review' | 'view';
   /** Users may only change annotations they authored (matched on `annotationAuthor`); others behave as locked. Default `false`. */
   readonly restrictAnnotationsToAuthor?: boolean;
+  /**
+   * TrueType fonts for text the standard PDF fonts can't show (Greek,
+   * Cyrillic, CJK, …) in free text, stamps and form fields: a subset is
+   * embedded on save. Without one, form fields fall back to
+   * `/NeedAppearances` and annotations show `?` for those characters.
+   */
+  readonly fonts?: readonly PdfFontSource[];
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 

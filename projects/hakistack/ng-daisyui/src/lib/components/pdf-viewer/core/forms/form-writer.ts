@@ -3,7 +3,8 @@ import { pageSpace } from '../annotations/annotation-io';
 import { PageSpace } from '../annotations/page-space';
 import { PdfDoc } from '../pdf-writer/document';
 import { PdfDict, PdfName, PdfRef, PdfString, PdfValue } from '../pdf-writer/objects';
-import { winAnsiBytes } from '../pdf-writer/standard-fonts';
+import { FontEmbedder } from '../pdf-writer/font-embed';
+import { StandardFont, resolveFont } from '../pdf-writer/standard-fonts';
 import { widgetOps } from './form-appearance';
 import { FormField, FormValue, sameValue } from './form-model';
 import { readForm } from './form-reader';
@@ -16,7 +17,11 @@ import { readForm } from './form-reader';
  * standard font can't show sets `/NeedAppearances` so viewers redraw it.
  * Returns whether anything changed.
  */
-export async function applyFormValues(doc: PdfDoc, values: ReadonlyMap<string, FormValue>): Promise<boolean> {
+export async function applyFormValues(
+  doc: PdfDoc,
+  values: ReadonlyMap<string, FormValue>,
+  fonts = new FontEmbedder(doc),
+): Promise<boolean> {
   if (values.size === 0) return false;
   const { model, sources } = await readForm(doc);
   const pages = await doc.pages();
@@ -59,9 +64,9 @@ export async function applyFormValues(doc: PdfDoc, values: ReadonlyMap<string, F
       }
       if (field.kind !== 'text' && field.kind !== 'combo' && field.kind !== 'list') continue;
       const space = await spaceOf(widget.page);
-      const ap = doc.add(await appearanceStream(widgetOps(field, widget, value), widget.rect, space, addObject));
+      const ap = doc.add(await appearanceStream(widgetOps(field, widget, value), widget.rect, space, addObject, new Map(), fonts));
       wd.set('AP', new PdfDict({ N: ap }));
-      if (!fitsStandardFont(value)) needAppearances = true;
+      if (!drawable(value, widget.appearance.font)) needAppearances = true;
     }
   }
   for (const { ref, dict } of edits.values()) doc.update(ref, dict);
@@ -102,9 +107,8 @@ function setValue(dict: PdfDict, field: FormField, value: FormValue): void {
   dict.set('V', PdfString.text(value as string));
 }
 
-/** Whether every character of the value is in WinAnsi (what the generated appearance can show). */
-function fitsStandardFont(value: FormValue): boolean {
+/** Whether the generated appearance can show the value: WinAnsi text, or a registered font covers it. */
+function drawable(value: FormValue, font: StandardFont): boolean {
   const text = Array.isArray(value) ? value.join('') : (value as string);
-  const bytes = winAnsiBytes(text);
-  return [...text].every((c, i) => c === '?' || bytes[i] !== 0x3f);
+  return resolveFont(font, text) !== null;
 }

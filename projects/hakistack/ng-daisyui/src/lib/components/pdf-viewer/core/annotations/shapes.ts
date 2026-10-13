@@ -1,4 +1,4 @@
-import { StandardFont, textWidth, wrapText } from '../pdf-writer/standard-fonts';
+import { StandardFont, registeredCustomFonts, textWidth, wrapText } from '../pdf-writer/standard-fonts';
 import type { HkAnnotation, PdfLineEnding, PdfRect, PdfStampAnnotation } from './annotation.types';
 import { measureLabel, measurementOf, polygonCentroid } from './measure';
 
@@ -813,13 +813,16 @@ export function svgPath(segs: readonly PathSeg[]): string {
   return segs.map((s) => (s[0] === 'Z' ? 'Z' : `${s[0]}${(s.slice(1) as number[]).map(r).join(' ')}`)).join('');
 }
 
-/** CSS font family for a standard font. */
+/** CSS font family for a standard font, with the registered fonts ahead of the generic family (for scripts it lacks). */
 export function cssFontFamily(font: StandardFont): string {
+  const extra = registeredCustomFonts()
+    .map((f) => `'${f.name.replace(/'/g, '')}', `)
+    .join('');
   return font.startsWith('Times')
-    ? "'Times New Roman', Times, serif"
+    ? `'Times New Roman', Times, ${extra}serif`
     : font === 'Courier'
-      ? "'Courier New', Courier, monospace"
-      : 'Helvetica, Arial, sans-serif';
+      ? `'Courier New', Courier, ${extra}monospace`
+      : `Helvetica, Arial, ${extra}sans-serif`;
 }
 
 /**

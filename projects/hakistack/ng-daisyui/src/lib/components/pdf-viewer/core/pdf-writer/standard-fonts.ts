@@ -49,8 +49,62 @@ export function charWidth(font: StandardFont, ch: string): number {
   return table[code - 32];
 }
 
-/** Width of `text` set in `font` at `size` points. */
+/** A font registered for text the standard fonts can't show (a TrueType font the consumer supplied). */
+export interface CustomFont {
+  readonly name: string;
+  /** Whether it has a glyph for every character. */
+  covers(text: string): boolean;
+  /** Width of `text` at `size` points. */
+  advance(text: string, size: number): number;
+}
+
+const customFonts: CustomFont[] = [];
+
+/** Register a font used for text outside WinAnsi (looked up in registration order). */
+export function registerCustomFont(font: CustomFont): void {
+  const at = customFonts.findIndex((f) => f.name === font.name);
+  if (at >= 0) customFonts.splice(at, 1, font);
+  else customFonts.push(font);
+}
+
+export function registeredCustomFonts(): readonly CustomFont[] {
+  return customFonts;
+}
+
+/**
+ * The font text is actually set in: the standard font when WinAnsi covers
+ * the text, else the first registered font that has every character
+ * (`null` when none does: the text then shows with `?` replacements).
+ */
+export function resolveFont(font: StandardFont, text: string): StandardFont | CustomFont | null {
+  if (fitsWinAnsi(text)) return font;
+  return customFonts.find((f) => f.covers(text)) ?? null;
+}
+
+/** Whether every character of `text` is in WinAnsiEncoding. */
+export function fitsWinAnsi(text: string): boolean {
+  for (const ch of text) {
+    const code = ch.codePointAt(0)!;
+    if (
+      !(
+        (code >= 0x20 && code <= 0x7e) ||
+        (code >= 0xa0 && code <= 0xff) ||
+        code === 0x0a ||
+        code === 0x0d ||
+        code === 0x09 ||
+        code in WIN_ANSI_HIGH
+      )
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Width of `text` set in `font` at `size` points (in the registered font it falls back to, if any). */
 export function textWidth(text: string, font: StandardFont, size: number): number {
+  const resolved = resolveFont(font, text);
+  if (resolved && typeof resolved !== 'string') return resolved.advance(text, size);
   let total = 0;
   for (const ch of text) total += charWidth(font, ch);
   return (total * size) / 1000;

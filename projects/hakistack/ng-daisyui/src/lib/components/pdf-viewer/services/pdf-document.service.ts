@@ -4,6 +4,7 @@ import { annotationOps, decodeImages, paintOps } from '../core/annotations/shape
 import { writeDocumentChanges } from '../core/forms/document-writer';
 import { widgetOps } from '../core/forms/form-appearance';
 import { PdfDoc } from '../core/pdf-writer/document';
+import { loadPdfFonts } from '../core/pdf-writer/fonts';
 import { BitmapCache, defaultBitmapBudgetBytes } from '../core/bitmap-cache';
 import { isQuarterTurn, normalizeRotation } from '../core/geometry';
 import { PdfPageEntry } from '../core/types';
@@ -48,6 +49,23 @@ export class PdfDocumentService {
       const password = this.store.config().password;
       if (!this.isBrowser) return;
       untracked(() => void this.load(src, password ?? ''));
+    });
+
+    // Register the configured fonts (once each; shared by every viewer).
+    effect(() => {
+      const fonts = this.store.config().fonts;
+      if (!fonts?.length || !this.isBrowser) return;
+      untracked(
+        () =>
+          void loadPdfFonts(fonts, (source, err) =>
+            this.store.reportOperationError({
+              code: 'unknown',
+              message: `Failed to load the font "${source.name}".`,
+              recoverable: true,
+              cause: err,
+            }),
+          ),
+      );
     });
 
     // Sidebar data loads lazily when its tab is open and the data is missing

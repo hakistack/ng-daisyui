@@ -1,4 +1,5 @@
 import { PdfDoc, PdfPageRef, pdfDate } from '../pdf-writer/document';
+import { FontEmbedder } from '../pdf-writer/font-embed';
 import { saveIncremental } from '../pdf-writer/incremental';
 import { PdfDict, PdfName, PdfRef, PdfStream, PdfString, PdfValue } from '../pdf-writer/objects';
 import type { StandardFont } from '../pdf-writer/standard-fonts';
@@ -623,7 +624,9 @@ export async function writeAnnotationChanges(
   now = new Date(),
 ): Promise<Uint8Array> {
   const doc = await PdfDoc.load(bytes);
-  await applyAnnotationChanges(doc, baseline, current, now);
+  const fonts = new FontEmbedder(doc);
+  await applyAnnotationChanges(doc, baseline, current, now, fonts);
+  await fonts.finish();
   return saveIncremental(doc);
 }
 
@@ -633,6 +636,7 @@ export async function applyAnnotationChanges(
   baseline: AnnotationBaseline,
   current: readonly HkAnnotation[],
   now = new Date(),
+  fonts = new FontEmbedder(doc),
 ): Promise<void> {
   const pages = await doc.pages();
   const byPage = new Map<number, HkAnnotation[]>();
@@ -684,7 +688,7 @@ export async function applyAnnotationChanges(
         refs.set(a.id, annots[b.index]);
         continue;
       }
-      const ap = doc.add(await buildAppearance(a, space, addObject, images));
+      const ap = doc.add(await buildAppearance(a, space, addObject, images, fonts));
       if (b) {
         const entry = annots[b.index];
         const dict = annotationDict(a, space, page.ref, ap, await doc.dict(entry), now, pageRefs);

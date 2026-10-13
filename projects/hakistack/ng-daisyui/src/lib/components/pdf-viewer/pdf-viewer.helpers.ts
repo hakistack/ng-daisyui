@@ -112,6 +112,7 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     annotationAuthor: input.annotationAuthor,
     annotationMode: input.annotationMode,
     restrictAnnotationsToAuthor: input.restrictAnnotationsToAuthor,
+    fonts: input.fonts,
     onLoaded: input.onLoaded,
     onPageChange: input.onPageChange,
     onError: input.onError,

@@ -1,6 +1,7 @@
 import { AnnotationBaseline, applyAnnotationChanges } from '../annotations/annotation-io';
 import type { HkAnnotation } from '../annotations/annotation.types';
 import { PdfDoc } from '../pdf-writer/document';
+import { FontEmbedder } from '../pdf-writer/font-embed';
 import { saveIncremental } from '../pdf-writer/incremental';
 import { FormValue } from './form-model';
 import { applyFormValues } from './form-writer';
@@ -16,7 +17,9 @@ export interface DocumentChanges {
 /** Apply form values and annotation changes to `bytes` as one incremental update (the bytes as they are when nothing changes). */
 export async function writeDocumentChanges(bytes: Uint8Array, changes: DocumentChanges, now = new Date()): Promise<Uint8Array> {
   const doc = await PdfDoc.load(bytes, changes.password);
-  if (changes.formValues) await applyFormValues(doc, changes.formValues);
-  if (changes.annotations) await applyAnnotationChanges(doc, changes.annotations.baseline, changes.annotations.current, now);
+  const fonts = new FontEmbedder(doc); // one subset per font across the whole update
+  if (changes.formValues) await applyFormValues(doc, changes.formValues, fonts);
+  if (changes.annotations) await applyAnnotationChanges(doc, changes.annotations.baseline, changes.annotations.current, now, fonts);
+  await fonts.finish();
   return doc.modified ? saveIncremental(doc) : bytes;
 }
