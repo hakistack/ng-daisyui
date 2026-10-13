@@ -5,7 +5,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
-  workers: process.env['CI'] ? 1 : undefined,
+  // Each viewer page runs PDFium (WASM) in workers; more than three such pages at once against the dev
+  // server can crash a renderer ("Page crashed") on a laptop.
+  workers: process.env['CI'] ? 1 : 3,
   reporter: process.env['CI'] ? 'github' : 'html',
   use: {
     baseURL: 'http://localhost:58790',

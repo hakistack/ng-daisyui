@@ -104,7 +104,8 @@ export class PdfWorkspaceToolbarComponent {
     if (this.store.annotationBarOpen()) return { text: l.annotatingBadge, mode: true };
     const count = this.store.pageNumbers().length;
     const name = this.document.fileName();
-    return { text: count ? `${name} · ${l.pageCountBadge.replace('{count}', String(count))}` : name, mode: false };
+    const pages = (count === 1 ? l.pageCountBadgeOne : l.pageCountBadge).replace('{count}', String(count));
+    return { text: count ? `${name} · ${pages}` : name, mode: false };
   });
 
   protected readonly exitLabel = computed(() => this.store.labels().exitMode.replace('{mode}', this.badge().text));

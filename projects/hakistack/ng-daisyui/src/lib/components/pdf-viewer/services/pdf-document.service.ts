@@ -109,8 +109,9 @@ export class PdfDocumentService {
   // ── Loading ─────────────────────────────────────────────────────────────
 
   /** Open `src`; `initialPage` overrides the configured first page (a reload keeps the reader's place). */
-  async load(src: PdfDocumentSource, password: string, initialPage?: number): Promise<void> {
+  async load(src: PdfDocumentSource | null, password: string, initialPage?: number): Promise<void> {
     const store = this.store;
+    store.loadedInfo.set(null);
     this.viewport.resetForDocument();
     store.firstRenderComplete.set(false);
     store.operationError.set(null);

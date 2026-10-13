@@ -6,6 +6,7 @@ import {
   OnInit,
   PLATFORM_ID,
   Provider,
+  computed,
   effect,
   inject,
   input,
@@ -85,9 +86,10 @@ export abstract class PdfViewerHostBase implements OnInit {
   /**
    * The PDF document source. Accepts a URL string, a `Uint8Array` of bytes,
    * or a `Blob` (e.g. from a `<input type="file">`). When this changes the
-   * viewer reloads the document.
+   * viewer reloads the document. (`hk-pdf-workspace` can take a `[documents]`
+   * list instead.)
    */
-  readonly src = input.required<PdfDocumentSource>();
+  readonly src = input<PdfDocumentSource | null>(null);
 
   /**
    * Configuration object — pass `controller.config()` from a `createPdfViewer({...})`
@@ -134,10 +136,10 @@ export abstract class PdfViewerHostBase implements OnInit {
 
   constructor() {
     this.store.connect({
-      src: this.src,
+      src: computed(() => this.currentSource()),
       config: this.config,
       formValues: this.formValues,
-      fileName: this.fileName,
+      fileName: computed(() => this.currentFileName()),
       element: inject<ElementRef<HTMLElement>>(ElementRef).nativeElement,
       events: {
         loaded: (info) => this.loaded.emit(info),
@@ -165,6 +167,16 @@ export abstract class PdfViewerHostBase implements OnInit {
   ngOnInit(): void {
     // Warm the engine (lazy worker + wasm) so it's ready when [src] resolves.
     if (isPlatformBrowser(this.platformId)) this.store.ensureEngine();
+  }
+
+  /** The document to show: `[src]` (the workspace's open list document, when it has a list). */
+  protected currentSource(): PdfDocumentSource | null {
+    return this.src();
+  }
+
+  /** The document's file name: `[fileName]` (or the open list document's). */
+  protected currentFileName(): string | null {
+    return this.fileName();
   }
 
   /** The chrome's answer to `controller.toggleSidebar()` (the workspace toggles its rail). */

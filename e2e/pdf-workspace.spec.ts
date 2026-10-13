@@ -78,6 +78,7 @@ for (const width of [1280, 900, 600, 375]) {
 test('keyboard: the rail has one tab stop and arrows move the page', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1200 });
   await open(page);
+  await page.locator('hk-pdf-workspace-rail').getByRole('button', { name: 'Pages', exact: true }).click();
   const first = page.locator('hk-pdf-workspace [data-thumb-button="1"]');
   await first.focus();
   await page.keyboard.press('ArrowDown');
@@ -98,11 +99,43 @@ test('the side panes hide and come back, and fold on narrow layouts', async ({ p
   await page.getByRole('button', { name: 'Hide side panel' }).click();
   await expect(page.getByRole('button', { name: 'Show side panel' })).toHaveAttribute('aria-expanded', 'false');
   await page.getByRole('button', { name: 'Show side panel' }).click();
-  await expect(page.locator('hk-pdf-workspace [data-thumb-button="1"]')).toBeVisible();
+  await expect(page.locator('hk-pdf-workspace hk-mesa-document-list')).toBeVisible();
 
   await page.setViewportSize({ width: 700, height: 900 });
   const details = page.locator('hk-pdf-workspace hk-mesa-layout button[aria-expanded]', { hasText: 'Details' });
   await expect(details).toBeVisible();
   await details.click();
   await expect(page.locator('hk-pdf-workspace [data-section="document"]')).toBeVisible();
+});
+
+test('the document list: switch documents, and the guard before leaving unsaved edits', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1200 });
+  await open(page);
+  const row = (name: string) => page.locator('hk-pdf-workspace hk-mesa-document-list button', { hasText: name });
+  await expect(row('Service agreement.pdf')).toHaveAttribute('aria-current', 'page');
+  expect(await violations(page)).toEqual([]);
+
+  await row('Invoice 0042.pdf').click();
+  await expect(page.locator('hk-pdf-workspace hk-mesa-toolbar .badge')).toContainText('Invoice 0042.pdf · 1 page');
+
+  // An edit (a square annotation), then another document: confirm first.
+  await page.getByRole('button', { name: 'Annotate' }).click();
+  await page.locator('hk-pdf-workspace hk-pdf-annotation-toolbar').getByRole('button', { name: 'Rectangle' }).click();
+  const box = await page.locator('hk-pdf-workspace .hk-pdf-page').first().boundingBox();
+  await page.mouse.move(box!.x + 80, box!.y + 120);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + 220, box!.y + 220, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator('hk-pdf-workspace hk-mesa-save-status')).toContainText('Unsaved changes');
+
+  await row('Form W-9.pdf').click();
+  const dialog = page.getByRole('dialog', { name: 'Unsaved changes' });
+  await expect(dialog).toBeVisible();
+  expect(await violations(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Keep editing' }).first().click();
+  await expect(row('Invoice 0042.pdf')).toHaveAttribute('aria-current', 'page');
+
+  await row('Form W-9.pdf').click();
+  await page.getByRole('dialog', { name: 'Unsaved changes' }).getByRole('button', { name: 'Discard and open' }).click();
+  await expect(page.locator('hk-pdf-workspace hk-mesa-toolbar .badge')).toContainText('Form W-9.pdf · 6 pages', { timeout: 60_000 });
 });

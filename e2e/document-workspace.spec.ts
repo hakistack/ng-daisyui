@@ -9,7 +9,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 const ROUTE = '/document-viewer/workspace';
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
-const row = (page: Page, name: string) => page.locator('hk-document-workspace hk-document-list button', { hasText: name });
+const row = (page: Page, name: string) => page.locator('hk-document-workspace hk-mesa-document-list button', { hasText: name });
 
 async function open(page: Page, theme = 'light'): Promise<void> {
   await page.addInitScript((t) => localStorage.setItem('hk-demo-theme', t), theme);

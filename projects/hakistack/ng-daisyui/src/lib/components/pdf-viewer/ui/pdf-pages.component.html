@@ -1,7 +1,15 @@
 <!-- Scrollable page area. In the default layout `min-w-0` is critical: without it this flex item won't shrink below
      its content's min-width, so a rotated (wider) page would widen the viewport, which `computeScale` reads back as a
      larger clientWidth — a feedback loop that explodes the zoom. With it, the wide page overflows into a scroll. -->
-<div #scroller [class]="viewportClass()" (pointerdown)="onBackgroundPointerDown()" (pointerup)="tools.onSelectionEnd()">
+<div
+  #scroller
+  [class]="viewportClass()"
+  tabindex="0"
+  role="region"
+  [attr.aria-label]="store.labels().pagesRegionAria"
+  (pointerdown)="onBackgroundPointerDown()"
+  (pointerup)="tools.onSelectionEnd()"
+>
   @if (store.state()?.error; as err) {
     @if (ui.mesa) {
       <div role="alert" class="alert alert-error mx-auto mt-10 max-w-md">

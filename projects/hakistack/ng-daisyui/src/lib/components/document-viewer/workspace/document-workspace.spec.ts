@@ -4,7 +4,7 @@ import { createDocumentEditor } from '../../document-editor/document-editor.help
 import { DocumentViewerHost } from '../document-viewer-host';
 import { DocumentRendererInputs, DocumentSource, DocumentViewerConfig } from '../document-viewer.types';
 import { DocumentWorkspaceComponent } from './document-workspace.component';
-import { WorkspaceDocument } from './document-workspace.types';
+import { WorkspaceDocument } from '../../mesa/workspace-document';
 
 /** `hk-document-workspace` (jsdom): the chrome around the renderers and the host channel they publish through. */
 
@@ -165,7 +165,7 @@ describe('hk-document-workspace', () => {
       await settle();
       return { fixture, el: fixture.nativeElement as HTMLElement, settle };
     }
-    const rows = (el: HTMLElement) => Array.from(el.querySelectorAll<HTMLButtonElement>('hk-document-list [data-document-index]'));
+    const rows = (el: HTMLElement) => Array.from(el.querySelectorAll<HTMLButtonElement>('hk-mesa-document-list [data-document-index]'));
 
     it('lists the documents and opens the first', async () => {
       const { fixture, el } = await renderList();

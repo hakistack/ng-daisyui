@@ -1,7 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  TemplateRef,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
+import { MesaDocumentListComponent, MesaDocumentListLabels } from '../../mesa/mesa-document-list.component';
 import { MesaLayoutComponent, MesaLayoutLabels } from '../../mesa/mesa-layout.component';
+import { WorkspaceDocument } from '../../mesa/workspace-document';
 import { PDF_VIEWER_PROVIDERS, PdfViewerHostBase } from '../pdf-viewer-host';
-import { PdfSidebarTab } from '../pdf-viewer.types';
+import { PdfDocumentSource, PdfSidebarTab } from '../pdf-viewer.types';
 import { MESA_PDF_CHROME, PDF_CHROME } from '../ui/pdf-chrome';
 import { PdfAnnotationDialogsComponent } from '../ui/pdf-annotation-dialogs.component';
 import { PdfAnnotationToolbarComponent } from '../ui/pdf-annotation-toolbar.component';
@@ -23,7 +38,9 @@ import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state'
  * `[(formValues)]` and outputs — swap the tag to switch), laid out as a Mesa
  * work block (docs/design/mesa-style-guide.md):
  *
- * - **Rail** — page thumbnails, the outline, the attachments.
+ * - **Rail** — the document list (`[documents]` + `[(active)]`: a workspace is
+ *   for several documents; one alone is `[src]`), and the open one's page
+ *   thumbnails, outline and attachments.
  * - **Main column** — a toolbar (the document, the save state, paging, zoom,
  *   the view, the tools), the annotation / form design / find bars, and the
  *   pages; or, in the Grid view, every page as a thumbnail to organize
@@ -43,6 +60,7 @@ import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state'
   selector: 'hk-pdf-workspace',
   imports: [
     MesaLayoutComponent,
+    MesaDocumentListComponent,
     PdfWorkspaceToolbarComponent,
     PdfWorkspaceRailComponent,
     PdfWorkspaceInspectorComponent,
@@ -75,8 +93,45 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
   /** `localStorage` key for which side panes are hidden; `null` doesn't remember them. */
   readonly storageKey = input<string | null>('hk-pdf-workspace');
 
+  /**
+   * The PDFs of the workspace: the rail lists them and the one in
+   * `[(active)]` opens (the first, if none is set). Without a list, `[src]`
+   * shows one document.
+   */
+  readonly documents = input<readonly WorkspaceDocument[]>([]);
+  /** The open document's `id` (two-way). */
+  readonly active = model<string | null>(null);
+
   /** An extra rail mode of your own (shown first and selected): `hk-document-workspace` lists its documents there. */
   readonly extraRail = input<PdfWorkspaceRailExtra | null>(null);
+
+  /** The listed document that is open (`null` without a list). */
+  protected readonly activeDoc = computed<WorkspaceDocument | null>(() => {
+    const docs = this.documents();
+    return docs.find((d) => d.id === this.active()) ?? (docs.length ? docs[0] : null);
+  });
+
+  private readonly docListTemplate = viewChild.required<TemplateRef<unknown>>('docList');
+  protected readonly listLabels = computed<MesaDocumentListLabels>(() => {
+    const l = this.store.labels();
+    return { documents: l.documents, listHint: l.documentListHint, pageCountShort: l.pageCountShort };
+  });
+  /** The rail's extra mode: the host's own, or this workspace's document list. */
+  private readonly railExtra = computed<PdfWorkspaceRailExtra | null>(() => {
+    const extra = this.extraRail();
+    if (extra) return extra;
+    const docs = this.documents();
+    if (!docs.length) return null;
+    const l = this.store.labels();
+    return { label: l.documents, title: l.documentsTitle.replace('{count}', String(docs.length)), template: this.docListTemplate() };
+  });
+
+  private static nextId = 0;
+  protected readonly uid = `hk-pdf-ws-${++PdfWorkspaceComponent.nextId}`;
+
+  /** A document waiting for "discard and open". */
+  protected readonly pendingOpen = signal<string | null>(null);
+  private readonly confirmDialog = viewChild<ElementRef<HTMLDialogElement>>('confirm');
 
   private readonly layout = viewChild(MesaLayoutComponent);
 
@@ -96,8 +151,35 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
   constructor() {
     super();
     effect(() => this.ws.layout.set(this.layout() ?? null));
+    // Another document opens clean: no tool, no find, the pages view.
+    let lastDoc: WorkspaceDocument | null = null;
     effect(() => {
-      const extra = this.extraRail();
+      const doc = this.activeDoc();
+      untracked(() => {
+        if (lastDoc && doc !== lastDoc) {
+          this.tools.closeBar();
+          this.find.closeBar();
+          this.ws.view.set('sheet');
+        }
+        lastDoc = doc;
+      });
+    });
+    // A list with nothing open opens its first document.
+    effect(() => {
+      const docs = this.documents();
+      if (docs.length && !docs.some((d) => d.id === this.active())) untracked(() => this.active.set(docs[0].id));
+    });
+    effect(() => {
+      const open = this.pendingOpen() !== null;
+      const dialog = this.confirmDialog()?.nativeElement;
+      if (!dialog) return;
+      untracked(() => {
+        if (open && !dialog.open) dialog.showModal?.();
+        else if (!open && dialog.open) dialog.close?.();
+      });
+    });
+    effect(() => {
+      const extra = this.railExtra();
       untracked(() => {
         const had = this.ws.extraRail() !== null;
         this.ws.extraRail.set(extra);
@@ -136,6 +218,31 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
     effect(() => {
       if (this.designer.active()) untracked(() => this.ws.view.set('sheet'));
     });
+  }
+
+  protected override currentSource(): PdfDocumentSource | null {
+    return this.activeDoc()?.src ?? this.src();
+  }
+
+  protected override currentFileName(): string | null {
+    return this.activeDoc()?.name ?? this.fileName();
+  }
+
+  /** Open a listed document; with unsaved changes in the open one, ask first. */
+  protected openDocument(id: string): void {
+    if (id === this.activeDoc()?.id) return;
+    if (this.store.dirty()) this.pendingOpen.set(id);
+    else this.active.set(id);
+  }
+
+  protected confirmOpen(): void {
+    const id = this.pendingOpen();
+    this.pendingOpen.set(null);
+    if (id) this.active.set(id);
+  }
+
+  protected cancelOpen(): void {
+    this.pendingOpen.set(null);
   }
 
   protected override toggleSidebar(): void {

@@ -20,9 +20,12 @@ import { PdfFormDesignLayerComponent } from './pdf-form-design-layer.component';
 import { PdfFormDesignerService } from '../services/pdf-form-designer.service';
 import { PDF_CHROME } from './pdf-chrome';
 
+/** The scroller is focusable (keyboard scrolling, WCAG 2.1.1), so it shows a focus ring. */
+const FOCUS_RING = 'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-base-content';
+
 const VIEWPORT_CLASSES = {
-  default: 'hk-pdf-viewport relative flex-1 min-h-0 min-w-0 overflow-auto bg-base-200 p-4',
-  preview: 'hk-pdf-viewport hk-pdf-preview-viewport relative overflow-auto bg-base-200/30 rounded-box border border-base-300 p-4',
+  default: `hk-pdf-viewport relative flex-1 min-h-0 min-w-0 overflow-auto bg-base-200 p-4 ${FOCUS_RING}`,
+  preview: `hk-pdf-viewport hk-pdf-preview-viewport relative overflow-auto bg-base-200/30 rounded-box border border-base-300 p-4 ${FOCUS_RING}`,
 } as const;
 
 /**

@@ -772,6 +772,26 @@ export interface PdfViewerLabels {
   docNoForm?: string;
   /** Default: "{count} pages" — Toolbar badge page count. */
   pageCountBadge?: string;
+  /** Default: "{count} page" — Toolbar badge page count, for one page. */
+  pageCountBadgeOne?: string;
+  /** Default: "Pages" — Accessible name of the scrollable page area. */
+  pagesRegionAria?: string;
+  /** Default: "Documents" — The workspace document list (rail mode and accessible name). */
+  documents?: string;
+  /** Default: "Documents · {count}" — Rail heading over the document list. */
+  documentsTitle?: string;
+  /** Default: "Arrow keys move between documents; Enter opens one." */
+  documentListHint?: string;
+  /** Default: "{count} p." — Page count in a document row. */
+  pageCountShort?: string;
+  /** Default: "Unsaved changes" — Confirmation before leaving an edited document. */
+  unsavedTitle?: string;
+  /** Default: "“{name}” has unsaved changes. Opening another document discards them." */
+  unsavedBody?: string;
+  /** Default: "Keep editing" */
+  keepEditing?: string;
+  /** Default: "Discard and open" */
+  discardAndOpen?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -1151,6 +1171,16 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   docFormFields: '{count} fields',
   docNoForm: 'None',
   pageCountBadge: '{count} pages',
+  pageCountBadgeOne: '{count} page',
+  pagesRegionAria: 'Pages',
+  documents: 'Documents',
+  documentsTitle: 'Documents · {count}',
+  documentListHint: 'Arrow keys move between documents; Enter opens one.',
+  pageCountShort: '{count} p.',
+  unsavedTitle: 'Unsaved changes',
+  unsavedBody: '“{name}” has unsaved changes. Opening another document discards them.',
+  keepEditing: 'Keep editing',
+  discardAndOpen: 'Discard and open',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');

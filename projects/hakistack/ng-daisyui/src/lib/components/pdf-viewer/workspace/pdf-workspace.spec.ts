@@ -9,6 +9,7 @@ import { PdfDocumentSource, PdfViewerConfig } from '../pdf-viewer.types';
 import { PdfPagesService } from '../services/pdf-pages.service';
 import { PdfAnnotationsService } from '../services/pdf-annotations.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
+import { WorkspaceDocument } from '../../mesa/workspace-document';
 import { PdfWorkspaceComponent } from './pdf-workspace.component';
 
 /** `hk-pdf-workspace` (jsdom): the same viewer behind the Mesa workspace chrome. */
@@ -75,6 +76,29 @@ class WorkspaceHost {
 })
 class ExtraRailHost {
   readonly src = signal<PdfDocumentSource>(threePages());
+  readonly config = signal<PdfViewerConfig>({});
+}
+
+/** One page "Solo". */
+function onePage(): Uint8Array {
+  return serialize({
+    1: '<< /Type /Catalog /Pages 2 0 R >>',
+    2: '<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>',
+    3: '<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>',
+    4: stream('BT 10 10 Td (Solo) Tj ET'),
+  });
+}
+
+@Component({
+  imports: [PdfWorkspaceComponent],
+  template: `<hk-pdf-workspace [documents]="documents" [(active)]="active" [config]="config()" [storageKey]="null" />`,
+})
+class ListHost {
+  readonly documents: WorkspaceDocument[] = [
+    { id: 'three', name: 'Three.pdf', src: threePages(), description: 'Contracts', pages: 3 },
+    { id: 'one', name: 'One.pdf', src: onePage() },
+  ];
+  readonly active = signal<string | null>(null);
   readonly config = signal<PdfViewerConfig>({});
 }
 
@@ -265,5 +289,76 @@ describe('hk-pdf-workspace', () => {
     await settle(fixture);
     expect(el.querySelector('[data-extra]')).toBeNull();
     expect(el.querySelectorAll('[data-thumb-button]').length).toBe(3);
+  });
+
+  describe('with a document list', () => {
+    async function loadList() {
+      const fixture = TestBed.createComponent(ListHost);
+      const viewer = createPdfViewer({ zoom: 1 });
+      fixture.componentInstance.config.set(viewer.config());
+      await settle(fixture, () => viewer.state().numPages === 3 && viewer.getAnnotations().length > 0);
+      const store = fixture.debugElement.query(By.directive(PdfWorkspaceComponent)).injector.get(PdfViewerStore);
+      return { fixture, viewer, store, el: fixture.nativeElement as HTMLElement };
+    }
+    const rows = (el: HTMLElement) => Array.from(el.querySelectorAll<HTMLButtonElement>('hk-mesa-document-list [data-document-index]'));
+
+    it('lists the documents as the first rail mode and opens the first', async () => {
+      const { fixture, el, viewer } = await loadList();
+      expect(fixture.componentInstance.active()).toBe('three');
+      expect(rows(el).map((r) => r.querySelector('.line-clamp-2')?.textContent?.trim())).toEqual(['Three.pdf', 'One.pdf']);
+      expect(rows(el)[0].textContent).toContain('PDF · Contracts · 3 p.');
+      expect(rows(el)[0].getAttribute('aria-current')).toBe('page');
+      const modes = Array.from(el.querySelectorAll<HTMLButtonElement>('hk-pdf-workspace-rail .join button')).map((b) =>
+        b.textContent?.trim(),
+      );
+      expect(modes).toEqual(['Documents', 'Pages']);
+      expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('Three.pdf · 3 pages');
+      expect(viewer.state().numPages).toBe(3);
+    });
+
+    it('opens another document (two-way), with the same controller', async () => {
+      const { fixture, el, viewer } = await loadList();
+      rows(el)[1].click();
+      await settle(fixture, () => viewer.state().numPages === 1);
+      expect(fixture.componentInstance.active()).toBe('one');
+      expect(viewer.state().numPages).toBe(1);
+      expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('One.pdf · 1 page');
+      expect(rows(el)[1].getAttribute('aria-current')).toBe('page');
+    });
+
+    it('asks before leaving a document with unsaved edits', async () => {
+      const { fixture, el, viewer, store } = await loadList();
+      HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+      };
+      HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+        this.removeAttribute('open');
+      };
+      await viewer.deleteAnnotation(viewer.getAnnotations()[0].id);
+      await settle(fixture, () => store.dirty());
+      expect(store.dirty()).toBe(true);
+
+      rows(el)[1].click();
+      await settle(fixture);
+      expect(fixture.componentInstance.active()).toBe('three');
+      const dialog = el.querySelector<HTMLDialogElement>('dialog[open]');
+      expect(dialog?.textContent).toContain('“Three.pdf” has unsaved changes');
+
+      Array.from(dialog!.querySelectorAll('button'))
+        .find((b) => b.textContent?.trim() === 'Keep editing')!
+        .click();
+      await settle(fixture);
+      expect(fixture.componentInstance.active()).toBe('three');
+      expect(el.querySelector('dialog[open]')).toBeNull();
+
+      rows(el)[1].click();
+      await settle(fixture);
+      Array.from(el.querySelectorAll<HTMLButtonElement>('dialog[open] button'))
+        .find((b) => b.textContent?.trim() === 'Discard and open')!
+        .click();
+      await settle(fixture, () => viewer.state().numPages === 1);
+      expect(fixture.componentInstance.active()).toBe('one');
+      expect(store.dirty()).toBe(false);
+    });
   });
 });

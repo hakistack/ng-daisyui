@@ -320,7 +320,7 @@ export type {
 // other renderers (text, image, pdf) are lightweight JS-only.
 export { DocumentViewerComponent } from './lib/components/document-viewer/document-viewer.component';
 export { DocumentWorkspaceComponent } from './lib/components/document-viewer/workspace/document-workspace.component';
-export type { WorkspaceDocument } from './lib/components/document-viewer/workspace/document-workspace.types';
+export type { WorkspaceDocument } from './lib/components/mesa/workspace-document';
 export { DocumentViewerHost } from './lib/components/document-viewer/document-viewer-host';
 export type { DocumentSection, DocumentMetadataEntry } from './lib/components/document-viewer/document-viewer-host';
 export {

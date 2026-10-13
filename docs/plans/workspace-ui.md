@@ -403,3 +403,17 @@ hoja de contactos cruzadas, etiquetas, verificación) es específico de esa app 
 workspaces son genéricos; una app lo construye encima con `WorkspaceDocument.thumbnail` / `description`,
 `[extraRail]` y `DocumentViewerHost`. Ver también [`page-workspace.md`](page-workspace.md) (informe previo, no se
 implementará en la librería).
+
+### W3c ✅ Un workspace es para varios documentos
+- `hk-pdf-workspace` también toma `[documents]` + `[(active)]` (PDFs): la lista es el primer modo del rail
+  («Documentos | Páginas | Índice | Adjuntos»), el mismo controlador sirve para todos, y abrir otro con cambios sin
+  guardar pide confirmación. Al cambiar de documento se cierran las herramientas y la búsqueda, y vuelve la vista Hoja.
+  `[src]` sigue sirviendo para un solo documento.
+- La lista (`hk-mesa-document-list`) y `WorkspaceDocument` pasan a `components/mesa/`: las comparten los dos
+  workspaces, sin que el visor PDF dependa del de documentos.
+- La base común obtiene el documento con `currentSource()` / `currentFileName()` (sobrescribibles); `[src]` deja de
+  ser obligatorio.
+- El área de páginas es enfocable (`tabindex="0"`, `role="region"`, anillo de foco): axe
+  `scrollable-region-focusable` con PDFs sin campos. Aplica también al visor clásico.
+- Demo: tres PDFs (`public/samples/service-agreement.pdf` e `invoice-0042.pdf`, generados, más el W-9).
+- Playwright local con 3 workers: más páginas con PDFium a la vez contra el dev server tumbaban un renderer.

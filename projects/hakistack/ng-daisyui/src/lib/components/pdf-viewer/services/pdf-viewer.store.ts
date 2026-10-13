@@ -56,7 +56,7 @@ export interface PdfViewerEvents {
 
 /** What the viewer component hands the store: its inputs, host element and outputs. */
 export interface PdfViewerHost {
-  readonly src: Signal<PdfDocumentSource>;
+  readonly src: Signal<PdfDocumentSource | null>;
   readonly config: Signal<PdfViewerConfig>;
   readonly formValues: ModelSignal<Record<string, unknown>>;
   /** The host's explicit file name, if any. */

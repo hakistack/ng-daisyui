@@ -33,8 +33,8 @@ import { DocumentUnsupportedRenderer } from '../renderers/unsupported.renderer';
 import { formatBytes } from '../../../utils/format-bytes';
 import { MesaStateComponent } from '../../mesa/mesa-state.component';
 import { PdfWorkspaceRailExtra } from '../../pdf-viewer/workspace/pdf-workspace.state';
-import { DocumentListComponent } from './document-list.component';
-import { WorkspaceDocument } from './document-workspace.types';
+import { MesaDocumentListComponent } from '../../mesa/mesa-document-list.component';
+import { WorkspaceDocument } from '../../mesa/workspace-document';
 import {
   DEFAULT_DOCUMENT_WORKSPACE_LABELS,
   HK_DOCUMENT_WORKSPACE_LABELS,
@@ -70,7 +70,7 @@ const ZOOM_STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
     NgComponentOutlet,
     NgTemplateOutlet,
     MesaStateComponent,
-    DocumentListComponent,
+    MesaDocumentListComponent,
     MesaLayoutComponent,
     MesaToolbarComponent,
     PdfWorkspaceComponent,
@@ -94,6 +94,11 @@ export class DocumentWorkspaceComponent {
   protected readonly uid = ++DocumentWorkspaceComponent.nextId;
   private readonly userLabels = inject(HK_DOCUMENT_WORKSPACE_LABELS, { optional: true });
   protected readonly labels: ResolvedDocumentWorkspaceLabels = { ...DEFAULT_DOCUMENT_WORKSPACE_LABELS, ...this.userLabels };
+  protected readonly listLabels = {
+    documents: this.labels.documents,
+    listHint: this.labels.listHint,
+    pageCountShort: this.labels.pageCountShort,
+  };
 
   /** The document to show (URL, raw bytes, or a Blob/File), when there is no `[documents]` list. */
   readonly src = input<DocumentSource | null>(null);

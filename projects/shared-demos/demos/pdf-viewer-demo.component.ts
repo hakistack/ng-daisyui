@@ -2,7 +2,13 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { createPdfViewer, HkPdfToolbarDirective, PdfViewerComponent, PdfWorkspaceComponent } from '@hakistack/ng-daisyui';
+import {
+  createPdfViewer,
+  HkPdfToolbarDirective,
+  PdfViewerComponent,
+  PdfWorkspaceComponent,
+  WorkspaceDocument,
+} from '@hakistack/ng-daisyui';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 
@@ -105,11 +111,12 @@ const SAMPLE_PDF_URL = '/samples/fw9.pdf';
           <div class="grid gap-6">
             <app-doc-section
               title="Workspace"
-              description="The same viewer as a workspace: page thumbnails, outline and attachments on the left, the document in the middle, the selection, document properties, signatures and comments on the right. Same [src], [config] and outputs as hk-pdf-viewer — swap the tag. Side panels hide behind their divider and fold away on narrow containers; the Grid view organizes pages in place."
+              description="A workspace is for several documents: the rail lists them (and the open one's pages, outline and attachments), the document is in the middle, and the selection, its properties, signatures and comments are on the right. Same [config] controller and outputs as hk-pdf-viewer; [documents] + [(active)] choose what opens. Switching away from unsaved edits asks first. Side panels hide behind their divider and fold away on narrow containers; the Grid view organizes pages in place."
               [codeExample]="workspaceCode"
             >
+              <p class="text-base-content/70 mb-3 text-sm">Open: {{ workspaceActive() }}</p>
               <div class="h-[85vh] min-h-[36rem]">
-                <hk-pdf-workspace [src]="formPdfUrl()" [config]="workspaceViewer.config()" [(formValues)]="workspaceValues" />
+                <hk-pdf-workspace [documents]="workspaceDocs" [(active)]="workspaceActive" [config]="workspaceViewer.config()" />
               </div>
             </app-doc-section>
           </div>
@@ -272,14 +279,25 @@ export class PdfViewerDemoComponent {
     zoom: 'fit-width',
     onError: (error) => console.warn('[pdf-viewer-demo] workspace error:', error),
   });
-  readonly workspaceValues = signal<Record<string, unknown>>({});
+  readonly workspaceDocs: WorkspaceDocument[] = [
+    { id: 'agreement', name: 'Service agreement.pdf', src: '/samples/service-agreement.pdf', description: 'Contracts', pages: 3 },
+    { id: 'w9', name: 'Form W-9.pdf', src: SAMPLE_PDF_URL, description: 'Taxes · fillable form', pages: 6 },
+    { id: 'invoice', name: 'Invoice 0042.pdf', src: '/samples/invoice-0042.pdf', description: 'Billing · October', pages: 1 },
+  ];
+  readonly workspaceActive = signal<string | null>('agreement');
 
-  readonly workspaceCode = `// Same controller and inputs as <hk-pdf-viewer>
+  readonly workspaceCode = `// Same controller as <hk-pdf-viewer>
 viewer = createPdfViewer({ zoom: 'fit-width' });
 
-// The workspace fills its parent's height
+documents: WorkspaceDocument[] = [
+  { id: 'agreement', name: 'Service agreement.pdf', src: '/files/agreement.pdf', description: 'Contracts', pages: 3 },
+  { id: 'w9', name: 'Form W-9.pdf', src: '/files/fw9.pdf', description: 'Taxes' },
+];
+active = signal<string | null>('agreement');
+
+<!-- Fills its parent's height -->
 <div class="h-[85vh]">
-  <hk-pdf-workspace [src]="pdfUrl()" [config]="viewer.config()" />
+  <hk-pdf-workspace [documents]="documents" [(active)]="active" [config]="viewer.config()" />
 </div>`;
 
   readonly basicViewer = createPdfViewer({
