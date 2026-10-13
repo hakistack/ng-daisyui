@@ -34,6 +34,7 @@ import { PdfFindService } from './services/pdf-find.service';
 import { PdfFormsService } from './services/pdf-forms.service';
 import { PdfLayersService } from './services/pdf-layers.service';
 import { PdfPageDataService } from './services/pdf-page-data.service';
+import { PdfPagesService } from './services/pdf-pages.service';
 import { PdfThumbnailsService } from './services/pdf-thumbnails.service';
 import { PdfViewerStore, providePdfBitmapCache } from './services/pdf-viewer.store';
 import { PdfViewportService } from './services/pdf-viewport.service';
@@ -42,6 +43,7 @@ import { PdfAnnotationPanelComponent } from './ui/pdf-annotation-panel.component
 import { PdfAnnotationToolbarComponent } from './ui/pdf-annotation-toolbar.component';
 import { PdfFindBarComponent } from './ui/pdf-find-bar.component';
 import { PdfPagesComponent } from './ui/pdf-pages.component';
+import { PdfPageOrganizerComponent } from './ui/pdf-page-organizer.component';
 import { PdfSidebarComponent } from './ui/pdf-sidebar.component';
 import { PdfTextEditorComponent } from './ui/pdf-text-editor.component';
 import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
@@ -96,6 +98,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfFindBarComponent,
     PdfSidebarComponent,
     PdfPagesComponent,
+    PdfPageOrganizerComponent,
     PdfTextEditorComponent,
   ],
   templateUrl: './pdf-viewer.component.html',
@@ -116,6 +119,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfAnnotationsService,
     PdfAnnotationDialogsService,
     PdfAnnotationToolsService,
+    PdfPagesService,
     PdfDocumentService,
   ],
   host: {
@@ -140,6 +144,7 @@ export class PdfViewerComponent implements OnInit {
   private readonly annotations = inject(PdfAnnotationsService);
   private readonly forms = inject(PdfFormsService);
   private readonly signatures = inject(PdfSignaturesService);
+  private readonly pages = inject(PdfPagesService);
   protected readonly designer = inject(PdfFormDesignerService);
 
   /**
@@ -248,7 +253,7 @@ export class PdfViewerComponent implements OnInit {
   private attachController(internal: PdfViewerInternalApi): void {
     this.unbindController?.();
     this.store.internal = internal;
-    const { viewport, document: doc, find, tools, store, annotations, forms, signatures } = this;
+    const { viewport, document: doc, find, tools, store, annotations, forms, signatures, pages } = this;
     this.unbindController = internal.bind({
       goToPage: (page) => viewport.goToPage(page),
       nextPage: () => viewport.nextPage(),
@@ -286,6 +291,13 @@ export class PdfViewerComponent implements OnInit {
       deletePage: (pageNumber) => doc.deletePage(pageNumber),
       insertBlankPage: (atPageNumber) => doc.insertBlankPage(atPageNumber),
       rotatePage: (pageNumber, delta) => doc.rotatePage(pageNumber, delta),
+      rotatePages: (pageNumbers, delta) => pages.rotate(pageNumbers, delta),
+      deletePages: (pageNumbers) => pages.delete(pageNumbers),
+      duplicatePages: (pageNumbers) => pages.duplicate(pageNumbers),
+      movePages: (pageNumbers, to) => pages.move(pageNumbers, to),
+      importPages: (source, options) => pages.import(source, options),
+      extractPages: (pageNumbers) => doc.extractPages(pageNumbers),
+      organizePages: () => pages.organizerOpen.set(pages.canOrganize()),
       getSignatures: () => signatures.digital() ?? [],
       signDigitally: (options) => doc.signDigitally(options),
     });

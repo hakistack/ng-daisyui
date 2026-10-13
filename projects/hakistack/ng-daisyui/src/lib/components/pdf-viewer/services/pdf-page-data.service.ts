@@ -41,11 +41,12 @@ export class PdfPageDataService {
   /** A page's text segments (reading order), or `null` when extraction fails. */
   async segments(pageNumber: number): Promise<PdfTextSegment[] | null> {
     const session = this.store.session();
-    if (!session) return null;
+    const page = this.store.findPage(pageNumber);
+    if (!session || !page) return null;
     const cached = this.segmentsCache.get(pageNumber);
     if (cached) return cached;
     try {
-      const segs = await session.engine.pageText(session.doc, pageNumber - 1);
+      const segs = await session.engine.pageText(page.doc, page.index);
       this.segmentsCache.set(pageNumber, segs);
       return segs;
     } catch {
@@ -53,14 +54,25 @@ export class PdfPageDataService {
     }
   }
 
-  /** A page's link rects (stable for the document's lifetime). */
+  /**
+   * A page's link rects. A link into the document targets the page showing
+   * that page now (dropped when it was deleted); one from an imported page
+   * can't follow it into this document, so only its web links stay.
+   */
   async links(pageNumber: number): Promise<PdfLinkRect[]> {
     const session = this.store.session();
-    if (!session) return [];
+    const page = this.store.findPage(pageNumber);
+    if (!session || !page) return [];
     const cached = this.linksCache.get(pageNumber);
     if (cached) return cached;
     try {
-      const links = await session.engine.pageLinks(session.doc, pageNumber - 1);
+      const fromDocument = page.doc === session.doc;
+      const targets = this.store.documentPageNumbers();
+      const links = (await session.engine.pageLinks(page.doc, page.index)).flatMap((l) => {
+        if (l.pageIndex < 0) return l.uri ? [l] : [];
+        const target = fromDocument ? targets.get(l.pageIndex) : undefined;
+        return target === undefined ? [] : [{ ...l, pageIndex: target - 1 }];
+      });
       this.linksCache.set(pageNumber, links);
       return links;
     } catch {
@@ -98,23 +110,34 @@ export class PdfPageDataService {
     const missing = pageNumbers.filter((n) => !this.textIndexes.has(n));
     const session = this.store.session();
     if (missing.length === 0 || !session) return;
-    try {
-      const texts = await session.engine.pagesText(
-        session.doc,
-        missing.map((n) => n - 1),
-        priority,
-      );
-      if (this.store.session()?.doc !== session.doc) return; // document swapped meanwhile
-      missing.forEach((pageNumber, i) => {
-        this.segmentsCache.set(pageNumber, texts[i]);
-        this.indexPageText(
-          pageNumber,
-          texts[i].map((s) => s.text),
-        );
-      });
-    } catch {
-      /* leave unindexed */
+    // One round-trip per source document the pages come from.
+    const bySource = new Map<number, number[]>();
+    for (const n of missing) {
+      const doc = this.store.findPage(n)?.doc;
+      if (doc !== undefined) bySource.set(doc, [...(bySource.get(doc) ?? []), n]);
     }
+    const token = this.store.loadToken;
+    await Promise.all(
+      [...bySource].map(async ([doc, numbers]) => {
+        try {
+          const texts = await session.engine.pagesText(
+            doc,
+            numbers.map((n) => this.store.findPage(n)!.index),
+            priority,
+          );
+          if (this.store.loadToken !== token) return; // document or pages changed meanwhile
+          numbers.forEach((pageNumber, i) => {
+            this.segmentsCache.set(pageNumber, texts[i]);
+            this.indexPageText(
+              pageNumber,
+              texts[i].map((s) => s.text),
+            );
+          });
+        } catch {
+          /* leave unindexed */
+        }
+      }),
+    );
   }
 
   /** Whether every page of the document is indexed. */
@@ -160,7 +183,13 @@ export class PdfPageDataService {
     }
     try {
       const tree = await session.engine.outline(session.doc);
-      const toNode = (n: PdfOutlineNode): unknown => ({ title: n.title, pageIndex: n.pageIndex, items: n.children.map(toNode) });
+      // Destinations are pages of the document: point them at where those pages are now (-1 when deleted).
+      const targets = this.store.documentPageNumbers();
+      const toNode = (n: PdfOutlineNode): unknown => ({
+        title: n.title,
+        pageIndex: n.pageIndex < 0 ? -1 : (targets.get(n.pageIndex) ?? 0) - 1,
+        items: n.children.map(toNode),
+      });
       this.store.outline.set(tree.map(toNode));
     } catch {
       this.store.outline.set([]);

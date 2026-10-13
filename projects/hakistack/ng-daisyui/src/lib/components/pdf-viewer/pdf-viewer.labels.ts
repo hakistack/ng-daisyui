@@ -616,6 +616,80 @@ export interface PdfViewerLabels {
   signFailed?: string;
   /** Default: "The document is signed as it is now, unsaved changes included. Later changes show as made after signing." */
   digitalSignHint?: string;
+
+  // Page organizer
+  /** Default: "Organize pages" */
+  organizePages?: string;
+  /** Default: "Drag pages to reorder them. Ctrl/⌘ or Shift selects several; Alt + arrow keys move the selection." */
+  organizeHint?: string;
+  /** Default: "Rotate left" */
+  rotateLeft?: string;
+  /** Default: "Rotate right" */
+  rotateRight?: string;
+  /** Default: "Duplicate" */
+  duplicatePages?: string;
+  /** Default: "Delete" */
+  deletePages?: string;
+  /** Default: "Insert blank page" */
+  insertBlankPage?: string;
+  /** Default: "Insert from PDF…" */
+  importPdfPages?: string;
+  /** Default: "Extract" */
+  extractPages?: string;
+  /** Default: "Select all" */
+  selectAllPages?: string;
+  /** Default: "Clear selection" */
+  clearPageSelection?: string;
+  /** Default: "{count} selected" — `{count}` is the number of selected pages. */
+  pagesSelected?: string;
+  /** Default: "Thumbnail size" */
+  thumbnailSize?: string;
+  /** Default: "Page {page}" — Label of a page in the organizer. */
+  organizerPage?: string;
+  /** Default: "Page {page}, rotated {degrees}°" */
+  organizerPageRotated?: string;
+  /** Default: "{count} pages" */
+  organizerPageCount?: string;
+  /** Default: "Moved to position {position}" — Announced when pages are moved with the keyboard. */
+  pagesMoved?: string;
+  /** Default: "This document's pages can't be edited." */
+  pagesNotEditable?: string;
+  /** Default: "The document is certified: its pages can't be changed." */
+  pagesCertified?: string;
+  /** Default: "Pages can't be reorganized while the form design has unsaved changes." */
+  pagesDesignPending?: string;
+  /** Default: "That PDF is password-protected." */
+  importPasswordRequired?: string;
+  /** Default: "That file couldn't be read as a PDF." */
+  importUnreadable?: string;
+  /** Default: "That PDF doesn't allow copying its pages." */
+  importNotAllowed?: string;
+  /** Default: "Importing…" */
+  importingPages?: string;
+  /** Default: "Pages can't be extracted from an encrypted document." */
+  extractUnavailable?: string;
+  /** Default: "Apply your changes before extracting." */
+  applyBeforeExtract?: string;
+  /** Default: "Rotate page {page}" */
+  rotatePageAria?: string;
+  /** Default: "Insert a blank page after page {page}" */
+  insertAfterPageAria?: string;
+  /** Default: "Delete page {page}" */
+  deletePageAria?: string;
+  /** Default: "Rotate pages" — Undo-history label. */
+  rotatePagesCommand?: string;
+  /** Default: "Delete pages" — Undo-history label. */
+  deletePagesCommand?: string;
+  /** Default: "Duplicate pages" — Undo-history label. */
+  duplicatePagesCommand?: string;
+  /** Default: "Move pages" — Undo-history label. */
+  movePagesCommand?: string;
+  /** Default: "Insert page" — Undo-history label. */
+  insertPageCommand?: string;
+  /** Default: "Insert pages from PDF" — Undo-history label. */
+  importPagesCommand?: string;
+  /** Default: "Organize pages" — Undo-history label. */
+  organizePagesCommand?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -920,6 +994,42 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   signingNow: 'Signing…',
   signFailed: "Couldn't sign the document: {error}",
   digitalSignHint: 'The document is signed as it is now, unsaved changes included. Later changes show as made after signing.',
+  organizePages: 'Organize pages',
+  organizeHint: 'Drag pages to reorder them. Ctrl/⌘ or Shift selects several; Alt + arrow keys move the selection.',
+  rotateLeft: 'Rotate left',
+  rotateRight: 'Rotate right',
+  duplicatePages: 'Duplicate',
+  deletePages: 'Delete',
+  insertBlankPage: 'Insert blank page',
+  importPdfPages: 'Insert from PDF…',
+  extractPages: 'Extract',
+  selectAllPages: 'Select all',
+  clearPageSelection: 'Clear selection',
+  pagesSelected: '{count} selected',
+  thumbnailSize: 'Thumbnail size',
+  organizerPage: 'Page {page}',
+  organizerPageRotated: 'Page {page}, rotated {degrees}°',
+  organizerPageCount: '{count} pages',
+  pagesMoved: 'Moved to position {position}',
+  pagesNotEditable: "This document's pages can't be edited.",
+  pagesCertified: "The document is certified: its pages can't be changed.",
+  pagesDesignPending: "Pages can't be reorganized while the form design has unsaved changes.",
+  importPasswordRequired: 'That PDF is password-protected.',
+  importUnreadable: "That file couldn't be read as a PDF.",
+  importNotAllowed: "That PDF doesn't allow copying its pages.",
+  importingPages: 'Importing…',
+  extractUnavailable: "Pages can't be extracted from an encrypted document.",
+  applyBeforeExtract: 'Apply your changes before extracting.',
+  rotatePageAria: 'Rotate page {page}',
+  insertAfterPageAria: 'Insert a blank page after page {page}',
+  deletePageAria: 'Delete page {page}',
+  rotatePagesCommand: 'Rotate pages',
+  deletePagesCommand: 'Delete pages',
+  duplicatePagesCommand: 'Duplicate pages',
+  movePagesCommand: 'Move pages',
+  insertPageCommand: 'Insert page',
+  importPagesCommand: 'Insert pages from PDF',
+  organizePagesCommand: 'Organize pages',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');

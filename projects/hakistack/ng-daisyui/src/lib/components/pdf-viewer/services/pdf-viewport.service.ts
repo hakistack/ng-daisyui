@@ -337,8 +337,7 @@ export class PdfViewportService {
       // Fit a full two-page row: both widths side by side, less the gap between them.
       const row = this.rows().find((r) => r.length > 1) ?? this.rows()[0];
       const pages = row.map((n) => this.store.pages[n - 1]).filter((p): p is PdfPageEntry => !!p);
-      const spread: PdfPageEntry = {
-        pageNumber: row[0],
+      const spread = {
         baseWidth: pages.reduce((w, p) => w + p.baseWidth, 0),
         baseHeight: Math.max(...pages.map((p) => p.baseHeight)),
       };
@@ -758,7 +757,7 @@ export class PdfViewportService {
       };
 
       current?.task?.cancel();
-      const task = session.engine.renderTile(session.doc, n - 1, tile, 'high');
+      const task = session.engine.renderTile(page.doc, page.index, tile, 'high');
       const entry: DetailTile = { scale, region, task: { cancel: task.cancel, promise: task.promise } };
       this.detailTiles.set(n, entry);
       task.promise.then(
@@ -804,14 +803,14 @@ export class PdfViewportService {
    */
   rerenderPage(pageNumber: number): void {
     this.pageContentVersion.set(pageNumber, (this.pageContentVersion.get(pageNumber) ?? 0) + 1);
-    this.bitmaps.invalidatePage(pageNumber);
+    this.bitmaps.invalidatePage(this.store.findPage(pageNumber)?.key ?? '');
     this.renderedPages.delete(pageNumber);
     if (this.liveBuffer().has(pageNumber)) void this.applyBufferDiff(this.store.renderEpoch);
   }
 
   /** Drop a page's cached bitmaps (its baked appearance changed) without re-rendering now. */
   invalidatePageBitmaps(pageNumber: number): void {
-    this.bitmaps.invalidatePage(pageNumber);
+    this.bitmaps.invalidatePage(this.store.findPage(pageNumber)?.key ?? '');
   }
 
   /**
@@ -875,14 +874,15 @@ export class PdfViewportService {
     else this.scheduleIdle(renderText, epoch);
     if (overlay) this.scheduleIdle(() => void this.layers.renderOverlay(overlay, viewport.width, epoch, page.pageNumber), epoch);
 
-    const cacheKey = BitmapCache.key(page.pageNumber, Math.max(1, Math.floor(viewport.width * renderDpr)));
+    // Keyed by source page: a moved or duplicated page reuses its raster.
+    const cacheKey = BitmapCache.key(page.key, Math.max(1, Math.floor(viewport.width * renderDpr)));
     const hit = this.bitmaps.get(cacheKey);
     if (hit) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(hit, 0, 0);
       return;
     }
-    const placeholder = this.bitmaps.findForPage(page.pageNumber);
+    const placeholder = this.bitmaps.findForPage(page.key);
     if (placeholder) ctx.drawImage(placeholder, 0, 0, canvas.width, canvas.height);
 
     // Clear by page number, not by handle: a peer pass on the same page would
@@ -897,7 +897,7 @@ export class PdfViewportService {
     };
 
     // PDFium rasterizes off the main thread and hands back an ImageBitmap.
-    const task = session.engine.renderPage(session.doc, page.pageNumber - 1, viewport.width, renderDpr);
+    const task = session.engine.renderPage(page.doc, page.index, viewport.width, renderDpr);
     const handle: RenderHandle = { cancel: task.cancel, promise: task.promise };
     this.renderTasksByPage.set(page.pageNumber, handle);
     try {

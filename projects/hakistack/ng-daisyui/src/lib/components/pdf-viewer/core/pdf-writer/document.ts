@@ -1,5 +1,5 @@
 import { decodeStream } from './filters';
-import { PdfDict, PdfParseError, PdfRef, PdfStream, PdfString, PdfValue, isDict } from './objects';
+import { PdfDict, PdfName, PdfParseError, PdfRef, PdfStream, PdfString, PdfValue, isDict } from './objects';
 import { PdfParser } from './parser';
 import { PdfSecurity } from './security';
 import { XrefTable, readXref } from './xref';
@@ -65,6 +65,18 @@ export class PdfDoc {
       doc.security = await PdfSecurity.open(encrypt, id0, password);
       doc.cache.clear(); // anything read before the key existed
     }
+    return doc;
+  }
+
+  /**
+   * A new, empty document (a catalog and an empty page tree), to fill with
+   * {@link add} and write with `saveNew`.
+   */
+  static create(): PdfDoc {
+    const xref: XrefTable = { entries: new Map(), trailer: new PdfDict(), startxref: -1, usesXrefStream: false, reconstructed: false };
+    const doc = new PdfDoc(new Uint8Array(), xref);
+    const pages = doc.add(new PdfDict({ Type: PdfName.of('Pages'), Kids: [], Count: 0 }));
+    xref.trailer.set('Root', doc.add(new PdfDict({ Type: PdfName.of('Catalog'), Pages: pages })));
     return doc;
   }
 

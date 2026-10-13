@@ -21,7 +21,7 @@ export function defaultBitmapBudgetBytes(): number {
 }
 
 /**
- * LRU cache of rendered page bitmaps keyed by page and device width, bounded
+ * LRU cache of rendered page bitmaps keyed by page (its raster key) and device width, bounded
  * by total bytes. Lets scroll-back and zoom-revisit skip the worker, and
  * supplies a scaled placeholder for progressive paint while a sharp raster is
  * in flight. Entries are `close()`d when evicted or invalidated. A bitmap
@@ -34,8 +34,8 @@ export class BitmapCache<T extends CachedBitmap = ImageBitmap> {
 
   constructor(private maxBytes: number) {}
 
-  static key(pageNumber: number, deviceWidth: number): string {
-    return `${pageNumber}:${deviceWidth}`;
+  static key(page: string | number, deviceWidth: number): string {
+    return `${page}@${deviceWidth}`;
   }
 
   get size(): number {
@@ -80,9 +80,9 @@ export class BitmapCache<T extends CachedBitmap = ImageBitmap> {
     this.evictOverBudget();
   }
 
-  /** Any cached bitmap for `pageNumber` (any scale), for progressive paint. */
-  findForPage(pageNumber: number): T | null {
-    const prefix = `${pageNumber}:`;
+  /** Any cached bitmap for `page` (any scale), for progressive paint. */
+  findForPage(page: string | number): T | null {
+    const prefix = `${page}@`;
     for (const [k, v] of this.entries) {
       if (k.startsWith(prefix)) return v;
     }
@@ -90,8 +90,8 @@ export class BitmapCache<T extends CachedBitmap = ImageBitmap> {
   }
 
   /** Drop and close every bitmap for one page (its content changed). */
-  invalidatePage(pageNumber: number): void {
-    const prefix = `${pageNumber}:`;
+  invalidatePage(page: string | number): void {
+    const prefix = `${page}@`;
     for (const [k, v] of Array.from(this.entries)) {
       if (k.startsWith(prefix)) this.remove(k, v);
     }

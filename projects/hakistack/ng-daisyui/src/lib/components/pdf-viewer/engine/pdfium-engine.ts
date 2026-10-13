@@ -96,18 +96,6 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'attachments', id: 0, doc }) as Promise<PdfAttachmentFile[]>;
   }
 
-  deletePage(doc: PdfDocHandle, index: number): Promise<boolean> {
-    return this.request({ type: 'deletePage', id: 0, doc, index }) as Promise<boolean>;
-  }
-
-  insertBlankPage(doc: PdfDocHandle, index: number, width: number, height: number): Promise<boolean> {
-    return this.request({ type: 'insertBlankPage', id: 0, doc, index, width, height }) as Promise<boolean>;
-  }
-
-  setPageRotation(doc: PdfDocHandle, page: number, degrees: number): Promise<boolean> {
-    return this.request({ type: 'setPageRotation', id: 0, doc, page, degrees }) as Promise<boolean>;
-  }
-
   setHiddenAnnotations(doc: PdfDocHandle, entries: readonly number[]): Promise<void> {
     return this.request({ type: 'setHiddenAnnotations', id: 0, doc, entries: [...entries] }) as Promise<void>;
   }

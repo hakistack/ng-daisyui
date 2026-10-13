@@ -74,10 +74,10 @@ describe('BitmapCache', () => {
     const p1a = new FakeBitmap('p1a');
     const p1b = new FakeBitmap('p1b');
     const p10 = new FakeBitmap('p10');
-    cache.set('1:100', p1a);
-    cache.set('1:200', p1b);
-    cache.set('10:100', p10);
-    cache.invalidatePage(1);
+    cache.set(BitmapCache.key('0:1', 100), p1a);
+    cache.set(BitmapCache.key('0:1', 200), p1b);
+    cache.set(BitmapCache.key('0:10', 100), p10);
+    cache.invalidatePage('0:1');
     expect(p1a.closed && p1b.closed).toBe(true);
     expect(p10.closed).toBe(false);
     expect(cache.totalBytes).toBe(400);

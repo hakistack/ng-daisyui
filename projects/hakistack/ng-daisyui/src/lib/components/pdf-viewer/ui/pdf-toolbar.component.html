@@ -254,17 +254,29 @@
     </details>
   }
 
-  <!-- ── Rotate current page ─────────────────────────────────────── -->
-  <button
-    type="button"
-    class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
-    [attr.aria-label]="'Rotate page'"
-    title="Rotate page 90°"
-    [disabled]="!store.showPages()"
-    (click)="document.rotateCurrentPage()"
-  >
-    <svg lucideRotateCw [size]="16"></svg>
-  </button>
+  <!-- ── Pages: rotate the current one, organize ─────────────────── -->
+  @if (pages.enabled()) {
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
+      [attr.aria-label]="rotateCurrentLabel()"
+      [title]="rotateCurrentLabel()"
+      [disabled]="!pages.canRotate()"
+      (click)="document.rotateCurrentPage()"
+    >
+      <svg lucideRotateCw [size]="16" aria-hidden="true"></svg>
+    </button>
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
+      [attr.aria-label]="store.labels().organizePages"
+      [title]="pages.unavailableReason() ?? store.labels().organizePages"
+      [disabled]="!pages.canOrganize()"
+      (click)="pages.organizerOpen.set(true)"
+    >
+      <svg lucideLayoutGrid [size]="16" aria-hidden="true"></svg>
+    </button>
+  }
 
   <!-- ── Group: file ops (icon buttons, inline at ≥ @lg) ─────────── -->
   <button
@@ -350,6 +362,20 @@
               }
             }
             {{ store.labels()[m.label] }}
+          </button>
+        </li>
+      }
+      @if (pages.enabled()) {
+        <li>
+          <button type="button" [disabled]="!pages.canRotate()" (click)="document.rotateCurrentPage(); overflowMenu.open = false">
+            <svg lucideRotateCw [size]="14" aria-hidden="true"></svg>
+            {{ rotateCurrentLabel() }}
+          </button>
+        </li>
+        <li>
+          <button type="button" [disabled]="!pages.canOrganize()" (click)="pages.organizerOpen.set(true); overflowMenu.open = false">
+            <svg lucideLayoutGrid [size]="14" aria-hidden="true"></svg>
+            {{ store.labels().organizePages }}
           </button>
         </li>
       }

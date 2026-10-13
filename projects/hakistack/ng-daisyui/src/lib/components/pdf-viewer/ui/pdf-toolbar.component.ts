@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import {
   LucideChevronLeft,
   LucideChevronRight,
@@ -15,6 +15,7 @@ import {
   LucideRotateCcw,
   LucideSignature,
   LucideFileSignature,
+  LucideLayoutGrid,
   LucidePlus,
   LucidePrinter,
   LucideRotateCw,
@@ -27,6 +28,7 @@ import { PdfDocumentService } from '../services/pdf-document.service';
 import { PdfFindService } from '../services/pdf-find.service';
 import { PdfFormsService } from '../services/pdf-forms.service';
 import { PdfFormDesignerService } from '../services/pdf-form-designer.service';
+import { PdfPagesService } from '../services/pdf-pages.service';
 import { PdfSignaturesService } from '../services/pdf-signatures.service';
 import { PdfAnnotationsService } from '../services/pdf-annotations.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
@@ -62,6 +64,7 @@ import { PdfDisplayMode } from '../pdf-viewer.types';
     LucideScrollText,
     LucideSquare,
     LucideRotateCw,
+    LucideLayoutGrid,
     LucideColumns2,
   ],
   templateUrl: './pdf-toolbar.component.html',
@@ -78,6 +81,11 @@ export class PdfToolbarComponent {
   protected readonly designer = inject(PdfFormDesignerService);
   protected readonly signatures = inject(PdfSignaturesService);
   protected readonly annotations = inject(PdfAnnotationsService);
+  protected readonly pages = inject(PdfPagesService);
+
+  protected readonly rotateCurrentLabel = computed(() =>
+    this.store.labels().rotatePageAria.replace('{page}', this.store.labelFor(this.store.state()?.page ?? 1)),
+  );
 
   /** Enter "Prepare form": the annotation tools close (the two edit modes are exclusive). */
   protected startDesign(menu: HTMLDetailsElement): void {

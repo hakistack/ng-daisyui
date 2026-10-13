@@ -88,6 +88,20 @@
          persist across tab switches — re-entry is instant, no re-raster. -->
     <div [hidden]="(store.state()?.sidebarTab ?? 'thumbnails') !== 'thumbnails'">
       @if (store.pageNumbers().length > 0) {
+        @if (pages.enabled() && store.showPages()) {
+          <div class="px-2 pt-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-block btn-ghost border-base-300"
+              [disabled]="!pages.canOrganize()"
+              [title]="pages.unavailableReason() ?? store.labels().organizePages"
+              (click)="pages.organizerOpen.set(true)"
+            >
+              <svg lucideLayoutGrid [size]="14" aria-hidden="true"></svg>
+              {{ store.labels().organizePages }}
+            </button>
+          </div>
+        }
         <!-- Virtualized like the page stack: only items near the panel's view are mounted. -->
         <ul #thumbnailList class="flex flex-col gap-2 items-center p-2">
           @if (thumbnails.spacerBefore() > 0) {
@@ -106,38 +120,42 @@
                 <canvas [attr.data-thumb-page]="n" [style.width.px]="180" [style.height.px]="thumbnails.canvasHeight(n)"></canvas>
                 <span class="text-xs text-base-content/70 mt-1">{{ store.labelFor(n) }}</span>
               </button>
-              <div
-                class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
-              >
-                <button
-                  type="button"
-                  class="btn btn-xs btn-square btn-neutral"
-                  [attr.aria-label]="'Rotate page ' + n"
-                  title="Rotate page 90°"
-                  (click)="document.rotatePage(n)"
+              @if (pages.enabled()) {
+                <div
+                  class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
                 >
-                  <svg lucideRotateCw [size]="12"></svg>
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-xs btn-square btn-neutral"
-                  [attr.aria-label]="'Insert blank page after page ' + n"
-                  title="Insert blank page after"
-                  (click)="document.insertBlankPage(n + 1)"
-                >
-                  <svg lucidePlus [size]="12"></svg>
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-xs btn-square btn-error"
-                  [attr.aria-label]="'Delete page ' + n"
-                  title="Delete page"
-                  [disabled]="store.pageNumbers().length <= 1"
-                  (click)="document.deletePage(n)"
-                >
-                  <svg lucideTrash2 [size]="12"></svg>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-square btn-neutral"
+                    [attr.aria-label]="pageAction(store.labels().rotatePageAria, n)"
+                    [title]="pageAction(store.labels().rotatePageAria, n)"
+                    [disabled]="!pages.canRotate()"
+                    (click)="document.rotatePage(n)"
+                  >
+                    <svg lucideRotateCw [size]="12" aria-hidden="true"></svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-square btn-neutral"
+                    [attr.aria-label]="pageAction(store.labels().insertAfterPageAria, n)"
+                    [title]="pageAction(store.labels().insertAfterPageAria, n)"
+                    [disabled]="!pages.canOrganize()"
+                    (click)="document.insertBlankPage(n + 1)"
+                  >
+                    <svg lucidePlus [size]="12" aria-hidden="true"></svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-square btn-error"
+                    [attr.aria-label]="pageAction(store.labels().deletePageAria, n)"
+                    [title]="pageAction(store.labels().deletePageAria, n)"
+                    [disabled]="!pages.canOrganize() || store.pageNumbers().length <= 1"
+                    (click)="document.deletePage(n)"
+                  >
+                    <svg lucideTrash2 [size]="12" aria-hidden="true"></svg>
+                  </button>
+                </div>
+              }
             </li>
           }
           @if (thumbnails.spacerAfter() > 0) {

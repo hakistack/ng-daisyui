@@ -111,12 +111,6 @@ export interface PdfEngine {
   pageLinks(doc: PdfDocHandle, page: number): Promise<PdfLinkRect[]>;
   /** Embedded files. */
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]>;
-  /** Delete the page at 0-based `index`. Page count + indices shift after. */
-  deletePage(doc: PdfDocHandle, index: number): Promise<boolean>;
-  /** Insert a blank page (`width`×`height` PDF points) at 0-based `index`. */
-  insertBlankPage(doc: PdfDocHandle, index: number, width: number, height: number): Promise<boolean>;
-  /** Set a page's rotation (`degrees` ∈ {0,90,180,270}) — used transiently to bake rotation into `save`. */
-  setPageRotation(doc: PdfDocHandle, page: number, degrees: number): Promise<boolean>;
   /**
    * Leave these annotations out of every raster (render and tiles): the ones
    * the viewer draws in its own layer. Flat `[page, annotIndex, …]` (0-based
@@ -124,7 +118,7 @@ export interface PdfEngine {
    * only: the document and its saved bytes are unchanged.
    */
   setHiddenAnnotations(doc: PdfDocHandle, entries: readonly number[]): Promise<void>;
-  /** Serialize the (form-filled) document back to PDF bytes for save/download. */
+  /** A full PDFium save of the document (the viewer saves through hk-pdf-writer; this is for whole-file rewrites). */
   save(doc: PdfDocHandle): Promise<Uint8Array>;
   /** Release the document + free its WASM memory. */
   dispose(doc: PdfDocHandle): void;
@@ -168,9 +162,6 @@ export type PdfWorkerRequest = (
   | { type: 'outline'; id: number; doc: PdfDocHandle }
   | { type: 'pageLinks'; id: number; doc: PdfDocHandle; page: number }
   | { type: 'attachments'; id: number; doc: PdfDocHandle }
-  | { type: 'deletePage'; id: number; doc: PdfDocHandle; index: number }
-  | { type: 'insertBlankPage'; id: number; doc: PdfDocHandle; index: number; width: number; height: number }
-  | { type: 'setPageRotation'; id: number; doc: PdfDocHandle; page: number; degrees: number }
   | { type: 'setHiddenAnnotations'; id: number; doc: PdfDocHandle; entries: number[] }
   | { type: 'save'; id: number; doc: PdfDocHandle }
   | { type: 'cancel'; id: number }

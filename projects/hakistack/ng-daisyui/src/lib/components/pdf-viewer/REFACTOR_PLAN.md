@@ -390,7 +390,7 @@ Cada fase se puede publicar por separado, deja la demo en verde y no rompe la AP
 | **5. Formularios** (3 sem) | Relleno completo (formatos AF*, validación, tab order, radios correctos, import/export) + diseñador (`hk-pdf-writer/acroform` + subsetter TrueType + `security/` para PDFs cifrados) | Formularios IRS/gov de prueba rellenables; diseño → guardado → abre en Acrobat |
 | **6. Firmas** (2 sem) | Diálogo dibujar/escribir/subir, store, campos de firma, aplanado; validación de firmas existentes | Firma visible persiste en Acrobat |
 | **6b. Firma digital** (opcional, 2 sem) ✅ | `PdfSigner` (externo + PKCS#12), incremental | Acrobat la reporta válida |
-| **7. Organizar** (2 sem) | Diálogo de organizar, páginas virtuales, importar, extraer, en la pila unificada | Reordenar 500 páginas sin re-render visible |
+| **7. Organizar** (2 sem) ✅ | Diálogo de organizar, páginas virtuales, importar, extraer, en la pila unificada | Reordenar 500 páginas sin re-render visible |
 | **8. Redacción** (2 sem) | Marcar y aplicar texto/imagen/paths, modo paranoico, limpieza de metadatos | Suite de regresión: 0 fugas de texto y píxeles |
 | **9. A11y + i18n + móvil** (2 sem) | Struct tree, roles, atajos, labels por instancia, toolbar responsive con overflow, gestos táctiles | AXE limpio; WCAG AA; uso completo a 375 px |
 | **10. Grandes y extras** (continuo) | Carga por rangos y linearizados; comparador (diff LCS de palabras + scroll sincronizado); herramientas WebMCP; colaboración (el log de operaciones ya es serializable) | — |
@@ -678,7 +678,44 @@ Decisiones:
 - Importar PKCS#12 con PBES2 (PBKDF2 + AES vía WebCrypto).
 - Sello de tiempo RFC 3161 al firmar (requiere un TSA del consumidor) y PAdES-LTV (DSS/VRI).
 - `adbe.x509.rsa_sha1` (se muestra como no verificable).
-- Las ediciones de estructura (borrar, insertar o rotar páginas) aún guardan con una reescritura completa de PDFium, que invalida las firmas existentes: pasarán a hk-pdf-writer en la fase 7.
+- ~~Las ediciones de estructura (borrar, insertar o rotar páginas) aún guardan con una reescritura completa de PDFium, que invalida las firmas existentes~~: resuelto en la fase 7 (hk-pdf-writer, incremental).
+
+### Estado de la fase 7 (2026-10-13)
+
+**Hecho:**
+
+- **Páginas virtuales** (`core/pages/page-model.ts`): la lista de páginas que se muestran, cada una apuntando a una página de un documento fuente (0 = el documento; los PDF importados y las plantillas de páginas en blanco son otras fuentes abiertas en el motor). Operaciones puras: mover (bloques, conservando el orden), borrar, insertar, duplicar (`copyOf`), rotar; `pageRemap` traduce posiciones antes/después (movidas, copias, nuevas) para lo que vive por posición (anotaciones, widgets).
+- **Sin re-render:** los rasters (vista y miniaturas) se cachean por página fuente (`source:index`), así que mover o duplicar páginas reutiliza los bitmaps; solo se pinta lo que nunca se había pintado a ese tamaño. Las entradas ocultas del raster (anotaciones y widgets que dibuja el viewer) se fijan al cargar, por página del documento, y no cambian con las ediciones.
+- **Workers de solo lectura:** fuera `deletePage`, `insertBlankPage` y `setPageRotation` del motor, y el broadcast/resync/desync del pool. Las ediciones viven en los modelos del viewer y las escribe hk-pdf-writer.
+- **Escritura** (`core/pages/page-writer.ts`), dentro de la misma actualización incremental que anotaciones y formularios:
+  - el árbol queda plano (`/Kids` + `/Count` en la raíz); las páginas que se conservan se reutilizan tal cual (una página bajo un nodo intermedio recibe los atributos heredados);
+  - duplicados = página nueva que comparte contenido y recursos, con copia de sus anotaciones (salvo widgets, popups y las que el viewer escribe por su cuenta);
+  - importar = copia profunda del grafo de objetos con memo (fuentes e imágenes compartidas se copian una vez), sin seguir hacia otras páginas (`/P`, destinos), quitando links GoTo internos y valores de firma; los widgets llegan con sus campos (ancestros copiados una vez, `/Kids` solo con los copiados), los nombres que chocan reciben sufijo (`name_2`) y se fusionan `/DR` y `/DA`;
+  - páginas en blanco nuevas; los campos de las páginas borradas salen de `/AcroForm`;
+  - orden: estructura → anotaciones → diseño y valores del formulario → rotaciones (las anotaciones se colocan en el espacio que el usuario veía).
+  - **Las firmas existentes siguen válidas** (como cambio posterior).
+- **Extraer** (`extractPages`): un PDF nuevo y autocontenido (`PdfDoc.create` + `saveNew`, tabla xref clásica) con las páginas pedidas, sus anotaciones, sus campos y el `/Info`.
+- **Pila unificada:** cada edición de páginas es un paso del historial de las anotaciones (Ctrl+Z deshace ambas); anotaciones y widgets se remapean una vez al crear el paso y deshacer/rehacer intercambia los estados. Las anotaciones de una página duplicada se copian como anotaciones nuevas (como un pegado).
+- **UI:**
+  - diálogo **Organizar páginas** a pantalla completa: cuadrícula con miniaturas perezosas (IntersectionObserver; liberan el canvas al salir de vista), selección múltiple (clic, Ctrl/⌘, Shift, teclado con tab-stop móvil), arrastrar y soltar con CDK (`mixed`; arrastrar una seleccionada mueve toda la selección, con contador en la vista previa), Alt+flechas para mover con anuncio en una región viva, rotar izquierda/derecha, duplicar, borrar, insertar en blanco, insertar desde PDF, extraer, slider de tamaño, undo/redo del borrador y Aplicar como un solo paso;
+  - botón en la barra (y en el menú de desborde) y en el panel de miniaturas; las acciones rotar, insertar y borrar de cada miniatura usan el mismo servicio.
+- **API:** `rotatePages`, `deletePages`, `duplicatePages`, `movePages`, `importPages(source, { at, pages, password })`, `extractPages`, `organizePages()`; `config.pageOrganizer` (por defecto `true`); `extractPdfPages` exportado.
+- **Bloqueos:** sin edición de páginas si hk-pdf-writer no lee el documento, si sus permisos no permiten ensamblar o si está certificado (DocMDP); sin reorganizar (ni deshacer/rehacer pasos de páginas) mientras hay un diseño de formulario sin guardar o el modo diseño está activo; sin extraer de documentos cifrados.
+- **Verificación:**
+  - 10 tests de núcleo (`core/pages/pages.spec.ts`) y 7 de integración en jsdom (`ui/pdf-page-organizer.spec.ts`), incluido que mover páginas no vuelve a pedir ningún raster ya pintado.
+  - `test:pdf-engine`, sobre un PDF de prueba y sobre el W-9 del IRS: PDFium abre el resultado; `pdfinfo` cuenta las páginas, ve la rotación y el tamaño de la página en blanco; `pdftotext` lee las páginas en el orden nuevo; el W-9 conserva sus 23 campos; la extracción abre en PDFium; `pdfsig` sigue diciendo *"Signature is Valid"* tras reorganizar un documento firmado, y reporta el cambio posterior.
+
+**Desviaciones:**
+- No hay opción "compactar" (reescritura completa con PDFium): el guardado es siempre incremental. Extraer sí produce un archivo nuevo y compacto.
+- La extracción es de las páginas seleccionadas a un solo archivo (no "un archivo por página") y no está disponible en documentos cifrados (dejaría las páginas sin protección).
+- Los duplicados no copian campos de formulario.
+- Las etiquetas de página (`/PageLabels`) se muestran mientras las páginas están en su orden original; tras reorganizar, el viewer muestra números (el archivo conserva su `/PageLabels`).
+- Los bookmarks y links internos apuntan a donde está ahora la página destino; si se borró, el link desaparece del overlay (en el archivo queda el destino original).
+
+**Pendiente:**
+- Reorganizar con un diseño de formulario pendiente (hoy bloqueado): requiere identificar los widgets por referencia en vez de por posición.
+- Tras guardar, rebasar el documento (recargar los bytes guardados como base) para que las ediciones siguientes no se vuelvan a aplicar desde el original.
+- Probar el diálogo en navegadores reales (rendimiento con 500 páginas y arrastre táctil).
 
 ## 6. Theming (daisyUI v5 / Tailwind v4)
 

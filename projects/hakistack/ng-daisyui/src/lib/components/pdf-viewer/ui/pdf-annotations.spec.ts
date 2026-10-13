@@ -84,10 +84,6 @@ describe('PDF annotation editing', () => {
       pageCount: async () => 1,
       pageSizes: async () => Array.from({ length: pageCount }, () => ({ width: 612, height: 792 })),
       pageLabels: async () => Array.from({ length: pageCount }, () => ''),
-      insertBlankPage: async () => {
-        pageCount++;
-        return true;
-      },
       documentTitle: async () => '',
       renderPage: () => ({ promise: never, cancel: () => undefined }),
       renderTile: () => ({ promise: never, cancel: () => undefined }),
@@ -226,13 +222,21 @@ describe('PDF annotation editing', () => {
     expect(el.querySelector('textarea.hk-pdf-annot-editor')).toBeNull();
   });
 
-  it('keeps annotations on their page when a page is inserted before it', async () => {
+  it('keeps annotations on their page when a page is inserted before it, and saves both', async () => {
     const { viewer, fixture } = await load();
     await viewer.insertBlankPage(1);
     await settle(fixture);
+    expect(viewer.state().numPages).toBe(2);
     expect(viewer.getAnnotations()[0].page).toBe(1);
-    expect(hidden.at(-1)).toEqual([1, 0]);
-    // Saving starts from PDFium's bytes then; this fake engine has none, so only the model is checked here.
+    expect(hidden.at(-1)).toEqual([0, 0]); // rasters are by page of the document: nothing to re-render
+    const saved = await viewer.save();
+    const pages = await readAnnotations(await PdfDoc.load(saved));
+    expect(pages.map((p) => p.annotations.length)).toEqual([0, 1]);
+    // One undo step puts it back.
+    await viewer.undo();
+    await settle(fixture);
+    expect(viewer.state().numPages).toBe(1);
+    expect(viewer.getAnnotations()[0].page).toBe(0);
   });
 
   it('adds replies and a review status from the comments panel', async () => {

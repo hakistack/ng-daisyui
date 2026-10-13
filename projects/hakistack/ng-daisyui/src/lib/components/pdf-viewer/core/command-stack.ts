@@ -6,6 +6,8 @@
 export interface PdfCommand {
   /** Short human label ("Add highlight", "Rotate page 3"), for UI and debugging. */
   readonly label: string;
+  /** What the command edits (`'pages'` for page structure), for callers that treat some edits differently. */
+  readonly kind?: string;
   apply(): void | Promise<void>;
   revert(): void | Promise<void>;
   /**
@@ -59,6 +61,16 @@ export class CommandStack {
       undoLabel: this.done.at(-1)?.label ?? null,
       redoLabel: this.undone.at(-1)?.label ?? null,
     };
+  }
+
+  /** The command `undo` would revert next. */
+  peekUndo(): PdfCommand | undefined {
+    return this.done.at(-1);
+  }
+
+  /** The command `redo` would apply next. */
+  peekRedo(): PdfCommand | undefined {
+    return this.undone.at(-1);
   }
 
   /** Subscribe to state changes. Returns an unsubscribe function. */

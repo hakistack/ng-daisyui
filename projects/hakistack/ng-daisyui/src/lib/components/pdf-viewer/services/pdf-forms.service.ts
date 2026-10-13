@@ -4,6 +4,7 @@ import { acceptsKeystroke, calculate, commitValue, formatValue, validateRange } 
 import { displayText, innerBox, widgetFontSize } from '../core/forms/form-appearance';
 import { FormField, FormModel, FormValue, FormWidget, emptyValue, sameValue } from '../core/forms/form-model';
 import { DocMdpLevel, FormDesign, readDocMdp } from '../core/forms/form-design';
+import { PageRemap } from '../core/pages/page-model';
 import { readForm } from '../core/forms/form-reader';
 import { PdfDoc } from '../core/pdf-writer/document';
 import { PDF_PERMISSION } from '../core/pdf-writer/security';
@@ -11,6 +12,12 @@ import { PdfParser } from '../core/pdf-writer/parser';
 import { PdfDict, PdfName, PdfString, PdfValue } from '../core/pdf-writer/objects';
 import { PdfRasterHiddenService } from './pdf-raster-hidden.service';
 import { PdfViewerStore } from './pdf-viewer.store';
+
+/** What page edits change in the form (see `PdfFormsService.pagesSnapshot`). */
+export interface FormPages {
+  readonly model: FormModel | null;
+  readonly original: FormModel | null;
+}
 
 /** Field kinds the overlay draws and edits (buttons and signatures stay in the raster). */
 const FILLABLE = new Set(['text', 'checkbox', 'radio', 'combo', 'list']);
@@ -44,6 +51,8 @@ export class PdfFormsService {
   readonly signRequest = signal<{ readonly field: string; readonly page: number; readonly rect: FormWidget['rect'] } | null>(null);
 
   private baseline = new Map<string, FormValue>();
+  /** The fillable widgets hidden in the rasters at load, by page of the document (kept for the document's life). */
+  private loadedHidden: number[] = [];
   /** The form as read from the file (what a design is compared with). */
   private original: FormModel | null = null;
   private byName = new Map<string, FormField>();
@@ -79,6 +88,7 @@ export class PdfFormsService {
     this.baseline = new Map();
     this.byName = new Map();
     this.controls.clear();
+    this.loadedHidden = [];
     this.store.setDirty('forms', false);
   }
 
@@ -114,6 +124,7 @@ export class PdfFormsService {
     this.values.set(new Map(this.baseline));
     const entries: number[] = [];
     for (const f of model.fields) if (FILLABLE.has(f.kind)) for (const w of f.widgets) entries.push(w.page, w.index);
+    this.loadedHidden = entries;
     void this.hidden.set('forms', entries);
   }
 
@@ -269,16 +280,16 @@ export class PdfFormsService {
     this.controls.clear();
     // Hidden: the fillable widgets as in the file, plus any original widget the design moved, restyled or deleted.
     const designedByOrigin = new Map((design?.fields ?? []).filter((f) => f.origin).map((f) => [f.origin!, f]));
-    const entries: number[] = [];
+    const widgets: FormWidget[] = [];
     for (const f of original.fields) {
       const now = design ? designedByOrigin.get(f.name) : undefined;
       f.widgets.forEach((w, i) => {
         const after = design ? now?.widgets.find((x) => x.origin === i) : w;
         const same = !!after && JSON.stringify({ ...after, origin: undefined }) === JSON.stringify({ ...w, origin: undefined });
-        if (FILLABLE.has(f.kind) || !same) entries.push(w.page, w.index);
+        if (FILLABLE.has(f.kind) || !same) widgets.push(w);
       });
     }
-    void this.hidden.set('forms', entries);
+    void this.hidden.set('forms', this.hiddenEntries(widgets));
     // Rebuild the controls of every page with fields (new fields have no raster to trigger it).
     this.hidden.repaint(fields.flatMap((f) => f.widgets.map((w) => w.page)));
     this.store.setDirty('forms', !!design || [...values].some(([n, v]) => !sameValue(v, baseline.get(n) ?? '')));
@@ -350,34 +361,64 @@ export class PdfFormsService {
     return changes.size;
   }
 
-  // ── Page structure ──────────────────────────────────────────────────────
+  // ── Page structure ──────────────────────────────────────────────────
 
-  onPageRemoved(index: number): void {
-    this.shiftPages((p) => (p === index ? null : p > index ? p - 1 : p));
+  /** The form state a page edit changes (widgets live on pages by position), to restore on undo. Values aren't part of it. */
+  pagesSnapshot(): FormPages {
+    return { model: this.model(), original: this.original };
   }
 
-  onPageInserted(index: number): void {
-    this.shiftPages((p) => (p >= index ? p + 1 : p));
+  /** Put back a {@link pagesSnapshot} (or a {@link remapped} one). */
+  restorePages(state: FormPages): void {
+    this.original = state.original;
+    this.model.set(state.model);
+    this.byName = new Map((state.model?.fields ?? []).map((f) => [f.name, f]));
+    this.controls.clear();
   }
 
-  private shiftPages(map: (page: number) => number | null): void {
-    const model = this.model();
-    if (!model) return;
-    const fields = model.fields
-      .map((f) => ({ ...f, widgets: f.widgets.flatMap((w) => (map(w.page) === null ? [] : [{ ...w, page: map(w.page)! }])) }))
-      .filter((f) => f.widgets.length);
-    const tabOrder: number[][] = [];
-    model.tabOrder.forEach((order, page) => {
-      const to = map(page);
-      if (to !== null) tabOrder[to] = [...order];
-    });
-    const values = this.values();
-    this.model.set({ ...model, fields, tabOrder: Array.from({ length: Math.max(tabOrder.length, 0) }, (_, i) => tabOrder[i] ?? []) });
-    this.byName = new Map(fields.map((f) => [f.name, f]));
-    this.values.set(new Map([...values].filter(([n]) => this.byName.has(n))));
-    const entries: number[] = [];
-    for (const f of fields) if (FILLABLE.has(f.kind)) for (const w of f.widgets) entries.push(w.page, w.index);
-    void this.hidden.set('forms', entries);
+  /**
+   * The form after a page edit: widgets follow their page; the ones on a
+   * deleted page go (a field left without widgets leaves the form, as the
+   * save takes it out of the file); duplicated and new pages have none.
+   * The form as read from the file is remapped the same way, so a design
+   * made afterwards still matches the file the save writes it into.
+   */
+  remapped(remap: PageRemap): FormPages {
+    const map = (model: FormModel | null): FormModel | null => {
+      if (!model) return null;
+      const fields = model.fields
+        .map((f) => ({
+          ...f,
+          widgets: f.widgets.flatMap((w) => {
+            const page = remap.moved[w.page] ?? -1;
+            return page < 0 ? [] : [{ ...w, page }];
+          }),
+        }))
+        .filter((f) => f.widgets.length);
+      const tabOrder: (readonly number[])[] = [];
+      model.tabOrder.forEach((order, page) => {
+        const to = remap.moved[page] ?? -1;
+        if (to >= 0) tabOrder[to] = order;
+      });
+      const count = remap.moved.filter((p) => p >= 0).length + remap.copies.length + remap.added.length;
+      return { ...model, fields, tabOrder: Array.from({ length: count }, (_, i) => tabOrder[i] ?? []) };
+    };
+    return { model: map(this.model()), original: map(this.original) };
+  }
+
+  /**
+   * Raster-hidden entries for widgets at displayed positions: each goes to
+   * the page of the document it shows (pages from elsewhere have none here),
+   * on top of the ones hidden at load.
+   */
+  private hiddenEntries(widgets: readonly { page: number; index: number }[]): number[] {
+    const layout = this.store.pageLayout();
+    const entries = [...this.loadedHidden];
+    for (const w of widgets) {
+      const page = layout[w.page];
+      if (page && page.source === 0 && page.copyOf === undefined) entries.push(page.index, w.index);
+    }
+    return entries;
   }
 
   // ── Overlay controls ────────────────────────────────────────────────────

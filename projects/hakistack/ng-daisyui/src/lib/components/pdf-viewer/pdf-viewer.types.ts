@@ -103,6 +103,16 @@ export interface PdfAttachmentEntry {
   readonly content: Uint8Array;
 }
 
+/** Options for {@link PdfViewerController.importPages}. */
+export interface PdfImportPagesOptions {
+  /** Page number the first imported page becomes (1-based). Default: after the last page. */
+  readonly at?: number;
+  /** Which pages of the imported PDF (1-based), in order. Default: all of them. */
+  readonly pages?: readonly number[];
+  /** Password of an encrypted PDF; without it (or when wrong) `onPasswordRequired` is asked. */
+  readonly password?: string;
+}
+
 /** Options for {@link PdfViewerController.exportPageAsImage}. */
 export interface PdfImageExportOptions {
   /** 1-indexed page to export. Defaults to the current page. */
@@ -190,6 +200,12 @@ export interface PdfViewerConfig {
   readonly signer?: PdfSignerSource;
   /** Certificates (DER bytes or PEM text) whose signers the Signatures panel shows as trusted. */
   readonly trustedCertificates?: readonly (Uint8Array | string)[];
+  /**
+   * Page editing: the Organize pages dialog and the page actions on the
+   * thumbnails (rotate, insert, delete). Default `true`. The page API still
+   * works when the document allows it.
+   */
+  readonly pageOrganizer?: boolean;
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 
@@ -255,6 +271,13 @@ export interface PdfViewerInternalHandlers {
   deletePage?: (pageNumber: number) => Promise<void>;
   insertBlankPage?: (atPageNumber: number) => Promise<void>;
   rotatePage?: (pageNumber: number, delta?: number) => void;
+  rotatePages?: (pageNumbers: readonly number[], delta?: number) => Promise<void>;
+  deletePages?: (pageNumbers: readonly number[]) => Promise<void>;
+  duplicatePages?: (pageNumbers: readonly number[]) => Promise<void>;
+  movePages?: (pageNumbers: readonly number[], to: number) => Promise<void>;
+  importPages?: (source: PdfDocumentSource, options?: PdfImportPagesOptions) => Promise<number>;
+  extractPages?: (pageNumbers: readonly number[]) => Promise<Uint8Array>;
+  organizePages?: () => void;
   getSignatures?: () => readonly PdfSignatureInfo[];
   signDigitally?: (options?: PdfDigitalSignOptions) => Promise<Uint8Array>;
 }
@@ -473,15 +496,40 @@ export interface PdfViewerController {
   importFormData(data: string): number;
 
   // ── Page operations ──────────────────────────────────────────────────────
+  // Each is one undo step (with the annotation edits) and is written by
+  // `save()` as an incremental update, so existing signatures stay valid.
+  // Annotations and form fields move with their pages.
 
-  /** Delete a page (1-based). No-op on the last remaining page. Persists in `save()`. */
+  /** Delete a page (1-based). No-op on the last remaining page. */
   deletePage(pageNumber: number): Promise<void>;
+  /** Delete pages (1-based). At least one page always stays. */
+  deletePages(pageNumbers: readonly number[]): Promise<void>;
 
-  /** Insert a blank page so it becomes page `atPageNumber` (1-based; clamped). */
+  /** Insert a blank page so it becomes page `atPageNumber` (1-based; clamped), sized like its neighbour. */
   insertBlankPage(atPageNumber: number): Promise<void>;
 
-  /** Rotate a page (1-based) by `delta`° (default +90). Baked into `save()`. */
+  /** Rotate a page (1-based) by `delta`° (default +90). */
   rotatePage(pageNumber: number, delta?: number): void;
+  /** Rotate pages (1-based) by `delta`° (default +90). */
+  rotatePages(pageNumbers: readonly number[], delta?: number): Promise<void>;
+
+  /** Duplicate pages (1-based), each copy right after its page (form fields aren't copied). */
+  duplicatePages(pageNumbers: readonly number[]): Promise<void>;
+
+  /** Move pages (1-based, keeping their order) so they come before page `to` (`numPages + 1`: the end). */
+  movePages(pageNumbers: readonly number[], to: number): Promise<void>;
+
+  /**
+   * Insert pages of another PDF (with their annotations and form fields;
+   * clashing field names get a suffix). Resolves with how many were added.
+   */
+  importPages(source: PdfDocumentSource, options?: PdfImportPagesOptions): Promise<number>;
+
+  /** A new PDF with these pages (1-based, in that order) of the edited document. Not for encrypted documents. */
+  extractPages(pageNumbers: readonly number[]): Promise<Uint8Array>;
+
+  /** Open the Organize pages dialog. */
+  organizePages(): void;
 
   // ── Digital signatures ───────────────────────────────────────────────────
 

@@ -1,5 +1,6 @@
 import { DestroyRef, Injectable, InjectionToken, ModelSignal, Signal, computed, inject, signal, untracked } from '@angular/core';
 import { BitmapCache, defaultBitmapBudgetBytes } from '../core/bitmap-cache';
+import { PdfVirtualPage } from '../core/pages/page-model';
 import { PdfPageEntry } from '../core/types';
 import { PdfEnginePool } from '../engine/pdf-engine-pool';
 import { PdfDocHandle, PdfEngine } from '../engine/pdf-engine.types';
@@ -25,6 +26,22 @@ export const PDF_BITMAP_CACHE = new InjectionToken<BitmapCache<ImageBitmap>>('PD
 /** Budget starts at the device default; `config.bitmapCacheMB` overrides it on load. */
 export function providePdfBitmapCache() {
   return { provide: PDF_BITMAP_CACHE, useFactory: () => new BitmapCache<ImageBitmap>(defaultBitmapBudgetBytes()) };
+}
+
+/**
+ * A document pages render from: the open document (id 0), an imported PDF,
+ * or the template blank pages of one size render from. Each is open in the
+ * engine for as long as the document is.
+ */
+export interface PdfPageSource {
+  readonly id: number;
+  readonly kind: 'document' | 'pdf' | 'blank';
+  readonly handle: PdfDocHandle;
+  readonly bytes: Uint8Array;
+  readonly password: string;
+  /** File name (imports). */
+  readonly name: string;
+  readonly pageCount: number;
 }
 
 /** Outputs the viewer component exposes; the store fires them alongside the config callbacks. */
@@ -132,8 +149,27 @@ export class PdfViewerStore {
   readonly pageLabels = signal<readonly string[]>([]);
   /** Whether any page has a label that differs from its number (e.g. "iv", "A-1"). */
   readonly hasPageLabels = computed(() => this.pageLabels().some((label, i) => label !== '' && label !== String(i + 1)));
-  /** Per-page display rotation (degrees); CSS-only until `save()` bakes it in. */
-  readonly pageRotations = signal<ReadonlyMap<number, number>>(new Map());
+  /** The pages shown, in order (see `core/pages/page-model.ts`). Set through {@link setLayout}. */
+  readonly pageLayout = signal<readonly PdfVirtualPage[]>([]);
+  /** Rotation the user added per page number (degrees); the page shows turned, `save()` writes it. */
+  readonly pageRotations = computed<ReadonlyMap<number, number>>(() => {
+    const out = new Map<number, number>();
+    this.pageLayout().forEach((p, i) => {
+      if (p.rotation) out.set(i + 1, p.rotation);
+    });
+    return out;
+  });
+  /** Page number showing each page of the open document (by 0-based index), for links and bookmarks into it. */
+  readonly documentPageNumbers = computed<ReadonlyMap<number, number>>(() => {
+    const out = new Map<number, number>();
+    const layout = this.pageLayout();
+    // Originals first: a duplicate only stands in for a page that was deleted.
+    for (const pass of [false, true])
+      layout.forEach((p, i) => {
+        if (p.source === 0 && (p.copyOf !== undefined) === pass && !out.has(p.index)) out.set(p.index, i + 1);
+      });
+    return out;
+  });
   /** Inline text-editor popover (replaces `prompt()` for annotation text). */
   readonly textEditor = signal<{ label: string } | null>(null);
   readonly textEditorDraft = signal('');
@@ -202,8 +238,12 @@ export class PdfViewerStore {
   engine: PdfEngine | null = null;
   /** Handle of the open document, or `null`. */
   doc: PdfDocHandle | null = null;
-  /** Pages of the open document (sizes in points). */
+  /** The pages shown, as the renderers address them (sizes in points); follows {@link pageLayout}. */
   pages: PdfPageEntry[] = [];
+  /** Page sources by id (0 = the open document). */
+  readonly sources = new Map<number, PdfPageSource>();
+  private nextSourceId = 1;
+  private nextUid = 1;
   /** Original bytes, kept for an unedited `download()`. */
   sourceBytes: Uint8Array | null = null;
   /** The password the open document was opened with (`''` when none was needed). */
@@ -212,13 +252,47 @@ export class PdfViewerStore {
   loadToken = 0;
   /** Bumped on each full re-render; stale layer work compares against it. */
   renderEpoch = 0;
-  /** The engine's document differs from `sourceBytes` (forms, page structure). */
-  private edited = false;
-  /** Unsaved edits outside the engine, by source (`annotations`, `forms`). */
+  /** Unsaved edits by source (`annotations` (the undo history), `forms`). */
   private readonly dirtySources = new Set<string>();
 
   findPage(pageNumber: number): PdfPageEntry | undefined {
-    return this.pages.find((p) => p.pageNumber === pageNumber);
+    return this.pages[pageNumber - 1];
+  }
+
+  /** A new page id. */
+  newPageUid(): number {
+    return this.nextUid++;
+  }
+
+  /** Register a page source; returns its id (the open document is always 0). */
+  addSource(source: Omit<PdfPageSource, 'id'>): number {
+    const id = source.kind === 'document' ? 0 : this.nextSourceId++;
+    this.sources.set(id, { ...source, id });
+    return id;
+  }
+
+  /**
+   * Show `layout`. The renderers' page list (and `pageNumbers`, which makes
+   * the page stack re-render from the bitmap cache) changes only when the
+   * pages themselves do; a rotation alone just turns them.
+   */
+  setLayout(layout: readonly PdfVirtualPage[]): boolean {
+    const pages: PdfPageEntry[] = layout.map((p, i) => ({
+      pageNumber: i + 1,
+      baseWidth: p.width,
+      baseHeight: p.height,
+      doc: this.sources.get(p.source)?.handle ?? -1,
+      index: p.index,
+      key: `${p.source}:${p.index}`,
+    }));
+    const prev = this.pages;
+    const changed = prev.length !== pages.length || pages.some((p, i) => p.key !== prev[i].key);
+    this.pageLayout.set(layout);
+    if (changed) {
+      this.pages = pages;
+      this.pageNumbers.set(pages.map((p) => p.pageNumber));
+    }
+    return changed;
   }
 
   /** Engine + open document, or `null` when either is missing. */
@@ -226,18 +300,9 @@ export class PdfViewerStore {
     return this.engine && this.doc !== null ? { engine: this.engine, doc: this.doc } : null;
   }
 
-  /** Whether there are unsaved edits: in the engine's document, the annotations or the form. */
+  /** Whether there are unsaved edits (pages, annotations, the form). */
   get documentEdited(): boolean {
-    return this.edited || this.dirtySources.size > 0;
-  }
-
-  /** Whether the engine's own document was edited (so saving starts from a PDFium save, not `sourceBytes`). */
-  get engineEdited(): boolean {
-    return this.edited;
-  }
-
-  markDocumentEdited(): void {
-    this.updateDirty(() => (this.edited = true));
+    return this.dirtySources.size > 0;
   }
 
   setAnnotationsDirty(dirty: boolean): void {
@@ -250,10 +315,7 @@ export class PdfViewerStore {
   }
 
   resetDocumentEdited(): void {
-    this.updateDirty(() => {
-      this.edited = false;
-      this.dirtySources.clear();
-    });
+    this.updateDirty(() => this.dirtySources.clear());
   }
 
   private updateDirty(change: () => void): void {
@@ -285,12 +347,16 @@ export class PdfViewerStore {
     return Math.max(1, Math.min(want, 4, cores));
   }
 
-  /** Release the open document but keep the engine for the next load. */
+  /** Release the open document (and every page source) but keep the engine for the next load. */
   closeDocument(): void {
     this.sourceBytes = null;
     this.pages = [];
     this.pageNumbers.set([]);
-    if (this.engine && this.doc !== null) this.engine.dispose(this.doc);
+    this.pageLayout.set([]);
+    if (this.engine) for (const s of this.sources.values()) this.engine.dispose(s.handle);
+    if (this.engine && this.doc !== null && !this.sources.has(0)) this.engine.dispose(this.doc);
+    this.sources.clear();
+    this.nextSourceId = 1;
     this.doc = null;
   }
 
@@ -323,19 +389,11 @@ export class PdfViewerStore {
     this.host?.events.error(error);
   }
 
-  /**
-   * An operation failed but the document is still usable: keep it on screen
-   * and show a dismissible alert. If the render pool couldn't heal a
-   * half-applied mutation, the message says to reload.
-   */
+  /** An operation failed but the document is still usable: keep it on screen and show a dismissible alert. */
   reportOperationError(error: PdfViewerError): void {
-    const desynced = this.engine instanceof PdfEnginePool && this.engine.isDesynced;
-    const reported: PdfViewerError = desynced
-      ? { ...error, message: `${error.message} The viewer lost sync with the document; reload it to continue.` }
-      : error;
-    this.operationError.set(reported);
-    this.config().onError?.(reported);
-    this.host?.events.error(reported);
+    this.operationError.set(error);
+    this.config().onError?.(error);
+    this.host?.events.error(error);
   }
 
   dismissOperationError(): void {

@@ -260,7 +260,8 @@ export { writeDocumentChanges } from ${JSON.stringify(join(lib, 'components/pdf-
 export { newDesignField, newWidget } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/form-design.ts'))};
 export { signPdf, readSignatures } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/signatures/pdf-signature.ts'))};
 export { createWebCryptoSigner } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/signatures/cms.ts'))};
-export { createSelfSignedCertificate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/signatures/x509.ts'))};`,
+export { createSelfSignedCertificate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/signatures/x509.ts'))};
+export { extractPages, blankPdf } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/pages/page-writer.ts'))};`,
   );
   const writerBuild = await build({
     entryPoints: [writerEntry],
@@ -933,6 +934,102 @@ export { createSelfSignedCertificate } from ${JSON.stringify(join(lib, 'componen
         swapped[100] ^= 1;
         check('and flags it once a signed byte changes', (await w.readSignatures(swapped))[0]?.status === 'invalid');
       } else check(`openssl cms -sign ran (${r.stderr})`, false);
+    }
+  }
+
+  console.log('\npage organization (hk-pdf-writer ↔ PDFium / pdfinfo / pdftotext / pdfsig)');
+  {
+    const tool = (name) => !spawnSync(name, ['-v']).error;
+    const textOf = (file, page) =>
+      spawnSync('pdftotext', ['-f', String(page), '-l', String(page), file, '-'], { encoding: 'utf8' }).stdout.trim();
+    const imported = serializePdf({
+      1: '<< /Type /Catalog /Pages 2 0 R >>',
+      2: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      3: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 250 250] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+      4: '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>',
+      5: '<< /Length 38 >>\nstream\nBT /F1 14 Tf 20 120 Td (Imported) Tj ET\nendstream',
+    });
+    const sources = [['fixture', makeTextPdf(4)]];
+    const corpus = process.env.PDF_CORPUS;
+    if (corpus && existsSync(join(corpus, 'fw9.pdf'))) sources.push(['fw9.pdf', new Uint8Array(readFileSync(join(corpus, 'fw9.pdf')))]);
+    for (const [label, original] of sources) {
+      const n = (await (await w.PdfDoc.load(original)).pages()).length;
+      // Last page first (rotated), the rest in order, a duplicate of page 1, a blank page, a page from another PDF.
+      const pages = [
+        { source: 0, index: n - 1, rotation: 90, copy: false },
+        ...Array.from({ length: n - 1 }, (_, i) => ({ source: 0, index: i, rotation: 0, copy: false })),
+        { source: 0, index: 0, rotation: 0, copy: true },
+        { source: 2, index: 0, rotation: 0, copy: false },
+        { source: 1, index: 0, rotation: 0, copy: false },
+      ];
+      const out = await w.writeDocumentChanges(original, {
+        pages: {
+          pages,
+          sources: new Map([
+            [1, { kind: 'pdf', load: () => w.PdfDoc.load(imported) }],
+            [2, { kind: 'blank', width: 200, height: 100 }],
+          ]),
+        },
+      });
+      check(`${label}: the layout is an incremental update`, Buffer.from(out.subarray(0, original.length)).equals(Buffer.from(original)));
+      const h = e.open(out, undefined);
+      check(`${label}: PDFium opens it with ${n + 3} pages`, e.page_count(h) === n + 3);
+      e.close(h);
+      const file = join(dir, `organized-${label}.pdf`);
+      writeFileSync(file, out);
+      if (pdfinfo) {
+        const info = spawnSync('pdfinfo', [file], { encoding: 'utf8' }).stdout;
+        check(`${label}: pdfinfo counts ${n + 3} pages`, new RegExp(`Pages:\\s+${n + 3}\\b`).test(info));
+        const first = spawnSync('pdfinfo', ['-f', '1', '-l', '1', file], { encoding: 'utf8' }).stdout;
+        check(`${label}: pdfinfo sees page 1 rotated 90°`, /Page\s+1 rot:\s+90/.test(first));
+        const blank = spawnSync('pdfinfo', ['-f', String(n + 2), '-l', String(n + 2), '-box', file], { encoding: 'utf8' }).stdout;
+        check(`${label}: the blank page is 200 × 100`, /Page\s+\d+ size:\s+200 x 100 pts/.test(blank));
+      }
+      if (tool('pdftotext') && label === 'fixture') {
+        const texts = Array.from({ length: n + 3 }, (_, i) => textOf(file, i + 1));
+        check(
+          `fixture: pdftotext reads the pages in the new order (${texts.join(' | ')})`,
+          texts.join('|') === 'Page 4|Page 1|Page 2|Page 3|Page 1||Imported',
+        );
+      }
+      if (label === 'fw9.pdf') {
+        const before = (await w.readForm(await w.PdfDoc.load(original))).model.fields.length;
+        const after = (await w.readForm(await w.PdfDoc.load(out))).model.fields.length;
+        check(`fw9.pdf: the form keeps its ${before} fields (the duplicate adds none)`, before > 0 && after === before);
+      }
+      const extracted = await w.extractPages(out, [n + 2, 1]);
+      const hx = e.open(extracted, undefined);
+      check(`${label}: PDFium opens the extracted pages`, e.page_count(hx) === 2);
+      e.close(hx);
+      check(
+        `${label}: extracting makes a smaller, new file`,
+        extracted.length < out.length && Buffer.from(extracted.subarray(0, 8)).toString() === '%PDF-1.7',
+      );
+      if (tool('pdftotext') && label === 'fixture') {
+        writeFileSync(join(dir, 'extracted.pdf'), extracted);
+        check(
+          'fixture: the extracted pages are the right ones',
+          textOf(join(dir, 'extracted.pdf'), 1) === 'Imported' && textOf(join(dir, 'extracted.pdf'), 2) === 'Page 1',
+        );
+      }
+    }
+    // Reorganizing a signed document keeps the signature valid (as a later change).
+    const keys = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const signer = w.createWebCryptoSigner(keys.privateKey, [await w.createSelfSignedCertificate(keys, { commonName: 'Harness EC' })]);
+    const signed = await w.signPdf(makeTextPdf(3), signer, { reason: 'Harness' });
+    const reordered = await w.writeDocumentChanges(signed, {
+      pages: {
+        pages: [2, 0].map((index) => ({ source: 0, index, rotation: index === 0 ? 180 : 0, copy: false })),
+        sources: new Map(),
+      },
+    });
+    const [sig] = await w.readSignatures(reordered);
+    check('signed + reorganized: our validator says valid, with later changes', sig?.status === 'valid' && !sig.coversWholeDocument);
+    if (tool('pdfsig')) {
+      writeFileSync(join(dir, 'signed-organized.pdf'), reordered);
+      const report = spawnSync('pdfsig', [join(dir, 'signed-organized.pdf')], { encoding: 'utf8' }).stdout;
+      check('signed + reorganized: pdfsig says the signature is valid', /Signature Validation: Signature is Valid/.test(report));
+      check('signed + reorganized: pdfsig reports the later change', /not total document signed/i.test(report));
     }
   }
 

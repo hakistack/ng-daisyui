@@ -1,0 +1,186 @@
+<dialog #dialog class="modal" [attr.aria-labelledby]="uid + '-title'" [attr.aria-describedby]="uid + '-hint'" (close)="onNativeClose()">
+  <div
+    class="modal-box flex h-[calc(100dvh-1rem)] max-h-none w-[calc(100vw-1rem)] max-w-none flex-col gap-0 p-0 sm:h-[calc(100dvh-3rem)] sm:w-[calc(100vw-3rem)]"
+  >
+    <header class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-base-300 px-4 py-3">
+      <h3 [id]="uid + '-title'" class="text-lg font-semibold">{{ store.labels().organizePages }}</h3>
+      <span class="text-sm text-base-content/70">{{ countText() }}</span>
+      <label class="ml-auto flex items-center gap-2 text-sm text-base-content/80">
+        <span>{{ store.labels().thumbnailSize }}</span>
+        <input type="range" class="range range-xs w-28" min="96" max="288" step="16" [value]="size()" (input)="onSizeInput($event)" />
+      </label>
+    </header>
+
+    <div
+      role="toolbar"
+      [attr.aria-label]="store.labels().organizePages"
+      class="flex flex-wrap items-center gap-1 border-b border-base-300 px-3 py-2"
+    >
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm btn-square"
+        [attr.aria-label]="store.labels().undo"
+        [title]="store.labels().undo"
+        [disabled]="!canUndo() || busy()"
+        (click)="undo()"
+      >
+        <svg lucideUndo2 [size]="16" aria-hidden="true"></svg>
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm btn-square"
+        [attr.aria-label]="store.labels().redo"
+        [title]="store.labels().redo"
+        [disabled]="!canRedo() || busy()"
+        (click)="redo()"
+      >
+        <svg lucideRedo2 [size]="16" aria-hidden="true"></svg>
+      </button>
+      <span class="mx-1 h-5 w-px bg-base-300" aria-hidden="true"></span>
+      <button type="button" class="btn btn-ghost btn-sm" [disabled]="busy()" (click)="selectAll()">
+        {{ store.labels().selectAllPages }}
+      </button>
+      <button type="button" class="btn btn-ghost btn-sm" [disabled]="busy() || selectionCount() === 0" (click)="clearSelection()">
+        {{ store.labels().clearPageSelection }}
+      </button>
+      <span class="mx-1 h-5 w-px bg-base-300" aria-hidden="true"></span>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm btn-square"
+        [attr.aria-label]="store.labels().rotateLeft"
+        [title]="store.labels().rotateLeft"
+        [disabled]="busy()"
+        (click)="rotate(-90)"
+      >
+        <svg lucideRotateCcw [size]="16" aria-hidden="true"></svg>
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm btn-square"
+        [attr.aria-label]="store.labels().rotateRight"
+        [title]="store.labels().rotateRight"
+        [disabled]="busy()"
+        (click)="rotate(90)"
+      >
+        <svg lucideRotateCw [size]="16" aria-hidden="true"></svg>
+      </button>
+      <button type="button" class="btn btn-ghost btn-sm" [disabled]="busy()" (click)="duplicate()">
+        <svg lucideCopy [size]="16" aria-hidden="true"></svg>
+        <span class="hidden sm:inline">{{ store.labels().duplicatePages }}</span>
+        <span class="sr-only sm:hidden">{{ store.labels().duplicatePages }}</span>
+      </button>
+      <button type="button" class="btn btn-ghost btn-sm" [disabled]="busy() || selectionCount() >= draft().length" (click)="remove()">
+        <svg lucideTrash2 [size]="16" aria-hidden="true"></svg>
+        <span class="hidden sm:inline">{{ store.labels().deletePages }}</span>
+        <span class="sr-only sm:hidden">{{ store.labels().deletePages }}</span>
+      </button>
+      <span class="mx-1 h-5 w-px bg-base-300" aria-hidden="true"></span>
+      <button type="button" class="btn btn-ghost btn-sm" [disabled]="busy()" (click)="insertBlank()">
+        <svg lucideSquarePlus [size]="16" aria-hidden="true"></svg>
+        <span class="hidden sm:inline">{{ store.labels().insertBlankPage }}</span>
+        <span class="sr-only sm:hidden">{{ store.labels().insertBlankPage }}</span>
+      </button>
+      <label
+        class="btn btn-ghost btn-sm focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary"
+        [class.btn-disabled]="busy()"
+      >
+        <svg lucideFilePlus [size]="16" aria-hidden="true"></svg>
+        <span class="hidden sm:inline">{{ store.labels().importPdfPages }}</span>
+        <span class="sr-only sm:hidden">{{ store.labels().importPdfPages }}</span>
+        <input
+          #importInput
+          type="file"
+          class="sr-only"
+          accept=".pdf,application/pdf"
+          [disabled]="busy()"
+          (change)="importFile(importInput)"
+        />
+      </label>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm"
+        [title]="extractTitle()"
+        [disabled]="busy() || changed() || !pages.canExtract()"
+        (click)="extract()"
+      >
+        <svg lucideFileOutput [size]="16" aria-hidden="true"></svg>
+        <span class="hidden sm:inline">{{ store.labels().extractPages }}</span>
+        <span class="sr-only sm:hidden">{{ store.labels().extractPages }}</span>
+      </button>
+      @if (busy()) {
+        <span class="loading loading-spinner loading-sm ml-1" role="status" [attr.aria-label]="store.labels().importingPages"></span>
+      }
+    </div>
+
+    <p [id]="uid + '-hint'" class="px-4 pt-2 text-xs text-base-content/70">{{ store.labels().organizeHint }}</p>
+
+    <div class="min-h-0 flex-1 overflow-auto px-4 py-3">
+      <ul
+        #grid
+        cdkDropList
+        cdkDropListOrientation="mixed"
+        (cdkDropListDropped)="onDrop($event)"
+        role="listbox"
+        aria-multiselectable="true"
+        [attr.aria-label]="store.labels().organizePages"
+        [attr.aria-describedby]="uid + '-hint'"
+        class="flex flex-wrap content-start gap-3"
+      >
+        @for (p of draft(); track p.uid; let i = $index) {
+          <li
+            cdkDrag
+            [cdkDragData]="p.uid"
+            [cdkDragDisabled]="busy()"
+            (cdkDragStarted)="onDragStart(p.uid)"
+            role="option"
+            [attr.data-organizer-item]="p.uid"
+            [attr.aria-selected]="selected().has(p.uid)"
+            [attr.aria-label]="itemLabels().get(p.uid)"
+            [tabindex]="focusUid() === p.uid ? 0 : -1"
+            [attr.data-dimmed]="dragging() !== null && dragging() !== p.uid && selected().has(p.uid) ? '' : null"
+            class="flex cursor-grab touch-none select-none flex-col items-center gap-1 rounded-box border-2 border-transparent bg-base-200/60 p-2 outline-none transition-colors hover:bg-base-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 aria-selected:border-primary aria-selected:bg-primary/10 data-[dimmed]:opacity-40"
+            [style.width.px]="size() + 20"
+            (click)="onItemClick($event, p.uid)"
+            (keydown)="onItemKey($event, i)"
+          >
+            <div class="flex items-center justify-center" [style.width.px]="size()" [style.height.px]="size()">
+              @if (contents().get(p.uid); as content) {
+                <canvas [hkPdfOrganizerThumb]="content" [size]="size()" class="bg-white shadow-sm ring-1 ring-base-300"></canvas>
+              }
+            </div>
+            <span class="text-xs font-medium text-base-content/80" aria-hidden="true">{{ i + 1 }}</span>
+            <div *cdkDragPreview class="flex flex-col items-center gap-1 rounded-box border-2 border-primary bg-base-100 p-2">
+              <div class="flex items-center justify-center" [style.width.px]="size()" [style.height.px]="size()">
+                @if (contents().get(p.uid); as content) {
+                  <canvas [hkPdfOrganizerThumb]="content" [size]="size()" class="bg-white ring-1 ring-base-300"></canvas>
+                }
+              </div>
+              @if (dragCount(p.uid) > 1) {
+                <span class="badge badge-sm border-primary/30 bg-primary/15 text-base-content">
+                  {{ dragLabel(p.uid) }}
+                </span>
+              }
+            </div>
+            <div
+              *cdkDragPlaceholder
+              class="rounded-box border-2 border-dashed border-primary/60 bg-primary/5"
+              [style.width.px]="size() + 20"
+              [style.height.px]="size() + 40"
+            ></div>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <footer class="flex flex-wrap items-center justify-end gap-2 border-t border-base-300 px-4 py-3">
+      @if (error(); as message) {
+        <div role="alert" class="mr-auto rounded-box border border-error/30 bg-error/10 px-3 py-1.5 text-sm text-base-content">
+          {{ message }}
+        </div>
+      }
+      <button type="button" class="btn btn-ghost" [disabled]="busy()" (click)="cancel()">{{ store.labels().cancel }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="apply()">{{ store.labels().apply }}</button>
+    </footer>
+    <div class="sr-only" aria-live="polite">{{ announcement() }}</div>
+  </div>
+</dialog>

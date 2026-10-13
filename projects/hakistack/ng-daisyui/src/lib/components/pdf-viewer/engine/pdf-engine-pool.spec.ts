@@ -1,36 +1,32 @@
 import { PdfEnginePool } from './pdf-engine-pool';
 import { PdfiumEngine } from './pdfium-engine';
 
-/**
- * A stand-in for one worker engine: just the calls the pool's open/mutation/
- * resync paths use. Each fake owns its "documents" as a version counter so a
- * test can see which copies a mutation (or a resync) reached.
- */
+/** A stand-in for one worker engine: the calls the pool routes. */
 class FakeEngine {
   private next = 100;
-  readonly docs = new Map<number, { bytes: string; edits: number }>();
-  failNextMutation = false;
-  failSave = false;
+  readonly docs = new Set<number>();
+  readonly hidden = new Map<number, readonly number[]>();
+  reads = 0;
+  renders = 0;
 
-  async open(bytes: ArrayBuffer): Promise<number> {
+  async open(): Promise<number> {
     const h = this.next++;
-    this.docs.set(h, { bytes: new TextDecoder().decode(bytes), edits: 0 });
+    this.docs.add(h);
     return h;
   }
 
-  async deletePage(handle: number): Promise<boolean> {
-    if (this.failNextMutation) {
-      this.failNextMutation = false;
-      throw new Error('worker mutation failed');
-    }
-    this.docs.get(handle)!.edits++;
-    return true;
+  async pageCount(handle: number): Promise<number> {
+    this.reads++;
+    return this.docs.has(handle) ? 3 : 0;
   }
 
-  async save(handle: number): Promise<Uint8Array> {
-    if (this.failSave) throw new Error('save failed');
-    const d = this.docs.get(handle)!;
-    return new TextEncoder().encode(`${d.bytes}+${d.edits}`);
+  renderPage() {
+    this.renders++;
+    return { promise: new Promise<never>(() => undefined), cancel: () => undefined };
+  }
+
+  async setHiddenAnnotations(handle: number, entries: readonly number[]): Promise<void> {
+    this.hidden.set(handle, entries);
   }
 
   dispose(handle: number): void {
@@ -54,54 +50,29 @@ function makePool(size: number): { pool: PdfEnginePool; fakes: FakeEngine[] } {
 
 const bytes = () => new TextEncoder().encode('pdf').buffer;
 
-describe('PdfEnginePool broadcast', () => {
-  it('applies a mutation to every worker', async () => {
+describe('PdfEnginePool', () => {
+  it('opens a copy in every worker and reads from the primary one', async () => {
     const { pool, fakes } = makePool(3);
     const doc = await pool.open(bytes());
-    await expect(pool.deletePage(doc, 0)).resolves.toBe(true);
-    for (const f of fakes) expect([...f.docs.values()][0].edits).toBe(1);
-    expect(pool.isDesynced).toBe(false);
+    for (const f of fakes) expect(f.docs.size).toBe(1);
+    await expect(pool.pageCount(doc)).resolves.toBe(3);
+    expect(fakes.map((f) => f.reads)).toEqual([1, 0, 0]);
   });
 
-  it('rethrows when the mutation failed on every worker (copies still agree)', async () => {
+  it('spreads renders over the least busy workers', async () => {
     const { pool, fakes } = makePool(2);
     const doc = await pool.open(bytes());
-    for (const f of fakes) f.failNextMutation = true;
-    await expect(pool.deletePage(doc, 0)).rejects.toThrow('worker mutation failed');
-    expect(pool.isDesynced).toBe(false);
+    for (let i = 0; i < 4; i++) pool.renderPage(doc, i, 100, 1);
+    expect(fakes.map((f) => f.renders)).toEqual([2, 2]);
   });
 
-  it('heals a partial failure by reopening the healthy copy in the failed worker', async () => {
+  it('gives every worker the hidden-annotation set, and disposes every copy', async () => {
     const { pool, fakes } = makePool(2);
     const doc = await pool.open(bytes());
-    fakes[1].failNextMutation = true;
-
-    await expect(pool.deletePage(doc, 0)).resolves.toBe(true);
-
-    expect(pool.isDesynced).toBe(false);
-    // Worker 1 now holds the bytes saved from worker 0 (which has the edit).
-    expect([...fakes[1].docs.values()][0].bytes).toBe('pdf+1');
-  });
-
-  it('marks the pool desynced when the resync itself fails', async () => {
-    const { pool, fakes } = makePool(2);
-    const doc = await pool.open(bytes());
-    fakes[1].failNextMutation = true;
-    fakes[0].failSave = true;
-
-    await expect(pool.deletePage(doc, 0)).rejects.toThrow(/desynchronized/);
-    expect(pool.isDesynced).toBe(true);
-  });
-
-  it('clears the desync flag on a fresh open', async () => {
-    const { pool, fakes } = makePool(2);
-    const doc = await pool.open(bytes());
-    fakes[1].failNextMutation = true;
-    fakes[0].failSave = true;
-    await pool.deletePage(doc, 0).catch(() => undefined);
-
-    fakes[0].failSave = false;
-    await pool.open(bytes());
-    expect(pool.isDesynced).toBe(false);
+    await pool.setHiddenAnnotations(doc, [0, 1]);
+    for (const f of fakes) expect([...f.hidden.values()]).toEqual([[0, 1]]);
+    pool.dispose(doc);
+    for (const f of fakes) expect(f.docs.size).toBe(0);
+    expect(() => pool.pageCount(doc)).toThrow('unknown document handle');
   });
 });

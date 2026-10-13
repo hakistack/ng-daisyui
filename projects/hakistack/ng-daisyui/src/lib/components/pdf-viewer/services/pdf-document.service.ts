@@ -3,13 +3,13 @@ import { isPlatformBrowser } from '@angular/common';
 import { annotationOps, decodeImages, paintOps } from '../core/annotations/shapes';
 import { writeDocumentChanges } from '../core/forms/document-writer';
 import { widgetOps } from '../core/forms/form-appearance';
+import { extractPages } from '../core/pages/page-writer';
 import { PdfDoc } from '../core/pdf-writer/document';
 import { loadPdfFonts } from '../core/pdf-writer/fonts';
 import { PdfSigner } from '../core/signatures/cms';
 import { signPdf } from '../core/signatures/pdf-signature';
 import { BitmapCache, defaultBitmapBudgetBytes } from '../core/bitmap-cache';
-import { isQuarterTurn, normalizeRotation } from '../core/geometry';
-import { PdfPageEntry } from '../core/types';
+import { isQuarterTurn } from '../core/geometry';
 import { PdfDocHandle, PdfEngine } from '../engine/pdf-engine.types';
 import {
   PdfAttachmentEntry,
@@ -26,6 +26,7 @@ import { PdfRasterHiddenService } from './pdf-raster-hidden.service';
 import { PdfSignaturesService } from './pdf-signatures.service';
 import { PdfFormDesignerService } from './pdf-form-designer.service';
 import { PdfPageDataService } from './pdf-page-data.service';
+import { PdfPagesService } from './pdf-pages.service';
 import { PdfThumbnailsService } from './pdf-thumbnails.service';
 import { PDF_BITMAP_CACHE, PdfViewerStore } from './pdf-viewer.store';
 import { PdfViewportService } from './pdf-viewport.service';
@@ -37,8 +38,9 @@ const MAX_PASSWORD_ATTEMPTS = 4;
 
 /**
  * The open document's lifecycle and file operations: loading (with password
- * prompts), structural page edits, save / download / print / export, and the
- * sidebar's annotation and attachment actions.
+ * prompts), save / download / print / export (and page extraction), and the
+ * sidebar's annotation and attachment actions. Page edits live in
+ * `PdfPagesService`.
  */
 @Injectable()
 export class PdfDocumentService {
@@ -52,6 +54,7 @@ export class PdfDocumentService {
   private readonly designer = inject(PdfFormDesignerService);
   private readonly annotations = inject(PdfAnnotationsService);
   private readonly signatures = inject(PdfSignaturesService);
+  private readonly pages = inject(PdfPagesService);
   private readonly bitmaps = inject<BitmapCache<ImageBitmap>>(PDF_BITMAP_CACHE);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
@@ -118,10 +121,10 @@ export class PdfDocumentService {
     this.forms.reset();
     this.designer.reset();
     this.hidden.reset();
-    store.pageRotations.set(new Map());
+    this.pages.reset();
     store.pageLabels.set([]);
     store.resetDocumentEdited();
-    this.thumbnails.reset();
+    this.thumbnails.resetForDocument();
     this.find.reset();
     this.pageData.reset();
     void this.signatures.validate(null);
@@ -167,18 +170,16 @@ export class PdfDocumentService {
       }
       store.doc = handle;
 
-      const pages = await this.readPages(engine, handle);
+      const sizes = await engine.pageSizes(handle);
       if (store.loadToken !== token) return;
-      store.pages = pages;
-      const numPages = pages.length;
-      // Editable annotations and the form are read (with hk-pdf-writer) alongside the first renders.
-      void this.loadEditables(store.sourceBytes, numPages, token);
-
+      const numPages = sizes.length;
       // Resolve the initial page before mounting wrappers: the viewport scrolls
       // to `state.page` once every wrapper exists.
       const firstPage = Math.max(1, Math.min(numPages, initialPage ?? store.config().page ?? 1));
       store.patchState((s) => ({ ...s, page: firstPage, numPages }));
-      store.pageNumbers.set(pages.map((p) => p.pageNumber));
+      this.pages.open(handle, store.sourceBytes, store.documentPassword, sizes);
+      // Editable annotations and the form are read (with hk-pdf-writer) alongside the first renders.
+      void this.loadEditables(store.sourceBytes, numPages, token);
       this.pageData.createSearchIndex(numPages, token);
       this.loadPageLabels(engine, handle, token);
 
@@ -200,7 +201,14 @@ export class PdfDocumentService {
     } catch {
       doc = null;
     }
+    const readPages = doc
+      ? await doc.pages().then(
+          (p) => p.length,
+          () => -1,
+        )
+      : -1;
     if (this.store.loadToken !== token) return;
+    this.pages.load(doc, numPages, readPages);
     await Promise.all([this.annotations.load(doc, numPages), this.forms.load(doc), this.signatures.validate(doc ? bytes : null)]);
   }
 
@@ -242,29 +250,16 @@ export class PdfDocumentService {
     engine
       .pageLabels(handle)
       .then((labels) => {
-        if (this.store.loadToken === token) this.store.pageLabels.set(labels);
+        if (this.store.loadToken === token) this.pages.setDocumentLabels(labels);
       })
       .catch(() => undefined);
   }
 
-  /** Every page's size in one worker round-trip (was one per page). */
-  private async readPages(engine: PdfEngine, handle: PdfDocHandle): Promise<PdfPageEntry[]> {
-    const sizes = await engine.pageSizes(handle);
-    return sizes.map((size, i) => ({ pageNumber: i + 1, baseWidth: size.width, baseHeight: size.height }));
-  }
+  // ── Page operations (the controller's; see PdfPagesService) ───────────
 
-  // ── Page operations ─────────────────────────────────────────────────────
-
-  /** Rotate a page by `delta` degrees (default +90). Display-only until `save()` bakes it in. */
+  /** Rotate a page by `delta` degrees (default +90). */
   rotatePage(pageNumber: number, delta = 90): void {
-    this.store.pageRotations.update((m) => {
-      const next = new Map(m);
-      const r = normalizeRotation((next.get(pageNumber) ?? 0) + delta);
-      if (r === 0) next.delete(pageNumber);
-      else next.set(pageNumber, r);
-      return next;
-    });
-    this.thumbnails.refresh(pageNumber);
+    void this.pages.rotate([pageNumber], delta).catch((err) => this.reportPageError(err));
   }
 
   rotateCurrentPage(): void {
@@ -274,87 +269,40 @@ export class PdfDocumentService {
 
   /** Delete a page (1-based). No-op on the last remaining page. */
   async deletePage(pageNumber: number): Promise<void> {
-    const session = this.store.session();
-    if (!session || this.store.pages.length <= 1) return;
-    try {
-      await session.engine.deletePage(session.doc, pageNumber - 1);
-      this.annotations.onPageRemoved(pageNumber - 1);
-      this.forms.onPageRemoved(pageNumber - 1);
-      await this.refreshPageStructure();
-    } catch (err) {
-      this.store.reportOperationError({ code: 'render_failed', message: 'Failed to delete page.', recoverable: true, cause: err });
-    }
+    await this.pages.delete([pageNumber]).catch((err) => this.reportPageError(err));
   }
 
-  /** Insert a blank page that becomes page `atPageNumber` (clamped), sized like its neighbour (or US Letter). */
+  /** Insert a blank page that becomes page `atPageNumber` (clamped), sized like its neighbour. */
   async insertBlankPage(atPageNumber: number): Promise<void> {
-    const session = this.store.session();
-    if (!session) return;
-    const pages = this.store.pages;
-    const idx = Math.max(0, Math.min(pages.length, atPageNumber - 1));
-    const ref = pages[Math.min(idx, pages.length - 1)];
-    try {
-      await session.engine.insertBlankPage(session.doc, idx, ref?.baseWidth ?? 612, ref?.baseHeight ?? 792);
-      this.annotations.onPageInserted(idx, ref?.baseWidth ?? 612, ref?.baseHeight ?? 792);
-      this.forms.onPageInserted(idx);
-      await this.refreshPageStructure();
-    } catch (err) {
-      this.store.reportOperationError({ code: 'render_failed', message: 'Failed to insert page.', recoverable: true, cause: err });
-    }
+    await this.pages.insertBlank(atPageNumber).catch((err) => this.reportPageError(err));
   }
 
-  /**
-   * Rebuild the page model after a structural change: re-read sizes, reset
-   * caches and the search index, re-render. Reuses the open document.
-   */
-  private async refreshPageStructure(): Promise<void> {
-    const store = this.store;
-    const session = store.session();
-    if (!session) return;
-    store.markDocumentEdited();
-    const token = ++store.loadToken; // invalidates in-flight work on the old structure
-    this.viewport.cancelInflightRenders();
-    this.bitmaps.clear();
-    this.pageData.reset();
-    this.thumbnails.reset();
-    store.pageRotations.set(new Map()); // indices shifted
-    store.outline.set(null); // bookmark targets may have shifted
-
-    const pages = await this.readPages(session.engine, session.doc);
-    if (store.loadToken !== token) return;
-    store.pages = pages;
-    const numPages = pages.length;
-    const cur = Math.max(1, Math.min(numPages, store.state()?.page ?? 1));
-    store.patchState((s) => ({ ...s, page: cur, numPages }));
-    store.pageNumbers.set(pages.map((p) => p.pageNumber));
-    store.notifyPagesChange(numPages);
-    this.pageData.createSearchIndex(numPages, token);
-    store.pageLabels.set([]);
-    this.loadPageLabels(session.engine, session.doc, token);
-    // The new `pageNumbers` makes the viewport re-render and re-scroll.
+  private reportPageError(err: unknown): void {
+    this.store.reportOperationError({
+      code: 'unknown',
+      message: (err as Error)?.message || 'The page change failed.',
+      recoverable: true,
+      cause: err,
+    });
   }
 
   // ── Save / download / print / export ────────────────────────────────────
 
   /**
-   * Serialize the document with every edit. Engine-side edits (forms, page
-   * structure, display rotations, baked in for the save and then reverted)
-   * come from a PDFium save; an unedited document starts from its original
-   * bytes. The annotation changes are then appended by hk-pdf-writer as an
-   * incremental update, so an annotation-only save leaves the original
-   * bytes (and any signatures over them) intact.
+   * Serialize the document with every edit: the original bytes with one
+   * incremental update (pages, annotations, form) written by hk-pdf-writer,
+   * so existing signatures stay valid. Unedited, the original bytes.
    */
   async save(): Promise<Uint8Array> {
-    const session = this.store.session();
-    if (!session) throw new Error('No PDF document loaded');
-    const rotations = [...this.store.pageRotations()].filter(([, r]) => r !== 0);
     const source = this.store.sourceBytes;
-    const base = this.store.engineEdited || rotations.length > 0 || !source ? await this.saveFromEngine(rotations) : source.slice();
+    if (!this.store.session() || !source) throw new Error('No PDF document loaded');
+    const pages = this.pages.writerChanges();
     const annotations = this.annotations.changes();
     const formValues = this.forms.changedValues();
     const formDesign = this.forms.designed() ?? undefined;
-    if (!annotations && formValues.size === 0 && !formDesign) return base;
-    return writeDocumentChanges(base, {
+    if (!pages && !annotations && formValues.size === 0 && !formDesign) return source.slice();
+    return writeDocumentChanges(source.slice(), {
+      pages: pages ?? undefined,
       formValues,
       formDesign,
       annotations: annotations ?? undefined,
@@ -362,30 +310,19 @@ export class PdfDocumentService {
     });
   }
 
-  /** A PDFium save with the display rotations baked in (and reverted afterwards). */
-  private async saveFromEngine(rotations: readonly [number, number][]): Promise<Uint8Array> {
-    const { engine, doc } = this.store.session()!;
-    let result: Uint8Array;
-    try {
-      // Inside the try so the finally always reverts, even if a mutation throws partway.
-      for (const [n, r] of rotations) await engine.setPageRotation(doc, n - 1, r);
-      result = await engine.save(doc);
-    } finally {
-      for (const [n] of rotations) {
-        try {
-          await engine.setPageRotation(doc, n - 1, 0);
-        } catch (err) {
-          this.store.reportOperationError({
-            code: 'render_failed',
-            message: 'Failed to restore page rotation after save.',
-            recoverable: true,
-            cause: err,
-          });
-        }
-        this.bitmaps.invalidatePage(n); // drop any raster captured while rotated
-      }
-    }
-    return result;
+  /** A new PDF with the given pages (1-based, in that order) of the edited document. */
+  async extractPages(pageNumbers: readonly number[]): Promise<Uint8Array> {
+    if (!this.pages.canExtract()) throw new Error(this.store.labels().extractUnavailable);
+    const count = this.store.pages.length;
+    const indices = pageNumbers.filter((n) => n >= 1 && n <= count).map((n) => n - 1);
+    if (indices.length === 0) throw new Error('No pages to extract');
+    return extractPages(await this.save(), indices);
+  }
+
+  /** Extract pages and download them as a new PDF. */
+  async downloadExtracted(pageNumbers: readonly number[]): Promise<void> {
+    const bytes = await this.extractPages(pageNumbers);
+    downloadBlob(new Blob([bytes.slice().buffer], { type: 'application/pdf' }), this.deriveFilename().replace(/\.pdf$/i, '-pages.pdf'));
   }
 
   /**
@@ -429,7 +366,7 @@ export class PdfDocumentService {
       this.annotations.hasChanges() ||
       this.forms.changedValues().size > 0 ||
       !!this.forms.designed() ||
-      [...this.store.pageRotations().values()].some((r) => r !== 0);
+      this.pages.edited();
     if (!edited) {
       downloadBlob(new Blob([bytes.slice().buffer], { type: 'application/pdf' }), filename || this.deriveFilename());
       return;
@@ -482,7 +419,7 @@ export class PdfDocumentService {
     if (!ctx) return;
 
     // dpr 1: the requested device pixels are exactly baseWidth × scale.
-    const { bitmap, width, height } = await session.engine.renderPage(session.doc, pageNumber - 1, page.baseWidth * scale, 1).promise;
+    const { bitmap, width, height } = await session.engine.renderPage(page.doc, page.index, page.baseWidth * scale, 1).promise;
     const deg = this.store.pageRotation(pageNumber);
     const swap = isQuarterTurn(deg);
     canvas.width = swap ? height : width;

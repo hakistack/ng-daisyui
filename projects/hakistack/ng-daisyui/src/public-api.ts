@@ -419,6 +419,7 @@ export type {
   Certificate as PdfCertificate,
   DistinguishedName as PdfDistinguishedName,
 } from './lib/components/pdf-viewer/core/signatures/x509';
+export { extractPages as extractPdfPages } from './lib/components/pdf-viewer/core/pages/page-writer';
 export { HK_PDF_LABELS, provideHkPdfLabels, DEFAULT_PDF_VIEWER_LABELS } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export type { PdfViewerLabels, ResolvedPdfViewerLabels } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export { HkPdfToolbarDirective } from './lib/components/pdf-viewer/pdf-viewer.directives';
@@ -439,6 +440,7 @@ export type {
   PdfImageExportOptions,
   PdfSignerSource,
   PdfDigitalSignOptions,
+  PdfImportPagesOptions,
 } from './lib/components/pdf-viewer/pdf-viewer.types';
 export type {
   HkAnnotation,

@@ -19,6 +19,7 @@ import { mergeSelectionRects } from '../core/annotations/selection';
 import { translateAnnotation, withDerivedRect } from '../core/annotations/shapes';
 import { exportAnnotationsJson, exportXfdf, importAnnotationsJson, importXfdf } from '../core/annotations/xfdf';
 import { CommandStack, PdfCommand, PdfCommandStackState } from '../core/command-stack';
+import { PageRemap } from '../core/pages/page-model';
 import { pointerToLocal } from '../core/geometry';
 import { PdfDoc } from '../core/pdf-writer/document';
 import { PDF_PERMISSION } from '../core/pdf-writer/security';
@@ -135,6 +136,13 @@ interface AnnotationCommand extends PdfCommand {
 
 const EMPTY: readonly HkAnnotation[] = [];
 
+/** What page edits change in the annotations (see `PdfAnnotationsService.pagesSnapshot`). */
+export interface AnnotationPages {
+  readonly list: readonly HkAnnotation[];
+  readonly baseline: ReadonlyMap<string, ImportedAnnotation>;
+  readonly spaces: readonly PageSpace[];
+}
+
 /** Id of an annotation being drawn; `add` gives it a real one. */
 export const DRAFT_ID = 'draft';
 
@@ -211,16 +219,21 @@ export class PdfAnnotationsService {
     return [...names].sort((x, y) => x.localeCompare(y));
   });
 
-  private baseline = new Map<string, ImportedAnnotation>();
+  private baseline: ReadonlyMap<string, ImportedAnnotation> = new Map();
+  /** The document's undo history: annotation edits and page edits (see `PdfPagesService`). */
   private readonly stack = new CommandStack(200);
+  /** Decides whether a command may be undone or redone now (page edits wait while a form design is pending). */
+  private undoGuard: (command: PdfCommand) => boolean = () => true;
   /** Edits run one after another, so each reads the state the previous one left. */
   private chain: Promise<unknown> = Promise.resolve();
   private loadSeq = 0;
   private focusSeq = 0;
   /** Each page's display ↔ user-space mapping (for XFDF). */
-  private spaces: PageSpace[] = [];
+  private spaces: readonly PageSpace[] = [];
   /** Last copied annotations (when the system clipboard drops the custom format). */
   private clipboard: HkAnnotation[] = [];
+  /** The `/Annots` entries hidden in the rasters, by page of the document as loaded. */
+  private loadedHidden: { page: number; index: number }[] = [];
 
   constructor() {
     this.stack.subscribe((state) => {
@@ -294,11 +307,19 @@ export class PdfAnnotationsService {
     }
   }
 
-  /** Leave every imported annotation and its thread out of the rasters (this layer draws them). */
+  /**
+   * Leave every imported annotation and its thread out of the rasters (this
+   * layer draws them). Set once per document, by page of the document: page
+   * edits never re-render rasters, they only move what this layer draws.
+   */
   private async syncHidden(): Promise<void> {
     const entries: number[] = [];
+    this.loadedHidden = [];
     for (const b of this.baseline.values()) {
-      for (const index of [b.index, ...b.threadIndices]) entries.push(b.annotation.page, index);
+      for (const index of [b.index, ...b.threadIndices]) {
+        entries.push(b.annotation.page, index);
+        this.loadedHidden.push({ page: b.annotation.page, index });
+      }
     }
     await this.hidden.set('annotations', entries);
   }
@@ -367,15 +388,28 @@ export class PdfAnnotationsService {
   }
 
   async undo(): Promise<boolean> {
+    const next = this.stack.peekUndo();
+    if (next && !this.undoGuard(next)) return false;
     this.preview.set(null);
     this.textEdit.set(null);
     return this.stack.undo();
   }
 
   async redo(): Promise<boolean> {
+    const next = this.stack.peekRedo();
+    if (next && !this.undoGuard(next)) return false;
     this.preview.set(null);
     this.textEdit.set(null);
     return this.stack.redo();
+  }
+
+  /** Run a command from another part of the document (page edits) through this history. */
+  execute(command: PdfCommand): Promise<void> {
+    return this.serial(() => this.stack.execute(command));
+  }
+
+  setUndoGuard(guard: (command: PdfCommand) => boolean): void {
+    this.undoGuard = guard;
   }
 
   /** Group the edits made by `run` into one undo step. */
@@ -643,37 +677,63 @@ export class PdfAnnotationsService {
     return out;
   }
 
-  // ── Page structure ──────────────────────────────────────────────────────
+  // ── Page structure ──────────────────────────────────────────────────
 
-  /** A page was deleted (0-based): its annotations go, later pages shift up. History is cleared. */
-  onPageRemoved(index: number): void {
-    this.spaces.splice(index, 1);
-    this.shiftPages((page) => (page === index ? null : page > index ? page - 1 : page));
+  /** The state a page edit changes (annotations live on pages by position), to restore on undo. */
+  pagesSnapshot(): AnnotationPages {
+    return { list: this.list(), baseline: this.baseline, spaces: this.spaces };
   }
 
-  /** A page of `width` × `height` points was inserted at `index` (0-based): later pages shift down. History is cleared. */
-  onPageInserted(index: number, width = 612, height = 792): void {
-    this.spaces.splice(index, 0, new PageSpace([0, 0, width, height], 0));
-    this.shiftPages((page) => (page >= index ? page + 1 : page));
+  /** Put back a {@link pagesSnapshot} (or a {@link remapped} one). */
+  restorePages(state: AnnotationPages): void {
+    this.list.set(state.list);
+    this.baseline = state.baseline;
+    this.spaces = state.spaces;
+    this.preview.set(null);
+    this.textEdit.set(null);
+    if (this.selectedId() && !state.list.some((a) => a.id === this.selectedId())) this.selectedId.set(null);
   }
 
-  private shiftPages(map: (page: number) => number | null): void {
+  /**
+   * The annotations after a page edit: they follow their page, go with a
+   * deleted one, and a duplicated page gets copies of its own (new
+   * annotations, like a paste). `space` gives the space of a new page.
+   */
+  remapped(remap: PageRemap, space: (position: number) => PageSpace): AnnotationPages {
     const move = <A extends { page: number }>(a: A): A | null => {
-      const page = map(a.page);
-      return page === null ? null : page === a.page ? a : { ...a, page };
+      const page = remap.moved[a.page] ?? -1;
+      return page < 0 ? null : page === a.page ? a : { ...a, page };
     };
-    this.list.update((list) => list.flatMap((a) => move(a) ?? []));
+    const list = this.list();
+    const copies = remap.copies.flatMap(([to, from]) =>
+      list
+        .filter((a) => a.page === from)
+        .map((a) => {
+          const copy = { ...a, id: newAnnotationId(), page: to } as HkAnnotation & Record<string, unknown>;
+          for (const key of PASTE_DROPPED) if (key !== 'id' && key !== 'author' && key !== 'created') delete copy[key];
+          return copy as HkAnnotation;
+        }),
+    );
     const baseline = new Map<string, ImportedAnnotation>();
     for (const [id, b] of this.baseline) {
       const annotation = move(b.annotation);
       if (annotation) baseline.set(id, { ...b, annotation });
     }
-    this.baseline = baseline;
-    this.preview.set(null);
-    this.textEdit.set(null);
-    if (this.selectedId() && !this.list().some((a) => a.id === this.selectedId())) this.selectedId.set(null);
-    this.stack.clear(); // commands hold page indices from before the change
-    void this.syncHidden();
+    const count = remap.moved.filter((p) => p >= 0).length + remap.copies.length + remap.added.length;
+    const spaces: PageSpace[] = [];
+    remap.moved.forEach((to, from) => {
+      if (to >= 0) spaces[to] = this.spaces[from];
+    });
+    for (const [to, from] of remap.copies) spaces[to] = this.spaces[from];
+    for (let i = 0; i < count; i++) spaces[i] ??= space(i);
+    return { list: [...list.flatMap((a) => move(a) ?? []), ...copies], baseline, spaces };
+  }
+
+  /** The source page's `/Annots` indices this layer draws (and a save writes), for a page copy to leave out. */
+  managedIndices(sourcePage: number): ReadonlySet<number> {
+    const out = new Set<number>();
+    for (const b of this.loadedHidden) if (b.page === sourcePage) out.add(b.index);
+    return out;
   }
 
   // ── Saving ──────────────────────────────────────────────────────────────

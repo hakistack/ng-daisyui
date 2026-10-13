@@ -1,8 +1,12 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import type { HkAnnotation } from '../core/annotations/annotation.types';
 import { annotationOps, paintOps } from '../core/annotations/shapes';
+import { BitmapCache } from '../core/bitmap-cache';
 import { widgetOps } from '../core/forms/form-appearance';
+import type { FormField, FormWidget } from '../core/forms/form-model';
 import { isQuarterTurn } from '../core/geometry';
 import { PageLayout } from '../core/page-layout';
+import { PdfPageEntry } from '../core/types';
 import { PdfAnnotationsService } from './pdf-annotations.service';
 import { PdfFormsService } from './pdf-forms.service';
 import { PdfViewerStore } from './pdf-viewer.store';
@@ -13,6 +17,17 @@ export const THUMBNAIL_WIDTH = 180;
 const RENDER_MARGIN_PX = 500;
 /** Thumbnails within this many px stay mounted; the rest are spacers. */
 const MOUNT_MARGIN_PX = 1500;
+/** Memory for cached thumbnail rasters (a 180px-wide letter page at DPR 2 is ~0.5 MB). */
+const RASTER_CACHE_BYTES = 48 * 1024 * 1024;
+
+/** What a thumbnail shows: a source page, and what the viewer draws over it. */
+export interface PdfThumbnailContent {
+  readonly page: Pick<PdfPageEntry, 'doc' | 'index' | 'key' | 'baseWidth' | 'baseHeight'>;
+  /** Rotation added to the page (degrees). */
+  readonly rotation: number;
+  readonly annotations: readonly HkAnnotation[];
+  readonly widgets: readonly { readonly field: FormField; readonly widget: FormWidget }[];
+}
 
 /**
  * Sidebar thumbnails, virtualized like the page stack: a {@link PageLayout} of
@@ -39,6 +54,9 @@ export class PdfThumbnailsService {
 
   /** Canvases already painted (a remounted item gets a fresh canvas, so this tracks elements, not pages). */
   private painted = new WeakSet<HTMLCanvasElement>();
+  /** Rasters by source page and device width: a moved or duplicated page repaints without rendering. */
+  private readonly rasters = new BitmapCache<ImageBitmap>(RASTER_CACHE_BYTES);
+  private readonly pending = new Map<string, Promise<ImageBitmap | null>>();
   private listenedPanel: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private scrollRaf: number | null = null;
@@ -114,7 +132,10 @@ export class PdfThumbnailsService {
       untracked(() => this.scrollActiveIntoView(page));
     });
 
-    inject(DestroyRef).onDestroy(() => this.listen(null));
+    inject(DestroyRef).onDestroy(() => {
+      this.listen(null);
+      this.rasters.clear();
+    });
   }
 
   /** CSS height of a page's thumbnail canvas (180px wide; rotation swaps the aspect). */
@@ -125,9 +146,77 @@ export class PdfThumbnailsService {
     return Math.round(THUMBNAIL_WIDTH * (swap ? p.baseWidth / p.baseHeight : p.baseHeight / p.baseWidth));
   }
 
-  /** Forget painted thumbnails (new document or page structure). */
+  /** Forget painted thumbnails (the page structure changed; the cached rasters stay valid). */
   reset(): void {
     this.painted = new WeakSet();
+  }
+
+  /** Forget everything for a new document (source ids restart, so cached rasters no longer apply). */
+  resetForDocument(): void {
+    this.reset();
+    this.pending.clear();
+    this.rasters.clear();
+  }
+
+  /** A page's raster at `cssWidth` (cached; low priority, so it never delays the pages being read). */
+  raster(page: PdfThumbnailContent['page'], cssWidth: number, dpr: number): Promise<ImageBitmap | null> {
+    const session = this.store.session();
+    if (!session) return Promise.resolve(null);
+    const key = BitmapCache.key(page.key, Math.round(cssWidth * dpr));
+    const hit = this.rasters.get(key);
+    if (hit) return Promise.resolve(hit);
+    let job = this.pending.get(key);
+    if (!job) {
+      job = session.engine
+        .renderPage(page.doc, page.index, cssWidth, dpr, 'low')
+        .promise.then(({ bitmap }) => {
+          if (this.pending.get(key) !== job || this.store.session()?.engine !== session.engine) {
+            bitmap.close();
+            return null;
+          }
+          this.rasters.set(key, bitmap);
+          return bitmap;
+        })
+        .catch(() => null)
+        .finally(() => {
+          if (this.pending.get(key) === job) this.pending.delete(key);
+        });
+      this.pending.set(key, job);
+    }
+    return job;
+  }
+
+  /**
+   * Paint a thumbnail onto `canvas` at `cssWidth`: the raster turned by the
+   * added rotation, with the form widgets and annotations the viewer draws.
+   * Resolves `false` when the page couldn't be rendered.
+   */
+  async paintThumbnail(canvas: HTMLCanvasElement, content: PdfThumbnailContent, cssWidth: number): Promise<boolean> {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const bitmap = await this.raster(content.page, cssWidth, dpr);
+    const ctx = canvas.getContext('2d');
+    if (!bitmap || !ctx) return false;
+    const { width, height } = bitmap;
+    const swap = isQuarterTurn(content.rotation);
+    canvas.width = swap ? height : width;
+    canvas.height = swap ? width : height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    try {
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((content.rotation * Math.PI) / 180);
+      ctx.drawImage(bitmap, -width / 2, -height / 2);
+      const { page, annotations, widgets } = content;
+      if ((annotations.length || widgets.length) && typeof Path2D !== 'undefined') {
+        ctx.translate(-width / 2, -height / 2);
+        ctx.scale(width / page.baseWidth, height / page.baseHeight);
+        for (const { field, widget } of widgets) paintOps(ctx, widgetOps(field, widget, this.forms.value(field.name)));
+        for (const a of annotations) paintOps(ctx, annotationOps(a));
+      }
+    } finally {
+      ctx.restore();
+    }
+    return true;
   }
 
   /** Re-render one thumbnail (e.g. after its page was rotated). */
@@ -203,44 +292,29 @@ export class PdfThumbnailsService {
     if (chrome > 0 && Math.abs(chrome - this.chrome()) > 0.5) this.chrome.set(chrome);
   }
 
-  /** Paint one thumbnail off-thread, with the display rotation baked in. Failures leave it blank (it still navigates). */
-  private async renderOne(pageNumber: number): Promise<void> {
-    const canvas = this.canvasFor(pageNumber);
-    const session = this.store.session();
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !session || !ctx || !this.store.findPage(pageNumber)) return;
-    this.painted.add(canvas);
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    try {
-      // Low priority: thumbnails never delay the pages the user is reading.
-      const { bitmap, width, height } = await session.engine.renderPage(session.doc, pageNumber - 1, THUMBNAIL_WIDTH, dpr, 'low').promise;
-      const deg = this.store.pageRotation(pageNumber);
-      const swap = isQuarterTurn(deg);
-      canvas.width = swap ? height : width;
-      canvas.height = swap ? width : height;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((deg * Math.PI) / 180);
-      ctx.drawImage(bitmap, -width / 2, -height / 2);
-      this.paintAnnotations(ctx, pageNumber, width, height);
-      ctx.restore();
-      bitmap.close();
-    } catch {
-      this.painted.delete(canvas); // retry when it comes into view again
-    }
+  /** What page `pageNumber`'s thumbnail shows. */
+  contentFor(pageNumber: number): PdfThumbnailContent | null {
+    const page = this.store.findPage(pageNumber);
+    if (!page) return null;
+    return {
+      page,
+      rotation: this.store.pageRotation(pageNumber),
+      annotations: this.annotations.forPage(pageNumber),
+      widgets: this.forms.widgetsForPage(pageNumber),
+    };
   }
 
-  /** Draw the page's annotations over its raster (the context is centred on the unrotated bitmap). */
-  private paintAnnotations(ctx: CanvasRenderingContext2D, pageNumber: number, width: number, height: number): void {
-    const page = this.store.findPage(pageNumber);
-    const list = this.annotations.list().filter((a) => a.page === pageNumber - 1);
-    const widgets = this.forms.widgetsForPage(pageNumber);
-    if (!page || (list.length === 0 && widgets.length === 0) || typeof Path2D === 'undefined') return;
-    ctx.translate(-width / 2, -height / 2);
-    ctx.scale(width / page.baseWidth, height / page.baseHeight);
-    for (const { field, widget } of widgets) paintOps(ctx, widgetOps(field, widget, this.forms.value(field.name)));
-    for (const a of list) paintOps(ctx, annotationOps(a));
+  /** Paint one sidebar thumbnail. Failures leave it blank (it still navigates). */
+  private async renderOne(pageNumber: number): Promise<void> {
+    const canvas = this.canvasFor(pageNumber);
+    const content = this.contentFor(pageNumber);
+    if (!canvas || !content) return;
+    this.painted.add(canvas);
+    try {
+      if (!(await this.paintThumbnail(canvas, content, THUMBNAIL_WIDTH))) this.painted.delete(canvas); // retry when it comes into view again
+    } catch {
+      this.painted.delete(canvas);
+    }
   }
 
   /** Scroll the panel just enough to show the active thumbnail (never the outer page). Works for unmounted items. */

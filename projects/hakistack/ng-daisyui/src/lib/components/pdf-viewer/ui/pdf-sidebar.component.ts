@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, e
 import {
   LucideBookOpen,
   LucideFileText,
+  LucideLayoutGrid,
   LucideMessageSquare,
   LucidePaperclip,
   LucidePlus,
@@ -12,6 +13,7 @@ import {
 } from '@lucide/angular';
 import { PdfSidebarTab } from '../pdf-viewer.types';
 import { PdfDocumentService } from '../services/pdf-document.service';
+import { PdfPagesService } from '../services/pdf-pages.service';
 import { PdfSignaturesService } from '../services/pdf-signatures.service';
 import { PdfThumbnailsService } from '../services/pdf-thumbnails.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
@@ -20,7 +22,7 @@ import { PdfCommentsComponent } from './pdf-comments.component';
 import { PdfSignaturesPanelComponent } from './pdf-signatures-panel.component';
 
 /**
- * The viewer sidebar: thumbnails (with rotate / insert / delete page actions),
+ * The viewer sidebar: thumbnails (with rotate / insert / delete page actions and Organize pages),
  * bookmarks, annotations, attachments and digital signatures. Registers its thumbnail panel with
  * {@link PdfThumbnailsService}, which renders thumbnails lazily into it.
  */
@@ -31,6 +33,7 @@ import { PdfSignaturesPanelComponent } from './pdf-signatures-panel.component';
     PdfCommentsComponent,
     PdfSignaturesPanelComponent,
     LucideFileText,
+    LucideLayoutGrid,
     LucideBookOpen,
     LucideMessageSquare,
     LucidePaperclip,
@@ -48,6 +51,7 @@ export class PdfSidebarComponent {
   protected readonly viewport = inject(PdfViewportService);
   protected readonly document = inject(PdfDocumentService);
   protected readonly thumbnails = inject(PdfThumbnailsService);
+  protected readonly pages = inject(PdfPagesService);
   private readonly signatures = inject(PdfSignaturesService);
 
   /** The Signatures tab: when the document has signatures, or digital signing is configured. */
@@ -74,6 +78,10 @@ export class PdfSidebarComponent {
 
   protected thumbnailAriaLabel(pageNumber: number): string {
     return this.store.labels().thumbnailAriaLabel.replace('{page}', String(pageNumber));
+  }
+
+  protected pageAction(label: string, pageNumber: number): string {
+    return label.replace('{page}', String(pageNumber));
   }
 
   /** Outline entries carry a 0-based page index. */

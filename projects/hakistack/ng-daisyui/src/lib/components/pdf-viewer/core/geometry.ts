@@ -27,7 +27,11 @@ export const MAX_CANVAS_DIM = 4096;
  * `available` is the viewport's usable box (padding already removed). Fit modes
  * size against the first page, matching the viewer's long-standing behaviour.
  */
-export function resolveZoomScale(zoom: PdfZoom, available: { width: number; height: number }, firstPage: PdfPageEntry): number {
+export function resolveZoomScale(
+  zoom: PdfZoom,
+  available: { width: number; height: number },
+  firstPage: Pick<PdfPageEntry, 'baseWidth' | 'baseHeight'>,
+): number {
   if (typeof zoom === 'number') return zoom;
   if (zoom === 'fit-width') return Math.min(FIT_ZOOM_MAX, available.width / firstPage.baseWidth);
   if (zoom === 'fit-page') return Math.min(available.width / firstPage.baseWidth, available.height / firstPage.baseHeight);
