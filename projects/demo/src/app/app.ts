@@ -394,6 +394,7 @@ export class App implements OnInit {
             { id: 'spreadsheet', label: 'Spreadsheet (Rust+WASM)' },
             { id: 'image', label: 'TIFF + Images (Rust+WASM)' },
             { id: 'switching', label: 'Format Dispatch' },
+            { id: 'workspace', label: 'Workspace' },
           ],
         },
       ],

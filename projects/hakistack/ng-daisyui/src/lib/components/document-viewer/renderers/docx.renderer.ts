@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inj
 
 import { DocumentRendererInputs } from '../document-viewer.types';
 import { loadSourceAsBytes } from '../document-viewer.helpers';
+import { DocumentViewerHost } from '../document-viewer-host';
 
 /**
  * Renderer for `.docx` (Office Open XML) documents.
@@ -57,6 +58,9 @@ export class DocumentDocxRenderer {
   readonly error = signal<string | null>(null);
 
   private readonly mount = viewChild.required<ElementRef<HTMLElement>>('mount');
+  /** In a workspace: the rendered pages are its sections. */
+  private readonly host = inject(DocumentViewerHost, { optional: true });
+  private pageObserver: IntersectionObserver | null = null;
 
   constructor() {
     const destroyRef = inject(DestroyRef);
@@ -70,7 +74,11 @@ export class DocumentDocxRenderer {
     // created for embedded images become eligible for revocation by
     // the browser's GC. (docx-preview doesn't expose explicit
     // disposal, so this is the cleanest we can do.)
-    destroyRef.onDestroy(() => this.clearMount());
+    destroyRef.onDestroy(() => {
+      this.pageObserver?.disconnect();
+      this.clearMount();
+    });
+    this.host?.onGoTo((id) => this.pages()[Number(id)]?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
   }
 
   private async render(src: DocumentRendererInputs['source']): Promise<void> {
@@ -111,11 +119,41 @@ export class DocumentDocxRenderer {
         trimXmlDeclaration: true,
         useBase64URL: false,
       });
+      this.publishPages();
     } catch (e) {
       this.error.set((e as Error).message ?? 'Failed to render DOCX.');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /** docx-preview's rendered pages (`breakPages`). */
+  private pages(): HTMLElement[] {
+    try {
+      return Array.from(this.mount().nativeElement.querySelectorAll<HTMLElement>('section.hk-docx'));
+    } catch {
+      return [];
+    }
+  }
+
+  /** Tell the workspace about the pages, and which one is on screen as the user scrolls. */
+  private publishPages(): void {
+    const host = this.host;
+    if (!host) return;
+    const pages = this.pages();
+    host.sections.set(pages.map((_, i) => ({ id: String(i), label: `Page ${i + 1}`, kind: 'page' as const })));
+    host.current.set(pages.length ? '0' : null);
+    host.metadata.set([{ label: 'Pages', value: String(pages.length) }]);
+    this.pageObserver?.disconnect();
+    if (typeof IntersectionObserver === 'undefined' || pages.length < 2) return;
+    this.pageObserver = new IntersectionObserver(
+      (entries) => {
+        const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (top) host.current.set(String(pages.indexOf(top.target as HTMLElement)));
+      },
+      { threshold: 0.5 },
+    );
+    for (const page of pages) this.pageObserver.observe(page);
   }
 
   private clearMount(): void {

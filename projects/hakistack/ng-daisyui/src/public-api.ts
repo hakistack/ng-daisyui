@@ -319,6 +319,18 @@ export type {
 // Spreadsheet renderer is calamine-backed via the `document_wasm` bundle;
 // other renderers (text, image, pdf) are lightweight JS-only.
 export { DocumentViewerComponent } from './lib/components/document-viewer/document-viewer.component';
+export { DocumentWorkspaceComponent } from './lib/components/document-viewer/workspace/document-workspace.component';
+export { DocumentViewerHost } from './lib/components/document-viewer/document-viewer-host';
+export type { DocumentSection, DocumentMetadataEntry } from './lib/components/document-viewer/document-viewer-host';
+export {
+  HK_DOCUMENT_WORKSPACE_LABELS,
+  provideHkDocumentWorkspaceLabels,
+  DEFAULT_DOCUMENT_WORKSPACE_LABELS,
+} from './lib/components/document-viewer/workspace/document-workspace.labels';
+export type {
+  DocumentWorkspaceLabels,
+  ResolvedDocumentWorkspaceLabels,
+} from './lib/components/document-viewer/workspace/document-workspace.labels';
 export { DocumentSpreadsheetRenderer } from './lib/components/document-viewer/renderers/spreadsheet.renderer';
 export { DocumentTextRenderer } from './lib/components/document-viewer/renderers/text.renderer';
 export { DocumentHtmlRenderer } from './lib/components/document-viewer/renderers/html.renderer';

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
 
 import { DocumentRendererInputs } from '../document-viewer.types';
+import { DocumentViewerHost } from '../document-viewer-host';
 
 /**
  * Native browser image renderer. Handles `.png`, `.jpg`, `.gif`, `.webp`,
@@ -18,7 +19,7 @@ import { DocumentRendererInputs } from '../document-viewer.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex justify-center bg-base-200 rounded p-4">
-      <img [src]="resolvedUrl()" [alt]="filename() ?? 'image'" class="max-w-full h-auto object-contain" />
+      <img [src]="resolvedUrl()" [alt]="filename() ?? 'image'" class="max-w-full h-auto object-contain" (load)="onLoad($event)" />
     </div>
   `,
   host: { class: 'block w-full' },
@@ -64,6 +65,14 @@ export class DocumentImageRenderer {
     });
 
     destroyRef.onDestroy(() => this.revokeObjectUrl());
+  }
+
+  /** In a workspace: the image's pixel size goes to the inspector. */
+  private readonly host = inject(DocumentViewerHost, { optional: true });
+
+  protected onLoad(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    this.host?.metadata.set([{ label: 'Dimensions', value: `${img.naturalWidth} × ${img.naturalHeight} px` }]);
   }
 
   private revokeObjectUrl(): void {

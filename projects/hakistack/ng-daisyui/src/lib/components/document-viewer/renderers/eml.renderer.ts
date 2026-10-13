@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, effect, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 
 import { DocumentRendererInputs } from '../document-viewer.types';
 import { loadSourceAsBytes } from '../document-viewer.helpers';
+import { DocumentMetadataEntry, DocumentViewerHost } from '../document-viewer-host';
 
 /**
  * Parsed email — the minimum surface our template needs. Both `.eml`
@@ -24,6 +25,17 @@ export interface ParsedEmail {
   readonly bodyText: string;
   /** Attachment metadata (we don't expose content — just names/sizes). */
   readonly attachments: ReadonlyArray<{ filename: string; size: number; mimeType: string }>;
+}
+
+/** The inspector's properties for a parsed message. */
+export function emailMetadata(msg: ParsedEmail): DocumentMetadataEntry[] {
+  return [
+    { label: 'Subject', value: msg.subject },
+    { label: 'From', value: msg.from },
+    { label: 'To', value: msg.to },
+    ...(msg.date ? [{ label: 'Date', value: msg.date }] : []),
+    { label: 'Attachments', value: msg.attachments.length ? msg.attachments.map((a) => a.filename).join(', ') : 'None' },
+  ].filter((e) => e.value);
 }
 
 /**
@@ -107,6 +119,8 @@ export class DocumentEmlRenderer {
       const src = this.source();
       void this.parse(src);
     });
+    const host = inject(DocumentViewerHost, { optional: true });
+    if (host) effect(() => host.metadata.set(this.parsed() ? emailMetadata(this.parsed()!) : []));
   }
 
   private async parse(src: DocumentRendererInputs['source']): Promise<void> {

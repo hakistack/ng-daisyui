@@ -1,0 +1,176 @@
+@if (resolvedFormat().format === 'pdf') {
+  <!-- PDFs get the full PDF workspace (annotations, forms, signatures, pages). -->
+  <hk-pdf-workspace class="h-full" [src]="src()" [config]="pdf()" [storageKey]="storageKey()" />
+} @else {
+  <hk-mesa-layout class="h-full" [labels]="layoutLabels()" [storageKey]="storageKey()" [rail]="sections().length > 1">
+    <!-- Rail: the document's sections, one tab stop on the current one. -->
+    <div hkMesaRail class="flex min-h-0 flex-1 flex-col">
+      <div class="border-base-300 border-b px-3 py-2">
+        <h2 class="truncate text-sm font-semibold">{{ labels.sectionCount.replace('{count}', '' + sections().length) }}</h2>
+      </div>
+      <ul #rail class="min-h-0 flex-1 overflow-y-auto p-2" [attr.aria-label]="labels.rail">
+        @for (section of sections(); track section.id; let i = $index) {
+          <li class="py-0.5">
+            <button
+              type="button"
+              class="rounded-field hover:bg-base-200 flex w-full min-w-0 items-center gap-2 px-2 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-base-content"
+              [class.bg-base-200]="i === currentIndex()"
+              [class.ring-1]="i === currentIndex()"
+              [class.ring-inset]="i === currentIndex()"
+              [class.ring-base-content/45]="i === currentIndex()"
+              [attr.data-section-index]="i"
+              [attr.tabindex]="i === currentIndex() ? 0 : -1"
+              [attr.aria-current]="i === currentIndex() ? 'page' : null"
+              (click)="goToIndex(i)"
+              (keydown)="onRailKey($event, rail)"
+            >
+              <span class="text-base-content/70 w-6 shrink-0 text-right font-mono text-xs tabular-nums" aria-hidden="true">{{
+                i + 1
+              }}</span>
+              <span class="min-w-0 truncate">{{ section.label }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <hk-mesa-toolbar>
+      <span class="badge badge-lg min-w-0 gap-2" [class.badge-secondary]="editing()" [class.badge-ghost]="!editing()">
+        <span class="min-w-0 truncate" [title]="badge()">{{ editing() ? labels.editing + ' · ' + badge() : badge() }}</span>
+      </span>
+
+      <ng-container ngProjectAs="[hkMesaActions]">
+        @if (!editing()) {
+          @if (sections().length > 1) {
+            <div class="join" role="group" [attr.aria-label]="labels.pagerAria">
+              <button
+                type="button"
+                class="btn btn-sm btn-square join-item"
+                [attr.aria-label]="labels.previous"
+                [title]="labels.previous"
+                [disabled]="currentIndex() <= 0"
+                (click)="goToIndex(currentIndex() - 1)"
+              >
+                <svg lucideChevronLeft [size]="16" aria-hidden="true"></svg>
+              </button>
+              <label class="input input-sm input-bordered join-item flex w-28 items-center gap-1 font-mono whitespace-nowrap tabular-nums">
+                <span class="sr-only">{{ labels.goTo }}</span>
+                <input
+                  #position
+                  type="text"
+                  inputmode="numeric"
+                  class="w-10 min-w-0 text-center"
+                  [value]="currentIndex() + 1"
+                  (change)="onPositionInput(position)"
+                />
+                <span class="text-base-content/70" aria-hidden="true">/ {{ sections().length }}</span>
+              </label>
+              <button
+                type="button"
+                class="btn btn-sm btn-square join-item"
+                [attr.aria-label]="labels.next"
+                [title]="labels.next"
+                [disabled]="currentIndex() >= sections().length - 1"
+                (click)="goToIndex(currentIndex() + 1)"
+              >
+                <svg lucideChevronRight [size]="16" aria-hidden="true"></svg>
+              </button>
+            </div>
+          }
+
+          <div class="join" role="group" [attr.aria-label]="labels.zoomAria">
+            <button
+              type="button"
+              class="btn btn-sm btn-square join-item"
+              [attr.aria-label]="labels.zoomOut"
+              [title]="labels.zoomOut"
+              [disabled]="!canZoom(-1)"
+              (click)="zoomBy(-1)"
+            >
+              <svg lucideMinus [size]="16" aria-hidden="true"></svg>
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm join-item w-16 font-mono tabular-nums"
+              [attr.aria-label]="labels.zoomReset.replace('{value}', zoomLabel())"
+              (click)="zoom.set(1)"
+            >
+              {{ zoomLabel() }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-square join-item"
+              [attr.aria-label]="labels.zoomIn"
+              [title]="labels.zoomIn"
+              [disabled]="!canZoom(1)"
+              (click)="zoomBy(1)"
+            >
+              <svg lucidePlus [size]="16" aria-hidden="true"></svg>
+            </button>
+          </div>
+
+          @if (canEdit()) {
+            <button type="button" class="btn btn-sm btn-primary gap-1.5" (click)="setEditing(true)">
+              <svg lucidePencil [size]="14" aria-hidden="true"></svg>
+              {{ labels.edit }}
+            </button>
+          }
+        }
+      </ng-container>
+    </hk-mesa-toolbar>
+
+    @if (editing() && editor(); as ed) {
+      <div class="bg-base-200 min-h-0 flex-1 overflow-auto p-3">
+        <hk-document-editor-shell
+          [controller]="ed"
+          [source]="src()"
+          [format]="resolvedFormat()"
+          [filename]="filename()"
+          (requestView)="setEditing(false)"
+        />
+      </div>
+    } @else {
+      <!-- The mesa, with the document on a card; zoom scales the whole card. -->
+      <div class="bg-base-200 min-h-0 flex-1 overflow-auto p-4" role="region" [attr.aria-label]="labels.documentAria" tabindex="0">
+        <div class="bg-base-100 rounded-box border-base-300 mx-auto max-w-5xl border p-4 shadow-sm" [style.zoom]="zoom()">
+          @if (renderer(); as r) {
+            <ng-container *ngComponentOutlet="r; inputs: { source: src(), format: resolvedFormat(), filename: filename() }" />
+          } @else {
+            <hk-document-unsupported-renderer [source]="src()" [format]="resolvedFormat()" [filename]="filename()" />
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Inspector: the file, the format's own properties, actions. -->
+    <div hkMesaInspector>
+      <section class="border-base-300 border-b px-4 py-3.5">
+        <h2 class="mb-2.5 text-sm font-semibold">{{ labels.fileSection }}</h2>
+        <dl class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3.5 gap-y-1.5 text-sm">
+          @for (row of fileRows(); track row.label) {
+            <dt class="text-base-content/70">{{ row.label }}</dt>
+            <dd class="m-0 truncate" [title]="row.value">{{ row.value }}</dd>
+          }
+        </dl>
+      </section>
+      @if (host.metadata().length > 0) {
+        <section class="border-base-300 border-b px-4 py-3.5">
+          <h2 class="mb-2.5 text-sm font-semibold">{{ labels.propertiesSection }}</h2>
+          <dl class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3.5 gap-y-1.5 text-sm">
+            @for (row of host.metadata(); track row.label) {
+              <dt class="text-base-content/70">{{ row.label }}</dt>
+              <dd class="m-0 break-words">{{ row.value }}</dd>
+            }
+          </dl>
+        </section>
+      }
+      <section class="px-4 py-3.5">
+        <h2 class="mb-2.5 text-sm font-semibold">{{ labels.actionsSection }}</h2>
+        <button type="button" class="btn btn-sm w-full justify-start gap-2" (click)="download()">
+          <svg lucideDownload [size]="14" aria-hidden="true"></svg>
+          {{ labels.download }}
+        </button>
+      </section>
+    </div>
+  </hk-mesa-layout>
+}

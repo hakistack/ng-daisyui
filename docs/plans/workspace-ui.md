@@ -1,6 +1,6 @@
 # Variantes «workspace» de los visores — Fase 1 (análisis)
 
-Estado: W0, W1 y W2 hechos (ver «Estado» al final). W3 (`hk-document-workspace`) pendiente.
+Estado: W0–W3 hechos (ver «Estado» al final). W4 (opcional) pendiente de decisión.
 
 Objetivo: añadir una segunda presentación tipo workspace a los dos visores, con el lenguaje visual de la guía
 [«Mesa»](../design/mesa-style-guide.md). La presentación actual se queda como la vista «por documento».
@@ -364,3 +364,19 @@ documento, excepción «esencial» de 2.5.8).
 
 Pendiente: menús con Popover API (ver guía §7); `hk-pdf-comments` y `hk-pdf-signatures-panel` aún con su marcado
 clásico dentro del inspector.
+
+### W3 ✅ `hk-document-workspace`
+- `DocumentViewerHost` (público): canal opcional por DI. Un renderer lo inyecta con `{ optional: true }` y publica
+  secciones, la actual, propiedades y cómo navegar. Los renderers propios que no lo usan funcionan igual.
+  Publican: hoja de cálculo (hojas), DOCX (páginas, con la actual por IntersectionObserver), EML/MSG (cabeceras y
+  adjuntos), imagen (dimensiones).
+- `BUILT_IN_RENDERERS` pasa a `document-viewer.builtins.ts` (compartido por el visor y el workspace).
+- Workspace: rail de secciones (si hay más de una) con foco roving · toolbar (badge con nombre y extensión, paginador
+  de secciones, zoom genérico con CSS `zoom`, Editar como único primario si el formato tiene editor) · documento sobre
+  una tarjeta en la mesa, o el editor · inspector (archivo, propiedades del formato, Descargar). Los PDF abren en
+  `hk-pdf-workspace` (`[pdfConfig]`). Textos con `provideHkDocumentWorkspaceLabels`.
+- Verificado: 5 specs jsdom, suite completa 64 archivos / 1823 tests, e2e `e2e/document-workspace.spec.ts` (axe en
+  light, dark y cupcake, modo edición, reflow) 7/7, builds de lib, demo y demo-v4, capturas en el navegador.
+
+Pendiente: EPUB (capítulos desde el TOC de foliate) y RTF/HTML sin secciones; las etiquetas de las propiedades que
+publican los renderers están en inglés, como el resto de sus textos.

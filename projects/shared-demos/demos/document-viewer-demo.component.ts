@@ -6,6 +6,7 @@ import { map } from 'rxjs';
 import {
   DocumentSource,
   DocumentViewerComponent,
+  DocumentWorkspaceComponent,
   createDocumentEditor,
   getSupportedExtensions,
   resolveFormat,
@@ -14,7 +15,7 @@ import {
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 
-type DocumentViewerTab = 'basic' | 'spreadsheet' | 'image' | 'switching' | 'editor';
+type DocumentViewerTab = 'basic' | 'spreadsheet' | 'image' | 'switching' | 'editor' | 'workspace';
 
 /**
  * Sample URLs for the format-dispatch tab.
@@ -55,7 +56,7 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
 
 @Component({
   selector: 'app-document-viewer-demo',
-  imports: [DocumentViewerComponent, DemoPageComponent, DocSectionComponent],
+  imports: [DocumentViewerComponent, DocumentWorkspaceComponent, DemoPageComponent, DocSectionComponent],
   template: `
     <app-demo-page
       title="Document Viewer"
@@ -169,6 +170,30 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
                    The library component stays layout-neutral (fills its parent). -->
               <div class="border border-base-content/10 rounded-md overflow-hidden h-[75vh]">
                 <hk-document-viewer class="h-full" [src]="src" [config]="viewerConfig()" />
+              </div>
+            }
+          </app-doc-section>
+        }
+
+        @if (activeTab() === 'workspace') {
+          <app-doc-section
+            title="Workspace"
+            description="hk-document-workspace: the same [src], [config], [mode] and [editor] as hk-document-viewer, laid out as a workspace. Sections (a workbook's sheets, a DOCX's pages) fill the rail, the file and the format's own properties fill the inspector, and Edit appears for formats with an editor. PDFs open in hk-pdf-workspace."
+            [codeExample]="workspaceCode"
+          >
+            <div class="flex flex-wrap gap-2 items-center mb-3">
+              <input type="file" class="file-input file-input-sm file-input-bordered" [attr.accept]="acceptAll" (change)="onFile($event)" />
+              <button class="btn btn-sm" (click)="loadEditorSample(SAMPLE_MD, 'notes.md')">Markdown</button>
+              <button class="btn btn-sm" (click)="loadSample(SAMPLE_IMG, 'sample.png')">Image</button>
+              <button class="btn btn-sm" (click)="loadSample(SAMPLE_PDF, 'fw9.pdf')">PDF</button>
+            </div>
+            @if (currentSource(); as src) {
+              <div class="h-[80vh] min-h-[36rem]">
+                <hk-document-workspace [src]="src" [config]="viewerConfig()" [editor]="docEditor" />
+              </div>
+            } @else {
+              <div class="text-base-content/70 text-sm py-12 text-center">
+                Pick a file, or load a sample. Try an .xlsx or .docx for sections in the rail.
               </div>
             }
           </app-doc-section>
@@ -291,6 +316,11 @@ export class DocumentViewerDemoComponent {
     this.currentSource.set(null);
     this.currentFilename.set(null);
   }
+
+  readonly workspaceCode = `<!-- Same inputs as <hk-document-viewer>; fills its parent's height -->
+<div class="h-[80vh]">
+  <hk-document-workspace [src]="file()" [editor]="editor" />
+</div>`;
 
   readonly spreadsheetCode = `// Class
 currentSource = signal<DocumentSource | null>(null);

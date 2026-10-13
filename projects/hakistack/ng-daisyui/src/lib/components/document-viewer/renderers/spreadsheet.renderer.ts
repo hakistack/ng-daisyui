@@ -18,6 +18,7 @@ import { createTable } from '../../table/table.helpers';
 import { ColumnDefinition } from '../../table/table.types';
 import { DocumentRendererInputs } from '../document-viewer.types';
 import { loadSourceAsBytes } from '../document-viewer.helpers';
+import { DocumentViewerHost } from '../document-viewer-host';
 
 /** A spreadsheet row materialized into a plain record keyed by column id. */
 type SpreadsheetRow = Record<string, unknown>;
@@ -142,6 +143,26 @@ export class DocumentSpreadsheetRenderer {
   });
 
   constructor() {
+    // In a workspace: the sheets are its sections, the active one is current.
+    const host = inject(DocumentViewerHost, { optional: true });
+    if (host) {
+      host.onGoTo((id) => this.activeSheetIndex.set(Number(id)));
+      effect(() => {
+        const sheets = this.workbook()?.sheets ?? [];
+        const active = this.activeSheet();
+        host.sections.set(sheets.map((s, i) => ({ id: String(i), label: s.name, kind: 'sheet' as const })));
+        host.current.set(sheets.length ? String(this.activeSheetIndex()) : null);
+        host.metadata.set(
+          sheets.length
+            ? [
+                { label: 'Sheets', value: String(sheets.length) },
+                ...(active ? [{ label: 'Rows × columns', value: `${active.height} × ${active.width}` }] : []),
+              ]
+            : [],
+        );
+      });
+    }
+
     effect(() => {
       const src = this.source();
       // Reset to first sheet whenever the source changes.
