@@ -64,6 +64,23 @@
     >
       <svg lucidePaperclip [size]="16"></svg>
     </button>
+    @if (showSignaturesTab()) {
+      <button
+        type="button"
+        role="tab"
+        class="flex-1 flex items-center justify-center py-2 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+        [class.text-primary]="store.state()?.sidebarTab === 'signatures'"
+        [class.bg-base-100]="store.state()?.sidebarTab === 'signatures'"
+        [class.border-b-2]="store.state()?.sidebarTab === 'signatures'"
+        [class.border-primary]="store.state()?.sidebarTab === 'signatures'"
+        [attr.aria-selected]="store.state()?.sidebarTab === 'signatures'"
+        [attr.aria-label]="store.labels().signaturesTab"
+        [title]="store.labels().signaturesTab"
+        (click)="setTab('signatures')"
+      >
+        <svg lucideShieldCheck [size]="16"></svg>
+      </button>
+    }
   </div>
 
   <div #thumbnailPanel class="flex-1 overflow-auto" role="tabpanel">
@@ -147,6 +164,9 @@
       }
       @case ('annotations') {
         <hk-pdf-comments />
+      }
+      @case ('signatures') {
+        <hk-pdf-signatures-panel />
       }
       @case ('attachments') {
         @if (store.attachments() === null) {

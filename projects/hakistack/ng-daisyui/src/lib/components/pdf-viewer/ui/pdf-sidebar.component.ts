@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
 import {
   LucideBookOpen,
   LucideFileText,
@@ -7,18 +7,21 @@ import {
   LucidePaperclip,
   LucidePlus,
   LucideRotateCw,
+  LucideShieldCheck,
   LucideTrash2,
 } from '@lucide/angular';
 import { PdfSidebarTab } from '../pdf-viewer.types';
 import { PdfDocumentService } from '../services/pdf-document.service';
+import { PdfSignaturesService } from '../services/pdf-signatures.service';
 import { PdfThumbnailsService } from '../services/pdf-thumbnails.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { PdfViewportService } from '../services/pdf-viewport.service';
 import { PdfCommentsComponent } from './pdf-comments.component';
+import { PdfSignaturesPanelComponent } from './pdf-signatures-panel.component';
 
 /**
  * The viewer sidebar: thumbnails (with rotate / insert / delete page actions),
- * bookmarks, annotations and attachments. Registers its thumbnail panel with
+ * bookmarks, annotations, attachments and digital signatures. Registers its thumbnail panel with
  * {@link PdfThumbnailsService}, which renders thumbnails lazily into it.
  */
 @Component({
@@ -26,11 +29,13 @@ import { PdfCommentsComponent } from './pdf-comments.component';
   imports: [
     NgTemplateOutlet,
     PdfCommentsComponent,
+    PdfSignaturesPanelComponent,
     LucideFileText,
     LucideBookOpen,
     LucideMessageSquare,
     LucidePaperclip,
     LucideRotateCw,
+    LucideShieldCheck,
     LucidePlus,
     LucideTrash2,
   ],
@@ -43,6 +48,13 @@ export class PdfSidebarComponent {
   protected readonly viewport = inject(PdfViewportService);
   protected readonly document = inject(PdfDocumentService);
   protected readonly thumbnails = inject(PdfThumbnailsService);
+  private readonly signatures = inject(PdfSignaturesService);
+
+  /** The Signatures tab: when the document has signatures, or digital signing is configured. */
+  protected readonly showSignaturesTab = computed(
+    () =>
+      (this.signatures.digital()?.length ?? 0) > 0 || this.signatures.canSignDigitally() || this.store.state()?.sidebarTab === 'signatures',
+  );
 
   private readonly thumbnailPanel = viewChild.required<ElementRef<HTMLElement>>('thumbnailPanel');
   private readonly thumbnailList = viewChild<ElementRef<HTMLElement>>('thumbnailList');

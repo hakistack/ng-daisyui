@@ -195,8 +195,10 @@ export class PdfSecurity {
     if (value instanceof PdfString) return new PdfString(await this.apply(this.stringCipher, num, gen, value.bytes, encrypt), value.hex);
     if (Array.isArray(value)) return Promise.all(value.map((v) => this.transform(num, gen, v, encrypt)));
     if (value instanceof PdfDict) {
+      // A signature's /Contents is never encrypted (§7.6.1): it's signed over the file's bytes.
+      const signature = value.has('ByteRange') && value.get('Contents') instanceof PdfString;
       const out = new PdfDict();
-      for (const [k, v] of value) out.set(k, await this.transform(num, gen, v, encrypt));
+      for (const [k, v] of value) out.set(k, signature && k === 'Contents' ? v : await this.transform(num, gen, v, encrypt));
       return out;
     }
     return value;

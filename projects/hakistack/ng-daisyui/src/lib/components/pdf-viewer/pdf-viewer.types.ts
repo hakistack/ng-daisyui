@@ -1,6 +1,9 @@
 import { Signal, WritableSignal } from '@angular/core';
 import type { HkAnnotation, HkAnnotationInit, PdfMeasureScale } from './core/annotations/annotation.types';
 import type { PdfFontSource } from './core/pdf-writer/fonts';
+import type { DocMdpLevel } from './core/forms/form-design';
+import type { PdfSigner } from './core/signatures/cms';
+import type { PdfSignatureInfo } from './core/signatures/pdf-signature';
 
 /** A PDF document source. The component accepts a URL string, an in-memory byte array, or a Blob. */
 export type PdfDocumentSource = string | Uint8Array | Blob;
@@ -23,7 +26,32 @@ export type PdfDisplayMode = 'single' | 'continuous' | 'spread' | 'spread-cover'
  * (highlight / comment / freetext list) populate from the document at load
  * time and show an empty state when the document has neither.
  */
-export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annotations';
+export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annotations' | 'signatures';
+
+/**
+ * Who signs digitally: a {@link PdfSigner}, or a function returning one
+ * when the user signs (to pick a certificate, unlock a token or call a
+ * signing service); `null` cancels.
+ */
+export type PdfSignerSource = PdfSigner | (() => PdfSigner | null | Promise<PdfSigner | null>);
+
+/** Options of a digital signature (see `PdfViewerController.signDigitally`). */
+export interface PdfDigitalSignOptions {
+  /** An unsigned signature field to sign, or the name of the field to create. */
+  readonly field?: string;
+  /** A visible signature in a new field: its page (0-based) and box (points, top-left origin). Invisible without it. */
+  readonly page?: number;
+  readonly rect?: { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
+  readonly reason?: string;
+  readonly location?: string;
+  readonly contactInfo?: string;
+  /** Certify the document (DocMDP): 1 no changes, 2 form filling and signing, 3 also annotations. */
+  readonly certify?: DocMdpLevel;
+  /** Default `ETSI.CAdES.detached` (PAdES). */
+  readonly subFilter?: 'adbe.pkcs7.detached' | 'ETSI.CAdES.detached';
+  /** Overrides the configured `signer`. */
+  readonly signer?: PdfSigner;
+}
 
 /**
  * Active annotation tool. `'none'` = normal interaction (select, move and
@@ -158,6 +186,10 @@ export interface PdfViewerConfig {
   readonly fonts?: readonly PdfFontSource[];
   /** CSS font families offered for typed signatures, ahead of the built-in handwriting families (load web fonts yourself). */
   readonly signatureFonts?: readonly string[];
+  /** Enables digital signing (the "Sign digitally" action and `signDigitally()`). See {@link PdfSignerSource}. */
+  readonly signer?: PdfSignerSource;
+  /** Certificates (DER bytes or PEM text) whose signers the Signatures panel shows as trusted. */
+  readonly trustedCertificates?: readonly (Uint8Array | string)[];
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 
@@ -223,6 +255,8 @@ export interface PdfViewerInternalHandlers {
   deletePage?: (pageNumber: number) => Promise<void>;
   insertBlankPage?: (atPageNumber: number) => Promise<void>;
   rotatePage?: (pageNumber: number, delta?: number) => void;
+  getSignatures?: () => readonly PdfSignatureInfo[];
+  signDigitally?: (options?: PdfDigitalSignOptions) => Promise<Uint8Array>;
 }
 
 /**
@@ -448,4 +482,15 @@ export interface PdfViewerController {
 
   /** Rotate a page (1-based) by `delta`° (default +90). Baked into `save()`. */
   rotatePage(pageNumber: number, delta?: number): void;
+
+  // ── Digital signatures ───────────────────────────────────────────────────
+
+  /** The document's digital signatures, validated (empty while loading or when there are none). */
+  getSignatures(): readonly PdfSignatureInfo[];
+  /**
+   * Sign the document (with every pending edit) digitally, using the
+   * configured `signer` or `options.signer`. The viewer reloads the signed
+   * document; resolves with its bytes.
+   */
+  signDigitally(options?: PdfDigitalSignOptions): Promise<Uint8Array>;
 }

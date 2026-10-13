@@ -5,15 +5,25 @@ import { writeDocumentChanges } from '../core/forms/document-writer';
 import { widgetOps } from '../core/forms/form-appearance';
 import { PdfDoc } from '../core/pdf-writer/document';
 import { loadPdfFonts } from '../core/pdf-writer/fonts';
+import { PdfSigner } from '../core/signatures/cms';
+import { signPdf } from '../core/signatures/pdf-signature';
 import { BitmapCache, defaultBitmapBudgetBytes } from '../core/bitmap-cache';
 import { isQuarterTurn, normalizeRotation } from '../core/geometry';
 import { PdfPageEntry } from '../core/types';
 import { PdfDocHandle, PdfEngine } from '../engine/pdf-engine.types';
-import { PdfAttachmentEntry, PdfDocumentSource, PdfImageExportOptions, PdfViewerError } from '../pdf-viewer.types';
+import {
+  PdfAttachmentEntry,
+  PdfDigitalSignOptions,
+  PdfSignerSource,
+  PdfDocumentSource,
+  PdfImageExportOptions,
+  PdfViewerError,
+} from '../pdf-viewer.types';
 import { PdfAnnotationsService } from './pdf-annotations.service';
 import { PdfFindService } from './pdf-find.service';
 import { PdfFormsService } from './pdf-forms.service';
 import { PdfRasterHiddenService } from './pdf-raster-hidden.service';
+import { PdfSignaturesService } from './pdf-signatures.service';
 import { PdfFormDesignerService } from './pdf-form-designer.service';
 import { PdfPageDataService } from './pdf-page-data.service';
 import { PdfThumbnailsService } from './pdf-thumbnails.service';
@@ -41,6 +51,7 @@ export class PdfDocumentService {
   private readonly hidden = inject(PdfRasterHiddenService);
   private readonly designer = inject(PdfFormDesignerService);
   private readonly annotations = inject(PdfAnnotationsService);
+  private readonly signatures = inject(PdfSignaturesService);
   private readonly bitmaps = inject<BitmapCache<ImageBitmap>>(PDF_BITMAP_CACHE);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
@@ -95,7 +106,8 @@ export class PdfDocumentService {
 
   // ── Loading ─────────────────────────────────────────────────────────────
 
-  async load(src: PdfDocumentSource, password: string): Promise<void> {
+  /** Open `src`; `initialPage` overrides the configured first page (a reload keeps the reader's place). */
+  async load(src: PdfDocumentSource, password: string, initialPage?: number): Promise<void> {
     const store = this.store;
     this.viewport.resetForDocument();
     store.firstRenderComplete.set(false);
@@ -112,6 +124,7 @@ export class PdfDocumentService {
     this.thumbnails.reset();
     this.find.reset();
     this.pageData.reset();
+    void this.signatures.validate(null);
     store.closeDocument();
     const budgetMb = store.config().bitmapCacheMB;
     this.bitmaps.setBudget(budgetMb && budgetMb > 0 ? budgetMb * 1024 * 1024 : defaultBitmapBudgetBytes());
@@ -163,8 +176,8 @@ export class PdfDocumentService {
 
       // Resolve the initial page before mounting wrappers: the viewport scrolls
       // to `state.page` once every wrapper exists.
-      const initialPage = Math.max(1, Math.min(numPages, store.config().page ?? 1));
-      store.patchState((s) => ({ ...s, page: initialPage, numPages }));
+      const firstPage = Math.max(1, Math.min(numPages, initialPage ?? store.config().page ?? 1));
+      store.patchState((s) => ({ ...s, page: firstPage, numPages }));
       store.pageNumbers.set(pages.map((p) => p.pageNumber));
       this.pageData.createSearchIndex(numPages, token);
       this.loadPageLabels(engine, handle, token);
@@ -188,7 +201,7 @@ export class PdfDocumentService {
       doc = null;
     }
     if (this.store.loadToken !== token) return;
-    await Promise.all([this.annotations.load(doc, numPages), this.forms.load(doc)]);
+    await Promise.all([this.annotations.load(doc, numPages), this.forms.load(doc), this.signatures.validate(doc ? bytes : null)]);
   }
 
   /**
@@ -375,6 +388,30 @@ export class PdfDocumentService {
     return result;
   }
 
+  /**
+   * Sign digitally: the document with every pending edit, signed as a last
+   * incremental update, then reopened (on the same page) from the signed
+   * bytes, which are returned.
+   */
+  async signDigitally(options: PdfDigitalSignOptions = {}): Promise<Uint8Array> {
+    const signer = options.signer ?? (await resolveSigner(this.store.config().signer));
+    if (!signer) throw new Error('No signer: set `signer` in the viewer config.');
+    const base = await this.save();
+    const signed = await signPdf(base, signer, {
+      field: options.field,
+      page: options.page,
+      rect: options.rect,
+      reason: options.reason,
+      location: options.location,
+      contactInfo: options.contactInfo,
+      certify: options.certify,
+      subFilter: options.subFilter,
+      password: this.store.documentPassword,
+    });
+    await this.load(signed.slice(), this.store.documentPassword, this.store.state()?.page);
+    return signed;
+  }
+
   async saveAndDownload(filename?: string): Promise<void> {
     const data = await this.save();
     downloadBlob(new Blob([data.slice().buffer], { type: 'application/pdf' }), filename || this.deriveFilename());
@@ -472,6 +509,16 @@ export class PdfDocumentService {
     if (!blob) return;
     const ext = type === 'image/jpeg' ? 'jpg' : 'png';
     downloadBlob(blob, options?.filename || this.deriveFilename().replace(/\.pdf$/i, `-p${pageNumber}.${ext}`));
+  }
+
+  /** Download the revision a signature covers: the document exactly as it was signed. */
+  downloadSignedRevision(length: number): void {
+    const bytes = this.store.sourceBytes;
+    if (!bytes || length <= 0 || length > bytes.length) return;
+    downloadBlob(
+      new Blob([bytes.slice(0, length).buffer], { type: 'application/pdf' }),
+      this.deriveFilename().replace(/\.pdf$/i, '-signed.pdf'),
+    );
   }
 
   /** Download the whole document's text as `.txt` (pages separated by a blank line). */
@@ -582,4 +629,8 @@ function downloadBlob(blob: Blob, filename: string): void {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function resolveSigner(source: PdfSignerSource | undefined): Promise<PdfSigner | null> {
+  return typeof source === 'function' ? await source() : (source ?? null);
 }

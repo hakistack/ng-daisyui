@@ -403,6 +403,22 @@ export {
 } from './lib/components/pdf-viewer/services/pdf-signature-store';
 export type { PdfSignatureStore, SavedPdfSignature } from './lib/components/pdf-viewer/services/pdf-signature-store';
 export type { PdfFontSource } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
+export { signPdf, readSignatures } from './lib/components/pdf-viewer/core/signatures/pdf-signature';
+export type {
+  PdfSignatureInfo,
+  PdfSignatureStatus,
+  PdfCertificateInfo,
+  ReadSignaturesOptions,
+  SignPdfOptions,
+} from './lib/components/pdf-viewer/core/signatures/pdf-signature';
+export { createWebCryptoSigner } from './lib/components/pdf-viewer/core/signatures/cms';
+export type { PdfSigner } from './lib/components/pdf-viewer/core/signatures/cms';
+export type { DocMdpLevel as PdfDocMdpLevel } from './lib/components/pdf-viewer/core/forms/form-design';
+export { createSelfSignedCertificate, parseCertificate, certificatesFrom } from './lib/components/pdf-viewer/core/signatures/x509';
+export type {
+  Certificate as PdfCertificate,
+  DistinguishedName as PdfDistinguishedName,
+} from './lib/components/pdf-viewer/core/signatures/x509';
 export { HK_PDF_LABELS, provideHkPdfLabels, DEFAULT_PDF_VIEWER_LABELS } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export type { PdfViewerLabels, ResolvedPdfViewerLabels } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export { HkPdfToolbarDirective } from './lib/components/pdf-viewer/pdf-viewer.directives';
@@ -421,6 +437,8 @@ export type {
   PdfViewerError,
   PdfSearchResult,
   PdfImageExportOptions,
+  PdfSignerSource,
+  PdfDigitalSignOptions,
 } from './lib/components/pdf-viewer/pdf-viewer.types';
 export type {
   HkAnnotation,

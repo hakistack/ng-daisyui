@@ -114,6 +114,8 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     restrictAnnotationsToAuthor: input.restrictAnnotationsToAuthor,
     fonts: input.fonts,
     signatureFonts: input.signatureFonts,
+    signer: input.signer,
+    trustedCertificates: input.trustedCertificates,
     onLoaded: input.onLoaded,
     onPageChange: input.onPageChange,
     onError: input.onError,
@@ -180,6 +182,8 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     deletePage: (pageNumber) => handlers.deletePage?.(pageNumber) ?? Promise.reject(new Error('Viewer not mounted')),
     insertBlankPage: (atPageNumber) => handlers.insertBlankPage?.(atPageNumber) ?? Promise.reject(new Error('Viewer not mounted')),
     rotatePage: (pageNumber, delta) => handlers.rotatePage?.(pageNumber, delta),
+    getSignatures: () => handlers.getSignatures?.() ?? [],
+    signDigitally: (options) => handlers.signDigitally?.(options) ?? Promise.reject(new Error('Viewer not mounted')),
   };
 
   return controller;

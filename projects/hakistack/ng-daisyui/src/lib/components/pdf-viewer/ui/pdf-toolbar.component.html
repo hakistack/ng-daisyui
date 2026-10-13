@@ -198,6 +198,18 @@
   >
     <svg lucideSignature [size]="16"></svg>
   </button>
+  @if (signatures.canSignDigitally()) {
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-square"
+      [attr.aria-label]="store.labels().signDigitally"
+      [title]="store.labels().signDigitally"
+      [disabled]="!store.showPages()"
+      (click)="signatures.openDigital()"
+    >
+      <svg lucideFileSignature [size]="16"></svg>
+    </button>
+  }
 
   <!-- ── Form: reset, export / import data (documents with a form) ── -->
   @if (forms.model()) {

@@ -26,6 +26,7 @@ import { PdfRasterHiddenService } from './services/pdf-raster-hidden.service';
 import { PdfFormDesignerService } from './services/pdf-form-designer.service';
 import { PdfSignaturesService } from './services/pdf-signatures.service';
 import { PdfSignatureDialogComponent } from './ui/pdf-signature-dialog.component';
+import { PdfDigitalSignDialogComponent } from './ui/pdf-digital-sign-dialog.component';
 import { PdfFormDesignToolbarComponent } from './ui/pdf-form-design-toolbar.component';
 import { PdfFormFieldPanelComponent } from './ui/pdf-form-field-panel.component';
 import { PdfDocumentService } from './services/pdf-document.service';
@@ -91,6 +92,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfFormDesignToolbarComponent,
     PdfFormFieldPanelComponent,
     PdfSignatureDialogComponent,
+    PdfDigitalSignDialogComponent,
     PdfFindBarComponent,
     PdfSidebarComponent,
     PdfPagesComponent,
@@ -137,6 +139,7 @@ export class PdfViewerComponent implements OnInit {
   private readonly tools = inject(PdfAnnotationToolsService);
   private readonly annotations = inject(PdfAnnotationsService);
   private readonly forms = inject(PdfFormsService);
+  private readonly signatures = inject(PdfSignaturesService);
   protected readonly designer = inject(PdfFormDesignerService);
 
   /**
@@ -245,7 +248,7 @@ export class PdfViewerComponent implements OnInit {
   private attachController(internal: PdfViewerInternalApi): void {
     this.unbindController?.();
     this.store.internal = internal;
-    const { viewport, document: doc, find, tools, store, annotations, forms } = this;
+    const { viewport, document: doc, find, tools, store, annotations, forms, signatures } = this;
     this.unbindController = internal.bind({
       goToPage: (page) => viewport.goToPage(page),
       nextPage: () => viewport.nextPage(),
@@ -283,6 +286,8 @@ export class PdfViewerComponent implements OnInit {
       deletePage: (pageNumber) => doc.deletePage(pageNumber),
       insertBlankPage: (atPageNumber) => doc.insertBlankPage(atPageNumber),
       rotatePage: (pageNumber, delta) => doc.rotatePage(pageNumber, delta),
+      getSignatures: () => signatures.digital() ?? [],
+      signDigitally: (options) => doc.signDigitally(options),
     });
   }
 

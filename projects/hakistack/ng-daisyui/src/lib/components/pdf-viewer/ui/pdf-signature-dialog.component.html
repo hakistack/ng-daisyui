@@ -173,6 +173,11 @@
     </div>
 
     <div class="modal-action mt-1">
+      @if (signatures.canSignDigitally() && signatures.dialog()?.target?.field; as field) {
+        <button type="button" class="btn btn-outline mr-auto" (click)="signatures.openDigital(field)">
+          {{ store.labels().signDigitally }}
+        </button>
+      }
       <button type="button" class="btn btn-ghost" (click)="cancel()">{{ store.labels().cancel }}</button>
       <button type="button" class="btn btn-primary" [disabled]="!ready()" (click)="use()">{{ store.labels().useSignature }}</button>
     </div>

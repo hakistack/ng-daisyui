@@ -389,7 +389,7 @@ Cada fase se puede publicar por separado, deja la demo en verde y no rompe la AP
 | **4. Anotaciones II** (2 sem) | Sellos (estándar, dinámicos, imagen, texto), medición y calibración, links editables, XFDF/JSON, portapapeles, orden z, bloqueo y permisos | XFDF importado y exportado valida contra Acrobat |
 | **5. Formularios** (3 sem) | Relleno completo (formatos AF*, validación, tab order, radios correctos, import/export) + diseñador (`hk-pdf-writer/acroform` + subsetter TrueType + `security/` para PDFs cifrados) | Formularios IRS/gov de prueba rellenables; diseño → guardado → abre en Acrobat |
 | **6. Firmas** (2 sem) | Diálogo dibujar/escribir/subir, store, campos de firma, aplanado; validación de firmas existentes | Firma visible persiste en Acrobat |
-| **6b. Firma digital** (opcional, 2 sem) | `PdfSigner` (externo + PKCS#12), incremental | Acrobat la reporta válida |
+| **6b. Firma digital** (opcional, 2 sem) ✅ | `PdfSigner` (externo + PKCS#12), incremental | Acrobat la reporta válida |
 | **7. Organizar** (2 sem) | Diálogo de organizar, páginas virtuales, importar, extraer, en la pila unificada | Reordenar 500 páginas sin re-render visible |
 | **8. Redacción** (2 sem) | Marcar y aplicar texto/imagen/paths, modo paranoico, limpieza de metadatos | Suite de regresión: 0 fugas de texto y píxeles |
 | **9. A11y + i18n + móvil** (2 sem) | Struct tree, roles, atajos, labels por instancia, toolbar responsive con overflow, gestos táctiles | AXE limpio; WCAG AA; uso completo a 375 px |
@@ -630,6 +630,55 @@ Decisiones:
 - Elegir fuente explícitamente por campo o anotación (hoy se usa la estándar con fallback automático).
 - Widgets rotados (`/MK /R`) en la apariencia generada.
 - Firmar los campos de firma (fase 6).
+
+### Estado de la fase 6 (2026-10-12)
+
+**Hecho** (6a firma visible, 6b validación, 6c firma digital):
+
+- **6a, firma visible:**
+  - Diálogo Dibujar (pad con presión, tinta vectorial) / Escribir (fuentes manuscritas, `config.signatureFonts`) / Subir (fondo quitado y recortado).
+  - Firma e iniciales; firmas guardadas mediante `PDF_SIGNATURE_STORE` (localStorage por defecto, `providePdfSignatureStore`).
+  - Se coloca libre con un clic o dentro de un campo de firma (botón "Firmar" del campo). Se guarda como sello y opcionalmente se aplana en el contenido de la página.
+- **6b, validación** (`core/signatures/`, sin pkijs ni `@signpdf`):
+  - ASN.1 DER propio (lectura con longitudes indefinidas BER, escritura), X.509 y CMS SignedData.
+  - Las firmas se leen con hk-pdf-writer (no con `FPDFSignatureObj_*`). Por firma se comprueba:
+    - el ByteRange bien formado, con el hueco exacto de `/Contents`;
+    - el digest frente a `messageDigest` y la firma sobre los atributos firmados, con RSA PKCS#1, RSA-PSS o ECDSA vía WebCrypto;
+    - los SubFilter `adbe.pkcs7.detached`, `ETSI.CAdES.detached`, `adbe.pkcs7.sha1` y `ETSI.RFC3161`;
+    - si hubo cambios posteriores, con descarga de la revisión firmada;
+    - la certificación `/DocMDP`;
+    - la hora (sello de tiempo RFC 3161 > `signingTime` > `/M`);
+    - si el certificado estaba vigente al firmar;
+    - la cadena de confianza hacia `config.trustedCertificates` (DER o PEM).
+  - Panel "Firmas" en el sidebar con insignias soft (válida / inválida / no verificable / modificada / certificada / sello de tiempo), detalles del certificado, ir a la firma y descargar la versión firmada.
+- **6c, firma digital:**
+  - Interfaz `PdfSigner` (recibe los atributos firmados y su SHA-256, para HSM o servicios remotos) y `createWebCryptoSigner(privateKey, chain)`.
+  - `signPdf`:
+    - diccionario `/Sig` con PAdES (`ETSI.CAdES.detached` + signing-certificate-v2) o `adbe.pkcs7.detached`;
+    - placeholder de ByteRange y `/Contents`, escrito como **última** sección incremental;
+    - firma en un campo vacío existente o en uno nuevo, visible (apariencia con firmante, fecha y motivo) o invisible;
+    - `SigFlags 3`, certificación `/DocMDP` (solo la primera firma) y documentos cifrados (`/Contents` nunca se cifra).
+  - En el viewer:
+    - `config.signer` (o una función que lo devuelve al firmar);
+    - botón "Firmar digitalmente" y diálogo (campo, motivo, lugar, contacto, certificar);
+    - desde el diálogo visual de un campo;
+    - `controller.signDigitally()` y `getSignatures()`.
+  - Se firma el documento con todas las ediciones pendientes y el viewer recarga los bytes firmados en la misma página.
+- **Verificación:**
+  - 17 tests de núcleo y 6 de integración en jsdom.
+  - `test:pdf-engine`: firmas RSA y ECDSA sobre un PDF de prueba y sobre el W-9 del IRS (xref stream). `pdfsig` (Poppler/NSS) las reporta *"Signature is Valid"* y *"Total document signed"*; `openssl cms -verify` acepta el CMS; PDFium abre los firmados. En sentido inverso, nuestro validador acepta un CMS generado por `openssl cms -sign` y lo rechaza si se altera un byte firmado.
+
+**Desviaciones:**
+- No se usa pkijs: ASN.1/X.509/CMS son propios, unas 600 líneas.
+- Por lo mismo, no se importa PKCS#12 (`.p12/.pfx`): el consumidor entrega una `CryptoKey` (p. ej. PKCS#8 importada con WebCrypto) o un `PdfSigner` externo (recomendado).
+- La confianza solo se evalúa contra los certificados que da el consumidor: no hay almacén del sistema, ni CRL/OCSP, ni LTV.
+
+**Pendiente:**
+- "Acrobat la reporta válida" no se ha probado en Acrobat (Poppler/NSS, OpenSSL y PDFium sí).
+- Importar PKCS#12 con PBES2 (PBKDF2 + AES vía WebCrypto).
+- Sello de tiempo RFC 3161 al firmar (requiere un TSA del consumidor) y PAdES-LTV (DSS/VRI).
+- `adbe.x509.rsa_sha1` (se muestra como no verificable).
+- Las ediciones de estructura (borrar, insertar o rotar páginas) aún guardan con una reescritura completa de PDFium, que invalida las firmas existentes: pasarán a hk-pdf-writer en la fase 7.
 
 ## 6. Theming (daisyUI v5 / Tailwind v4)
 

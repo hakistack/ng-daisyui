@@ -257,7 +257,10 @@ export { encodePng } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core
 export { calibrate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/measure.ts'))};
 export { readForm } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/form-reader.ts'))};
 export { writeDocumentChanges } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/document-writer.ts'))};
-export { newDesignField, newWidget } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/form-design.ts'))};`,
+export { newDesignField, newWidget } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/form-design.ts'))};
+export { signPdf, readSignatures } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/signatures/pdf-signature.ts'))};
+export { createWebCryptoSigner } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/signatures/cms.ts'))};
+export { createSelfSignedCertificate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/signatures/x509.ts'))};`,
   );
   const writerBuild = await build({
     entryPoints: [writerEntry],
@@ -808,6 +811,129 @@ export { newDesignField, newWidget } from ${JSON.stringify(join(lib, 'components
         .includes('Contract text'),
     );
     e.close(h2);
+  }
+
+  // ── Digital signatures (our CMS ↔ Poppler pdfsig and OpenSSL) ──────────
+  console.log('\ndigital signatures (hk-pdf-writer ↔ pdfsig / openssl)');
+  {
+    const base = serializePdf({
+      1: '<< /Type /Catalog /Pages 2 0 R >>',
+      2: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      3: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+      4: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+      5: '<< /Length 43 >>\nstream\nBT /F1 14 Tf 20 170 Td (Contract text) Tj ET\nendstream',
+    });
+    const pem = (label, der) =>
+      `-----BEGIN ${label}-----\n${Buffer.from(der).toString('base64').replace(/.{64}/g, '$&\n')}\n-----END ${label}-----\n`;
+    const has = (tool) => !spawnSync(tool, ['-v']).error || !spawnSync(tool, ['version']).error;
+    const rsaKeys = await crypto.subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true,
+      ['sign', 'verify'],
+    );
+    const rsaCert = await w.createSelfSignedCertificate(rsaKeys, { commonName: 'Harness Signer', organization: 'Hakistack' });
+    const ecKeys = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const ecCert = await w.createSelfSignedCertificate(ecKeys, { commonName: 'Harness EC' });
+    const signers = {
+      rsa: w.createWebCryptoSigner(rsaKeys.privateKey, [rsaCert]),
+      ec: w.createWebCryptoSigner(ecKeys.privateKey, [ecCert]),
+    };
+    const byteRange = (bytes) => {
+      const text = Buffer.from(bytes).toString('latin1');
+      const all = [...text.matchAll(/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g)];
+      const [, a, b, c, d] = all[all.length - 1].map(Number);
+      return {
+        signed: Buffer.concat([bytes.subarray(a, a + b), bytes.subarray(c, c + d)]),
+        contents: Buffer.from(text.slice(a + b + 1, c - 1), 'hex'),
+        hole: [a + b, c],
+      };
+    };
+    const sources = [['fixture', base]];
+    const corpus = process.env.PDF_CORPUS;
+    if (corpus && existsSync(join(corpus, 'fw9.pdf'))) sources.push(['fw9.pdf', new Uint8Array(readFileSync(join(corpus, 'fw9.pdf')))]);
+    for (const [label, original] of sources) {
+      for (const kind of ['rsa', 'ec']) {
+        const signed = await w.signPdf(original, signers[kind], {
+          page: 0,
+          rect: { x: 20, y: 20, w: 200, h: 50 },
+          reason: 'Harness',
+          certify: kind === 'rsa' ? 2 : undefined,
+        });
+        const [ours] = await w.readSignatures(signed);
+        check(`${label} ${kind}: our validator accepts our signature`, ours?.status === 'valid' && ours.coversWholeDocument);
+        const h = e.open(signed, undefined);
+        check(`${label} ${kind}: PDFium opens the signed file`, e.page_count(h) >= 1);
+        e.close(h);
+        const file = join(dir, `signed-${kind}.pdf`);
+        writeFileSync(file, signed);
+        if (has('pdfsig')) {
+          const out = spawnSync('pdfsig', [file], { encoding: 'utf8' }).stdout;
+          check(`${label} ${kind}: pdfsig says the signature is valid`, /Signature Validation: Signature is Valid/.test(out));
+          check(`${label} ${kind}: pdfsig sees the whole document signed`, /Total document signed/.test(out));
+        }
+        if (has('openssl')) {
+          const { signed: data, contents } = byteRange(signed);
+          writeFileSync(join(dir, 'data.bin'), data);
+          writeFileSync(join(dir, 'sig.der'), contents);
+          const r = spawnSync(
+            'openssl',
+            [
+              'cms',
+              '-verify',
+              '-inform',
+              'DER',
+              '-in',
+              join(dir, 'sig.der'),
+              '-content',
+              join(dir, 'data.bin'),
+              '-binary',
+              '-noverify',
+              '-purpose',
+              'any',
+              '-out',
+              '/dev/null',
+            ],
+            { encoding: 'utf8' },
+          );
+          check(`${label} ${kind}: openssl cms -verify accepts the CMS`, r.status === 0 && /Verification successful/.test(r.stderr));
+        }
+      }
+    }
+    if (has('openssl')) {
+      // The other way: a CMS made by OpenSSL over our byte ranges, checked by our validator.
+      const prepared = await w.signPdf(base, signers.rsa, { reserve: 8192 });
+      const { signed: data, hole } = byteRange(prepared);
+      writeFileSync(join(dir, 'data.bin'), data);
+      writeFileSync(join(dir, 'key.pem'), pem('PRIVATE KEY', new Uint8Array(await crypto.subtle.exportKey('pkcs8', rsaKeys.privateKey))));
+      writeFileSync(join(dir, 'cert.pem'), pem('CERTIFICATE', rsaCert));
+      const r = spawnSync('openssl', [
+        'cms',
+        '-sign',
+        '-binary',
+        '-in',
+        join(dir, 'data.bin'),
+        '-signer',
+        join(dir, 'cert.pem'),
+        '-inkey',
+        join(dir, 'key.pem'),
+        '-md',
+        'sha256',
+        '-outform',
+        'DER',
+        '-out',
+        join(dir, 'ossl.der'),
+      ]);
+      if (r.status === 0) {
+        const der = readFileSync(join(dir, 'ossl.der'));
+        const hex = Buffer.from(der.toString('hex').padEnd(hole[1] - hole[0] - 2, '0'));
+        const swapped = new Uint8Array(prepared);
+        swapped.set(hex, hole[0] + 1);
+        const [theirs] = await w.readSignatures(swapped);
+        check("our validator accepts OpenSSL's CMS signature", theirs?.status === 'valid' && theirs.signer === 'Harness Signer');
+        swapped[100] ^= 1;
+        check('and flags it once a signed byte changes', (await w.readSignatures(swapped))[0]?.status === 'invalid');
+      } else check(`openssl cms -sign ran (${r.stderr})`, false);
+    }
   }
 
   // ── Part 2: worker protocol ────────────────────────────────────────────

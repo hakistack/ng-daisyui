@@ -1,0 +1,83 @@
+<dialog #dialog class="modal" [attr.aria-labelledby]="uid + '-title'" (close)="onNativeClose()">
+  <div class="modal-box flex max-w-md flex-col gap-3">
+    <h3 [id]="uid + '-title'" class="text-lg font-semibold">{{ store.labels().signDigitally }}</h3>
+    <p class="text-sm text-base-content/70">{{ store.labels().digitalSignHint }}</p>
+
+    <label class="flex flex-col gap-1">
+      <span class="text-sm">{{ store.labels().sigField }}</span>
+      <select class="select select-bordered select-sm w-full" [value]="field()" (change)="field.set(str($event))" [disabled]="busy()">
+        @for (name of signatures.emptyFields(); track name) {
+          <option [value]="name" [selected]="field() === name">{{ name }}</option>
+        }
+        <option value="" [selected]="field() === ''">{{ store.labels().sigInvisible }}</option>
+      </select>
+    </label>
+
+    <label class="flex flex-col gap-1">
+      <span class="text-sm">{{ store.labels().sigReason }}</span>
+      <input
+        type="text"
+        class="input input-bordered input-sm w-full"
+        maxlength="200"
+        [value]="reason()"
+        (input)="reason.set(str($event))"
+        [disabled]="busy()"
+      />
+    </label>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <label class="flex flex-col gap-1">
+        <span class="text-sm">{{ store.labels().sigLocation }}</span>
+        <input
+          type="text"
+          class="input input-bordered input-sm w-full"
+          maxlength="120"
+          [value]="location()"
+          (input)="location.set(str($event))"
+          [disabled]="busy()"
+        />
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-sm">{{ store.labels().sigContact }}</span>
+        <input
+          type="text"
+          class="input input-bordered input-sm w-full"
+          maxlength="120"
+          [value]="contact()"
+          (input)="contact.set(str($event))"
+          [disabled]="busy()"
+        />
+      </label>
+    </div>
+
+    @if (canCertify()) {
+      <label class="flex flex-col gap-1">
+        <span class="text-sm">{{ store.labels().certifyDocument }}</span>
+        <select class="select select-bordered select-sm w-full" (change)="setCertify($event)" [disabled]="busy()">
+          <option value="0" [selected]="certify() === 0">{{ store.labels().certifyNone }}</option>
+          @for (level of levels; track level) {
+            <option [value]="level" [selected]="certify() === level">{{ certifyLabel(level) }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    @if (error(); as message) {
+      <div role="alert" class="rounded-box border border-error/30 bg-error/10 px-3 py-2 text-sm text-base-content">{{ message }}</div>
+    }
+
+    <div class="modal-action mt-1">
+      <button type="button" class="btn btn-ghost" [disabled]="busy()" (click)="cancel()">{{ store.labels().cancel }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="sign()">
+        @if (busy()) {
+          <span class="loading loading-spinner loading-sm" aria-hidden="true"></span>
+          {{ store.labels().signingNow }}
+        } @else {
+          {{ store.labels().signNow }}
+        }
+      </button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit" [attr.aria-label]="store.labels().cancel" [disabled]="busy()">{{ store.labels().cancel }}</button>
+  </form>
+</dialog>

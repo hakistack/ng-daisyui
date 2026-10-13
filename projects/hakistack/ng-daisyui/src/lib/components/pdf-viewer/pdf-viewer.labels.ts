@@ -574,6 +574,48 @@ export interface PdfViewerLabels {
   signDigitally?: string;
   /** Default: "Certification signature" */
   sigCertified?: string;
+  /** Default: "Unknown signer" */
+  sigUnknownSigner?: string;
+  /** Default: "Checking signatures…" */
+  sigVerifying?: string;
+  /** Default: "Show signature" */
+  sigShow?: string;
+  /** Default: "Timestamped" */
+  sigTimestamped?: string;
+  /** Default: "The certificate wasn't valid at the signing time" */
+  sigExpiredAtSigning?: string;
+  /** Default: "Self-signed certificate" */
+  sigSelfSigned?: string;
+  /** Default: "Trusted signer" */
+  sigTrusted?: string;
+  /** Default: "Download the signed version" */
+  sigDownloadRevision?: string;
+  /** Default: "Details" */
+  sigDetails?: string;
+  /** Default: "Signature field" */
+  sigField?: string;
+  /** Default: "Invisible (no signature box)" */
+  sigInvisible?: string;
+  /** Default: "Contact" */
+  sigContact?: string;
+  /** Default: "Certify the document" */
+  certifyDocument?: string;
+  /** Default: "Don't certify" */
+  certifyNone?: string;
+  /** Default: "No changes allowed" */
+  certifyLevel1?: string;
+  /** Default: "Allow form filling and signing" */
+  certifyLevel2?: string;
+  /** Default: "Allow form filling, signing and comments" */
+  certifyLevel3?: string;
+  /** Default: "Sign" */
+  signNow?: string;
+  /** Default: "Signing…" */
+  signingNow?: string;
+  /** Default: "Couldn't sign the document: {error}" */
+  signFailed?: string;
+  /** Default: "The document is signed as it is now, unsaved changes included. Later changes show as made after signing." */
+  digitalSignHint?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -857,6 +899,27 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   sigValidity: 'Valid from {from} to {to}',
   signDigitally: 'Sign digitally',
   sigCertified: 'Certification signature',
+  sigUnknownSigner: 'Unknown signer',
+  sigVerifying: 'Checking signatures…',
+  sigShow: 'Show signature',
+  sigTimestamped: 'Timestamped',
+  sigExpiredAtSigning: "The certificate wasn't valid at the signing time",
+  sigSelfSigned: 'Self-signed certificate',
+  sigTrusted: 'Trusted signer',
+  sigDownloadRevision: 'Download the signed version',
+  sigDetails: 'Details',
+  sigField: 'Signature field',
+  sigInvisible: 'Invisible (no signature box)',
+  sigContact: 'Contact',
+  certifyDocument: 'Certify the document',
+  certifyNone: "Don't certify",
+  certifyLevel1: 'No changes allowed',
+  certifyLevel2: 'Allow form filling and signing',
+  certifyLevel3: 'Allow form filling, signing and comments',
+  signNow: 'Sign',
+  signingNow: 'Signing…',
+  signFailed: "Couldn't sign the document: {error}",
+  digitalSignHint: 'The document is signed as it is now, unsaved changes included. Later changes show as made after signing.',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');
