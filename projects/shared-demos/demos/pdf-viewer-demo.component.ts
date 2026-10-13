@@ -8,7 +8,8 @@ import { DocSectionComponent } from '../shared/doc-section.component';
 
 type PdfViewerTab = 'basic' | 'controller' | 'preview' | 'config';
 
-const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
+/** Served from the demo app (`public/samples/`): the demo works offline and without CORS (IRS Form W-9, public domain). */
+const SAMPLE_PDF_URL = '/samples/fw9.pdf';
 
 @Component({
   selector: 'app-pdf-viewer-demo',
@@ -304,7 +305,7 @@ export class PdfViewerDemoComponent {
 
   // ── Form-fill demo state ────────────────────────────────────────────────
 
-  readonly formPdfUrl = signal<string>('https://www.irs.gov/pub/irs-pdf/fw9.pdf');
+  readonly formPdfUrl = signal<string>(SAMPLE_PDF_URL);
   readonly formFillValues = signal<Record<string, unknown>>({});
 
   readonly formViewer = createPdfViewer({

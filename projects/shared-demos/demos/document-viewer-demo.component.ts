@@ -26,7 +26,8 @@ type DocumentViewerTab = 'basic' | 'spreadsheet' | 'image' | 'switching' | 'edit
  * sample into `projects/demo/public/sample.xlsx` and reference `/sample.xlsx`
  * if you want a click-to-load spreadsheet experience.
  */
-const SAMPLE_PDF = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
+/** Served from the demo app (`public/samples/`), so it loads offline (IRS Form W-9, public domain). */
+const SAMPLE_PDF = '/samples/fw9.pdf';
 const SAMPLE_IMG =
   'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png';
 const SAMPLE_TEXT =
