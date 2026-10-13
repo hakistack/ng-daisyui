@@ -103,10 +103,10 @@ describe('hk-document-workspace', () => {
 
   const dd = (el: HTMLElement) => Array.from(el.querySelectorAll('dd')).map((d) => d.textContent?.trim());
 
-  it('lists the sections a renderer publishes in the rail, and pages through them', async () => {
+  it('shows the sections a renderer publishes as a strip, and pages through them', async () => {
     const { el, settle } = await render();
-    // The documents on top; the open one's sections below, headed by its name.
-    expect(Array.from(el.querySelectorAll('hk-mesa-layout h2')).map((h) => h.textContent?.trim())).toContain('book.txt · 3 sections');
+    // The open document's sections are a strip under it, with the position.
+    expect(el.textContent).toContain('Section 1 of 3');
     const rows = () => Array.from(el.querySelectorAll<HTMLButtonElement>('[data-section-index]'));
     expect(rows().map((r) => r.querySelector('.truncate')?.textContent?.trim())).toEqual(['Chapter 1', 'Chapter 2', 'Chapter 3']);
     expect(rows().map((r) => r.tabIndex)).toEqual([0, -1, -1]);
@@ -178,7 +178,7 @@ describe('hk-document-workspace', () => {
 
     it('lists the documents and opens the first', async () => {
       const { fixture, el } = await renderList();
-      expect(rows(el).map((r) => r.querySelector('.line-clamp-2')?.textContent?.trim())).toEqual(['Alpha.txt', 'Beta.txt', 'Gamma.txt']);
+      expect(rows(el).map((r) => r.querySelector('.font-medium')?.textContent?.trim())).toEqual(['Alpha.txt', 'Beta.txt', 'Gamma.txt']);
       expect(rows(el)[0].textContent).toContain('TXT · Notes · 2 p.');
       expect(rows(el)[0].getAttribute('aria-current')).toBe('page');
       expect(fixture.componentInstance.active()).toBe('a');

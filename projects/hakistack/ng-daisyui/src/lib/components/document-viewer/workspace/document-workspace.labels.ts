@@ -68,6 +68,16 @@ export interface DocumentWorkspaceLabels {
   pageCountShort?: string;
   /** Default: "Arrow keys move between documents; Enter opens one." */
   listHint?: string;
+  /** Default: "Filter documents" */
+  filterDocuments?: string;
+  /** Default: "No documents match" */
+  noDocumentsMatch?: string;
+  /** Default: "Show sections" — Unfolds the section strip. */
+  showSectionStrip?: string;
+  /** Default: "Hide sections" — Folds the section strip. */
+  hideSectionStrip?: string;
+  /** Default: "Section {current} of {total}" */
+  sectionPosition?: string;
   /** Default: "Unsaved changes" — Title of the confirmation before leaving an edited document. */
   unsavedTitle?: string;
   /** Default: "“{name}” has unsaved changes. Opening another document discards them." */
@@ -112,6 +122,11 @@ export const DEFAULT_DOCUMENT_WORKSPACE_LABELS: ResolvedDocumentWorkspaceLabels 
   documentsTitle: 'Documents · {count}',
   pageCountShort: '{count} p.',
   listHint: 'Arrow keys move between documents; Enter opens one.',
+  filterDocuments: 'Filter documents',
+  noDocumentsMatch: 'No documents match',
+  showSectionStrip: 'Show sections',
+  hideSectionStrip: 'Hide sections',
+  sectionPosition: 'Section {current} of {total}',
   unsavedTitle: 'Unsaved changes',
   unsavedBody: '“{name}” has unsaved changes. Opening another document discards them.',
   keepEditing: 'Keep editing',

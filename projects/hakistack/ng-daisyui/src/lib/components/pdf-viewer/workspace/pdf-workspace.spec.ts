@@ -182,8 +182,8 @@ describe('hk-pdf-workspace', () => {
     expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('document.pdf · 3 pages');
     const props = Array.from(el.querySelectorAll('[data-section="document"] dd')).map((d) => d.textContent?.trim());
     expect(props).toEqual(['document.pdf', 'Three pages', '3', expect.stringMatching(/B$/), '1 fields']);
-    // One thumbnail per page; the current one holds the rail's tab stop.
-    const thumbs = Array.from(el.querySelectorAll<HTMLButtonElement>('[data-thumb-button]'));
+    // One thumbnail per page in the strip under the pages; the current one holds its tab stop.
+    const thumbs = Array.from(el.querySelectorAll<HTMLButtonElement>('[data-strip-page]'));
     expect(thumbs.length).toBe(3);
     expect(thumbs.map((t) => t.tabIndex)).toEqual([0, -1, -1]);
     expect(thumbs[0].getAttribute('aria-current')).toBe('page');
@@ -194,18 +194,16 @@ describe('hk-pdf-workspace', () => {
     viewer.goToPage(2);
     await settle(fixture, () => viewer.state().page === 2);
     expect(viewer.state().page).toBe(2);
-    expect(el.querySelector('[data-thumb-button="2"]')?.getAttribute('aria-current')).toBe('page');
+    expect(el.querySelector('[data-strip-page="2"]')?.getAttribute('aria-current')).toBe('page');
     expect((el.querySelector('hk-mesa-toolbar input') as HTMLInputElement).value).toBe('2');
   });
 
-  it('toggleSidebar hides the rail (and stops painting its thumbnails); the choice is remembered', async () => {
-    const { viewer, fixture, el, store } = await load({ storageKey: 'ws-test' });
-    expect(store.visiblePanels().has('thumbnails')).toBe(true);
+  it('toggleSidebar hides the rail; the choice is remembered', async () => {
+    const { viewer, fixture, el } = await load({ storageKey: 'ws-test' });
     viewer.toggleSidebar();
     await settle(fixture);
     expect(buttonByLabel(el, 'Show side panel')?.getAttribute('aria-expanded')).toBe('false');
     expect(el.querySelector('section[aria-label="Document navigation"]')?.hasAttribute('inert')).toBe(true);
-    expect(store.visiblePanels().has('thumbnails')).toBe(false);
     expect(JSON.parse(localStorage.getItem('ws-test') ?? '{}')).toEqual({ railHidden: true, inspectorHidden: false });
 
     fixture.destroy();
@@ -213,13 +211,35 @@ describe('hk-pdf-workspace', () => {
     expect(buttonByLabel(again.el, 'Show side panel')).not.toBeNull();
   });
 
-  it('organizePages opens the grid in place; its edits apply at once and undo with the document', async () => {
-    const { viewer, fixture, el, store } = await load();
+  it('folds the page strip', async () => {
+    const { fixture, el } = await load();
+    const toggle = el.querySelector<HTMLButtonElement>('hk-pdf-workspace-strip button[aria-expanded]')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(el.textContent).toContain('Page 1 of 3');
+    toggle.click();
+    await settle(fixture);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelectorAll('[data-strip-page]').length).toBe(0);
+  });
+
+  it('organizePages opens the Organize pages dialog, as in hk-pdf-viewer', async () => {
+    const { viewer, fixture, el } = await load();
+    const pages = fixture.debugElement.query(By.directive(PdfWorkspaceComponent)).injector.get(PdfPagesService);
+    expect(el.querySelector('hk-pdf-page-organizer dialog')).not.toBeNull();
     viewer.organizePages();
     await settle(fixture);
-    const options = () => Array.from(el.querySelectorAll<HTMLElement>('hk-pdf-page-organizer [role="option"]'));
+    expect(pages.organizerOpen()).toBe(true);
+    buttonByText(el, 'Organize pages')!.click();
+    expect(pages.organizerOpen()).toBe(true);
+  });
+
+  it('the Grid view lays the pages out in place; its edits apply at once and undo with the document', async () => {
+    const { viewer, fixture, el, store } = await load();
+    buttonByText(el, 'Grid')!.click();
+    await settle(fixture);
+    const options = () => Array.from(el.querySelectorAll<HTMLElement>('hk-pdf-page-organizer[inline] [role="option"]'));
     expect(options().length).toBe(3);
-    expect(el.querySelector('dialog hk-pdf-page-organizer, hk-pdf-page-organizer dialog')).toBeNull();
+
     // The pages stay mounted under the grid, inert.
     expect(el.querySelector('hk-pdf-pages')?.parentElement?.hasAttribute('inert')).toBe(true);
 
@@ -229,7 +249,7 @@ describe('hk-pdf-workspace', () => {
     expect(order()).toEqual([1, 0, 2]);
     expect(viewer.getAnnotations()[0].page).toBe(1);
 
-    buttonByLabel(el.querySelector('hk-pdf-page-organizer')!, 'Undo')!.click();
+    buttonByLabel(el.querySelector('hk-pdf-page-organizer[inline]')!, 'Undo')!.click();
     await settle(fixture, () => order().join() === '0,1,2');
     expect(order()).toEqual([0, 1, 2]);
 
@@ -247,7 +267,7 @@ describe('hk-pdf-workspace', () => {
 
     buttonByText(el, 'Sheet')!.click();
     await settle(fixture);
-    expect(el.querySelector('hk-pdf-page-organizer')).toBeNull();
+    expect(el.querySelector('hk-pdf-page-organizer[inline]')).toBeNull();
   });
 
   it('shows a selected annotation’s properties docked in the inspector', async () => {
@@ -271,7 +291,7 @@ describe('hk-pdf-workspace', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('hk-mesa-layout')).toBeNull();
   });
 
-  it('puts a host’s own list at the top of the rail, over the open document', async () => {
+  it('shows a host’s own list in the rail', async () => {
     const fixture = TestBed.createComponent(ExtraRailHost);
     const viewer = createPdfViewer({ zoom: 1 });
     fixture.componentInstance.config.set(viewer.config());
@@ -279,9 +299,9 @@ describe('hk-pdf-workspace', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('hk-pdf-workspace-rail [data-extra]')?.textContent).toBe('My documents');
     const headings = Array.from(el.querySelectorAll('hk-pdf-workspace-rail h2')).map((h) => h.textContent?.trim());
-    expect(headings).toEqual(['Docs · 3', 'Contract.pdf · 3 pages']);
-    // Both at once: the list, and the open document's pages.
-    expect(el.querySelectorAll('[data-thumb-button]').length).toBe(3);
+    expect(headings).toEqual(['Docs · 3']);
+    // The list in the rail; the open document's pages in the strip under them.
+    expect(el.querySelectorAll('[data-strip-page]').length).toBe(3);
     expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('Contract.pdf · 3 pages');
   });
 
@@ -296,16 +316,16 @@ describe('hk-pdf-workspace', () => {
     }
     const rows = (el: HTMLElement) => Array.from(el.querySelectorAll<HTMLButtonElement>('hk-mesa-document-list [data-document-index]'));
 
-    it('lists the documents over the open one’s pages, and opens the first', async () => {
+    it('lists the documents, and opens the first', async () => {
       const { fixture, el, viewer } = await loadList();
       expect(fixture.componentInstance.active()).toBe('three');
-      expect(rows(el).map((r) => r.querySelector('.line-clamp-2')?.textContent?.trim())).toEqual(['Three.pdf', 'One.pdf']);
+      expect(rows(el).map((r) => r.querySelector('.font-medium')?.textContent?.trim())).toEqual(['Three.pdf', 'One.pdf']);
       expect(rows(el)[0].textContent).toContain('PDF · Contracts · 3 p.');
       expect(rows(el)[0].getAttribute('aria-current')).toBe('page');
-      // Split rail: the documents on top, the open one's pages below, headed by its name.
+      // The documents in the rail; the open one's pages in the strip under them.
       const headings = Array.from(el.querySelectorAll('hk-pdf-workspace-rail h2')).map((h) => h.textContent?.trim());
-      expect(headings).toEqual(['Documents · 2', 'Three.pdf · 3 pages']);
-      expect(el.querySelectorAll('[data-thumb-button]').length).toBe(3);
+      expect(headings).toEqual(['Documents · 2']);
+      expect(el.querySelectorAll('[data-strip-page]').length).toBe(3);
       expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('Three.pdf · 3 pages');
       expect(viewer.state().numPages).toBe(3);
     });

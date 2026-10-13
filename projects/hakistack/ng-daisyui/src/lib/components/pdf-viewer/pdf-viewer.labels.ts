@@ -776,6 +776,14 @@ export interface PdfViewerLabels {
   pageCountBadgeOne?: string;
   /** Default: "Pages" — Accessible name of the scrollable page area. */
   pagesRegionAria?: string;
+  /** Default: "Show pages" — Unfolds the workspace's page strip. */
+  showPageStrip?: string;
+  /** Default: "Hide pages" — Folds the workspace's page strip. */
+  hidePageStrip?: string;
+  /** Default: "Filter documents" */
+  filterDocuments?: string;
+  /** Default: "No documents match" */
+  noDocumentsMatch?: string;
   /** Default: "Documents" — The workspace document list (rail mode and accessible name). */
   documents?: string;
   /** Default: "Documents · {count}" — Rail heading over the document list. */
@@ -1173,6 +1181,10 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   pageCountBadge: '{count} pages',
   pageCountBadgeOne: '{count} page',
   pagesRegionAria: 'Pages',
+  showPageStrip: 'Show pages',
+  hidePageStrip: 'Hide pages',
+  filterDocuments: 'Filter documents',
+  noDocumentsMatch: 'No documents match',
   documents: 'Documents',
   documentsTitle: 'Documents · {count}',
   documentListHint: 'Arrow keys move between documents; Enter opens one.',

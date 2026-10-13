@@ -15,7 +15,7 @@ async function open(page: Page, theme = 'light'): Promise<void> {
   await page.addInitScript((t) => localStorage.setItem('hk-demo-theme', t), theme);
   await page.goto(ROUTE);
   await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
-  await expect(page.locator('hk-pdf-workspace [data-thumb-button="1"]')).toBeAttached({ timeout: 60_000 });
+  await expect(page.locator('hk-pdf-workspace [data-strip-page="1"]')).toBeAttached({ timeout: 60_000 });
   // The first page has painted (the stack turns visible after its first raster).
   await expect(page.locator('hk-pdf-workspace .hk-pdf-page-stack')).not.toHaveClass(/invisible/, { timeout: 60_000 });
 }
@@ -75,13 +75,13 @@ for (const width of [1280, 900, 600, 375]) {
   });
 }
 
-test('keyboard: the rail has one tab stop and arrows move the page', async ({ page }) => {
+test('keyboard: the page strip has one tab stop and arrows move the page', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1200 });
   await open(page);
-  const first = page.locator('hk-pdf-workspace [data-thumb-button="1"]');
+  const first = page.locator('hk-pdf-workspace [data-strip-page="1"]');
   await first.focus();
-  await page.keyboard.press('ArrowDown');
-  const second = page.locator('hk-pdf-workspace [data-thumb-button="2"]');
+  await page.keyboard.press('ArrowRight');
+  const second = page.locator('hk-pdf-workspace [data-strip-page="2"]');
   await expect(second).toBeFocused();
   await expect(second).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('textbox', { name: 'Go to page' })).toHaveValue('2');
@@ -89,7 +89,7 @@ test('keyboard: the rail has one tab stop and arrows move the page', async ({ pa
   const outline = await second.evaluate((el) => getComputedStyle(el).outlineStyle);
   expect(outline).not.toBe('none');
   // Only the current page's thumbnail is in the tab order.
-  expect(await page.locator('hk-pdf-workspace [data-thumb-button][tabindex="0"]').count()).toBe(1);
+  expect(await page.locator('hk-pdf-workspace [data-strip-page][tabindex="0"]').count()).toBe(1);
 });
 
 test('the side panes hide and come back, and fold on narrow layouts', async ({ page }) => {
@@ -137,4 +137,26 @@ test('the document list: switch documents, and the guard before leaving unsaved 
   await row('Form W-9.pdf').click();
   await page.getByRole('dialog', { name: 'Unsaved changes' }).getByRole('button', { name: 'Discard and open' }).click();
   await expect(page.locator('hk-pdf-workspace hk-mesa-toolbar .badge')).toContainText('Form W-9.pdf · 6 pages', { timeout: 60_000 });
+});
+
+test('many documents: the list filters and virtualizes; the page strip stays in the workspace', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1400 });
+  await open(page);
+  await page.getByRole('button', { name: 'Add 120 documents' }).click();
+  const list = page.locator('hk-pdf-workspace hk-mesa-document-list');
+  await expect(page.locator('hk-pdf-workspace-rail h2')).toHaveText('Documents · 123');
+  // Only the rows in view are in the DOM.
+  expect(await list.locator('[data-document-index]').count()).toBeLessThan(40);
+
+  // The strip is inside the workspace, under the pages, whatever the list's length.
+  const host = (await page.locator('hk-pdf-workspace').boundingBox())!;
+  const strip = (await page.locator('hk-pdf-workspace-strip').boundingBox())!;
+  expect(strip.y + strip.height).toBeLessThanOrEqual(host.y + host.height + 1);
+  expect(strip.height).toBeGreaterThan(100);
+
+  await list.getByRole('searchbox').fill('agreement 042');
+  await expect(list.locator('[data-document-index]')).toHaveCount(1);
+  await list.getByRole('searchbox').press('Enter');
+  await expect(page.locator('hk-pdf-workspace hk-mesa-toolbar .badge')).toContainText('Agreement 042.pdf');
+  expect(await violations(page)).toEqual([]);
 });

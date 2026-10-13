@@ -29,6 +29,7 @@ import { PdfSignatureDialogComponent } from '../ui/pdf-signature-dialog.componen
 import { PdfTextEditorComponent } from '../ui/pdf-text-editor.component';
 import { PdfWorkspaceInspectorComponent } from './pdf-workspace-inspector.component';
 import { PdfWorkspaceRailComponent } from './pdf-workspace-rail.component';
+import { PdfWorkspaceStripComponent } from './pdf-workspace-strip.component';
 import { PdfWorkspaceToolbarComponent } from './pdf-workspace-toolbar.component';
 import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state';
 
@@ -39,19 +40,20 @@ import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state'
  * (docs/design/mesa-style-guide.md). A workspace is for lists; a single
  * document is `hk-pdf-viewer`.
  *
- * - **Rail** — the document list (`[documents]` + `[(active)]`), and the open
- *   one's page thumbnails, outline and attachments.
+ * - **Rail** — the document list (`[documents]` + `[(active)]`).
  * - **Main column** — a toolbar (the document, the save state, paging, zoom,
  *   the view, the tools), the annotation / form design / find bars, and the
- *   pages; or, in the Grid view, every page as a thumbnail to organize
- *   (each edit applies at once and undoes with the document).
+ *   pages with the open document's page strip under them; or, in the Grid
+ *   view, every page as a thumbnail to organize (each edit applies at once
+ *   and undoes with the document).
  * - **Inspector** — the selected annotation or field, the document's
- *   properties, its digital signatures and the comments.
+ *   properties, its outline and attachments, its digital signatures and the
+ *   comments.
  *
  * Opening another document while the open one has unsaved edits asks first.
  * Side panes hide behind their divider and fold into disclosures on narrow
  * containers. `controller.toggleSidebar()` toggles the rail and
- * `controller.organizePages()` opens the Grid view.
+ * `controller.organizePages()` opens the Organize pages dialog.
  *
  * @example
  * viewer = createPdfViewer({ zoom: 'fit-width' });
@@ -68,6 +70,7 @@ import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state'
     MesaDocumentListComponent,
     PdfWorkspaceToolbarComponent,
     PdfWorkspaceRailComponent,
+    PdfWorkspaceStripComponent,
     PdfWorkspaceInspectorComponent,
     PdfAnnotationToolbarComponent,
     PdfFormDesignToolbarComponent,
@@ -119,7 +122,13 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
   private readonly docListTemplate = viewChild.required<TemplateRef<unknown>>('docList');
   protected readonly listLabels = computed<MesaDocumentListLabels>(() => {
     const l = this.store.labels();
-    return { documents: l.documents, listHint: l.documentListHint, pageCountShort: l.pageCountShort };
+    return {
+      documents: l.documents,
+      listHint: l.documentListHint,
+      pageCountShort: l.pageCountShort,
+      filter: l.filterDocuments,
+      noMatches: l.noDocumentsMatch,
+    };
   });
   /** The rail's extra mode: the host's own, or this workspace's document list. */
   private readonly railExtra = computed<PdfWorkspaceRailExtra | null>(() => {
@@ -128,7 +137,11 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
     const docs = this.documents();
     if (!docs.length) return null;
     const l = this.store.labels();
-    return { label: l.documents, title: l.documentsTitle.replace('{count}', String(docs.length)), template: this.docListTemplate() };
+    return {
+      label: l.documents,
+      title: l.documentsTitle.replace('{count}', String(docs.length)),
+      template: this.docListTemplate(),
+    };
   });
 
   private static nextId = 0;
@@ -190,30 +203,25 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
       });
     });
 
-    // Panels on screen: the rail's mode (outline and attachments load with the rail, so its
-    // modes know whether the document has them), and the inspector's comments and signatures.
+    // Panels on screen: the inspector's comments, signatures, outline and attachments (the
+    // page strip paints its own thumbnails; the sidebar's thumbnail panel isn't used here).
     effect(() => {
-      const layout = this.layout();
       const shown = new Set<PdfSidebarTab>();
-      if (layout?.railVisible()) {
-        shown.add('bookmarks');
-        shown.add('attachments');
-        if (this.ws.railMode() === 'thumbnails') shown.add('thumbnails');
-      }
-      if (layout?.inspectorVisible()) {
+      if (this.layout()?.inspectorVisible()) {
         shown.add('annotations');
         shown.add('signatures');
+        shown.add('bookmarks');
+        shown.add('attachments');
       }
       this.store.shownPanels.set(shown);
     });
 
     this.store.revealHandler = (panel) => {
-      if (panel === 'annotations') this.ws.revealSection('comments');
-      else if (panel === 'signatures') this.ws.revealSection('signatures');
-      else {
-        this.ws.railMode.set(panel);
-        this.layout()?.showRail();
-      }
+      if (panel === 'thumbnails') this.ws.stripOpen.set(true);
+      else
+        this.ws.revealSection(
+          panel === 'annotations' ? 'comments' : panel === 'bookmarks' ? 'outline' : panel === 'attachments' ? 'attachments' : 'signatures',
+        );
     };
 
     // Form design and the grid are exclusive: designing goes back to the pages.
@@ -249,9 +257,5 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
 
   protected override toggleSidebar(): void {
     this.layout()?.toggleRail();
-  }
-
-  protected override organizePages(): void {
-    if (this.pages.canOrganize()) this.ws.view.set('grid');
   }
 }

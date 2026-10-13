@@ -429,3 +429,17 @@ Los workspaces ya no aceptan `[src]`: son para listas (`[documents]` + `[(active
 lista de documentos (con su propio scroll, máx. 40 % de alto) y abajo el documento abierto, con su nombre como título
 («Form W-9.pdf · 6 páginas») y, si las tiene, sus pestañas Páginas · Índice · Adjuntos (en otros formatos, sus
 secciones). Se ven las dos cosas a la vez y queda claro de quién son las páginas.
+
+### W3f ✅ Lista a la izquierda, páginas abajo (como en Docsy)
+El rail dividido (W3e) no escalaba con muchos documentos. Ahora:
+- **Rail**: solo la lista de documentos, a todo el alto. Con 8 o más, un filtro (nombre y descripción, sin acentos);
+  con más de 60, filas virtualizadas (CDK). ↓ desde el filtro entra a la lista; Enter con un resultado lo abre.
+- **Tira inferior** (`hk-pdf-workspace-strip`): las páginas del documento abierto en horizontal, plegable, con
+  «Página n de N»; miniaturas pintadas mientras se ven (caché compartida); ← → Home End. En `hk-document-workspace`,
+  la misma tira con las secciones (hojas, páginas DOCX).
+- **Índice y adjuntos** pasan al inspector (solo si el documento los tiene).
+- **Cuadrícula** sigue siendo el organizador en línea; además, un botón «Organizar páginas» abre el modal como en
+  `hk-pdf-viewer`, y `controller.organizePages()` abre ese modal.
+- Demo: botón «Add 120 documents». e2e: lista larga (virtualizada, filtro, la tira sigue dentro del workspace).
+- Nota: el build de `demo` pasa el presupuesto de 4 MB con los cambios sin commit de la sesión del datagrid
+  (solo con estos cambios: 3,94 MB).

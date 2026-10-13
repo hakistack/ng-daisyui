@@ -26,6 +26,9 @@
       <hk-pdf-page-organizer inline class="bg-base-100 absolute inset-0 z-30" />
     }
   </div>
+  @if (ws.view() === 'sheet') {
+    <hk-pdf-workspace-strip />
+  }
 
   <hk-pdf-workspace-inspector hkMesaInspector />
 </hk-mesa-layout>
@@ -34,6 +37,7 @@
 <hk-pdf-annotation-dialogs />
 <hk-pdf-signature-dialog />
 <hk-pdf-digital-sign-dialog />
+<hk-pdf-page-organizer />
 
 <!-- The document list: the rail's first mode when the workspace has [documents]. -->
 <ng-template #docList>

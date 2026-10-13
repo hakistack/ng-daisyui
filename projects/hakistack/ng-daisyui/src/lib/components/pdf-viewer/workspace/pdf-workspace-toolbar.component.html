@@ -126,6 +126,17 @@
           {{ store.labels().viewGrid }}
         </button>
       </div>
+      <!-- Organize pages: the same dialog as hk-pdf-viewer. -->
+      <button
+        type="button"
+        class="btn btn-sm gap-1.5"
+        [disabled]="!store.showPages() || !pages.canOrganize()"
+        [title]="pages.unavailableReason() ?? store.labels().organizePages"
+        (click)="pages.organizerOpen.set(true)"
+      >
+        <svg lucideFiles [size]="14" aria-hidden="true"></svg>
+        {{ store.labels().organizePages }}
+      </button>
     }
 
     @if (ws.view() === 'sheet') {

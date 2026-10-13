@@ -24,56 +24,12 @@
   />
 } @else {
   <hk-mesa-layout class="h-full" [labels]="layoutLabels()" [storageKey]="storageKey()" [rail]="documents().length > 0">
-    <!-- Rail, split in two: the documents (own scroll), and the open one's sections when it has several. -->
+    <!-- Rail: the documents, at full height. -->
     <div hkMesaRail class="flex min-h-0 flex-1 flex-col">
-      <section
-        class="border-base-300 flex min-h-0 flex-col"
-        [class.border-b]="sections().length > 1"
-        [class.max-h-[40%]]="sections().length > 1"
-        [class.shrink-0]="sections().length > 1"
-        [class.flex-1]="sections().length <= 1"
-        [attr.aria-labelledby]="'hk-dw-docs-' + uid"
-      >
-        <h2 [id]="'hk-dw-docs-' + uid" class="border-base-300 truncate border-b px-3 py-2 text-sm font-semibold">
-          {{ labels.documentsTitle.replace('{count}', '' + documents().length) }}
-        </h2>
-        <ng-container [ngTemplateOutlet]="docList" />
-      </section>
-      @if (sections().length > 1) {
-        <section class="flex min-h-0 flex-1 flex-col" [attr.aria-labelledby]="'hk-dw-contents-' + uid">
-          <h2
-            [id]="'hk-dw-contents-' + uid"
-            class="border-base-300 truncate border-b px-3 py-2 text-sm font-semibold"
-            [title]="contentsTitle()"
-          >
-            {{ contentsTitle() }}
-          </h2>
-          <ul #rail class="min-h-0 flex-1 overflow-y-auto p-2" [attr.aria-label]="labels.rail">
-            @for (section of sections(); track section.id; let i = $index) {
-              <li class="py-0.5">
-                <button
-                  type="button"
-                  class="rounded-field hover:bg-base-200 flex w-full min-w-0 items-center gap-2 px-2 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-base-content"
-                  [class.bg-base-200]="i === currentIndex()"
-                  [class.ring-1]="i === currentIndex()"
-                  [class.ring-inset]="i === currentIndex()"
-                  [class.ring-base-content/45]="i === currentIndex()"
-                  [attr.data-section-index]="i"
-                  [attr.tabindex]="i === currentIndex() ? 0 : -1"
-                  [attr.aria-current]="i === currentIndex() ? 'page' : null"
-                  (click)="goToIndex(i)"
-                  (keydown)="onRailKey($event, rail)"
-                >
-                  <span class="text-base-content/70 w-6 shrink-0 text-right font-mono text-xs tabular-nums" aria-hidden="true">{{
-                    i + 1
-                  }}</span>
-                  <span class="min-w-0 truncate">{{ section.label }}</span>
-                </button>
-              </li>
-            }
-          </ul>
-        </section>
-      }
+      <h2 class="border-base-300 truncate border-b px-3 py-2 text-sm font-semibold">
+        {{ labels.documentsTitle.replace('{count}', '' + documents().length) }}
+      </h2>
+      <ng-container [ngTemplateOutlet]="docList" />
     </div>
 
     <hk-mesa-toolbar>
@@ -181,6 +137,64 @@
             <hk-document-unsupported-renderer [source]="source()!" [format]="resolvedFormat()" [filename]="filename()" />
           }
         </div>
+      </div>
+    }
+
+    <!-- The open document's sections (a workbook's sheets, a DOCX's pages) as a strip under it. -->
+    @if (!editing() && sections().length > 1) {
+      <div class="border-base-300 bg-base-100 shrink-0 border-t">
+        <div
+          class="text-base-content/70 flex flex-wrap items-center gap-2 px-2.5 py-1.5 text-sm"
+          [class.border-b]="stripOpen()"
+          [class.border-base-300]="stripOpen()"
+        >
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm min-w-0 gap-1.5 font-normal"
+            [attr.aria-expanded]="stripOpen()"
+            [attr.aria-controls]="'hk-dw-strip-' + uid"
+            [attr.aria-label]="(stripOpen() ? labels.hideSectionStrip : labels.showSectionStrip) + ' — ' + (filename() ?? '')"
+            (click)="stripOpen.set(!stripOpen())"
+          >
+            <svg
+              lucideChevronRight
+              [size]="14"
+              class="shrink-0 transition-transform motion-reduce:transition-none"
+              [class.rotate-90]="stripOpen()"
+              aria-hidden="true"
+            ></svg>
+            <span class="truncate">{{ filename() }}</span>
+          </button>
+          <span class="font-mono text-xs tabular-nums">{{ sectionPosition() }}</span>
+        </div>
+        @if (stripOpen()) {
+          <ul #strip [id]="'hk-dw-strip-' + uid" class="flex gap-1.5 overflow-x-auto px-2.5 py-2" [attr.aria-label]="labels.rail">
+            @for (section of sections(); track section.id; let i = $index) {
+              <li class="shrink-0">
+                <button
+                  type="button"
+                  class="rounded-field hover:bg-base-200 flex max-w-56 min-w-0 items-center gap-2 px-2.5 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-base-content"
+                  [class.bg-base-200]="i === currentIndex()"
+                  [class.ring-1]="i === currentIndex()"
+                  [class.ring-inset]="i === currentIndex()"
+                  [class.ring-base-content/45]="i === currentIndex()"
+                  [attr.data-section-index]="i"
+                  [attr.tabindex]="i === currentIndex() ? 0 : -1"
+                  [attr.aria-current]="i === currentIndex() ? 'page' : null"
+                  (click)="goToIndex(i)"
+                  (keydown)="onStripKey($event, strip)"
+                >
+                  @if (i === currentIndex()) {
+                    <span class="badge badge-primary badge-sm shrink-0 font-mono tabular-nums">{{ i + 1 }}</span>
+                  } @else {
+                    <span class="text-base-content/70 shrink-0 font-mono text-xs tabular-nums">{{ i + 1 }}</span>
+                  }
+                  <span class="min-w-0 truncate">{{ section.label }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
       </div>
     }
 

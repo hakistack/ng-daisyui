@@ -33,7 +33,7 @@ import { DocumentUnsupportedRenderer } from '../renderers/unsupported.renderer';
 import { formatBytes } from '../../../utils/format-bytes';
 import { MesaStateComponent } from '../../mesa/mesa-state.component';
 import { PdfWorkspaceRailExtra } from '../../pdf-viewer/workspace/pdf-workspace.state';
-import { MesaDocumentListComponent } from '../../mesa/mesa-document-list.component';
+import { MesaDocumentListComponent, MesaDocumentListLabels } from '../../mesa/mesa-document-list.component';
 import { WorkspaceDocument } from '../../mesa/workspace-document';
 import {
   DEFAULT_DOCUMENT_WORKSPACE_LABELS,
@@ -101,11 +101,19 @@ export class DocumentWorkspaceComponent {
   protected readonly uid = ++DocumentWorkspaceComponent.nextId;
   private readonly userLabels = inject(HK_DOCUMENT_WORKSPACE_LABELS, { optional: true });
   protected readonly labels: ResolvedDocumentWorkspaceLabels = { ...DEFAULT_DOCUMENT_WORKSPACE_LABELS, ...this.userLabels };
-  protected readonly listLabels = {
+  protected readonly listLabels: MesaDocumentListLabels = {
     documents: this.labels.documents,
     listHint: this.labels.listHint,
     pageCountShort: this.labels.pageCountShort,
+    filter: this.labels.filterDocuments,
+    noMatches: this.labels.noDocumentsMatch,
   };
+  /** Whether the section strip under the document is unfolded. */
+  protected readonly stripOpen = signal(true);
+  /** "Section 2 of 3" */
+  protected readonly sectionPosition = computed(() =>
+    this.labels.sectionPosition.replace('{current}', String(this.currentIndex() + 1)).replace('{total}', String(this.sections().length)),
+  );
 
   /**
    * The documents of the workspace (any format): the rail lists them and the
@@ -157,11 +165,6 @@ export class DocumentWorkspaceComponent {
     const editor = this.editor();
     return !!editor && !!resolveEditor(this.resolvedFormat().format, editor.config().editors, BUILT_IN_EDITORS);
   });
-
-  /** The open document's part of the rail: "Payroll.xlsx · 3 sections". */
-  protected readonly contentsTitle = computed(
-    () => `${this.filename() ?? this.labels.documentAria} · ${this.labels.sectionCount.replace('{count}', String(this.sections().length))}`,
-  );
 
   private readonly docListTemplate = viewChild.required<TemplateRef<unknown>>('docList');
   /** The document list as the PDF workspace's extra rail mode, so the rail looks the same for every format. */
@@ -306,16 +309,20 @@ export class DocumentWorkspaceComponent {
     input.value = String(this.currentIndex() + 1);
   }
 
-  /** Arrows / Home / End in the rail move between sections, keeping focus on the current one. */
-  protected onRailKey(event: KeyboardEvent, rail: HTMLElement): void {
+  /** ← → Home End in the section strip move between sections, keeping focus on the current one. */
+  protected onStripKey(event: KeyboardEvent, strip: HTMLElement): void {
     const last = this.sections().length - 1;
-    const to: Record<string, number> = { ArrowUp: this.currentIndex() - 1, ArrowDown: this.currentIndex() + 1, Home: 0, End: last };
+    const to: Record<string, number> = { ArrowLeft: this.currentIndex() - 1, ArrowRight: this.currentIndex() + 1, Home: 0, End: last };
     const target = to[event.key];
     if (target === undefined) return;
     event.preventDefault();
     const index = Math.max(0, Math.min(last, target));
     this.goToIndex(index);
-    requestAnimationFrame(() => rail.querySelector<HTMLElement>(`[data-section-index="${index}"]`)?.focus());
+    requestAnimationFrame(() => {
+      const button = strip.querySelector<HTMLElement>(`[data-section-index="${index}"]`);
+      button?.focus();
+      button?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    });
   }
 
   protected zoomBy(direction: 1 | -1): void {

@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, untracked } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { LucidePaperclip } from '@lucide/angular';
 import { PdfAnnotationsService } from '../services/pdf-annotations.service';
+import { PdfViewportService } from '../services/pdf-viewport.service';
 import { PdfDocumentService } from '../services/pdf-document.service';
 import { PdfFormDesignerService } from '../services/pdf-form-designer.service';
 import { PdfFormsService } from '../services/pdf-forms.service';
@@ -15,11 +18,19 @@ import { PdfWorkspaceState } from './pdf-workspace.state';
 /**
  * The workspace inspector: sections on hairlines — the selected annotation
  * or form field (the properties panels, docked), the document's properties,
- * its digital signatures, and the comments.
+ * its outline and attachments (when it has them), its digital signatures, and
+ * the comments.
  */
 @Component({
   selector: 'hk-pdf-workspace-inspector',
-  imports: [PdfAnnotationPanelComponent, PdfFormFieldPanelComponent, PdfSignaturesPanelComponent, PdfCommentsComponent],
+  imports: [
+    NgTemplateOutlet,
+    LucidePaperclip,
+    PdfAnnotationPanelComponent,
+    PdfFormFieldPanelComponent,
+    PdfSignaturesPanelComponent,
+    PdfCommentsComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -51,6 +62,38 @@ import { PdfWorkspaceState } from './pdf-workspace.state';
       </dl>
     </section>
 
+    @if (store.outline()?.length) {
+      <section data-section="outline" class="border-base-300 border-b px-2 pt-3.5 pb-2" [attr.aria-labelledby]="'hk-pdf-ws-out-' + uid">
+        <h2 [id]="'hk-pdf-ws-out-' + uid" class="mb-1 px-2 text-sm font-semibold">{{ store.labels().bookmarksTab }}</h2>
+        <ul class="menu menu-sm w-full p-0">
+          @for (node of store.outline()!; track $index) {
+            <ng-container [ngTemplateOutlet]="outlineNode" [ngTemplateOutletContext]="{ $implicit: node }" />
+          }
+        </ul>
+      </section>
+    }
+
+    @if (store.attachments()?.length) {
+      <section data-section="attachments" class="border-base-300 border-b px-2 pt-3.5 pb-2" [attr.aria-labelledby]="'hk-pdf-ws-att-' + uid">
+        <h2 [id]="'hk-pdf-ws-att-' + uid" class="mb-1 px-2 text-sm font-semibold">{{ store.labels().attachmentsTab }}</h2>
+        <ul class="flex flex-col gap-0.5">
+          @for (att of store.attachments(); track $index) {
+            <li>
+              <button
+                type="button"
+                class="rounded-field hover:bg-base-200 flex w-full min-w-0 items-center gap-2 px-2 py-1.5 text-left text-sm"
+                [title]="att.description || att.filename"
+                (click)="document.downloadAttachment(att)"
+              >
+                <svg lucidePaperclip [size]="14" class="shrink-0" aria-hidden="true"></svg>
+                <span class="min-w-0 truncate">{{ att.filename }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
     @if (showSignatures()) {
       <section data-section="signatures" class="border-base-300 border-b px-2 pt-3.5 pb-2" [attr.aria-labelledby]="'hk-pdf-ws-sig-' + uid">
         <h2 [id]="'hk-pdf-ws-sig-' + uid" class="mb-1 px-2 text-sm font-semibold">{{ store.labels().signaturesTab }}</h2>
@@ -62,12 +105,26 @@ import { PdfWorkspaceState } from './pdf-workspace.state';
       <h2 [id]="'hk-pdf-ws-com-' + uid" class="mb-1 px-2 text-sm font-semibold">{{ store.labels().commentsSection }}</h2>
       <hk-pdf-comments />
     </section>
+
+    <ng-template #outlineNode let-node>
+      <li>
+        <button type="button" (click)="outlineGoto(node)">{{ node.title || store.labels().untitledBookmark }}</button>
+        @if (node.items?.length) {
+          <ul>
+            @for (child of node.items; track $index) {
+              <ng-container [ngTemplateOutlet]="outlineNode" [ngTemplateOutletContext]="{ $implicit: child }" />
+            }
+          </ul>
+        }
+      </li>
+    </ng-template>
   `,
 })
 export class PdfWorkspaceInspectorComponent {
   protected readonly store = inject(PdfViewerStore);
   protected readonly designer = inject(PdfFormDesignerService);
-  private readonly document = inject(PdfDocumentService);
+  protected readonly document = inject(PdfDocumentService);
+  private readonly viewport = inject(PdfViewportService);
   private readonly forms = inject(PdfFormsService);
   private readonly signatures = inject(PdfSignaturesService);
   private readonly annotations = inject(PdfAnnotationsService);
@@ -89,6 +146,11 @@ export class PdfWorkspaceInspectorComponent {
     return fields ? l.docFormFields.replace('{count}', String(fields)) : l.docNoForm;
   });
   protected readonly showSignatures = computed(() => (this.signatures.digital()?.length ?? 0) > 0 || this.signatures.canSignDigitally());
+
+  /** Outline entries carry a 0-based page index. */
+  protected outlineGoto(node: { pageIndex?: number }): void {
+    if (typeof node?.pageIndex === 'number' && node.pageIndex >= 0) this.viewport.goToPage(node.pageIndex + 1);
+  }
 
   constructor() {
     // "Open comments" and "show signatures" scroll their section into view.
