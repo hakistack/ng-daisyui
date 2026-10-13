@@ -44,8 +44,9 @@ import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state'
  * - **Main column** — a toolbar (the document, the save state, paging, zoom,
  *   the view, the tools), the annotation / form design / find bars, and the
  *   pages with the open document's page strip under them; or, in the Grid
- *   view, every page as a thumbnail to organize (each edit applies at once
- *   and undoes with the document).
+ *   view, every page as a thumbnail (a click or the arrows make a page the
+ *   current one, and the inspector follows). Organize pages opens
+ *   the same dialog as `hk-pdf-viewer`.
  * - **Inspector** — the selected annotation or field, the document's
  *   properties, its outline and attachments, its digital signatures and the
  *   comments.

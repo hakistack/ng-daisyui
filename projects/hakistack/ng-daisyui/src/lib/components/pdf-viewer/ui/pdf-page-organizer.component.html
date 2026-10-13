@@ -1,70 +1,8 @@
 @if (inline()) {
-  <!-- ── INLINE (workspace grid view): every edit applies at once, undo is the document's ── -->
-  <section class="flex h-full min-h-0 flex-col" [attr.aria-labelledby]="uid + '-title'">
-    <div class="border-base-300 flex flex-wrap items-center gap-3 border-b px-3.5 py-2.5">
-      <span class="badge badge-lg badge-secondary min-w-0 gap-2">
-        <svg lucideLayoutGrid [size]="14" aria-hidden="true"></svg>
-        <span [id]="uid + '-title'" class="min-w-0 truncate">{{ store.labels().organizePages }} · {{ countText() }}</span>
-      </span>
-      @if (busy()) {
-        <span class="text-base-content/70 flex items-center gap-1.5 text-sm" role="status">
-          <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
-          {{ store.labels().importingPages }}
-        </span>
-      }
-
-      <div class="ml-auto flex flex-wrap items-center gap-2">
-        <div class="join" role="group" [attr.aria-label]="store.labels().undo + ' / ' + store.labels().redo">
-          <button
-            type="button"
-            class="btn btn-sm btn-square join-item"
-            [attr.aria-label]="store.labels().undo"
-            [title]="store.labels().undo"
-            [disabled]="!canUndo() || busy()"
-            (click)="undo()"
-          >
-            <svg lucideUndo2 [size]="16" aria-hidden="true"></svg>
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm btn-square join-item"
-            [attr.aria-label]="store.labels().redo"
-            [title]="store.labels().redo"
-            [disabled]="!canRedo() || busy()"
-            (click)="redo()"
-          >
-            <svg lucideRedo2 [size]="16" aria-hidden="true"></svg>
-          </button>
-        </div>
-        <ng-container [ngTemplateOutlet]="editActions" [ngTemplateOutletContext]="{ $implicit: 'btn btn-sm join-item' }" />
-        <label class="text-base-content/70 flex items-center gap-2 text-sm">
-          <span class="sr-only sm:not-sr-only">{{ store.labels().thumbnailSize }}</span>
-          <input
-            type="range"
-            class="range range-xs w-24"
-            min="96"
-            max="288"
-            step="16"
-            [attr.aria-label]="store.labels().thumbnailSize"
-            [value]="size()"
-            (input)="onSizeInput($event)"
-          />
-        </label>
-      </div>
-    </div>
-
-    <p [id]="uid + '-hint'" class="text-base-content/70 border-base-300 border-b px-3.5 py-2 text-sm">{{ store.labels().organizeHint }}</p>
-
-    <div class="bg-base-200 min-h-0 flex-1 overflow-auto p-3" [attr.aria-busy]="busy()">
-      @if (error(); as message) {
-        <div role="alert" class="alert alert-error mx-auto mb-3 max-w-md">
-          <span>{{ message }}</span>
-        </div>
-      }
-      <ng-container [ngTemplateOutlet]="gridTpl" />
-    </div>
-    <div class="sr-only" aria-live="polite">{{ announcement() }}</div>
-  </section>
+  <!-- ── INLINE (the workspace's Grid view): the pages, to look at and open; organizing is the dialog. ── -->
+  <div class="bg-base-200 h-full min-h-0 overflow-auto p-3">
+    <ng-container [ngTemplateOutlet]="gridTpl" />
+  </div>
 } @else {
   <dialog #dialog class="modal" [attr.aria-labelledby]="uid + '-title'" [attr.aria-describedby]="uid + '-hint'" (close)="onNativeClose()">
     <div
@@ -242,29 +180,30 @@
     #grid
     cdkDropList
     cdkDropListOrientation="mixed"
+    [cdkDropListDisabled]="inline()"
     (cdkDropListDropped)="onDrop($event)"
     role="listbox"
-    aria-multiselectable="true"
-    [attr.aria-label]="store.labels().organizePages"
-    [attr.aria-describedby]="uid + '-hint'"
+    [attr.aria-multiselectable]="inline() ? null : 'true'"
+    [attr.aria-label]="inline() ? store.labels().railPages : store.labels().organizePages"
+    [attr.aria-describedby]="inline() ? null : uid + '-hint'"
     class="flex flex-wrap content-start gap-3"
   >
     @for (p of draft(); track p.uid; let i = $index) {
       <li
         cdkDrag
         [cdkDragData]="p.uid"
-        [cdkDragDisabled]="busy()"
+        [cdkDragDisabled]="busy() || inline()"
         (cdkDragStarted)="onDragStart(p.uid)"
         role="option"
         [attr.data-organizer-item]="p.uid"
-        [attr.aria-selected]="selected().has(p.uid)"
+        [attr.aria-selected]="inline() ? isCurrent(i) : selected().has(p.uid)"
         [attr.aria-label]="itemLabels().get(p.uid)"
         [attr.aria-current]="inline() && isCurrent(i) ? 'page' : null"
         [tabindex]="focusUid() === p.uid ? 0 : -1"
         [attr.data-dimmed]="dragging() !== null && dragging() !== p.uid && selected().has(p.uid) ? '' : null"
         [class]="itemClass()"
         [style.width.px]="size() + 20"
-        (click)="onItemClick($event, p.uid)"
+        (click)="inline() ? pick.emit(i + 1) : onItemClick($event, p.uid)"
         (keydown)="onItemKey($event, i)"
       >
         <div class="flex items-center justify-center" [style.width.px]="size()" [style.height.px]="size()">

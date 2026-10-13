@@ -23,7 +23,7 @@
       <hk-pdf-pages />
     </div>
     @if (ws.view() === 'grid') {
-      <hk-pdf-page-organizer inline class="bg-base-100 absolute inset-0 z-30" />
+      <hk-pdf-page-organizer inline class="bg-base-100 absolute inset-0 z-30" (pick)="viewport.goToPage($event)" />
     }
   </div>
   @if (ws.view() === 'sheet') {

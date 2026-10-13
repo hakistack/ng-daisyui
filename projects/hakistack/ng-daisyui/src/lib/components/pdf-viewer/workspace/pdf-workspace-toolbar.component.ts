@@ -156,7 +156,6 @@ export class PdfWorkspaceToolbarComponent {
   }
 
   protected setView(view: PdfWorkspaceView): void {
-    if (view === 'grid' && !this.pages.canOrganize()) return;
     this.ws.view.set(view);
   }
 

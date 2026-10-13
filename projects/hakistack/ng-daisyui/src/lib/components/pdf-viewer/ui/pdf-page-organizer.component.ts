@@ -11,6 +11,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
   untracked,
   viewChild,
@@ -101,8 +102,9 @@ export class PdfOrganizerThumbDirective {
  * apply to a draft with its own undo; Apply makes it one step of the
  * document's history.
  *
- * `inline` (the workspace's page grid): no dialog and no draft step — each
- * edit applies at once as its own step, and undo / redo are the document's.
+ * `inline` (the workspace's Grid view): the pages in place, to look at — no
+ * editing; a click or the arrows pick the current page ({@link pick}), like a
+ * contact sheet.
  */
 @Component({
   selector: 'hk-pdf-page-organizer',
@@ -152,8 +154,10 @@ export class PdfPageOrganizerComponent {
   private readonly annotations = inject(PdfAnnotationsService);
   private readonly forms = inject(PdfFormsService);
 
-  /** Render in place (the workspace grid view) instead of as a dialog. */
+  /** Render in place, to look at the pages (the workspace's Grid view): no editing; picking a page makes it the current one ({@link pick}). */
   readonly inline = input(false, { transform: booleanAttribute });
+  /** Inline: a page was picked (click, arrows, Home / End); its 1-based number. */
+  readonly pick = output<number>();
 
   private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('dialog');
   private readonly grid = viewChild<ElementRef<HTMLElement>>('grid');
@@ -167,8 +171,6 @@ export class PdfPageOrganizerComponent {
   /** The page with the roving tab stop. */
   protected readonly focusUid = signal<number | null>(null);
   private anchor: number | null = null;
-  /** Inline edits being applied, in order. */
-  private applying: Promise<void> = Promise.resolve();
   /** Thumbnail square size (px). */
   protected readonly size = signal(160);
   protected readonly busy = signal(false);
@@ -176,8 +178,8 @@ export class PdfPageOrganizerComponent {
   protected readonly announcement = signal('');
   protected readonly dragging = signal<number | null>(null);
 
-  protected readonly canUndo = computed(() => (this.inline() ? this.annotations.history().canUndo : this.past().length > 0));
-  protected readonly canRedo = computed(() => (this.inline() ? this.annotations.history().canRedo : this.future().length > 0));
+  protected readonly canUndo = computed(() => this.past().length > 0);
+  protected readonly canRedo = computed(() => this.future().length > 0);
   protected readonly changed = computed(() => !sameLayout(this.draft(), this.store.pageLayout()));
   protected readonly selectionCount = computed(() => this.selected().size);
   protected readonly countText = computed(() => {
@@ -194,7 +196,7 @@ export class PdfPageOrganizerComponent {
 
   protected readonly itemClass = computed(() =>
     this.inline()
-      ? 'bg-base-100 rounded-box border-base-300 flex cursor-grab touch-none select-none flex-col items-center gap-1.5 border p-1.5 shadow-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content aria-selected:ring-2 aria-selected:ring-base-content data-[dimmed]:opacity-40'
+      ? 'bg-base-100 rounded-box border-base-300 hover:bg-base-200 flex cursor-pointer select-none flex-col items-center gap-1.5 border p-1.5 shadow-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content aria-selected:ring-2 aria-selected:ring-neutral'
       : 'flex cursor-grab touch-none select-none flex-col items-center gap-1 rounded-box border-2 border-transparent bg-base-200/60 p-2 outline-none transition-colors hover:bg-base-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 aria-selected:border-primary aria-selected:bg-primary/10 data-[dimmed]:opacity-40',
   );
   protected readonly thumbClass = computed(() =>
@@ -293,17 +295,6 @@ export class PdfPageOrganizerComponent {
   private edit(next: readonly PdfVirtualPage[]): void {
     const now = this.draft();
     if (next === now || sameLayout(now, next)) return;
-    if (this.inline()) {
-      this.draft.set(next); // shown at once; the layout that comes back is the same
-      // Applied in order (an insert runs inside `run`, so this can't go through it).
-      this.applying = this.applying
-        .then(() => this.pages.apply(next))
-        .catch((err: unknown) => {
-          this.error.set((err as Error)?.message || String(err));
-          this.draft.set(this.store.pageLayout());
-        });
-      return;
-    }
     this.past.update((p) => [...p, now]);
     this.future.set([]);
     this.draft.set(next);
@@ -314,10 +305,6 @@ export class PdfPageOrganizerComponent {
   }
 
   protected undo(): void {
-    if (this.inline()) {
-      void this.annotations.undo();
-      return;
-    }
     const past = this.past();
     if (!past.length) return;
     this.future.update((f) => [...f, this.draft()]);
@@ -326,10 +313,6 @@ export class PdfPageOrganizerComponent {
   }
 
   protected redo(): void {
-    if (this.inline()) {
-      void this.annotations.redo();
-      return;
-    }
     const future = this.future();
     if (!future.length) return;
     this.past.update((p) => [...p, this.draft()]);
@@ -491,7 +474,26 @@ export class PdfPageOrganizerComponent {
     const uid = draft[index]?.uid;
     if (uid === undefined) return;
     // The viewer's own shortcuts (page keys, document undo) mustn't act on the same key.
-    if (this.handleItemKey(event, index, uid, draft)) event.stopPropagation();
+    const handled = this.inline() ? this.browseKey(event, index, draft) : this.handleItemKey(event, index, uid, draft);
+    if (handled) event.stopPropagation();
+  }
+
+  /** Inline (view only): arrows / Home / End pick the next page (it becomes the current one), focus follows. */
+  private browseKey(event: KeyboardEvent, index: number, draft: readonly PdfVirtualPage[]): boolean {
+    const columns = this.columns();
+    const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns };
+    let to: number | null = null;
+    if (event.key in step) to = index + step[event.key];
+    else if (event.key === 'Home') to = 0;
+    else if (event.key === 'End') to = draft.length - 1;
+    if (to === null) return false;
+    event.preventDefault();
+    const at = Math.max(0, Math.min(draft.length - 1, to));
+    const target = draft[at].uid;
+    this.pick.emit(at + 1);
+    this.focusUid.set(target);
+    this.focusItem(target);
+    return true;
   }
 
   private handleItemKey(event: KeyboardEvent, index: number, uid: number, draft: readonly PdfVirtualPage[]): boolean {

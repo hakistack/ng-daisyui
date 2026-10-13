@@ -438,8 +438,9 @@ El rail dividido (W3e) no escalaba con muchos documentos. Ahora:
   «Página n de N»; miniaturas pintadas mientras se ven (caché compartida); ← → Home End. En `hk-document-workspace`,
   la misma tira con las secciones (hojas, páginas DOCX).
 - **Índice y adjuntos** pasan al inspector (solo si el documento los tiene).
-- **Cuadrícula** sigue siendo el organizador en línea; además, un botón «Organizar páginas» abre el modal como en
-  `hk-pdf-viewer`, y `controller.organizePages()` abre ese modal.
+- **Cuadrícula**: las páginas en cuadrícula, solo para ver, como la hoja de contactos de Docsy: un clic o las flechas
+  hacen actual esa página (el inspector la sigue) y te quedas en la cuadrícula. Organizar es el botón «Organizar
+  páginas», que abre el modal como en `hk-pdf-viewer` (igual que `controller.organizePages()`).
 - Demo: botón «Add 120 documents». e2e: lista larga (virtualizada, filtro, la tira sigue dentro del workspace).
 - Nota: el build de `demo` pasa el presupuesto de 4 MB con los cambios sin commit de la sesión del datagrid
   (solo con estos cambios: 3,94 MB).

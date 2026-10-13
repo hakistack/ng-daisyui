@@ -7,7 +7,6 @@ import { PdfViewerComponent } from '../pdf-viewer.component';
 import { createPdfViewer } from '../pdf-viewer.helpers';
 import { PdfDocumentSource, PdfViewerConfig } from '../pdf-viewer.types';
 import { PdfPagesService } from '../services/pdf-pages.service';
-import { PdfAnnotationsService } from '../services/pdf-annotations.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { WorkspaceDocument } from '../../mesa/workspace-document';
 import { PdfWorkspaceComponent } from './pdf-workspace.component';
@@ -233,41 +232,30 @@ describe('hk-pdf-workspace', () => {
     expect(pages.organizerOpen()).toBe(true);
   });
 
-  it('the Grid view lays the pages out in place; its edits apply at once and undo with the document', async () => {
-    const { viewer, fixture, el, store } = await load();
+  it('the Grid view shows the pages to look at; a click or the arrows pick the current page', async () => {
+    const { viewer, fixture, el } = await load();
     buttonByText(el, 'Grid')!.click();
     await settle(fixture);
     const options = () => Array.from(el.querySelectorAll<HTMLElement>('hk-pdf-page-organizer[inline] [role="option"]'));
     expect(options().length).toBe(3);
-
+    // Nothing to edit here: no actions, no dragging; the current page is the selected one.
+    expect(el.querySelector('hk-pdf-page-organizer[inline] button')).toBeNull();
+    expect(options()[0].getAttribute('aria-selected')).toBe('true');
+    expect(options()[0].classList.contains('cdk-drag-disabled')).toBe(true);
     // The pages stay mounted under the grid, inert.
     expect(el.querySelector('hk-pdf-pages')?.parentElement?.hasAttribute('inert')).toBe(true);
 
-    const order = () => store.pageLayout().map((p) => p.index);
-    buttonByLabel(el, 'Move later')!.click(); // page 1 is selected
-    await settle(fixture, () => order().join() === '1,0,2');
-    expect(order()).toEqual([1, 0, 2]);
-    expect(viewer.getAnnotations()[0].page).toBe(1);
+    // A click picks a page: it becomes the current one, and the grid stays.
+    options()[2].click();
+    await settle(fixture, () => viewer.state().page === 3);
+    expect(viewer.state().page).toBe(3);
+    expect(options()[2].getAttribute('aria-selected')).toBe('true');
+    expect(el.querySelector('hk-pdf-page-organizer[inline]')).not.toBeNull();
 
-    buttonByLabel(el.querySelector('hk-pdf-page-organizer[inline]')!, 'Undo')!.click();
-    await settle(fixture, () => order().join() === '0,1,2');
-    expect(order()).toEqual([0, 1, 2]);
-
-    // Ctrl+Z on a page undoes once (the grid's key doesn't also reach the viewer's shortcut).
-    buttonByLabel(el, 'Move later')!.click();
-    await settle(fixture, () => order().join() === '1,0,2');
-    buttonByLabel(el, 'Move later')!.click();
-    await settle(fixture, () => order().join() === '1,2,0');
-    const undo = vi.spyOn(fixture.debugElement.query(By.directive(PdfWorkspaceComponent)).injector.get(PdfAnnotationsService), 'undo');
-    options()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
-    await settle(fixture, () => order().join() === '1,0,2');
-    expect(undo).toHaveBeenCalledTimes(1);
-    await settle(fixture, () => order().join() === '1,0,2');
-    expect(order()).toEqual([1, 0, 2]);
-
-    buttonByText(el, 'Sheet')!.click();
-    await settle(fixture);
-    expect(el.querySelector('hk-pdf-page-organizer[inline]')).toBeNull();
+    // The arrows move the current page.
+    options()[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    await settle(fixture, () => viewer.state().page === 2);
+    expect(viewer.state().page).toBe(2);
   });
 
   it('shows a selected annotation’s properties docked in the inspector', async () => {

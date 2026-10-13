@@ -99,34 +99,33 @@
       </div>
     }
 
-    <!-- View: the pages, or the page grid (organize). -->
+    <!-- View: the pages, or all of them in a grid. -->
+    <div class="join" role="group" [attr.aria-label]="store.labels().viewModeAria">
+      <button
+        type="button"
+        class="btn btn-sm join-item gap-1.5"
+        [class.btn-primary]="ws.view() === 'sheet'"
+        [attr.aria-pressed]="ws.view() === 'sheet'"
+        [disabled]="!store.showPages()"
+        (click)="setView('sheet')"
+      >
+        <svg lucideFile [size]="14" aria-hidden="true"></svg>
+        {{ store.labels().viewSheet }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-sm join-item gap-1.5"
+        [class.btn-primary]="ws.view() === 'grid'"
+        [attr.aria-pressed]="ws.view() === 'grid'"
+        [disabled]="!store.showPages()"
+        (click)="setView('grid')"
+      >
+        <svg lucideLayoutGrid [size]="14" aria-hidden="true"></svg>
+        {{ store.labels().viewGrid }}
+      </button>
+    </div>
+    <!-- Organize pages: the same dialog as hk-pdf-viewer. -->
     @if (pages.enabled()) {
-      <div class="join" role="group" [attr.aria-label]="store.labels().viewModeAria">
-        <button
-          type="button"
-          class="btn btn-sm join-item gap-1.5"
-          [class.btn-primary]="ws.view() === 'sheet'"
-          [attr.aria-pressed]="ws.view() === 'sheet'"
-          [disabled]="!store.showPages()"
-          (click)="setView('sheet')"
-        >
-          <svg lucideFile [size]="14" aria-hidden="true"></svg>
-          {{ store.labels().viewSheet }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm join-item gap-1.5"
-          [class.btn-primary]="ws.view() === 'grid'"
-          [attr.aria-pressed]="ws.view() === 'grid'"
-          [disabled]="!store.showPages() || !pages.canOrganize()"
-          [title]="pages.unavailableReason() ?? store.labels().viewGrid"
-          (click)="setView('grid')"
-        >
-          <svg lucideLayoutGrid [size]="14" aria-hidden="true"></svg>
-          {{ store.labels().viewGrid }}
-        </button>
-      </div>
-      <!-- Organize pages: the same dialog as hk-pdf-viewer. -->
       <button
         type="button"
         class="btn btn-sm gap-1.5"
