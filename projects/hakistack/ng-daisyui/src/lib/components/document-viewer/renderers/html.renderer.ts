@@ -48,12 +48,14 @@ import { loadSourceAsBytes } from '../document-viewer.helpers';
         value means no allow-* permissions, so the iframe can't run
         JS, navigate, or read storage. DOMPurify (if installed) ran
         first as belt-and-suspenders.
+        bg-white: the document assumes white paper (default black text), so a
+        transparent frame would be unreadable on a dark theme.
       -->
       <iframe
         [attr.srcdoc]="html"
         sandbox=""
         [title]="filename() ?? 'HTML document'"
-        class="w-full min-h-[50vh] border border-base-content/10 rounded"
+        class="w-full min-h-[50vh] border border-base-content/10 rounded bg-white"
         loading="lazy"
         referrerpolicy="no-referrer"
       ></iframe>

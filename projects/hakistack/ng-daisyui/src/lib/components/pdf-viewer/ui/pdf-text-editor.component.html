@@ -21,8 +21,8 @@
         (keydown)="tools.onEditorKeydown($event)"
       ></textarea>
       <div class="flex justify-end gap-2 mt-2">
-        <button type="button" class="btn btn-ghost btn-sm" (click)="tools.cancelEditor()">Cancel</button>
-        <button type="button" class="btn btn-primary btn-sm" (click)="tools.saveEditor()">Save</button>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="tools.cancelEditor()">{{ store.labels().cancel }}</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="tools.saveEditor()">{{ store.labels().save }}</button>
       </div>
     </div>
   </div>

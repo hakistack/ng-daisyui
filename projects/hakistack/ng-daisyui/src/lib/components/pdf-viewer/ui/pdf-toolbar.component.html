@@ -1,7 +1,7 @@
 <div
   class="@container flex items-center gap-0.5 px-2 py-1.5 border-b border-base-300 bg-base-200/60 text-sm flex-wrap"
   role="toolbar"
-  aria-label="PDF toolbar"
+  [attr.aria-label]="store.labels().toolbarAria"
 >
   <!-- ── Group: sidebar toggle ──────────────────────────────────── -->
   @if (store.config().showSidebar !== false && store.layout() === 'default') {
@@ -99,13 +99,14 @@
   <select
     #zoomSelect
     class="select select-xs select-bordered w-28 hidden @md:inline-flex"
+    [attr.aria-label]="store.labels().zoomLevel"
     [disabled]="!store.showPages()"
     [value]="store.state()?.zoomMode ?? 'fit-width'"
     (change)="onZoomSelect(zoomSelect.value)"
   >
     <option value="fit-width">{{ store.labels().fitWidth }}</option>
     <option value="fit-page">{{ store.labels().fitPage }}</option>
-    <option value="auto">Auto</option>
+    <option value="auto">{{ store.labels().zoomAuto }}</option>
     <option value="0.5">50%</option>
     <option value="0.75">75%</option>
     <option value="1">100%</option>
@@ -129,7 +130,7 @@
   <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
 
   <!-- ── Group: display mode ─────────────────────────────────────── -->
-  <div class="join hidden @md:inline-flex" role="group" [attr.aria-label]="'Display mode'">
+  <div class="join hidden @md:inline-flex" role="group" [attr.aria-label]="store.labels().displayModeAria">
     @for (m of modes; track m.mode) {
       <button
         type="button"

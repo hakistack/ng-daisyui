@@ -54,6 +54,10 @@ export class PdfPagesComponent {
   private readonly stackRef = viewChild<ElementRef<HTMLElement>>('stack');
   private readonly wrapperRefs = viewChildren<ElementRef<HTMLElement>>('pageWrapper');
 
+  protected pageAria(pageNumber: number): string {
+    return this.store.labels().pageAria.replace('{page}', this.store.labelFor(pageNumber));
+  }
+
   /** A press that no annotation, handle or editor took clears the selection. */
   protected onBackgroundPointerDown(): void {
     if (this.annotations.selectedId()) this.annotations.select(null);

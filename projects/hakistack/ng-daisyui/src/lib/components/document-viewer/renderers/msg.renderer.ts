@@ -64,7 +64,7 @@ import { ParsedEmail } from './eml.renderer';
             [attr.srcdoc]="msg.bodyHtml"
             sandbox=""
             title="Email body"
-            class="w-full min-h-[40vh] border border-base-content/10 rounded bg-base-100"
+            class="w-full min-h-[40vh] border border-base-content/10 rounded bg-white"
             loading="lazy"
             referrerpolicy="no-referrer"
           ></iframe>

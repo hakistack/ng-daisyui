@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div role="tablist" class="tabs tabs-bordered">
+    <div role="tablist" [class]="tabsClass">
       @for (t of ['draw', 'type', 'upload']; track t) {
         <button
           type="button"

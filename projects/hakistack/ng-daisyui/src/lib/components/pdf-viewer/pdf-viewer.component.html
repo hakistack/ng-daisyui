@@ -28,7 +28,8 @@
         <p class="text-sm text-base-content/70 -mt-2">{{ subtitle() }}</p>
       }
       @if (store.showPages()) {
-        <a class="link link-primary text-sm w-fit" tabindex="0"> Page {{ store.state()?.page }} </a>
+        <!-- Plain text: it used to be a focusable link that led nowhere. -->
+        <p class="text-sm text-base-content/70 tabular-nums" aria-hidden="true">{{ store.ariaPageAnnouncement() }}</p>
       }
 
       <hk-pdf-pages variant="preview" />

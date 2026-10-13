@@ -217,7 +217,7 @@
      the PDF's outline as a daisyUI menu. Each node may have children. -->
 <ng-template #outlineNode let-node>
   <li>
-    <button type="button" (click)="outlineGoto(node)">{{ node.title || '(untitled)' }}</button>
+    <button type="button" (click)="outlineGoto(node)">{{ node.title || store.labels().untitledBookmark }}</button>
     @if (node.items?.length) {
       <ul>
         @for (child of node.items; track $index) {

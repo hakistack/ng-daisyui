@@ -11,6 +11,7 @@ import {
   untracked,
 } from '@angular/core';
 
+import { HK_THEME } from '../../../theme/theme.config';
 import { DocumentEngineService, ParsedSpreadsheet, SpreadsheetCell, SpreadsheetSheet } from '../../../services/document-engine.service';
 import { TableComponent } from '../../table/table.component';
 import { createTable } from '../../table/table.helpers';
@@ -50,13 +51,14 @@ type SpreadsheetRow = Record<string, unknown>;
     } @else if (workbook(); as wb) {
       <div class="flex flex-col gap-3">
         @if (wb.sheets.length > 1) {
-          <div role="tablist" class="tabs tabs-bordered overflow-x-auto">
+          <div role="tablist" class="overflow-x-auto" [class]="tabsClass">
             @for (sheet of wb.sheets; track sheet.name; let i = $index) {
               <button
                 type="button"
                 role="tab"
                 class="tab"
                 [class]="{ 'tab-active': i === activeSheetIndex() }"
+                [attr.aria-selected]="i === activeSheetIndex()"
                 (click)="activeSheetIndex.set(i)"
               >
                 {{ sheet.name }}
@@ -77,6 +79,8 @@ type SpreadsheetRow = Record<string, unknown>;
 })
 export class DocumentSpreadsheetRenderer {
   private readonly engine = inject(DocumentEngineService);
+  /** daisyUI 4 and 5 spell the bordered tabs differently. */
+  protected readonly tabsClass = `tabs ${inject(HK_THEME).classes.tabsBorder}`;
   /**
    * Component's own injector, captured here (a valid injection context).
    * Used to call `createTable()` inside a `computed()` — `createTable`

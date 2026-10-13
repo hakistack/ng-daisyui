@@ -141,7 +141,13 @@
       >
         @for (mode of config().modes; track mode.prefix) {
           <span class="flex items-center gap-1.5">
-            <kbd class="kbd kbd-sm" [class.kbd-primary]="state().mode?.prefix === mode.prefix">{{ mode.prefix }}</kbd>
+            <!-- Active mode: a filled key (there is no kbd-primary in daisyUI). -->
+            <kbd
+              class="kbd kbd-sm"
+              [class.bg-neutral]="state().mode?.prefix === mode.prefix"
+              [class.text-neutral-content]="state().mode?.prefix === mode.prefix"
+              >{{ mode.prefix }}</kbd
+            >
             @if (mode.indicatorLabel) {
               <span>{{ mode.indicatorLabel }}</span>
             }

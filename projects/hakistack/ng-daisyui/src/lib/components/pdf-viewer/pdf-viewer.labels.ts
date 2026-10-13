@@ -690,6 +690,22 @@ export interface PdfViewerLabels {
   importPagesCommand?: string;
   /** Default: "Organize pages" — Undo-history label. */
   organizePagesCommand?: string;
+
+  // Accessible names
+  /** Default: "PDF toolbar" */
+  toolbarAria?: string;
+  /** Default: "Display mode" */
+  displayModeAria?: string;
+  /** Default: "Zoom level" */
+  zoomLevel?: string;
+  /** Default: "Auto" — Zoom option that picks fit-width or 100%. */
+  zoomAuto?: string;
+  /** Default: "PDF document" — Accessible name of the page stack. */
+  documentAria?: string;
+  /** Default: "Page {page}" — Accessible name of a page. */
+  pageAria?: string;
+  /** Default: "(untitled)" — Bookmark without a title. */
+  untitledBookmark?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -1030,6 +1046,13 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   insertPageCommand: 'Insert page',
   importPagesCommand: 'Insert pages from PDF',
   organizePagesCommand: 'Organize pages',
+  toolbarAria: 'PDF toolbar',
+  displayModeAria: 'Display mode',
+  zoomLevel: 'Zoom level',
+  zoomAuto: 'Auto',
+  documentAria: 'PDF document',
+  pageAria: 'Page {page}',
+  untitledBookmark: '(untitled)',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');

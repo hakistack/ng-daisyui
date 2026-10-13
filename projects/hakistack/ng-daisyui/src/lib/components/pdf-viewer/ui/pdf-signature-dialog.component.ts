@@ -3,6 +3,7 @@ import { LucideTrash2 } from '@lucide/angular';
 import type { PdfStampContent } from '../core/annotations/annotation.types';
 import { bytesToBase64, strokeOutlineSegs, svgPath } from '../core/annotations/shapes';
 import { cleanSignatureImage, normalizeInk } from '../core/signatures/capture';
+import { HK_THEME } from '../../../theme/theme.config';
 import { PdfSignaturesService } from '../services/pdf-signatures.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { SavedPdfSignature } from '../services/pdf-signature-store';
@@ -35,6 +36,8 @@ let nextId = 0;
 })
 export class PdfSignatureDialogComponent {
   protected readonly store = inject(PdfViewerStore);
+  /** daisyUI 4 and 5 spell the bordered tabs differently. */
+  protected readonly tabsClass = `tabs ${inject(HK_THEME).classes.tabsBorder}`;
   protected readonly signatures = inject(PdfSignaturesService);
 
   private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('dialog');

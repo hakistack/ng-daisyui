@@ -27,7 +27,7 @@
         [class.hk-pdf-designing]="designer.active()"
         [class.hk-pdf-page-stack-centered]="store.centerPages()"
         role="document"
-        aria-label="PDF document"
+        [attr.aria-label]="store.labels().documentAria"
         [class.invisible]="!store.firstRenderComplete()"
       >
         @if (viewport.spacerBefore() > 0) {
@@ -42,7 +42,7 @@
                 class="hk-pdf-page bg-base-100 shadow-md"
                 [class.hk-pdf-page-rotated]="store.pageRotation(n) !== 0"
                 role="region"
-                [attr.aria-label]="'Page ' + n"
+                [attr.aria-label]="pageAria(n)"
                 [attr.aria-current]="store.state()?.page === n ? 'page' : null"
                 [attr.data-page-number]="n"
                 [hidden]="store.pageHidden(n)"
