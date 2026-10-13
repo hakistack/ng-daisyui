@@ -380,3 +380,19 @@ clásico dentro del inspector.
 
 Pendiente: EPUB (capítulos desde el TOC de foliate) y RTF/HTML sin secciones; las etiquetas de las propiedades que
 publican los renderers están en inglés, como el resto de sus textos.
+
+### W3b ✅ Lista de documentos (como el expediente de Docsy)
+- `hk-document-workspace` acepta `[documents]: WorkspaceDocument[]` (cualquier formato: `id`, `name`, `src`,
+  `mimeType?`, `description?`, `pages?`, `thumbnail?`) y `[(active)]`. Sin `active` abre el primero; `[src]` sigue
+  sirviendo para un solo documento.
+- El rail lista los documentos (`hk-document-list`): vista previa (miniatura dada, la propia imagen o un icono por
+  formato), nombre, línea «EXT · descripción · n p.», el abierto con `aria-current`; flechas mueven el foco, Enter abre.
+  Modo «Contenido» con las secciones del documento abierto.
+- Los PDF siguen abriendo en `hk-pdf-workspace` con todas sus funciones; la lista entra como su modo de rail extra
+  (`[extraRail]`, público), así que el rail es el mismo para todos los formatos. `[fileName]` (nuevo en la base
+  compartida) nombra el badge y las descargas.
+- Si el documento abierto tiene cambios sin guardar (PDF editado o editor con cambios), abrir otro pide confirmación
+  (Seguir editando / Descartar y abrir).
+- Verificado: specs jsdom (lista, `[(active)]`, teclado, confirmación, rail extra), suite completa 64 / 1828, e2e
+  (axe en light, dark y cupcake sobre PDF y texto, edición y confirmación, teclado, reflow) 19/19 junto con los del
+  PDF, builds de lib, demo y demo-v4.

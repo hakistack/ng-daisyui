@@ -7,6 +7,7 @@ import {
   DocumentSource,
   DocumentViewerComponent,
   DocumentWorkspaceComponent,
+  WorkspaceDocument,
   createDocumentEditor,
   getSupportedExtensions,
   resolveFormat,
@@ -49,6 +50,9 @@ const SAMPLE_MD = `data:text/markdown;charset=utf-8,${encodeURIComponent(
     '```',
     '',
   ].join('\n'),
+)}`;
+const SAMPLE_SVG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320" viewBox="0 0 480 320"><rect width="480" height="320" rx="24" fill="#1f2937"/><circle cx="160" cy="160" r="72" fill="#f97316"/><text x="260" y="176" font-family="sans-serif" font-size="56" font-weight="700" fill="#f9fafb">hk</text></svg>',
 )}`;
 const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
   ['name,role,city', 'Ada,Engineer,London', 'Grace,Admiral,"New York"', 'Linus,Maintainer,Helsinki'].join('\n'),
@@ -178,24 +182,19 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
         @if (activeTab() === 'workspace') {
           <app-doc-section
             title="Workspace"
-            description="hk-document-workspace: the same [src], [config], [mode] and [editor] as hk-document-viewer, laid out as a workspace. Sections (a workbook's sheets, a DOCX's pages) fill the rail, the file and the format's own properties fill the inspector, and Edit appears for formats with an editor. PDFs open in hk-pdf-workspace."
+            description="hk-document-workspace with a [documents] list, like a case file: the rail lists the documents (any format), the open one shows with its own viewer — PDFs keep annotations, forms, signatures and page organizing — and the inspector shows its file and properties. A single document works too, through [src]."
             [codeExample]="workspaceCode"
           >
             <div class="flex flex-wrap gap-2 items-center mb-3">
-              <input type="file" class="file-input file-input-sm file-input-bordered" [attr.accept]="acceptAll" (change)="onFile($event)" />
-              <button class="btn btn-sm" (click)="loadEditorSample(SAMPLE_MD, 'notes.md')">Markdown</button>
-              <button class="btn btn-sm" (click)="loadSample(SAMPLE_IMG, 'sample.png')">Image</button>
-              <button class="btn btn-sm" (click)="loadSample(SAMPLE_PDF, 'fw9.pdf')">PDF</button>
+              <label class="btn btn-sm">
+                Add files…
+                <input type="file" class="sr-only" multiple [attr.accept]="acceptAll" (change)="addWorkspaceFiles($event)" />
+              </label>
+              <span class="text-base-content/70 text-sm">Open: {{ workspaceActive() ?? '—' }}</span>
             </div>
-            @if (currentSource(); as src) {
-              <div class="h-[80vh] min-h-[36rem]">
-                <hk-document-workspace [src]="src" [config]="viewerConfig()" [editor]="docEditor" />
-              </div>
-            } @else {
-              <div class="text-base-content/70 text-sm py-12 text-center">
-                Pick a file, or load a sample. Try an .xlsx or .docx for sections in the rail.
-              </div>
-            }
+            <div class="h-[80vh] min-h-[36rem]">
+              <hk-document-workspace [documents]="workspaceDocs()" [(active)]="workspaceActive" [editor]="docEditor" />
+            </div>
           </app-doc-section>
         }
 
@@ -317,9 +316,41 @@ export class DocumentViewerDemoComponent {
     this.currentFilename.set(null);
   }
 
-  readonly workspaceCode = `<!-- Same inputs as <hk-document-viewer>; fills its parent's height -->
+  readonly workspaceDocs = signal<WorkspaceDocument[]>([
+    { id: 'w9', name: 'Form W-9.pdf', src: SAMPLE_PDF, description: 'Taxes · 2024', pages: 6 },
+    { id: 'notes', name: 'Meeting notes.md', src: SAMPLE_MD, description: 'Notes' },
+    { id: 'customers', name: 'Customers.csv', src: SAMPLE_CSV, description: 'Data export' },
+    { id: 'logo', name: 'Logo.svg', src: SAMPLE_SVG, description: 'Brand' },
+    { id: 'w9-2023', name: 'Form W-9 (2023).pdf', src: SAMPLE_PDF, description: 'Taxes · 2023', pages: 6 },
+  ]);
+  readonly workspaceActive = signal<string | null>('w9');
+
+  addWorkspaceFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    if (!files.length) return;
+    const added = files.map((file, i) => ({
+      id: `file-${Date.now()}-${i}`,
+      name: file.name,
+      src: file as DocumentSource,
+      description: 'Uploaded',
+    }));
+    this.workspaceDocs.update((docs) => [...docs, ...added]);
+    this.workspaceActive.set(added[0].id);
+  }
+
+  readonly workspaceCode = `// Any format; PDFs keep every PDF feature
+documents = signal<WorkspaceDocument[]>([
+  { id: 'w9', name: 'Form W-9.pdf', src: '/files/fw9.pdf', description: 'Taxes · 2024', pages: 6 },
+  { id: 'notes', name: 'Meeting notes.md', src: notesBlob, description: 'Notes' },
+  { id: 'logo', name: 'Logo.svg', src: '/files/logo.svg' },
+]);
+active = signal<string | null>('w9');
+
+<!-- Fills its parent's height -->
 <div class="h-[80vh]">
-  <hk-document-workspace [src]="file()" [editor]="editor" />
+  <hk-document-workspace [documents]="documents()" [(active)]="active" />
 </div>`;
 
   readonly spreadsheetCode = `// Class

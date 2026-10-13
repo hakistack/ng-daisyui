@@ -513,6 +513,8 @@ export class PdfDocumentService {
   }
 
   private deriveFilename(): string {
+    const named = this.store.fileName();
+    if (named) return /\.pdf$/i.test(named) ? named : `${named}.pdf`;
     const src = this.store.src();
     if (typeof File !== 'undefined' && src instanceof File && src.name) return src.name;
     if (typeof src === 'string') {

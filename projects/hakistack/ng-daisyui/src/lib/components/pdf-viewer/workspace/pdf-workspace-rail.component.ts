@@ -98,6 +98,13 @@ import { PdfWorkspaceRailMode, PdfWorkspaceState } from './pdf-workspace.state';
     </div>
 
     @switch (ws.railMode()) {
+      @case ('extra') {
+        @if (ws.extraRail(); as extra) {
+          <div class="flex min-h-0 flex-1 flex-col">
+            <ng-container [ngTemplateOutlet]="extra.template" />
+          </div>
+        }
+      }
       @case ('bookmarks') {
         <div class="min-h-0 flex-1 overflow-auto">
           @if (store.outline() === null) {
@@ -172,7 +179,10 @@ export class PdfWorkspaceRailComponent {
   /** Rail modes: pages always; the outline and attachments when the document has them (the workspace loads both with the rail). */
   protected readonly modes = computed(() => {
     const l = this.store.labels();
-    const out: { mode: PdfWorkspaceRailMode; label: string }[] = [{ mode: 'thumbnails', label: l.railPages }];
+    const out: { mode: PdfWorkspaceRailMode; label: string }[] = [];
+    const extra = this.ws.extraRail();
+    if (extra) out.push({ mode: 'extra', label: extra.label });
+    out.push({ mode: 'thumbnails', label: l.railPages });
     const mode = this.ws.railMode();
     if (this.store.outline()?.length || mode === 'bookmarks') out.push({ mode: 'bookmarks', label: l.bookmarksTab });
     if (this.store.attachments()?.length || mode === 'attachments') out.push({ mode: 'attachments', label: l.attachmentsTab });
@@ -182,6 +192,10 @@ export class PdfWorkspaceRailComponent {
   protected readonly title = computed(() => {
     const l = this.store.labels();
     switch (this.ws.railMode()) {
+      case 'extra': {
+        const extra = this.ws.extraRail();
+        return extra?.title ?? extra?.label ?? '';
+      }
       case 'bookmarks':
         return l.bookmarksTab;
       case 'attachments':

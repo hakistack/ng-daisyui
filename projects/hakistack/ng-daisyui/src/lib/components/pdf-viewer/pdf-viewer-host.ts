@@ -95,6 +95,9 @@ export abstract class PdfViewerHostBase implements OnInit {
    */
   readonly config = input.required<PdfViewerConfig>();
 
+  /** The document's file name, for downloads and the workspace badge. Default: from the URL or `File`, else `document.pdf`. */
+  readonly fileName = input<string | null>(null);
+
   /**
    * Two-way binding for the document's form-field values. Use as
    * `[(formValues)]="myValues"` to keep an Angular signal / property in
@@ -134,6 +137,7 @@ export abstract class PdfViewerHostBase implements OnInit {
       src: this.src,
       config: this.config,
       formValues: this.formValues,
+      fileName: this.fileName,
       element: inject<ElementRef<HTMLElement>>(ElementRef).nativeElement,
       events: {
         loaded: (info) => this.loaded.emit(info),

@@ -1,37 +1,83 @@
-@if (resolvedFormat().format === 'pdf') {
-  <!-- PDFs get the full PDF workspace (annotations, forms, signatures, pages). -->
-  <hk-pdf-workspace class="h-full" [src]="src()" [config]="pdf()" [storageKey]="storageKey()" />
+<!-- The document list: the rail of both layouts (here, and the PDF workspace's extra rail mode). -->
+<ng-template #docList>
+  <hk-document-list
+    class="min-h-0 flex-1"
+    [documents]="documents()"
+    [active]="activeDoc()?.id ?? null"
+    [labels]="labels"
+    (choose)="openDocument($event)"
+  />
+</ng-template>
+
+@if (source() === null) {
+  <hk-mesa-state kind="empty" [message]="labels.documentAria" />
+} @else if (resolvedFormat().format === 'pdf') {
+  <!-- PDFs get the full PDF workspace (annotations, forms, signatures, pages); the list is its first rail mode. -->
+  <hk-pdf-workspace
+    class="h-full"
+    [src]="source()!"
+    [config]="pdf()"
+    [storageKey]="storageKey()"
+    [extraRail]="docsRail()"
+    [fileName]="filename()"
+    (dirtyChange)="pdfDirty.set($event)"
+  />
 } @else {
-  <hk-mesa-layout class="h-full" [labels]="layoutLabels()" [storageKey]="storageKey()" [rail]="sections().length > 1">
-    <!-- Rail: the document's sections, one tab stop on the current one. -->
+  <hk-mesa-layout class="h-full" [labels]="layoutLabels()" [storageKey]="storageKey()" [rail]="railShows() !== null">
+    <!-- Rail: the documents, or the open one's sections (one tab stop on the current one). -->
     <div hkMesaRail class="flex min-h-0 flex-1 flex-col">
-      <div class="border-base-300 border-b px-3 py-2">
-        <h2 class="truncate text-sm font-semibold">{{ labels.sectionCount.replace('{count}', '' + sections().length) }}</h2>
-      </div>
-      <ul #rail class="min-h-0 flex-1 overflow-y-auto p-2" [attr.aria-label]="labels.rail">
-        @for (section of sections(); track section.id; let i = $index) {
-          <li class="py-0.5">
-            <button
-              type="button"
-              class="rounded-field hover:bg-base-200 flex w-full min-w-0 items-center gap-2 px-2 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-base-content"
-              [class.bg-base-200]="i === currentIndex()"
-              [class.ring-1]="i === currentIndex()"
-              [class.ring-inset]="i === currentIndex()"
-              [class.ring-base-content/45]="i === currentIndex()"
-              [attr.data-section-index]="i"
-              [attr.tabindex]="i === currentIndex() ? 0 : -1"
-              [attr.aria-current]="i === currentIndex() ? 'page' : null"
-              (click)="goToIndex(i)"
-              (keydown)="onRailKey($event, rail)"
-            >
-              <span class="text-base-content/70 w-6 shrink-0 text-right font-mono text-xs tabular-nums" aria-hidden="true">{{
-                i + 1
-              }}</span>
-              <span class="min-w-0 truncate">{{ section.label }}</span>
-            </button>
-          </li>
+      <div class="border-base-300 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b px-3 py-2">
+        <h2 class="min-w-24 flex-1 truncate text-sm font-semibold">
+          {{
+            railShows() === 'documents'
+              ? labels.documentsTitle.replace('{count}', '' + documents().length)
+              : labels.sectionCount.replace('{count}', '' + sections().length)
+          }}
+        </h2>
+        @if (railModes().length > 1) {
+          <div class="join" role="group" [attr.aria-label]="labels.railModeAria">
+            @for (m of railModes(); track m.mode) {
+              <button
+                type="button"
+                class="btn btn-xs join-item"
+                [class.btn-primary]="railShows() === m.mode"
+                [attr.aria-pressed]="railShows() === m.mode"
+                (click)="railMode.set(m.mode)"
+              >
+                {{ m.label }}
+              </button>
+            }
+          </div>
         }
-      </ul>
+      </div>
+      @if (railShows() === 'documents') {
+        <ng-container [ngTemplateOutlet]="docList" />
+      } @else {
+        <ul #rail class="min-h-0 flex-1 overflow-y-auto p-2" [attr.aria-label]="labels.rail">
+          @for (section of sections(); track section.id; let i = $index) {
+            <li class="py-0.5">
+              <button
+                type="button"
+                class="rounded-field hover:bg-base-200 flex w-full min-w-0 items-center gap-2 px-2 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-base-content"
+                [class.bg-base-200]="i === currentIndex()"
+                [class.ring-1]="i === currentIndex()"
+                [class.ring-inset]="i === currentIndex()"
+                [class.ring-base-content/45]="i === currentIndex()"
+                [attr.data-section-index]="i"
+                [attr.tabindex]="i === currentIndex() ? 0 : -1"
+                [attr.aria-current]="i === currentIndex() ? 'page' : null"
+                (click)="goToIndex(i)"
+                (keydown)="onRailKey($event, rail)"
+              >
+                <span class="text-base-content/70 w-6 shrink-0 text-right font-mono text-xs tabular-nums" aria-hidden="true">{{
+                  i + 1
+                }}</span>
+                <span class="min-w-0 truncate">{{ section.label }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
     </div>
 
     <hk-mesa-toolbar>
@@ -123,7 +169,7 @@
       <div class="bg-base-200 min-h-0 flex-1 overflow-auto p-3">
         <hk-document-editor-shell
           [controller]="ed"
-          [source]="src()"
+          [source]="source()!"
           [format]="resolvedFormat()"
           [filename]="filename()"
           (requestView)="setEditing(false)"
@@ -134,9 +180,9 @@
       <div class="bg-base-200 min-h-0 flex-1 overflow-auto p-4" role="region" [attr.aria-label]="labels.documentAria" tabindex="0">
         <div class="bg-base-100 rounded-box border-base-300 mx-auto max-w-5xl border p-4 shadow-sm" [style.zoom]="zoom()">
           @if (renderer(); as r) {
-            <ng-container *ngComponentOutlet="r; inputs: { source: src(), format: resolvedFormat(), filename: filename() }" />
+            <ng-container *ngComponentOutlet="r; inputs: { source: source(), format: resolvedFormat(), filename: filename() }" />
           } @else {
-            <hk-document-unsupported-renderer [source]="src()" [format]="resolvedFormat()" [filename]="filename()" />
+            <hk-document-unsupported-renderer [source]="source()!" [format]="resolvedFormat()" [filename]="filename()" />
           }
         </div>
       </div>
@@ -174,3 +220,18 @@
     </div>
   </hk-mesa-layout>
 }
+
+<!-- Leaving a document with unsaved changes. -->
+<dialog #confirm class="modal" [attr.aria-labelledby]="'hk-dw-confirm-' + uid" (close)="cancelOpen()">
+  <div class="modal-box max-w-md">
+    <h3 [id]="'hk-dw-confirm-' + uid" class="text-lg font-semibold">{{ labels.unsavedTitle }}</h3>
+    <p class="text-base-content/70 mt-2 text-sm">{{ labels.unsavedBody.replace('{name}', filename() ?? '') }}</p>
+    <div class="modal-action">
+      <button type="button" class="btn btn-sm" (click)="confirmOpen()">{{ labels.discardAndOpen }}</button>
+      <button type="button" class="btn btn-sm btn-primary" autofocus (click)="cancelOpen()">{{ labels.keepEditing }}</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit" [attr.aria-label]="labels.keepEditing">{{ labels.keepEditing }}</button>
+  </form>
+</dialog>

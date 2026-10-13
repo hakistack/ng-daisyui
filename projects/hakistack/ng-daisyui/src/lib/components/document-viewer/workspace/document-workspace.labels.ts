@@ -60,6 +60,26 @@ export interface DocumentWorkspaceLabels {
   download?: string;
   /** Default: "Document" — Accessible name of the document area. */
   documentAria?: string;
+  /** Default: "Documents" — The document list (rail mode and accessible name). */
+  documents?: string;
+  /** Default: "Documents · {count}" — The rail heading over the list. */
+  documentsTitle?: string;
+  /** Default: "Contents" — Rail mode with the open document's sections. */
+  contents?: string;
+  /** Default: "{count} p." — Page count in a document's row. */
+  pageCountShort?: string;
+  /** Default: "Arrow keys move between documents; Enter opens one." */
+  listHint?: string;
+  /** Default: "Side panel content" */
+  railModeAria?: string;
+  /** Default: "Unsaved changes" — Title of the confirmation before leaving an edited document. */
+  unsavedTitle?: string;
+  /** Default: "“{name}” has unsaved changes. Opening another document discards them." */
+  unsavedBody?: string;
+  /** Default: "Keep editing" */
+  keepEditing?: string;
+  /** Default: "Discard and open" */
+  discardAndOpen?: string;
 }
 
 export type ResolvedDocumentWorkspaceLabels = Required<DocumentWorkspaceLabels>;
@@ -92,6 +112,16 @@ export const DEFAULT_DOCUMENT_WORKSPACE_LABELS: ResolvedDocumentWorkspaceLabels 
   size: 'Size',
   download: 'Download',
   documentAria: 'Document',
+  documents: 'Documents',
+  documentsTitle: 'Documents · {count}',
+  contents: 'Contents',
+  pageCountShort: '{count} p.',
+  listHint: 'Arrow keys move between documents; Enter opens one.',
+  railModeAria: 'Side panel content',
+  unsavedTitle: 'Unsaved changes',
+  unsavedBody: '“{name}” has unsaved changes. Opening another document discards them.',
+  keepEditing: 'Keep editing',
+  discardAndOpen: 'Discard and open',
 };
 
 export const HK_DOCUMENT_WORKSPACE_LABELS = new InjectionToken<DocumentWorkspaceLabels>('HK_DOCUMENT_WORKSPACE_LABELS');

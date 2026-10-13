@@ -59,6 +59,8 @@ export interface PdfViewerHost {
   readonly src: Signal<PdfDocumentSource>;
   readonly config: Signal<PdfViewerConfig>;
   readonly formValues: ModelSignal<Record<string, unknown>>;
+  /** The host's explicit file name, if any. */
+  readonly fileName?: Signal<string | null>;
   readonly element: HTMLElement;
   readonly events: PdfViewerEvents;
 }
@@ -92,6 +94,7 @@ export class PdfViewerStore {
 
   readonly config = computed(() => this.h.config());
   readonly src = computed(() => this.h.src());
+  readonly fileName = computed(() => this.h.fileName?.() ?? null);
   get formValues(): ModelSignal<Record<string, unknown>> {
     return this.h.formValues;
   }

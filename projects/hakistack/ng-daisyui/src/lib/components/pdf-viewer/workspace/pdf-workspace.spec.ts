@@ -61,6 +61,24 @@ class WorkspaceHost {
 }
 
 @Component({
+  imports: [PdfWorkspaceComponent],
+  template: `
+    <ng-template #extra><p data-extra>My documents</p></ng-template>
+    <hk-pdf-workspace
+      [src]="src()"
+      [config]="config()"
+      [storageKey]="null"
+      [extraRail]="{ label: 'Docs', title: 'Docs · 3', template: extra }"
+      fileName="Contract"
+    />
+  `,
+})
+class ExtraRailHost {
+  readonly src = signal<PdfDocumentSource>(threePages());
+  readonly config = signal<PdfViewerConfig>({});
+}
+
+@Component({
   imports: [PdfViewerComponent],
   template: `<hk-pdf-viewer [src]="src()" [config]="config()" />`,
 })
@@ -228,5 +246,24 @@ describe('hk-pdf-workspace', () => {
     const panel = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('section[aria-label="Annotation properties"]');
     expect(panel?.className).toContain('absolute');
     expect((fixture.nativeElement as HTMLElement).querySelector('hk-mesa-layout')).toBeNull();
+  });
+
+  it('shows a host’s extra rail mode first, and names the file from [fileName]', async () => {
+    const fixture = TestBed.createComponent(ExtraRailHost);
+    const viewer = createPdfViewer({ zoom: 1 });
+    fixture.componentInstance.config.set(viewer.config());
+    await settle(fixture, () => viewer.getAnnotations().length > 0);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('hk-pdf-workspace-rail [data-extra]')?.textContent).toBe('My documents');
+    expect(el.querySelector('hk-pdf-workspace-rail h2')?.textContent?.trim()).toBe('Docs · 3');
+    const modes = Array.from(el.querySelectorAll<HTMLButtonElement>('hk-pdf-workspace-rail .join button'));
+    expect(modes.map((b) => b.textContent?.trim())).toEqual(['Docs', 'Pages']);
+    expect(modes[0].getAttribute('aria-pressed')).toBe('true');
+    expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('Contract.pdf · 3 pages');
+
+    modes[1].click();
+    await settle(fixture);
+    expect(el.querySelector('[data-extra]')).toBeNull();
+    expect(el.querySelectorAll('[data-thumb-button]').length).toBe(3);
   });
 });

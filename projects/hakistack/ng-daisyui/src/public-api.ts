@@ -320,6 +320,7 @@ export type {
 // other renderers (text, image, pdf) are lightweight JS-only.
 export { DocumentViewerComponent } from './lib/components/document-viewer/document-viewer.component';
 export { DocumentWorkspaceComponent } from './lib/components/document-viewer/workspace/document-workspace.component';
+export type { WorkspaceDocument } from './lib/components/document-viewer/workspace/document-workspace.types';
 export { DocumentViewerHost } from './lib/components/document-viewer/document-viewer-host';
 export type { DocumentSection, DocumentMetadataEntry } from './lib/components/document-viewer/document-viewer-host';
 export {
@@ -407,6 +408,7 @@ export { CommandStack, type EditorCommand } from './lib/utils/command-stack';
 // PDF Viewer
 export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
 export { PdfWorkspaceComponent } from './lib/components/pdf-viewer/workspace/pdf-workspace.component';
+export type { PdfWorkspaceRailExtra } from './lib/components/pdf-viewer/workspace/pdf-workspace.state';
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';
 export { registerPdfFont } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
 export {

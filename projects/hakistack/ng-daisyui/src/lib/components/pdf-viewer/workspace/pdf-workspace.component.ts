@@ -15,7 +15,7 @@ import { PdfTextEditorComponent } from '../ui/pdf-text-editor.component';
 import { PdfWorkspaceInspectorComponent } from './pdf-workspace-inspector.component';
 import { PdfWorkspaceRailComponent } from './pdf-workspace-rail.component';
 import { PdfWorkspaceToolbarComponent } from './pdf-workspace-toolbar.component';
-import { PdfWorkspaceState } from './pdf-workspace.state';
+import { PdfWorkspaceRailExtra, PdfWorkspaceState } from './pdf-workspace.state';
 
 /**
  * The PDF viewer as a workspace: the same document, features and API as
@@ -75,6 +75,9 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
   /** `localStorage` key for which side panes are hidden; `null` doesn't remember them. */
   readonly storageKey = input<string | null>('hk-pdf-workspace');
 
+  /** An extra rail mode of your own (shown first and selected): `hk-document-workspace` lists its documents there. */
+  readonly extraRail = input<PdfWorkspaceRailExtra | null>(null);
+
   private readonly layout = viewChild(MesaLayoutComponent);
 
   protected readonly layoutLabels = computed<MesaLayoutLabels>(() => {
@@ -93,6 +96,15 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
   constructor() {
     super();
     effect(() => this.ws.layout.set(this.layout() ?? null));
+    effect(() => {
+      const extra = this.extraRail();
+      untracked(() => {
+        const had = this.ws.extraRail() !== null;
+        this.ws.extraRail.set(extra);
+        if (extra && !had) this.ws.railMode.set('extra');
+        else if (!extra && this.ws.railMode() === 'extra') this.ws.railMode.set('thumbnails');
+      });
+    });
 
     // Panels on screen: the rail's mode (outline and attachments load with the rail, so its
     // modes know whether the document has them), and the inspector's comments and signatures.

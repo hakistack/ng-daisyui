@@ -1,5 +1,19 @@
-import { NgComponentOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  TemplateRef,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { LucideChevronLeft, LucideChevronRight, LucideDownload, LucideMinus, LucidePencil, LucidePlus } from '@lucide/angular';
 import { DocumentEditorShellComponent } from '../../document-editor/document-editor-shell.component';
 import { resolveEditor } from '../../document-editor/document-editor.registry';
@@ -17,6 +31,10 @@ import { resolveRenderer } from '../document-viewer.registry';
 import { DocumentSource, DocumentViewerConfig } from '../document-viewer.types';
 import { DocumentUnsupportedRenderer } from '../renderers/unsupported.renderer';
 import { formatBytes } from '../../../utils/format-bytes';
+import { MesaStateComponent } from '../../mesa/mesa-state.component';
+import { PdfWorkspaceRailExtra } from '../../pdf-viewer/workspace/pdf-workspace.state';
+import { DocumentListComponent } from './document-list.component';
+import { WorkspaceDocument } from './document-workspace.types';
 import {
   DEFAULT_DOCUMENT_WORKSPACE_LABELS,
   HK_DOCUMENT_WORKSPACE_LABELS,
@@ -29,10 +47,11 @@ const ZOOM_STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 /**
  * The document viewer as a workspace (docs/design/mesa-style-guide.md): the
  * same `[src]`, `[config]`, `[mode]` and `[editor]` as `hk-document-viewer`,
- * laid out as a Mesa work block.
+ * laid out as a Mesa work block — for one document, or for a list of them
+ * (`[documents]` + `[(active)]`, any format) like a case file.
  *
- * - **Rail** — the document's sections (a workbook's sheets, a DOCX's pages)
- *   when the renderer publishes more than one.
+ * - **Rail** — the document list (preview, name, meta line), and the open
+ *   document's sections (a workbook's sheets, a DOCX's pages).
  * - **Main column** — a toolbar (the file, section paging, zoom, Edit when the
  *   format has an editor) over the rendered document, or the editor.
  * - **Inspector** — the file (name, format, type, size), the format's own
@@ -49,6 +68,9 @@ const ZOOM_STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
   selector: 'hk-document-workspace',
   imports: [
     NgComponentOutlet,
+    NgTemplateOutlet,
+    MesaStateComponent,
+    DocumentListComponent,
     MesaLayoutComponent,
     MesaToolbarComponent,
     PdfWorkspaceComponent,
@@ -68,11 +90,20 @@ const ZOOM_STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 })
 export class DocumentWorkspaceComponent {
   protected readonly host = inject(DocumentViewerHost);
+  private static nextId = 0;
+  protected readonly uid = ++DocumentWorkspaceComponent.nextId;
   private readonly userLabels = inject(HK_DOCUMENT_WORKSPACE_LABELS, { optional: true });
   protected readonly labels: ResolvedDocumentWorkspaceLabels = { ...DEFAULT_DOCUMENT_WORKSPACE_LABELS, ...this.userLabels };
 
-  /** The document to show. URL, raw bytes, or a Blob/File. */
-  readonly src = input.required<DocumentSource>();
+  /** The document to show (URL, raw bytes, or a Blob/File), when there is no `[documents]` list. */
+  readonly src = input<DocumentSource | null>(null);
+  /**
+   * A list of documents (any format) for the rail; the one in `[(active)]`
+   * opens (the first, if none is set). PDFs keep every PDF feature.
+   */
+  readonly documents = input<readonly WorkspaceDocument[]>([]);
+  /** The open document's `id` (two-way). */
+  readonly active = model<string | null>(null);
   /** Hints and custom renderers (as for `hk-document-viewer`). */
   readonly config = input<DocumentViewerConfig>({});
   /** View vs edit; `'edit'` needs an `[editor]`. */
@@ -87,11 +118,25 @@ export class DocumentWorkspaceComponent {
   private readonly defaultPdf = createPdfViewer({ zoom: 'fit-width' });
   protected readonly pdf = computed(() => this.pdfConfig() ?? this.defaultPdf.config());
 
+  /** The listed document that is open (`null` without a list). */
+  protected readonly activeDoc = computed<WorkspaceDocument | null>(() => {
+    const docs = this.documents();
+    return docs.find((d) => d.id === this.active()) ?? (docs.length ? docs[0] : null);
+  });
+  /** What renders: the open document of the list, or `[src]`. */
+  protected readonly source = computed<DocumentSource | null>(() => this.activeDoc()?.src ?? this.src());
+
   protected readonly resolvedFormat = computed(() => {
     const cfg = this.config();
-    return resolveFormat(this.src(), cfg.mimeType, cfg.filename);
+    const doc = this.activeDoc();
+    return resolveFormat(this.source() ?? '', doc?.mimeType ?? cfg.mimeType, doc?.name ?? cfg.filename);
   });
-  protected readonly filename = computed(() => this.config().filename ?? guessFilename(this.src()));
+  protected readonly filename = computed(() => {
+    const doc = this.activeDoc();
+    if (doc) return doc.name;
+    const src = this.source();
+    return this.config().filename ?? (src === null ? null : guessFilename(src));
+  });
   protected readonly renderer = computed(() => resolveRenderer(this.resolvedFormat().format, this.config().renderers, BUILT_IN_RENDERERS));
 
   /** Edit toggle, seeded from `mode` (a host-driven change wins). */
@@ -101,6 +146,38 @@ export class DocumentWorkspaceComponent {
     const editor = this.editor();
     return !!editor && !!resolveEditor(this.resolvedFormat().format, editor.config().editors, BUILT_IN_EDITORS);
   });
+
+  /** What the rail lists: the documents, or the open one's sections. */
+  protected readonly railMode = signal<'documents' | 'contents'>('documents');
+  protected readonly railModes = computed(() => {
+    const out: { mode: 'documents' | 'contents'; label: string }[] = [];
+    if (this.documents().length) out.push({ mode: 'documents', label: this.labels.documents });
+    if (this.sections().length > 1) out.push({ mode: 'contents', label: this.labels.contents });
+    return out;
+  });
+  /** The rail mode on screen (falls back when the chosen one has nothing to list). */
+  protected readonly railShows = computed(() => {
+    const modes = this.railModes();
+    return modes.find((m) => m.mode === this.railMode())?.mode ?? modes[0]?.mode ?? null;
+  });
+
+  private readonly docListTemplate = viewChild.required<TemplateRef<unknown>>('docList');
+  /** The document list as the PDF workspace's extra rail mode, so the rail looks the same for every format. */
+  protected readonly docsRail = computed<PdfWorkspaceRailExtra | null>(() =>
+    this.documents().length
+      ? {
+          label: this.labels.documents,
+          title: this.labels.documentsTitle.replace('{count}', String(this.documents().length)),
+          template: this.docListTemplate(),
+        }
+      : null,
+  );
+
+  /** The open PDF has unsaved edits (from `hk-pdf-workspace`). */
+  protected readonly pdfDirty = signal(false);
+  /** A document waiting for "discard and open". */
+  protected readonly pendingOpen = signal<string | null>(null);
+  private readonly confirmDialog = viewChild<ElementRef<HTMLDialogElement>>('confirm');
 
   protected readonly zoom = signal(1);
   protected readonly zoomLabel = computed(() => `${Math.round(this.zoom() * 100)}%`);
@@ -129,7 +206,8 @@ export class DocumentWorkspaceComponent {
       { label: l.format, value: f.extension?.replace(/^\./, '').toUpperCase() ?? f.format },
     ];
     if (f.mimeType) rows.push({ label: l.mimeType, value: f.mimeType });
-    const size = sourceSize(this.src());
+    const src = this.source();
+    const size = src === null ? null : sourceSize(src);
     if (size !== null) rows.push({ label: l.size, value: formatBytes(size) });
     return rows;
   });
@@ -151,10 +229,32 @@ export class DocumentWorkspaceComponent {
       this.mode();
       this.modeOverride.set(null);
     });
+    // A list with nothing open opens its first document.
+    effect(() => {
+      const docs = this.documents();
+      if (docs.length && !docs.some((d) => d.id === this.active())) untracked(() => this.active.set(docs[0].id));
+    });
+    // Another document: not editing, nothing unsaved yet.
+    effect(() => {
+      this.activeDoc();
+      untracked(() => {
+        this.modeOverride.set(null);
+        this.pdfDirty.set(false);
+      });
+    });
+    effect(() => {
+      const open = this.pendingOpen() !== null;
+      const dialog = this.confirmDialog()?.nativeElement;
+      if (!dialog) return;
+      untracked(() => {
+        if (open && !dialog.open) dialog.showModal?.();
+        else if (!open && dialog.open) dialog.close?.();
+      });
+    });
     // A new document (or renderer) publishes from scratch.
     let lastRenderer: unknown;
     effect(() => {
-      this.src();
+      this.source();
       const renderer = this.renderer();
       untracked(() => {
         this.host.reset(renderer !== lastRenderer);
@@ -165,6 +265,28 @@ export class DocumentWorkspaceComponent {
     inject(DestroyRef).onDestroy(() => {
       if (this.downloadUrl) URL.revokeObjectURL(this.downloadUrl);
     });
+  }
+
+  /** Open a listed document; with unsaved changes in the open one, ask first. */
+  protected openDocument(id: string): void {
+    if (id === this.activeDoc()?.id) return;
+    if (this.hasUnsavedChanges()) this.pendingOpen.set(id);
+    else this.active.set(id);
+  }
+
+  protected confirmOpen(): void {
+    const id = this.pendingOpen();
+    this.pendingOpen.set(null);
+    if (id) this.active.set(id);
+  }
+
+  protected cancelOpen(): void {
+    this.pendingOpen.set(null);
+  }
+
+  private hasUnsavedChanges(): boolean {
+    if (this.resolvedFormat().format === 'pdf') return this.pdfDirty();
+    return this.editing() && !!this.editor()?.isDirty();
   }
 
   protected setEditing(on: boolean): void {
@@ -205,7 +327,8 @@ export class DocumentWorkspaceComponent {
   }
 
   protected download(): void {
-    const src = this.src();
+    const src = this.source();
+    if (src === null) return;
     const name = this.filename() ?? 'document';
     let href: string;
     if (typeof src === 'string') href = src;
