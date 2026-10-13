@@ -396,6 +396,12 @@ export { CommandStack, type EditorCommand } from './lib/utils/command-stack';
 export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';
 export { registerPdfFont } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
+export {
+  PDF_SIGNATURE_STORE,
+  LocalStoragePdfSignatureStore,
+  providePdfSignatureStore,
+} from './lib/components/pdf-viewer/services/pdf-signature-store';
+export type { PdfSignatureStore, SavedPdfSignature } from './lib/components/pdf-viewer/services/pdf-signature-store';
 export type { PdfFontSource } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
 export { HK_PDF_LABELS, provideHkPdfLabels, DEFAULT_PDF_VIEWER_LABELS } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export type { PdfViewerLabels, ResolvedPdfViewerLabels } from './lib/components/pdf-viewer/pdf-viewer.labels';

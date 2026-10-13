@@ -296,6 +296,12 @@
           />
         </label>
       }
+      @if (t.annotation?.type === 'stamp') {
+        <label class="flex cursor-pointer items-start gap-2 text-xs">
+          <input type="checkbox" class="checkbox checkbox-xs mt-0.5" [checked]="!!$any(t.annotation).flatten" (change)="toggleFlatten()" />
+          {{ store.labels().flattenSignature }}
+        </label>
+      }
       @if (t.annotation) {
         <div class="flex flex-col gap-1" role="group" [attr.aria-label]="store.labels().arrange">
           <span class="text-xs text-base-content/70">{{ store.labels().arrange }}</span>

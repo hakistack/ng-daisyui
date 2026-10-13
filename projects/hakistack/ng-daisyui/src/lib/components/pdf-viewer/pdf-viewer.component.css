@@ -598,3 +598,28 @@
 :host ::ng-deep .hk-pdf-design-layer:has(.hk-pdf-design-drawing) .hk-pdf-design-box {
   pointer-events: none;
 }
+
+/* An unsigned signature field: a "Sign" button over its box. */
+:host ::ng-deep .hk-pdf-annotation-layer .hk-pdf-form-sign {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 1.5px dashed var(--hk-pdf-primary);
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--hk-pdf-primary) 8%, transparent);
+  color: var(--hk-pdf-primary);
+  font:
+    600 12px/1 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+
+:host ::ng-deep .hk-pdf-annotation-layer .hk-pdf-form-sign:hover,
+:host ::ng-deep .hk-pdf-annotation-layer .hk-pdf-form-sign:focus-visible {
+  background: color-mix(in oklab, var(--hk-pdf-primary) 16%, transparent);
+  outline: 2px solid var(--hk-pdf-primary);
+  outline-offset: 1px;
+}

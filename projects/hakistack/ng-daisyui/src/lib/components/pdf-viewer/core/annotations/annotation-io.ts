@@ -459,6 +459,9 @@ async function readStamp(doc: PdfDoc, d: PdfDict): Promise<PdfStampContent | nul
     const shape = meta.shape === 'rect' || meta.shape === 'arrow' ? meta.shape : 'rounded';
     return { kind: 'text', text: meta.text, subtext: typeof meta.subtext === 'string' ? meta.subtext : undefined, shape };
   }
+  if (meta.kind === 'ink' && Array.isArray(meta.strokes) && typeof meta.width === 'number') {
+    return { kind: 'ink', strokes: meta.strokes, width: meta.width, aspect: typeof meta.aspect === 'number' ? meta.aspect : 3 };
+  }
   if (meta.kind !== 'image') return null;
   const ap = await doc.dict(d.get('AP'));
   const normal = await doc.resolve(ap?.get('N'));
@@ -682,6 +685,7 @@ export async function applyAnnotationChanges(
 
     for (const b of deleted) drop([b.index, ...b.threadIndices, ...(b.popupIndex !== undefined ? [b.popupIndex] : [])]);
 
+    const flattened: PdfRef[] = [];
     for (const a of cur) {
       const b = isKept(a) ? baseline.get(a.id)! : null;
       if (b && sameAnnotation(b.annotation, a)) {
@@ -689,6 +693,12 @@ export async function applyAnnotationChanges(
         continue;
       }
       const ap = doc.add(await buildAppearance(a, space, addObject, images, fonts));
+      if (a.type === 'stamp' && a.flatten) {
+        // Merged into the page content: drawn with its appearance, no longer an annotation.
+        flattened.push(ap);
+        if (b) drop([b.index, ...b.threadIndices, ...(b.popupIndex !== undefined ? [b.popupIndex] : [])]);
+        continue;
+      }
       if (b) {
         const entry = annots[b.index];
         const dict = annotationDict(a, space, page.ref, ap, await doc.dict(entry), now, pageRefs);
@@ -715,7 +725,7 @@ export async function applyAnnotationChanges(
     // Paint order: the managed annotations go back into the slots they occupied, in their current
     // order (so the others, such as links and form widgets, keep their places); the rest follow.
     const slots = new Set(kept.map((a) => baseline.get(a.id)!.index));
-    const sequence = cur.map((a) => refs.get(a.id)!);
+    const sequence = cur.filter((a) => refs.has(a.id)).map((a) => refs.get(a.id)!);
     let k = 0;
     const next: PdfValue[] = [];
     for (let i = 0; i < annots.length; i++) {
@@ -724,14 +734,43 @@ export async function applyAnnotationChanges(
     }
     next.push(...sequence.slice(k), ...threads);
 
+    const pageDict = flattened.length ? await flattenInto(doc, page, flattened) : null;
     if (annotsValue instanceof PdfRef) {
       doc.update(annotsValue, next);
+      if (pageDict) doc.update(page.ref, pageDict);
     } else {
-      const pageDict = page.dict.clone();
-      pageDict.set('Annots', next);
-      doc.update(page.ref, pageDict);
+      const dict = pageDict ?? page.dict.clone();
+      dict.set('Annots', next);
+      doc.update(page.ref, dict);
     }
   }
+}
+
+/**
+ * A page dictionary with appearance streams painted into its content: the
+ * existing content wrapped in `q`…`Q` (so its graphics state can't leak),
+ * then one `Do` per appearance, registered in the page's `/XObject`
+ * resources. Appearances have their `/BBox` in user space and no
+ * `/Matrix`, so they paint in place without a transform.
+ */
+async function flattenInto(doc: PdfDoc, page: PdfPageRef, appearances: readonly PdfRef[]): Promise<PdfDict> {
+  const dict = (await doc.dict(page.ref))!.clone();
+  const contents = await doc.resolve(dict.get('Contents'));
+  const existing: PdfValue[] = Array.isArray(contents) ? contents : dict.get('Contents') !== undefined ? [dict.get('Contents')!] : [];
+  const resources = (await doc.dict(await doc.inherited(dict, 'Resources')))?.clone() ?? new PdfDict();
+  const xobjects = (await doc.dict(resources.get('XObject')))?.clone() ?? new PdfDict();
+  let ops = '';
+  for (const ap of appearances) {
+    let name = `HkFl${xobjects.size}`;
+    for (let i = xobjects.size; xobjects.has(name); i++) name = `HkFl${i + 1}`;
+    xobjects.set(name, ap);
+    ops += `q /${name} Do Q\n`;
+  }
+  resources.set('XObject', xobjects);
+  const stream = (text: string) => doc.add(new PdfStream(new PdfDict(), new TextEncoder().encode(text)));
+  dict.set('Contents', [stream('q\n'), ...existing, stream('\nQ\n'), stream(ops)]);
+  dict.set('Resources', resources);
+  return dict;
 }
 
 /** Keys an annotation's geometry and style regenerate; stale copies are dropped from an edited dictionary. */

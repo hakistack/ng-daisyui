@@ -1,0 +1,182 @@
+<dialog #dialog class="modal" [attr.aria-labelledby]="uid + '-title'" (close)="onNativeClose()">
+  <div class="modal-box flex max-w-lg flex-col gap-3">
+    <h3 [id]="uid + '-title'" class="text-lg font-semibold">{{ store.labels().signatureDialogTitle }}</h3>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="join" role="group">
+        <button
+          type="button"
+          class="btn btn-sm join-item"
+          [class.btn-active]="kind() === 'signature'"
+          [attr.aria-pressed]="kind() === 'signature'"
+          (click)="kind.set('signature')"
+        >
+          {{ store.labels().signatureKind }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm join-item"
+          [class.btn-active]="kind() === 'initials'"
+          [attr.aria-pressed]="kind() === 'initials'"
+          (click)="kind.set('initials')"
+        >
+          {{ store.labels().initialsKind }}
+        </button>
+      </div>
+      <div class="flex items-center gap-1" role="group" [attr.aria-label]="store.labels().penColor">
+        @for (c of inks; track c) {
+          <button
+            type="button"
+            class="h-6 w-6 rounded-full border border-base-300 outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary"
+            [class.ring-2]="ink() === c"
+            [class.ring-primary]="ink() === c"
+            [style.background]="c"
+            [attr.aria-label]="store.labels().penColor + ' ' + c"
+            [attr.aria-pressed]="ink() === c"
+            (click)="ink.set(c); redraw()"
+          ></button>
+        }
+      </div>
+    </div>
+
+    <div role="tablist" class="tabs tabs-bordered" (keydown)="onTabKey($event)">
+      @for (t of ['draw', 'type', 'upload']; track t) {
+        <button
+          type="button"
+          role="tab"
+          class="tab"
+          [id]="uid + '-tab-' + t"
+          [class.tab-active]="tab() === t"
+          [attr.aria-selected]="tab() === t"
+          [attr.aria-controls]="uid + '-panel'"
+          [attr.tabindex]="tab() === t ? 0 : -1"
+          (click)="setTab($any(t))"
+        >
+          {{ t === 'draw' ? store.labels().drawTab : t === 'type' ? store.labels().typeTab : store.labels().uploadTab }}
+        </button>
+      }
+    </div>
+
+    <div role="tabpanel" [id]="uid + '-panel'" [attr.aria-labelledby]="uid + '-tab-' + tab()" class="flex flex-col gap-2">
+      @switch (tab()) {
+        @case ('draw') {
+          <canvas
+            #pad
+            class="h-40 w-full touch-none rounded-box border border-base-300 bg-base-100"
+            [attr.aria-label]="store.labels().drawHint"
+            role="img"
+            (pointerdown)="onPadDown($event)"
+            (pointermove)="onPadMove($event)"
+            (pointerup)="onPadUp()"
+            (pointercancel)="onPadUp()"
+          ></canvas>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-base-content/70">{{ store.labels().drawHint }}</span>
+            <button type="button" class="btn btn-ghost btn-xs" [disabled]="strokeCount() === 0" (click)="clear()">
+              {{ store.labels().clear }}
+            </button>
+          </div>
+        }
+        @case ('type') {
+          <label class="flex flex-col gap-1">
+            <span class="text-sm">{{ store.labels().typeYourName }}</span>
+            <input type="text" class="input input-bordered w-full" maxlength="60" [value]="typed()" (input)="typed.set(str($event))" />
+          </label>
+          <div class="flex flex-col gap-1" role="radiogroup" [attr.aria-label]="store.labels().font">
+            @for (f of fonts(); track $index) {
+              <label
+                class="flex cursor-pointer items-center gap-3 rounded-box border border-base-300 px-3 py-1"
+                [class.border-primary]="fontIndex() === $index"
+              >
+                <input
+                  type="radio"
+                  class="radio radio-sm"
+                  [name]="uid + '-font'"
+                  [checked]="fontIndex() === $index"
+                  (change)="fontIndex.set($index)"
+                />
+                <span class="truncate text-3xl leading-tight" [style.font-family]="f" [style.color]="ink()">{{
+                  typed() || store.labels().signatureKind
+                }}</span>
+              </label>
+            }
+          </div>
+        }
+        @case ('upload') {
+          <label class="btn btn-outline btn-sm w-fit">
+            {{ store.labels().chooseImage }}
+            <input #file type="file" class="sr-only" accept="image/png,image/jpeg,image/webp,image/gif" (change)="onUpload(file)" />
+          </label>
+          <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              class="checkbox checkbox-sm"
+              [checked]="removeBackground()"
+              (change)="removeBackground.set(!removeBackground()); refreshUpload()"
+            />
+            {{ store.labels().removeBackground }}
+          </label>
+          @if (upload(); as u) {
+            <div class="flex justify-center rounded-box border border-base-300 bg-base-200/50 p-2">
+              <img [src]="u.url" alt="" class="max-h-32 object-contain" />
+            </div>
+          }
+        }
+      }
+    </div>
+
+    @if (savedOfKind().length) {
+      <div class="flex flex-col gap-1">
+        <span class="text-sm font-medium">{{ store.labels().savedSignatures }}</span>
+        <ul class="flex flex-wrap gap-2">
+          @for (s of savedOfKind(); track s.id) {
+            <li class="flex items-center gap-1 rounded-box border border-base-300 p-1">
+              <button
+                type="button"
+                class="btn btn-ghost h-auto min-h-0 p-1"
+                [attr.aria-label]="store.labels().useSignature"
+                (click)="useSaved(s)"
+              >
+                @if (inkPreview(s.stamp); as p) {
+                  <svg class="h-10 w-28" [attr.viewBox]="p.viewBox" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                    <path [attr.d]="p.d" [attr.fill]="s.color" />
+                  </svg>
+                } @else if (imageUrl(s.stamp); as url) {
+                  <img [src]="url" alt="" class="h-10 w-28 object-contain" />
+                }
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs btn-square text-error"
+                [attr.aria-label]="store.labels().deleteSaved"
+                [title]="store.labels().deleteSaved"
+                (click)="signatures.forget(s.id)"
+              >
+                <svg lucideTrash2 [size]="12"></svg>
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="flex flex-col gap-1 text-sm">
+      <label class="flex cursor-pointer items-center gap-2">
+        <input type="checkbox" class="checkbox checkbox-sm" [checked]="keep()" (change)="keep.set(!keep())" />
+        {{ store.labels().saveForLater }}
+      </label>
+      <label class="flex cursor-pointer items-center gap-2">
+        <input type="checkbox" class="checkbox checkbox-sm" [checked]="flatten()" (change)="flatten.set(!flatten())" />
+        {{ store.labels().flattenSignature }}
+      </label>
+    </div>
+
+    <div class="modal-action mt-1">
+      <button type="button" class="btn btn-ghost" (click)="cancel()">{{ store.labels().cancel }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="!ready()" (click)="use()">{{ store.labels().useSignature }}</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit" [attr.aria-label]="store.labels().cancel">{{ store.labels().cancel }}</button>
+  </form>
+</dialog>

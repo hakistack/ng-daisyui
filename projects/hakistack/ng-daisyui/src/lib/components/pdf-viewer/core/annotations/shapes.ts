@@ -183,6 +183,16 @@ function fitFontSize(text: string, font: StandardFont, width: number, max: numbe
 function stampOps(a: PdfStampAnnotation): DrawOp[] {
   const content = a.stamp;
   if (content.kind === 'image') return [{ kind: 'image', rect: a.rect, data: content.data, mime: content.mime, opacity: a.opacity }];
+  if (content.kind === 'ink') {
+    const maxWidth = Math.max(0.5, content.width * a.rect.h);
+    const segs = content.strokes.flatMap((s) => {
+      const abs: number[] = [];
+      for (let i = 0; i + 2 < s.length + 1 && i + 1 < s.length; i += 3)
+        abs.push(a.rect.x + s[i] * a.rect.w, a.rect.y + s[i + 1] * a.rect.h, s[i + 2] ?? 0.5);
+      return strokeOutlineSegs(abs, maxWidth);
+    });
+    return segs.length ? [{ kind: 'path', segs, fill: a.color, opacity: a.opacity }] : [];
+  }
   const border = Math.max(1, Math.min(a.rect.h, a.rect.w) * 0.05);
   const box = inset(a.rect, border / 2);
   let frame: PathSeg[];
@@ -487,6 +497,60 @@ export function cloudSegs(v: readonly number[], radius: number): PathSeg[] {
   }
   segs.push(['Z']);
   return segs;
+}
+
+/**
+ * A pressure-sensitive stroke as a filled outline: flat `[x, y, pressure, …]`
+ * points become a smoothed band whose width follows the pressure, with
+ * round ends (a single point is a dot).
+ */
+export function strokeOutlineSegs(points: readonly number[], maxWidth: number): PathSeg[] {
+  const n = Math.floor(points.length / 3);
+  if (n === 0) return [];
+  const pt = (i: number) => [points[i * 3], points[i * 3 + 1], points[i * 3 + 2]] as const;
+  const half = (p: number) => (maxWidth * (0.35 + 0.65 * Math.max(0, Math.min(1, p)))) / 2;
+  if (n === 1) {
+    const [x, y, p] = pt(0);
+    const r = half(p);
+    return ellipseSegs({ x: x - r, y: y - r, w: 2 * r, h: 2 * r });
+  }
+  const left: number[] = [];
+  const right: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const [x, y, p] = pt(i);
+    const [ax, ay] = pt(Math.max(0, i - 1));
+    const [bx, by] = pt(Math.min(n - 1, i + 1));
+    let dx = bx - ax;
+    let dy = by - ay;
+    const len = Math.hypot(dx, dy) || 1;
+    dx /= len;
+    dy /= len;
+    const r = half(p);
+    left.push(x - dy * r, y + dx * r);
+    right.push(x + dy * r, y - dx * r);
+  }
+  // Round caps: half circles around the ends.
+  const cap = (i: number, from: number[], to: number[]): number[] => {
+    const [cx, cy, p] = pt(i);
+    const r = half(p);
+    const a0 = Math.atan2(from[1] - cy, from[0] - cx);
+    const a1 = Math.atan2(to[1] - cy, to[0] - cx);
+    let sweep = a1 - a0;
+    if (sweep <= 0) sweep += Math.PI * 2;
+    const out: number[] = [];
+    for (let k = 1; k < 6; k++) out.push(cx + Math.cos(a0 + (sweep * k) / 6) * r, cy + Math.sin(a0 + (sweep * k) / 6) * r);
+    return out;
+  };
+  const rightBack: number[] = [];
+  for (let i = right.length - 2; i >= 0; i -= 2) rightBack.push(right[i], right[i + 1]);
+  const outline = [
+    ...left,
+    ...cap(n - 1, [left[left.length - 2], left[left.length - 1]], [right[right.length - 2], right[right.length - 1]]),
+    ...rightBack,
+    ...cap(0, [right[0], right[1]], [left[0], left[1]]),
+  ];
+  const segs = smoothSegs(outline);
+  return [...segs, ['Z']];
 }
 
 /** Size of a line ending for a stroke width. */

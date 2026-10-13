@@ -764,6 +764,52 @@ export { newDesignField, newWidget } from ${JSON.stringify(join(lib, 'components
     e.close(h);
   }
 
+  // ── Visible signatures (vector ink stamps, flattened or not) ─────────────
+  console.log('\nsignatures (hk-pdf-writer → PDFium)');
+  {
+    const base = serializePdf({
+      1: '<< /Type /Catalog /Pages 2 0 R >>',
+      2: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      3: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+      4: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+      5: '<< /Length 43 >>\nstream\nBT /F1 14 Tf 20 170 Td (Contract text) Tj ET\nendstream',
+    });
+    const signature = (flatten) => ({
+      id: 'sig',
+      type: 'stamp',
+      page: 0,
+      rect: { x: 60, y: 80, w: 180, h: 60 },
+      color: '#1d4ed8',
+      opacity: 1,
+      name: 'Signature',
+      stamp: { kind: 'ink', strokes: [[0.05, 0.6, 0.5, 0.3, 0.2, 0.7, 0.55, 0.8, 0.9, 0.95, 0.3, 0.5]], width: 0.08, aspect: 3 },
+      flatten,
+    });
+    const inked = (h) => {
+      const [rw, , px] = e.render(h, 0, 300);
+      let n = 0;
+      for (let y = 80; y < 140; y++) for (let x = 60; x < 240; x++) if (px[(y * rw + x) * 4 + 2] > px[(y * rw + x) * 4] + 60) n++;
+      return n;
+    };
+    const live = await w.writeAnnotationChanges(base, new Map(), [signature(false)]);
+    const h1 = e.open(live, undefined);
+    check('a drawn signature paints as a vector stamp annotation', inked(h1) > 150);
+    e.close(h1);
+    const flat = await w.writeAnnotationChanges(base, new Map(), [signature(true)]);
+    const h2 = e.open(flat, undefined);
+    const [page] = await w.readAnnotations(await w.PdfDoc.load(flat));
+    check('flattened: it paints the same, as page content (no annotation left)', inked(h2) > 150 && page.annotations.length === 0);
+    check(
+      'flattened: the original page content is untouched',
+      e
+        .page_text(h2, 0)
+        .map((s) => s[0])
+        .join('')
+        .includes('Contract text'),
+    );
+    e.close(h2);
+  }
+
   // ── Part 2: worker protocol ────────────────────────────────────────────
   console.log('\nworker protocol');
   const workerBuild = await build({

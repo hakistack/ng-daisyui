@@ -40,6 +40,8 @@ export class PdfFormsService {
   readonly editable = signal(true);
   /** The form as designed (fields created, changed or deleted), until saved. */
   readonly designed = signal<FormDesign | null>(null);
+  /** An unsigned signature field's "Sign" button was pressed (the signatures service opens its dialog). */
+  readonly signRequest = signal<{ readonly field: string; readonly page: number; readonly rect: FormWidget['rect'] } | null>(null);
 
   private baseline = new Map<string, FormValue>();
   /** The form as read from the file (what a design is compared with). */
@@ -430,6 +432,16 @@ export class PdfFormsService {
       case 'list':
         el = this.select(field, field.multiSelect);
         break;
+      case 'signature': {
+        if (this.value(field.name) === 'signed' || field.readOnly) return null; // signed fields show their raster appearance
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'hk-pdf-form-sign';
+        button.textContent = this.store.labels().sign;
+        button.setAttribute('aria-label', this.store.labels().signHere.replace('{field}', label));
+        button.addEventListener('click', () => this.signRequest.set({ field: field.name, page: widget.page, rect: widget.rect }));
+        return button;
+      }
       default:
         return null;
     }

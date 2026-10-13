@@ -500,6 +500,80 @@ export interface PdfViewerLabels {
   formLocked?: string;
   /** Default: "Drag on the page to add a field; select a radio group to add options to it." */
   designHint?: string;
+  /** Default: "Sign" */
+  sign?: string;
+  /** Default: "Sign: {field}" */
+  signHere?: string;
+  /** Default: "Add a signature" */
+  signatureDialogTitle?: string;
+  /** Default: "Signature" */
+  signatureKind?: string;
+  /** Default: "Initials" */
+  initialsKind?: string;
+  /** Default: "Draw" */
+  drawTab?: string;
+  /** Default: "Type" */
+  typeTab?: string;
+  /** Default: "Upload" */
+  uploadTab?: string;
+  /** Default: "Clear" */
+  clear?: string;
+  /** Default: "Type your name" */
+  typeYourName?: string;
+  /** Default: "Choose an image" */
+  chooseImage?: string;
+  /** Default: "Remove the white background" */
+  removeBackground?: string;
+  /** Default: "Save for later" */
+  saveForLater?: string;
+  /** Default: "Merge into the page when saving (it can't be moved or removed afterwards)" */
+  flattenSignature?: string;
+  /** Default: "Saved" */
+  savedSignatures?: string;
+  /** Default: "Delete saved signature" */
+  deleteSaved?: string;
+  /** Default: "Ink colour" */
+  penColor?: string;
+  /** Default: "Draw with a mouse, finger or pen." */
+  drawHint?: string;
+  /** Default: "Use" */
+  useSignature?: string;
+  /** Default: "Signatures" */
+  signaturesTab?: string;
+  /** Default: "No digital signatures in this document" */
+  noSignatures?: string;
+  /** Default: "Valid" */
+  sigValid?: string;
+  /** Default: "Invalid" */
+  sigInvalid?: string;
+  /** Default: "Changed after signing" */
+  sigModified?: string;
+  /** Default: "Can't be verified" */
+  sigUnknown?: string;
+  /** Default: "Signed by {name}" */
+  sigSignedBy?: string;
+  /** Default: "Reason" */
+  sigReason?: string;
+  /** Default: "Location" */
+  sigLocation?: string;
+  /** Default: "Signed on" */
+  sigDate?: string;
+  /** Default: "Covers the whole document" */
+  sigCoversDocument?: string;
+  /** Default: "The document was changed after this signature" */
+  sigLaterChanges?: string;
+  /** Default: "The signer's identity isn't verified (no trusted certificate)" */
+  sigUntrusted?: string;
+  /** Default: "Certificate" */
+  sigCertificate?: string;
+  /** Default: "Issued by" */
+  sigIssuer?: string;
+  /** Default: "Valid from {from} to {to}" */
+  sigValidity?: string;
+  /** Default: "Sign digitally" */
+  signDigitally?: string;
+  /** Default: "Certification signature" */
+  sigCertified?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -746,6 +820,43 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   deleteField: 'Delete field',
   formLocked: "This document is certified: its form can't be changed.",
   designHint: 'Drag on the page to add a field; select a radio group to add options to it.',
+  sign: 'Sign',
+  signHere: 'Sign: {field}',
+  signatureDialogTitle: 'Add a signature',
+  signatureKind: 'Signature',
+  initialsKind: 'Initials',
+  drawTab: 'Draw',
+  typeTab: 'Type',
+  uploadTab: 'Upload',
+  clear: 'Clear',
+  typeYourName: 'Type your name',
+  chooseImage: 'Choose an image',
+  removeBackground: 'Remove the white background',
+  saveForLater: 'Save for later',
+  flattenSignature: "Merge into the page when saving (it can't be moved or removed afterwards)",
+  savedSignatures: 'Saved',
+  deleteSaved: 'Delete saved signature',
+  penColor: 'Ink colour',
+  drawHint: 'Draw with a mouse, finger or pen.',
+  useSignature: 'Use',
+  signaturesTab: 'Signatures',
+  noSignatures: 'No digital signatures in this document',
+  sigValid: 'Valid',
+  sigInvalid: 'Invalid',
+  sigModified: 'Changed after signing',
+  sigUnknown: "Can't be verified",
+  sigSignedBy: 'Signed by {name}',
+  sigReason: 'Reason',
+  sigLocation: 'Location',
+  sigDate: 'Signed on',
+  sigCoversDocument: 'Covers the whole document',
+  sigLaterChanges: 'The document was changed after this signature',
+  sigUntrusted: "The signer's identity isn't verified (no trusted certificate)",
+  sigCertificate: 'Certificate',
+  sigIssuer: 'Issued by',
+  sigValidity: 'Valid from {from} to {to}',
+  signDigitally: 'Sign digitally',
+  sigCertified: 'Certification signature',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');

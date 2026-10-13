@@ -24,6 +24,8 @@ import { ANNOTATION_CLIPBOARD_TYPE, PdfAnnotationsService } from './services/pdf
 import { PdfAnnotationDialogsService } from './services/pdf-annotation-dialogs.service';
 import { PdfRasterHiddenService } from './services/pdf-raster-hidden.service';
 import { PdfFormDesignerService } from './services/pdf-form-designer.service';
+import { PdfSignaturesService } from './services/pdf-signatures.service';
+import { PdfSignatureDialogComponent } from './ui/pdf-signature-dialog.component';
 import { PdfFormDesignToolbarComponent } from './ui/pdf-form-design-toolbar.component';
 import { PdfFormFieldPanelComponent } from './ui/pdf-form-field-panel.component';
 import { PdfDocumentService } from './services/pdf-document.service';
@@ -88,6 +90,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfAnnotationDialogsComponent,
     PdfFormDesignToolbarComponent,
     PdfFormFieldPanelComponent,
+    PdfSignatureDialogComponent,
     PdfFindBarComponent,
     PdfSidebarComponent,
     PdfPagesComponent,
@@ -104,6 +107,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfLayersService,
     PdfFormsService,
     PdfFormDesignerService,
+    PdfSignaturesService,
     PdfFindService,
     PdfThumbnailsService,
     PdfRasterHiddenService,

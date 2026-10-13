@@ -270,6 +270,7 @@ async function readValue(ctx: Ctx, kind: FormFieldKind, v: PdfValue | undefined,
     }
     return 'Off';
   }
+  if (kind === 'signature') return value instanceof PdfDict ? 'signed' : ''; // /V is the signature dictionary
   if (kind === 'list') {
     if (Array.isArray(value)) return value.map((x) => text(x) ?? '').filter(Boolean);
     const one = text(value);

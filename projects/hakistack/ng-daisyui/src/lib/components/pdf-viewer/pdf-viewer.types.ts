@@ -156,6 +156,8 @@ export interface PdfViewerConfig {
    * `/NeedAppearances` and annotations show `?` for those characters.
    */
   readonly fonts?: readonly PdfFontSource[];
+  /** CSS font families offered for typed signatures, ahead of the built-in handwriting families (load web fonts yourself). */
+  readonly signatureFonts?: readonly string[];
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 

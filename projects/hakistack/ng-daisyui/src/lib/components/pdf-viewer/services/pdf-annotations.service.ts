@@ -52,6 +52,8 @@ export interface PendingStamp {
   readonly name: string;
   readonly stamp: PdfStampContent;
   readonly color: string;
+  /** Merge it into the page on save (signatures). */
+  readonly flatten?: boolean;
 }
 
 /** Where an annotation moves in its page's paint order. */

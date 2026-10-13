@@ -171,6 +171,11 @@ export class PdfAnnotationPanelComponent {
     if (a) void this.annotations.arrange(a.id, where);
   }
 
+  protected toggleFlatten(): void {
+    const a = this.target()?.annotation;
+    if (a?.type === 'stamp') void this.annotations.update(a.id, { flatten: !a.flatten || undefined }, { label: 'Merge into page' });
+  }
+
   protected duplicate(): void {
     const a = this.target()?.annotation;
     if (a) void this.annotations.duplicate(a.id);

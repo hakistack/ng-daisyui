@@ -462,6 +462,7 @@ export class PdfAnnotationToolsService {
       opacity: 1,
       name: pending.name,
       stamp: pending.stamp,
+      flatten: pending.flatten,
     });
     this.setTool('none');
     this.annotations.select(id);
@@ -526,12 +527,16 @@ export class PdfAnnotationToolsService {
   }
 }
 
-/** A stamp's natural size: text stamps fit their text, images keep their aspect within 160 pt. */
+/** A stamp's natural size: text stamps fit their text, images keep their aspect within 160 pt, signatures are about 50 pt tall. */
 function stampSize(p: PendingStamp): { w: number; h: number } {
   const s = p.stamp;
   if (s.kind === 'image') {
     const k = 160 / Math.max(s.width, s.height, 1);
     return { w: Math.max(8, s.width * k), h: Math.max(8, s.height * k) };
+  }
+  if (s.kind === 'ink') {
+    const w = Math.min(200, 50 * s.aspect);
+    return { w, h: w / Math.max(0.1, s.aspect) };
   }
   const h = s.subtext ? 46 : 34;
   const text = Math.max(textWidth(s.text, 'Helvetica-Bold', h * 0.42), s.subtext ? textWidth(s.subtext, 'Helvetica', h * 0.2) : 0);

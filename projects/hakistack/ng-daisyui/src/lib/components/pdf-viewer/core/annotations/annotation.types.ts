@@ -194,6 +194,16 @@ export type PdfStampContent =
       /** Pixel size. */
       readonly width: number;
       readonly height: number;
+    }
+  | {
+      /** A drawn signature: vector strokes with pressure. */
+      readonly kind: 'ink';
+      /** Per stroke, flat `[x, y, pressure, …]` with x and y in 0–1 of the stamp's box (y down) and pressure in 0–1. */
+      readonly strokes: readonly (readonly number[])[];
+      /** The widest stroke, as a fraction of the box height. */
+      readonly width: number;
+      /** Width ÷ height of the box it was drawn in. */
+      readonly aspect: number;
     };
 
 /** A rubber stamp (`/Stamp`). `name` is its `/Name` (`Approved`, `Draft`, … or a custom name). */
@@ -201,6 +211,8 @@ export interface PdfStampAnnotation extends PdfAnnotationBase {
   readonly type: 'stamp';
   readonly name: string;
   readonly stamp: PdfStampContent;
+  /** Merge it into the page content on save (it can't be moved or removed afterwards). */
+  readonly flatten?: boolean;
 }
 
 /** Where a link goes: a web address or a page (0-based) of this document. */

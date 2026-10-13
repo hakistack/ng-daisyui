@@ -13,6 +13,7 @@ import {
   LucidePenLine,
   LucideClipboardList,
   LucideRotateCcw,
+  LucideSignature,
   LucidePlus,
   LucidePrinter,
   LucideRotateCw,
@@ -25,6 +26,8 @@ import { PdfDocumentService } from '../services/pdf-document.service';
 import { PdfFindService } from '../services/pdf-find.service';
 import { PdfFormsService } from '../services/pdf-forms.service';
 import { PdfFormDesignerService } from '../services/pdf-form-designer.service';
+import { PdfSignaturesService } from '../services/pdf-signatures.service';
+import { PdfAnnotationsService } from '../services/pdf-annotations.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { PdfViewportService } from '../services/pdf-viewport.service';
 import { ResolvedPdfViewerLabels } from '../pdf-viewer.labels';
@@ -42,6 +45,7 @@ import { PdfDisplayMode } from '../pdf-viewer.types';
     LucidePenLine,
     LucideClipboardList,
     LucideRotateCcw,
+    LucideSignature,
     LucideChevronsLeft,
     LucideChevronLeft,
     LucideChevronRight,
@@ -70,6 +74,8 @@ export class PdfToolbarComponent {
   protected readonly tools = inject(PdfAnnotationToolsService);
   protected readonly forms = inject(PdfFormsService);
   protected readonly designer = inject(PdfFormDesignerService);
+  protected readonly signatures = inject(PdfSignaturesService);
+  protected readonly annotations = inject(PdfAnnotationsService);
 
   /** Enter "Prepare form": the annotation tools close (the two edit modes are exclusive). */
   protected startDesign(menu: HTMLDetailsElement): void {

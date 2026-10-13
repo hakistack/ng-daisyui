@@ -187,6 +187,18 @@
     <svg lucidePenLine [size]="16"></svg>
   </button>
 
+  <!-- ── Sign: add a visible signature ─────────────────────────────── -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().sign"
+    [title]="store.labels().sign"
+    [disabled]="!store.showPages() || !annotations.canAdd()"
+    (click)="signatures.open()"
+  >
+    <svg lucideSignature [size]="16"></svg>
+  </button>
+
   <!-- ── Form: reset, export / import data (documents with a form) ── -->
   @if (forms.model()) {
     <details #formMenu class="dropdown dropdown-end">
