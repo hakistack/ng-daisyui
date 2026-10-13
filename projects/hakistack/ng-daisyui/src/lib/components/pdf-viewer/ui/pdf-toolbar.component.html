@@ -195,6 +195,14 @@
       </summary>
       <ul class="menu menu-sm dropdown-content z-[40] mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
         <li>
+          <button type="button" [disabled]="!designer.allowed()" (click)="startDesign(formMenu)">
+            {{ store.labels().prepareForm }}
+          </button>
+        </li>
+        @if (forms.docMdp() !== null) {
+          <li class="menu-title text-[11px] font-normal text-warning">{{ store.labels().formLocked }}</li>
+        }
+        <li>
           <button type="button" (click)="forms.resetForm(); formMenu.open = false">
             <svg lucideRotateCcw [size]="14"></svg>
             {{ store.labels().resetForm }}

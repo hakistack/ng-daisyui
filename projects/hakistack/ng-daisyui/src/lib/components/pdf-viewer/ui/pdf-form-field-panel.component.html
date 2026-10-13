@@ -1,0 +1,245 @@
+@if (field(); as f) {
+  <section
+    class="absolute right-3 top-3 z-30 w-72 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-box border border-base-300 bg-base-100 text-sm shadow-lg"
+    [attr.aria-label]="store.labels().fieldProperties"
+  >
+    <header class="flex items-center gap-1 border-b border-base-300 px-3 py-2">
+      <h3 class="grow truncate font-medium">{{ store.labels().fieldProperties }}</h3>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs btn-square text-error"
+        [attr.aria-label]="store.labels().deleteField"
+        [title]="store.labels().deleteField"
+        (click)="remove()"
+      >
+        <svg lucideTrash2 [size]="14"></svg>
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        [attr.aria-label]="store.labels().dismiss"
+        [title]="store.labels().dismiss"
+        (click)="designer.selection.set(null)"
+      >
+        <svg lucideX [size]="14"></svg>
+      </button>
+    </header>
+
+    <div class="flex flex-col gap-3 px-3 py-3">
+      <label class="flex flex-col gap-1">
+        <span class="text-xs text-base-content/70">{{ store.labels().fieldName }}</span>
+        <input
+          #nameInput
+          type="text"
+          class="input input-bordered input-xs w-full"
+          [class.input-error]="!!nameError()"
+          [attr.aria-invalid]="!!nameError()"
+          [value]="f.name"
+          (change)="rename(nameInput.value)"
+        />
+        @if (nameError(); as err) {
+          <span class="text-xs text-error" role="alert">{{ err === 'taken' ? store.labels().nameTaken : store.labels().nameEmpty }}</span>
+        }
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-xs text-base-content/70">{{ store.labels().fieldTooltip }}</span>
+        <input
+          type="text"
+          class="input input-bordered input-xs w-full"
+          [value]="f.tooltip ?? ''"
+          (change)="set({ tooltip: str($event) || undefined })"
+        />
+      </label>
+      <div class="flex flex-wrap gap-x-4 gap-y-1">
+        <label class="flex cursor-pointer items-center gap-2 text-xs">
+          <input type="checkbox" class="checkbox checkbox-xs" [checked]="f.required" (change)="set({ required: checked($event) })" />
+          {{ store.labels().fieldRequired }}
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-xs">
+          <input type="checkbox" class="checkbox checkbox-xs" [checked]="f.readOnly" (change)="set({ readOnly: checked($event) })" />
+          {{ store.labels().fieldReadOnly }}
+        </label>
+      </div>
+
+      @if (f.kind === 'text') {
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
+          <label class="flex cursor-pointer items-center gap-2 text-xs">
+            <input type="checkbox" class="checkbox checkbox-xs" [checked]="f.multiline" (change)="set({ multiline: checked($event) })" />
+            {{ store.labels().fieldMultiline }}
+          </label>
+          <label class="flex cursor-pointer items-center gap-2 text-xs">
+            <input type="checkbox" class="checkbox checkbox-xs" [checked]="f.password" (change)="set({ password: checked($event) })" />
+            {{ store.labels().fieldPassword }}
+          </label>
+          <label class="flex cursor-pointer items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              class="checkbox checkbox-xs"
+              [checked]="f.comb"
+              [disabled]="!f.maxLength"
+              (change)="set({ comb: checked($event) })"
+            />
+            {{ store.labels().fieldComb }}
+          </label>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().fieldMaxLength }}</span>
+            <input
+              type="number"
+              min="0"
+              class="input input-bordered input-xs w-full tabular-nums"
+              [value]="f.maxLength ?? ''"
+              (change)="set({ maxLength: num($event) || undefined, comb: num($event) ? f.comb : false })"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().fieldFormat }}</span>
+            <select class="select select-bordered select-xs w-full" (change)="setFormat($any(str($event)))">
+              @for (fm of formats; track fm.value) {
+                <option [value]="fm.value" [selected]="fm.value === formatKind()">{{ store.labels()[fm.label] }}</option>
+              }
+            </select>
+          </label>
+        </div>
+        @if (f.format?.kind === 'date') {
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().formatDate }}</span>
+            <input
+              type="text"
+              class="input input-bordered input-xs w-full font-mono"
+              [value]="$any(f.format).format"
+              (change)="setDateFormat(str($event))"
+            />
+          </label>
+        }
+        @if (f.format?.kind === 'number' || f.format?.kind === 'percent') {
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().precision }}</span>
+            <input
+              type="number"
+              min="0"
+              max="10"
+              class="input input-bordered input-xs w-full tabular-nums"
+              [value]="$any(f.format).decimals"
+              (change)="setDecimals(str($event))"
+            />
+          </label>
+        }
+      }
+
+      @if (f.kind === 'text' || f.kind === 'combo' || f.kind === 'list') {
+        <div class="grid grid-cols-3 gap-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().fontSize }}</span>
+            <input
+              type="number"
+              min="0"
+              max="72"
+              class="input input-bordered input-xs w-full tabular-nums"
+              [value]="f.style.fontSize"
+              (change)="setStyle({ fontSize: num($event) })"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().textColor }}</span>
+            <input
+              type="color"
+              class="h-6 w-full cursor-pointer rounded border border-base-300 bg-transparent p-0"
+              [value]="f.style.color"
+              (input)="setStyle({ color: str($event) }, 'color')"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().alignLeft }}</span>
+            <select class="select select-bordered select-xs w-full" (change)="setStyle({ align: $any(str($event)) })">
+              <option value="left" [selected]="f.style.align === 'left'">{{ store.labels().alignLeft }}</option>
+              <option value="center" [selected]="f.style.align === 'center'">{{ store.labels().alignCenter }}</option>
+              <option value="right" [selected]="f.style.align === 'right'">{{ store.labels().alignRight }}</option>
+            </select>
+          </label>
+        </div>
+      }
+
+      @if (f.kind === 'combo' || f.kind === 'list') {
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-base-content/70">{{ store.labels().fieldOptions }}</span>
+          <textarea
+            class="textarea textarea-bordered textarea-xs w-full font-mono"
+            rows="4"
+            [value]="optionsText()"
+            (change)="setOptions(str($event))"
+          ></textarea>
+        </label>
+        @if (f.kind === 'combo') {
+          <label class="flex cursor-pointer items-center gap-2 text-xs">
+            <input type="checkbox" class="checkbox checkbox-xs" [checked]="f.editable" (change)="set({ editable: checked($event) })" />
+            {{ store.labels().fieldEditable }}
+          </label>
+        } @else {
+          <label class="flex cursor-pointer items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              class="checkbox checkbox-xs"
+              [checked]="f.multiSelect"
+              (change)="set({ multiSelect: checked($event) })"
+            />
+            {{ store.labels().fieldMultiSelect }}
+          </label>
+        }
+      }
+
+      @if ((f.kind === 'checkbox' || f.kind === 'radio') && widget()?.onState; as state) {
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-base-content/70">{{ store.labels().fieldExportValue }}</span>
+          <input
+            type="text"
+            class="input input-bordered input-xs w-full"
+            [value]="exportValueOf(state)"
+            (change)="setExportValue(str($event))"
+          />
+        </label>
+      }
+
+      @if (widget(); as w) {
+        <div class="grid grid-cols-2 gap-2">
+          <div class="flex flex-col gap-1" role="group" [attr.aria-label]="store.labels().fieldBorder">
+            <span class="text-xs text-base-content/70">{{ store.labels().fieldBorder }}</span>
+            <div class="flex items-center gap-1">
+              <input
+                type="color"
+                class="h-6 w-8 cursor-pointer rounded border border-base-300 bg-transparent p-0"
+                [attr.aria-label]="store.labels().fieldBorder"
+                [value]="w.borderColor ?? '#000000'"
+                (input)="setWidgetColor('borderColor', str($event))"
+              />
+              <button
+                type="button"
+                class="btn btn-xs"
+                [class.btn-active]="!w.borderColor"
+                (click)="setWidgetColor('borderColor', undefined)"
+              >
+                {{ store.labels().noFill }}
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1" role="group" [attr.aria-label]="store.labels().fieldBackground">
+            <span class="text-xs text-base-content/70">{{ store.labels().fieldBackground }}</span>
+            <div class="flex items-center gap-1">
+              <input
+                type="color"
+                class="h-6 w-8 cursor-pointer rounded border border-base-300 bg-transparent p-0"
+                [attr.aria-label]="store.labels().fieldBackground"
+                [value]="w.background ?? '#ffffff'"
+                (input)="setWidgetColor('background', str($event))"
+              />
+              <button type="button" class="btn btn-xs" [class.btn-active]="!w.background" (click)="setWidgetColor('background', undefined)">
+                {{ store.labels().noFill }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+}

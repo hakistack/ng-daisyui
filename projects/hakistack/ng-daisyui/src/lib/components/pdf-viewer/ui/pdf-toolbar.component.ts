@@ -24,6 +24,7 @@ import { PdfAnnotationToolsService } from '../services/pdf-annotation-tools.serv
 import { PdfDocumentService } from '../services/pdf-document.service';
 import { PdfFindService } from '../services/pdf-find.service';
 import { PdfFormsService } from '../services/pdf-forms.service';
+import { PdfFormDesignerService } from '../services/pdf-form-designer.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { PdfViewportService } from '../services/pdf-viewport.service';
 import { ResolvedPdfViewerLabels } from '../pdf-viewer.labels';
@@ -68,6 +69,14 @@ export class PdfToolbarComponent {
   protected readonly document = inject(PdfDocumentService);
   protected readonly tools = inject(PdfAnnotationToolsService);
   protected readonly forms = inject(PdfFormsService);
+  protected readonly designer = inject(PdfFormDesignerService);
+
+  /** Enter "Prepare form": the annotation tools close (the two edit modes are exclusive). */
+  protected startDesign(menu: HTMLDetailsElement): void {
+    menu.open = false;
+    this.tools.closeBar();
+    this.designer.start();
+  }
   protected readonly formFormats = ['json', 'xfdf', 'fdf'] as const;
 
   protected async importFormData(input: HTMLInputElement, menu: HTMLDetailsElement): Promise<void> {

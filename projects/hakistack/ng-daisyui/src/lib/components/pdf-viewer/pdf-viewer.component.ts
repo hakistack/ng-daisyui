@@ -23,6 +23,9 @@ import { PdfAnnotationToolsService } from './services/pdf-annotation-tools.servi
 import { ANNOTATION_CLIPBOARD_TYPE, PdfAnnotationsService } from './services/pdf-annotations.service';
 import { PdfAnnotationDialogsService } from './services/pdf-annotation-dialogs.service';
 import { PdfRasterHiddenService } from './services/pdf-raster-hidden.service';
+import { PdfFormDesignerService } from './services/pdf-form-designer.service';
+import { PdfFormDesignToolbarComponent } from './ui/pdf-form-design-toolbar.component';
+import { PdfFormFieldPanelComponent } from './ui/pdf-form-field-panel.component';
 import { PdfDocumentService } from './services/pdf-document.service';
 import { PdfFindService } from './services/pdf-find.service';
 import { PdfFormsService } from './services/pdf-forms.service';
@@ -83,6 +86,8 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfAnnotationToolbarComponent,
     PdfAnnotationPanelComponent,
     PdfAnnotationDialogsComponent,
+    PdfFormDesignToolbarComponent,
+    PdfFormFieldPanelComponent,
     PdfFindBarComponent,
     PdfSidebarComponent,
     PdfPagesComponent,
@@ -98,6 +103,7 @@ import { PdfToolbarComponent } from './ui/pdf-toolbar.component';
     PdfViewportService,
     PdfLayersService,
     PdfFormsService,
+    PdfFormDesignerService,
     PdfFindService,
     PdfThumbnailsService,
     PdfRasterHiddenService,
@@ -127,6 +133,7 @@ export class PdfViewerComponent implements OnInit {
   private readonly tools = inject(PdfAnnotationToolsService);
   private readonly annotations = inject(PdfAnnotationsService);
   private readonly forms = inject(PdfFormsService);
+  protected readonly designer = inject(PdfFormDesignerService);
 
   /**
    * The PDF document source. Accepts a URL string, a `Uint8Array` of bytes,
@@ -381,10 +388,31 @@ export class PdfViewerComponent implements OnInit {
     return !!sel && !sel.isCollapsed && sel.toString().length > 0;
   }
 
-  /** Annotation shortcuts (see {@link onKeyDown}). Returns true when the key was handled. */
+  /** Annotation shortcuts (see {@link onKeyDown}); in design mode, the form designer's. Returns true when the key was handled. */
   private onAnnotationKey(event: KeyboardEvent): boolean {
     const key = event.key;
     const mod = event.metaKey || event.ctrlKey;
+    if (this.designer.active()) {
+      if (mod && (key === 'z' || key === 'Z')) {
+        void (event.shiftKey ? this.designer.redo() : this.designer.undo());
+        return true;
+      }
+      if (mod && (key === 'y' || key === 'Y')) {
+        void this.designer.redo();
+        return true;
+      }
+      if (key === 'Escape') {
+        if (this.designer.tool()) this.designer.tool.set(null);
+        else this.designer.selection.set(null);
+        return true;
+      }
+      const sel = this.designer.selection();
+      if ((key === 'Delete' || key === 'Backspace') && sel && !(event.target as HTMLElement | null)?.closest?.(INTERACTIVE_SELECTOR)) {
+        void this.designer.remove(sel.field, sel.widget);
+        return true;
+      }
+      return false;
+    }
     if (mod && (key === 'z' || key === 'Z')) {
       void (event.shiftKey ? this.annotations.redo() : this.annotations.undo());
       return true;

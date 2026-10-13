@@ -1,0 +1,71 @@
+<svg
+  #svg
+  class="hk-pdf-design-svg"
+  [attr.viewBox]="viewBox()"
+  preserveAspectRatio="none"
+  role="group"
+  [attr.aria-label]="store.labels().formDesignToolbar"
+  (pointermove)="onPointerMove($event)"
+  (pointerup)="onPointerUp($event)"
+  (pointercancel)="onPointerUp($event)"
+>
+  @for (b of boxes(); track b.key) {
+    <g>
+      <rect
+        class="hk-pdf-design-box"
+        [class.hk-pdf-design-selected]="b.selected"
+        [attr.x]="b.rect.x"
+        [attr.y]="b.rect.y"
+        [attr.width]="b.rect.w"
+        [attr.height]="b.rect.h"
+        [attr.rx]="b.kind === 'radio' ? b.rect.w / 2 : 0"
+        vector-effect="non-scaling-stroke"
+        tabindex="0"
+        role="button"
+        [attr.aria-label]="b.label"
+        [attr.aria-pressed]="b.selected"
+        (pointerdown)="onBoxPointerDown($event, b.field, b.index, b.rect)"
+        (keydown)="onBoxKeydown($event, b.field, b.index, b.rect)"
+        (focus)="onBoxFocus(b.field, b.index)"
+      >
+        <title>{{ b.label }}</title>
+      </rect>
+      <text
+        class="hk-pdf-design-label"
+        [attr.x]="b.rect.x + 1"
+        [attr.y]="b.rect.y - fontSize() * 0.3"
+        [attr.font-size]="fontSize()"
+        [textContent]="b.label"
+      ></text>
+    </g>
+  }
+  @if (draft(); as d) {
+    <rect
+      class="hk-pdf-design-draft"
+      [attr.x]="d.x"
+      [attr.y]="d.y"
+      [attr.width]="d.w"
+      [attr.height]="d.h"
+      vector-effect="non-scaling-stroke"
+    />
+  }
+  @for (h of handles(); track h.handle) {
+    <rect
+      class="hk-pdf-annot-handle"
+      [attr.x]="h.x"
+      [attr.y]="h.y"
+      [attr.width]="h.size"
+      [attr.height]="h.size"
+      [style.cursor]="h.cursor"
+      vector-effect="non-scaling-stroke"
+      (pointerdown)="onHandlePointerDown($event, h.handle)"
+    />
+  }
+</svg>
+<div
+  class="hk-pdf-design-surface"
+  [class.hk-pdf-design-drawing]="!!designer.tool()"
+  (pointerdown)="onSurfacePointerDown($event)"
+  (pointermove)="onPointerMove($event)"
+  (pointerup)="onPointerUp($event)"
+></div>

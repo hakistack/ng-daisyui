@@ -586,6 +586,51 @@ Decisiones:
 - En páginas con `/Rotate`, el overlay de PDFium no puede emparejar sus rects con los links gestionados (usa otra convención), así que un link movido en una página rotada también navega desde su posición original.
 - Sellos de texto con caracteres fuera de WinAnsi (necesitan TrueType, fase 5).
 
+### Estado de la fase 5 (2026-10-12)
+
+**Hecho** (cinco commits):
+
+- **5a, modelo AcroForm y funciones AF** (`core/forms/`):
+  - Lector con hk-pdf-writer: nombres completos, herencia, widgets por página, estados on/off, `/MK`, `/DA` resuelto por `/DR`, flags, opciones, `/AA`, `/CO` y `/Tabs`.
+  - `af.ts` reimplementa AFNumber/Percent/Date/Time/Special (formato y teclado), AFRange_Validate, AFSimple_Calculate y la notación simplificada, con un parser propio. **Nunca se ejecuta el JS del PDF.**
+- **Bug de fondo corregido:** el setter de PDFium escribía `/V` en el widget y no regeneraba la apariencia. Ahora el escritor pone `/V` en el campo, `/AS` en botones y regenera `/AP`.
+- **5b, modo rellenar sobre el modelo:**
+  - Los widgets rellenables salen del raster (un registro común con la capa de anotaciones) y se dibujan como controles HTML con el estilo del campo (fuente, tamaño automático, color, alineación, borde, fondo).
+  - Multilínea, password, maxLength, comb, combos editables, listas multiselección, requeridos y solo lectura, en el orden de `/Tabs`.
+  - Formato al perder el foco, filtrado de teclas, validación con los mensajes nativos del navegador y cálculo en orden `/CO`.
+  - `resetForm`; import/export de datos en JSON, XFDF y FDF; binding `formValues` en ambos sentidos.
+- **5c, `security/`:**
+  - RC4 40/128, AES-128 y AES-256 (R5/R6), con contraseña de usuario o de propietario. Se descifra al leer y se cifra la actualización incremental con la clave del documento.
+  - Se respeta `/P`: sin permiso de anotar, anotaciones en solo lectura; sin permiso de rellenar ni anotar, formulario en solo lectura.
+  - Verificado en los dos sentidos: PDFium abre nuestros R3/R4/R6 y nuestras actualizaciones; nuestro lector abre el W-9 cifrado por **pypdf** en los cuatro algoritmos, y pypdf relee nuestras actualizaciones cifradas.
+- **5d, subsetter TrueType:**
+  - Glyphs con los GIDs originales, Type0/CIDFontType2 Identity-H, `/W` y `/ToUnicode`.
+  - El texto fuera de WinAnsi (griego, cirílico, CJK) se resuelve a la fuente registrada, para medir y para dibujar.
+  - `config.fonts` y `registerPdfFont()`.
+  - Con Arial Unicode (23 MB) el subset ocupa 65 KB. PDFium y Poppler (`pdftotext`, `pdffonts`) extraen el texto exacto.
+- **5e, diseñador ("Prepare form"):**
+  - Herramientas: texto, multilínea, password, número, fecha, casilla, radio (con opciones), desplegable, lista, firma e iniciales.
+  - Mover y redimensionar con asas o teclado, deshacer y rehacer, renombrar detectando conflictos.
+  - Panel de propiedades: general, texto, formato AF, opciones, valor de exportación, borde y fondo.
+  - El escritor crea campos y widgets con `/Fields`, `/Annots`, `/DR` y `/DA`, apariencias on/off y `/AA`; edita y borra existentes localizándolos por referencia.
+  - Bloqueado si el documento está certificado (`/DocMDP`); con `/DocMDP` 1 tampoco se puede rellenar.
+  - Los campos diseñados se pueden rellenar sin recargar. PDFium los reconoce con sus valores.
+- **Verificación:**
+  - 1697 tests (núcleo e integración en jsdom).
+  - `test:pdf-engine` con PDFium, Poppler y el W-9 del IRS (23 campos leídos; los valores escritos se ven en PDFium y se pintan).
+
+**Desviaciones:**
+- Los valores ya no los escribe PDFium sino hk-pdf-writer (como pdf.js, el overlay HTML dibuja los widgets).
+- Las acciones JavaScript que no son AF* no se ejecutan (por diseño).
+- Iniciales es un campo de firma.
+
+**Pendiente:**
+- "Diseño → guardado → abre en Acrobat" no se ha probado en Acrobat (PDFium, Poppler y pypdf sí).
+- Fuentes `.otf` CFF y `.ttc` (no soportadas).
+- Elegir fuente explícitamente por campo o anotación (hoy se usa la estándar con fallback automático).
+- Widgets rotados (`/MK /R`) en la apariencia generada.
+- Firmar los campos de firma (fase 6).
+
 ## 6. Theming (daisyUI v5 / Tailwind v4)
 
 | Pieza | Componente daisyUI |

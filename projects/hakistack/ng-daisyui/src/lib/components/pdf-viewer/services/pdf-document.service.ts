@@ -14,6 +14,7 @@ import { PdfAnnotationsService } from './pdf-annotations.service';
 import { PdfFindService } from './pdf-find.service';
 import { PdfFormsService } from './pdf-forms.service';
 import { PdfRasterHiddenService } from './pdf-raster-hidden.service';
+import { PdfFormDesignerService } from './pdf-form-designer.service';
 import { PdfPageDataService } from './pdf-page-data.service';
 import { PdfThumbnailsService } from './pdf-thumbnails.service';
 import { PDF_BITMAP_CACHE, PdfViewerStore } from './pdf-viewer.store';
@@ -38,6 +39,7 @@ export class PdfDocumentService {
   private readonly thumbnails = inject(PdfThumbnailsService);
   private readonly forms = inject(PdfFormsService);
   private readonly hidden = inject(PdfRasterHiddenService);
+  private readonly designer = inject(PdfFormDesignerService);
   private readonly annotations = inject(PdfAnnotationsService);
   private readonly bitmaps = inject<BitmapCache<ImageBitmap>>(PDF_BITMAP_CACHE);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -102,6 +104,7 @@ export class PdfDocumentService {
     store.attachments.set(null);
     this.annotations.reset();
     this.forms.reset();
+    this.designer.reset();
     this.hidden.reset();
     store.pageRotations.set(new Map());
     store.pageLabels.set([]);
@@ -336,8 +339,14 @@ export class PdfDocumentService {
     const base = this.store.engineEdited || rotations.length > 0 || !source ? await this.saveFromEngine(rotations) : source.slice();
     const annotations = this.annotations.changes();
     const formValues = this.forms.changedValues();
-    if (!annotations && formValues.size === 0) return base;
-    return writeDocumentChanges(base, { formValues, annotations: annotations ?? undefined, password: this.store.documentPassword });
+    const formDesign = this.forms.designed() ?? undefined;
+    if (!annotations && formValues.size === 0 && !formDesign) return base;
+    return writeDocumentChanges(base, {
+      formValues,
+      formDesign,
+      annotations: annotations ?? undefined,
+      password: this.store.documentPassword,
+    });
   }
 
   /** A PDFium save with the display rotations baked in (and reverted afterwards). */
@@ -382,6 +391,7 @@ export class PdfDocumentService {
       this.store.documentEdited ||
       this.annotations.hasChanges() ||
       this.forms.changedValues().size > 0 ||
+      !!this.forms.designed() ||
       [...this.store.pageRotations().values()].some((r) => r !== 0);
     if (!edited) {
       downloadBlob(new Blob([bytes.slice().buffer], { type: 'application/pdf' }), filename || this.deriveFilename());

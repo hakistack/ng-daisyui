@@ -7,6 +7,7 @@ import { PdfEngine } from '../engine/pdf-engine.types';
 import { PdfViewerComponent } from '../pdf-viewer.component';
 import { createPdfViewer } from '../pdf-viewer.helpers';
 import { PdfViewerConfig } from '../pdf-viewer.types';
+import { PdfFormDesignerService } from '../services/pdf-form-designer.service';
 import { PdfFormsService } from '../services/pdf-forms.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 
@@ -74,7 +75,7 @@ function formPdf(): Uint8Array {
   template: `<hk-pdf-viewer [src]="src" [config]="config()" [(formValues)]="values" />`,
 })
 class HostComponent {
-  readonly src = formPdf();
+  src = formPdf();
   readonly config = signal<PdfViewerConfig>({});
   values: Record<string, unknown> = {};
 }
@@ -119,8 +120,9 @@ describe('PDF form filling', () => {
     }
   }
 
-  async function load(values: Record<string, unknown> = {}) {
+  async function load(values: Record<string, unknown> = {}, src?: Uint8Array) {
     const fixture = TestBed.createComponent(HostComponent);
+    if (src) fixture.componentInstance.src = src;
     const viewer = createPdfViewer({ zoom: 1 });
     fixture.componentInstance.config.set(viewer.config());
     fixture.componentInstance.values = values;
@@ -133,7 +135,8 @@ describe('PDF form filling', () => {
       document.body.appendChild(el);
       return el;
     };
-    return { fixture, viewer, forms, control };
+    const designer = fixture.debugElement.query(By.directive(PdfViewerComponent)).injector.get(PdfFormDesignerService);
+    return { fixture, viewer, forms, control, designer };
   }
 
   const type = (el: HTMLInputElement, text: string) => {
@@ -218,5 +221,63 @@ describe('PDF form filling', () => {
     const { model } = await readForm(await PdfDoc.load(saved));
     const values = Object.fromEntries(model.fields.map((f) => [f.name, f.value]));
     expect(values).toMatchObject({ 'person.name': 'Zed', choice: 'a' });
+  });
+
+  it('designs a new field on the page, then fills and saves it', async () => {
+    const { fixture, forms, designer, viewer } = await load();
+    designer.start();
+    designer.tool.set('text');
+    await settle(fixture);
+    const el = fixture.nativeElement as HTMLElement;
+    const surface = el.querySelector<HTMLElement>('.hk-pdf-design-surface.hk-pdf-design-drawing')!;
+    expect(surface).toBeTruthy();
+    // jsdom has no layout: client point (x − 300, y − 400) is page point (x, y) on this 600×800 page.
+    const at = (type: string, x: number, y: number) =>
+      surface.dispatchEvent(new MouseEvent(type, { clientX: x - 300, clientY: y - 400, button: 0, buttons: 1, bubbles: true }));
+    at('pointerdown', 100, 200);
+    at('pointermove', 250, 224);
+    at('pointerup', 250, 224);
+    await settle(fixture);
+    const created = designer.fields().find((f) => f.name === 'Text1');
+    expect(created?.widgets[0].rect).toEqual({ x: 100, y: 200, w: 150, h: 24 });
+    expect(el.querySelector('.hk-pdf-design-box[aria-label="Text1"]')).toBeTruthy();
+
+    expect(await designer.rename('Text1', 'person')).toBe('taken'); // "person.name" exists
+    expect(await designer.rename('Text1', 'email')).toBeNull();
+    await designer.undo();
+    expect(designer.fields().some((f) => f.name === 'Text1')).toBe(true);
+    await designer.redo();
+
+    designer.finish();
+    await settle(fixture);
+    expect(forms.field('email')).toBeTruthy(); // fillable at once
+    forms.setValues(new Map([['email', 'ana@example.com']]));
+    const { model } = await readForm(await PdfDoc.load(await viewer.save()));
+    expect(model.fields.find((f) => f.name === 'email')).toMatchObject({ kind: 'text', value: 'ana@example.com' });
+  });
+
+  it('moves an existing field and keeps its value', async () => {
+    const { designer, viewer } = await load({ 'person.name': 'Zed' });
+    designer.start();
+    const [x] = [designer.fields().find((f) => f.name === 'person.name')!];
+    await designer.setWidgetRect('person.name', 0, { ...x.widgets[0].rect, x: 10 });
+    designer.finish();
+    const { model } = await readForm(await PdfDoc.load(await viewer.save()));
+    expect(model.fields.find((f) => f.name === 'person.name')).toMatchObject({ value: 'Zed', widgets: [{ rect: { x: 10 } }] });
+  });
+
+  it('does not design a certified document', async () => {
+    const certified = new TextEncoder().encode(
+      new TextDecoder('latin1')
+        .decode(formPdf())
+        .replace(
+          '/AcroForm 4 0 R >>',
+          '/AcroForm 4 0 R /Perms << /DocMDP << /Reference [<< /TransformMethod /DocMDP /TransformParams << /P 2 >> >>] >> >> >>',
+        ),
+    );
+    const { designer, forms } = await load({}, certified);
+    expect(forms.docMdp()).toBe(2);
+    designer.start();
+    expect(designer.active()).toBe(false);
   });
 });

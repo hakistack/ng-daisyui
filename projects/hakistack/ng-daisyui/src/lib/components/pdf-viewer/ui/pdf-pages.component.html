@@ -24,6 +24,7 @@
       <div
         #stack
         class="hk-pdf-page-stack flex flex-col items-center gap-4"
+        [class.hk-pdf-designing]="designer.active()"
         [class.hk-pdf-page-stack-centered]="store.centerPages()"
         role="document"
         aria-label="PDF document"
@@ -66,6 +67,9 @@
                     [style.--scale-factor]="viewport.scale()"
                   ></div>
                   <hk-pdf-annotation-layer [page]="n" />
+                  @if (designer.active()) {
+                    <hk-pdf-form-design-layer [page]="n" />
+                  }
                 </div>
               </div>
             }

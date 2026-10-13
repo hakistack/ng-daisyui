@@ -3,6 +3,7 @@ import { cssFontFamily } from '../core/annotations/shapes';
 import { acceptsKeystroke, calculate, commitValue, formatValue, validateRange } from '../core/forms/af';
 import { displayText, innerBox, widgetFontSize } from '../core/forms/form-appearance';
 import { FormField, FormModel, FormValue, FormWidget, emptyValue, sameValue } from '../core/forms/form-model';
+import { DocMdpLevel, FormDesign, readDocMdp } from '../core/forms/form-design';
 import { readForm } from '../core/forms/form-reader';
 import { PdfDoc } from '../core/pdf-writer/document';
 import { PDF_PERMISSION } from '../core/pdf-writer/security';
@@ -33,8 +34,16 @@ export class PdfFormsService {
 
   readonly model = signal<FormModel | null>(null);
   readonly values = signal<ReadonlyMap<string, FormValue>>(new Map());
+  /** The certification level of a certified document (`/DocMDP`), or null. */
+  readonly docMdp = signal<DocMdpLevel | null>(null);
+  /** The document's permissions allow filling the form. */
+  readonly editable = signal(true);
+  /** The form as designed (fields created, changed or deleted), until saved. */
+  readonly designed = signal<FormDesign | null>(null);
 
   private baseline = new Map<string, FormValue>();
+  /** The form as read from the file (what a design is compared with). */
+  private original: FormModel | null = null;
   private byName = new Map<string, FormField>();
   /** Live controls per field (pruned when their page re-renders). */
   private readonly controls = new Map<string, Set<{ el: HTMLElement; widget: FormWidget }>>();
@@ -60,6 +69,10 @@ export class PdfFormsService {
   reset(): void {
     this.loadSeq++;
     this.model.set(null);
+    this.original = null;
+    this.designed.set(null);
+    this.docMdp.set(null);
+    this.editable.set(true);
     this.values.set(new Map());
     this.baseline = new Map();
     this.byName = new Map();
@@ -73,10 +86,18 @@ export class PdfFormsService {
     const seq = this.loadSeq;
     if (!doc) return;
     try {
-      const { model } = await readForm(doc);
-      if (seq !== this.loadSeq || !model.fields.length) return;
-      // A document that permits neither filling nor annotating shows its fields read-only.
-      const canFill = !doc.security || doc.security.allows(PDF_PERMISSION.fillForms) || doc.security.allows(PDF_PERMISSION.annotate);
+      const [{ model }, mdp] = await Promise.all([readForm(doc), readDocMdp(doc)]);
+      if (seq !== this.loadSeq) return;
+      this.docMdp.set(mdp);
+      // A document that permits neither filling nor annotating (or is certified "no changes") shows its fields read-only.
+      const canFill =
+        (!doc.security || doc.security.allows(PDF_PERMISSION.fillForms) || doc.security.allows(PDF_PERMISSION.annotate)) && mdp !== 1;
+      this.editable.set(canFill);
+      this.original = model;
+      if (!model.fields.length) {
+        this.model.set({ ...model, fields: [] });
+        return;
+      }
       this.setModel(canFill ? model : { ...model, fields: model.fields.map((f) => ({ ...f, readOnly: true })) });
       this.applyPublic(this.store.formValues(), false);
     } catch {
@@ -121,10 +142,7 @@ export class PdfFormsService {
     if (!touched.size) return;
     for (const name of this.recalculate(next)) touched.add(name);
     this.values.set(next);
-    this.store.setDirty(
-      'forms',
-      [...next].some(([n, v]) => !sameValue(v, this.baseline.get(n) ?? '')),
-    );
+    this.store.setDirty('forms', !!this.designed() || [...next].some(([n, v]) => !sameValue(v, this.baseline.get(n) ?? '')));
     for (const name of touched) this.refreshControls(name);
     if (!silent) {
       const out: Record<string, unknown> = {};
@@ -217,6 +235,51 @@ export class PdfFormsService {
       if (f && internal !== null) changes.set(name, internal);
     }
     this.setValues(changes, !emit);
+  }
+
+  // ── Design ──────────────────────────────────────────────────────────────
+
+  /**
+   * Make a design the form (or drop it with `null`): its fields become
+   * fillable at once, values follow renamed fields, and the original widgets
+   * that moved, changed or were deleted leave the rasters (the overlay or
+   * the next save draws them where they are now).
+   */
+  applyDesign(design: FormDesign | null): void {
+    const original = this.original;
+    if (!original) return;
+    this.designed.set(design);
+    const source = design?.fields ?? original.fields;
+    const fields: FormField[] = source.map((f) => ({ ...f, widgets: f.widgets.map((w) => ({ ...w })) }));
+    // Values follow their field through a rename; new fields start with their designed value.
+    const oldValues = this.values();
+    const values = new Map<string, FormValue>();
+    const baseline = new Map<string, FormValue>();
+    for (const f of source) {
+      const from = 'origin' in f ? (f.origin as string | undefined) : f.name;
+      values.set(f.name, (from !== undefined ? oldValues.get(from) : undefined) ?? f.value);
+      baseline.set(f.name, (from !== undefined ? this.baseline.get(from) : undefined) ?? f.value);
+    }
+    this.model.set({ ...original, fields });
+    this.byName = new Map(fields.map((f) => [f.name, f]));
+    this.baseline = baseline;
+    this.values.set(values);
+    this.controls.clear();
+    // Hidden: the fillable widgets as in the file, plus any original widget the design moved, restyled or deleted.
+    const designedByOrigin = new Map((design?.fields ?? []).filter((f) => f.origin).map((f) => [f.origin!, f]));
+    const entries: number[] = [];
+    for (const f of original.fields) {
+      const now = design ? designedByOrigin.get(f.name) : undefined;
+      f.widgets.forEach((w, i) => {
+        const after = design ? now?.widgets.find((x) => x.origin === i) : w;
+        const same = !!after && JSON.stringify({ ...after, origin: undefined }) === JSON.stringify({ ...w, origin: undefined });
+        if (FILLABLE.has(f.kind) || !same) entries.push(w.page, w.index);
+      });
+    }
+    void this.hidden.set('forms', entries);
+    // Rebuild the controls of every page with fields (new fields have no raster to trigger it).
+    this.hidden.repaint(fields.flatMap((f) => f.widgets.map((w) => w.page)));
+    this.store.setDirty('forms', !!design || [...values].some(([n, v]) => !sameValue(v, baseline.get(n) ?? '')));
   }
 
   // ── Data import / export ────────────────────────────────────────────────

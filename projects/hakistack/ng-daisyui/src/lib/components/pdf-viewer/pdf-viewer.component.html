@@ -8,7 +8,9 @@
     }
   }
 
-  @if (store.annotationBarOpen() && store.layout() === 'default') {
+  @if (designer.active() && store.layout() === 'default') {
+    <hk-pdf-form-design-toolbar />
+  } @else if (store.annotationBarOpen() && store.layout() === 'default') {
     <hk-pdf-annotation-toolbar />
   }
 
@@ -72,7 +74,11 @@
         <hk-pdf-sidebar />
       }
       <hk-pdf-pages />
-      <hk-pdf-annotation-panel />
+      @if (designer.active()) {
+        <hk-pdf-form-field-panel />
+      } @else {
+        <hk-pdf-annotation-panel />
+      }
     </div>
   }
 </div>

@@ -16,6 +16,8 @@ import { PdfDocumentService } from '../services/pdf-document.service';
 import { PdfViewerStore } from '../services/pdf-viewer.store';
 import { PdfViewportService } from '../services/pdf-viewport.service';
 import { PdfAnnotationLayerComponent } from './pdf-annotation-layer.component';
+import { PdfFormDesignLayerComponent } from './pdf-form-design-layer.component';
+import { PdfFormDesignerService } from '../services/pdf-form-designer.service';
 
 const VIEWPORT_CLASSES = {
   default: 'hk-pdf-viewport relative flex-1 min-h-0 min-w-0 overflow-auto bg-base-200 p-4',
@@ -31,7 +33,7 @@ const VIEWPORT_CLASSES = {
  */
 @Component({
   selector: 'hk-pdf-pages',
-  imports: [PdfAnnotationLayerComponent],
+  imports: [PdfAnnotationLayerComponent, PdfFormDesignLayerComponent],
   templateUrl: './pdf-pages.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'contents' },
@@ -42,6 +44,7 @@ export class PdfPagesComponent {
   protected readonly document = inject(PdfDocumentService);
   protected readonly tools = inject(PdfAnnotationToolsService);
   private readonly annotations = inject(PdfAnnotationsService);
+  protected readonly designer = inject(PdfFormDesignerService);
 
   /** `default`: fills the layout's flex row. `preview`: a bordered, rounded box. */
   readonly variant = input<keyof typeof VIEWPORT_CLASSES>('default');

@@ -30,6 +30,11 @@ export class PdfRasterHiddenService {
     for (const page of pages) this.viewport.rerenderPage(page + 1);
   }
 
+  /** Repaint pages (0-based), e.g. so their overlays are rebuilt. */
+  repaint(pages: Iterable<number>): void {
+    for (const page of new Set(pages)) this.viewport.rerenderPage(page + 1);
+  }
+
   /** Forget every source (a new document: its engine handle starts with nothing hidden). */
   reset(): void {
     this.sets.clear();

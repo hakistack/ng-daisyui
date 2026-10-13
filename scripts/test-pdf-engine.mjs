@@ -256,7 +256,8 @@ export { readAnnotations, writeAnnotationChanges } from ${JSON.stringify(join(li
 export { encodePng } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/images.ts'))};
 export { calibrate } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/annotations/measure.ts'))};
 export { readForm } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/form-reader.ts'))};
-export { writeDocumentChanges } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/document-writer.ts'))};`,
+export { writeDocumentChanges } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/document-writer.ts'))};
+export { newDesignField, newWidget } from ${JSON.stringify(join(lib, 'components/pdf-viewer/core/forms/form-design.ts'))};`,
   );
   const writerBuild = await build({
     entryPoints: [writerEntry],
@@ -710,6 +711,57 @@ export { writeDocumentChanges } from ${JSON.stringify(join(lib, 'components/pdf-
         !new TextDecoder('latin1').decode(filled.subarray(original.length)).includes('/NeedAppearances true'),
       );
     }
+  }
+
+  // ── Designed fields, as PDFium's form-fill environment sees them ─────────
+  console.log('\nform design (hk-pdf-writer → PDFium)');
+  {
+    const base = serializePdf({
+      1: '<< /Type /Catalog /Pages 2 0 R >>',
+      2: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      3: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << >> >>',
+    });
+    const radio = w.newDesignField('radio', 'size', 0, { x: 50, y: 300, w: 14, h: 14 });
+    const fields = [
+      { ...w.newDesignField('text', 'name', 0, { x: 50, y: 50, w: 200, h: 22 }), value: 'Ana' },
+      { ...w.newDesignField('checkbox', 'agree', 0, { x: 50, y: 100, w: 14, h: 14 }), value: 'Yes' },
+      {
+        ...w.newDesignField('combo', 'country', 0, { x: 50, y: 150, w: 200, h: 22 }),
+        options: [
+          { value: 'MX', label: 'Mexico' },
+          { value: 'US', label: 'United States' },
+        ],
+        value: 'US',
+      },
+      { ...radio, value: 'Choice2', widgets: [...radio.widgets, w.newWidget('radio', 0, { x: 80, y: 300, w: 14, h: 14 }, 'Choice2')] },
+      w.newDesignField('signature', 'sign', 0, { x: 300, y: 50, w: 200, h: 50 }),
+    ];
+    const saved = await w.writeDocumentChanges(base, { formDesign: { fields, deleted: [] } });
+    const h = e.open(saved, undefined);
+    const rows = e.form_fields(h, 0).map(([name, type, , , , , value, , checked]) => ({ name, type, value, checked: checked === 1 }));
+    const by = (n) => rows.filter((r) => r.name === n);
+    check(
+      'PDFium finds every designed field with its type',
+      by('name')[0]?.type === 'text' &&
+        by('agree')[0]?.type === 'checkbox' &&
+        by('country')[0]?.type === 'combo' &&
+        by('size').length === 2 &&
+        by('sign')[0]?.type === 'signature',
+    );
+    check(
+      '…and their values (text, checkbox, combo, the second radio option)',
+      by('name')[0].value === 'Ana' &&
+        by('agree')[0].checked && // PDFium reports a choice by its display text (/V holds the export value).
+        by('country')[0].value === 'United States' &&
+        by('size')
+          .map((r) => r.checked)
+          .join() === 'false,true',
+    );
+    const [rw, , px] = e.render(h, 0, 600);
+    let inked = 0;
+    for (let y = 52; y < 70; y++) for (let x = 52; x < 248; x++) if (px[(y * rw + x) * 4] < 100) inked++;
+    check('the text field paints its value from the generated appearance', inked > 20);
+    e.close(h);
   }
 
   // ── Part 2: worker protocol ────────────────────────────────────────────

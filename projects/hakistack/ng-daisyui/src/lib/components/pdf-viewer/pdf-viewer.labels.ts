@@ -420,6 +420,86 @@ export interface PdfViewerLabels {
   exportFormData?: string;
   /** Default: "Import form data…" */
   importFormData?: string;
+  /** Default: "Prepare form" */
+  prepareForm?: string;
+  /** Default: "Form field tools" */
+  formDesignToolbar?: string;
+  /** Default: "Done" */
+  finishDesign?: string;
+  /** Default: "Text field" */
+  fieldText?: string;
+  /** Default: "Multi-line text" */
+  fieldMultiline?: string;
+  /** Default: "Password" */
+  fieldPassword?: string;
+  /** Default: "Number" */
+  fieldNumber?: string;
+  /** Default: "Date" */
+  fieldDate?: string;
+  /** Default: "Check box" */
+  fieldCheckbox?: string;
+  /** Default: "Radio button" */
+  fieldRadio?: string;
+  /** Default: "Dropdown" */
+  fieldCombo?: string;
+  /** Default: "List box" */
+  fieldList?: string;
+  /** Default: "Signature" */
+  fieldSignature?: string;
+  /** Default: "Initials" */
+  fieldInitials?: string;
+  /** Default: "Field properties" */
+  fieldProperties?: string;
+  /** Default: "Name" */
+  fieldName?: string;
+  /** Default: "Tooltip" */
+  fieldTooltip?: string;
+  /** Default: "Required" */
+  fieldRequired?: string;
+  /** Default: "Read-only" */
+  fieldReadOnly?: string;
+  /** Default: "Max length" */
+  fieldMaxLength?: string;
+  /** Default: "Comb of characters" */
+  fieldComb?: string;
+  /** Default: "Format" */
+  fieldFormat?: string;
+  /** Default: "None" */
+  formatNone?: string;
+  /** Default: "Number" */
+  formatNumber?: string;
+  /** Default: "Percent" */
+  formatPercent?: string;
+  /** Default: "Date" */
+  formatDate?: string;
+  /** Default: "ZIP code" */
+  formatZip?: string;
+  /** Default: "Phone number" */
+  formatPhone?: string;
+  /** Default: "Social security number" */
+  formatSsn?: string;
+  /** Default: "Options (one per line: value|label)" */
+  fieldOptions?: string;
+  /** Default: "Allow typing" */
+  fieldEditable?: string;
+  /** Default: "Multiple selection" */
+  fieldMultiSelect?: string;
+  /** Default: "Export value" */
+  fieldExportValue?: string;
+  /** Default: "Border" */
+  fieldBorder?: string;
+  /** Default: "Background" */
+  fieldBackground?: string;
+  /** Default: "Another field already uses this name." */
+  nameTaken?: string;
+  /** Default: "Enter a name." */
+  nameEmpty?: string;
+  /** Default: "Delete field" */
+  deleteField?: string;
+  /** Default: "This document is certified: its form can't be changed." */
+  formLocked?: string;
+  /** Default: "Drag on the page to add a field; select a radio group to add options to it." */
+  designHint?: string;
 }
 
 /** Resolved labels — every field guaranteed to be a string after defaults are applied. */
@@ -626,6 +706,46 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   resetForm: 'Reset form',
   exportFormData: 'Export form data',
   importFormData: 'Import form data…',
+  prepareForm: 'Prepare form',
+  formDesignToolbar: 'Form field tools',
+  finishDesign: 'Done',
+  fieldText: 'Text field',
+  fieldMultiline: 'Multi-line text',
+  fieldPassword: 'Password',
+  fieldNumber: 'Number',
+  fieldDate: 'Date',
+  fieldCheckbox: 'Check box',
+  fieldRadio: 'Radio button',
+  fieldCombo: 'Dropdown',
+  fieldList: 'List box',
+  fieldSignature: 'Signature',
+  fieldInitials: 'Initials',
+  fieldProperties: 'Field properties',
+  fieldName: 'Name',
+  fieldTooltip: 'Tooltip',
+  fieldRequired: 'Required',
+  fieldReadOnly: 'Read-only',
+  fieldMaxLength: 'Max length',
+  fieldComb: 'Comb of characters',
+  fieldFormat: 'Format',
+  formatNone: 'None',
+  formatNumber: 'Number',
+  formatPercent: 'Percent',
+  formatDate: 'Date',
+  formatZip: 'ZIP code',
+  formatPhone: 'Phone number',
+  formatSsn: 'Social security number',
+  fieldOptions: 'Options (one per line: value|label)',
+  fieldEditable: 'Allow typing',
+  fieldMultiSelect: 'Multiple selection',
+  fieldExportValue: 'Export value',
+  fieldBorder: 'Border',
+  fieldBackground: 'Background',
+  nameTaken: 'Another field already uses this name.',
+  nameEmpty: 'Enter a name.',
+  deleteField: 'Delete field',
+  formLocked: "This document is certified: its form can't be changed.",
+  designHint: 'Drag on the page to add a field; select a radio group to add options to it.',
 };
 
 export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');
