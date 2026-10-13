@@ -230,9 +230,9 @@ describe('PdfDoc', () => {
     expect(await doc.pages()).toHaveLength(2);
   });
 
-  it('refuses encrypted documents for now', async () => {
+  it('refuses encryption with a security handler other than the standard one', async () => {
     const text = latin1(classicPdf()).replace('/Root 1 0 R', '/Root 1 0 R /Encrypt 6 0 R');
-    await expect(PdfDoc.load(enc.encode(text))).rejects.toThrow(/encrypted/);
+    await expect(PdfDoc.load(enc.encode(text))).rejects.toThrow(/security handler/);
   });
 });
 

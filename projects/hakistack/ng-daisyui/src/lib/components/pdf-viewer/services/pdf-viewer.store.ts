@@ -206,6 +206,8 @@ export class PdfViewerStore {
   pages: PdfPageEntry[] = [];
   /** Original bytes, kept for an unedited `download()`. */
   sourceBytes: Uint8Array | null = null;
+  /** The password the open document was opened with (`''` when none was needed). */
+  documentPassword = '';
   /** Bumped per load / structural change; async continuations bail when it moves. */
   loadToken = 0;
   /** Bumped on each full re-render; stale layer work compares against it. */

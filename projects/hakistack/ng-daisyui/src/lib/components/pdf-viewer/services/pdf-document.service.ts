@@ -162,7 +162,7 @@ export class PdfDocumentService {
   private async loadEditables(bytes: Uint8Array, numPages: number, token: number): Promise<void> {
     let doc: PdfDoc | null = null;
     try {
-      doc = await PdfDoc.load(bytes);
+      doc = await PdfDoc.load(bytes, this.store.documentPassword);
     } catch {
       doc = null;
     }
@@ -184,7 +184,9 @@ export class PdfDocumentService {
     let password = initialPassword;
     for (let attempt = 0; attempt < MAX_PASSWORD_ATTEMPTS; attempt++) {
       try {
-        return await engine.open(makeCopy(), { password: password || undefined });
+        const handle = await engine.open(makeCopy(), { password: password || undefined });
+        this.store.documentPassword = password;
+        return handle;
       } catch (err) {
         if (this.store.loadToken !== token) return null;
         if (!String((err as Error)?.message ?? '').includes(PASSWORD_REQUIRED)) throw err;
@@ -317,7 +319,7 @@ export class PdfDocumentService {
     const annotations = this.annotations.changes();
     const formValues = this.forms.changedValues();
     if (!annotations && formValues.size === 0) return base;
-    return writeDocumentChanges(base, { formValues, annotations: annotations ?? undefined });
+    return writeDocumentChanges(base, { formValues, annotations: annotations ?? undefined, password: this.store.documentPassword });
   }
 
   /** A PDFium save with the display rotations baked in (and reverted afterwards). */

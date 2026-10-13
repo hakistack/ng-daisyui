@@ -250,7 +250,7 @@ export interface PdfViewerLabels {
   pageGroup?: string;
   /** Default: "{type} by {author}" */
   annotationAriaLabel?: string;
-  /** Default: "Annotations can't be edited in this document (it is encrypted or damaged)." */
+  /** Default: "Annotations can't be added to this document (its permissions don't allow it, or it couldn't be read)." */
   annotationsReadOnly?: string;
   /** Default: "Guest" */
   defaultAuthor?: string;
@@ -541,7 +541,7 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   noComment: 'No comment',
   pageGroup: 'Page {page}',
   annotationAriaLabel: '{type} by {author}',
-  annotationsReadOnly: "Annotations can't be edited in this document (it is encrypted or damaged).",
+  annotationsReadOnly: "Annotations can't be added to this document (its permissions don't allow it, or it couldn't be read).",
   defaultAuthor: 'Guest',
   endingNone: 'None',
   endingOpenArrow: 'Open arrow',

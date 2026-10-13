@@ -31,7 +31,8 @@ export async function saveIncremental(doc: PdfDoc): Promise<Uint8Array> {
 
   const written: WrittenEntry[] = [];
   for (const { ref, value } of [...doc.changes.values()].sort((a, b) => a.ref.num - b.ref.num)) {
-    const bytes = serializeIndirectObject(ref, value);
+    // An encrypted document's new objects are encrypted with its key.
+    const bytes = serializeIndirectObject(ref, doc.security ? await doc.security.encryptObject(ref.num, ref.gen, value) : value);
     written.push({ num: ref.num, entry: { type: 'offset', offset, gen: ref.gen } });
     parts.push(bytes);
     offset += bytes.length;

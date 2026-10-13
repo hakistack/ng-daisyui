@@ -149,7 +149,7 @@ const dir = mkdtempSync(join(tmpdir(), 'hk-pdf-engine-'));
 const entry = join(dir, 'entry.mjs');
 writeFileSync(
   entry,
-  `export { default as initPdfEngine, initialize_pdfium_render, open, close, page_count, document_title, page_links, form_fields, set_field_value, set_hidden_annotations, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
+  `export { default as initPdfEngine, initialize_pdfium_render, open, close, page_count, document_title, page_text, page_links, form_fields, set_field_value, set_hidden_annotations, save_document, render, render_tile } from ${JSON.stringify(inputs.glue)};
 export { default as createPdfiumModule } from ${JSON.stringify(inputs.pdfium)};
 export { default as pdfEngineWasm } from ${JSON.stringify(inputs.engineWasm)};
 export { default as pdfiumWasm } from ${JSON.stringify(inputs.pdfiumWasm)};`,
@@ -534,6 +534,87 @@ export { writeDocumentChanges } from ${JSON.stringify(join(lib, 'components/pdf-
     }
     check(`${file}: the new appearance of "${f0.name.split('.').pop()}" paints its text`, inked > 10);
     e.close(h);
+  }
+
+  // ── Encrypted documents: written by hk-pdf-writer, opened by PDFium ──────
+  console.log('\nencryption (hk-pdf-writer ⇄ PDFium)');
+  for (const revision of [3, 4, 6]) {
+    const enc = new TextEncoder();
+    const id0 = Uint8Array.from({ length: 16 }, (_, i) => i * 7);
+    const { security, encrypt } = await w.PdfSecurity.create({
+      userPassword: 'user',
+      ownerPassword: 'owner',
+      revision,
+      permissions: 0x24,
+      id0,
+    });
+    const content = 'BT /F1 18 Tf 40 100 Td (Encrypted text) Tj ET';
+    const objects = [
+      [1, new w.PdfDict({ Type: w.PdfName.of('Catalog'), Pages: new w.PdfRef(2, 0) })],
+      [2, new w.PdfDict({ Type: w.PdfName.of('Pages'), Kids: [new w.PdfRef(3, 0)], Count: 1 })],
+      [
+        3,
+        new w.PdfDict({
+          Type: w.PdfName.of('Page'),
+          Parent: new w.PdfRef(2, 0),
+          MediaBox: [0, 0, 300, 200],
+          Contents: new w.PdfRef(4, 0),
+          Resources: new w.PdfDict({ Font: new w.PdfDict({ F1: new w.PdfRef(7, 0) }) }),
+        }),
+      ],
+      [4, new w.PdfStream(new w.PdfDict(), enc.encode(content))],
+      [5, new w.PdfDict({ Title: w.PdfString.text('Secret title') })],
+      [7, new w.PdfDict({ Type: w.PdfName.of('Font'), Subtype: w.PdfName.of('Type1'), BaseFont: w.PdfName.of('Helvetica') })],
+    ];
+    const parts = [enc.encode('%PDF-1.7\n')];
+    const offsets = {};
+    let offset = parts[0].length;
+    for (const [num, value] of objects) {
+      offsets[num] = offset;
+      const bytes = w.serializeIndirectObject(new w.PdfRef(num, 0), await security.encryptObject(num, 0, value));
+      parts.push(bytes);
+      offset += bytes.length;
+    }
+    offsets[6] = offset;
+    const encBytes = w.serializeIndirectObject(new w.PdfRef(6, 0), encrypt);
+    parts.push(encBytes);
+    offset += encBytes.length;
+    let xref = 'xref\n0 8\n0000000000 65535 f \n';
+    for (let n = 1; n <= 7; n++) xref += `${String(offsets[n]).padStart(10, '0')} 00000 n \n`;
+    const trailer = new w.PdfDict({
+      Size: 8,
+      Root: new w.PdfRef(1, 0),
+      Info: new w.PdfRef(5, 0),
+      Encrypt: new w.PdfRef(6, 0),
+      ID: [w.PdfString.bytes(id0), w.PdfString.bytes(id0)],
+    });
+    parts.push(enc.encode(`${xref}trailer\n${w.serializeValue(trailer)}\nstartxref\n${offset}\n%%EOF\n`));
+    const bytes = Buffer.concat(parts.map((p) => Buffer.from(p)));
+
+    let opened = false;
+    let pw = 'none';
+    try {
+      e.open(new Uint8Array(bytes), 'wrong');
+    } catch (err) {
+      pw = String(err).includes('PASSWORD') ? 'asked' : String(err);
+    }
+    const h = e.open(new Uint8Array(bytes), 'user');
+    opened =
+      e.document_title(h) === 'Secret title' &&
+      e
+        .page_text(h, 0)
+        .map((s) => s[0])
+        .join('')
+        .includes('Encrypted text');
+    e.close(h);
+    check(`R${revision}: PDFium asks for the password and decrypts our file (title, page text)`, pw === 'asked' && opened);
+
+    const doc = await w.PdfDoc.load(new Uint8Array(bytes), 'user');
+    await doc.setInfo({ Title: 'Edited secret' });
+    const saved = await w.saveIncremental(doc);
+    const h2 = e.open(saved, 'user');
+    check(`R${revision}: PDFium reads our encrypted incremental update`, e.document_title(h2) === 'Edited secret');
+    e.close(h2);
   }
 
   // ── Part 2: worker protocol ────────────────────────────────────────────

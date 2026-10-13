@@ -9,11 +9,13 @@ import { applyFormValues } from './form-writer';
 export interface DocumentChanges {
   readonly formValues?: ReadonlyMap<string, FormValue>;
   readonly annotations?: { readonly baseline: AnnotationBaseline; readonly current: readonly HkAnnotation[] };
+  /** The password an encrypted document was opened with (the update is encrypted with its key). */
+  readonly password?: string;
 }
 
 /** Apply form values and annotation changes to `bytes` as one incremental update (the bytes as they are when nothing changes). */
 export async function writeDocumentChanges(bytes: Uint8Array, changes: DocumentChanges, now = new Date()): Promise<Uint8Array> {
-  const doc = await PdfDoc.load(bytes);
+  const doc = await PdfDoc.load(bytes, changes.password);
   if (changes.formValues) await applyFormValues(doc, changes.formValues);
   if (changes.annotations) await applyAnnotationChanges(doc, changes.annotations.baseline, changes.annotations.current, now);
   return doc.modified ? saveIncremental(doc) : bytes;

@@ -1,6 +1,7 @@
 import { decodeStream } from './filters';
 import { PdfDict, PdfParseError, PdfRef, PdfStream, PdfString, PdfValue, isDict } from './objects';
 import { PdfParser } from './parser';
+import { PdfSecurity } from './security';
 import { XrefTable, readXref } from './xref';
 
 /** Thrown for valid PDFs the writer doesn't handle yet (e.g. encryption). */
@@ -33,6 +34,10 @@ export class PdfDoc {
   /** Objects deleted in this session. */
   readonly deletions = new Map<number, PdfRef>();
   private nextNumber: number;
+  /** The security handler of an encrypted document (null when it isn't encrypted). */
+  security: PdfSecurity | null = null;
+  /** The `/Encrypt` dictionary's object number (never decrypted). */
+  private encryptNum = -1;
 
   private constructor(
     readonly bytes: Uint8Array,
@@ -42,10 +47,25 @@ export class PdfDoc {
     this.nextNumber = Math.max(size, Math.max(0, ...xref.entries.keys()) + 1);
   }
 
-  static async load(bytes: Uint8Array): Promise<PdfDoc> {
+  /**
+   * Open a document. An encrypted one needs its user or owner `password`
+   * (empty by default, which opens most "permissions-only" documents);
+   * throws {@link PdfPasswordError} when it doesn't match.
+   */
+  static async load(bytes: Uint8Array, password = ''): Promise<PdfDoc> {
     const xref = await readXref(bytes);
-    if (xref.trailer.has('Encrypt')) throw new PdfUnsupportedError('encrypted PDFs are not supported yet');
-    return new PdfDoc(bytes, xref);
+    const doc = new PdfDoc(bytes, xref);
+    const encryptRef = xref.trailer.get('Encrypt');
+    if (encryptRef !== undefined) {
+      if (encryptRef instanceof PdfRef) doc.encryptNum = encryptRef.num;
+      const encrypt = await doc.dict(encryptRef);
+      const id = xref.trailer.get('ID');
+      const id0 = Array.isArray(id) && id[0] instanceof PdfString ? id[0].bytes : new Uint8Array();
+      if (!encrypt) throw new PdfUnsupportedError('encrypted document without an /Encrypt dictionary');
+      doc.security = await PdfSecurity.open(encrypt, id0, password);
+      doc.cache.clear(); // anything read before the key existed
+    }
+    return doc;
   }
 
   get trailer(): PdfDict {
@@ -194,7 +214,9 @@ export class PdfDoc {
     }
     const parser = new PdfParser(this.bytes, entry.offset, (ref) => this.syncLength(ref));
     try {
-      return parser.parseIndirectObject().value;
+      const value = parser.parseIndirectObject().value;
+      // Objects in object streams aren't encrypted individually (their stream was); the /Encrypt dictionary never is.
+      return this.security && num !== this.encryptNum ? await this.security.decryptObject(num, entry.gen, value) : value;
     } catch (err) {
       throw new PdfParseError(`object ${num}: ${(err as Error).message}`);
     }

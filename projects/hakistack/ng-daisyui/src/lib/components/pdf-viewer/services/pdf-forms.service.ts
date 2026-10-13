@@ -5,6 +5,7 @@ import { displayText, innerBox, widgetFontSize } from '../core/forms/form-appear
 import { FormField, FormModel, FormValue, FormWidget, emptyValue, sameValue } from '../core/forms/form-model';
 import { readForm } from '../core/forms/form-reader';
 import { PdfDoc } from '../core/pdf-writer/document';
+import { PDF_PERMISSION } from '../core/pdf-writer/security';
 import { PdfParser } from '../core/pdf-writer/parser';
 import { PdfDict, PdfName, PdfString, PdfValue } from '../core/pdf-writer/objects';
 import { PdfRasterHiddenService } from './pdf-raster-hidden.service';
@@ -74,7 +75,9 @@ export class PdfFormsService {
     try {
       const { model } = await readForm(doc);
       if (seq !== this.loadSeq || !model.fields.length) return;
-      this.setModel(model);
+      // A document that permits neither filling nor annotating shows its fields read-only.
+      const canFill = !doc.security || doc.security.allows(PDF_PERMISSION.fillForms) || doc.security.allows(PDF_PERMISSION.annotate);
+      this.setModel(canFill ? model : { ...model, fields: model.fields.map((f) => ({ ...f, readOnly: true })) });
       this.applyPublic(this.store.formValues(), false);
     } catch {
       /* no usable form: widgets stay in the raster */

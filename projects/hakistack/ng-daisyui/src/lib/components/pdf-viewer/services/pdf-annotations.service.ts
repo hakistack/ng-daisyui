@@ -21,6 +21,7 @@ import { exportAnnotationsJson, exportXfdf, importAnnotationsJson, importXfdf } 
 import { CommandStack, PdfCommand, PdfCommandStackState } from '../core/command-stack';
 import { pointerToLocal } from '../core/geometry';
 import { PdfDoc } from '../core/pdf-writer/document';
+import { PDF_PERMISSION } from '../core/pdf-writer/security';
 import type { StandardFont } from '../core/pdf-writer/standard-fonts';
 import { PdfAnnotationTool } from '../pdf-viewer.types';
 import { PdfViewerStore } from './pdf-viewer.store';
@@ -170,8 +171,14 @@ export class PdfAnnotationsService {
   /** The stamp the stamp tool places. */
   readonly pendingStamp = signal<PendingStamp | null>(null);
 
-  /** `edit` (default): everything; `review`: comments, replies and status only; `view`: read-only. */
-  readonly mode = computed(() => this.store.config().annotationMode ?? 'edit');
+  /** The document's own permissions (`/P` of an encrypted document opened with the user password) allow annotating. */
+  private readonly permitted = signal(true);
+  /**
+   * `edit` (default): everything; `review`: comments, replies and status
+   * only; `view`: read-only. A document that doesn't permit annotating is
+   * always `view`.
+   */
+  readonly mode = computed(() => (this.permitted() ? (this.store.config().annotationMode ?? 'edit') : 'view'));
   /** New annotations can be added. */
   readonly canAdd = computed(() => this.supported() && this.mode() === 'edit');
 
@@ -271,6 +278,7 @@ export class PdfAnnotationsService {
     const seq = this.loadSeq;
     try {
       if (!doc) throw new Error('document not readable');
+      this.permitted.set(!doc.security || doc.security.allows(PDF_PERMISSION.annotate));
       const pages = await readAnnotations(doc);
       if (seq !== this.loadSeq) return;
       if (pages.length !== pageCount) throw new Error(`page count mismatch (${pages.length} vs ${pageCount})`);

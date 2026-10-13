@@ -3,7 +3,7 @@
   role="toolbar"
   [attr.aria-label]="store.labels().annotationToolbar"
 >
-  @if (!annotations.supported() && store.showPages()) {
+  @if (!annotations.canAdd() && store.showPages()) {
     <span class="text-xs text-base-content/70 px-1" role="status">{{ store.labels().annotationsReadOnly }}</span>
   } @else {
     @for (group of groups; track $index; let last = $last) {

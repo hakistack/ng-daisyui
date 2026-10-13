@@ -3,6 +3,9 @@ import { TestBed } from '@angular/core/testing';
 import { readAnnotations, writeAnnotationChanges } from '../core/annotations/annotation-io';
 import { HkAnnotation } from '../core/annotations/annotation.types';
 import { PdfDoc } from '../core/pdf-writer/document';
+import { PdfDict, PdfName, PdfRef, PdfString, PdfValue } from '../core/pdf-writer/objects';
+import { PDF_PERMISSION, PdfSecurity } from '../core/pdf-writer/security';
+import { concatBytes, serializeIndirectObject, serializeValue } from '../core/pdf-writer/serialize';
 import { PdfEngine } from '../engine/pdf-engine.types';
 import { PdfViewerComponent } from '../pdf-viewer.component';
 import { createPdfViewer } from '../pdf-viewer.helpers';
@@ -379,5 +382,51 @@ describe('PDF annotation editing', () => {
     await viewer.updateAnnotation('sq-1', { contents: 'Reviewed' });
     expect(viewer.getAnnotations()[0]).toMatchObject({ color: '#dc2626', contents: 'Reviewed' });
     await expect(viewer.addAnnotation({ ...SQUARE, id: undefined })).rejects.toThrow();
+  });
+
+  it('annotates an encrypted document opened with its password and saves an encrypted update', async () => {
+    const id0 = Uint8Array.from({ length: 16 }, (_, i) => i);
+    const { security, encrypt } = await PdfSecurity.create({
+      userPassword: 'user',
+      ownerPassword: 'owner',
+      revision: 4,
+      permissions: PDF_PERMISSION.print | PDF_PERMISSION.annotate,
+      id0,
+    });
+    const objects: [number, PdfValue][] = [
+      [1, new PdfDict({ Type: PdfName.of('Catalog'), Pages: new PdfRef(2, 0) })],
+      [2, new PdfDict({ Type: PdfName.of('Pages'), Kids: [new PdfRef(3, 0)], Count: 1 })],
+      [3, new PdfDict({ Type: PdfName.of('Page'), Parent: new PdfRef(2, 0), MediaBox: [0, 0, 612, 792] })],
+    ];
+    const parts: Uint8Array[] = [enc.encode('%PDF-1.7\n')];
+    const offsets: number[] = [];
+    let offset = parts[0].length;
+    for (const [num, value] of [...objects, [4, encrypt] as [number, PdfValue]]) {
+      offsets[num] = offset;
+      const bytes = serializeIndirectObject(new PdfRef(num, 0), num === 4 ? value : await security.encryptObject(num, 0, value));
+      parts.push(bytes);
+      offset += bytes.length;
+    }
+    let xref = 'xref\n0 5\n0000000000 65535 f \n';
+    for (let n = 1; n <= 4; n++) xref += `${String(offsets[n]).padStart(10, '0')} 00000 n \n`;
+    const trailer = new PdfDict({
+      Size: 5,
+      Root: new PdfRef(1, 0),
+      Encrypt: new PdfRef(4, 0),
+      ID: [PdfString.bytes(id0), PdfString.bytes(id0)],
+    });
+    parts.push(enc.encode(`${xref}trailer\n${serializeValue(trailer)}\nstartxref\n${offset}\n%%EOF\n`));
+    const encrypted = concatBytes(parts);
+
+    const fixture = TestBed.createComponent(HostComponent);
+    const viewer = createPdfViewer({ zoom: 1, password: 'user', annotationAuthor: 'Tester' });
+    fixture.componentInstance.config.set(viewer.config());
+    fixture.componentInstance.src.set(encrypted);
+    await settle(fixture);
+    const id = await viewer.addAnnotation({ ...SQUARE, id: undefined });
+    const saved = await viewer.save();
+    await expect(PdfDoc.load(saved, 'wrong')).rejects.toThrow();
+    const [page] = await readAnnotations(await PdfDoc.load(saved, 'user'));
+    expect(page.annotations.map((a) => a.annotation.id)).toEqual([id]);
   });
 });

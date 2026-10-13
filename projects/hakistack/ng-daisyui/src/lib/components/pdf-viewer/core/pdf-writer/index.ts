@@ -13,3 +13,4 @@ export { PdfDoc, PdfUnsupportedError, pdfDate, type PdfPageRef } from './documen
 export { saveIncremental } from './incremental';
 export { ContentBuilder, type Rgb } from './content';
 export { charWidth, textWidth, wrapText, winAnsiBytes, type StandardFont } from './standard-fonts';
+export { PdfSecurity, PdfPasswordError, PDF_PERMISSION } from './security';
