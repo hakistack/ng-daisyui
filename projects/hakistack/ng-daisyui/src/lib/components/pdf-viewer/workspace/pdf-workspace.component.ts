@@ -107,7 +107,7 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
   /** The open document's `id` (two-way). */
   readonly active = model<string | null>(null);
 
-  /** An extra rail mode of your own (shown first and selected): `hk-document-workspace` lists its documents there. */
+  /** The top of the rail, instead of this workspace's list: `hk-document-workspace` puts its own list there. */
   readonly extraRail = input<PdfWorkspaceRailExtra | null>(null);
 
   /** The listed document that is open (`null` without a list). */
@@ -186,10 +186,7 @@ export class PdfWorkspaceComponent extends PdfViewerHostBase {
     effect(() => {
       const extra = this.railExtra();
       untracked(() => {
-        const had = this.ws.extraRail() !== null;
         this.ws.extraRail.set(extra);
-        if (extra && !had) this.ws.railMode.set('extra');
-        else if (!extra && this.ws.railMode() === 'extra') this.ws.railMode.set('thumbnails');
       });
     });
 

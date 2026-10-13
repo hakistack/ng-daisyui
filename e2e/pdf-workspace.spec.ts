@@ -78,7 +78,6 @@ for (const width of [1280, 900, 600, 375]) {
 test('keyboard: the rail has one tab stop and arrows move the page', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1200 });
   await open(page);
-  await page.locator('hk-pdf-workspace-rail').getByRole('button', { name: 'Pages', exact: true }).click();
   const first = page.locator('hk-pdf-workspace [data-thumb-button="1"]');
   await first.focus();
   await page.keyboard.press('ArrowDown');

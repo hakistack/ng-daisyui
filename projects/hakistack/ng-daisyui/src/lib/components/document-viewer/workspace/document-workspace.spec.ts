@@ -105,11 +105,8 @@ describe('hk-document-workspace', () => {
 
   it('lists the sections a renderer publishes in the rail, and pages through them', async () => {
     const { el, settle } = await render();
-    // The rail opens on the document list; Contents lists the open one's sections.
-    Array.from(el.querySelectorAll<HTMLButtonElement>('hk-mesa-layout button'))
-      .find((b) => b.textContent?.trim() === 'Contents')!
-      .click();
-    await settle();
+    // The documents on top; the open one's sections below, headed by its name.
+    expect(Array.from(el.querySelectorAll('hk-mesa-layout h2')).map((h) => h.textContent?.trim())).toContain('book.txt · 3 sections');
     const rows = () => Array.from(el.querySelectorAll<HTMLButtonElement>('[data-section-index]'));
     expect(rows().map((r) => r.querySelector('.truncate')?.textContent?.trim())).toEqual(['Chapter 1', 'Chapter 2', 'Chapter 3']);
     expect(rows().map((r) => r.tabIndex)).toEqual([0, -1, -1]);
@@ -131,10 +128,11 @@ describe('hk-document-workspace', () => {
     expect(dd(el)).toEqual(['book.txt', 'TXT', '5 B', 'Ada']);
   });
 
-  it('has no Contents for renderers that publish nothing', async () => {
+  it('lists no sections for renderers that publish nothing', async () => {
     const { el } = await render((h) => h.config.set({ renderers: [{ formats: ['text'], component: PlainRenderer }] }));
     expect(el.querySelector('[data-plain]')).not.toBeNull();
-    expect(Array.from(el.querySelectorAll('hk-mesa-layout button')).some((b) => b.textContent?.trim() === 'Contents')).toBe(false);
+    expect(el.querySelectorAll('[data-section-index]').length).toBe(0);
+    expect(el.querySelectorAll('hk-mesa-document-list [data-document-index]').length).toBe(1);
     expect(el.querySelector('button[aria-label="Next section"]')).toBeNull();
   });
 

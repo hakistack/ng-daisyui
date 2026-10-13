@@ -23,60 +23,56 @@
     (dirtyChange)="pdfDirty.set($event)"
   />
 } @else {
-  <hk-mesa-layout class="h-full" [labels]="layoutLabels()" [storageKey]="storageKey()" [rail]="railShows() !== null">
-    <!-- Rail: the documents, or the open one's sections (one tab stop on the current one). -->
+  <hk-mesa-layout class="h-full" [labels]="layoutLabels()" [storageKey]="storageKey()" [rail]="documents().length > 0">
+    <!-- Rail, split in two: the documents (own scroll), and the open one's sections when it has several. -->
     <div hkMesaRail class="flex min-h-0 flex-1 flex-col">
-      <div class="border-base-300 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b px-3 py-2">
-        <h2 class="min-w-24 flex-1 truncate text-sm font-semibold">
-          {{
-            railShows() === 'documents'
-              ? labels.documentsTitle.replace('{count}', '' + documents().length)
-              : labels.sectionCount.replace('{count}', '' + sections().length)
-          }}
+      <section
+        class="border-base-300 flex min-h-0 flex-col"
+        [class.border-b]="sections().length > 1"
+        [class.max-h-[40%]]="sections().length > 1"
+        [class.shrink-0]="sections().length > 1"
+        [class.flex-1]="sections().length <= 1"
+        [attr.aria-labelledby]="'hk-dw-docs-' + uid"
+      >
+        <h2 [id]="'hk-dw-docs-' + uid" class="border-base-300 truncate border-b px-3 py-2 text-sm font-semibold">
+          {{ labels.documentsTitle.replace('{count}', '' + documents().length) }}
         </h2>
-        @if (railModes().length > 1) {
-          <div class="join" role="group" [attr.aria-label]="labels.railModeAria">
-            @for (m of railModes(); track m.mode) {
-              <button
-                type="button"
-                class="btn btn-xs join-item"
-                [class.btn-primary]="railShows() === m.mode"
-                [attr.aria-pressed]="railShows() === m.mode"
-                (click)="railMode.set(m.mode)"
-              >
-                {{ m.label }}
-              </button>
-            }
-          </div>
-        }
-      </div>
-      @if (railShows() === 'documents') {
         <ng-container [ngTemplateOutlet]="docList" />
-      } @else {
-        <ul #rail class="min-h-0 flex-1 overflow-y-auto p-2" [attr.aria-label]="labels.rail">
-          @for (section of sections(); track section.id; let i = $index) {
-            <li class="py-0.5">
-              <button
-                type="button"
-                class="rounded-field hover:bg-base-200 flex w-full min-w-0 items-center gap-2 px-2 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-base-content"
-                [class.bg-base-200]="i === currentIndex()"
-                [class.ring-1]="i === currentIndex()"
-                [class.ring-inset]="i === currentIndex()"
-                [class.ring-base-content/45]="i === currentIndex()"
-                [attr.data-section-index]="i"
-                [attr.tabindex]="i === currentIndex() ? 0 : -1"
-                [attr.aria-current]="i === currentIndex() ? 'page' : null"
-                (click)="goToIndex(i)"
-                (keydown)="onRailKey($event, rail)"
-              >
-                <span class="text-base-content/70 w-6 shrink-0 text-right font-mono text-xs tabular-nums" aria-hidden="true">{{
-                  i + 1
-                }}</span>
-                <span class="min-w-0 truncate">{{ section.label }}</span>
-              </button>
-            </li>
-          }
-        </ul>
+      </section>
+      @if (sections().length > 1) {
+        <section class="flex min-h-0 flex-1 flex-col" [attr.aria-labelledby]="'hk-dw-contents-' + uid">
+          <h2
+            [id]="'hk-dw-contents-' + uid"
+            class="border-base-300 truncate border-b px-3 py-2 text-sm font-semibold"
+            [title]="contentsTitle()"
+          >
+            {{ contentsTitle() }}
+          </h2>
+          <ul #rail class="min-h-0 flex-1 overflow-y-auto p-2" [attr.aria-label]="labels.rail">
+            @for (section of sections(); track section.id; let i = $index) {
+              <li class="py-0.5">
+                <button
+                  type="button"
+                  class="rounded-field hover:bg-base-200 flex w-full min-w-0 items-center gap-2 px-2 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-base-content"
+                  [class.bg-base-200]="i === currentIndex()"
+                  [class.ring-1]="i === currentIndex()"
+                  [class.ring-inset]="i === currentIndex()"
+                  [class.ring-base-content/45]="i === currentIndex()"
+                  [attr.data-section-index]="i"
+                  [attr.tabindex]="i === currentIndex() ? 0 : -1"
+                  [attr.aria-current]="i === currentIndex() ? 'page' : null"
+                  (click)="goToIndex(i)"
+                  (keydown)="onRailKey($event, rail)"
+                >
+                  <span class="text-base-content/70 w-6 shrink-0 text-right font-mono text-xs tabular-nums" aria-hidden="true">{{
+                    i + 1
+                  }}</span>
+                  <span class="min-w-0 truncate">{{ section.label }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
       }
     </div>
 

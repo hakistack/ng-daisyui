@@ -158,19 +158,10 @@ export class DocumentWorkspaceComponent {
     return !!editor && !!resolveEditor(this.resolvedFormat().format, editor.config().editors, BUILT_IN_EDITORS);
   });
 
-  /** What the rail lists: the documents, or the open one's sections. */
-  protected readonly railMode = signal<'documents' | 'contents'>('documents');
-  protected readonly railModes = computed(() => {
-    const out: { mode: 'documents' | 'contents'; label: string }[] = [];
-    if (this.documents().length) out.push({ mode: 'documents', label: this.labels.documents });
-    if (this.sections().length > 1) out.push({ mode: 'contents', label: this.labels.contents });
-    return out;
-  });
-  /** The rail mode on screen (falls back when the chosen one has nothing to list). */
-  protected readonly railShows = computed(() => {
-    const modes = this.railModes();
-    return modes.find((m) => m.mode === this.railMode())?.mode ?? modes[0]?.mode ?? null;
-  });
+  /** The open document's part of the rail: "Payroll.xlsx · 3 sections". */
+  protected readonly contentsTitle = computed(
+    () => `${this.filename() ?? this.labels.documentAria} · ${this.labels.sectionCount.replace('{count}', String(this.sections().length))}`,
+  );
 
   private readonly docListTemplate = viewChild.required<TemplateRef<unknown>>('docList');
   /** The document list as the PDF workspace's extra rail mode, so the rail looks the same for every format. */

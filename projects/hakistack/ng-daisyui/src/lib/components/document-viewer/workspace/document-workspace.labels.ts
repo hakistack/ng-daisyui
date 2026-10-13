@@ -64,14 +64,10 @@ export interface DocumentWorkspaceLabels {
   documents?: string;
   /** Default: "Documents · {count}" — The rail heading over the list. */
   documentsTitle?: string;
-  /** Default: "Contents" — Rail mode with the open document's sections. */
-  contents?: string;
   /** Default: "{count} p." — Page count in a document's row. */
   pageCountShort?: string;
   /** Default: "Arrow keys move between documents; Enter opens one." */
   listHint?: string;
-  /** Default: "Side panel content" */
-  railModeAria?: string;
   /** Default: "Unsaved changes" — Title of the confirmation before leaving an edited document. */
   unsavedTitle?: string;
   /** Default: "“{name}” has unsaved changes. Opening another document discards them." */
@@ -114,10 +110,8 @@ export const DEFAULT_DOCUMENT_WORKSPACE_LABELS: ResolvedDocumentWorkspaceLabels 
   documentAria: 'Document',
   documents: 'Documents',
   documentsTitle: 'Documents · {count}',
-  contents: 'Contents',
   pageCountShort: '{count} p.',
   listHint: 'Arrow keys move between documents; Enter opens one.',
-  railModeAria: 'Side panel content',
   unsavedTitle: 'Unsaved changes',
   unsavedBody: '“{name}” has unsaved changes. Opening another document discards them.',
   keepEditing: 'Keep editing',

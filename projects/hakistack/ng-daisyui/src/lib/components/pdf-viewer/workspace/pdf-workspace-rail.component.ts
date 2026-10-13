@@ -9,9 +9,11 @@ import { PdfViewportService } from '../services/pdf-viewport.service';
 import { PdfWorkspaceRailMode, PdfWorkspaceState } from './pdf-workspace.state';
 
 /**
- * The workspace rail: page thumbnails (virtualized by {@link PdfThumbnailsService},
- * one tab stop on the current page, arrows to move), the outline, or the
- * attachments. A `join` of modes heads it; only modes the document has show.
+ * The workspace rail, split in two: the document list on top (the host's
+ * {@link PdfWorkspaceRailExtra}, with its own scroll), and below it the open
+ * document — headed by its name — with its page thumbnails (virtualized by
+ * {@link PdfThumbnailsService}, one tab stop on the current page, arrows to
+ * move), outline or attachments. Only modes the document has show.
  */
 @Component({
   selector: 'hk-pdf-workspace-rail',
@@ -19,8 +21,18 @@ import { PdfWorkspaceRailMode, PdfWorkspaceState } from './pdf-workspace.state';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex min-h-0 flex-1 flex-col' },
   template: `
+    <!-- The documents (the host's list), with their own scroll; the open one's contents below. -->
+    @if (ws.extraRail(); as extra) {
+      <section class="border-base-300 flex max-h-[40%] min-h-0 shrink-0 flex-col border-b" [attr.aria-labelledby]="uid + '-docs'">
+        <h2 [id]="uid + '-docs'" class="border-base-300 truncate border-b px-3 py-2 text-sm font-semibold">
+          {{ extra.title ?? extra.label }}
+        </h2>
+        <ng-container [ngTemplateOutlet]="extra.template" />
+      </section>
+    }
+
     <div class="border-base-300 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b px-3 py-2">
-      <h2 class="min-w-24 flex-1 truncate text-sm font-semibold">{{ title() }}</h2>
+      <h2 class="min-w-24 flex-1 truncate text-sm font-semibold" [title]="title()">{{ title() }}</h2>
       @if (modes().length > 1) {
         <div class="join" role="group" [attr.aria-label]="store.labels().railModeAria">
           @for (m of modes(); track m.mode) {
@@ -98,13 +110,6 @@ import { PdfWorkspaceRailMode, PdfWorkspaceState } from './pdf-workspace.state';
     </div>
 
     @switch (ws.railMode()) {
-      @case ('extra') {
-        @if (ws.extraRail(); as extra) {
-          <div class="flex min-h-0 flex-1 flex-col">
-            <ng-container [ngTemplateOutlet]="extra.template" />
-          </div>
-        }
-      }
       @case ('bookmarks') {
         <div class="min-h-0 flex-1 overflow-auto">
           @if (store.outline() === null) {
@@ -162,6 +167,8 @@ import { PdfWorkspaceRailMode, PdfWorkspaceState } from './pdf-workspace.state';
   `,
 })
 export class PdfWorkspaceRailComponent {
+  private static nextId = 0;
+  protected readonly uid = `hk-pdf-ws-rail-${++PdfWorkspaceRailComponent.nextId}`;
   protected readonly store = inject(PdfViewerStore);
   protected readonly viewport = inject(PdfViewportService);
   protected readonly document = inject(PdfDocumentService);
@@ -177,34 +184,23 @@ export class PdfWorkspaceRailComponent {
   protected readonly currentMounted = computed(() => this.thumbnails.mountedPages().includes(this.current()));
 
   /** Rail modes: pages always; the outline and attachments when the document has them (the workspace loads both with the rail). */
+  /** What the open document's section shows: its pages, and its outline and attachments when it has them. */
   protected readonly modes = computed(() => {
     const l = this.store.labels();
-    const out: { mode: PdfWorkspaceRailMode; label: string }[] = [];
-    const extra = this.ws.extraRail();
-    if (extra) out.push({ mode: 'extra', label: extra.label });
-    out.push({ mode: 'thumbnails', label: l.railPages });
+    const out: { mode: PdfWorkspaceRailMode; label: string }[] = [{ mode: 'thumbnails', label: l.railPages }];
     const mode = this.ws.railMode();
     if (this.store.outline()?.length || mode === 'bookmarks') out.push({ mode: 'bookmarks', label: l.bookmarksTab });
     if (this.store.attachments()?.length || mode === 'attachments') out.push({ mode: 'attachments', label: l.attachmentsTab });
     return out;
   });
 
+  /** The open document's section heading: "Form W-9.pdf · 6 pages". */
   protected readonly title = computed(() => {
     const l = this.store.labels();
-    switch (this.ws.railMode()) {
-      case 'extra': {
-        const extra = this.ws.extraRail();
-        return extra?.title ?? extra?.label ?? '';
-      }
-      case 'bookmarks':
-        return l.bookmarksTab;
-      case 'attachments':
-        return l.attachmentsTab;
-      default: {
-        const count = this.store.pageNumbers().length;
-        return count ? `${l.railPages} · ${count}` : l.railPages;
-      }
-    }
+    const count = this.store.pageNumbers().length;
+    const name = this.document.fileName();
+    if (!count) return name;
+    return `${name} · ${(count === 1 ? l.pageCountBadgeOne : l.pageCountBadge).replace('{count}', String(count))}`;
   });
 
   constructor() {

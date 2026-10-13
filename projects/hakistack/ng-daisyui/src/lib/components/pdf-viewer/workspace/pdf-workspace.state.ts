@@ -1,19 +1,19 @@
 import { Injectable, TemplateRef, signal } from '@angular/core';
 import type { MesaLayoutComponent } from '../../mesa/mesa-layout.component';
 
-/** What the workspace's rail lists (`extra`: the host's own mode, see {@link PdfWorkspaceRailExtra}). */
-export type PdfWorkspaceRailMode = 'thumbnails' | 'bookmarks' | 'attachments' | 'extra';
+/** What the rail shows of the open document. */
+export type PdfWorkspaceRailMode = 'thumbnails' | 'bookmarks' | 'attachments';
 
 /**
- * An extra rail mode supplied by whoever hosts the workspace: `hk-document-workspace`
- * lists its documents there. Shown first, and selected when it arrives.
+ * The top part of the rail: the document list (the workspace's own, or the
+ * host's — `hk-document-workspace` puts its list of any format there).
  */
 export interface PdfWorkspaceRailExtra {
-  /** The mode's button label. */
+  /** Accessible name of the part. */
   readonly label: string;
-  /** The rail heading while the mode is on (defaults to `label`). */
+  /** Its heading (defaults to `label`). */
   readonly title?: string;
-  /** What the rail shows. */
+  /** What it shows. */
   readonly template: TemplateRef<unknown>;
 }
 

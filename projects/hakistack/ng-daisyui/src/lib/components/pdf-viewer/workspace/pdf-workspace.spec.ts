@@ -200,10 +200,6 @@ describe('hk-pdf-workspace', () => {
 
   it('toggleSidebar hides the rail (and stops painting its thumbnails); the choice is remembered', async () => {
     const { viewer, fixture, el, store } = await load({ storageKey: 'ws-test' });
-    // The rail opens on the document list; its Pages mode paints thumbnails.
-    expect(store.visiblePanels().has('thumbnails')).toBe(false);
-    buttonByText(el, 'Pages')!.click();
-    await settle(fixture);
     expect(store.visiblePanels().has('thumbnails')).toBe(true);
     viewer.toggleSidebar();
     await settle(fixture);
@@ -275,23 +271,18 @@ describe('hk-pdf-workspace', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('hk-mesa-layout')).toBeNull();
   });
 
-  it('shows a host’s extra rail mode first', async () => {
+  it('puts a host’s own list at the top of the rail, over the open document', async () => {
     const fixture = TestBed.createComponent(ExtraRailHost);
     const viewer = createPdfViewer({ zoom: 1 });
     fixture.componentInstance.config.set(viewer.config());
     await settle(fixture, () => viewer.getAnnotations().length > 0);
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('hk-pdf-workspace-rail [data-extra]')?.textContent).toBe('My documents');
-    expect(el.querySelector('hk-pdf-workspace-rail h2')?.textContent?.trim()).toBe('Docs · 3');
-    const modes = Array.from(el.querySelectorAll<HTMLButtonElement>('hk-pdf-workspace-rail .join button'));
-    expect(modes.map((b) => b.textContent?.trim())).toEqual(['Docs', 'Pages']);
-    expect(modes[0].getAttribute('aria-pressed')).toBe('true');
-    expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('Contract.pdf · 3 pages');
-
-    modes[1].click();
-    await settle(fixture);
-    expect(el.querySelector('[data-extra]')).toBeNull();
+    const headings = Array.from(el.querySelectorAll('hk-pdf-workspace-rail h2')).map((h) => h.textContent?.trim());
+    expect(headings).toEqual(['Docs · 3', 'Contract.pdf · 3 pages']);
+    // Both at once: the list, and the open document's pages.
     expect(el.querySelectorAll('[data-thumb-button]').length).toBe(3);
+    expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('Contract.pdf · 3 pages');
   });
 
   describe('with a document list', () => {
@@ -305,16 +296,16 @@ describe('hk-pdf-workspace', () => {
     }
     const rows = (el: HTMLElement) => Array.from(el.querySelectorAll<HTMLButtonElement>('hk-mesa-document-list [data-document-index]'));
 
-    it('lists the documents as the first rail mode and opens the first', async () => {
+    it('lists the documents over the open one’s pages, and opens the first', async () => {
       const { fixture, el, viewer } = await loadList();
       expect(fixture.componentInstance.active()).toBe('three');
       expect(rows(el).map((r) => r.querySelector('.line-clamp-2')?.textContent?.trim())).toEqual(['Three.pdf', 'One.pdf']);
       expect(rows(el)[0].textContent).toContain('PDF · Contracts · 3 p.');
       expect(rows(el)[0].getAttribute('aria-current')).toBe('page');
-      const modes = Array.from(el.querySelectorAll<HTMLButtonElement>('hk-pdf-workspace-rail .join button')).map((b) =>
-        b.textContent?.trim(),
-      );
-      expect(modes).toEqual(['Documents', 'Pages']);
+      // Split rail: the documents on top, the open one's pages below, headed by its name.
+      const headings = Array.from(el.querySelectorAll('hk-pdf-workspace-rail h2')).map((h) => h.textContent?.trim());
+      expect(headings).toEqual(['Documents · 2', 'Three.pdf · 3 pages']);
+      expect(el.querySelectorAll('[data-thumb-button]').length).toBe(3);
       expect(el.querySelector('hk-mesa-toolbar .badge')?.textContent).toContain('Three.pdf · 3 pages');
       expect(viewer.state().numPages).toBe(3);
     });

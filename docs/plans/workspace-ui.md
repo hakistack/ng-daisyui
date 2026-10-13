@@ -423,3 +423,9 @@ Los workspaces ya no aceptan `[src]`: son para listas (`[documents]` + `[(active
 `hk-pdf-viewer` / `hk-document-viewer`. `[src]` y `[fileName]` salen de `PdfViewerHostBase` y vuelven a
 `hk-pdf-viewer` (`[src]` otra vez obligatorio); la base declara `currentSource()` / `currentFileName()` abstractos.
 `hk-document-workspace` entrega el PDF abierto a `hk-pdf-workspace` como lista de uno, con su propia lista en el rail.
+
+### W3e ✅ Rail dividido
+«Documentos | Páginas» al mismo nivel sugería las páginas de todos los documentos. Ahora el rail se divide: arriba la
+lista de documentos (con su propio scroll, máx. 40 % de alto) y abajo el documento abierto, con su nombre como título
+(«Form W-9.pdf · 6 páginas») y, si las tiene, sus pestañas Páginas · Índice · Adjuntos (en otros formatos, sus
+secciones). Se ven las dos cosas a la vez y queda claro de quién son las páginas.
