@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div role="tablist" class="tabs tabs-bordered" (keydown)="onTabKey($event)">
+    <div role="tablist" class="tabs tabs-bordered">
       @for (t of ['draw', 'type', 'upload']; track t) {
         <button
           type="button"
@@ -51,6 +51,7 @@
           [attr.aria-controls]="uid + '-panel'"
           [attr.tabindex]="tab() === t ? 0 : -1"
           (click)="setTab($any(t))"
+          (keydown)="onTabKey($event)"
         >
           {{ t === 'draw' ? store.labels().drawTab : t === 'type' ? store.labels().typeTab : store.labels().uploadTab }}
         </button>
