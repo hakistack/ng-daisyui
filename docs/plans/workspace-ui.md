@@ -396,3 +396,10 @@ publican los renderers están en inglés, como el resto de sus textos.
 - Verificado: specs jsdom (lista, `[(active)]`, teclado, confirmación, rail extra), suite completa 64 / 1828, e2e
   (axe en light, dark y cupcake sobre PDF y texto, edición y confirmación, teclado, reflow) 19/19 junto con los del
   PDF, builds de lib, demo y demo-v4.
+
+### Fuera de alcance (decidido 2026-10-13)
+El conjunto de páginas entre documentos al estilo del expediente de Docsy («página i de n» a través de lotes, tira y
+hoja de contactos cruzadas, etiquetas, verificación) es específico de esa app y no entra en la librería. Los
+workspaces son genéricos; una app lo construye encima con `WorkspaceDocument.thumbnail` / `description`,
+`[extraRail]` y `DocumentViewerHost`. Ver también [`page-workspace.md`](page-workspace.md) (informe previo, no se
+implementará en la librería).
