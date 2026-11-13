@@ -12,7 +12,7 @@ npm run build:watch        # Development build with watch mode
 npm run watch              # Alias for build:watch with development config
 npm test                   # Run unit tests (Vitest)
 npm run publish:local      # npm link from dist for local testing
-npm run publish:registry   # Publish to private Verdaccio registry
+npm run publish:npm        # Publish to npmjs (public, MIT)
 npm run release:patch      # Bump patch version and build
 npm run release:minor      # Bump minor version and build
 npm run release:major      # Bump major version and build

@@ -3,13 +3,17 @@
   "version": "0.3.0",
   "description": "Angular UI components built with DaisyUI and Tailwind CSS",
   "author": "Hakistack",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/hakistack/ng-daisyui.git"
   },
+  "homepage": "https://github.com/hakistack/ng-daisyui#readme",
+  "bugs": {
+    "url": "https://github.com/hakistack/ng-daisyui/issues"
+  },
   "publishConfig": {
-    "registry": "https://registry.hakistack.dev/"
+    "access": "public"
   },
   "keywords": [
     "angular",
