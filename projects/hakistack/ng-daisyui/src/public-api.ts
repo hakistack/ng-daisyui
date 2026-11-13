@@ -93,8 +93,10 @@ export { TablePaginationComponent } from './lib/components/table/table-paginatio
 export { TableFilterComponent } from './lib/components/table/table-filter.component';
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
-export { createTable, exportToCsv, exportToJson, projectFields, clearHeaderFormatCache } from './lib/components/table/table.helpers';
-export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
+export { createTable, projectFields, clearHeaderFormatCache } from './lib/components/table/table.helpers';
+export { exportToCsv, exportToJson } from './lib/grid-core/grid.helpers';
+export type { TableColumn, ColumnsMap, DeclarativeTableConfig } from './lib/components/table/table.schema';
+export { computeAggregate, aggregate } from './lib/grid-core/grid-aggregates';
 
 // Table — WASM engine bridge (lazy-loaded). Type names are prefixed with
 // `Engine` where they would clash with existing table types in this barrel.
@@ -119,7 +121,7 @@ export {
   type DateOp as EngineDateOp,
   type SortDirection as EngineSortDirection,
   type NullsPosition as EngineNullsPosition,
-} from './lib/components/table/engine';
+} from './lib/grid-core/engine';
 
 // Tree — WASM engine bridge (lazy-loaded; shares the same engine_wasm bundle).
 // Type names prefixed with `Engine` to avoid clashes with the existing
@@ -190,7 +192,44 @@ export type {
   GroupExpandEvent,
   ResolvedGroupAggregates,
 } from './lib/components/table/table.types';
-export type { AggregateFunction } from './lib/components/table/table-aggregates';
+export type { AggregateFunction } from './lib/grid-core/grid-aggregates';
+
+// DataGrid — enterprise grid: row + column virtualization, multi-sort, serializable state, server data source.
+export { DataGridComponent } from './lib/components/datagrid/datagrid.component';
+export { HkDataGridCellDirective } from './lib/components/datagrid/datagrid-cell.directive';
+export { createDataGrid } from './lib/components/datagrid/datagrid.helpers';
+export { DATAGRID_OPERATORS } from './lib/components/datagrid/datagrid.state';
+export {
+  DEFAULT_DATAGRID_LABELS,
+  DEFAULT_DATAGRID_OPERATOR_LABELS,
+  HK_DATAGRID_LABELS,
+  provideHkDataGridLabels,
+  type DataGridLabels,
+  type ResolvedDataGridLabels,
+} from './lib/components/datagrid/datagrid.labels';
+export type {
+  DataGridAiConfig,
+  DataGridAiHandler,
+  DataGridAiRequest,
+  DataGridAskResult,
+  DataGridCellContext,
+  DataGridColumn,
+  DataGridColumnState,
+  DataGridColumnType,
+  DataGridConfig,
+  DataGridController,
+  DataGridDataSource,
+  DataGridFilter,
+  DataGridPage,
+  DataGridPageState,
+  DataGridRequest,
+  DataGridSort,
+  DataGridSortDirection,
+  DataGridState,
+  DataGridStateIssue,
+  DataGridStatePatch,
+  ResolvedDataGridColumn,
+} from './lib/components/datagrid/datagrid.types';
 
 // Input
 export { InputComponent } from './lib/components/input/input.component';
@@ -318,6 +357,19 @@ export type {
 // Spreadsheet renderer is calamine-backed via the `document_wasm` bundle;
 // other renderers (text, image, pdf) are lightweight JS-only.
 export { DocumentViewerComponent } from './lib/components/document-viewer/document-viewer.component';
+export { DocumentWorkspaceComponent } from './lib/components/document-viewer/workspace/document-workspace.component';
+export type { WorkspaceDocument } from './lib/components/mesa/workspace-document';
+export { DocumentViewerHost } from './lib/components/document-viewer/document-viewer-host';
+export type { DocumentSection, DocumentMetadataEntry } from './lib/components/document-viewer/document-viewer-host';
+export {
+  HK_DOCUMENT_WORKSPACE_LABELS,
+  provideHkDocumentWorkspaceLabels,
+  DEFAULT_DOCUMENT_WORKSPACE_LABELS,
+} from './lib/components/document-viewer/workspace/document-workspace.labels';
+export type {
+  DocumentWorkspaceLabels,
+  ResolvedDocumentWorkspaceLabels,
+} from './lib/components/document-viewer/workspace/document-workspace.labels';
 export { DocumentSpreadsheetRenderer } from './lib/components/document-viewer/renderers/spreadsheet.renderer';
 export { DocumentTextRenderer } from './lib/components/document-viewer/renderers/text.renderer';
 export { DocumentHtmlRenderer } from './lib/components/document-viewer/renderers/html.renderer';
@@ -393,7 +445,34 @@ export { CommandStack, type EditorCommand } from './lib/utils/command-stack';
 
 // PDF Viewer
 export { PdfViewerComponent } from './lib/components/pdf-viewer/pdf-viewer.component';
+export { PdfWorkspaceComponent } from './lib/components/pdf-viewer/workspace/pdf-workspace.component';
+export type { PdfWorkspaceRailExtra } from './lib/components/pdf-viewer/workspace/pdf-workspace.state';
 export { createPdfViewer } from './lib/components/pdf-viewer/pdf-viewer.helpers';
+export { registerPdfFont } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
+export {
+  PDF_SIGNATURE_STORE,
+  LocalStoragePdfSignatureStore,
+  providePdfSignatureStore,
+} from './lib/components/pdf-viewer/services/pdf-signature-store';
+export type { PdfSignatureStore, SavedPdfSignature } from './lib/components/pdf-viewer/services/pdf-signature-store';
+export type { PdfFontSource } from './lib/components/pdf-viewer/core/pdf-writer/fonts';
+export { signPdf, readSignatures } from './lib/components/pdf-viewer/core/signatures/pdf-signature';
+export type {
+  PdfSignatureInfo,
+  PdfSignatureStatus,
+  PdfCertificateInfo,
+  ReadSignaturesOptions,
+  SignPdfOptions,
+} from './lib/components/pdf-viewer/core/signatures/pdf-signature';
+export { createWebCryptoSigner } from './lib/components/pdf-viewer/core/signatures/cms';
+export type { PdfSigner } from './lib/components/pdf-viewer/core/signatures/cms';
+export type { DocMdpLevel as PdfDocMdpLevel } from './lib/components/pdf-viewer/core/forms/form-design';
+export { createSelfSignedCertificate, parseCertificate, certificatesFrom } from './lib/components/pdf-viewer/core/signatures/x509';
+export type {
+  Certificate as PdfCertificate,
+  DistinguishedName as PdfDistinguishedName,
+} from './lib/components/pdf-viewer/core/signatures/x509';
+export { extractPages as extractPdfPages } from './lib/components/pdf-viewer/core/pages/page-writer';
 export { HK_PDF_LABELS, provideHkPdfLabels, DEFAULT_PDF_VIEWER_LABELS } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export type { PdfViewerLabels, ResolvedPdfViewerLabels } from './lib/components/pdf-viewer/pdf-viewer.labels';
 export { HkPdfToolbarDirective } from './lib/components/pdf-viewer/pdf-viewer.directives';
@@ -412,7 +491,35 @@ export type {
   PdfViewerError,
   PdfSearchResult,
   PdfImageExportOptions,
+  PdfSignerSource,
+  PdfDigitalSignOptions,
+  PdfImportPagesOptions,
 } from './lib/components/pdf-viewer/pdf-viewer.types';
+export type {
+  HkAnnotation,
+  HkAnnotationInit,
+  HkAnnotationType,
+  PdfRect,
+  PdfLineEnding,
+  PdfReviewStatus,
+  PdfAnnotationReply,
+  PdfTextMarkupType,
+  PdfTextMarkupAnnotation,
+  PdfShapeAnnotation,
+  PdfLineAnnotation,
+  PdfPolyAnnotation,
+  PdfInkAnnotation,
+  PdfFreeTextAnnotation,
+  PdfNoteAnnotation,
+  PdfStampAnnotation,
+  PdfStampContent,
+  PdfLinkAnnotation,
+  PdfLinkTarget,
+  PdfMeasureUnit,
+  PdfMeasureScale,
+  PdfMeasureKind,
+  PdfMeasurement,
+} from './lib/components/pdf-viewer/core/annotations/annotation.types';
 
 // Tree
 export { TreeComponent } from './lib/components/tree/tree.component';

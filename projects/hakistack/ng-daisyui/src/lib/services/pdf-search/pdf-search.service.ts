@@ -7,13 +7,20 @@
 
 import { Injectable, inject, signal } from '@angular/core';
 
-import { HK_TABLE_ENGINE_WASM_URL } from '../../components/table/engine';
+import { HK_TABLE_ENGINE_WASM_URL } from '../../grid-core/engine';
 import { loadEngineModule } from '../../utils/engine-loader';
 import { PdfSearchHandle, type WasmPdfIndex } from './pdf-search-handle';
 
 interface PdfSearchExports {
   WasmPdfIndex: {
-    new (pageCount: number): WasmPdfIndex;
+    /**
+     * wasm-bindgen factory (`#[wasm_bindgen] pub fn new`, not a
+     * `#[wasm_bindgen(constructor)]`): a static method, NOT a JS constructor.
+     * `new WasmPdfIndex(n)` would build a JS object with no Rust pointer, and
+     * every call on it would write through address 0 of the shared engine
+     * heap, corrupting tables, trees and fuzzy search too.
+     */
+    'new'(pageCount: number): WasmPdfIndex;
   };
 }
 
@@ -31,7 +38,7 @@ export class PdfSearchService {
    */
   async createIndex(pageCount: number): Promise<PdfSearchHandle> {
     const mod = await this.load();
-    const wasm = new mod.WasmPdfIndex(pageCount);
+    const wasm = mod.WasmPdfIndex.new(pageCount);
     return PdfSearchHandle._create(wasm);
   }
 

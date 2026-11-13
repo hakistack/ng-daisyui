@@ -15,13 +15,14 @@
  * the main `@hakistack/i18n` entry point.
  */
 
-export { buildKeysTree, defineTranslations, isTranslationValue, t } from './define-translations';
+export { buildKeysTree, defineTranslations, isTranslationValue, SOURCE_LANG, t, TRANSLATION_BRAND } from './define-translations';
 export type {
   AuthoredTranslationNode,
   I18nLocales,
   Language,
   LocaleId,
   OtherLocales,
+  SourceLang,
   TranslationModule,
   TranslationValue,
 } from './define-translations';
@@ -32,6 +33,7 @@ export {
   buildScopedTree,
   extractLanguage,
   getTranslation,
+  normalizeScope,
   scopeToFilesystemPath,
   setAtScope,
 } from './build-tree';

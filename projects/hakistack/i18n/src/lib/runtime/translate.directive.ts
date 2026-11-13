@@ -1,4 +1,4 @@
-import { Directive, EmbeddedViewRef, effect, inject, input, TemplateRef, untracked, ViewContainerRef } from '@angular/core';
+import { Directive, EmbeddedViewRef, effect, inject, TemplateRef, untracked, ViewContainerRef } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoService } from '@jsverse/transloco';
 
@@ -61,13 +61,20 @@ export interface TranslateContext<T = Record<string, unknown>> {
  * and builds its lazy proxy over it. Casing is irrelevant — it reads string
  * leaves and calls `transloco.translate(leaf)`.
  *
- * Consumers don't use this directly. The codegen emits a ~10-line wrapper that
- * extends this base and pins the template context type to *their* `typeof TK`:
+ * Consumers don't use this directly. The codegen emits a small wrapper that
+ * extends this base, declares the `<selector>Prefix` input (Angular's
+ * microsyntax binds `*appTranslate="let t; prefix: 'x'"` to `appTranslatePrefix`,
+ * so the input's name must follow the configured selector), and pins the
+ * template context type to *their* `typeof TK`:
  *
  * ```ts
  * import { TK } from './definitions';
  * @Directive({ selector: '[appTranslate]' })
  * export class AppTranslateDirective extends TranslateDirectiveBase {
+ *   readonly appTranslatePrefix = input<string | undefined>(undefined);
+ *   protected override prefix(): string | undefined {
+ *     return this.appTranslatePrefix();
+ *   }
  *   static ngTemplateContextGuard(_d: AppTranslateDirective, ctx: unknown): ctx is TranslateContext<typeof TK> {
  *     return true;
  *   }
@@ -101,9 +108,19 @@ export class TranslateDirectiveBase {
 
   /**
    * Optional prefix prepended to every key (for scoped translations).
-   * @example *appTranslate="let t; prefix: 'admin'"
+   *
+   * The base has no input of its own: the microsyntax binding name depends on
+   * the selector, so the generated wrapper declares `<selector>Prefix` and
+   * overrides this hook to return it. Read lazily (never during construction).
    */
-  readonly appTranslatePrefix = input<string | undefined>(undefined);
+  protected prefix(): string | undefined {
+    return undefined;
+  }
+
+  private withPrefix(key: string): string {
+    const prefix = this.prefix();
+    return prefix ? `${prefix}.${key}` : key;
+  }
 
   constructor() {
     this.createView();
@@ -120,7 +137,7 @@ export class TranslateDirectiveBase {
           const value = target[prop];
 
           if (typeof value === 'string') {
-            const fullKey = this.appTranslatePrefix() ? `${this.appTranslatePrefix()}.${value}` : value;
+            const fullKey = this.withPrefix(value);
 
             const cachedFn = this.translateFnCache.get(fullKey);
             if (cachedFn) return cachedFn;
@@ -166,10 +183,7 @@ export class TranslateDirectiveBase {
     const context: TranslateContext = {
       $implicit: translationsProxy as TranslatedKeys<Record<string, unknown>>,
       lang: this.currentLang(),
-      translate: (key: string, params?: Record<string, unknown>) => {
-        const fullKey = this.appTranslatePrefix() ? `${this.appTranslatePrefix()}.${key}` : key;
-        return this.transloco.translate(fullKey, params);
-      },
+      translate: (key: string, params?: Record<string, unknown>) => this.transloco.translate(this.withPrefix(key), params),
     };
 
     this.viewRef = this.viewContainer.createEmbeddedView(this.templateRef, context);

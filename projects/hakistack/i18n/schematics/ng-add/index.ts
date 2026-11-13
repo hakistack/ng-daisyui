@@ -12,7 +12,13 @@ interface ResolvedSetup {
   definitionsDir: string; // posix, relative to root
   outputDir: string; // posix, relative to root
   locales: string[];
-  sourceLang: string;
+}
+
+interface PackageJson {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+  [key: string]: unknown;
 }
 
 export function ngAdd(options: Schema): Rule {
@@ -39,7 +45,7 @@ export function ngAdd(options: Schema): Rule {
 
 function addTranslocoDependency(): Rule {
   return (tree: Tree, context: SchematicContext) => {
-    const pkg = readJson(tree, '/package.json');
+    const pkg = readJson<PackageJson>(tree, '/package.json');
     if (!pkg) throw new Error('Could not find package.json at the workspace root.');
 
     pkg.dependencies = pkg.dependencies ?? {};
@@ -73,7 +79,6 @@ function createConfig(setup: ResolvedSetup): Rule {
       definitionsDir: setup.definitionsDir,
       outputDir: setup.outputDir,
       locales: setup.locales,
-      sourceLang: setup.sourceLang,
     };
     tree.create(path, JSON.stringify(config, null, 2) + '\n');
     context.logger.info('  Created i18n.config.json');
@@ -89,14 +94,14 @@ function addNpmScripts(options: Schema, _setup: ResolvedSetup): Rule {
   return (tree: Tree, context: SchematicContext) => {
     if (options.skipScripts) return tree;
 
-    const pkg = readJson(tree, '/package.json');
+    const pkg = readJson<PackageJson>(tree, '/package.json');
     if (!pkg) return tree;
-    pkg.scripts = pkg.scripts ?? {};
+    const scripts = (pkg.scripts ??= {});
 
     let mutated = false;
     const set = (name: string, value: string) => {
-      if (pkg.scripts[name] === undefined) {
-        pkg.scripts[name] = value;
+      if (scripts[name] === undefined) {
+        scripts[name] = value;
         mutated = true;
         context.logger.info(`  Added script "${name}"`);
       }
@@ -106,9 +111,9 @@ function addNpmScripts(options: Schema, _setup: ResolvedSetup): Rule {
     set('i18n:validate', 'hakistack-i18n validate');
 
     // Chain codegen before serve/build. Append (don't clobber) existing hooks.
-    mutated = appendToScript(pkg.scripts, 'prestart', 'npm run i18n:scan', context) || mutated;
+    mutated = appendToScript(scripts, 'prestart', 'npm run i18n:scan', context) || mutated;
     mutated =
-      appendToScript(pkg.scripts, 'prebuild', 'npm run i18n:scan && npm run i18n:generate && npm run i18n:validate', context) || mutated;
+      appendToScript(scripts, 'prebuild', 'npm run i18n:scan && npm run i18n:generate && npm run i18n:validate', context) || mutated;
 
     if (mutated) writeJson(tree, '/package.json', pkg);
     return tree;
@@ -247,7 +252,7 @@ function printNextSteps(setup: ResolvedSetup): Rule {
         '         provideI18n({',
         '           registry: ALL_TRANSLATIONS,',
         `           languages: [${setup.locales.map((l) => `{ id: '${l}', label: '${l}' }`).join(', ')}],`,
-        `           defaultLang: '${setup.sourceLang}',`,
+        `           defaultLang: '${setup.locales[0]}',`,
         '           persistLanguage: true,',
         '         }),',
         '       ],',
@@ -273,8 +278,11 @@ function scheduleInstall(options: Schema): Rule {
 // =============================================================================
 
 function resolveSetup(tree: Tree, options: Schema): ResolvedSetup {
-  const angularJson = readJson(tree, '/angular.json');
-  const projects: Record<string, { projectType?: string; sourceRoot?: string; root?: string }> = angularJson?.projects ?? {};
+  const angularJson = readJson<{ projects?: Record<string, { projectType?: string; sourceRoot?: string; root?: string }> }>(
+    tree,
+    '/angular.json',
+  );
+  const projects = angularJson?.projects ?? {};
 
   const projectName = resolveProjectName(projects, options.project);
   if (!projectName) throw new Error('Could not resolve a target project from angular.json.');
@@ -282,13 +290,12 @@ function resolveSetup(tree: Tree, options: Schema): ResolvedSetup {
   const project = projects[projectName];
   const sourceRoot = (project?.sourceRoot ?? (project?.root ? `${project.root}/src` : 'src')).replace(/^\/+/, '');
 
-  const locales = (options.locales ?? 'en,es')
+  // `en` is the engine's fixed source locale — always part of the set.
+  const requested = (options.locales ?? 'en,es')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  if (locales.length === 0) locales.push('en');
-
-  const sourceLang = options.sourceLang ?? locales[0];
+  const locales = requested.includes('en') ? requested : ['en', ...requested];
 
   return {
     projectName,
@@ -296,7 +303,6 @@ function resolveSetup(tree: Tree, options: Schema): ResolvedSetup {
     definitionsDir: `${sourceRoot}/i18n/definitions`,
     outputDir: `${sourceRoot}/assets/i18n`,
     locales,
-    sourceLang,
   };
 }
 
@@ -308,9 +314,9 @@ function resolveProjectName(projects: Record<string, { projectType?: string }>, 
   return Object.keys(projects)[0] ?? null;
 }
 
-function readJson(tree: Tree, path: string): any {
+function readJson<T>(tree: Tree, path: string): T | null {
   const buffer = tree.read(path);
-  return buffer ? JSON.parse(buffer.toString('utf-8')) : null;
+  return buffer ? (JSON.parse(buffer.toString('utf-8')) as T) : null;
 }
 
 function writeJson(tree: Tree, path: string, value: unknown): void {

@@ -10,6 +10,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createJiti } from 'jiti';
 
+import { SOURCE_LANG } from '../engine/define-translations';
+
 /** User-authored config shape (all fields optional — defaults applied). */
 export interface I18nUserConfig {
   /** Directory scanned recursively for `*.i18n.ts`. Default: `src`. */
@@ -18,15 +20,12 @@ export interface I18nUserConfig {
   definitionsDir?: string;
   /** Directory the JSON translation files are written to. Default: `src/assets/i18n`. */
   outputDir?: string;
-  /** Every locale id the project supports, e.g. `['en', 'es']`. Default: `['en']`. */
-  locales?: string[];
   /**
-   * The source locale — required on every leaf and used as the fallback when a
-   * locale is missing a key. This is the locale `t()`'s first argument fills.
-   * Default: `'en'`. (Distinct from the runtime *active* language, which is a
-   * `provideI18n` concern, not a codegen one.)
+   * Every locale id the project supports, e.g. `['en', 'es']`. The source locale
+   * `en` is always included (it is what `t()`'s first argument fills, and what
+   * every other locale falls back to). Default: `['en']`.
    */
-  sourceLang?: string;
+  locales?: string[];
   /** Import specifier for the library. Default: `@hakistack/i18n`. */
   packageName?: string;
   /** Selector for the generated typed directive. Default: `appTranslate`. */
@@ -42,7 +41,8 @@ export interface I18nCliConfig {
   definitionsDir: string;
   outputDir: string;
   locales: string[];
-  sourceLang: string;
+  /** The source locale — always `'en'`, fixed by the engine's types. */
+  sourceLang: typeof SOURCE_LANG;
   packageName: string;
   directiveSelector: string;
   directiveClassName: string;
@@ -92,9 +92,20 @@ export async function loadConfig(cwd: string, overrides: Partial<I18nUserConfig>
     }
   }
 
+  // `sourceLang` used to be accepted here, but the engine fixes the source
+  // locale to `en` (`t()` stores its first argument under `en`). Reject anything
+  // else loudly instead of validating every key as "missing".
+  const legacySourceLang = (fileConfig as { sourceLang?: unknown }).sourceLang;
+  if (legacySourceLang !== undefined && legacySourceLang !== SOURCE_LANG) {
+    throw new Error(
+      `i18n: 'sourceLang' is not configurable — the source locale is always '${SOURCE_LANG}' ` +
+        `(t()'s first argument). Remove 'sourceLang' from ${configPath ?? 'the config'}.`,
+    );
+  }
+
   const merged = { ...DEFAULTS, ...stripUndefined(fileConfig), ...stripUndefined(overrides) };
-  const locales = merged.locales && merged.locales.length > 0 ? merged.locales : DEFAULTS.locales;
-  const sourceLang = merged.sourceLang ?? 'en';
+  const requested = merged.locales && merged.locales.length > 0 ? merged.locales : DEFAULTS.locales;
+  const locales = requested.includes(SOURCE_LANG) ? requested : [SOURCE_LANG, ...requested];
 
   return {
     cwd,
@@ -102,7 +113,7 @@ export async function loadConfig(cwd: string, overrides: Partial<I18nUserConfig>
     definitionsDir: path.resolve(cwd, merged.definitionsDir),
     outputDir: path.resolve(cwd, merged.outputDir),
     locales,
-    sourceLang,
+    sourceLang: SOURCE_LANG,
     packageName: merged.packageName,
     directiveSelector: merged.directiveSelector,
     directiveClassName: merged.directiveClassName,

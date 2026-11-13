@@ -2,17 +2,24 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { createPdfViewer, HkPdfToolbarDirective, PdfViewerComponent } from '@hakistack/ng-daisyui';
+import {
+  createPdfViewer,
+  HkPdfToolbarDirective,
+  PdfViewerComponent,
+  PdfWorkspaceComponent,
+  WorkspaceDocument,
+} from '@hakistack/ng-daisyui';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 
-type PdfViewerTab = 'basic' | 'controller' | 'preview' | 'config';
+type PdfViewerTab = 'basic' | 'controller' | 'preview' | 'config' | 'workspace';
 
-const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
+/** Served from the demo app (`public/samples/`): the demo works offline and without CORS (IRS Form W-9, public domain). */
+const SAMPLE_PDF_URL = '/samples/fw9.pdf';
 
 @Component({
   selector: 'app-pdf-viewer-demo',
-  imports: [PdfViewerComponent, HkPdfToolbarDirective, DocSectionComponent, DemoPageComponent],
+  imports: [PdfViewerComponent, PdfWorkspaceComponent, HkPdfToolbarDirective, DocSectionComponent, DemoPageComponent],
   template: `
     <app-demo-page
       title="PDF Viewer"
@@ -95,6 +102,24 @@ const SAMPLE_PDF_URL = 'https://mozilla.github.io/pdf.js/web/compressed.tracemon
                 @if (basicViewer.state().error; as err) {
                   <div class="text-error"><strong>Error:</strong> {{ err.code }} — {{ err.message }}</div>
                 }
+              </div>
+            </app-doc-section>
+          </div>
+        }
+
+        @if (activeTab() === 'workspace') {
+          <div class="grid gap-6">
+            <app-doc-section
+              title="Workspace"
+              description="A workspace is for several documents: the rail lists them (and the open one's pages, outline and attachments), the document is in the middle, and the selection, its properties, signatures and comments are on the right. Same [config] controller and outputs as hk-pdf-viewer; [documents] + [(active)] choose what opens. Switching away from unsaved edits asks first. Side panels hide behind their divider and fold away on narrow containers; the Grid view organizes pages in place."
+              [codeExample]="workspaceCode"
+            >
+              <div class="mb-3 flex flex-wrap items-center gap-3">
+                <button type="button" class="btn btn-sm" (click)="addManyWorkspaceDocs()">Add 120 documents</button>
+                <span class="text-base-content/70 text-sm">{{ workspaceDocs().length }} documents · open: {{ workspaceActive() }}</span>
+              </div>
+              <div class="h-[85vh] min-h-[36rem]">
+                <hk-pdf-workspace [documents]="workspaceDocs()" [(active)]="workspaceActive" [config]="workspaceViewer.config()" />
               </div>
             </app-doc-section>
           </div>
@@ -253,6 +278,54 @@ export class PdfViewerDemoComponent {
 
   readonly pdfUrl = signal<string>(SAMPLE_PDF_URL);
 
+  readonly workspaceViewer = createPdfViewer({
+    zoom: 'fit-width',
+    onError: (error) => console.warn('[pdf-viewer-demo] workspace error:', error),
+  });
+  readonly workspaceDocs = signal<WorkspaceDocument[]>([
+    { id: 'agreement', name: 'Service agreement.pdf', src: '/samples/service-agreement.pdf', description: 'Contracts', pages: 3 },
+    { id: 'w9', name: 'Form W-9.pdf', src: SAMPLE_PDF_URL, description: 'Taxes · fillable form', pages: 6 },
+    { id: 'invoice', name: 'Invoice 0042.pdf', src: '/samples/invoice-0042.pdf', description: 'Billing · October', pages: 1 },
+  ]);
+  readonly workspaceActive = signal<string | null>('agreement');
+
+  /** A long list, to see the rail with many documents (filter, virtual list, resizable split). */
+  addManyWorkspaceDocs(): void {
+    const samples = [
+      { src: '/samples/service-agreement.pdf', kind: 'Agreement', pages: 3, area: 'Contracts' },
+      { src: SAMPLE_PDF_URL, kind: 'Form W-9', pages: 6, area: 'Taxes' },
+      { src: '/samples/invoice-0042.pdf', kind: 'Invoice', pages: 1, area: 'Billing' },
+    ];
+    const start = this.workspaceDocs().length;
+    const added = Array.from({ length: 120 }, (_, i) => {
+      const n = start + i + 1;
+      const sample = samples[n % samples.length];
+      const id = String(n).padStart(3, '0');
+      return {
+        id: `doc-${id}`,
+        name: `${sample.kind} ${id}.pdf`,
+        src: sample.src,
+        description: `${sample.area} · batch ${Math.ceil(n / 10)}`,
+        pages: sample.pages,
+      };
+    });
+    this.workspaceDocs.update((docs) => [...docs, ...added]);
+  }
+
+  readonly workspaceCode = `// Same controller as <hk-pdf-viewer>
+viewer = createPdfViewer({ zoom: 'fit-width' });
+
+documents: WorkspaceDocument[] = [
+  { id: 'agreement', name: 'Service agreement.pdf', src: '/files/agreement.pdf', description: 'Contracts', pages: 3 },
+  { id: 'w9', name: 'Form W-9.pdf', src: '/files/fw9.pdf', description: 'Taxes' },
+];
+active = signal<string | null>('agreement');
+
+<!-- Fills its parent's height -->
+<div class="h-[85vh]">
+  <hk-pdf-workspace [documents]="documents" [(active)]="active" [config]="viewer.config()" />
+</div>`;
+
   readonly basicViewer = createPdfViewer({
     page: 1,
     zoom: 'fit-width',
@@ -304,7 +377,7 @@ export class PdfViewerDemoComponent {
 
   // ── Form-fill demo state ────────────────────────────────────────────────
 
-  readonly formPdfUrl = signal<string>('https://www.irs.gov/pub/irs-pdf/fw9.pdf');
+  readonly formPdfUrl = signal<string>(SAMPLE_PDF_URL);
   readonly formFillValues = signal<Record<string, unknown>>({});
 
   readonly formViewer = createPdfViewer({

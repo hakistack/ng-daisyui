@@ -9,7 +9,7 @@
 
 import { Injectable, inject, signal } from '@angular/core';
 
-import { HK_TABLE_ENGINE_WASM_URL } from '../../components/table/engine';
+import { HK_TABLE_ENGINE_WASM_URL } from '../../grid-core/engine';
 import { loadEngineModule } from '../../utils/engine-loader';
 import { FuzzyHandle, type WasmFuzzyIndex } from './fuzzy-handle';
 

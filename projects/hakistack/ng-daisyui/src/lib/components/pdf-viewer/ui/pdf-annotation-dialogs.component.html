@@ -1,0 +1,255 @@
+<dialog #dialog class="modal" [attr.aria-labelledby]="titleId" (close)="onNativeClose()">
+  @switch (dialogs.open()?.kind) {
+    @case ('link') {
+      <form class="modal-box flex max-w-sm flex-col gap-3" method="dialog" (submit)="$event.preventDefault(); applyLink()">
+        <h3 [id]="titleId" class="text-lg font-semibold">{{ store.labels().link }}</h3>
+        <div class="join w-full" role="group" [attr.aria-label]="store.labels().linkTarget">
+          <button
+            type="button"
+            class="btn btn-sm join-item grow"
+            [class.btn-active]="linkKind() === 'uri'"
+            [attr.aria-pressed]="linkKind() === 'uri'"
+            (click)="linkKind.set('uri'); linkError.set(false)"
+          >
+            {{ store.labels().linkUrl }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm join-item grow"
+            [class.btn-active]="linkKind() === 'page'"
+            [attr.aria-pressed]="linkKind() === 'page'"
+            (click)="linkKind.set('page'); linkError.set(false)"
+          >
+            {{ store.labels().linkPage }}
+          </button>
+        </div>
+        @if (linkKind() === 'uri') {
+          <label class="flex flex-col gap-1">
+            <span class="text-sm">{{ store.labels().linkUrl }}</span>
+            <input
+              type="url"
+              class="input input-bordered w-full"
+              [class.input-error]="linkError()"
+              [attr.aria-invalid]="linkError()"
+              [value]="linkUri()"
+              (input)="linkUri.set(str($event))"
+            />
+          </label>
+        } @else {
+          <label class="flex flex-col gap-1">
+            <span class="text-sm">{{ store.labels().linkPage }}</span>
+            <input
+              type="text"
+              inputmode="numeric"
+              class="input input-bordered w-full tabular-nums"
+              [class.input-error]="linkError()"
+              [attr.aria-invalid]="linkError()"
+              [value]="linkPage()"
+              (input)="linkPage.set(str($event))"
+            />
+          </label>
+        }
+        @if (linkError()) {
+          <p class="text-sm text-error" role="alert">
+            {{ linkKind() === 'uri' ? store.labels().invalidUrl : store.labels().pageInputAriaLabel }}
+          </p>
+        }
+        <div class="modal-action mt-1">
+          <button type="button" class="btn btn-ghost" (click)="cancel()">{{ store.labels().cancel }}</button>
+          <button type="submit" class="btn btn-primary">{{ store.labels().apply }}</button>
+        </div>
+      </form>
+    }
+    @case ('calibrate') {
+      <form class="modal-box flex max-w-md flex-col gap-3" method="dialog" (submit)="$event.preventDefault(); applyCalibration()">
+        <h3 [id]="titleId" class="text-lg font-semibold">{{ store.labels().calibrateTitle }}</h3>
+        <p class="text-sm text-base-content/70">{{ currentScale() }}</p>
+        <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+          <fieldset class="flex flex-col gap-1">
+            <legend class="mb-1 text-sm">{{ store.labels().scaleOnPage }}</legend>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              class="input input-bordered input-sm w-full tabular-nums"
+              [attr.aria-label]="store.labels().scaleOnPage"
+              [value]="paper()"
+              (input)="paper.set(num($event))"
+            />
+            <select
+              class="select select-bordered select-sm w-full"
+              [attr.aria-label]="store.labels().scaleOnPage"
+              (change)="paperUnit.set($any(str($event)))"
+            >
+              @for (u of units; track u) {
+                <option [value]="u" [selected]="u === paperUnit()">{{ u }}</option>
+              }
+            </select>
+          </fieldset>
+          <span class="pb-8 text-lg" aria-hidden="true">=</span>
+          <fieldset class="flex flex-col gap-1">
+            <legend class="mb-1 text-sm">{{ store.labels().scaleInReality }}</legend>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              class="input input-bordered input-sm w-full tabular-nums"
+              [attr.aria-label]="store.labels().scaleInReality"
+              [value]="real()"
+              (input)="real.set(num($event))"
+            />
+            <select
+              class="select select-bordered select-sm w-full"
+              [attr.aria-label]="store.labels().scaleInReality"
+              (change)="realUnit.set($any(str($event)))"
+            >
+              @for (u of units; track u) {
+                <option [value]="u" [selected]="u === realUnit()">{{ u }}</option>
+              }
+            </select>
+          </fieldset>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm">{{ store.labels().precision }}</span>
+            <input
+              type="number"
+              min="0"
+              max="6"
+              step="1"
+              class="input input-bordered input-sm w-full tabular-nums"
+              [value]="precision()"
+              (input)="precision.set(num($event))"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm">{{ store.labels().depth }} ({{ store.labels().volume }})</span>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              class="input input-bordered input-sm w-full tabular-nums"
+              [value]="depth()"
+              (input)="depth.set(num($event))"
+            />
+          </label>
+        </div>
+        <div class="modal-action mt-1">
+          <button type="button" class="btn btn-ghost" (click)="cancel()">{{ store.labels().cancel }}</button>
+          <button type="submit" class="btn btn-primary">{{ store.labels().apply }}</button>
+        </div>
+      </form>
+    }
+    @case ('stamp') {
+      <form class="modal-box flex max-w-md flex-col gap-3" method="dialog" (submit)="$event.preventDefault(); applyStamp()">
+        <h3 [id]="titleId" class="text-lg font-semibold">{{ store.labels().textStampTitle }}</h3>
+        <div class="flex justify-center rounded-box border border-base-300 bg-base-200/50 p-3" aria-hidden="true">
+          <svg width="240" [attr.height]="stampPreview().height" [attr.viewBox]="'0 0 240 ' + stampPreview().height">
+            @for (p of stampPreview().paths; track $index) {
+              <path [attr.d]="p.d" [attr.fill]="p.fill" [attr.stroke]="p.stroke" [attr.stroke-width]="p.width" [attr.opacity]="p.opacity" />
+            }
+            @for (t of stampPreview().texts; track $index) {
+              <text
+                [attr.x]="t.x"
+                [attr.y]="t.y"
+                [attr.font-family]="t.family"
+                [attr.font-weight]="t.weight"
+                [attr.font-size]="t.size"
+                [attr.fill]="t.color"
+                [textContent]="t.text"
+              ></text>
+            }
+          </svg>
+        </div>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm">{{ store.labels().stampText }}</span>
+          <input
+            type="text"
+            class="input input-bordered w-full"
+            maxlength="60"
+            required
+            [value]="stampText()"
+            (input)="stampText.set(str($event))"
+          />
+        </label>
+        <fieldset class="flex flex-col gap-1">
+          <legend class="mb-1 text-sm">{{ store.labels().stampSubtext }}</legend>
+          <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="radio"
+              class="radio radio-sm"
+              name="hk-stamp-sub"
+              [checked]="stampSub() === 'none'"
+              (change)="stampSub.set('none')"
+            />
+            {{ store.labels().endingNone }}
+          </label>
+          <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="radio"
+              class="radio radio-sm"
+              name="hk-stamp-sub"
+              [checked]="stampSub() === 'dynamic'"
+              (change)="stampSub.set('dynamic')"
+            />
+            {{ store.labels().includeAuthorDate }}
+          </label>
+          <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="radio"
+              class="radio radio-sm"
+              name="hk-stamp-sub"
+              [checked]="stampSub() === 'custom'"
+              (change)="stampSub.set('custom')"
+            />
+            {{ store.labels().stampText }}
+          </label>
+          @if (stampSub() === 'custom') {
+            <input
+              type="text"
+              class="input input-bordered input-sm w-full"
+              maxlength="80"
+              [attr.aria-label]="store.labels().stampSubtext"
+              [value]="stampSubText()"
+              (input)="stampSubText.set(str($event))"
+            />
+          }
+        </fieldset>
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="flex flex-col gap-1">
+            <span class="text-sm">{{ store.labels().stampShape }}</span>
+            <select class="select select-bordered select-sm" (change)="stampShape.set($any(str($event)))">
+              <option value="rounded" [selected]="stampShape() === 'rounded'">{{ store.labels().shapeRounded }}</option>
+              <option value="rect" [selected]="stampShape() === 'rect'">{{ store.labels().shapeRect }}</option>
+              <option value="arrow" [selected]="stampShape() === 'arrow'">{{ store.labels().shapeArrow }}</option>
+            </select>
+          </label>
+          <div class="flex flex-col gap-1" role="group" [attr.aria-label]="store.labels().color">
+            <span class="text-sm">{{ store.labels().color }}</span>
+            <div class="flex gap-1">
+              @for (c of stampColors; track c) {
+                <button
+                  type="button"
+                  class="h-6 w-6 rounded-full border border-base-300 outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary"
+                  [class.ring-2]="stampColor() === c"
+                  [class.ring-primary]="stampColor() === c"
+                  [style.background]="c"
+                  [attr.aria-label]="store.labels().color + ' ' + c"
+                  [attr.aria-pressed]="stampColor() === c"
+                  (click)="stampColor.set(c)"
+                ></button>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="modal-action mt-1">
+          <button type="button" class="btn btn-ghost" (click)="cancel()">{{ store.labels().cancel }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!stampText().trim()">{{ store.labels().apply }}</button>
+        </div>
+      </form>
+    }
+  }
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit" [attr.aria-label]="store.labels().cancel">{{ store.labels().cancel }}</button>
+  </form>
+</dialog>

@@ -337,6 +337,17 @@ export class App implements OnInit {
           ],
         },
         {
+          path: '/datagrid',
+          label: 'DataGrid',
+          icon: 'table',
+          children: [
+            { id: 'client', label: '100k Rows' },
+            { id: 'server', label: 'Server Data' },
+            { id: 'state', label: 'State as JSON' },
+            { id: 'ai', label: 'Ask AI' },
+          ],
+        },
+        {
           path: '/tree-table',
           label: 'Tree Table',
           icon: 'list-tree',
@@ -382,6 +393,7 @@ export class App implements OnInit {
             { id: 'controller', label: 'Controller API' },
             { id: 'preview', label: 'Preview Layout' },
             { id: 'config', label: 'Config Variants' },
+            { id: 'workspace', label: 'Workspace' },
           ],
         },
         {
@@ -393,6 +405,7 @@ export class App implements OnInit {
             { id: 'spreadsheet', label: 'Spreadsheet (Rust+WASM)' },
             { id: 'image', label: 'TIFF + Images (Rust+WASM)' },
             { id: 'switching', label: 'Format Dispatch' },
+            { id: 'workspace', label: 'Workspace' },
           ],
         },
       ],

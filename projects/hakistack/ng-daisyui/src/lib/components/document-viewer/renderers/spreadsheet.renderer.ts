@@ -11,12 +11,14 @@ import {
   untracked,
 } from '@angular/core';
 
+import { HK_THEME } from '../../../theme/theme.config';
 import { DocumentEngineService, ParsedSpreadsheet, SpreadsheetCell, SpreadsheetSheet } from '../../../services/document-engine.service';
 import { TableComponent } from '../../table/table.component';
 import { createTable } from '../../table/table.helpers';
 import { ColumnDefinition } from '../../table/table.types';
 import { DocumentRendererInputs } from '../document-viewer.types';
 import { loadSourceAsBytes } from '../document-viewer.helpers';
+import { DocumentViewerHost } from '../document-viewer-host';
 
 /** A spreadsheet row materialized into a plain record keyed by column id. */
 type SpreadsheetRow = Record<string, unknown>;
@@ -50,13 +52,14 @@ type SpreadsheetRow = Record<string, unknown>;
     } @else if (workbook(); as wb) {
       <div class="flex flex-col gap-3">
         @if (wb.sheets.length > 1) {
-          <div role="tablist" class="tabs tabs-bordered overflow-x-auto">
+          <div role="tablist" class="overflow-x-auto" [class]="tabsClass">
             @for (sheet of wb.sheets; track sheet.name; let i = $index) {
               <button
                 type="button"
                 role="tab"
                 class="tab"
                 [class]="{ 'tab-active': i === activeSheetIndex() }"
+                [attr.aria-selected]="i === activeSheetIndex()"
                 (click)="activeSheetIndex.set(i)"
               >
                 {{ sheet.name }}
@@ -77,6 +80,8 @@ type SpreadsheetRow = Record<string, unknown>;
 })
 export class DocumentSpreadsheetRenderer {
   private readonly engine = inject(DocumentEngineService);
+  /** daisyUI 4 and 5 spell the bordered tabs differently. */
+  protected readonly tabsClass = `tabs ${inject(HK_THEME).classes.tabsBorder}`;
   /**
    * Component's own injector, captured here (a valid injection context).
    * Used to call `createTable()` inside a `computed()` — `createTable`
@@ -138,6 +143,26 @@ export class DocumentSpreadsheetRenderer {
   });
 
   constructor() {
+    // In a workspace: the sheets are its sections, the active one is current.
+    const host = inject(DocumentViewerHost, { optional: true });
+    if (host) {
+      host.onGoTo((id) => this.activeSheetIndex.set(Number(id)));
+      effect(() => {
+        const sheets = this.workbook()?.sheets ?? [];
+        const active = this.activeSheet();
+        host.sections.set(sheets.map((s, i) => ({ id: String(i), label: s.name, kind: 'sheet' as const })));
+        host.current.set(sheets.length ? String(this.activeSheetIndex()) : null);
+        host.metadata.set(
+          sheets.length
+            ? [
+                { label: 'Sheets', value: String(sheets.length) },
+                ...(active ? [{ label: 'Rows × columns', value: `${active.height} × ${active.width}` }] : []),
+              ]
+            : [],
+        );
+      });
+    }
+
     effect(() => {
       const src = this.source();
       // Reset to first sheet whenever the source changes.

@@ -432,6 +432,34 @@ impl<'a> PdfPages<'a> {
         }
     }
 
+    /// Returns the label of the page at `index` from the document's `/PageLabels`
+    /// ("iv", "A-1"), without loading the page. `None` when no label applies.
+    ///
+    /// (hakistack patch — the lookup existed only as part of loading a page.)
+    pub fn label(&self, index: PdfPageIndex) -> Option<String> {
+        let buffer_length = unsafe {
+            self.bindings().FPDF_GetPageLabel(
+                self.document_handle,
+                index as c_int,
+                std::ptr::null_mut(),
+                0,
+            )
+        };
+        if buffer_length == 0 {
+            return None;
+        }
+        let mut buffer = create_byte_buffer(buffer_length as usize);
+        unsafe {
+            self.bindings().FPDF_GetPageLabel(
+                self.document_handle,
+                index as c_int,
+                buffer.as_mut_ptr() as *mut c_void,
+                buffer_length,
+            );
+        }
+        get_string_from_pdfium_utf16le_bytes(buffer)
+    }
+
     /// Returns a [PdfPage] from the given `FPDF_PAGE` handle, if possible.
     pub(crate) fn pdfium_page_handle_to_result(
         &self,

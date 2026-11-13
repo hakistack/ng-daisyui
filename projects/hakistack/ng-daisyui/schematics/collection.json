@@ -5,6 +5,11 @@
       "description": "Install peer dependencies and wire up styles for @hakistack/ng-daisyui.",
       "factory": "./ng-add/index#ngAdd",
       "schema": "./ng-add/schema.json"
+    },
+    "migrate-table-columns": {
+      "description": "Rewrite legacy createTable() projection configs (visible + parallel maps) to the declarative columns map.",
+      "factory": "./migrate-table-columns/index#migrateTableColumns",
+      "schema": "./migrate-table-columns/schema.json"
     }
   }
 }

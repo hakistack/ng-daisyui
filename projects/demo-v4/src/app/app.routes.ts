@@ -23,6 +23,11 @@ export const routes: Routes = [
   // Data Display
   { path: 'table', redirectTo: 'table/basic', pathMatch: 'full' },
   { path: 'table/:feature', loadComponent: () => import('@shared-demos/demos/table-demo.component').then((m) => m.TableDemoComponent) },
+  { path: 'datagrid', redirectTo: 'datagrid/client', pathMatch: 'full' },
+  {
+    path: 'datagrid/:feature',
+    loadComponent: () => import('@shared-demos/demos/datagrid-demo.component').then((m) => m.DataGridDemoComponent),
+  },
   { path: 'tree-table', redirectTo: 'tree-table/treenode', pathMatch: 'full' },
   {
     path: 'tree-table/:feature',

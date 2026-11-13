@@ -24,7 +24,7 @@
  * Consumers add their other locales by declaration-merging this interface:
  *
  * ```ts
- * declare module '@hakistack/i18n' {
+ * declare module '@hakistack/i18n/engine' {
  *   interface I18nLocales {
  *     es: string;
  *     fr: string;
@@ -42,6 +42,26 @@ export interface I18nLocales {
 
 /** Union of every declared locale id (e.g. `'en' | 'es'`). */
 export type LocaleId = keyof I18nLocales & string;
+
+/**
+ * The source locale. `t()` stores its first argument here, every other locale
+ * is optional, and build-time + runtime fallbacks end here. This is fixed by
+ * the engine's types (`TranslationValue.en`), so it is not configurable.
+ */
+export const SOURCE_LANG = 'en';
+export type SourceLang = typeof SOURCE_LANG;
+
+/**
+ * Runtime brand stamped (non-enumerably) on every `TranslationValue` produced
+ * by `t()` or by bare-string normalization.
+ *
+ * Without a brand, a *group* whose child happens to be named `en` — e.g.
+ * `languages: { en: 'English', es: 'Español' }` in a language picker — is
+ * indistinguishable from a leaf. `Symbol.for` (global registry) is used so the
+ * codegen CLI (which bundles its own copy of the engine) recognizes values
+ * created by the consumer's installed copy.
+ */
+export const TRANSLATION_BRAND: unique symbol = Symbol.for('@hakistack/i18n:translation-value');
 
 /** Alias kept for ergonomics — the active/target language id. */
 export type Language = LocaleId;
@@ -62,6 +82,8 @@ export type TranslationValue = OtherLocales & {
   en: string;
   /** Internal — translator-context comment, attached via `t(en, others, { comment })`. */
   __comment?: string;
+  /** Internal — runtime brand; only `t()` / normalization create branded values. */
+  readonly [TRANSLATION_BRAND]: true;
 };
 
 /** Optional non-source locale fields, derived from the augmented locale set. */
@@ -85,11 +107,17 @@ export type OtherLocales = {
  * t('Welcome', { es: '¡Bienvenido!' }, { comment: 'Greeting on home dashboard' })
  */
 export function t(en: string, translations?: OtherLocales, options?: { comment?: string }): TranslationValue {
-  const value = { en, ...translations } as TranslationValue;
+  const value = brand({ en, ...translations });
   if (options?.comment) {
     value.__comment = options.comment;
   }
   return value;
+}
+
+/** Stamp the non-enumerable brand on a plain `{ en, … }` record. */
+function brand(value: OtherLocales & { en: string; __comment?: string }): TranslationValue {
+  Object.defineProperty(value, TRANSLATION_BRAND, { value: true, enumerable: false, writable: false, configurable: false });
+  return value as TranslationValue;
 }
 
 /**
@@ -98,6 +126,9 @@ export function t(en: string, translations?: OtherLocales, options?: { comment?:
  *   - `TranslationValue` (full form, from `t()`)
  *   - `string` (shorthand for English-only — equivalent to `t(value)`)
  *   - nested object of either
+ *
+ * Only `t()` produces a leaf. A hand-written `{ en: '…', es: '…' }` object is a
+ * *group* with children named `en`/`es` — which is what a language picker wants.
  *
  * Strings are normalized to `TranslationValue` at module construction so the
  * rest of the pipeline (generator, validator, keys builder) only ever sees the
@@ -194,7 +225,7 @@ export function defineTranslations<T extends Record<string, AuthoredTranslationN
  */
 function normalizeTree(node: AuthoredTranslationNode): TranslationNode {
   if (typeof node === 'string') {
-    return { en: node } as TranslationValue;
+    return brand({ en: node });
   }
   if (isTranslationValue(node)) {
     return node;
@@ -220,9 +251,9 @@ function buildKeys(obj: Record<string, unknown>, prefix: string): Record<string,
   return result;
 }
 
-/** Type guard: is this value a `TranslationValue` (has a string `en`)? */
+/** Type guard: is this value a branded `TranslationValue` (created by `t()` or normalization)? */
 export function isTranslationValue(value: unknown): value is TranslationValue {
-  return value !== null && typeof value === 'object' && 'en' in value && typeof (value as TranslationValue).en === 'string';
+  return value !== null && typeof value === 'object' && (value as Record<symbol, unknown>)[TRANSLATION_BRAND] === true;
 }
 
 // =============================================================================
@@ -239,7 +270,8 @@ export function isTranslationValue(value: unknown): value is TranslationValue {
  * autocomplete; this function produces the identical structure at runtime, so
  * the two never diverge.
  *
- * Throws on duplicate scopes or scalar/scope conflicts.
+ * Modules sharing a scope are merged (the scanner emits the same spread for the
+ * `TK` literal). Throws on scalar/scope conflicts.
  */
 export function buildKeysTree(modules: readonly TranslationModule[]): Record<string, unknown> {
   const tree: Record<string, unknown> = {};
@@ -277,6 +309,6 @@ function placeAtScope(tree: Record<string, unknown>, scope: string, keys: unknow
   } else if (typeof existing === 'object' && existing !== null) {
     current[leaf] = { ...(keys as object), ...(existing as object) };
   } else {
-    throw new Error(`i18n: duplicate scope '${scope}'`);
+    throw new Error(`i18n: scope conflict at '${scope}': scalar where nested scope expected`);
   }
 }

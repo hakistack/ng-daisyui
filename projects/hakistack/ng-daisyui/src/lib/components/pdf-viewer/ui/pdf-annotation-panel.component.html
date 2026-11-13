@@ -1,0 +1,389 @@
+@if (target(); as t) {
+  <section [class]="ui.panel('w-64')" [attr.aria-label]="store.labels().annotationProperties">
+    <header [class]="ui.panelHeader">
+      <h3 [class]="ui.panelTitle">{{ title() }}</h3>
+      @if (t.annotation) {
+        <button
+          type="button"
+          [class]="ui.panelButton"
+          [attr.aria-label]="store.labels().openComments"
+          [title]="store.labels().openComments"
+          (click)="openComments()"
+        >
+          <svg lucideMessageSquareText [size]="14"></svg>
+        </button>
+        <button
+          type="button"
+          [class]="ui.panelButton"
+          [attr.aria-label]="store.labels().duplicate"
+          [title]="store.labels().duplicate"
+          [disabled]="!annotations.canAdd()"
+          (click)="duplicate()"
+        >
+          <svg lucideCopy [size]="14"></svg>
+        </button>
+        <button
+          type="button"
+          [class]="ui.panelButton"
+          [disabled]="!canLock()"
+          [attr.aria-pressed]="locked()"
+          [attr.aria-label]="locked() ? store.labels().unlock : store.labels().lock"
+          [title]="locked() ? store.labels().unlock : store.labels().lock"
+          (click)="toggleLock()"
+        >
+          @if (locked()) {
+            <svg lucideLock [size]="14"></svg>
+          } @else {
+            <svg lucideLockOpen [size]="14"></svg>
+          }
+        </button>
+        <button
+          type="button"
+          [class]="ui.mesa ? ui.panelButton : ui.panelButton + ' text-error'"
+          [attr.aria-label]="store.labels().deleteAnnotation"
+          [title]="store.labels().deleteAnnotation"
+          [disabled]="locked()"
+          (click)="remove()"
+        >
+          <svg lucideTrash2 [size]="14"></svg>
+        </button>
+      }
+      <button
+        type="button"
+        [class]="ui.panelButton"
+        [attr.aria-label]="store.labels().dismiss"
+        [title]="store.labels().dismiss"
+        (click)="close()"
+      >
+        <svg lucideX [size]="14"></svg>
+      </button>
+    </header>
+
+    <fieldset [class]="ui.panelBody" [disabled]="locked()">
+      <legend class="sr-only">{{ store.labels().annotationProperties }}</legend>
+
+      @if (measurement(); as m) {
+        <div
+          [class]="
+            ui.mesa
+              ? 'rounded-box border border-base-300 bg-base-200 px-2 py-1.5'
+              : 'rounded-box border border-primary/20 bg-primary/10 px-2 py-1.5'
+          "
+          role="status"
+        >
+          <div [class]="ui.mesa ? 'font-mono text-base font-semibold tabular-nums' : 'text-base font-semibold tabular-nums text-primary'">
+            {{ m.value }}
+          </div>
+          <div class="text-xs text-base-content/70">{{ store.labels().currentScale.replace('{scale}', m.scale) }}</div>
+        </div>
+        @if (m.kind === 'volume') {
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().depth }}</span>
+            <input
+              type="number"
+              class="input input-bordered input-xs w-full tabular-nums"
+              min="0"
+              step="any"
+              [value]="m.depth"
+              (change)="setDepth($event)"
+            />
+          </label>
+        }
+      }
+
+      @if (link(); as target) {
+        <div class="flex flex-col gap-1.5" role="group" [attr.aria-label]="store.labels().linkTarget">
+          <span class="text-xs text-base-content/70">{{ store.labels().linkTarget }}</span>
+          <div class="join w-full">
+            <button
+              type="button"
+              class="btn btn-xs join-item grow"
+              [class.btn-active]="!ui.mesa && target.kind === 'uri'"
+              [class.btn-primary]="ui.mesa && target.kind === 'uri'"
+              [attr.aria-pressed]="target.kind === 'uri'"
+              (click)="setLinkKind('uri')"
+            >
+              {{ store.labels().linkUrl }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-xs join-item grow"
+              [class.btn-active]="!ui.mesa && target.kind === 'page'"
+              [class.btn-primary]="ui.mesa && target.kind === 'page'"
+              [attr.aria-pressed]="target.kind === 'page'"
+              (click)="setLinkKind('page')"
+            >
+              {{ store.labels().linkPage }}
+            </button>
+          </div>
+          @if (target.kind === 'uri') {
+            <input
+              #uriInput
+              type="url"
+              class="input input-bordered input-xs w-full"
+              [class.input-error]="linkError()"
+              [attr.aria-label]="store.labels().linkUrl"
+              [attr.aria-invalid]="linkError()"
+              [value]="target.uri"
+              (change)="setLinkUri(uriInput.value)"
+            />
+            @if (linkError()) {
+              <span class="text-xs text-error" role="alert">{{ store.labels().invalidUrl }}</span>
+            }
+          } @else {
+            <input
+              #pageInput
+              type="text"
+              inputmode="numeric"
+              class="input input-bordered input-xs w-full tabular-nums"
+              [attr.aria-label]="store.labels().linkPage"
+              [value]="store.labelFor(target.page + 1)"
+              (change)="setLinkPage(pageInput.value)"
+            />
+          }
+        </div>
+      }
+
+      @if (has('fontColor')) {
+        <ng-container
+          [ngTemplateOutlet]="colorRow"
+          [ngTemplateOutletContext]="{ field: 'fontColor', label: store.labels().textColor, value: t.style.fontColor, allowNone: false }"
+        />
+      }
+      @if (has('font')) {
+        <div class="flex items-end gap-2">
+          <label class="flex grow flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().font }}</span>
+            <select class="select select-bordered select-xs w-full" [value]="t.style.font" (change)="setText('font', $event)">
+              @for (f of fonts; track f) {
+                <option [value]="f" [selected]="f === t.style.font">{{ f }}</option>
+              }
+            </select>
+          </label>
+          <label class="flex w-16 flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().fontSize }}</span>
+            <input
+              type="number"
+              class="input input-bordered input-xs w-full tabular-nums"
+              min="4"
+              max="144"
+              step="1"
+              [value]="t.style.fontSize"
+              (change)="setNumber('fontSize', $event)"
+            />
+          </label>
+        </div>
+      }
+      @if (has('align')) {
+        <div class="join" role="group">
+          <button
+            type="button"
+            class="btn btn-xs join-item grow"
+            [class.btn-active]="!ui.mesa && t.style.align === 'left'"
+            [class.btn-primary]="ui.mesa && t.style.align === 'left'"
+            [attr.aria-pressed]="t.style.align === 'left'"
+            [attr.aria-label]="store.labels().alignLeft"
+            (click)="set('align', 'left')"
+          >
+            <svg lucideAlignLeft [size]="14"></svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs join-item grow"
+            [class.btn-active]="!ui.mesa && t.style.align === 'center'"
+            [class.btn-primary]="ui.mesa && t.style.align === 'center'"
+            [attr.aria-pressed]="t.style.align === 'center'"
+            [attr.aria-label]="store.labels().alignCenter"
+            (click)="set('align', 'center')"
+          >
+            <svg lucideAlignCenter [size]="14"></svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-xs join-item grow"
+            [class.btn-active]="!ui.mesa && t.style.align === 'right'"
+            [class.btn-primary]="ui.mesa && t.style.align === 'right'"
+            [attr.aria-pressed]="t.style.align === 'right'"
+            [attr.aria-label]="store.labels().alignRight"
+            (click)="set('align', 'right')"
+          >
+            <svg lucideAlignRight [size]="14"></svg>
+          </button>
+        </div>
+      }
+      @if (has('color')) {
+        <ng-container
+          [ngTemplateOutlet]="colorRow"
+          [ngTemplateOutletContext]="{ field: 'color', label: store.labels().color, value: t.style.color, allowNone: false }"
+        />
+      }
+      @if (has('fill')) {
+        <ng-container
+          [ngTemplateOutlet]="colorRow"
+          [ngTemplateOutletContext]="{ field: 'fill', label: store.labels().fillColor, value: t.style.fill, allowNone: true }"
+        />
+      }
+      @if (has('icon')) {
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-base-content/70">{{ store.labels().noteIcon }}</span>
+          <select class="select select-bordered select-xs w-full" (change)="setText('icon', $event)">
+            @for (icon of noteIcons; track icon) {
+              <option [value]="icon" [selected]="icon === t.style.icon">{{ icon }}</option>
+            }
+          </select>
+        </label>
+      }
+      @if (has('strokeWidth')) {
+        <label class="flex flex-col gap-1">
+          <span class="flex justify-between text-xs text-base-content/70">
+            <span>{{ store.labels().strokeWidth }}</span>
+            <span class="tabular-nums">{{ t.style.strokeWidth }} pt</span>
+          </span>
+          <input
+            type="range"
+            class="range range-xs"
+            [min]="t.type === 'freetext' ? 0 : 0.5"
+            max="12"
+            step="0.5"
+            [value]="t.style.strokeWidth"
+            (input)="setNumber('strokeWidth', $event)"
+          />
+        </label>
+      }
+      @if (has('opacity')) {
+        <label class="flex flex-col gap-1">
+          <span class="flex justify-between text-xs text-base-content/70">
+            <span>{{ store.labels().opacity }}</span>
+            <span class="tabular-nums">{{ (t.style.opacity * 100).toFixed(0) }}%</span>
+          </span>
+          <input
+            type="range"
+            class="range range-xs"
+            min="10"
+            max="100"
+            step="5"
+            [value]="t.style.opacity * 100"
+            (input)="setNumber('opacity', $event, 100)"
+          />
+        </label>
+      }
+      @if (has('dashed')) {
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-base-content/70">{{ store.labels().lineStyle }}</span>
+          <select class="select select-bordered select-xs w-full" (change)="set('dashed', $any($event.target).value === 'dashed')">
+            <option value="solid" [selected]="!t.style.dashed">{{ store.labels().solid }}</option>
+            <option value="dashed" [selected]="t.style.dashed">{{ store.labels().dashed }}</option>
+          </select>
+        </label>
+      }
+      @if (has('startEnding')) {
+        <div class="flex gap-2">
+          <label class="flex grow flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().lineStart }}</span>
+            <select class="select select-bordered select-xs w-full" (change)="setText('startEnding', $event)">
+              @for (e of endings; track e.value) {
+                <option [value]="e.value" [selected]="e.value === t.style.startEnding">{{ store.labels()[e.label] }}</option>
+              }
+            </select>
+          </label>
+          <label class="flex grow flex-col gap-1">
+            <span class="text-xs text-base-content/70">{{ store.labels().lineEnd }}</span>
+            <select class="select select-bordered select-xs w-full" (change)="setText('endEnding', $event)">
+              @for (e of endings; track e.value) {
+                <option [value]="e.value" [selected]="e.value === t.style.endEnding">{{ store.labels()[e.label] }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      }
+      @if (has('cloudy')) {
+        <label class="flex cursor-pointer items-center justify-between gap-2">
+          <span class="text-xs text-base-content/70">{{ store.labels().cloudyBorder }}</span>
+          <input
+            type="checkbox"
+            class="toggle toggle-xs"
+            [checked]="t.style.cloudy"
+            (change)="set('cloudy', $any($event.target).checked)"
+          />
+        </label>
+      }
+      @if (t.annotation?.type === 'stamp') {
+        <label class="flex cursor-pointer items-start gap-2 text-xs">
+          <input type="checkbox" class="checkbox checkbox-xs mt-0.5" [checked]="!!$any(t.annotation).flatten" (change)="toggleFlatten()" />
+          {{ store.labels().flattenSignature }}
+        </label>
+      }
+      @if (t.annotation) {
+        <div class="flex flex-col gap-1" role="group" [attr.aria-label]="store.labels().arrange">
+          <span class="text-xs text-base-content/70">{{ store.labels().arrange }}</span>
+          <div class="join">
+            @for (action of arrangeActions; track action.where) {
+              <button
+                type="button"
+                class="btn btn-xs join-item grow"
+                [attr.aria-label]="store.labels()[action.label]"
+                [title]="store.labels()[action.label]"
+                (click)="arrange(action.where)"
+              >
+                @switch (action.where) {
+                  @case ('front') {
+                    <svg lucideArrowUpToLine [size]="14"></svg>
+                  }
+                  @case ('forward') {
+                    <svg lucideArrowUp [size]="14"></svg>
+                  }
+                  @case ('backward') {
+                    <svg lucideArrowDown [size]="14"></svg>
+                  }
+                  @case ('back') {
+                    <svg lucideArrowDownToLine [size]="14"></svg>
+                  }
+                }
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </fieldset>
+  </section>
+}
+
+<!-- A colour row: swatches, "no fill" where allowed, and a free colour input. -->
+<ng-template #colorRow let-field="field" let-label="label" let-value="value" let-allowNone="allowNone">
+  <div class="flex flex-col gap-1" role="group" [attr.aria-label]="label">
+    <span class="text-xs text-base-content/70">{{ label }}</span>
+    <div class="flex flex-wrap items-center gap-1">
+      @if (allowNone) {
+        <button
+          type="button"
+          class="btn btn-xs h-6 min-h-6 px-1.5"
+          [class.btn-active]="!ui.mesa && value === null"
+          [class.btn-primary]="ui.mesa && value === null"
+          [attr.aria-pressed]="value === null"
+          (click)="set(field, null)"
+        >
+          {{ store.labels().noFill }}
+        </button>
+      }
+      @for (c of swatches; track c) {
+        <button
+          type="button"
+          class="h-5 w-5 rounded-full border border-base-300 outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary"
+          [class.ring-2]="value === c"
+          [class.ring-primary]="value === c"
+          [style.background]="c"
+          [attr.aria-label]="swatchLabel(c)"
+          [attr.aria-pressed]="value === c"
+          (click)="set(field, c)"
+        ></button>
+      }
+      <input
+        type="color"
+        class="h-6 w-6 cursor-pointer rounded border border-base-300 bg-transparent p-0"
+        [value]="value ?? '#ffffff'"
+        [attr.aria-label]="label"
+        (input)="setColorInput(field, $event)"
+      />
+    </div>
+  </div>
+</ng-template>

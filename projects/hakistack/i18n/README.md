@@ -16,8 +16,9 @@ JSON is an output, not an input.
 npm i @hakistack/i18n @jsverse/transloco
 ```
 
-`@jsverse/transloco` is a peer dependency (you control its version). `chokidar`
-is an optional dependency, needed only for the `watch` command.
+`@jsverse/transloco` is a peer dependency (you control its version). The CLI
+depends on `jiti` (installed automatically) and, for the `watch` command only,
+on `chokidar` (an optional dependency).
 
 ## 1. Author translations (`*.i18n.ts`)
 
@@ -35,6 +36,11 @@ export const HOME = defineTranslations('home', {
 - `t(en, others?, { comment? })` — English (source) required, other locales
   optional, optional translator comment.
 - Bare strings are shorthand for English-only (`reset: 'Reset'` ≡ `t('Reset')`).
+- Only `t()` and bare strings are leaves. A hand-written object is always a
+  *group*, so `languages: { en: 'English', es: 'Español' }` yields the two keys
+  `languages.en` and `languages.es` — handy for language pickers.
+- `en` is the fixed source locale: it is what `t()`'s first argument fills and
+  what every other locale falls back to at build time and at runtime.
 - `{ scoped: true }` emits a per-scope JSON file (forward-compat for
   `provideTranslocoScope` lazy loading); eager modules merge into the root JSON.
 
@@ -57,12 +63,13 @@ declare module '@hakistack/i18n/engine' {
   "srcRoot": "src",
   "definitionsDir": "src/i18n/definitions",
   "outputDir": "src/assets/i18n",
-  "locales": ["en", "es"],
-  "sourceLang": "en"
+  "locales": ["en", "es"]
 }
 ```
 
-(A `.ts`/`.js` config with a default export works too.)
+(A `.ts`/`.js` config with a default export works too. `en` is always part of
+`locales`; optional `directiveSelector` / `directiveClassName` rename the
+generated directive.)
 
 ## 3. Run the codegen
 
@@ -133,6 +140,8 @@ protected readonly welcome = translateSignal(TK.home.welcome);
 <!-- template — import the generated AppTranslateDirective, fully typed -->
 <div *appTranslate="let t">{{ t.home.welcome() }}</div>
 <p>{{ t.common.validation.minLength({ min: 3 }) }}</p>
+<!-- optional key prefix (the input is named <selector>Prefix) -->
+<div *appTranslate="let t; prefix: 'admin'">{{ t.users.title() }}</div>
 ```
 
 ## Entry points

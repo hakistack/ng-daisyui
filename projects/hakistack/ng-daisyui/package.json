@@ -3,13 +3,17 @@
   "version": "0.3.0",
   "description": "Angular UI components built with DaisyUI and Tailwind CSS",
   "author": "Hakistack",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/hakistack/ng-daisyui.git"
   },
+  "homepage": "https://github.com/hakistack/ng-daisyui#readme",
+  "bugs": {
+    "url": "https://github.com/hakistack/ng-daisyui/issues"
+  },
   "publishConfig": {
-    "registry": "https://registry.hakistack.dev/"
+    "access": "public"
   },
   "keywords": [
     "angular",
@@ -49,6 +53,7 @@
   },
   "peerDependencies": {
     "@angular/aria": ">=21.0.0",
+    "@anthropic-ai/sdk": ">=0.133.0",
     "@angular/cdk": ">=21.0.0",
     "@angular/common": ">=21.0.0",
     "@angular/core": ">=21.0.0",
@@ -62,10 +67,17 @@
     "heic2any": "^0.0.4",
     "postal-mime": "^2.7.4",
     "rxjs": ">=7.8.0",
-    "tailwindcss": "^4.0.0"
+    "tailwindcss": "^4.0.0",
+    "ts-morph": ">=20.0.0"
   },
   "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
     "@angular/router": {
+      "optional": true
+    },
+    "ts-morph": {
       "optional": true
     },
     "@kenjiuno/msgreader": {

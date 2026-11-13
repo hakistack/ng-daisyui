@@ -1,14 +1,14 @@
 import {
-  PdfAnnotationRow,
   PdfAttachmentFile,
   PdfDocHandle,
   PdfEngine,
-  PdfFormField,
   PdfLinkRect,
   PdfOutlineNode,
   PdfPageSize,
   PdfRenderTask,
+  PdfTaskPriority,
   PdfTextSegment,
+  PdfTileRequest,
   PdfWorkerResponse,
 } from './pdf-engine.types';
 import { createPdfiumWorker } from './pdfium-worker.loader';
@@ -64,12 +64,24 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'pageSize', id: 0, doc, page }) as Promise<PdfPageSize>;
   }
 
+  pageSizes(doc: PdfDocHandle): Promise<PdfPageSize[]> {
+    return this.request({ type: 'pageSizes', id: 0, doc }) as Promise<PdfPageSize[]>;
+  }
+
+  pageLabels(doc: PdfDocHandle): Promise<string[]> {
+    return this.request({ type: 'pageLabels', id: 0, doc }) as Promise<string[]>;
+  }
+
   documentTitle(doc: PdfDocHandle): Promise<string> {
     return this.request({ type: 'documentTitle', id: 0, doc }) as Promise<string>;
   }
 
-  pageText(doc: PdfDocHandle, page: number): Promise<PdfTextSegment[]> {
-    return this.request({ type: 'pageText', id: 0, doc, page }) as Promise<PdfTextSegment[]>;
+  pageText(doc: PdfDocHandle, page: number, priority?: PdfTaskPriority): Promise<PdfTextSegment[]> {
+    return this.request({ type: 'pageText', id: 0, doc, page, priority }) as Promise<PdfTextSegment[]>;
+  }
+
+  pagesText(doc: PdfDocHandle, pages: readonly number[], priority?: PdfTaskPriority): Promise<PdfTextSegment[][]> {
+    return this.request({ type: 'pagesText', id: 0, doc, pages: [...pages], priority }) as Promise<PdfTextSegment[][]>;
   }
 
   outline(doc: PdfDocHandle): Promise<PdfOutlineNode[]> {
@@ -80,78 +92,37 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'pageLinks', id: 0, doc, page }) as Promise<PdfLinkRect[]>;
   }
 
-  documentAnnotations(doc: PdfDocHandle): Promise<PdfAnnotationRow[]> {
-    return this.request({ type: 'documentAnnotations', id: 0, doc }) as Promise<PdfAnnotationRow[]>;
-  }
-
   attachments(doc: PdfDocHandle): Promise<PdfAttachmentFile[]> {
     return this.request({ type: 'attachments', id: 0, doc }) as Promise<PdfAttachmentFile[]>;
   }
 
-  formFields(doc: PdfDocHandle, page: number): Promise<PdfFormField[]> {
-    return this.request({ type: 'formFields', id: 0, doc, page }) as Promise<PdfFormField[]>;
-  }
-
-  setFieldValue(doc: PdfDocHandle, page: number, name: string, value: string): Promise<boolean> {
-    return this.request({ type: 'setFieldValue', id: 0, doc, page, name, value }) as Promise<boolean>;
-  }
-
-  addHighlight(doc: PdfDocHandle, page: number, x: number, y: number, w: number, h: number, color: number): Promise<boolean> {
-    return this.request({ type: 'addHighlight', id: 0, doc, page, x, y, w, h, color }) as Promise<boolean>;
-  }
-
-  addTextNote(doc: PdfDocHandle, page: number, x: number, y: number, contents: string, color: number): Promise<boolean> {
-    return this.request({ type: 'addTextNote', id: 0, doc, page, x, y, contents, color }) as Promise<boolean>;
-  }
-
-  addFreeText(
-    doc: PdfDocHandle,
-    page: number,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    contents: string,
-    color: number,
-  ): Promise<boolean> {
-    return this.request({ type: 'addFreeText', id: 0, doc, page, x, y, w, h, contents, color }) as Promise<boolean>;
-  }
-
-  addInk(doc: PdfDocHandle, page: number, points: number[], color: number, width: number): Promise<boolean> {
-    return this.request({ type: 'addInk', id: 0, doc, page, points, color, width }) as Promise<boolean>;
-  }
-
-  deleteAnnotation(doc: PdfDocHandle, page: number, index: number): Promise<boolean> {
-    return this.request({ type: 'deleteAnnotation', id: 0, doc, page, index }) as Promise<boolean>;
-  }
-
-  setAnnotationContents(doc: PdfDocHandle, page: number, index: number, contents: string): Promise<boolean> {
-    return this.request({ type: 'setAnnotationContents', id: 0, doc, page, index, contents }) as Promise<boolean>;
-  }
-
-  deletePage(doc: PdfDocHandle, index: number): Promise<boolean> {
-    return this.request({ type: 'deletePage', id: 0, doc, index }) as Promise<boolean>;
-  }
-
-  insertBlankPage(doc: PdfDocHandle, index: number, width: number, height: number): Promise<boolean> {
-    return this.request({ type: 'insertBlankPage', id: 0, doc, index, width, height }) as Promise<boolean>;
-  }
-
-  setPageRotation(doc: PdfDocHandle, page: number, degrees: number): Promise<boolean> {
-    return this.request({ type: 'setPageRotation', id: 0, doc, page, degrees }) as Promise<boolean>;
+  setHiddenAnnotations(doc: PdfDocHandle, entries: readonly number[]): Promise<void> {
+    return this.request({ type: 'setHiddenAnnotations', id: 0, doc, entries: [...entries] }) as Promise<void>;
   }
 
   save(doc: PdfDocHandle): Promise<Uint8Array> {
     return this.request({ type: 'save', id: 0, doc }) as Promise<Uint8Array>;
   }
 
-  renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number): PdfRenderTask {
+  renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number, priority?: PdfTaskPriority): PdfRenderTask {
+    return this.renderTask({ type: 'render', doc, page, cssWidth, dpr, priority });
+  }
+
+  renderTile(doc: PdfDocHandle, page: number, tile: PdfTileRequest, priority?: PdfTaskPriority): PdfRenderTask {
+    return this.renderTask({ type: 'renderTile', doc, page, ...tile, priority });
+  }
+
+  /**
+   * Post a render request and hand back a cancellable task. Cancelling rejects
+   * locally right away and tells the worker, which drops the request if it
+   * hasn't started it yet.
+   */
+  private renderTask(msg: Record<string, unknown>): PdfRenderTask {
     const id = this.nextId++;
     const promise = new Promise<unknown>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
       this.workerReady.then((w) => {
-        // Skip if cancelled before the worker was ready.
-        if (this.pending.has(id)) w.postMessage({ type: 'render', id, doc, page, cssWidth, dpr });
+        if (this.pending.has(id)) w.postMessage({ ...msg, id }); // skipped if cancelled before the worker was ready
       }, reject);
     }).then((r) => r as Awaited<PdfRenderTask['promise']>);
     return {
@@ -160,7 +131,6 @@ export class PdfiumEngine implements PdfEngine {
         const p = this.pending.get(id);
         if (!p) return;
         this.pending.delete(id);
-        // Best-effort: tell the worker (no-op if it never received the render).
         this.workerReady.then((w) => w.postMessage({ type: 'cancel', id })).catch(() => undefined);
         p.reject(new DOMException('render cancelled', 'AbortError'));
       },

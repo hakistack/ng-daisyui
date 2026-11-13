@@ -1,0 +1,10 @@
+[mcp_servers.daisyui-blueprint]
+command = "npx"
+args = [
+    "-y",
+    "daisyui-blueprint@latest",
+]
+
+[mcp_servers.daisyui-blueprint.env]
+LICENSE = "DYU5W-V754K-KNVY8-XZILQ-4F8T0"
+EMAIL = "josedrgerena120@gmail.com"

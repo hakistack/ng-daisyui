@@ -13,8 +13,7 @@
  *   --src-root <dir>       Directory scanned for *.i18n.ts.
  *   --definitions-dir <d>  Where generated files land.
  *   --output-dir <dir>     JSON output directory.
- *   --locales <a,b,c>      Comma-separated locale ids.
- *   --source-lang <id>     Source locale (default: en).
+ *   --locales <a,b,c>      Comma-separated locale ids (en is always included).
  *   --list                 (scan) list modules without emitting.
  *   --strict               (find-unused) exit 1 if unused keys exist.
  *   --verbose              (find-unused) print reference locations.
@@ -57,7 +56,6 @@ function configOverrides(flags: Record<string, string | boolean>): Partial<I18nU
   if (typeof flags['src-root'] === 'string') o.srcRoot = flags['src-root'];
   if (typeof flags['definitions-dir'] === 'string') o.definitionsDir = flags['definitions-dir'];
   if (typeof flags['output-dir'] === 'string') o.outputDir = flags['output-dir'];
-  if (typeof flags['source-lang'] === 'string') o.sourceLang = flags['source-lang'];
   if (typeof flags['locales'] === 'string')
     o.locales = flags['locales']
       .split(',')
@@ -82,8 +80,7 @@ Flags:
   --src-root <dir>       Directory scanned for *.i18n.ts
   --definitions-dir <d>  Where generated files land
   --output-dir <dir>     JSON output directory
-  --locales <a,b,c>      Comma-separated locale ids
-  --source-lang <id>     Source locale (default: en)
+  --locales <a,b,c>      Comma-separated locale ids (en is always included)
   --list                 (scan) list modules without emitting
   --strict               (find-unused) exit 1 if unused keys exist
   --verbose              (find-unused) print reference locations

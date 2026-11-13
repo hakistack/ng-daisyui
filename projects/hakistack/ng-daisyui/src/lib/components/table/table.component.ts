@@ -79,9 +79,8 @@ import {
   TableAction,
   TableBulkAction,
 } from './table.types';
+import { _attachTableInstance, _detachTableInstance } from './table.helpers';
 import {
-  _attachTableInstance,
-  _detachTableInstance,
   collectAncestorKeys,
   exportToCsv,
   exportToJson,
@@ -89,16 +88,16 @@ import {
   generateRowKey,
   getRowChildren,
   sortTreeData,
-} from './table.helpers';
-import { ColumnUiController } from './controllers/column-ui.controller';
-import { FilterController } from './controllers/filter.controller';
-import { FooterController } from './controllers/footer.controller';
-import { GlobalSearchController } from './controllers/global-search.controller';
-import { GroupController } from './controllers/group.controller';
-import { PaginationController } from './controllers/pagination.controller';
-import { SelectionController } from './controllers/selection.controller';
-import { SortController } from './controllers/sort.controller';
-import { TreeController } from './controllers/tree.controller';
+} from '../../grid-core/grid.helpers';
+import { ColumnUiController } from '../../grid-core/controllers/column-ui.controller';
+import { FilterController } from '../../grid-core/controllers/filter.controller';
+import { FooterController } from '../../grid-core/controllers/footer.controller';
+import { GlobalSearchController } from '../../grid-core/controllers/global-search.controller';
+import { GroupController } from '../../grid-core/controllers/group.controller';
+import { PaginationController } from '../../grid-core/controllers/pagination.controller';
+import { SelectionController } from '../../grid-core/controllers/selection.controller';
+import { SortController } from '../../grid-core/controllers/sort.controller';
+import { TreeController } from '../../grid-core/controllers/tree.controller';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import {
   TableEngineService,
@@ -111,7 +110,7 @@ import {
   type ColumnKind,
   type ColumnSchema,
   type SortDef,
-} from './engine';
+} from '../../grid-core/engine';
 
 // Optimized DataSource with proper typing
 class SignalDataSource<T> extends DataSource<T> {

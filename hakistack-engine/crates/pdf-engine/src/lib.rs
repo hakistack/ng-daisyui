@@ -33,6 +33,9 @@ thread_local! {
     static DOCS: RefCell<HashMap<u32, PdfDocument<'static>>> = RefCell::new(HashMap::new());
     /// Monotonic handle allocator (never reused within a session).
     static NEXT_HANDLE: RefCell<u32> = const { RefCell::new(1) };
+    /// Annotations the viewer draws itself, per document and page: hidden while
+    /// rasterizing so they don't appear twice. Never persisted to the document.
+    static HIDDEN: RefCell<HashMap<u32, HashMap<u16, Vec<u16>>>> = RefCell::new(HashMap::new());
 }
 
 /// Sentinel error string the JS side detects to trigger the password prompt.
@@ -66,6 +69,50 @@ pub fn close(handle: u32) {
     DOCS.with(|d| {
         d.borrow_mut().remove(&handle);
     });
+    HIDDEN.with(|h| {
+        h.borrow_mut().remove(&handle);
+    });
+}
+
+/// Replace the set of annotations left out of rendered rasters (the ones the
+/// viewer draws in its own layer). `entries` is flat `[page, annotIndex, …]`;
+/// an empty list clears it. Rendering hides them only for the duration of the
+/// call, so a later save is unaffected.
+#[wasm_bindgen]
+pub fn set_hidden_annotations(handle: u32, entries: Vec<u32>) {
+    let mut by_page: HashMap<u16, Vec<u16>> = HashMap::new();
+    for pair in entries.chunks_exact(2) {
+        by_page.entry(pair[0] as u16).or_default().push(pair[1] as u16);
+    }
+    HIDDEN.with(|h| {
+        let mut h = h.borrow_mut();
+        if by_page.is_empty() {
+            h.remove(&handle);
+        } else {
+            h.insert(handle, by_page);
+        }
+    });
+}
+
+/// Run `f` (a render of `page`) with the page's hidden annotations flagged
+/// Hidden, restoring their flags afterwards.
+fn with_hidden_annotations<R>(handle: u32, index: u16, page: &PdfPage, f: impl FnOnce() -> R) -> R {
+    let list = HIDDEN.with(|h| h.borrow().get(&handle).and_then(|pages| pages.get(&index).cloned())).unwrap_or_default();
+    let mut restore = Vec::new();
+    for i in list {
+        if let Ok(mut annot) = page.annotations().get(i as usize) {
+            if !annot.is_hidden() && annot.set_is_hidden(true).is_ok() {
+                restore.push(i);
+            }
+        }
+    }
+    let result = f();
+    for i in restore {
+        if let Ok(mut annot) = page.annotations().get(i as usize) {
+            let _ = annot.set_is_hidden(false);
+        }
+    }
+    result
 }
 
 /// Number of pages in an open document.
@@ -92,18 +139,21 @@ pub fn page_size(handle: u32, index: u16) -> Result<Array, JsValue> {
 pub fn render(handle: u32, index: u16, target_width: i32) -> Result<Array, JsValue> {
     with_doc(handle, |doc| {
         let page = doc.pages().get(index as i32).map_err(to_js)?;
-        let bitmap = page
-            .render_with_config(
+        let bitmap = with_hidden_annotations(handle, index, &page, || {
+            page.render_with_config(
                 &PdfRenderConfig::new()
                     .set_target_width(target_width)
                     // Bake annotations (highlights, ink, stamps) and form-field
                     // appearances into the raster — pd​f.js drew these in DOM
                     // overlay layers; PDFium renders them directly. Links stay
                     // overlay-only (they need to be clickable — see page_links).
+                    // Annotations the viewer edits are drawn by its own layer
+                    // and hidden here (see set_hidden_annotations).
                     .render_annotations(true)
                     .render_form_data(true),
             )
-            .map_err(to_js)?;
+        })
+        .map_err(to_js)?;
         let w = bitmap.width() as u32;
         let h = bitmap.height() as u32;
         let rgba = bitmap.as_rgba_bytes();
@@ -111,6 +161,23 @@ pub fn render(handle: u32, index: u16, target_width: i32) -> Result<Array, JsVal
         out.push(&JsValue::from_f64(w as f64));
         out.push(&JsValue::from_f64(h as f64));
         out.push(&Uint8Array::from(rgba.as_slice()));
+        Ok(out)
+    })
+}
+
+/// Render one tile: the region `(x, y, w, h)` (device px, top-left origin) of the
+/// page scaled to `page_width × page_height` device px. Returns `[w, h, rgba]`
+/// like `render`. Lets the viewer show a sharp viewport at zooms where the whole
+/// page would exceed the browser's canvas limits.
+#[wasm_bindgen]
+pub fn render_tile(handle: u32, index: u16, page_width: i32, page_height: i32, x: i32, y: i32, w: i32, h: i32) -> Result<Array, JsValue> {
+    with_doc(handle, |doc| {
+        let page = doc.pages().get(index as i32).map_err(to_js)?;
+        let bitmap = with_hidden_annotations(handle, index, &page, || page.render_region(page_width, page_height, x, y, w, h)).map_err(to_js)?;
+        let out = Array::new();
+        out.push(&JsValue::from_f64(bitmap.width() as f64));
+        out.push(&JsValue::from_f64(bitmap.height() as f64));
+        out.push(&Uint8Array::from(bitmap.as_rgba_bytes().as_slice()));
         Ok(out)
     })
 }
@@ -141,6 +208,20 @@ pub fn page_text(handle: u32, index: u16) -> Result<Array, JsValue> {
             seg.push(&JsValue::from_f64((right - left) as f64)); // w
             seg.push(&JsValue::from_f64((top - bottom) as f64)); // h
             out.push(&seg);
+        }
+        Ok(out)
+    })
+}
+
+/// Each page's label from the document's `/PageLabels` ("iv", "A-1"), or `""`
+/// where none is defined. Read without loading the pages.
+#[wasm_bindgen]
+pub fn page_labels(handle: u32) -> Result<Array, JsValue> {
+    with_doc(handle, |doc| {
+        let pages = doc.pages();
+        let out = Array::new();
+        for i in 0..pages.len() {
+            out.push(&JsValue::from_str(&pages.label(i).unwrap_or_default()));
         }
         Ok(out)
     })
@@ -212,69 +293,6 @@ pub fn page_links(handle: u32, index: u16) -> Result<Array, JsValue> {
     })
 }
 
-/// User-meaningful annotations across the whole document, for the sidebar list.
-/// Each row is `[pageIndex (0-based), annotIndex (page-local), subtype, contents]`.
-/// `annotIndex` is the annotation's position in the page's annotation array —
-/// the address `delete_annotation` / `set_annotation_contents` take. Subtypes
-/// the sidebar doesn't display (links, popups, widgets, …) are skipped.
-#[wasm_bindgen]
-pub fn document_annotations(handle: u32) -> Result<Array, JsValue> {
-    with_doc(handle, |doc| {
-        let out = Array::new();
-        let pages = doc.pages();
-        let count = pages.len();
-        for i in 0..count {
-            let page = match pages.get(i) {
-                Ok(p) => p,
-                Err(_) => continue,
-            };
-            let annots = page.annotations();
-            for j in 0..annots.len() {
-                let annot = match annots.get(j) {
-                    Ok(a) => a,
-                    Err(_) => continue,
-                };
-                let subtype = annotation_type_str(annot.annotation_type());
-                if subtype.is_empty() {
-                    continue;
-                }
-                let row = Array::new();
-                row.push(&JsValue::from_f64(i as f64));
-                row.push(&JsValue::from_f64(j as f64));
-                row.push(&JsValue::from_str(subtype));
-                row.push(&JsValue::from_str(&annot.contents().unwrap_or_default()));
-                out.push(&row);
-            }
-        }
-        Ok(out)
-    })
-}
-
-/// Delete the annotation at `[page_index, annot_index]` (page-local index from
-/// `document_annotations`). Indices shift after a delete — re-query first.
-#[wasm_bindgen]
-pub fn delete_annotation(handle: u32, page_index: u16, annot_index: u16) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(page_index as i32).map_err(to_js)?;
-        let annots = page.annotations_mut();
-        let annot = annots.get(annot_index as usize).map_err(to_js)?;
-        annots.delete_annotation(annot).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
-/// Replace the text contents of the annotation at `[page_index, annot_index]`
-/// (e.g. a note or free-text comment body).
-#[wasm_bindgen]
-pub fn set_annotation_contents(handle: u32, page_index: u16, annot_index: u16, contents: &str) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let page = doc.pages().get(page_index as i32).map_err(to_js)?;
-        let mut annot = page.annotations().get(annot_index as usize).map_err(to_js)?;
-        annot.set_contents(contents).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
 /// Embedded files. Each row is `[name, Uint8Array(bytes)]`.
 #[wasm_bindgen]
 pub fn attachments(handle: u32) -> Result<Array, JsValue> {
@@ -292,10 +310,15 @@ pub fn attachments(handle: u32) -> Result<Array, JsValue> {
 }
 
 /// Interactive form fields on one page, for the form-widget overlay. Each row is
-/// `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[]]`.
+/// `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[],
+/// annotIndex, exportValue, alternateName]`.
 /// Rect is top-left-origin PDF points. `type` ∈ text|checkbox|radio|combo|list|
 /// button|signature. `value` is the text/selected value; `checked` applies to
-/// checkbox/radio; `options` lists choice labels (combo/list).
+/// checkbox/radio; `options` lists choice labels (combo/list). `annotIndex` is the
+/// widget's annotation index on the page: several widgets share one field name
+/// (radio groups), so writes target the widget by index. `exportValue` is the
+/// value a radio/checkbox widget represents when on. `alternateName` is the
+/// field's `/TU` tooltip, the accessible label.
 #[wasm_bindgen]
 pub fn form_fields(handle: u32, index: u16) -> Result<Array, JsValue> {
     with_doc(handle, |doc| {
@@ -363,6 +386,13 @@ pub fn form_fields(handle: u32, index: u16) -> Result<Array, JsValue> {
                 PdfFormFieldType::Unknown => continue,
             };
 
+            let export_value = match field.field_type() {
+                PdfFormFieldType::RadioButton => field.as_radio_button_field().and_then(|r| r.export_value()),
+                _ => None,
+            }
+            .unwrap_or_default();
+            let alternate_name = field.alternate_name().unwrap_or_default();
+
             let opts = Array::new();
             for o in options {
                 opts.push(&JsValue::from_str(&o));
@@ -378,26 +408,46 @@ pub fn form_fields(handle: u32, index: u16) -> Result<Array, JsValue> {
             row.push(&JsValue::from_f64(if field.is_read_only() { 1.0 } else { 0.0 }));
             row.push(&JsValue::from_f64(if checked { 1.0 } else { 0.0 }));
             row.push(&opts);
+            row.push(&JsValue::from_f64(i as f64));
+            row.push(&JsValue::from_str(&export_value));
+            row.push(&JsValue::from_str(&alternate_name));
             out.push(&row);
         }
         Ok(out)
     })
 }
 
-/// Set a form field's value by name on a page. `value` is the text (text/combo),
-/// or `"true"`/`"false"` for checkbox, or any non-empty string to select a radio.
-/// Combo/list value-setting is not supported by the binding (read-only). Returns
-/// `true` if a writable field was matched + updated.
+/// Set a form field's value on a page. `value` is the text (text/combo/list),
+/// `"true"`/`"false"` for a checkbox, or `"true"` to select a radio button.
+///
+/// `annot_index` is the widget's annotation index from `form_fields`. Pass `-1`
+/// to target the first widget named `name`. The index matters for radio groups,
+/// where every option's widget shares one field name.
+///
+/// Checkboxes and radios are toggled through Pdfium's form-fill environment
+/// (a simulated click at the widget centre). Pdfium then writes the parent
+/// field's `/V` and every kid widget's `/AS` using each widget's real on-state
+/// name. A direct dictionary write can't do that correctly; see the
+/// `click_form_point` vendored patch.
+///
+/// Returns `true` if a writable field was matched and updated.
 #[wasm_bindgen]
-pub fn set_field_value(handle: u32, index: u16, name: &str, value: &str) -> Result<bool, JsValue> {
+pub fn set_field_value(handle: u32, index: u16, annot_index: i32, name: &str, value: &str) -> Result<bool, JsValue> {
     with_doc_mut(handle, |doc| {
+        let doc: &PdfDocument<'static> = doc;
         let page = doc.pages().get(index as i32).map_err(to_js)?;
         let annotations = page.annotations();
-        for i in 0..annotations.len() {
+        let range: Vec<usize> = if annot_index >= 0 {
+            vec![annot_index as usize]
+        } else {
+            (0..annotations.len()).collect()
+        };
+        for i in range {
             let mut annot = match annotations.get(i) {
                 Ok(a) => a,
                 Err(_) => continue,
             };
+            let bounds = annot.bounds().ok();
             let widget = match annot.as_widget_annotation_mut() {
                 Some(w) => w,
                 None => continue,
@@ -409,6 +459,7 @@ pub fn set_field_value(handle: u32, index: u16, name: &str, value: &str) -> Resu
             if field.name().as_deref() != Some(name) {
                 continue;
             }
+            let want_on = value == "true" || value == "on" || value == "1";
             match field.field_type() {
                 PdfFormFieldType::Text => {
                     if let Some(t) = field.as_text_field_mut() {
@@ -416,17 +467,26 @@ pub fn set_field_value(handle: u32, index: u16, name: &str, value: &str) -> Resu
                         return Ok(true);
                     }
                 }
-                PdfFormFieldType::Checkbox => {
-                    if let Some(c) = field.as_checkbox_field_mut() {
-                        c.set_checked(value == "true" || value == "on" || value == "1").map_err(to_js)?;
+                PdfFormFieldType::Checkbox | PdfFormFieldType::RadioButton => {
+                    let is_on = match field.field_type() {
+                        PdfFormFieldType::Checkbox => field.as_checkbox_field().and_then(|c| c.is_checked().ok()),
+                        _ => field.as_radio_button_field().and_then(|r| r.is_checked().ok()),
+                    }
+                    .unwrap_or(false);
+                    // A radio can't be switched off by clicking it; another option
+                    // in the group is selected instead.
+                    let is_radio = field.field_type() == PdfFormFieldType::RadioButton;
+                    if is_on == want_on || (is_radio && !want_on) {
                         return Ok(true);
                     }
-                }
-                PdfFormFieldType::RadioButton => {
-                    if let Some(r) = field.as_radio_button_field_mut() {
-                        r.set_checked().map_err(to_js)?;
-                        return Ok(true);
-                    }
+                    let (form, bounds) = match (doc.form(), bounds) {
+                        (Some(f), Some(b)) => (f, b),
+                        _ => return Ok(false),
+                    };
+                    let x = (bounds.left().value + bounds.right().value) / 2.0;
+                    let y = (bounds.bottom().value + bounds.top().value) / 2.0;
+                    page.click_form_point(form, x, y).map_err(to_js)?;
+                    return Ok(true);
                 }
                 // Choice fields: settable via the vendored pdfium-render patch
                 // (public `set_value` on combo/list — see vendor/pdfium-render).
@@ -446,98 +506,6 @@ pub fn set_field_value(handle: u32, index: u16, name: &str, value: &str) -> Resu
             }
         }
         Ok(false)
-    })
-}
-
-/// Pack a `0xRRGGBBAA` value into a `PdfColor`.
-fn rgba(color: u32) -> PdfColor {
-    PdfColor::new(((color >> 24) & 0xFF) as u8, ((color >> 16) & 0xFF) as u8, ((color >> 8) & 0xFF) as u8, (color & 0xFF) as u8)
-}
-
-/// Build a PDF rect (bottom-left origin) from a top-left-origin box in points.
-fn rect_from_top_left(page_height: f32, x: f32, y: f32, w: f32, h: f32) -> PdfRect {
-    PdfRect::new_from_values(page_height - (y + h), x, page_height - y, x + w)
-}
-
-/// Add a highlight annotation over the rect `[x,y,w,h]` (top-left points) with
-/// `color` (`0xRRGGBBAA`). Appearance regenerates automatically (default page
-/// strategy), so it shows in `render` + `save_document`.
-#[wasm_bindgen]
-pub fn add_highlight(handle: u32, index: u16, x: f32, y: f32, w: f32, h: f32, color: u32) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(index as i32).map_err(to_js)?;
-        let rect = rect_from_top_left(page.height().value, x, y, w, h);
-        let mut annot = page.annotations_mut().create_highlight_annotation().map_err(to_js)?;
-        annot.set_bounds(rect).map_err(to_js)?;
-        annot.set_fill_color(rgba(color)).map_err(to_js)?;
-        annot
-            .attachment_points_mut()
-            .create_attachment_point_at_end(PdfQuadPoints::from_rect(&rect))
-            .map_err(to_js)?;
-        Ok(true)
-    })
-}
-
-/// Add a sticky-note (Text) annotation at `[x,y]` (top-left points) carrying
-/// `contents` as the comment body.
-#[wasm_bindgen]
-pub fn add_text_note(handle: u32, index: u16, x: f32, y: f32, contents: &str, color: u32) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(index as i32).map_err(to_js)?;
-        // A note is a fixed-size icon; give it a ~18pt box at the click point.
-        let rect = rect_from_top_left(page.height().value, x, y, 18.0, 18.0);
-        let mut annot = page.annotations_mut().create_text_annotation(contents).map_err(to_js)?;
-        annot.set_bounds(rect).map_err(to_js)?;
-        annot.set_fill_color(rgba(color)).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
-/// Add a free-text box over the rect `[x,y,w,h]` (top-left points) with the
-/// typed `contents`.
-#[wasm_bindgen]
-pub fn add_free_text(handle: u32, index: u16, x: f32, y: f32, w: f32, h: f32, contents: &str, color: u32) -> Result<bool, JsValue> {
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(index as i32).map_err(to_js)?;
-        let rect = rect_from_top_left(page.height().value, x, y, w, h);
-        let mut annot = page.annotations_mut().create_free_text_annotation(contents).map_err(to_js)?;
-        annot.set_bounds(rect).map_err(to_js)?;
-        annot.set_stroke_color(rgba(color)).map_err(to_js)?;
-        Ok(true)
-    })
-}
-
-/// Add a freehand ink stroke. `points` is a flat `[x0,y0,x1,y1,…]` polyline in
-/// top-left PDF points; `color` = `0xRRGGBBAA`; `width` in points. Built as a
-/// stroked path object inside an Ink annotation.
-#[wasm_bindgen]
-pub fn add_ink(handle: u32, index: u16, points: Vec<f32>, color: u32, width: f32) -> Result<bool, JsValue> {
-    if points.len() < 4 {
-        return Ok(false); // need at least two points
-    }
-    with_doc_mut(handle, |doc| {
-        let mut page = doc.pages().get(index as i32).map_err(to_js)?;
-        let page_height = page.height().value;
-
-        // Path objects use bottom-left origin → flip each y.
-        let mut path = PdfPagePathObject::new(
-            doc,
-            PdfPoints::new(points[0]),
-            PdfPoints::new(page_height - points[1]),
-            Some(rgba(color)),
-            Some(PdfPoints::new(width)),
-            None,
-        )
-        .map_err(to_js)?;
-        let mut i = 2;
-        while i + 1 < points.len() {
-            path.line_to(PdfPoints::new(points[i]), PdfPoints::new(page_height - points[i + 1])).map_err(to_js)?;
-            i += 2;
-        }
-
-        let mut ink = page.annotations_mut().create_ink_annotation().map_err(to_js)?;
-        ink.objects_mut().add_path_object(path).map_err(to_js)?;
-        Ok(true)
     })
 }
 
@@ -603,23 +571,6 @@ fn bookmark_node(b: &PdfBookmark) -> Array {
     }
     node.push(&children);
     node
-}
-
-/// Map a PDFium annotation type to the pd​f.js-style subtype string the sidebar
-/// expects. Returns `""` for types the sidebar doesn't list (so they're filtered).
-fn annotation_type_str(t: PdfPageAnnotationType) -> &'static str {
-    match t {
-        PdfPageAnnotationType::Highlight => "Highlight",
-        PdfPageAnnotationType::Underline => "Underline",
-        PdfPageAnnotationType::Strikeout => "StrikeOut",
-        PdfPageAnnotationType::Squiggly => "Squiggly",
-        PdfPageAnnotationType::Text => "Text",
-        PdfPageAnnotationType::FreeText => "FreeText",
-        PdfPageAnnotationType::Ink => "Ink",
-        PdfPageAnnotationType::Stamp => "Stamp",
-        PdfPageAnnotationType::Caret => "Caret",
-        _ => "",
-    }
 }
 
 /// Borrow an open document by handle, mapping a missing handle to a JS error.

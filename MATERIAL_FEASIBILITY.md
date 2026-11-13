@@ -113,7 +113,7 @@ This is the good news. The _renderer-free behavioral surface_ is already very la
 - `dynamic-form/dynamic-form.helpers.ts` — `createForm`, `field.*` (15+ field types), `step`, `validation`, `layout`
 - `dynamic-form/dynamic-form.utils.ts` — `FormUtils.createValidators`, `createFormGroup`, conditional-required logic
 - `table/table.helpers.ts` — `createTable`, `projectFields`, `clearHeaderFormatCache` (NB: `exportToCsv`/`exportToJson` touch DOM — see "split needed")
-- `table/table-aggregates.ts` — `computeAggregate`, `aggregate`, `AGGREGATE_LABELS` (pure math)
+- `grid-core/grid-aggregates.ts` (was `table/table-aggregates.ts`) — `computeAggregate`, `aggregate`, `AGGREGATE_LABELS` (pure math)
 - `tree/tree.helpers.ts` — `createTree`, `node.*`, `walkTree`, `findNode`, `findNodePath`, `mapTree`, `filterTree`, `flattenTree`, `countNodes`, `ensureKeys`, `buildTree`
 - `pdf-viewer/pdf-viewer.helpers.ts` — `createPdfViewer`
 - `helpers/pagination.helper.ts` — `createCursorPagination`, `createOffsetPagination`, HTTP params builders

@@ -1,0 +1,87 @@
+<div [class]="ui.findBar" role="search" [attr.aria-label]="store.labels().searchAriaLabel">
+  <span class="text-base-content/50">
+    <svg lucideSearch [size]="14"></svg>
+  </span>
+  <input
+    #findInput
+    type="text"
+    class="hk-pdf-find-input input input-sm input-bordered grow max-w-xs"
+    [placeholder]="store.labels().searchPlaceholder"
+    [attr.aria-label]="store.labels().searchAriaLabel"
+    [value]="store.state()?.searchQuery ?? ''"
+    (input)="find.onInput(findInput.value)"
+    (keydown.enter)="find.onEnter(findInput.value)"
+    (keydown.escape)="find.closeBar()"
+  />
+
+  <!-- Match toggles — Acrobat-style ghost icon buttons. `btn-active` when on. -->
+  <button
+    type="button"
+    [class]="ui.button(store.state()?.searchCaseSensitive ?? false)"
+    [attr.aria-label]="store.labels().findCaseSensitive"
+    [attr.aria-pressed]="store.state()?.searchCaseSensitive ?? false"
+    [title]="store.labels().findCaseSensitive"
+    (click)="find.toggleCaseSensitive()"
+  >
+    <svg lucideCaseSensitive [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    [class]="ui.button(store.state()?.searchWholeWord ?? false)"
+    [attr.aria-label]="store.labels().findWholeWord"
+    [attr.aria-pressed]="store.state()?.searchWholeWord ?? false"
+    [title]="store.labels().findWholeWord"
+    (click)="find.toggleWholeWord()"
+  >
+    <svg lucideWholeWord [size]="16"></svg>
+  </button>
+
+  <!-- Polite live region: screen readers hear the count (and "searching") as it changes. -->
+  <span
+    class="flex items-center gap-1.5 text-xs text-base-content/70 tabular-nums whitespace-nowrap min-w-16 justify-end"
+    role="status"
+    aria-live="polite"
+  >
+    @if (store.state()?.searchQuery) {
+      @if (store.searchInProgress()) {
+        <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+      }
+      @if ((store.state()?.searchMatches ?? 0) > 0) {
+        {{ store.matchCounterText() }}
+      } @else if (store.searchInProgress()) {
+        {{ store.labels().searching }}
+      } @else {
+        {{ store.labels().noMatches }}
+      }
+    }
+  </span>
+  <button
+    type="button"
+    [class]="ui.button()"
+    [attr.aria-label]="store.labels().previousMatch"
+    [title]="store.labels().previousMatch"
+    [disabled]="(store.state()?.searchMatches ?? 0) === 0"
+    (click)="find.previous()"
+  >
+    <svg lucideChevronLeft [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    [class]="ui.button()"
+    [attr.aria-label]="store.labels().nextMatch"
+    [title]="store.labels().nextMatch"
+    [disabled]="(store.state()?.searchMatches ?? 0) === 0"
+    (click)="find.next()"
+  >
+    <svg lucideChevronRight [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    [class]="ui.button()"
+    [attr.aria-label]="store.labels().clearSearch"
+    [title]="store.labels().clearSearch"
+    (click)="find.closeBar()"
+  >
+    <svg lucideX [size]="16"></svg>
+  </button>
+</div>

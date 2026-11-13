@@ -9,7 +9,7 @@
 
 import { Injectable, inject, signal } from '@angular/core';
 
-import { HK_TABLE_ENGINE_WASM_URL } from '../../table/engine';
+import { HK_TABLE_ENGINE_WASM_URL } from '../../../grid-core/engine';
 import { loadEngineModule } from '../../../utils/engine-loader';
 import { TreeHandle, type WasmTree } from './tree-handle';
 

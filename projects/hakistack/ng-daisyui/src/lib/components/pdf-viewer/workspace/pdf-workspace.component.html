@@ -1,0 +1,66 @@
+<hk-mesa-layout class="h-full" [labels]="layoutLabels()" [storageKey]="storageKey()">
+  <hk-pdf-workspace-rail hkMesaRail />
+
+  <hk-pdf-workspace-toolbar />
+  @if (ws.view() === 'sheet') {
+    @if (designer.active()) {
+      <hk-pdf-form-design-toolbar />
+    } @else if (store.annotationBarOpen()) {
+      <hk-pdf-annotation-toolbar />
+    }
+    @if (store.findBarOpen()) {
+      <hk-pdf-find-bar />
+    }
+  }
+
+  <!-- The grid lies over the pages instead of replacing them, so they keep their scroll and rasters. -->
+  <div class="relative flex min-h-0 min-w-0 flex-1">
+    <div
+      class="flex min-h-0 min-w-0 flex-1"
+      [attr.inert]="ws.view() === 'grid' ? '' : null"
+      [attr.aria-hidden]="ws.view() === 'grid' ? 'true' : null"
+    >
+      <hk-pdf-pages />
+    </div>
+    @if (ws.view() === 'grid') {
+      <hk-pdf-page-organizer inline class="bg-base-100 absolute inset-0 z-30" (pick)="viewport.goToPage($event)" />
+    }
+  </div>
+  @if (ws.view() === 'sheet') {
+    <hk-pdf-workspace-strip />
+  }
+
+  <hk-pdf-workspace-inspector hkMesaInspector />
+</hk-mesa-layout>
+
+<hk-pdf-text-editor />
+<hk-pdf-annotation-dialogs />
+<hk-pdf-signature-dialog />
+<hk-pdf-digital-sign-dialog />
+<hk-pdf-page-organizer />
+
+<!-- The document list: the rail's first mode when the workspace has [documents]. -->
+<ng-template #docList>
+  <hk-mesa-document-list
+    class="min-h-0 flex-1"
+    [documents]="documents()"
+    [active]="activeDoc()?.id ?? null"
+    [labels]="listLabels()"
+    (choose)="openDocument($event)"
+  />
+</ng-template>
+
+<!-- Leaving a document with unsaved changes. -->
+<dialog #confirm class="modal" [attr.aria-labelledby]="uid + '-confirm'" (close)="cancelOpen()">
+  <div class="modal-box max-w-md">
+    <h3 [id]="uid + '-confirm'" class="text-lg font-semibold">{{ store.labels().unsavedTitle }}</h3>
+    <p class="text-base-content/70 mt-2 text-sm">{{ store.labels().unsavedBody.replace('{name}', activeDoc()?.name ?? '') }}</p>
+    <div class="modal-action">
+      <button type="button" class="btn btn-sm" (click)="confirmOpen()">{{ store.labels().discardAndOpen }}</button>
+      <button type="button" class="btn btn-sm btn-primary" autofocus (click)="cancelOpen()">{{ store.labels().keepEditing }}</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit" [attr.aria-label]="store.labels().keepEditing">{{ store.labels().keepEditing }}</button>
+  </form>
+</dialog>

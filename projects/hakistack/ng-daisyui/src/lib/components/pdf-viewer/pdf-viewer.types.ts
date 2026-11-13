@@ -1,4 +1,9 @@
 import { Signal, WritableSignal } from '@angular/core';
+import type { HkAnnotation, HkAnnotationInit, PdfMeasureScale } from './core/annotations/annotation.types';
+import type { PdfFontSource } from './core/pdf-writer/fonts';
+import type { DocMdpLevel } from './core/forms/form-design';
+import type { PdfSigner } from './core/signatures/cms';
+import type { PdfSignatureInfo } from './core/signatures/pdf-signature';
 
 /** A PDF document source. The component accepts a URL string, an in-memory byte array, or a Blob. */
 export type PdfDocumentSource = string | Uint8Array | Blob;
@@ -6,8 +11,14 @@ export type PdfDocumentSource = string | Uint8Array | Blob;
 /** Zoom level. Numbers are absolute scales (1 = 100%); the named values fit-to-page/width or auto-detect. */
 export type PdfZoom = number | 'fit-page' | 'fit-width' | 'auto';
 
-/** Display mode. `'continuous'` is Adobe-like vertical scroll; `'single'` is one page at a time. */
-export type PdfDisplayMode = 'single' | 'continuous';
+/**
+ * Display mode.
+ * - `'continuous'`: vertical scroll through every page.
+ * - `'single'`: one page at a time.
+ * - `'spread'`: continuous scroll, two pages side by side (1–2, 3–4, …).
+ * - `'spread-cover'`: like `'spread'` with the first page alone, as in a book (1, 2–3, 4–5, …).
+ */
+export type PdfDisplayMode = 'single' | 'continuous' | 'spread' | 'spread-cover';
 
 /**
  * Sidebar tab. `thumbnails` (page previews) and `bookmarks` (PDF outline)
@@ -15,35 +26,71 @@ export type PdfDisplayMode = 'single' | 'continuous';
  * (highlight / comment / freetext list) populate from the document at load
  * time and show an empty state when the document has neither.
  */
-export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annotations';
+export type PdfSidebarTab = 'thumbnails' | 'bookmarks' | 'attachments' | 'annotations' | 'signatures';
 
 /**
- * Active annotation-editing tool. `'none'` = normal interaction (select/scroll);
- * `'highlight'`/`'freetext'` drag a rectangle; `'note'` clicks to drop a sticky
- * note; `'ink'` draws freehand.
+ * Who signs digitally: a {@link PdfSigner}, or a function returning one
+ * when the user signs (to pick a certificate, unlock a token or call a
+ * signing service); `null` cancels.
  */
-export type PdfAnnotationTool = 'none' | 'highlight' | 'note' | 'freetext' | 'ink';
+export type PdfSignerSource = PdfSigner | (() => PdfSigner | null | Promise<PdfSigner | null>);
 
-/**
- * Lightweight view-model for a PDF annotation — what the sidebar's
- * Annotations tab needs to list it. The component scans every page's
- * `getAnnotations()` once at document load and projects the subset of
- * annotation types that are user-meaningful (highlights, comments,
- * free-text, ink). Read-only at this layer; annotation *editing* is a
- * future phase.
- */
-export interface PdfAnnotationEntry {
-  /** 1-indexed page the annotation lives on — click navigates here. */
-  readonly pageNumber: number;
-  /** Position of this annotation within its page's array — the delete/edit address. */
-  readonly index: number;
-  /** PDF annotation subtype: `'Text'`, `'Highlight'`, `'FreeText'`, `'Ink'`, etc. */
-  readonly subtype: string;
-  /** User-authored text (comment body) when available. Empty for ink / shapes. */
-  readonly contents: string;
-  /** Document author of the annotation when available. */
-  readonly author: string;
+/** Options of a digital signature (see `PdfViewerController.signDigitally`). */
+export interface PdfDigitalSignOptions {
+  /** An unsigned signature field to sign, or the name of the field to create. */
+  readonly field?: string;
+  /** A visible signature in a new field: its page (0-based) and box (points, top-left origin). Invisible without it. */
+  readonly page?: number;
+  readonly rect?: { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
+  readonly reason?: string;
+  readonly location?: string;
+  readonly contactInfo?: string;
+  /** Certify the document (DocMDP): 1 no changes, 2 form filling and signing, 3 also annotations. */
+  readonly certify?: DocMdpLevel;
+  /** Default `ETSI.CAdES.detached` (PAdES). */
+  readonly subFilter?: 'adbe.pkcs7.detached' | 'ETSI.CAdES.detached';
+  /** Overrides the configured `signer`. */
+  readonly signer?: PdfSigner;
 }
+
+/**
+ * Active annotation tool. `'none'` = normal interaction (select, move and
+ * edit existing annotations; select text).
+ * - Text markup from the text selection: `'highlight'`, `'underline'`,
+ *   `'strikeout'`, `'squiggly'`.
+ * - Shapes, dragged out: `'rect'`, `'ellipse'`, `'line'`, `'arrow'`.
+ * - Click a vertex at a time, double-click (or Enter) to finish: `'polygon'`,
+ *   `'polyline'`, `'cloud'`.
+ * - `'ink'` draws freehand; `'eraser'` erases ink.
+ * - `'freetext'` places a text box; `'note'` drops a sticky note.
+ * - `'stamp'` places the stamp chosen in the stamp menu; `'link'` drags out a link area.
+ * - Measurements: `'distance'` (drag), `'perimeter'`, `'area'` and `'volume'`
+ *   (vertex by vertex), `'radius'` (drag a circle), in the current scale.
+ */
+export type PdfAnnotationTool =
+  | 'none'
+  | 'highlight'
+  | 'underline'
+  | 'strikeout'
+  | 'squiggly'
+  | 'rect'
+  | 'ellipse'
+  | 'line'
+  | 'arrow'
+  | 'polygon'
+  | 'polyline'
+  | 'cloud'
+  | 'ink'
+  | 'eraser'
+  | 'freetext'
+  | 'note'
+  | 'stamp'
+  | 'link'
+  | 'distance'
+  | 'perimeter'
+  | 'area'
+  | 'radius'
+  | 'volume';
 
 /**
  * Lightweight view-model for a PDF embedded file (attachment). Populated
@@ -54,6 +101,16 @@ export interface PdfAttachmentEntry {
   readonly description: string;
   /** Raw bytes — provided so the sidebar can offer "download" without re-fetching. */
   readonly content: Uint8Array;
+}
+
+/** Options for {@link PdfViewerController.importPages}. */
+export interface PdfImportPagesOptions {
+  /** Page number the first imported page becomes (1-based). Default: after the last page. */
+  readonly at?: number;
+  /** Which pages of the imported PDF (1-based), in order. Default: all of them. */
+  readonly pages?: readonly number[];
+  /** Password of an encrypted PDF; without it (or when wrong) `onPasswordRequired` is asked. */
+  readonly password?: string;
 }
 
 /** Options for {@link PdfViewerController.exportPageAsImage}. */
@@ -114,6 +171,41 @@ export interface PdfViewerConfig {
    * disable pooling on memory-constrained targets.
    */
   readonly renderPoolSize?: number;
+  /**
+   * Memory budget (MB) for cached page rasters, which make scroll-back and
+   * zoom-revisit instant. Default: 96 MB on devices reporting ≤ 4 GB of memory,
+   * 256 MB otherwise. The least recently used rasters are released first.
+   */
+  readonly bitmapCacheMB?: number;
+  /** Author written on new annotations, replies and review states. Default: the `defaultAuthor` label ("Guest"). */
+  readonly annotationAuthor?: string;
+  /**
+   * What users may do with annotations. `'edit'` (default): everything.
+   * `'review'`: read, comment, reply and set status, but not add, move or
+   * restyle. `'view'`: read only.
+   */
+  readonly annotationMode?: 'edit' | 'review' | 'view';
+  /** Users may only change annotations they authored (matched on `annotationAuthor`); others behave as locked. Default `false`. */
+  readonly restrictAnnotationsToAuthor?: boolean;
+  /**
+   * TrueType fonts for text the standard PDF fonts can't show (Greek,
+   * Cyrillic, CJK, …) in free text, stamps and form fields: a subset is
+   * embedded on save. Without one, form fields fall back to
+   * `/NeedAppearances` and annotations show `?` for those characters.
+   */
+  readonly fonts?: readonly PdfFontSource[];
+  /** CSS font families offered for typed signatures, ahead of the built-in handwriting families (load web fonts yourself). */
+  readonly signatureFonts?: readonly string[];
+  /** Enables digital signing (the "Sign digitally" action and `signDigitally()`). See {@link PdfSignerSource}. */
+  readonly signer?: PdfSignerSource;
+  /** Certificates (DER bytes or PEM text) whose signers the Signatures panel shows as trusted. */
+  readonly trustedCertificates?: readonly (Uint8Array | string)[];
+  /**
+   * Page editing: the Organize pages dialog and the page actions on the
+   * thumbnails (rotate, insert, delete). Default `true`. The page API still
+   * works when the document allows it.
+   */
+  readonly pageOrganizer?: boolean;
 
   // ── Lifecycle callbacks ──────────────────────────────────────────────────
 
@@ -143,6 +235,9 @@ export interface PdfViewerConfig {
  */
 export interface PdfViewerInternalHandlers {
   goToPage?: (page: number) => void;
+  /** Step forward / back. Optional: falls back to `goToPage(page ± 1)`; the viewer steps by spread in two-page modes. */
+  nextPage?: () => void;
+  previousPage?: () => void;
   setZoom?: (zoom: PdfZoom) => void;
   setMode?: (mode: PdfDisplayMode) => void;
   toggleSidebar?: () => void;
@@ -160,9 +255,31 @@ export interface PdfViewerInternalHandlers {
   exportText?: (filename?: string) => Promise<void>;
   setAnnotationTool?: (tool: PdfAnnotationTool) => void;
   setAnnotationColor?: (color: string) => void;
+  getAnnotations?: () => readonly HkAnnotation[];
+  addAnnotation?: (annotation: HkAnnotationInit) => Promise<string>;
+  updateAnnotation?: (id: string, changes: Partial<HkAnnotation>) => Promise<void>;
+  deleteAnnotation?: (id: string) => Promise<void>;
+  selectAnnotation?: (id: string | null) => void;
+  undo?: () => Promise<boolean>;
+  redo?: () => Promise<boolean>;
+  exportAnnotations?: (format: 'xfdf' | 'json') => string;
+  importAnnotations?: (data: string) => Promise<number>;
+  setMeasureScale?: (scale: PdfMeasureScale) => void;
+  resetForm?: () => void;
+  exportFormData?: (format: 'json' | 'xfdf' | 'fdf') => string;
+  importFormData?: (data: string) => number;
   deletePage?: (pageNumber: number) => Promise<void>;
   insertBlankPage?: (atPageNumber: number) => Promise<void>;
   rotatePage?: (pageNumber: number, delta?: number) => void;
+  rotatePages?: (pageNumbers: readonly number[], delta?: number) => Promise<void>;
+  deletePages?: (pageNumbers: readonly number[]) => Promise<void>;
+  duplicatePages?: (pageNumbers: readonly number[]) => Promise<void>;
+  movePages?: (pageNumbers: readonly number[], to: number) => Promise<void>;
+  importPages?: (source: PdfDocumentSource, options?: PdfImportPagesOptions) => Promise<number>;
+  extractPages?: (pageNumbers: readonly number[]) => Promise<Uint8Array>;
+  organizePages?: () => void;
+  getSignatures?: () => readonly PdfSignatureInfo[];
+  signDigitally?: (options?: PdfDigitalSignOptions) => Promise<Uint8Array>;
 }
 
 /**
@@ -183,7 +300,7 @@ export interface PdfLoadedInfo {
   readonly numPages: number;
   /** PDF metadata title (from the document's `/Title` info dict). May be empty. */
   readonly title: string;
-  /** PDF.js fingerprint — stable identifier for the document instance. */
+  /** Reserved; always `''` (the PDFium engine doesn't expose a fingerprint). Kept for API compatibility. */
   readonly fingerprint: string;
   /** Document size in bytes, when known. */
   readonly fileSize?: number;
@@ -339,23 +456,89 @@ export interface PdfViewerController {
   // ── Annotation editing ───────────────────────────────────────────────────
 
   /**
-   * Set the active annotation tool. `'highlight'`/`'freetext'` drag a rectangle
-   * on the page; `'note'` drops a sticky note on click; `'none'` returns to
-   * normal interaction. New annotations are baked in + included in `save()`.
+   * Set the active annotation tool (see {@link PdfAnnotationTool}); `'none'`
+   * returns to normal interaction. A text-markup tool applies at once to a
+   * current text selection.
    */
   setAnnotationTool(tool: PdfAnnotationTool): void;
 
-  /** Set the colour (hex, e.g. `'#ffeb3b'`) used for new annotations. */
+  /** Set the colour (hex, e.g. `'#ffeb3b'`) of the active tool, or of every tool when none is active. */
   setAnnotationColor(color: string): void;
 
+  /** The document's editable annotations (positions in points on the displayed page, top-left origin). */
+  getAnnotations(): readonly HkAnnotation[];
+  /** Add an annotation; resolves with its id. Undoable; written by `save()`. */
+  addAnnotation(annotation: HkAnnotationInit): Promise<string>;
+  /** Change an annotation. Locked annotations only accept comment, reply, status and lock changes. */
+  updateAnnotation(id: string, changes: Partial<HkAnnotation>): Promise<void>;
+  /** Delete an annotation (not when locked). */
+  deleteAnnotation(id: string): Promise<void>;
+  /** Select an annotation (scrolling to its page), or clear the selection with `null`. */
+  selectAnnotation(id: string | null): void;
+  /** Undo the last annotation edit. Resolves `false` when there is nothing to undo. */
+  undo(): Promise<boolean>;
+  /** Redo the last undone edit. Resolves `false` when there is nothing to redo. */
+  redo(): Promise<boolean>;
+  /** The annotations as XFDF (ISO 19444-1) or JSON (lossless, image stamps included). Empty before a document loads. */
+  exportAnnotations(format: 'xfdf' | 'json'): string;
+  /** Import XFDF or JSON (auto-detected) as one undo step; resolves with how many were imported. */
+  importAnnotations(data: string): Promise<number>;
+  /** The scale new measurements use, e.g. `{ ratio: 10 / 72, unit: 'ft', label: '1 in = 10 ft' }`. */
+  setMeasureScale(scale: PdfMeasureScale): void;
+
+  // ── Forms ────────────────────────────────────────────────────────────────
+
+  /** Reset every form field to its default value. */
+  resetForm(): void;
+  /** The form's values as JSON (`name → value`, like `formValues`), XFDF or FDF. Empty before a form loads. */
+  exportFormData(format: 'json' | 'xfdf' | 'fdf'): string;
+  /** Fill the form from JSON, XFDF or FDF (auto-detected); returns how many fields were set. */
+  importFormData(data: string): number;
+
   // ── Page operations ──────────────────────────────────────────────────────
+  // Each is one undo step (with the annotation edits) and is written by
+  // `save()` as an incremental update, so existing signatures stay valid.
+  // Annotations and form fields move with their pages.
 
-  /** Delete a page (1-based). No-op on the last remaining page. Persists in `save()`. */
+  /** Delete a page (1-based). No-op on the last remaining page. */
   deletePage(pageNumber: number): Promise<void>;
+  /** Delete pages (1-based). At least one page always stays. */
+  deletePages(pageNumbers: readonly number[]): Promise<void>;
 
-  /** Insert a blank page so it becomes page `atPageNumber` (1-based; clamped). */
+  /** Insert a blank page so it becomes page `atPageNumber` (1-based; clamped), sized like its neighbour. */
   insertBlankPage(atPageNumber: number): Promise<void>;
 
-  /** Rotate a page (1-based) by `delta`° (default +90). Baked into `save()`. */
+  /** Rotate a page (1-based) by `delta`° (default +90). */
   rotatePage(pageNumber: number, delta?: number): void;
+  /** Rotate pages (1-based) by `delta`° (default +90). */
+  rotatePages(pageNumbers: readonly number[], delta?: number): Promise<void>;
+
+  /** Duplicate pages (1-based), each copy right after its page (form fields aren't copied). */
+  duplicatePages(pageNumbers: readonly number[]): Promise<void>;
+
+  /** Move pages (1-based, keeping their order) so they come before page `to` (`numPages + 1`: the end). */
+  movePages(pageNumbers: readonly number[], to: number): Promise<void>;
+
+  /**
+   * Insert pages of another PDF (with their annotations and form fields;
+   * clashing field names get a suffix). Resolves with how many were added.
+   */
+  importPages(source: PdfDocumentSource, options?: PdfImportPagesOptions): Promise<number>;
+
+  /** A new PDF with these pages (1-based, in that order) of the edited document. Not for encrypted documents. */
+  extractPages(pageNumbers: readonly number[]): Promise<Uint8Array>;
+
+  /** Open the Organize pages dialog. */
+  organizePages(): void;
+
+  // ── Digital signatures ───────────────────────────────────────────────────
+
+  /** The document's digital signatures, validated (empty while loading or when there are none). */
+  getSignatures(): readonly PdfSignatureInfo[];
+  /**
+   * Sign the document (with every pending edit) digitally, using the
+   * configured `signer` or `options.signer`. The viewer reloads the signed
+   * document; resolves with its bytes.
+   */
+  signDigitally(options?: PdfDigitalSignOptions): Promise<Uint8Array>;
 }

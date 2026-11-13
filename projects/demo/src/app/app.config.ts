@@ -16,8 +16,11 @@ import { providePipes } from '../../../hakistack/ng-daisyui/src/lib/services/pip
  * exports (providers, tokens, base classes). `provideLucideIcons` derives the
  * kebab-case name from each component's icon data.
  *
- * Trade-off: this bundles the full Lucide set (~1500 icons). Fine for a demo;
- * a user-facing app should register only the icons it actually uses.
+ * Trade-off: this bundles the full Lucide set (~1500 icons, ~1.2 MB minified)
+ * into the initial chunk, which is why the demo's `initial` budget in
+ * angular.json is 4 MB. Lucide ships as one module with a synchronous icon map,
+ * so the set can't be split into a lazy chunk. Fine for a demo; a user-facing
+ * app should register only the icons it actually uses.
  */
 const ALL_LUCIDE_ICONS = (Object.values(Lucide) as unknown[]).filter(
   (v) => typeof v === 'function' && 'icon' in (v as object) && !!(v as { icon?: { node?: unknown } }).icon?.node,

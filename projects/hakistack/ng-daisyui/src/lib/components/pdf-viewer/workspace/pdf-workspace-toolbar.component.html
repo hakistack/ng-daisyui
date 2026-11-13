@@ -1,0 +1,313 @@
+<hk-mesa-toolbar>
+  <!-- What you're looking at: the only thing that shrinks. Secondary while an edit mode is on. -->
+  <span class="badge badge-lg min-w-0 gap-2" [class.badge-secondary]="badge().mode" [class.badge-ghost]="!badge().mode">
+    <span class="min-w-0 truncate" [title]="badge().text">{{ badge().text }}</span>
+    @if (store.annotationBarOpen() && !designer.active()) {
+      <button
+        type="button"
+        class="btn btn-xs btn-circle btn-ghost"
+        [attr.aria-label]="exitLabel()"
+        [title]="exitLabel()"
+        (click)="tools.closeBar()"
+      >
+        <svg lucideX [size]="14" aria-hidden="true"></svg>
+      </button>
+    }
+  </span>
+  <hk-mesa-save-status [state]="store.dirty() ? 'dirty' : 'idle'" [dirtyLabel]="store.labels().unsavedChanges" />
+
+  <ng-container ngProjectAs="[hkMesaActions]">
+    @if (ws.view() === 'sheet') {
+      <!-- Previous · position · next -->
+      <div class="join" role="group" [attr.aria-label]="store.labels().pagerAria">
+        <button
+          type="button"
+          class="btn btn-sm btn-square join-item"
+          [attr.aria-label]="store.labels().previousPage"
+          [title]="store.labels().previousPage"
+          [disabled]="!store.showPages() || page() <= 1"
+          (click)="viewport.previousPage()"
+        >
+          <svg lucideChevronLeft [size]="16" aria-hidden="true"></svg>
+        </button>
+        <label class="input input-sm input-bordered join-item flex w-28 items-center gap-1 font-mono whitespace-nowrap tabular-nums">
+          <span class="sr-only">{{ store.labels().pageInputAriaLabel }}</span>
+          <!-- Text, not number: documents with page labels ("iv", "A-1") accept those too. -->
+          <input
+            #pageInput
+            type="text"
+            class="w-10 min-w-0 text-center"
+            [attr.inputmode]="store.hasPageLabels() ? null : 'numeric'"
+            [value]="store.labelFor(page())"
+            [disabled]="!store.showPages()"
+            (change)="onPageInput(pageInput)"
+          />
+          <span class="text-base-content/70" aria-hidden="true">/ {{ numPages() }}</span>
+        </label>
+        <button
+          type="button"
+          class="btn btn-sm btn-square join-item"
+          [attr.aria-label]="store.labels().nextPage"
+          [title]="store.labels().nextPage"
+          [disabled]="!store.showPages() || page() >= numPages()"
+          (click)="viewport.nextPage()"
+        >
+          <svg lucideChevronRight [size]="16" aria-hidden="true"></svg>
+        </button>
+      </div>
+
+      <!-- Zoom: − · level · + -->
+      <div class="join" role="group" [attr.aria-label]="store.labels().zoomAria">
+        <button
+          type="button"
+          class="btn btn-sm btn-square join-item"
+          [attr.aria-label]="store.labels().zoomOut"
+          [title]="store.labels().zoomOut"
+          [disabled]="!store.showPages()"
+          (click)="viewport.zoomOut()"
+        >
+          <svg lucideMinus [size]="16" aria-hidden="true"></svg>
+        </button>
+        <select
+          #zoomSelect
+          class="select select-sm select-bordered join-item w-32 font-mono tabular-nums"
+          [attr.aria-label]="store.labels().zoomLevel"
+          [disabled]="!store.showPages()"
+          [value]="zoomValue()"
+          (change)="onZoomSelect(zoomSelect.value)"
+        >
+          <option value="fit-width">{{ store.labels().fitWidth }}</option>
+          <option value="fit-page">{{ store.labels().fitPage }}</option>
+          <option value="auto">{{ store.labels().zoomAuto }}</option>
+          @for (z of zoomPresets; track z) {
+            <option [value]="z">{{ zoomPresetLabel(z) }}</option>
+          }
+          @if (zoomValue() === 'custom') {
+            <option value="custom" disabled>{{ store.zoomPercent() }}</option>
+          }
+        </select>
+        <button
+          type="button"
+          class="btn btn-sm btn-square join-item"
+          [attr.aria-label]="store.labels().zoomIn"
+          [title]="store.labels().zoomIn"
+          [disabled]="!store.showPages()"
+          (click)="viewport.zoomIn()"
+        >
+          <svg lucidePlus [size]="16" aria-hidden="true"></svg>
+        </button>
+      </div>
+    }
+
+    <!-- View: the pages, or all of them in a grid. -->
+    <div class="join" role="group" [attr.aria-label]="store.labels().viewModeAria">
+      <button
+        type="button"
+        class="btn btn-sm join-item gap-1.5"
+        [class.btn-primary]="ws.view() === 'sheet'"
+        [attr.aria-pressed]="ws.view() === 'sheet'"
+        [disabled]="!store.showPages()"
+        (click)="setView('sheet')"
+      >
+        <svg lucideFile [size]="14" aria-hidden="true"></svg>
+        {{ store.labels().viewSheet }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-sm join-item gap-1.5"
+        [class.btn-primary]="ws.view() === 'grid'"
+        [attr.aria-pressed]="ws.view() === 'grid'"
+        [disabled]="!store.showPages()"
+        (click)="setView('grid')"
+      >
+        <svg lucideLayoutGrid [size]="14" aria-hidden="true"></svg>
+        {{ store.labels().viewGrid }}
+      </button>
+    </div>
+    <!-- Organize pages: the same dialog as hk-pdf-viewer. -->
+    @if (pages.enabled()) {
+      <button
+        type="button"
+        class="btn btn-sm gap-1.5"
+        [disabled]="!store.showPages() || !pages.canOrganize()"
+        [title]="pages.unavailableReason() ?? store.labels().organizePages"
+        (click)="pages.organizerOpen.set(true)"
+      >
+        <svg lucideFiles [size]="14" aria-hidden="true"></svg>
+        {{ store.labels().organizePages }}
+      </button>
+    }
+
+    @if (ws.view() === 'sheet') {
+      <!-- Tools: find, annotate, sign, the form. -->
+      <div class="join" role="group" [attr.aria-label]="store.labels().toolsAria">
+        <button
+          type="button"
+          class="btn btn-sm btn-square join-item"
+          [class.btn-primary]="store.findBarOpen()"
+          [attr.aria-pressed]="store.findBarOpen()"
+          [attr.aria-label]="store.labels().find"
+          [title]="store.labels().find + ' (⌘F)'"
+          [disabled]="!store.showPages()"
+          (click)="store.findBarOpen() ? find.closeBar() : find.openBar()"
+        >
+          <svg lucideSearch [size]="16" aria-hidden="true"></svg>
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-square join-item"
+          [class.btn-primary]="store.annotationBarOpen()"
+          [attr.aria-pressed]="store.annotationBarOpen()"
+          [attr.aria-label]="store.labels().annotate"
+          [title]="store.labels().annotate"
+          [disabled]="!store.showPages() || designer.active()"
+          (click)="toggleAnnotationBar()"
+        >
+          <svg lucidePenLine [size]="16" aria-hidden="true"></svg>
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-square join-item"
+          [attr.aria-label]="store.labels().sign"
+          [title]="store.labels().sign"
+          [disabled]="!store.showPages() || !annotations.canAdd()"
+          (click)="signatures.open()"
+        >
+          <svg lucideSignature [size]="16" aria-hidden="true"></svg>
+        </button>
+        @if (signatures.canSignDigitally()) {
+          <button
+            type="button"
+            class="btn btn-sm btn-square join-item"
+            [attr.aria-label]="store.labels().signDigitally"
+            [title]="store.labels().signDigitally"
+            [disabled]="!store.showPages()"
+            (click)="signatures.openDigital()"
+          >
+            <svg lucideFileSignature [size]="16" aria-hidden="true"></svg>
+          </button>
+        }
+      </div>
+
+      @if (forms.model()) {
+        <details #formMenu class="dropdown dropdown-end">
+          <summary class="btn btn-sm btn-square" [attr.aria-label]="store.labels().form" [title]="store.labels().form">
+            <svg lucideClipboardList [size]="16" aria-hidden="true"></svg>
+          </summary>
+          <ul class="menu menu-sm dropdown-content rounded-box border-base-300 bg-base-100 z-40 mt-1 w-56 border p-2 shadow-lg">
+            <li>
+              <button type="button" [disabled]="!designer.allowed()" (click)="startDesign(formMenu)">
+                {{ store.labels().prepareForm }}
+              </button>
+            </li>
+            @if (forms.docMdp() !== null) {
+              <li class="menu-title text-xs font-normal">{{ store.labels().formLocked }}</li>
+            }
+            <li>
+              <button type="button" (click)="forms.resetForm(); close(formMenu)">
+                <svg lucideRotateCcw [size]="14" aria-hidden="true"></svg>
+                {{ store.labels().resetForm }}
+              </button>
+            </li>
+            <li class="menu-title">{{ store.labels().exportFormData }}</li>
+            @for (f of formFormats; track f) {
+              <li>
+                <button type="button" (click)="document.exportFormData(f); close(formMenu)">{{ f.toUpperCase() }}</button>
+              </li>
+            }
+            <li class="border-base-300 mt-1 border-t pt-1">
+              <label class="flex cursor-pointer items-center gap-2">
+                {{ store.labels().importFormData }}
+                <input
+                  #formFile
+                  type="file"
+                  class="sr-only"
+                  accept=".json,.xfdf,.fdf,application/json,application/vnd.adobe.xfdf,application/vnd.fdf"
+                  (change)="importFormData(formFile, formMenu)"
+                />
+              </label>
+            </li>
+          </ul>
+        </details>
+      }
+    }
+
+    <!-- Everything else. -->
+    <details #moreMenu class="dropdown dropdown-end">
+      <summary class="btn btn-sm btn-square" [attr.aria-label]="store.labels().moreOptions" [title]="store.labels().moreOptions">
+        <svg lucideEllipsis [size]="16" aria-hidden="true"></svg>
+      </summary>
+      <ul class="menu menu-sm dropdown-content rounded-box border-base-300 bg-base-100 z-40 mt-1 w-60 border p-2 shadow-lg">
+        @if (ws.view() === 'sheet') {
+          <li class="menu-title">{{ store.labels().displayModeAria }}</li>
+          @for (m of modes; track m.mode) {
+            <li>
+              <button
+                type="button"
+                [class.menu-active]="isMode(m.mode)"
+                [class.active]="isMode(m.mode)"
+                [attr.aria-pressed]="isMode(m.mode)"
+                [disabled]="!store.showPages()"
+                (click)="viewport.setMode(m.mode); close(moreMenu)"
+              >
+                @switch (m.mode) {
+                  @case ('continuous') {
+                    <svg lucideScrollText [size]="14" aria-hidden="true"></svg>
+                  }
+                  @case ('single') {
+                    <svg lucideSquare [size]="14" aria-hidden="true"></svg>
+                  }
+                  @default {
+                    <svg lucideColumns2 [size]="14" aria-hidden="true"></svg>
+                  }
+                }
+                {{ store.labels()[m.label] }}
+              </button>
+            </li>
+          }
+          @if (pages.enabled()) {
+            <li class="border-base-300 mt-1 border-t pt-1">
+              <button type="button" [disabled]="!pages.canRotate()" (click)="document.rotateCurrentPage(); close(moreMenu)">
+                <svg lucideRotateCw [size]="14" aria-hidden="true"></svg>
+                {{ rotateCurrentLabel() }}
+              </button>
+            </li>
+          }
+        }
+        <li
+          [class.border-t]="ws.view() === 'sheet'"
+          [class.border-base-300]="ws.view() === 'sheet'"
+          [class.mt-1]="ws.view() === 'sheet'"
+          [class.pt-1]="ws.view() === 'sheet'"
+        >
+          <button type="button" [disabled]="!store.showPages()" (click)="document.print(); close(moreMenu)">
+            <svg lucidePrinter [size]="14" aria-hidden="true"></svg>
+            {{ store.labels().print }}
+          </button>
+        </li>
+        @if (!store.dirty()) {
+          <li>
+            <button type="button" [disabled]="!store.showPages()" (click)="document.download(); close(moreMenu)">
+              <svg lucideDownload [size]="14" aria-hidden="true"></svg>
+              {{ store.labels().download }}
+            </button>
+          </li>
+        }
+        <li>
+          <button type="button" [disabled]="!store.showPages()" (click)="document.toggleFullscreen(); close(moreMenu)">
+            <svg lucideMaximize [size]="14" aria-hidden="true"></svg>
+            {{ store.labels().fullscreen }}
+          </button>
+        </li>
+      </ul>
+    </details>
+
+    <!-- The one primary action: take the edited document. -->
+    @if (store.dirty()) {
+      <button type="button" class="btn btn-sm btn-primary gap-1.5" [disabled]="!store.showPages()" (click)="document.download()">
+        <svg lucideDownload [size]="14" aria-hidden="true"></svg>
+        {{ store.labels().download }}
+      </button>
+    }
+  </ng-container>
+</hk-mesa-toolbar>

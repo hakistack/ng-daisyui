@@ -6,11 +6,11 @@ import { DocumentRendererRegistration } from './document-viewer.types';
 
 // Three throwaway components — just need distinct class references for
 // identity equality assertions. No template / inputs / behavior needed.
-@Component({ selector: 'spy-pdf', template: '' })
+@Component({ selector: 'hk-spy-pdf', template: '' })
 class SpyPdfRenderer {}
-@Component({ selector: 'spy-spread', template: '' })
+@Component({ selector: 'hk-spy-spread', template: '' })
 class SpySpreadsheetRenderer {}
-@Component({ selector: 'spy-override', template: '' })
+@Component({ selector: 'hk-spy-override', template: '' })
 class SpyOverrideRenderer {}
 
 const BUILT_INS: DocumentRendererRegistration[] = [

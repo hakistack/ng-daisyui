@@ -40,6 +40,84 @@ const _API_DOCS = {
     ],
     outputs: [],
   },
+  AppShellComponent: {
+    className: 'AppShellComponent',
+    selector: 'hk-app-shell',
+    description:
+      "`<hk-app-shell>` — the DaisyUI **drawer** scaffold that composes an {@link NavbarComponent}, a {@link SidebarComponent}, and the page content into an app layout. The sidebar is permanent from `responsiveBreakpoint` up and overlays the content below it (`mode: 'push'`), or always overlays (`mode: 'overlay'`). The shared `drawerOpen` state replaces the starter template's manual `<input>`/`<label>` checkbox juggling; the navbar hamburger toggles it and the drawer auto-closes after navigation. Projection slots: `[hk-brand]`, `[hk-navbar-center]`, `[hk-navbar-end]`, `[hk-sidebar-header]`, `[hk-sidebar-footer]`, `[hk-footer]`, and the default slot for page content (e.g. `<router-outlet>`).",
+    inputs: [
+      {
+        name: 'config',
+        type: 'ShellConfig | null',
+        default: 'null',
+        description: 'Whole-config input; individual inputs override it.',
+      },
+      {
+        name: 'navbar',
+        type: 'NavbarConfig | null',
+        default: 'null',
+        description: '',
+      },
+      {
+        name: 'sidebar',
+        type: 'SidebarConfig | null',
+        default: 'null',
+        description: '',
+      },
+      {
+        name: 'responsiveBreakpoint',
+        type: 'ShellBreakpoint | undefined',
+        default: 'undefined',
+        description: '',
+      },
+      {
+        name: 'mode',
+        type: 'ShellMode | undefined',
+        default: 'undefined',
+        description: '',
+      },
+    ],
+    outputs: [],
+  },
+  BreadcrumbsComponent: {
+    className: 'BreadcrumbsComponent',
+    selector: 'hk-breadcrumbs',
+    description:
+      "`<hk-breadcrumbs>` — a DaisyUI breadcrumb trail. Two modes: - **Manual:** pass `[items]` (plain {@link BreadcrumbItem} objects). - **Automatic:** set `auto` to derive the trail from the Angular Router, reading each route's `data[routeDataKey]` (default `'breadcrumb'`). The last crumb is the current page (non-interactive, `aria-current=\"page\"`) unless one is flagged `current`.",
+    inputs: [
+      {
+        name: 'auto',
+        type: 'import("@angular/core").InputSignalWithTransform<boolean, unknown>',
+        default: 'false',
+        description: 'Derive the trail from the Angular Router. Usable as a bare flag (`auto`).',
+      },
+      {
+        name: 'routeDataKey',
+        type: 'import("@angular/core").InputSignal<string>',
+        default: "'breadcrumb'",
+        description: 'Which `route.data` key to read in `auto` mode.',
+      },
+      {
+        name: 'size',
+        type: 'BreadcrumbSize',
+        default: "'sm'",
+        description: 'Text size.',
+      },
+      {
+        name: 'maxWidth',
+        type: 'string | undefined',
+        default: 'undefined',
+        description: 'Max width as a CSS length; enables horizontal scroll when exceeded.',
+      },
+      {
+        name: 'ariaLabel',
+        type: 'import("@angular/core").InputSignal<string>',
+        default: "'Breadcrumb'",
+        description: 'Accessible label for the `<nav>` landmark.',
+      },
+    ],
+    outputs: [],
+  },
   CommandPaletteComponent: {
     className: 'CommandPaletteComponent',
     selector: 'hk-command-palette',
@@ -222,6 +300,74 @@ const _API_DOCS = {
         description: '',
       },
     ],
+  },
+  DocumentEditorShellComponent: {
+    className: 'DocumentEditorShellComponent',
+    selector: 'hk-document-editor-shell',
+    description:
+      "Reusable chrome around an editor: the shared `hk-editor-toolbar` (document preset — undo/redo/save/export), a status bar (dirty dot + format), a back-to-view toggle, and the editor surface itself (resolved from the editor registry and hosted via `ngComponentOutlet`). The shell is the only place that knows both the controller and the editor component. It builds the `DocumentEditorBridge` from the controller's hidden `_internal` channel and hands it to the editor, so editors never touch the controller directly. Toolbar commands map straight onto controller actions.",
+    inputs: [
+      {
+        name: 'controller',
+        type: 'DocumentEditorController',
+        description: '',
+      },
+      {
+        name: 'source',
+        type: "DocumentEditorInputs['source']",
+        description: '',
+      },
+      {
+        name: 'format',
+        type: 'ResolvedFormat',
+        description: '',
+      },
+      {
+        name: 'filename',
+        type: 'string | null',
+        description: '',
+      },
+    ],
+    outputs: [
+      {
+        name: 'requestView',
+        type: 'void',
+        description: 'Emitted when the user toggles back to the read-only view.',
+      },
+    ],
+  },
+  DocumentViewerComponent: {
+    className: 'DocumentViewerComponent',
+    selector: 'hk-document-viewer',
+    description:
+      'Universal document viewer. Dispatches to format-specific renderers (PDF, spreadsheet, text, image, …) based on the resolved source format. Quick start: ```html <hk-document-viewer [src]="pdfUrl" /> <hk-document-viewer [src]="xlsxBlob" [config]="{ filename: \'report.xlsx\' }" /> ``` The format is detected from (in order): explicit `config.mimeType`, `config.filename`, the URL extension, or `Blob.type`. Pass an explicit hint when you\'ve fetched the file with a `Content-Disposition` header the viewer can\'t see. Custom renderers — for example a `.docx` renderer pulled from your own package — go in `config.renderers`. Custom registrations win over the built-ins so apps can replace any default without forking the library.',
+    inputs: [
+      {
+        name: 'src',
+        type: 'DocumentSource',
+        description: 'The document to render. URL, raw bytes, or a Blob/File.',
+      },
+      {
+        name: 'config',
+        type: 'DocumentViewerConfig',
+        default: '{}',
+        description: 'Optional configuration — overrides, hints, custom renderers.',
+      },
+      {
+        name: 'mode',
+        type: 'DocumentEditorMode',
+        default: "'view'",
+        description:
+          "View vs edit. `'edit'` requires an `[editor]` controller; without one the viewer stays read-only. The read-only render path is byte-identical to before this input existed.",
+      },
+      {
+        name: 'editor',
+        type: 'DocumentEditorController | null',
+        default: 'null',
+        description: 'Editor controller from `createDocumentEditor`. Drives edit mode.',
+      },
+    ],
+    outputs: [],
   },
   DynamicFormComponent: {
     className: 'DynamicFormComponent',
@@ -567,6 +713,102 @@ const _API_DOCS = {
       },
     ],
   },
+  MenuComponent: {
+    className: 'MenuComponent',
+    selector: 'hk-menu',
+    description:
+      '`<hk-menu>` — a config-driven, recursive DaisyUI menu. Renders an arbitrary tree of {@link MenuItem}s vertically (sidebars) or horizontally (navbars) from a single declarative config. Supports collapsible submenus, accordion behaviour, router integration, icons/badges/shortcuts, a generic visibility predicate, and an icon-only collapsed rail. Pass a {@link MenuConfig} via `[config]` (or build it with `createMenu()` for imperative expand/collapse control), or the `items` shorthand for the common case.',
+    inputs: [
+      {
+        name: 'orientation',
+        type: 'MenuOrientation | undefined',
+        default: 'undefined',
+        description: 'Overrides `config.orientation`.',
+      },
+      {
+        name: 'size',
+        type: 'MenuSize | undefined',
+        default: 'undefined',
+        description: 'Overrides `config.size`.',
+      },
+      {
+        name: 'background',
+        type: 'boolean | string | undefined',
+        default: 'undefined',
+        description: 'Overrides `config.background` (e.g. `false` when embedded in a sidebar/navbar).',
+      },
+      {
+        name: 'rounded',
+        type: 'boolean | undefined',
+        default: 'undefined',
+        description: 'Overrides `config.rounded`.',
+      },
+    ],
+    outputs: [
+      {
+        name: 'expandedChange',
+        type: 'MenuExpandEvent',
+        description: 'Emitted when a group is expanded/collapsed.',
+      },
+    ],
+  },
+  NavbarComponent: {
+    className: 'NavbarComponent',
+    selector: 'hk-navbar',
+    description:
+      '`<hk-navbar>` — a DaisyUI navbar with `start` / `center` / `end` projection slots, an optional embedded horizontal {@link MenuComponent}, and an optional responsive hamburger that emits `(menuToggle)`. Everything app-specific (brand, avatar, theme toggle) is projected — the library ships no auth/i18n dependencies.',
+    inputs: [
+      {
+        name: 'config',
+        type: 'NavbarConfig | null',
+        default: 'null',
+        description: 'Whole-config input (used by `hk-app-shell`); individual inputs override it.',
+      },
+      {
+        name: 'sticky',
+        type: 'boolean | undefined',
+        default: 'undefined',
+        description: '',
+      },
+      {
+        name: 'shadow',
+        type: 'boolean | undefined',
+        default: 'undefined',
+        description: '',
+      },
+      {
+        name: 'menu',
+        type: 'MenuConfig | null',
+        default: 'null',
+        description: 'Optional embedded menu (rendered in the centre, forced horizontal).',
+      },
+      {
+        name: 'showMenuToggle',
+        type: 'boolean | undefined',
+        default: 'undefined',
+        description: '',
+      },
+      {
+        name: 'menuToggleBreakpoint',
+        type: "ShellBreakpoint | 'never' | undefined",
+        default: 'undefined',
+        description: '',
+      },
+      {
+        name: 'ariaLabel',
+        type: 'string | undefined',
+        default: 'undefined',
+        description: '',
+      },
+    ],
+    outputs: [
+      {
+        name: 'menuToggle',
+        type: 'void',
+        description: 'Emitted when the hamburger is clicked.',
+      },
+    ],
+  },
   NotificationItemComponent: {
     className: 'NotificationItemComponent',
     selector: 'hk-notification-item',
@@ -592,11 +834,26 @@ const _API_DOCS = {
       },
     ],
   },
+  PdfPagesComponent: {
+    className: 'PdfPagesComponent',
+    selector: 'hk-pdf-pages',
+    description:
+      'The scrollable page area: the error panel, the non-fatal operation alert, one wrapper per page (canvas + text layer + overlay + edit layer), the page-change live region, and the loading state. Registers its viewport and page wrappers with {@link PdfViewportService}, which renders into them.',
+    inputs: [
+      {
+        name: 'variant',
+        type: 'keyof typeof VIEWPORT_CLASSES',
+        default: "'default'",
+        description: "`default`: fills the layout's flex row. `preview`: a bordered, rounded box.",
+      },
+    ],
+    outputs: [],
+  },
   PdfViewerComponent: {
     className: 'PdfViewerComponent',
     selector: 'hk-pdf-viewer',
     description:
-      "Lazy-loading PDF viewer built on Mozilla's PDF.js (`pdfjs-dist`). Renders any PDF source (URL, `Uint8Array`, or `Blob`) with a customizable toolbar, sidebar (thumbnails + bookmarks), text selection, search, print, and download. Configuration is split between two surfaces: - **`[src]`** (this component's input) — the document source. Volatile, often signal-driven (route params, file uploads, list selection). - **`[config]`** — stable per-instance config + lifecycle callbacks. Build with `createPdfViewer({...})` and pass `controller.config()` here. Imperative actions (navigation, zoom, search, print, download) are methods on the `PdfViewerController` returned by `createPdfViewer()` — call them directly from your component class without `@ViewChild`.",
+      "PDF viewer built on the PDFium (Rust→WASM) engine, which rasterizes pages off the main thread with correct text. Renders any PDF source (URL, `Uint8Array`, or `Blob`) with a customizable toolbar, sidebar (thumbnails + bookmarks), text selection, search, forms, print, and download/export. Configuration is split between two surfaces: - **`[src]`** (this component's input) — the document source. Volatile, often signal-driven (route params, file uploads, list selection). - **`[config]`** — stable per-instance config + lifecycle callbacks. Build with `createPdfViewer({...})` and pass `controller.config()` here. Imperative actions (navigation, zoom, search, print, download) are methods on the `PdfViewerController` returned by `createPdfViewer()` — call them directly from your component class without `@ViewChild`. This component is a thin shell: state lives in {@link PdfViewerStore}, the work in per-viewer services (`services/`), and the chrome in `ui/`.",
     inputs: [
       {
         name: 'src',
@@ -614,18 +871,42 @@ const _API_DOCS = {
         name: 'title',
         type: 'string',
         default: "''",
-        description:
-          "Optional headline shown above the page card in `layout: 'preview'`. Ignored in the default layout. Plain text — no markup.",
+        description: "Headline above the page card in `layout: 'preview'`. Ignored in the default layout. Plain text.",
       },
       {
         name: 'subtitle',
         type: 'string',
         default: "''",
-        description:
-          "Optional subtitle shown under the title in `layout: 'preview'` (e.g. the document section or breadcrumb). Ignored in the default layout.",
+        description: "Subtitle under the title in `layout: 'preview'` (e.g. a section or breadcrumb). Ignored in the default layout.",
       },
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: 'loaded',
+        type: 'PdfLoadedInfo',
+        description: 'The document is parsed and ready (same payload as `config.onLoaded`).',
+      },
+      {
+        name: 'pageChange',
+        type: 'number',
+        description: 'The current page changed (same as `config.onPageChange`).',
+      },
+      {
+        name: 'viewerError',
+        type: 'PdfViewerError',
+        description: 'A load failure, or a non-fatal operation failure (same as `config.onError`).',
+      },
+      {
+        name: 'dirtyChange',
+        type: 'boolean',
+        description: 'The document gained or lost unsaved edits (forms, annotations, page structure).',
+      },
+      {
+        name: 'pagesChange',
+        type: 'number',
+        description: 'The page count changed through a page insert or delete.',
+      },
+    ],
   },
   SelectComponent: {
     className: 'SelectComponent',
@@ -777,6 +1058,45 @@ const _API_DOCS = {
       },
     ],
   },
+  SidebarComponent: {
+    className: 'SidebarComponent',
+    selector: 'hk-sidebar',
+    description:
+      '`<hk-sidebar>` — the sidebar **panel**: a header slot, an embedded vertical {@link MenuComponent}, an optional collapse-to-rail toggle, and a footer slot. It renders just the `<aside>`; the drawer open/overlay scaffolding lives on `<hk-app-shell>`. Use it standalone inside your own `drawer-side`, or let the shell compose it for you.',
+    inputs: [
+      {
+        name: 'config',
+        type: 'SidebarConfig | null',
+        default: 'null',
+        description: 'Whole-config input (used by `hk-app-shell`); individual inputs override it.',
+      },
+      {
+        name: 'collapsible',
+        type: 'boolean | undefined',
+        default: 'undefined',
+        description: '',
+      },
+      {
+        name: 'side',
+        type: 'SidebarSide | undefined',
+        default: 'undefined',
+        description: '',
+      },
+      {
+        name: 'width',
+        type: 'string | undefined',
+        default: 'undefined',
+        description: 'Expanded width as a CSS length.',
+      },
+      {
+        name: 'ariaLabel',
+        type: 'string | undefined',
+        default: 'undefined',
+        description: '',
+      },
+    ],
+    outputs: [],
+  },
   StepperComponent: {
     className: 'StepperComponent',
     selector: 'hk-stepper',
@@ -924,12 +1244,6 @@ const _API_DOCS = {
         description: '',
       },
       {
-        name: 'paginationOptions',
-        type: 'PaginationOptions | null',
-        default: 'null',
-        description: '',
-      },
-      {
         name: 'showFirstLastButtons',
         type: 'boolean',
         default: 'true',
@@ -1072,6 +1386,11 @@ const _API_DOCS = {
         name: 'apply',
         type: 'FilterApplyEvent',
         description: '',
+      },
+      {
+        name: 'clear',
+        type: 'void',
+        description: 'User pressed Clear. Distinct from `apply` so the parent doesn\'t have to infer "value === null means remove".',
       },
       {
         name: 'closeFilter',

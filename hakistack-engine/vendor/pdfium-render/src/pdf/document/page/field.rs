@@ -311,6 +311,13 @@ pub trait PdfFormFieldCommon {
     /// Returns the name of this [PdfFormField], if any.
     fn name(&self) -> Option<String>;
 
+    /// Returns the alternate (user-facing) name of this [PdfFormField] — its `/TU`
+    /// tooltip, inherited from the parent field — if any. This is the field's
+    /// accessible label.
+    ///
+    /// (hakistack patch.)
+    fn alternate_name(&self) -> Option<String>;
+
     /// Returns the name of the currently set appearance stream for this [PdfFormField], if any.
     fn appearance_stream(&self) -> Option<String>;
 
@@ -384,6 +391,11 @@ where
     #[inline]
     fn name(&self) -> Option<String> {
         self.name_impl()
+    }
+
+    #[inline]
+    fn alternate_name(&self) -> Option<String> {
+        self.alternate_name_impl()
     }
 
     #[inline]

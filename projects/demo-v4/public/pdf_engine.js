@@ -1,124 +1,6 @@
 /* @ts-self-types="./pdf_engine.d.ts" */
 
 /**
- * Add a free-text box over the rect `[x,y,w,h]` (top-left points) with the
- * typed `contents`.
- * @param {number} handle
- * @param {number} index
- * @param {number} x
- * @param {number} y
- * @param {number} w
- * @param {number} h
- * @param {string} contents
- * @param {number} color
- * @returns {boolean}
- */
-export function add_free_text(handle, index, x, y, w, h, contents, color) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.add_free_text(retptr, handle, index, x, y, w, h, ptr0, len0, color);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * Add a highlight annotation over the rect `[x,y,w,h]` (top-left points) with
- * `color` (`0xRRGGBBAA`). Appearance regenerates automatically (default page
- * strategy), so it shows in `render` + `save_document`.
- * @param {number} handle
- * @param {number} index
- * @param {number} x
- * @param {number} y
- * @param {number} w
- * @param {number} h
- * @param {number} color
- * @returns {boolean}
- */
-export function add_highlight(handle, index, x, y, w, h, color) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.add_highlight(retptr, handle, index, x, y, w, h, color);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * Add a freehand ink stroke. `points` is a flat `[x0,y0,x1,y1,…]` polyline in
- * top-left PDF points; `color` = `0xRRGGBBAA`; `width` in points. Built as a
- * stroked path object inside an Ink annotation.
- * @param {number} handle
- * @param {number} index
- * @param {Float32Array} points
- * @param {number} color
- * @param {number} width
- * @returns {boolean}
- */
-export function add_ink(handle, index, points, color, width) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passArrayF32ToWasm0(points, wasm.__wbindgen_export);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.add_ink(retptr, handle, index, ptr0, len0, color, width);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * Add a sticky-note (Text) annotation at `[x,y]` (top-left points) carrying
- * `contents` as the comment body.
- * @param {number} handle
- * @param {number} index
- * @param {number} x
- * @param {number} y
- * @param {string} contents
- * @param {number} color
- * @returns {boolean}
- */
-export function add_text_note(handle, index, x, y, contents, color) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.add_text_note(retptr, handle, index, x, y, ptr0, len0, color);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
  * Embedded files. Each row is `[name, Uint8Array(bytes)]`.
  * @param {number} handle
  * @returns {Array<any>}
@@ -148,30 +30,6 @@ export function close(handle) {
 }
 
 /**
- * Delete the annotation at `[page_index, annot_index]` (page-local index from
- * `document_annotations`). Indices shift after a delete — re-query first.
- * @param {number} handle
- * @param {number} page_index
- * @param {number} annot_index
- * @returns {boolean}
- */
-export function delete_annotation(handle, page_index, annot_index) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.delete_annotation(retptr, handle, page_index, annot_index);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
  * Delete the page at `index` (0-based). Page count + indices shift after —
  * the caller must refresh its page structure.
  * @param {number} handle
@@ -189,31 +47,6 @@ export function delete_page(handle, index) {
             throw takeObject(r1);
         }
         return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * User-meaningful annotations across the whole document, for the sidebar list.
- * Each row is `[pageIndex (0-based), annotIndex (page-local), subtype, contents]`.
- * `annotIndex` is the annotation's position in the page's annotation array —
- * the address `delete_annotation` / `set_annotation_contents` take. Subtypes
- * the sidebar doesn't display (links, popups, widgets, …) are skipped.
- * @param {number} handle
- * @returns {Array<any>}
- */
-export function document_annotations(handle) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.document_annotations(retptr, handle);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return takeObject(r0);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
     }
@@ -245,10 +78,15 @@ export function document_title(handle) {
 
 /**
  * Interactive form fields on one page, for the form-widget overlay. Each row is
- * `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[]]`.
+ * `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[],
+ * annotIndex, exportValue, alternateName]`.
  * Rect is top-left-origin PDF points. `type` ∈ text|checkbox|radio|combo|list|
  * button|signature. `value` is the text/selected value; `checked` applies to
- * checkbox/radio; `options` lists choice labels (combo/list).
+ * checkbox/radio; `options` lists choice labels (combo/list). `annotIndex` is the
+ * widget's annotation index on the page: several widgets share one field name
+ * (radio groups), so writes target the widget by index. `exportValue` is the
+ * value a radio/checkbox widget represents when on. `alternateName` is the
+ * field's `/TU` tooltip, the accessible label.
  * @param {number} handle
  * @param {number} index
  * @returns {Array<any>}
@@ -384,6 +222,28 @@ export function page_count(handle) {
 }
 
 /**
+ * Each page's label from the document's `/PageLabels` ("iv", "A-1"), or `""`
+ * where none is defined. Read without loading the pages.
+ * @param {number} handle
+ * @returns {Array<any>}
+ */
+export function page_labels(handle) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.page_labels(retptr, handle);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return takeObject(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * Link rectangles for one page, for the clickable overlay. Each row is
  * `[x, y, w, h, pageIndex, uri]`: rect in PDF points with a top-left origin
  * (already Y-flipped); `pageIndex` is the 0-based jump target (`-1` if none);
@@ -495,6 +355,37 @@ export function render(handle, index, target_width) {
 }
 
 /**
+ * Render one tile: the region `(x, y, w, h)` (device px, top-left origin) of the
+ * page scaled to `page_width × page_height` device px. Returns `[w, h, rgba]`
+ * like `render`. Lets the viewer show a sharp viewport at zooms where the whole
+ * page would exceed the browser's canvas limits.
+ * @param {number} handle
+ * @param {number} index
+ * @param {number} page_width
+ * @param {number} page_height
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @returns {Array<any>}
+ */
+export function render_tile(handle, index, page_width, page_height, x, y, w, h) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.render_tile(retptr, handle, index, page_width, page_height, x, y, w, h);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return takeObject(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * Serialize the (possibly form-filled) document back to PDF bytes — for save /
  * download. Includes any `set_field_value` edits.
  * @param {number} handle
@@ -517,20 +408,35 @@ export function save_document(handle) {
 }
 
 /**
- * Replace the text contents of the annotation at `[page_index, annot_index]`
- * (e.g. a note or free-text comment body).
+ * Set a form field's value on a page. `value` is the text (text/combo/list),
+ * `"true"`/`"false"` for a checkbox, or `"true"` to select a radio button.
+ *
+ * `annot_index` is the widget's annotation index from `form_fields`. Pass `-1`
+ * to target the first widget named `name`. The index matters for radio groups,
+ * where every option's widget shares one field name.
+ *
+ * Checkboxes and radios are toggled through Pdfium's form-fill environment
+ * (a simulated click at the widget centre). Pdfium then writes the parent
+ * field's `/V` and every kid widget's `/AS` using each widget's real on-state
+ * name. A direct dictionary write can't do that correctly; see the
+ * `click_form_point` vendored patch.
+ *
+ * Returns `true` if a writable field was matched and updated.
  * @param {number} handle
- * @param {number} page_index
+ * @param {number} index
  * @param {number} annot_index
- * @param {string} contents
+ * @param {string} name
+ * @param {string} value
  * @returns {boolean}
  */
-export function set_annotation_contents(handle, page_index, annot_index, contents) {
+export function set_field_value(handle, index, annot_index, name, value) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(contents, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
-        wasm.set_annotation_contents(retptr, handle, page_index, annot_index, ptr0, len0);
+        const ptr1 = passStringToWasm0(value, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.set_field_value(retptr, handle, index, annot_index, ptr0, len0, ptr1, len1);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
@@ -544,34 +450,17 @@ export function set_annotation_contents(handle, page_index, annot_index, content
 }
 
 /**
- * Set a form field's value by name on a page. `value` is the text (text/combo),
- * or `"true"`/`"false"` for checkbox, or any non-empty string to select a radio.
- * Combo/list value-setting is not supported by the binding (read-only). Returns
- * `true` if a writable field was matched + updated.
+ * Replace the set of annotations left out of rendered rasters (the ones the
+ * viewer draws in its own layer). `entries` is flat `[page, annotIndex, …]`;
+ * an empty list clears it. Rendering hides them only for the duration of the
+ * call, so a later save is unaffected.
  * @param {number} handle
- * @param {number} index
- * @param {string} name
- * @param {string} value
- * @returns {boolean}
+ * @param {Uint32Array} entries
  */
-export function set_field_value(handle, index, name, value) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(value, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len1 = WASM_VECTOR_LEN;
-        wasm.set_field_value(retptr, handle, index, ptr0, len0, ptr1, len1);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
+export function set_hidden_annotations(handle, entries) {
+    const ptr0 = passArray32ToWasm0(entries, wasm.__wbindgen_export);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.set_hidden_annotations(handle, ptr0, len0);
 }
 
 /**
@@ -944,16 +833,16 @@ function getDataViewMemory0() {
     return cachedDataViewMemory0;
 }
 
-let cachedFloat32ArrayMemory0 = null;
-function getFloat32ArrayMemory0() {
-    if (cachedFloat32ArrayMemory0 === null || cachedFloat32ArrayMemory0.byteLength === 0) {
-        cachedFloat32ArrayMemory0 = new Float32Array(wasm.memory.buffer);
-    }
-    return cachedFloat32ArrayMemory0;
-}
-
 function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
+}
+
+let cachedUint32ArrayMemory0 = null;
+function getUint32ArrayMemory0() {
+    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
+        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachedUint32ArrayMemory0;
 }
 
 let cachedUint8ArrayMemory0 = null;
@@ -983,16 +872,16 @@ function isLikeNone(x) {
     return x === undefined || x === null;
 }
 
-function passArray8ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 1, 1) >>> 0;
-    getUint8ArrayMemory0().set(arg, ptr / 1);
+function passArray32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getUint32ArrayMemory0().set(arg, ptr / 4);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
 
-function passArrayF32ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 4, 4) >>> 0;
-    getFloat32ArrayMemory0().set(arg, ptr / 4);
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
@@ -1075,7 +964,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedDataViewMemory0 = null;
-    cachedFloat32ArrayMemory0 = null;
+    cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;

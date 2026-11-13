@@ -122,43 +122,48 @@ function emitBarrel(modules: DiscoveredModule[]): string {
 // =============================================================================
 
 interface TKNode {
-  ref?: string; // exportName whose `.keys` lives here
+  refs: string[]; // exportNames whose `.keys` live here (several when modules share a scope)
   children: Map<string, TKNode>;
 }
 
 function newNode(): TKNode {
-  return { children: new Map() };
+  return { refs: [], children: new Map() };
 }
 
-function buildTKTree(modules: DiscoveredModule[]): { tree: TKNode; usable: DiscoveredModule[] } {
+function buildTKTree(modules: DiscoveredModule[]): { tree: TKNode; usable: DiscoveredModule[]; duplicateScopes: Map<string, string[]> } {
   const root = newNode();
   const usable: DiscoveredModule[] = [];
+  const byScope = new Map<string, string[]>();
   for (const mod of modules) {
     if (!mod.scope) continue;
     usable.push(mod);
+    (byScope.get(mod.scope) ?? byScope.set(mod.scope, []).get(mod.scope)!).push(mod.exportName);
     const parts = mod.scope.split('.');
     let node = root;
     for (const part of parts) {
       if (!node.children.has(part)) node.children.set(part, newNode());
       node = node.children.get(part)!;
     }
-    node.ref = mod.exportName;
+    // Same scope in several modules → spread all of them. This mirrors the
+    // runtime `buildKeysTree` merge so compile-time TK and runtime keys agree.
+    node.refs.push(mod.exportName);
   }
-  return { tree: root, usable };
+  const duplicateScopes = new Map([...byScope].filter(([, names]) => names.length > 1));
+  return { tree: root, usable, duplicateScopes };
 }
 
 function serializeTKNode(node: TKNode, indent: string): string {
   const childIndent = indent + '  ';
   const childEntries = [...node.children.entries()].sort(([a], [b]) => a.localeCompare(b));
 
-  // Leaf: a ref with no children → `NAME.keys`.
-  if (node.ref && childEntries.length === 0) {
-    return `${node.ref}.keys`;
+  // Leaf: exactly one ref and no children → `NAME.keys`.
+  if (node.refs.length === 1 && childEntries.length === 0) {
+    return `${node.refs[0]}.keys`;
   }
 
   const lines: string[] = ['{'];
-  if (node.ref) {
-    lines.push(`${childIndent}...${node.ref}.keys,`);
+  for (const ref of node.refs) {
+    lines.push(`${childIndent}...${ref}.keys,`);
   }
   for (const [key, child] of childEntries) {
     lines.push(`${childIndent}${key}: ${serializeTKNode(child, childIndent)},`);
@@ -202,10 +207,11 @@ function emitKeys(modules: DiscoveredModule[]): string {
 // =============================================================================
 
 function emitDirective(config: I18nCliConfig): string {
+  const sel = config.directiveSelector;
   return [
-    GENERATED_HEADER(`${config.directiveSelector}.directive.ts`),
+    GENERATED_HEADER(`${sel}.directive.ts`),
     '',
-    `import { Directive } from '@angular/core';`,
+    `import { Directive, input } from '@angular/core';`,
     `import { TranslateContext, TranslateDirectiveBase } from '${config.packageName}';`,
     '',
     `import { TK } from './keys.generated';`,
@@ -213,10 +219,20 @@ function emitDirective(config: I18nCliConfig): string {
     '/**',
     ' * Typed structural translate directive. Extends the library base and pins',
     " * the template context to this project's `typeof TK`, giving full",
-    ' * autocomplete inside `*' + config.directiveSelector + '="let t"` templates.',
+    ' * autocomplete inside `*' + sel + '="let t"` templates.',
     ' */',
-    `@Directive({ selector: '[${config.directiveSelector}]' })`,
+    `@Directive({ selector: '[${sel}]' })`,
     `export class ${config.directiveClassName} extends TranslateDirectiveBase {`,
+    '  /**',
+    '   * Optional prefix prepended to every key (for scoped translations).',
+    `   * Microsyntax: \`*${sel}="let t; prefix: 'admin'"\` binds here.`,
+    '   */',
+    `  readonly ${sel}Prefix = input<string | undefined>(undefined);`,
+    '',
+    '  protected override prefix(): string | undefined {',
+    `    return this.${sel}Prefix();`,
+    '  }',
+    '',
     `  static ngTemplateContextGuard(_dir: ${config.directiveClassName}, ctx: unknown): ctx is TranslateContext<typeof TK> {`,
     '    return true;',
     '  }',
@@ -276,6 +292,11 @@ export function runScan(config: I18nCliConfig, opts: { listOnly?: boolean; quiet
         `   These are excluded from the TK literal. Use a string-literal scope:\n` +
         `   export const X = defineTranslations('scope', { … }).`,
     );
+  }
+
+  const { duplicateScopes } = buildTKTree(modules);
+  for (const [scope, names] of duplicateScopes) {
+    console.warn(`\n⚠️  Scope '${scope}' is defined by ${names.join(' and ')}; their keys are merged into TK.${scope}.`);
   }
 
   if (opts.listOnly) {

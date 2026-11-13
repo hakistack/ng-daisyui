@@ -26,9 +26,12 @@ export {
   extractLanguage,
   getTranslation,
   isTranslationValue,
+  normalizeScope,
   scopeToFilesystemPath,
   setAtScope,
+  SOURCE_LANG,
   t,
+  TRANSLATION_BRAND,
 } from '@hakistack/i18n/engine';
 export type {
   AuthoredTranslationNode,
@@ -37,6 +40,7 @@ export type {
   LanguageTree,
   LocaleId,
   OtherLocales,
+  SourceLang,
   TranslationModule,
   TranslationValue,
 } from '@hakistack/i18n/engine';

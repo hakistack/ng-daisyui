@@ -1,7 +1,6 @@
 import { computed, signal } from '@angular/core';
 import {
   PdfDisplayMode,
-  PdfSearchResult,
   PdfSidebarTab,
   PdfViewerConfig,
   PdfViewerController,
@@ -109,6 +108,15 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     showSidebar: input.showSidebar ?? true,
     defaultSidebarTab: input.defaultSidebarTab ?? DEFAULT_SIDEBAR_TAB,
     renderPoolSize: input.renderPoolSize,
+    bitmapCacheMB: input.bitmapCacheMB,
+    annotationAuthor: input.annotationAuthor,
+    annotationMode: input.annotationMode,
+    restrictAnnotationsToAuthor: input.restrictAnnotationsToAuthor,
+    fonts: input.fonts,
+    signatureFonts: input.signatureFonts,
+    signer: input.signer,
+    trustedCertificates: input.trustedCertificates,
+    pageOrganizer: input.pageOrganizer,
     onLoaded: input.onLoaded,
     onPageChange: input.onPageChange,
     onError: input.onError,
@@ -130,8 +138,8 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     state: state.asReadonly(),
 
     goToPage: (page) => handlers.goToPage?.(clampPage(page)),
-    nextPage: () => handlers.goToPage?.(clampPage(state().page + 1)),
-    previousPage: () => handlers.goToPage?.(clampPage(state().page - 1)),
+    nextPage: () => (handlers.nextPage ? handlers.nextPage() : handlers.goToPage?.(clampPage(state().page + 1))),
+    previousPage: () => (handlers.previousPage ? handlers.previousPage() : handlers.goToPage?.(clampPage(state().page - 1))),
     firstPage: () => handlers.goToPage?.(clampPage(1)),
     lastPage: () => handlers.goToPage?.(clampPage(state().numPages)),
 
@@ -159,9 +167,31 @@ export function createPdfViewer(input: PdfViewerConfig = {}): PdfViewerControlle
     exportText: (filename) => handlers.exportText?.(filename) ?? Promise.reject(new Error('Viewer not mounted')),
     setAnnotationTool: (tool) => handlers.setAnnotationTool?.(tool),
     setAnnotationColor: (color) => handlers.setAnnotationColor?.(color),
+    getAnnotations: () => handlers.getAnnotations?.() ?? [],
+    addAnnotation: (annotation) => handlers.addAnnotation?.(annotation) ?? Promise.reject(new Error('Viewer not mounted')),
+    updateAnnotation: (id, changes) => handlers.updateAnnotation?.(id, changes) ?? Promise.reject(new Error('Viewer not mounted')),
+    deleteAnnotation: (id) => handlers.deleteAnnotation?.(id) ?? Promise.reject(new Error('Viewer not mounted')),
+    selectAnnotation: (id) => handlers.selectAnnotation?.(id),
+    undo: () => handlers.undo?.() ?? Promise.resolve(false),
+    redo: () => handlers.redo?.() ?? Promise.resolve(false),
+    exportAnnotations: (format) => handlers.exportAnnotations?.(format) ?? '',
+    importAnnotations: (data) => handlers.importAnnotations?.(data) ?? Promise.reject(new Error('Viewer not mounted')),
+    setMeasureScale: (scale) => handlers.setMeasureScale?.(scale),
+    resetForm: () => handlers.resetForm?.(),
+    exportFormData: (format) => handlers.exportFormData?.(format) ?? '',
+    importFormData: (data) => handlers.importFormData?.(data) ?? 0,
     deletePage: (pageNumber) => handlers.deletePage?.(pageNumber) ?? Promise.reject(new Error('Viewer not mounted')),
     insertBlankPage: (atPageNumber) => handlers.insertBlankPage?.(atPageNumber) ?? Promise.reject(new Error('Viewer not mounted')),
     rotatePage: (pageNumber, delta) => handlers.rotatePage?.(pageNumber, delta),
+    rotatePages: (pageNumbers, delta) => handlers.rotatePages?.(pageNumbers, delta) ?? Promise.reject(new Error('Viewer not mounted')),
+    deletePages: (pageNumbers) => handlers.deletePages?.(pageNumbers) ?? Promise.reject(new Error('Viewer not mounted')),
+    duplicatePages: (pageNumbers) => handlers.duplicatePages?.(pageNumbers) ?? Promise.reject(new Error('Viewer not mounted')),
+    movePages: (pageNumbers, to) => handlers.movePages?.(pageNumbers, to) ?? Promise.reject(new Error('Viewer not mounted')),
+    importPages: (source, options) => handlers.importPages?.(source, options) ?? Promise.reject(new Error('Viewer not mounted')),
+    extractPages: (pageNumbers) => handlers.extractPages?.(pageNumbers) ?? Promise.reject(new Error('Viewer not mounted')),
+    organizePages: () => handlers.organizePages?.(),
+    getSignatures: () => handlers.getSignatures?.() ?? [],
+    signDigitally: (options) => handlers.signDigitally?.(options) ?? Promise.reject(new Error('Viewer not mounted')),
   };
 
   return controller;
@@ -182,22 +212,27 @@ export function previousZoomStep(zoom: number): number {
   return clampZoom(zoom - ZOOM_STEP);
 }
 
+// Rotation math lives in core/geometry (framework-free); re-exported for existing importers.
+export { inverseRotateDelta } from './core/geometry';
+
+/** URI schemes a PDF link may open. Everything else (`javascript:`, `data:`,
+ *  `file:`, `blob:`, `vbscript:`, …) is dropped from the link overlay. */
+const SAFE_LINK_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+
 /**
- * Invert a page's CSS display rotation for a pointer delta.
- *
- * The page rotor applies a clockwise `rotate(deg)` about its centre, so a
- * point at local (unrotated) offset `(x, y)` from the centre lands on screen at
- * `R(deg)·(x, y)` where `R(deg) = [[cos, -sin], [sin, cos]]` (y-down ⇒ positive
- * angle is clockwise). To recover the local offset from a screen-space delta we
- * apply the inverse `R(-deg)`. `deg` is typically 0/90/180/270 but any angle
- * works.
- *
- * Add the layer's half-width/height to the result to get the top-left-origin
- * local coordinate. For `deg = 0` this is the identity.
+ * Whether a PDF link URI is safe to put in an `<a href>`. PDFs are untrusted
+ * input: a `javascript:` URI would run script in the host page on click.
+ * Relative URIs (no scheme) are rejected too, since a PDF has no base URL of its own.
  */
-export function inverseRotateDelta(dx: number, dy: number, deg: number): { dx: number; dy: number } {
-  const rad = (deg * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  return { dx: cos * dx + sin * dy, dy: -sin * dx + cos * dy };
+export function isSafeLinkUri(uri: string): boolean {
+  try {
+    return SAFE_LINK_SCHEMES.has(new URL(uri.trim()).protocol);
+  } catch {
+    return false;
+  }
 }
+
+/** Focus targets that own Space/arrow/Home/End themselves, so the viewer's
+ *  page-navigation shortcuts must not intercept those keys on them. */
+export const INTERACTIVE_SELECTOR =
+  'button, a[href], summary, select, [role="button"], [role="tab"], [role="menuitem"], [role="option"], [role="slider"], [role="treeitem"], [role="checkbox"], [role="radio"], [role="switch"]';

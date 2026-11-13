@@ -1,0 +1,229 @@
+<aside class="hk-pdf-sidebar w-56 shrink-0 border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+  <!-- Tabs row: icon-only tab buttons keep the sidebar narrow while
+       surfacing four panels (Thumbnails / Bookmarks / Annotations /
+       Attachments). Tooltips carry the full label. Active tab gets
+       the daisyUI `tab-active` style. -->
+  <div role="tablist" class="flex border-b border-base-300 bg-base-200/40">
+    <button
+      type="button"
+      role="tab"
+      class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
+      [class.text-primary]="(store.state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+      [class.bg-base-100]="(store.state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+      [class.border-b-2]="(store.state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+      [class.border-primary]="(store.state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+      [attr.aria-selected]="(store.state()?.sidebarTab ?? 'thumbnails') === 'thumbnails'"
+      [attr.aria-label]="store.labels().thumbnailsTab"
+      [title]="store.labels().thumbnailsTab"
+      (click)="setTab('thumbnails')"
+    >
+      <svg lucideFileText [size]="16"></svg>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
+      [class.text-primary]="store.state()?.sidebarTab === 'bookmarks'"
+      [class.bg-base-100]="store.state()?.sidebarTab === 'bookmarks'"
+      [class.border-b-2]="store.state()?.sidebarTab === 'bookmarks'"
+      [class.border-primary]="store.state()?.sidebarTab === 'bookmarks'"
+      [attr.aria-selected]="store.state()?.sidebarTab === 'bookmarks'"
+      [attr.aria-label]="store.labels().bookmarksTab"
+      [title]="store.labels().bookmarksTab"
+      (click)="setTab('bookmarks')"
+    >
+      <svg lucideBookOpen [size]="16"></svg>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
+      [class.text-primary]="store.state()?.sidebarTab === 'annotations'"
+      [class.bg-base-100]="store.state()?.sidebarTab === 'annotations'"
+      [class.border-b-2]="store.state()?.sidebarTab === 'annotations'"
+      [class.border-primary]="store.state()?.sidebarTab === 'annotations'"
+      [attr.aria-selected]="store.state()?.sidebarTab === 'annotations'"
+      [attr.aria-label]="store.labels().annotationsTab"
+      [title]="store.labels().annotationsTab"
+      (click)="setTab('annotations')"
+    >
+      <svg lucideMessageSquare [size]="16"></svg>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
+      [class.text-primary]="store.state()?.sidebarTab === 'attachments'"
+      [class.bg-base-100]="store.state()?.sidebarTab === 'attachments'"
+      [class.border-b-2]="store.state()?.sidebarTab === 'attachments'"
+      [class.border-primary]="store.state()?.sidebarTab === 'attachments'"
+      [attr.aria-selected]="store.state()?.sidebarTab === 'attachments'"
+      [attr.aria-label]="store.labels().attachmentsTab"
+      [title]="store.labels().attachmentsTab"
+      (click)="setTab('attachments')"
+    >
+      <svg lucidePaperclip [size]="16"></svg>
+    </button>
+    @if (showSignaturesTab()) {
+      <button
+        type="button"
+        role="tab"
+        class="flex-1 flex items-center justify-center py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
+        [class.text-primary]="store.state()?.sidebarTab === 'signatures'"
+        [class.bg-base-100]="store.state()?.sidebarTab === 'signatures'"
+        [class.border-b-2]="store.state()?.sidebarTab === 'signatures'"
+        [class.border-primary]="store.state()?.sidebarTab === 'signatures'"
+        [attr.aria-selected]="store.state()?.sidebarTab === 'signatures'"
+        [attr.aria-label]="store.labels().signaturesTab"
+        [title]="store.labels().signaturesTab"
+        (click)="setTab('signatures')"
+      >
+        <svg lucideShieldCheck [size]="16"></svg>
+      </button>
+    }
+  </div>
+
+  <div #thumbnailPanel class="flex-1 overflow-auto" role="tabpanel">
+    <!-- Thumbnails stay mounted (just hidden) so their rendered canvases
+         persist across tab switches — re-entry is instant, no re-raster. -->
+    <div [hidden]="(store.state()?.sidebarTab ?? 'thumbnails') !== 'thumbnails'">
+      @if (store.pageNumbers().length > 0) {
+        @if (pages.enabled() && store.showPages()) {
+          <div class="px-2 pt-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-block btn-ghost border-base-300"
+              [disabled]="!pages.canOrganize()"
+              [title]="pages.unavailableReason() ?? store.labels().organizePages"
+              (click)="pages.organizerOpen.set(true)"
+            >
+              <svg lucideLayoutGrid [size]="14" aria-hidden="true"></svg>
+              {{ store.labels().organizePages }}
+            </button>
+          </div>
+        }
+        <!-- Virtualized like the page stack: only items near the panel's view are mounted. -->
+        <ul #thumbnailList class="flex flex-col gap-2 items-center p-2">
+          @if (thumbnails.spacerBefore() > 0) {
+            <li class="shrink-0 w-px" aria-hidden="true" [style.height.px]="thumbnails.spacerBefore()"></li>
+          }
+          @for (n of thumbnails.mountedPages(); track n) {
+            <li class="group relative" data-thumb-item>
+              <button
+                type="button"
+                class="hk-pdf-thumbnail"
+                [class.hk-pdf-thumbnail-active]="store.state()?.page === n"
+                [attr.aria-label]="thumbnailAriaLabel(n)"
+                [attr.aria-current]="store.state()?.page === n ? 'page' : null"
+                (click)="viewport.goToPage(n)"
+              >
+                <canvas [attr.data-thumb-page]="n" [style.width.px]="180" [style.height.px]="thumbnails.canvasHeight(n)"></canvas>
+                <span class="text-xs text-base-content/70 mt-1">{{ store.labelFor(n) }}</span>
+              </button>
+              @if (pages.enabled()) {
+                <div
+                  class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
+                >
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-square btn-neutral"
+                    [attr.aria-label]="pageAction(store.labels().rotatePageAria, n)"
+                    [title]="pageAction(store.labels().rotatePageAria, n)"
+                    [disabled]="!pages.canRotate()"
+                    (click)="document.rotatePage(n)"
+                  >
+                    <svg lucideRotateCw [size]="12" aria-hidden="true"></svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-square btn-neutral"
+                    [attr.aria-label]="pageAction(store.labels().insertAfterPageAria, n)"
+                    [title]="pageAction(store.labels().insertAfterPageAria, n)"
+                    [disabled]="!pages.canOrganize()"
+                    (click)="document.insertBlankPage(n + 1)"
+                  >
+                    <svg lucidePlus [size]="12" aria-hidden="true"></svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-square btn-error"
+                    [attr.aria-label]="pageAction(store.labels().deletePageAria, n)"
+                    [title]="pageAction(store.labels().deletePageAria, n)"
+                    [disabled]="!pages.canOrganize() || store.pageNumbers().length <= 1"
+                    (click)="document.deletePage(n)"
+                  >
+                    <svg lucideTrash2 [size]="12" aria-hidden="true"></svg>
+                  </button>
+                </div>
+              }
+            </li>
+          }
+          @if (thumbnails.spacerAfter() > 0) {
+            <li class="shrink-0 w-px" aria-hidden="true" [style.height.px]="thumbnails.spacerAfter()"></li>
+          }
+        </ul>
+      } @else {
+        <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().loading }}</div>
+      }
+    </div>
+    @switch (store.state()?.sidebarTab) {
+      @case ('bookmarks') {
+        @if (store.outline() === null) {
+          <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().loading }}</div>
+        } @else if (store.outline()!.length === 0) {
+          <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().noBookmarks }}</div>
+        } @else {
+          <ul class="menu menu-sm w-full p-2">
+            @for (node of store.outline()!; track $index) {
+              <ng-container [ngTemplateOutlet]="outlineNode" [ngTemplateOutletContext]="{ $implicit: node }" />
+            }
+          </ul>
+        }
+      }
+      @case ('annotations') {
+        <hk-pdf-comments />
+      }
+      @case ('signatures') {
+        <hk-pdf-signatures-panel />
+      }
+      @case ('attachments') {
+        @if (store.attachments() === null) {
+          <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().loading }}</div>
+        } @else if (store.attachments()!.length === 0) {
+          <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().noAttachments }}</div>
+        } @else {
+          <ul class="flex flex-col p-1">
+            @for (att of store.attachments(); track $index) {
+              <li>
+                <button
+                  type="button"
+                  class="w-full text-left px-2 py-2 rounded-md hover:bg-base-200 transition-colors flex items-center gap-2"
+                  [title]="att.description || att.filename"
+                  (click)="document.downloadAttachment(att)"
+                >
+                  <svg lucidePaperclip [size]="14" class="text-base-content/50 shrink-0"></svg>
+                  <span class="text-xs truncate">{{ att.filename }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      }
+    }
+  </div>
+</aside>
+
+<!-- Recursive outline-tree template — used by the bookmarks tab to render
+     the PDF's outline as a daisyUI menu. Each node may have children. -->
+<ng-template #outlineNode let-node>
+  <li>
+    <button type="button" (click)="outlineGoto(node)">{{ node.title || store.labels().untitledBookmark }}</button>
+    @if (node.items?.length) {
+      <ul>
+        @for (child of node.items; track $index) {
+          <ng-container [ngTemplateOutlet]="outlineNode" [ngTemplateOutletContext]="{ $implicit: child }" />
+        }
+      </ul>
+    }
+  </li>
+</ng-template>

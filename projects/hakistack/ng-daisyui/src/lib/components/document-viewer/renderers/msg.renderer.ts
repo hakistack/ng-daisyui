@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, effect, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 
 import { DocumentRendererInputs } from '../document-viewer.types';
 import { loadSourceAsBytes } from '../document-viewer.helpers';
-import { ParsedEmail } from './eml.renderer';
+import { DocumentViewerHost } from '../document-viewer-host';
+import { ParsedEmail, emailMetadata } from './eml.renderer';
 
 /**
  * Renderer for `.msg` (Outlook MSG / OLE Compound File) messages.
@@ -64,7 +65,7 @@ import { ParsedEmail } from './eml.renderer';
             [attr.srcdoc]="msg.bodyHtml"
             sandbox=""
             title="Email body"
-            class="w-full min-h-[40vh] border border-base-content/10 rounded bg-base-100"
+            class="w-full min-h-[40vh] border border-base-content/10 rounded bg-white"
             loading="lazy"
             referrerpolicy="no-referrer"
           ></iframe>
@@ -90,6 +91,8 @@ export class DocumentMsgRenderer {
       const src = this.source();
       void this.parse(src);
     });
+    const host = inject(DocumentViewerHost, { optional: true });
+    if (host) effect(() => host.metadata.set(this.parsed() ? emailMetadata(this.parsed()!) : []));
   }
 
   private async parse(src: DocumentRendererInputs['source']): Promise<void> {

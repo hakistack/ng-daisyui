@@ -65,35 +65,23 @@ impl<'a> PdfFormCheckboxField<'a> {
     /// Returns `true` if this [PdfFormCheckboxField] object has its checkbox checked.
     #[inline]
     pub fn is_checked(&self) -> Result<bool, PdfiumError> {
-        // The PDF Reference manual, version 1.7, states that an appearance stream of "Yes"
-        // can be used to indicate a selected checkbox. Pdfium's FPDFAnnot_IsChecked()
-        // function doesn't account for appearance streams, so we check the currently set
-        // appearance stream ourselves.
-
-        match self.appearance_stream_impl().as_ref() {
-            Some(appearance_stream) => {
-                // Appearance streams are in use. An appearance stream of "Yes" indicates
-                // a selected checkbox.
-
-                Ok(appearance_stream == "Yes" || appearance_stream == "/Yes")
-            }
-            None => {
-                // Appearance streams are not in use. We can fall back to using Pdfium's
-                // FPDFAnnot_IsChecked() implementation.
-
-                match self.is_checked_impl() {
-                    Ok(true) => Ok(true),
-                    Ok(false) => match self.group_value() {
-                        Some(value) => Ok(value == "Yes"),
-                        _ => Ok(false),
-                    },
-                    Err(err) => match self.group_value() {
-                        Some(value) => Ok(value == "Yes"),
-                        _ => Err(err),
-                    },
-                }
-            }
+        // (hakistack patch) A checkbox's on-state can have any name ("Yes", "On",
+        // "1", an export value…), so testing /AS against "Yes" misreads most
+        // real forms. FPDFAnnot_IsChecked() compares /AS with the widget's actual
+        // on-state name; it's reliable now that pages register with the
+        // form-fill environment (see PdfPage::from_pdfium()). Fallback, for a
+        // page loaded without a form handle: any /AS (or group value) other than
+        // "Off" means checked.
+        if let Ok(true) = self.is_checked_impl() {
+            return Ok(true);
         }
+
+        let is_on = |state: &str| !state.is_empty() && state != "Off" && state != "/Off";
+
+        Ok(match self.appearance_stream_impl() {
+            Some(appearance_stream) => is_on(&appearance_stream),
+            None => self.group_value().as_deref().is_some_and(is_on),
+        })
     }
 
     /// Checks or clears the checkbox of this [PdfFormCheckboxField] object.

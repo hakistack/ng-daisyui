@@ -1,0 +1,164 @@
+@if (annotations.list().length === 0) {
+  <div class="text-xs text-base-content/70 italic p-4 text-center">{{ store.labels().noAnnotations }}</div>
+} @else {
+  <div class="flex flex-col gap-2 p-2">
+    <!-- Filters -->
+    <div class="grid grid-cols-3 gap-1">
+      <label class="flex flex-col gap-0.5">
+        <span class="text-[11px] text-base-content/70">{{ store.labels().filterType }}</span>
+        <select class="select select-bordered select-xs w-full" (change)="onFilter('type', $event)">
+          <option value="" [selected]="typeFilter() === ''">{{ store.labels().all }}</option>
+          @for (type of types; track type) {
+            <option [value]="type" [selected]="typeFilter() === type">{{ typeName(type) }}</option>
+          }
+        </select>
+      </label>
+      <label class="flex flex-col gap-0.5">
+        <span class="text-[11px] text-base-content/70">{{ store.labels().filterAuthor }}</span>
+        <select class="select select-bordered select-xs w-full" (change)="onFilter('author', $event)">
+          <option value="" [selected]="authorFilter() === ''">{{ store.labels().all }}</option>
+          @for (author of annotations.authors(); track author) {
+            <option [value]="author" [selected]="authorFilter() === author">{{ author }}</option>
+          }
+        </select>
+      </label>
+      <label class="flex flex-col gap-0.5">
+        <span class="text-[11px] text-base-content/70">{{ store.labels().filterStatus }}</span>
+        <select class="select select-bordered select-xs w-full" (change)="onFilter('status', $event)">
+          <option value="" [selected]="statusFilter() === ''">{{ store.labels().all }}</option>
+          @for (status of statuses; track status) {
+            <option [value]="status" [selected]="statusFilter() === status">{{ statusLabel(status) }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    @for (group of groups(); track group.page) {
+      <details class="collapse collapse-arrow border border-base-300 bg-base-100" open>
+        <summary class="collapse-title min-h-0 py-2 text-xs font-medium">
+          {{ pageLabel(group.page) }} <span class="text-base-content/70">({{ group.items.length }})</span>
+        </summary>
+        <div class="collapse-content flex flex-col gap-2 px-2 pb-2">
+          @for (a of group.items; track a.id) {
+            <article
+              class="flex flex-col gap-1.5 rounded-box border p-2 text-xs transition-colors"
+              [class]="annotations.selectedId() === a.id ? 'border-primary bg-primary/5' : 'border-base-300'"
+              [attr.data-comment-id]="a.id"
+              [attr.aria-current]="annotations.selectedId() === a.id ? 'true' : null"
+              (focusin)="select(a)"
+            >
+              <header class="flex items-center gap-1.5">
+                <span
+                  class="h-2.5 w-2.5 shrink-0 rounded-full border border-base-300"
+                  [style.background]="a.color"
+                  aria-hidden="true"
+                ></span>
+                <button type="button" class="link link-hover truncate font-medium" (click)="annotations.select(a.id, true)">
+                  {{ typeLabel(a) }}
+                </button>
+                <span class="truncate text-base-content/70">{{ a.author || store.labels().defaultAuthor }}</span>
+                <span class="ml-auto shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium" [class]="statusClass(a.status)">
+                  {{ statusLabel(a.status) }}
+                </span>
+              </header>
+              <time class="text-[10px] text-base-content/70" [attr.datetime]="a.modified">{{ date(a.modified ?? a.created) }}</time>
+
+              @if (editingId() === a.id) {
+                <textarea
+                  #commentBox
+                  class="textarea textarea-bordered textarea-xs w-full"
+                  rows="3"
+                  [attr.aria-label]="store.labels().comment"
+                  [value]="a.contents ?? ''"
+                  (keydown.escape)="editingId.set(null)"
+                ></textarea>
+                <div class="flex justify-end gap-1">
+                  <button type="button" class="btn btn-ghost btn-xs" (click)="editingId.set(null)">{{ store.labels().cancel }}</button>
+                  <button type="button" class="btn btn-primary btn-xs" (click)="saveComment(a, commentBox.value)">
+                    {{ store.labels().save }}
+                  </button>
+                </div>
+              } @else if (a.contents) {
+                <p class="whitespace-pre-wrap break-words text-base-content/90">{{ a.contents }}</p>
+              } @else {
+                <p class="italic text-base-content/70">{{ store.labels().noComment }}</p>
+              }
+
+              @if (a.replies?.length) {
+                <ul class="flex flex-col gap-1 border-l-2 border-base-300 pl-2">
+                  @for (r of a.replies; track r.id) {
+                    <li class="flex flex-col gap-0.5">
+                      <div class="flex items-center gap-1">
+                        <span class="font-medium">{{ r.author || store.labels().defaultAuthor }}</span>
+                        <time class="text-[10px] text-base-content/70" [attr.datetime]="r.created">{{
+                          date(r.created ?? r.modified)
+                        }}</time>
+                        <button
+                          type="button"
+                          class="btn btn-ghost btn-xs btn-square ml-auto h-5 min-h-5 w-5"
+                          [attr.aria-label]="store.labels().deleteReply"
+                          [title]="store.labels().deleteReply"
+                          [disabled]="a.locked"
+                          (click)="annotations.deleteReply(a.id, r.id)"
+                        >
+                          <svg lucideTrash2 [size]="12"></svg>
+                        </button>
+                      </div>
+                      <p class="whitespace-pre-wrap break-words text-base-content/90">{{ r.contents }}</p>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <div class="flex items-center gap-1">
+                <select
+                  class="select select-bordered select-xs grow"
+                  [attr.aria-label]="store.labels().filterStatus"
+                  (change)="setStatus(a, $event)"
+                >
+                  @for (status of statuses; track status) {
+                    <option [value]="status" [selected]="(a.status ?? 'None') === status">{{ statusLabel(status) }}</option>
+                  }
+                </select>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs btn-square"
+                  [attr.aria-label]="store.labels().edit"
+                  [title]="store.labels().edit"
+                  (click)="editingId.set(a.id)"
+                >
+                  <svg lucidePen [size]="12"></svg>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs btn-square text-error"
+                  [attr.aria-label]="store.labels().deleteAnnotation"
+                  [title]="store.labels().deleteAnnotation"
+                  [disabled]="a.locked"
+                  (click)="annotations.remove(a.id)"
+                >
+                  <svg lucideTrash2 [size]="12"></svg>
+                </button>
+              </div>
+
+              <div class="flex items-end gap-1">
+                <textarea
+                  #replyBox
+                  data-reply
+                  class="textarea textarea-bordered textarea-xs grow"
+                  rows="1"
+                  [attr.aria-label]="store.labels().reply"
+                  [placeholder]="store.labels().replyPlaceholder"
+                  (keydown)="onReplyKeydown($event, a, replyBox)"
+                ></textarea>
+                <button type="button" class="btn btn-soft btn-primary btn-xs" (click)="reply(a, replyBox)">
+                  {{ store.labels().reply }}
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      </details>
+    }
+  </div>
+}

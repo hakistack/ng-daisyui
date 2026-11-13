@@ -127,6 +127,9 @@ export function buildEagerTree(
  * (no scope key around it), matching the layout `provideTranslocoScope` expects
  * to load from `<scope-with-slashes>/<lang>.json`.
  *
+ * `scope` may be given in dotted (`administration.users`) or slash form
+ * (`administration/users` — what Transloco hands a loader); both match.
+ *
  * Returns `null` if no module with the given scope exists, or if it's eager.
  */
 export function buildScopedTree(
@@ -135,8 +138,9 @@ export function buildScopedTree(
   defaultLang: string,
   scope: string,
 ): LanguageTree | null {
+  const wanted = normalizeScope(scope);
   for (const mod of registry) {
-    if (mod.scope === scope && mod.scoped) {
+    if (mod.scoped && normalizeScope(mod.scope) === wanted) {
       return extractLanguage(mod.translations, lang, defaultLang);
     }
   }
@@ -149,4 +153,12 @@ export function buildScopedTree(
  */
 export function scopeToFilesystemPath(scope: string): string {
   return scope.replace(/\./g, '/');
+}
+
+/**
+ * Canonical dotted form of a scope, accepting either separator.
+ *   'administration/users' → 'administration.users'
+ */
+export function normalizeScope(scope: string): string {
+  return scope.replace(/\//g, '.');
 }

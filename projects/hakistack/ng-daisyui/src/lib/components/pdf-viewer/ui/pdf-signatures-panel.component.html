@@ -1,0 +1,146 @@
+<div class="flex flex-col gap-2 p-2">
+  @if (signatures.canSignDigitally()) {
+    <button type="button" class="btn btn-primary btn-sm btn-block" [disabled]="!store.showPages()" (click)="signatures.openDigital()">
+      {{ store.labels().signDigitally }}
+    </button>
+  }
+
+  @if (signatures.digital(); as list) {
+    @if (list.length === 0) {
+      <p class="p-2 text-center text-xs text-base-content/70">{{ store.labels().noSignatures }}</p>
+    }
+    <ul class="flex flex-col gap-2">
+      @for (s of list; track s.field) {
+        <li class="flex flex-col gap-1.5 rounded-box border border-base-300 bg-base-100 p-2 text-xs">
+          <div class="flex items-start gap-1.5">
+            @switch (s.status) {
+              @case ('valid') {
+                <svg lucideBadgeCheck [size]="16" class="mt-px shrink-0 text-success" aria-hidden="true"></svg>
+              }
+              @case ('invalid') {
+                <svg lucideCircleX [size]="16" class="mt-px shrink-0 text-error" aria-hidden="true"></svg>
+              }
+              @default {
+                <svg lucideCircleHelp [size]="16" class="mt-px shrink-0 text-warning" aria-hidden="true"></svg>
+              }
+            }
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="break-words font-medium text-base-content">{{ signedBy(s) }}</span>
+              @if (when(s.signingTime); as time) {
+                <span class="text-base-content/70">{{ store.labels().sigDate }} {{ time }}</span>
+              }
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-1">
+            <span
+              class="rounded-full border px-1.5 py-px text-[10px] font-medium text-base-content"
+              [class]="{
+                'border-success/30 bg-success/10': s.status === 'valid',
+                'border-error/30 bg-error/10': s.status === 'invalid',
+                'border-warning/40 bg-warning/15': s.status === 'unknown',
+              }"
+              >{{ statusLabel(s) }}</span
+            >
+            @if (s.status === 'valid' && !s.coversWholeDocument) {
+              <span class="rounded-full border border-warning/40 bg-warning/15 px-1.5 py-px text-[10px] font-medium text-base-content">{{
+                store.labels().sigModified
+              }}</span>
+            }
+            @if (s.certified !== null) {
+              <span class="rounded-full border border-info/30 bg-info/10 px-1.5 py-px text-[10px] font-medium text-base-content">{{
+                store.labels().sigCertified
+              }}</span>
+            }
+            @if (s.timestamped) {
+              <span class="rounded-full border border-base-300 bg-base-200 px-1.5 py-px text-[10px] font-medium text-base-content/80">{{
+                store.labels().sigTimestamped
+              }}</span>
+            }
+          </div>
+
+          @if (s.reason) {
+            <span class="text-base-content/80"
+              ><span class="text-base-content/70">{{ store.labels().sigReason }}:</span> {{ s.reason }}</span
+            >
+          }
+          @if (s.location) {
+            <span class="text-base-content/80"
+              ><span class="text-base-content/70">{{ store.labels().sigLocation }}:</span> {{ s.location }}</span
+            >
+          }
+          @if (!s.coversWholeDocument) {
+            <p class="flex gap-1 text-base-content/70">
+              <svg lucideCircleAlert [size]="12" class="mt-0.5 shrink-0 text-warning" aria-hidden="true"></svg>
+              {{ store.labels().sigLaterChanges }}
+            </p>
+          }
+          @if (s.status !== 'invalid') {
+            <p class="text-base-content/70">{{ s.trusted ? store.labels().sigTrusted : store.labels().sigUntrusted }}</p>
+          }
+          @if (s.error && s.status !== 'valid') {
+            <p class="flex gap-1 break-words text-base-content/80">
+              <svg lucideCircleX [size]="12" class="mt-0.5 shrink-0 text-error" aria-hidden="true"></svg>
+              {{ s.error }}
+            </p>
+          }
+
+          <details class="group">
+            <summary class="cursor-pointer select-none text-base-content/70 hover:text-base-content">
+              {{ store.labels().sigDetails }}
+            </summary>
+            <div class="mt-1 flex flex-col gap-1 border-l-2 border-base-300 pl-2 text-base-content/80">
+              @if (s.certificate; as c) {
+                <div>
+                  <p class="text-base-content/70">{{ store.labels().sigCertificate }}</p>
+                  <p class="break-words">{{ c.subject.text }}</p>
+                </div>
+                <div>
+                  <p class="text-base-content/70">{{ store.labels().sigIssuer }}</p>
+                  <p class="break-words">{{ c.selfSigned ? store.labels().sigSelfSigned : c.issuer.text }}</p>
+                </div>
+                <p>{{ validity(s) }}</p>
+                @if (c.expiredAtSigning) {
+                  <p class="flex gap-1">
+                    <svg lucideCircleAlert [size]="12" class="mt-0.5 shrink-0 text-warning" aria-hidden="true"></svg>
+                    {{ store.labels().sigExpiredAtSigning }}
+                  </p>
+                }
+              }
+              @if (s.certified !== null) {
+                <p>{{ certifiedLabel(s) }}</p>
+              }
+              @if (s.contactInfo) {
+                <div>
+                  <p class="text-base-content/70">{{ store.labels().sigContact }}</p>
+                  <p class="break-words">{{ s.contactInfo }}</p>
+                </div>
+              }
+              <p class="font-mono text-[10px] text-base-content/70">{{ s.field }} · {{ s.subFilter }}</p>
+            </div>
+          </details>
+
+          <div class="flex flex-wrap gap-1">
+            @if (s.page !== null) {
+              <button type="button" class="btn btn-ghost btn-xs" (click)="show(s)">
+                <svg lucideLocateFixed [size]="12" aria-hidden="true"></svg>
+                {{ store.labels().sigShow }}
+              </button>
+            }
+            @if (!s.coversWholeDocument && s.revisionLength > 0) {
+              <button type="button" class="btn btn-ghost btn-xs" (click)="downloadRevision(s)">
+                <svg lucideDownload [size]="12" aria-hidden="true"></svg>
+                {{ store.labels().sigDownloadRevision }}
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="flex items-center justify-center gap-2 p-2 text-xs text-base-content/70" role="status">
+      <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+      {{ store.labels().sigVerifying }}
+    </p>
+  }
+</div>

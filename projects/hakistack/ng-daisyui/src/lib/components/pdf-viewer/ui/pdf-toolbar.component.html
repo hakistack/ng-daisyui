@@ -1,0 +1,403 @@
+<div
+  class="@container flex items-center gap-0.5 px-2 py-1.5 border-b border-base-300 bg-base-200/60 text-sm flex-wrap"
+  role="toolbar"
+  [attr.aria-label]="store.labels().toolbarAria"
+>
+  <!-- ── Group: sidebar toggle ──────────────────────────────────── -->
+  @if (store.config().showSidebar !== false && store.layout() === 'default') {
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-square"
+      [attr.aria-label]="store.labels().toggleSidebar"
+      [title]="store.labels().toggleSidebar"
+      [class.btn-active]="store.state()?.sidebarOpen"
+      [attr.aria-pressed]="store.state()?.sidebarOpen ? 'true' : 'false'"
+      (click)="toggleSidebar()"
+    >
+      <svg lucidePanelLeft [size]="16"></svg>
+    </button>
+    <div class="w-px h-5 bg-base-300 mx-1 hidden @sm:block"></div>
+  }
+
+  <!-- ── Group: page navigation ─────────────────────────────────── -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square hidden @sm:inline-flex"
+    [attr.aria-label]="store.labels().firstPage"
+    [title]="store.labels().firstPage"
+    [disabled]="!store.showPages() || (store.state()?.page ?? 0) <= 1"
+    (click)="viewport.firstPage()"
+  >
+    <svg lucideChevronsLeft [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().previousPage"
+    [title]="store.labels().previousPage"
+    [disabled]="!store.showPages() || (store.state()?.page ?? 0) <= 1"
+    (click)="viewport.previousPage()"
+  >
+    <svg lucideChevronLeft [size]="16"></svg>
+  </button>
+  <div class="flex items-center gap-1 px-1">
+    <!-- Text, not number: documents with page labels ("iv", "A-1") accept those too. -->
+    <input
+      #pageInput
+      type="text"
+      class="input input-xs input-bordered text-center tabular-nums"
+      [class.w-12]="!store.hasPageLabels()"
+      [class.w-16]="store.hasPageLabels()"
+      [attr.inputmode]="store.hasPageLabels() ? null : 'numeric'"
+      [attr.aria-label]="store.labels().pageInputAriaLabel"
+      [value]="store.labelFor(store.state()?.page ?? 0)"
+      [disabled]="!store.showPages()"
+      (change)="onPageInput(pageInput)"
+    />
+    <span class="text-xs text-base-content/70 tabular-nums hidden @xs:inline">
+      @if (store.hasPageLabels()) {
+        ({{ store.state()?.page ?? 0 }} / {{ store.state()?.numPages ?? 0 }})
+      } @else {
+        / {{ store.state()?.numPages ?? 0 }}
+      }
+    </span>
+  </div>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().nextPage"
+    [title]="store.labels().nextPage"
+    [disabled]="!store.showPages() || (store.state()?.page ?? 0) >= (store.state()?.numPages ?? 0)"
+    (click)="viewport.nextPage()"
+  >
+    <svg lucideChevronRight [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square hidden @sm:inline-flex"
+    [attr.aria-label]="store.labels().lastPage"
+    [title]="store.labels().lastPage"
+    [disabled]="!store.showPages() || (store.state()?.page ?? 0) >= (store.state()?.numPages ?? 0)"
+    (click)="viewport.lastPage()"
+  >
+    <svg lucideChevronsRight [size]="16"></svg>
+  </button>
+
+  <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
+
+  <!-- ── Group: zoom ────────────────────────────────────────────── -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().zoomOut"
+    [title]="store.labels().zoomOut"
+    [disabled]="!store.showPages()"
+    (click)="viewport.zoomOut()"
+  >
+    <svg lucideMinus [size]="16"></svg>
+  </button>
+  <select
+    #zoomSelect
+    class="select select-xs select-bordered w-28 hidden @md:inline-flex"
+    [attr.aria-label]="store.labels().zoomLevel"
+    [disabled]="!store.showPages()"
+    [value]="store.state()?.zoomMode ?? 'fit-width'"
+    (change)="onZoomSelect(zoomSelect.value)"
+  >
+    <option value="fit-width">{{ store.labels().fitWidth }}</option>
+    <option value="fit-page">{{ store.labels().fitPage }}</option>
+    <option value="auto">{{ store.labels().zoomAuto }}</option>
+    <option value="0.5">50%</option>
+    <option value="0.75">75%</option>
+    <option value="1">100%</option>
+    <option value="1.25">125%</option>
+    <option value="1.5">150%</option>
+    <option value="2">200%</option>
+    <option value="3">300%</option>
+  </select>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().zoomIn"
+    [title]="store.labels().zoomIn"
+    [disabled]="!store.showPages()"
+    (click)="viewport.zoomIn()"
+  >
+    <svg lucidePlus [size]="16"></svg>
+  </button>
+  <span class="text-xs text-base-content/70 w-10 text-right tabular-nums hidden @md:inline">{{ store.zoomPercent() }}</span>
+
+  <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
+
+  <!-- ── Group: display mode ─────────────────────────────────────── -->
+  <div class="join hidden @md:inline-flex" role="group" [attr.aria-label]="store.labels().displayModeAria">
+    @for (m of modes; track m.mode) {
+      <button
+        type="button"
+        class="btn btn-xs btn-square join-item"
+        [attr.aria-label]="store.labels()[m.label]"
+        [title]="store.labels()[m.label]"
+        [attr.aria-pressed]="isMode(m.mode)"
+        [class.btn-active]="isMode(m.mode)"
+        [disabled]="!store.showPages()"
+        (click)="viewport.setMode(m.mode)"
+      >
+        @switch (m.mode) {
+          @case ('continuous') {
+            <svg lucideScrollText [size]="16"></svg>
+          }
+          @case ('single') {
+            <svg lucideSquare [size]="16"></svg>
+          }
+          @default {
+            <svg lucideColumns2 [size]="16"></svg>
+          }
+        }
+      </button>
+    }
+  </div>
+
+  <div class="w-px h-5 bg-base-300 mx-1 hidden @md:block"></div>
+
+  <!-- ── Group: find (inline, icon button) ──────────────────────── -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().find"
+    [title]="store.labels().find + ' (⌘F)'"
+    [class.btn-active]="store.findBarOpen()"
+    [disabled]="!store.showPages()"
+    (click)="find.openBar()"
+  >
+    <svg lucideSearch [size]="16"></svg>
+  </button>
+
+  <div class="grow"></div>
+
+  <!-- ── Annotate: opens the annotation toolbar row ─────────────── -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [class.btn-active]="store.annotationBarOpen()"
+    [attr.aria-pressed]="store.annotationBarOpen()"
+    [attr.aria-label]="store.labels().annotate"
+    [title]="store.labels().annotate"
+    [disabled]="!store.showPages()"
+    (click)="toggleAnnotationBar()"
+  >
+    <svg lucidePenLine [size]="16"></svg>
+  </button>
+
+  <!-- ── Sign: add a visible signature ─────────────────────────────── -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    [attr.aria-label]="store.labels().sign"
+    [title]="store.labels().sign"
+    [disabled]="!store.showPages() || !annotations.canAdd()"
+    (click)="signatures.open()"
+  >
+    <svg lucideSignature [size]="16"></svg>
+  </button>
+  @if (signatures.canSignDigitally()) {
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-square"
+      [attr.aria-label]="store.labels().signDigitally"
+      [title]="store.labels().signDigitally"
+      [disabled]="!store.showPages()"
+      (click)="signatures.openDigital()"
+    >
+      <svg lucideFileSignature [size]="16"></svg>
+    </button>
+  }
+
+  <!-- ── Form: reset, export / import data (documents with a form) ── -->
+  @if (forms.model()) {
+    <details #formMenu class="dropdown dropdown-end">
+      <summary class="btn btn-ghost btn-xs btn-square" [attr.aria-label]="store.labels().form" [title]="store.labels().form">
+        <svg lucideClipboardList [size]="16"></svg>
+      </summary>
+      <ul class="menu menu-sm dropdown-content z-[40] mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+        <li>
+          <button type="button" [disabled]="!designer.allowed()" (click)="startDesign(formMenu)">
+            {{ store.labels().prepareForm }}
+          </button>
+        </li>
+        @if (forms.docMdp() !== null) {
+          <li class="menu-title text-[11px] font-normal text-warning">{{ store.labels().formLocked }}</li>
+        }
+        <li>
+          <button type="button" (click)="forms.resetForm(); formMenu.open = false">
+            <svg lucideRotateCcw [size]="14"></svg>
+            {{ store.labels().resetForm }}
+          </button>
+        </li>
+        <li class="menu-title">{{ store.labels().exportFormData }}</li>
+        @for (f of formFormats; track f) {
+          <li>
+            <button type="button" (click)="document.exportFormData(f); formMenu.open = false">{{ f.toUpperCase() }}</button>
+          </li>
+        }
+        <li class="mt-1 border-t border-base-300 pt-1">
+          <label class="flex cursor-pointer items-center gap-2">
+            {{ store.labels().importFormData }}
+            <input
+              #formFile
+              type="file"
+              class="sr-only"
+              accept=".json,.xfdf,.fdf,application/json,application/vnd.adobe.xfdf,application/vnd.fdf"
+              (change)="importFormData(formFile, formMenu)"
+            />
+          </label>
+        </li>
+      </ul>
+    </details>
+  }
+
+  <!-- ── Pages: rotate the current one, organize ─────────────────── -->
+  @if (pages.enabled()) {
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
+      [attr.aria-label]="rotateCurrentLabel()"
+      [title]="rotateCurrentLabel()"
+      [disabled]="!pages.canRotate()"
+      (click)="document.rotateCurrentPage()"
+    >
+      <svg lucideRotateCw [size]="16" aria-hidden="true"></svg>
+    </button>
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
+      [attr.aria-label]="store.labels().organizePages"
+      [title]="pages.unavailableReason() ?? store.labels().organizePages"
+      [disabled]="!pages.canOrganize()"
+      (click)="pages.organizerOpen.set(true)"
+    >
+      <svg lucideLayoutGrid [size]="16" aria-hidden="true"></svg>
+    </button>
+  }
+
+  <!-- ── Group: file ops (icon buttons, inline at ≥ @lg) ─────────── -->
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
+    [attr.aria-label]="store.labels().print"
+    [title]="store.labels().print"
+    [disabled]="!store.showPages()"
+    (click)="document.print()"
+  >
+    <svg lucidePrinter [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
+    [attr.aria-label]="store.labels().download"
+    [title]="store.labels().download"
+    [disabled]="!store.showPages()"
+    (click)="document.download()"
+  >
+    <svg lucideDownload [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square hidden @lg:inline-flex"
+    [attr.aria-label]="store.labels().fullscreen"
+    [title]="store.labels().fullscreen"
+    [disabled]="!store.showPages()"
+    (click)="document.toggleFullscreen()"
+  >
+    <svg lucideMaximize [size]="16"></svg>
+  </button>
+
+  <!-- Overflow ⋯ — picks up everything not currently inline. -->
+  <details #overflowMenu class="dropdown dropdown-end">
+    <summary
+      class="btn btn-ghost btn-xs btn-square @lg:hidden"
+      [attr.aria-label]="store.labels().moreOptions"
+      [title]="store.labels().moreOptions"
+    >
+      <svg lucideEllipsis [size]="16"></svg>
+    </summary>
+    <ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] w-52 p-2 shadow border border-base-300">
+      <li class="@sm:hidden">
+        <button
+          type="button"
+          [disabled]="!store.showPages() || (store.state()?.page ?? 0) <= 1"
+          (click)="viewport.firstPage(); overflowMenu.open = false"
+        >
+          <svg lucideChevronsLeft [size]="14"></svg>
+          {{ store.labels().firstPage }}
+        </button>
+      </li>
+      <li class="@sm:hidden">
+        <button
+          type="button"
+          [disabled]="!store.showPages() || (store.state()?.page ?? 0) >= (store.state()?.numPages ?? 0)"
+          (click)="viewport.lastPage(); overflowMenu.open = false"
+        >
+          <svg lucideChevronsRight [size]="14"></svg>
+          {{ store.labels().lastPage }}
+        </button>
+      </li>
+      @for (m of modes; track m.mode) {
+        <li class="@md:hidden">
+          <button
+            type="button"
+            [class.menu-active]="isMode(m.mode)"
+            [class.active]="isMode(m.mode)"
+            [attr.aria-pressed]="isMode(m.mode)"
+            [disabled]="!store.showPages()"
+            (click)="viewport.setMode(m.mode); overflowMenu.open = false"
+          >
+            @switch (m.mode) {
+              @case ('continuous') {
+                <svg lucideScrollText [size]="14"></svg>
+              }
+              @case ('single') {
+                <svg lucideSquare [size]="14"></svg>
+              }
+              @default {
+                <svg lucideColumns2 [size]="14"></svg>
+              }
+            }
+            {{ store.labels()[m.label] }}
+          </button>
+        </li>
+      }
+      @if (pages.enabled()) {
+        <li>
+          <button type="button" [disabled]="!pages.canRotate()" (click)="document.rotateCurrentPage(); overflowMenu.open = false">
+            <svg lucideRotateCw [size]="14" aria-hidden="true"></svg>
+            {{ rotateCurrentLabel() }}
+          </button>
+        </li>
+        <li>
+          <button type="button" [disabled]="!pages.canOrganize()" (click)="pages.organizerOpen.set(true); overflowMenu.open = false">
+            <svg lucideLayoutGrid [size]="14" aria-hidden="true"></svg>
+            {{ store.labels().organizePages }}
+          </button>
+        </li>
+      }
+      <li>
+        <button type="button" [disabled]="!store.showPages()" (click)="document.print(); overflowMenu.open = false">
+          <svg lucidePrinter [size]="14"></svg>
+          {{ store.labels().print }}
+        </button>
+      </li>
+      <li>
+        <button type="button" [disabled]="!store.showPages()" (click)="document.download(); overflowMenu.open = false">
+          <svg lucideDownload [size]="14"></svg>
+          {{ store.labels().download }}
+        </button>
+      </li>
+      <li>
+        <button type="button" [disabled]="!store.showPages()" (click)="document.toggleFullscreen(); overflowMenu.open = false">
+          <svg lucideMaximize [size]="14"></svg>
+          {{ store.labels().fullscreen }}
+        </button>
+      </li>
+    </ul>
+  </details>
+</div>

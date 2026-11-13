@@ -1,6 +1,6 @@
 # Declarative Builders + Schema Extensibility — Plan
 
-Status: proposal
+Status: **M1 shipped** (table `columns` map + codemod); M2–M7 proposed
 Owner: TBD
 Related:
 - `projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.schema.ts` (new declarative forms API)
@@ -67,81 +67,118 @@ Relevant facts:
 
 ## 2. Part A — `createTable`: declarative `columns` map + cell-value inference
 
-### Goal
+> **Reality check (corrected after reading the code).** Today `createTable<T>(config: FieldConfig<T>)` is a
+> **projection** API: `visible: StringKey<T>[]` (required, defines columns + order) plus **six parallel maps**
+> keyed by field — `headers`, `formatters`, `fallbacks`, `footers`, `cellEditors`, `columnWidths`. The field
+> key is repeated across every map that touches it. `formatters`/`editValidator` see `value: unknown`. Rich
+> per-column `ColumnDefinition` props (`sticky`, `filter`, `resizable`, `minWidth/maxWidth`, `reorderable`) are
+> **not reachable** through those maps at all — only via the component's direct `[columns]` input. **`data` is
+> NOT part of `createTable`** — it is a separate component input (`<hk-table [data]="rows()" [config]>`), kept
+> reactive as a signal. The earlier `data:`/`sortable:` sketch was wrong; both are dropped here.
+
+### Goal — one `columns` map (recommended), legacy projection kept
 
 ```ts
 const table = createTable<User>({
-  data: users(),
-  columns: {
-    name:  { header: 'Name' },
-    email: { header: 'Email', fallback: '—' },
-    price: { header: 'Price', format: (value /* number */, row) => `$${value.toFixed(2)}` },
-    role:  { header: 'Role', editType: 'select', editOptions: [...] },
+  columns: {                                        // key = field (keyof T), order = key order
+    name:   { header: 'Name' },
+    email:  { header: 'Email', fallback: '—' },
+    salary: { header: 'Salary', format: (value /* number — inferred */, row) => `$${value.toFixed(2)}` },
+    role:   { header: 'Role', editType: 'select', editOptions: [...] },
   },
-  sortable: true,
+  pagination: { mode: 'offset', pageSize: 10 },     // table-level options unchanged
 });
+// data stays a component input:  <hk-table [data]="users()" [config]="table" />
 ```
 
-Two upgrades over the array form:
+Wins over the projection form: **co-location** (one entry per column vs six parallel maps), **no repeated
+keys**, **cell-value inference** (`format`/`editValidator`/`footer` get `T[K]` / `readonly T[]`), explicit
+**order by key order**, and it can express the rich `ColumnDefinition` props the projection maps cannot.
 
-1. **Map keyed by `keyof T`** — the key *is* `field`, so it is never repeated and is `keyof`-checked.
-   Column order = map insertion order (V8 preserves it for string keys).
-2. **Per-column value inference** — `format`/`editValidator` receive `value: T[K]` instead of `unknown`.
-
-### Type sketch
+### Type sketch (`table.schema.ts`, new)
 
 ```ts
-// table.schema.ts (new)
-export interface TypedColumnDef<T, K extends keyof T> extends Omit<ColumnDefinition<T>, 'field' | 'format' | 'editValidator'> {
+export interface TableColumn<T, K extends keyof T = keyof T>
+  extends Omit<ColumnDefinition<T>, 'field' | 'format' | 'editValidator' | 'footer'> {
   format?: (value: T[K], row: T) => string | Observable<string>;
   editValidator?: (value: T[K], row: T) => boolean | string;
+  /** Accept the aggregate shorthand (so the legacy `footers` map migrates 1:1) OR a custom fn. */
+  footer?: AggregateFunction | FooterConfig<T> | ((data: readonly T[]) => string | number);
+  /** Column width in px (folds into the legacy `columnWidths` map). */
+  width?: number;
 }
 
-export type ColumnsMap<T extends object> = {
-  // optional so callers pick a subset; order follows declaration order
-  [K in keyof T]?: TypedColumnDef<T, K>;
-};
+export type ColumnsMap<T extends object> = { [K in keyof T]?: TableColumn<T, K> };
 
-// A declarative config = FieldConfig<T> but with `columns` as a map and without `visible`
 export interface DeclarativeTableConfig<T extends object>
-  extends Omit<FieldConfig<T>, 'columns' | 'visible'> {
+  extends Omit<FieldConfig<T>, 'visible' | 'headers' | 'formatters' | 'fallbacks' | 'footers' | 'cellEditors' | 'columnWidths'> {
   columns: ColumnsMap<T>;
 }
 ```
 
-### `createTable` overload + conversion
+### `createTable` overload + **lossless** conversion
 
-Add an overload that fires when `columns` is a non-array object (same discriminator trick used for
-`createForm`: an array is not assignable to a `Record<keyof T, …>` map and vice-versa):
+Discriminator: `columns` is a non-array object ⇒ declarative; `visible` present ⇒ legacy. They are mutually
+exclusive (each overload requires a prop the other lacks), so resolution is unambiguous.
 
 ```ts
-export function createTable<T extends object>(config: FieldConfig<T>): FieldConfiguration<T>;            // existing
+export function createTable<T extends object>(config: FieldConfig<T>): FieldConfiguration<T>;            // legacy
 export function createTable<T extends object>(config: DeclarativeTableConfig<T>): FieldConfiguration<T>; // new
 export function createTable<T extends object>(config: FieldConfig<T> | DeclarativeTableConfig<T>): FieldConfiguration<T> {
-  const normalized = isColumnsMap(config.columns)
-    ? { ...config, columns: columnsMapToArray(config.columns), visible: Object.keys(config.columns) as StringKey<T>[] }
-    : config;
-  // …existing body unchanged (createFieldConfig → buildColumnSchema → controller)…
-}
-
-function columnsMapToArray<T extends object>(map: ColumnsMap<T>): ColumnDefinition<T>[] {
-  return (Object.keys(map) as (keyof T)[]).map((field) => ({
-    field: field as StringKey<T>,
-    header: humanize(String(field)),                 // default header from key, same spirit as form autoLabel
-    ...(map[field] as object),
-  })) as ColumnDefinition<T>[];
+  const declarative = isColumnsMap((config as { columns?: unknown }).columns);
+  const baseConfig = declarative ? declarativeToFieldConfig(config as DeclarativeTableConfig<T>) : (config as FieldConfig<T>);
+  const normalizedConfig = createFieldConfig(baseConfig);
+  const schema = buildColumnSchema(normalizedConfig);
+  if (declarative) overlayRichColumnProps(schema, (config as DeclarativeTableConfig<T>).columns);
+  // …rest of existing body (footer rows, group aggregates, controller) unchanged…
 }
 ```
 
+**Why decompose + overlay rather than build the array directly.** Routing through `declarativeToFieldConfig`
+→ `createFieldConfig` → `buildColumnSchema` reuses the engine's pipe-formatter handling, footer-aggregate
+compilation (`createFooterFunction`), default-header logic, and `cellEditors` merge — for free and already
+tested. `buildColumnSchema` only understands `header/formatter/fallback/footer-aggregate/cellEditor/width`,
+so the conversion:
+
+1. `declarativeToFieldConfig` splits each `columns[field]` entry into `visible` (= keys, in order) +
+   `headers/formatters/fallbacks/footers(aggregate)/cellEditors/columnWidths`, and passes table-level options
+   through untouched.
+2. `overlayRichColumnProps` then copies the props `buildColumnSchema` ignores —
+   `sticky`, `filter`, `resizable`, `minWidth`, `maxWidth`, `reorderable`, a flat `editType` with no
+   `cellEditor`, and a **function-valued `footer`** — onto the matching resolved column. Nothing is lost.
+
 ### Notes / risks
 
-- **Whitelist normalizer.** `createFieldConfig` in `table.helpers.ts` copies config field-by-field
-  (see the project memory note "whitelist normalizers silently drop new fields"). The conversion produces a
-  standard `FieldConfig<T>`, so it rides the existing path — **but any new column prop must still be added to
-  `createFieldConfig`**. Conversion happens *before* `createFieldConfig`, so no new drop risk.
-- **`visible` is auto-derived** from the map keys; callers no longer pass it. `hidden` stays available.
-- Inference only sharpens callbacks; the runtime is unchanged. Low risk.
-- **Effort:** S–M. New `table.schema.ts` (~80 lines), one overload + two helpers, no component change.
+- **Whitelist normalizer.** `createFieldConfig` copies field-by-field (project memory:
+  "whitelist normalizers silently drop new fields"). The conversion emits a standard `FieldConfig<T>` so it
+  rides the existing path; no new prop is dropped because the rich props are overlaid onto the schema *after*
+  normalization, not passed through `createFieldConfig`.
+- **Key order.** Column order = object key order. Reliable for string identifier keys; integer-like keys would
+  be reordered by the JS engine — field names are normal identifiers, so this is a non-issue (documented).
+- **Virtual columns** (a column with no backing `keyof T`, e.g. a computed "fullName") are **not** expressible
+  in the map — same limit as today's `visible`. Out of scope for M1; the direct `[columns]` input remains.
+- **Effort:** M. New `table.schema.ts` (~70 lines) + ~60 lines of conversion in `table.helpers.ts`. No
+  component change (component already renders from the resolved `controller.columns`).
+
+### Migration tool (legacy projection → `columns` map)
+
+Ship a **codemod** so consumers don't keep two styles around. Registered as an Angular schematic
+(`ng generate @hakistack/ng-daisyui:migrate-table-columns`), authored with **ts-morph** (already a workspace
+dep; v28). It finds `createTable<…>({ … })` call sites whose argument is an object literal with `visible`, and
+rewrites them:
+
+- For each key in `visible` order, gather `headers[k]→header`, `formatters[k]→format`, `fallbacks[k]→fallback`,
+  `columnWidths[k]→width`, `footers[k]→footer`, `cellEditors[k]→{editType,editOptions,editValidator}` and emit
+  a `columns: { k: { … } }` entry. Function/expression nodes (formatters, validators) are copied **verbatim**
+  (full-text), preserving comments and types.
+- Remove the consumed `visible`/`headers`/`formatters`/`fallbacks`/`columnWidths`/`footers`/`cellEditors`
+  properties; keep every other property (pagination, hasSelection, actions, filters, grouping, …) untouched.
+- Keys present in a map but absent from `visible` were already ignored at runtime → dropped, with a `console`
+  warning listing them so nothing silently disappears.
+- Idempotent (skips calls that already use `columns`) and a `--dry-run` mode that prints a diff.
+
+Tested against fixtures under `schematics/migrate-table-columns/` (input `.ts` → expected output `.ts`),
+including the `basicConfig`/`fullConfig` shapes from the demo.
 
 ---
 
@@ -459,15 +496,15 @@ Lower priority — D1 already covers the need inline.
 
 ## 6. Sequencing
 
-| Milestone | Scope | Effort | Depends on |
-|---|---|---|---|
-| **M1** | Table `columns` map + cell inference (Part A) | S–M | — |
-| **M2** | Tree `data`+accessors overload (Part B) | S | — |
-| **M3** | Form custom validators D1 + D2 (named rules + message passthrough) | S–M | — |
-| **M4** | Form custom field types: type registries (C-a, C-c) + B1 template projection + config passthrough (C-e) | M | — |
-| **M5** | Form custom field types: DI component registry (C-b / B2) | L | M4 |
-| **M6** | Async validators D3 | M | M3 |
-| **M7** | Validator registry D4 | S | M3 |
+| Milestone | Scope | Effort | Depends on | Status |
+|---|---|---|---|---|
+| **M1** | Table `columns` map + cell inference (Part A) | S–M | — | ✅ shipped |
+| **M2** | Tree `data`+accessors overload (Part B) | S | — | proposed |
+| **M3** | Form custom validators D1 + D2 (named rules + message passthrough) | S–M | — | proposed |
+| **M4** | Form custom field types: type registries (C-a, C-c) + B1 template projection + config passthrough (C-e) | M | — | proposed |
+| **M5** | Form custom field types: DI component registry (C-b / B2) | L | M4 | proposed |
+| **M6** | Async validators D3 | M | M3 | proposed |
+| **M7** | Validator registry D4 | S | M3 | proposed |
 
 M1–M4 are the high-value, low-risk core. M5–M7 are opt-in depth.
 

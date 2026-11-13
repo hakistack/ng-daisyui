@@ -1,0 +1,75 @@
+<div [class]="ui.bar" role="toolbar" [attr.aria-label]="store.labels().formDesignToolbar">
+  @for (t of tools; track t.tool) {
+    <button
+      type="button"
+      [class]="ui.button(designer.tool() === t.tool)"
+      [attr.aria-pressed]="designer.tool() === t.tool"
+      [attr.aria-label]="store.labels()[t.label]"
+      [title]="store.labels()[t.label]"
+      (click)="toggle(t.tool)"
+    >
+      @switch (t.tool) {
+        @case ('text') {
+          <svg lucideTextCursorInput [size]="16"></svg>
+        }
+        @case ('multiline') {
+          <svg lucideAlignJustify [size]="16"></svg>
+        }
+        @case ('password') {
+          <svg lucideKeyRound [size]="16"></svg>
+        }
+        @case ('number') {
+          <svg lucideHash [size]="16"></svg>
+        }
+        @case ('date') {
+          <svg lucideCalendarDays [size]="16"></svg>
+        }
+        @case ('checkbox') {
+          <svg lucideSquareCheck [size]="16"></svg>
+        }
+        @case ('radio') {
+          <svg lucideCircleDot [size]="16"></svg>
+        }
+        @case ('combo') {
+          <svg lucideChevronDown [size]="16"></svg>
+        }
+        @case ('list') {
+          <svg lucideList [size]="16"></svg>
+        }
+        @case ('signature') {
+          <svg lucideSignature [size]="16"></svg>
+        }
+        @case ('initials') {
+          <svg lucideCaseSensitive [size]="16"></svg>
+        }
+      }
+    </button>
+  }
+  <span class="whitespace-nowrap px-2 text-xs text-base-content/70" role="status">{{ store.labels().designHint }}</span>
+  <div class="grow"></div>
+  <button
+    type="button"
+    [class]="ui.button()"
+    [attr.aria-label]="store.labels().undo"
+    [title]="store.labels().undo + ' (⌘Z)'"
+    [disabled]="!designer.history().canUndo"
+    (click)="designer.undo()"
+  >
+    <svg lucideUndo2 [size]="16"></svg>
+  </button>
+  <button
+    type="button"
+    [class]="ui.button()"
+    [attr.aria-label]="store.labels().redo"
+    [title]="store.labels().redo + ' (⇧⌘Z)'"
+    [disabled]="!designer.history().canRedo"
+    (click)="designer.redo()"
+  >
+    <svg lucideRedo2 [size]="16"></svg>
+  </button>
+  <div [class]="ui.divider" aria-hidden="true"></div>
+  <button type="button" [class]="ui.primaryButton" (click)="designer.finish()">
+    <svg lucideCheck [size]="14"></svg>
+    {{ store.labels().finishDesign }}
+  </button>
+</div>
