@@ -13,7 +13,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 
 import { FormFieldConfig } from '../../components/dynamic-form/dynamic-form.types';
-import { HK_TABLE_ENGINE_WASM_URL } from '../../components/table/engine';
+import { HK_TABLE_ENGINE_WASM_URL } from '../../grid-core/engine';
 import { loadEngineModule } from '../../utils/engine-loader';
 import type { FormEngineHandle } from './form-engine.types';
 import { FormHandle, type WasmFormEngine } from './form-handle';

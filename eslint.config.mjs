@@ -33,6 +33,20 @@ export default tseslint.config(
     },
   },
   {
+    // grid-core is shared by hk-table and hk-datagrid: it may not depend on any component.
+    files: ['projects/hakistack/ng-daisyui/src/lib/grid-core/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['**/components/**'], message: 'grid-core must not import from components/ (dependency points the other way).' },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.html'],
     extends: [...angular.configs.templateRecommended, ...angular.configs.templateAccessibility],
     rules: {

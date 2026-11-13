@@ -19,9 +19,9 @@ The compute pipeline downstream of raw `data: T[]`:
 | Global search (literal modes) | `table.component.ts:670-729` | Per-field × per-row string scan, no index |
 | Global search (fuzzy) | `performFuzzySearch` (Fuse.js) | JS-only; pure Rust fuzzy matcher (e.g. `nucleo-matcher`, `sublime_fuzzy`) is ~5–10× faster and gives better scoring |
 | Sorting | `table.component.ts:732-750`, `compareValues:2640-2687` | Locale-aware comparisons are expensive in V8 |
-| Tree filter / flatten / sort | `table.helpers.ts:816-918` | Recursive clones; can be a single arena-allocated pass |
-| Aggregates | `table-aggregates.ts:1-92` | Median sorts every call; group/footer recompute on each data change |
-| Grouping | `table.helpers.ts:742-802` | Hash group + per-group aggregates in one pass |
+| Tree filter / flatten / sort | `grid-core/grid.helpers.ts` (`flattenTreeData`, `filterTreeData`, `sortTreeData`) | Recursive clones; can be a single arena-allocated pass |
+| Aggregates | `grid-core/grid-aggregates.ts` | Median sorts every call; group/footer recompute on each data change |
+| Grouping | `grid-core/grid.helpers.ts` (`groupData`) | Hash group + per-group aggregates in one pass |
 | Row-key generation / hashing | `generateRowKey` | Avoid `JSON.stringify` fallback |
 
 ### Out of scope (stays in TS)
@@ -288,13 +288,16 @@ ui-library-workspace/
 │           │   └── schema.rs
 │           └── tests/
 │               └── parity.rs               # cargo test, native, no WASM
-└── projects/hakistack/ng-daisyui/src/lib/components/table/
-    ├── engine/
-    │   ├── table-engine.service.ts         # wraps @hakistack/engine
-    │   ├── table-handle.proxy.ts
-    │   ├── table-engine.types.ts
-    │   └── js-fallback.ts                  # current pipeline, extracted
-    └── table.component.ts                  # uses engine via service
+└── projects/hakistack/ng-daisyui/src/lib/
+    ├── grid-core/                          # shared by hk-table and hk-datagrid
+    │   ├── engine/
+    │   │   ├── table-engine.service.ts     # wraps @hakistack/engine
+    │   │   ├── table-handle.ts
+    │   │   ├── table-engine-routing.ts     # JS config → engine specs
+    │   │   └── table-engine.types.ts
+    │   └── controllers/                    # sort, filter, group, … (engine-aware)
+    └── components/table/
+        └── table.component.ts              # uses engine via grid-core
 ```
 
 The wasm-bindgen surface for the table lives in `engine-wasm`, not in `table-engine` itself — `table-engine` stays a pure Rust library so it's testable with `cargo test` natively.

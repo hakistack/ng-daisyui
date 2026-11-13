@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs';
 
 import { PipeFormatter } from '../../types/base-pipes.type';
-import { AggregateFunction } from './table-aggregates';
+import { AggregateFunction } from '../../grid-core/grid-aggregates';
 import { ColumnDefinition, FieldConfig, FooterConfig } from './table.types';
 
 /**

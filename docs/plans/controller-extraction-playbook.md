@@ -332,7 +332,7 @@ Even after a full refactor, the host component keeps:
 ## Reference: TableComponent controllers
 
 For copy-paste templates, each controller in
-`projects/hakistack/ng-daisyui/src/lib/components/table/controllers/`
+`projects/hakistack/ng-daisyui/src/lib/grid-core/controllers/` (moved out of `components/table/` so `hk-datagrid` can share them)
 demonstrates a specific facet of the pattern:
 
 | File | What it shows |

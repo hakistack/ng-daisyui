@@ -53,6 +53,7 @@
   },
   "peerDependencies": {
     "@angular/aria": ">=21.0.0",
+    "@anthropic-ai/sdk": ">=0.133.0",
     "@angular/cdk": ">=21.0.0",
     "@angular/common": ">=21.0.0",
     "@angular/core": ">=21.0.0",
@@ -70,6 +71,9 @@
     "ts-morph": ">=20.0.0"
   },
   "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
     "@angular/router": {
       "optional": true
     },

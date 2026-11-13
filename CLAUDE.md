@@ -29,6 +29,7 @@ projects/
 ├── hakistack/ng-daisyui/   # Library source
 │   ├── src/lib/
 │   │   ├── components/     # Standalone UI components
+│   │   ├── grid-core/      # Render-agnostic grid logic shared by hk-table + hk-datagrid (controllers, WASM table engine, aggregates, types). Must not import from components/ (ESLint-enforced)
 │   │   ├── directives/     # Animation and behavior directives
 │   │   ├── services/       # FormStateService, PipeRegistryService, AccessibilityService
 │   │   ├── helpers/        # Pagination helpers, search algorithms, fake data
@@ -87,6 +88,7 @@ const form = createForm({
 
 - **DynamicFormComponent**: Form builder with wizard support, auto-save, conditional logic (showWhen/hideWhen/requiredWhen/disabledWhen). No built-in buttons - use FormController.
 - **TableComponent**: Data table with sorting, filtering, pagination (cursor + offset), CDK DataSource integration, PipeRegistry formatters
+- **DataGridComponent** (`hk-datagrid`): Enterprise grid built on `grid-core` — one render pipeline with row + column virtualization, multi-sort, ARIA grid keyboard model (aria-activedescendant), serializable `DataGridState` (`getState`/`setState` with validation issues, `stateSchema()` JSON Schema for the AI layer), client or server `dataSource`. AI layer built in: the consumer passes `ai: { apiKey }` (from their environment) and `controller.ask(query)` calls Claude from the browser with structured outputs (`lib/utils/claude-json.ts`, `@anthropic-ai/sdk` as an optional peer loaded with dynamic import); the reply goes through `setState`. `ai.complete` is an optional custom transport. New grid features go here, not in hk-table.
 - **SelectComponent**: Enhanced dropdown with search and virtual scrolling
 - **DatepickerComponent**: Date/range picker with keyboard navigation
 - **StepperComponent**: Multi-step wizard (extends CDK Stepper)

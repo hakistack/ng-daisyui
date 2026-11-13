@@ -93,9 +93,10 @@ export { TablePaginationComponent } from './lib/components/table/table-paginatio
 export { TableFilterComponent } from './lib/components/table/table-filter.component';
 export { TableGlobalSearchComponent } from './lib/components/table/table-global-search.component';
 export { TableColumnVisibilityComponent } from './lib/components/table/table-column-visibility.component';
-export { createTable, exportToCsv, exportToJson, projectFields, clearHeaderFormatCache } from './lib/components/table/table.helpers';
+export { createTable, projectFields, clearHeaderFormatCache } from './lib/components/table/table.helpers';
+export { exportToCsv, exportToJson } from './lib/grid-core/grid.helpers';
 export type { TableColumn, ColumnsMap, DeclarativeTableConfig } from './lib/components/table/table.schema';
-export { computeAggregate, aggregate } from './lib/components/table/table-aggregates';
+export { computeAggregate, aggregate } from './lib/grid-core/grid-aggregates';
 
 // Table — WASM engine bridge (lazy-loaded). Type names are prefixed with
 // `Engine` where they would clash with existing table types in this barrel.
@@ -120,7 +121,7 @@ export {
   type DateOp as EngineDateOp,
   type SortDirection as EngineSortDirection,
   type NullsPosition as EngineNullsPosition,
-} from './lib/components/table/engine';
+} from './lib/grid-core/engine';
 
 // Tree — WASM engine bridge (lazy-loaded; shares the same engine_wasm bundle).
 // Type names prefixed with `Engine` to avoid clashes with the existing
@@ -191,7 +192,44 @@ export type {
   GroupExpandEvent,
   ResolvedGroupAggregates,
 } from './lib/components/table/table.types';
-export type { AggregateFunction } from './lib/components/table/table-aggregates';
+export type { AggregateFunction } from './lib/grid-core/grid-aggregates';
+
+// DataGrid — enterprise grid: row + column virtualization, multi-sort, serializable state, server data source.
+export { DataGridComponent } from './lib/components/datagrid/datagrid.component';
+export { HkDataGridCellDirective } from './lib/components/datagrid/datagrid-cell.directive';
+export { createDataGrid } from './lib/components/datagrid/datagrid.helpers';
+export { DATAGRID_OPERATORS } from './lib/components/datagrid/datagrid.state';
+export {
+  DEFAULT_DATAGRID_LABELS,
+  DEFAULT_DATAGRID_OPERATOR_LABELS,
+  HK_DATAGRID_LABELS,
+  provideHkDataGridLabels,
+  type DataGridLabels,
+  type ResolvedDataGridLabels,
+} from './lib/components/datagrid/datagrid.labels';
+export type {
+  DataGridAiConfig,
+  DataGridAiHandler,
+  DataGridAiRequest,
+  DataGridAskResult,
+  DataGridCellContext,
+  DataGridColumn,
+  DataGridColumnState,
+  DataGridColumnType,
+  DataGridConfig,
+  DataGridController,
+  DataGridDataSource,
+  DataGridFilter,
+  DataGridPage,
+  DataGridPageState,
+  DataGridRequest,
+  DataGridSort,
+  DataGridSortDirection,
+  DataGridState,
+  DataGridStateIssue,
+  DataGridStatePatch,
+  ResolvedDataGridColumn,
+} from './lib/components/datagrid/datagrid.types';
 
 // Input
 export { InputComponent } from './lib/components/input/input.component';
