@@ -1674,6 +1674,28 @@ describe('TableComponent', () => {
 
       expect(component.getCellId(2, 3)).toBe('cell-2-3');
     });
+
+    it('should ignore keys typed into inputs inside the table (search box, filters, inline editor)', () => {
+      const config = buildConfig({
+        visible: ['name', 'email'],
+        enableKeyboardNavigation: true,
+      });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+      component.onCellClick(0, 0);
+
+      const input = document.createElement('input');
+      fixture.nativeElement.appendChild(input);
+      const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+      input.dispatchEvent(space);
+      const arrow = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+      input.dispatchEvent(arrow);
+
+      expect(space.defaultPrevented).toBe(false);
+      expect(component.activeCellSignal()).toEqual([0, 0]);
+      input.remove();
+    });
   });
 
   // =========================================================================

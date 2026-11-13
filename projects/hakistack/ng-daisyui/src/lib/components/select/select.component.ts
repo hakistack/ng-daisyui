@@ -1,3 +1,5 @@
+import { generateUniqueId } from '../../utils/generate-uuid';
+import { INPUT_COLOR_CLASSES, INPUT_SIZE_CLASSES } from '../input/input.types';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -152,7 +154,9 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   private _onTouched = (): void => {};
 
   private _onChange = (_value: string | string[] | null): void => {};
-  private _disabled = false;
+  // Signal (not a plain field): `isDisabled` is a computed, and a plain field read inside it went
+  // stale after the first render, so control.disable()/enable() never reached the DOM.
+  private readonly _disabled = signal(false);
 
   // Computed properties
   readonly effectiveOptions = computed(() => {
@@ -229,7 +233,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     const index = this.highlightedIndex();
     return index >= 0 ? this.getOptionId(index) : null;
   });
-  readonly isDisabled = computed(() => this.disabled() || this._disabled);
+  readonly isDisabled = computed(() => this.disabled() || this._disabled());
 
   // Multi-select computed properties
   readonly visibleChips = computed(() => {
@@ -263,17 +267,11 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   readonly inputClasses = computed(() => {
     const classes = ['input', 'w-full', 'flex', 'items-center'];
 
-    // Size variant
-    const sizeClass = `input-${this.size()}`;
-    if (this.size() !== 'md') {
-      classes.push(sizeClass);
-    }
-
-    // Color variant
+    // Size / color variants — literal class names so Tailwind's source scan can see them.
+    const sizeClass = INPUT_SIZE_CLASSES[this.size()];
+    if (sizeClass) classes.push(sizeClass);
     const colorVal = this.color();
-    if (colorVal) {
-      classes.push(`input-${colorVal}`);
-    }
+    if (colorVal) classes.push(INPUT_COLOR_CLASSES[colorVal]);
 
     return classes.join(' ');
   });
@@ -429,7 +427,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this._disabled = isDisabled;
+    this._disabled.set(isDisabled);
   }
 
   // Public API
@@ -614,8 +612,12 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     return classes.join(' ');
   }
 
+  /** Per-instance prefix so listbox/option ids stay unique when several selects share a page. */
+  private readonly instanceId = `hk-select-${generateUniqueId()}`;
+  readonly listboxId = `${this.instanceId}-listbox`;
+
   getOptionId(index: number): string {
-    return `option-${index}`;
+    return `${this.instanceId}-option-${index}`;
   }
 
   // Event handlers

@@ -114,6 +114,7 @@
               [checked]="flatNode.state.selected"
               [indeterminate]="flatNode.state.partialSelected"
               [disabled]="flatNode.node.selectable === false"
+              [attr.aria-label]="flatNode.node.label"
               (click)="onCheckboxClick($event, flatNode.node)"
               (change)="$event.stopPropagation()"
             />

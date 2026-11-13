@@ -411,7 +411,7 @@ export function createOffsetPagination(options: OffsetPaginationOptions = {}): O
   };
 }
 
-import { PaginationOptions } from '../components';
+import { PaginationOptions } from '../grid-core/grid.types';
 
 /**
  * Converts cursor pagination config to table PaginationOptions

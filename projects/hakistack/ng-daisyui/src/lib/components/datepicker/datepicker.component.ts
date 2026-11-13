@@ -70,7 +70,8 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   private onChange = (_value: Date | { start: Date; end: Date } | null) => {};
 
   private onTouched = () => {};
-  private isFormDisabled = false;
+  // Signal: read inside the `isDisabled` computed (a plain field went stale after first render).
+  private readonly isFormDisabled = signal(false);
 
   private readonly defaultConfig: DatepickerConfig = {
     dateFormat: { year: 'numeric', month: 'short', day: 'numeric' },
@@ -204,7 +205,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   // Unique instance ID for this component
   private readonly instanceId = generateUniqueId();
 
-  readonly isDisabled = computed(() => this.disabled() || this.isFormDisabled);
+  readonly isDisabled = computed(() => this.disabled() || this.isFormDisabled());
 
   readonly inputId = computed(() => {
     const name = this.name() || this.formControlName();
@@ -550,7 +551,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this.isFormDisabled = isDisabled;
+    this.isFormDisabled.set(isDisabled);
   }
 
   validate(control: AbstractControl): ValidationErrors | null {

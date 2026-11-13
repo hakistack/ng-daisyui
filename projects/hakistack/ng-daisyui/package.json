@@ -25,14 +25,6 @@
     "table"
   ],
   "exports": {
-    ".": {
-      "types": "./types/hakistack-ng-daisyui.d.ts",
-      "browser": "./fesm2022/hakistack-ng-daisyui.mjs",
-      "esm2022": "./esm2022/hakistack-ng-daisyui.mjs",
-      "esm": "./esm2022/hakistack-ng-daisyui.mjs",
-      "style": "./styles.css",
-      "default": "./fesm2022/hakistack-ng-daisyui.mjs"
-    },
     "./styles": {
       "style": "./styles.css",
       "default": "./styles.css"
@@ -43,8 +35,8 @@
     },
     "./plugin.mjs": "./plugin.mjs",
     "./styles.css": "./styles.css",
-    "./themes/daisyui-v4.css": "./themes/daisyui-v4.css",
-    "./themes/daisyui-v5.css": "./themes/daisyui-v5.css"
+    "./themes/*.css": "./themes/*.css",
+    "./themes/*": "./themes/*.css"
   },
   "style": "./styles.css",
   "schematics": "./schematics/collection.json",
@@ -52,13 +44,13 @@
     "save": "dependencies"
   },
   "peerDependencies": {
-    "@angular/aria": ">=21.0.0",
+    "@angular/aria": "^21.0.0",
     "@anthropic-ai/sdk": ">=0.133.0",
-    "@angular/cdk": ">=21.0.0",
-    "@angular/common": ">=21.0.0",
-    "@angular/core": ">=21.0.0",
-    "@angular/forms": ">=21.0.0",
-    "@angular/router": ">=21.0.0",
+    "@angular/cdk": "^21.0.0",
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/forms": "^21.0.0",
+    "@angular/router": "^21.0.0",
     "@kenjiuno/msgreader": "^1.28.0",
     "daisyui": "^5.0.0",
     "docx-preview": "^0.3.7",
@@ -66,15 +58,12 @@
     "foliate-js": "^1.0.1",
     "heic2any": "^0.0.4",
     "postal-mime": "^2.7.4",
-    "rxjs": ">=7.8.0",
+    "rxjs": "^7.8.0",
     "tailwindcss": "^4.0.0",
     "ts-morph": ">=20.0.0"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {
-      "optional": true
-    },
-    "@angular/router": {
       "optional": true
     },
     "ts-morph": {

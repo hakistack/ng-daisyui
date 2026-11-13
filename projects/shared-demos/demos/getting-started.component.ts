@@ -35,7 +35,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
         <div class="hero-content flex-col text-center relative">
           <span class="badge badge-soft badge-primary badge-sm font-mono">v{{ version }}</span>
           <h1 class="text-4xl lg:text-6xl font-serif tracking-tight">
-            <span class="text-base-content/40">@hakistack</span>/<span>ng-daisyui</span>
+            <span class="text-base-content/70">@hakistack</span>/<span>ng-daisyui</span>
           </h1>
           <p class="text-base-content/60 text-base lg:text-lg leading-relaxed max-w-2xl">
             Production-ready Angular UI library — built on daisyUI v5 and Tailwind v4, designed around signals + OnPush, and free of
@@ -105,7 +105,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section>
         <header class="mb-4">
           <h2 class="text-2xl font-serif mb-1">Why ng-daisyui</h2>
-          <p class="text-sm text-base-content/50">Six things this library opts in to — and what it pointedly doesn't fight.</p>
+          <p class="text-sm text-base-content/70">Six things this library opts in to — and what it pointedly doesn't fight.</p>
         </header>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           @for (feature of features; track feature.title) {
@@ -128,7 +128,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section>
         <header class="mb-4">
           <h2 class="text-2xl font-serif mb-1">Component catalog</h2>
-          <p class="text-sm text-base-content/50">
+          <p class="text-sm text-base-content/70">
             {{ totalComponents }} components across {{ componentGroups.length }} categories. Every component is standalone — import only
             what you need.
           </p>
@@ -137,8 +137,8 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           @for (group of componentGroups; track group.title) {
             <div>
               <div class="flex items-baseline gap-3 mb-3">
-                <h3 class="text-base font-semibold uppercase tracking-wider text-base-content/40 text-xs">{{ group.title }}</h3>
-                <span class="text-xs text-base-content/30"
+                <h3 class="text-base font-semibold uppercase tracking-wider text-base-content/70 text-xs">{{ group.title }}</h3>
+                <span class="text-xs text-base-content/70"
                   >{{ group.items.length }} component{{ group.items.length === 1 ? '' : 's' }}</span
                 >
               </div>
@@ -164,7 +164,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
                           </span>
                         }
                       </div>
-                      <p class="text-xs text-base-content/55 leading-relaxed">{{ item.desc }}</p>
+                      <p class="text-xs text-base-content/70 leading-relaxed">{{ item.desc }}</p>
                     </div>
                   </a>
                 }
@@ -178,14 +178,14 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section>
         <header class="mb-4">
           <h2 class="text-2xl font-serif mb-1">Featured deep-dives</h2>
-          <p class="text-sm text-base-content/50">The richest demos — open these to see the library in real-world flows.</p>
+          <p class="text-sm text-base-content/70">The richest demos — open these to see the library in real-world flows.</p>
         </header>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           @for (f of featured; track f.title) {
             <a [routerLink]="f.link" class="card bg-base-100 card-border hover:shadow-md transition-shadow group">
               <div class="card-body p-5">
                 <div
-                  class="aspect-video rounded-lg bg-base-200 mb-3 flex items-center justify-center text-base-content/30 group-hover:text-primary transition-colors"
+                  class="aspect-video rounded-lg bg-base-200 mb-3 flex items-center justify-center text-base-content/70 group-hover:text-primary transition-colors"
                 >
                   <svg [lucideIcon]="f.icon" [size]="48"></svg>
                 </div>
@@ -205,7 +205,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section>
         <header class="mb-4">
           <h2 class="text-2xl font-serif mb-1">Quick install</h2>
-          <p class="text-sm text-base-content/50">Three steps. No NgModules. No config.</p>
+          <p class="text-sm text-base-content/70">Three steps. No NgModules. No config.</p>
         </header>
 
         <ul class="steps w-full mb-6 hidden sm:flex">
@@ -222,7 +222,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
                 <span class="badge badge-primary badge-lg font-mono">1</span>
                 <h3 class="card-title text-base">Install the package</h3>
               </div>
-              <p class="text-sm text-base-content/55 mb-3">All runtime deps (icons, animations, TipTap, etc.) ship with the package.</p>
+              <p class="text-sm text-base-content/70 mb-3">All runtime deps (icons, animations, TipTap, etc.) ship with the package.</p>
               <app-code-block [code]="installCmd" />
             </div>
           </div>
@@ -233,7 +233,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
                 <span class="badge badge-primary badge-lg font-mono">2</span>
                 <h3 class="card-title text-base">Wire your styles</h3>
               </div>
-              <p class="text-sm text-base-content/55 mb-3">Tailwind v4 + daisyUI plugin + the lib's compiled CSS. One file, four lines.</p>
+              <p class="text-sm text-base-content/70 mb-3">Tailwind v4 + daisyUI plugin + the lib's compiled CSS. One file, four lines.</p>
               <app-code-block [code]="stylesCode" />
             </div>
           </div>
@@ -244,7 +244,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
                 <span class="badge badge-primary badge-lg font-mono">3</span>
                 <h3 class="card-title text-base">Drop a component into your template</h3>
               </div>
-              <p class="text-sm text-base-content/55 mb-3">Standalone, signal-native, OnPush — works with any Angular 21 app.</p>
+              <p class="text-sm text-base-content/70 mb-3">Standalone, signal-native, OnPush — works with any Angular 21 app.</p>
               <app-code-block [code]="usageCode" />
             </div>
           </div>
@@ -275,7 +275,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <section>
         <header class="mb-4">
           <h2 class="text-2xl font-serif mb-1">Under the hood</h2>
-          <p class="text-sm text-base-content/50">Three pillars that show up in nearly every component.</p>
+          <p class="text-sm text-base-content/70">Three pillars that show up in nearly every component.</p>
         </header>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           @for (p of pillars; track p.title) {
@@ -298,10 +298,10 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       </section>
 
       <!-- ── 9. Footer CTA ─────────────────────────────────────────── -->
-      <section class="card bg-neutral text-neutral-content">
+      <section class="card bg-base-200">
         <div class="card-body items-center text-center p-8">
           <h2 class="card-title text-2xl font-serif">Built for the long tail</h2>
-          <p class="text-sm opacity-70 max-w-xl">
+          <p class="text-sm max-w-xl">
             ng-daisyui leans on Angular's signal primitives and daisyUI's design tokens — not a wrapper layer that needs to be relearned. If
             a component doesn't fit, drop one level: it's just signals + standalone components.
           </p>
@@ -319,7 +319,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       </section>
 
       <!-- Version footer -->
-      <footer class="text-center text-xs text-base-content/40 pt-4 pb-8">
+      <footer class="text-center text-xs text-base-content/70 pt-4 pb-8">
         @hakistack/ng-daisyui · v{{ version }} · last updated {{ updatedAt }}
       </footer>
     </div>

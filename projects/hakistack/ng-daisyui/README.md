@@ -2,7 +2,9 @@
 
 Reusable Angular UI components built with DaisyUI v5 and Tailwind CSS v4.
 
-> **Note:** Primary support is **Tailwind v4 + DaisyUI v5**. A legacy **Tailwind v3 + DaisyUI v4** path is available from the same package via subpath imports (`@hakistack/ng-daisyui/themes/daisyui-v4.css` + `@hakistack/ng-daisyui/themes/daisyui-v4-preset`). `ng add` will prompt you to pick.
+> **Note:** Primary support is **Tailwind v4 + DaisyUI v5**. A legacy **Tailwind v3 + DaisyUI v4** path ships a precompiled stylesheet, `@hakistack/ng-daisyui/styles-v4.css`, that contains every class the library uses. `ng add` will prompt you to pick.
+>
+> **Requirements:** Angular 21 (`@angular/core`, `common`, `forms`, `router`, `cdk`, `aria` — all `^21`), RxJS 7.8, Tailwind CSS 4 + daisyUI 5.
 
 ## Installation
 
@@ -27,8 +29,9 @@ You'll be prompted to pick a toolchain:
 **Tailwind v3 + DaisyUI v4 (legacy)** — `--target v4-legacy`
 - Adds `@angular/cdk` + `@angular/aria` to `dependencies`
 - Adds `tailwindcss@^3`, `daisyui@^4`, `postcss`, `autoprefixer` to `devDependencies`
-- Scaffolds `tailwind.config.js` (extending `@hakistack/ng-daisyui/themes/daisyui-v4-preset`) and `postcss.config.js`
-- Ensures `styles.css` contains `@import "@hakistack/ng-daisyui/themes/daisyui-v4.css"` plus the classic `@tailwind base/components/utilities` directives
+- Scaffolds a plain `tailwind.config.js` (daisyUI plugin, your `src/**` as content) and `postcss.config.js`
+- Ensures `styles.css` contains `@import "@hakistack/ng-daisyui/styles-v4.css"` plus the classic `@tailwind base/components/utilities` directives
+- Note: the package's peer ranges target Tailwind 4 / daisyUI 5, so npm reports a peer warning (or ERESOLVE with strict peer deps) on the legacy path
 
 Flags: `--target <v5|v4-legacy>`, `--skip-install`, `--skip-style-import`, `--project <name>`.
 
@@ -81,8 +84,8 @@ export class MyComponent {
     fields: [
       field.text('firstName', 'First Name', { required: true }),
       field.email('email', 'Email', { required: true }),
-      field.password('password', 'Password', { validation: { minLength: 8 } }),
-      field.select('country', ['USA', 'Canada', 'Mexico'], 'Country'),
+      field.password('password', 'Password', { minLength: 8 }),
+      field.select('country', 'Country', { choices: ['USA', 'Canada', 'Mexico'] }),
     ],
     onSubmit: (data) => this.handleSubmit(data),
   });
@@ -342,7 +345,6 @@ export const appConfig: ApplicationConfig = {
 
 - **FormStateService** - Auto-save form state management
 - **PipeRegistryService** - Custom pipe registry for table formatters
-- **AccessibilityService** - Accessibility utilities
 - **DialogService** - CDK-based modal dialogs
 - **ToastService** - Toast notifications
 
@@ -359,29 +361,7 @@ export const appConfig: ApplicationConfig = {
 npm run build
 ```
 
-## Installation (Private Package)
-
-### From Private Registry
-
-1. Create `.npmrc` in your consuming project:
-
-```text
-@hakistack:registry=https://hakistack-registry.fly.dev
-```
-
-2. Login (one-time):
-
-```bash
-npm login --registry=https://hakistack-registry.fly.dev
-```
-
-3. Install:
-
-```bash
-npm install @hakistack/ng-daisyui
-```
-
-### Local Development (npm link)
+## Local development (npm link)
 
 ```bash
 # In the library workspace
@@ -394,4 +374,4 @@ npm link @hakistack/ng-daisyui
 
 ## License
 
-UNLICENSED - Private package
+MIT — see [LICENSE](./LICENSE).

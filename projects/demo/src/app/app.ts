@@ -1,9 +1,29 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { Router, NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { filter } from 'rxjs';
-import { NotificationHostComponent } from '@hakistack/ng-daisyui';
-import { SHOW_OVERVIEW } from '@shared-demos/config';
+import { CommandPaletteLabels, HK_COMMAND_PALETTE_LABELS, NotificationHostComponent, createCommandPalette } from '@hakistack/ng-daisyui';
+import { buildNavigation } from '@shared-demos/platform/catalog/navigation';
+import { pageForUrl } from '@shared-demos/platform/catalog/pages';
+import type { DocsLocale } from '@shared-demos/platform/catalog/catalog.types';
+import { ApiManifestService } from '@shared-demos/platform/api/api-manifest.service';
+import { DOCS_LOCALES, DocsLocaleService, LocalizePipe, UI, localize } from '@shared-demos/platform/i18n/docs-locale.service';
+import { DocsSearchService } from '@shared-demos/platform/search/docs-search.service';
+import { DocsSearchHostComponent } from '@shared-demos/platform/search/docs-search-host.component';
 
 const THEMES = [
   'kaizen',
@@ -45,582 +65,341 @@ const THEMES = [
   'silk',
 ] as const;
 
-interface NavChild {
-  id: string;
-  label: string;
-}
-
-interface NavItem {
-  path: string;
-  label: string;
-  icon: string;
-  children?: NavChild[];
-}
-
-interface NavSection {
-  title: string;
-  items: NavItem[];
-}
+const PALETTE_LABELS: Record<DocsLocale, CommandPaletteLabels> = {
+  en: {
+    searchPlaceholder: UI.searchPlaceholder.en,
+    searchAriaLabel: UI.search.en,
+    noResults: 'No results',
+    noResultsHint: 'Try a task ("server-side pagination"), a component or an API symbol.',
+    closeAriaLabel: 'Close search',
+  },
+  es: {
+    searchPlaceholder: UI.searchPlaceholder.es,
+    searchAriaLabel: UI.search.es,
+    noResults: 'Sin resultados',
+    noResultsHint: 'Prueba una tarea ("paginación en servidor"), un componente o un símbolo de la API.',
+    closeAriaLabel: 'Cerrar búsqueda',
+  },
+};
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideDynamicIcon, NotificationHostComponent],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    LucideDynamicIcon,
+    NotificationHostComponent,
+    DocsSearchHostComponent,
+    LocalizePipe,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [
+    // Getters read the locale signal, so the palette's labels computed re-runs on language switch.
+    {
+      provide: HK_COMMAND_PALETTE_LABELS,
+      useFactory: (): CommandPaletteLabels => {
+        const locale = inject(DocsLocaleService);
+        const pick = (k: keyof CommandPaletteLabels) => () => PALETTE_LABELS[locale.locale()][k];
+        const labels = {};
+        for (const k of Object.keys(PALETTE_LABELS.en) as (keyof CommandPaletteLabels)[]) {
+          Object.defineProperty(labels, k, { get: pick(k), enumerable: true });
+        }
+        return labels;
+      },
+    },
+  ],
+  host: { '(document:keydown.escape)': 'closeNav()' },
   template: `
+    <a href="#main" class="docs-skip-link" (click)="skipToMain($event)">{{ ui.skipToContent | loc: lang() }}</a>
+
     <div class="drawer lg:drawer-open min-h-screen bg-base-100">
-      <input id="sidebar" type="checkbox" class="drawer-toggle" />
+      <input
+        id="docs-nav"
+        type="checkbox"
+        class="drawer-toggle"
+        [checked]="navOpen()"
+        (change)="navOpen.set($any($event.target).checked)"
+        tabindex="-1"
+        aria-hidden="true"
+      />
 
-      <!-- ══ Main content ══ -->
-      <div class="drawer-content flex flex-col">
-        <!-- Desktop header -->
-        <header
-          class="glass-header sticky top-0 z-30 hidden lg:flex items-center justify-between px-12 h-14 border-b border-base-content/5"
-        >
-          <div class="flex items-center gap-2 text-sm text-base-content/40">
-            <span class="text-base-content/50">{{ currentSection() }}</span>
-            @if (currentPageLabel()) {
-              <span class="text-base-content/15">/</span>
-              <span class="text-base-content/70 font-medium">{{ currentPageLabel() }}</span>
-            }
-          </div>
-          <div class="flex items-center gap-2">
-            <!-- Version switcher → v4 -->
-            <a
-              href="/v4/"
-              class="btn btn-ghost btn-sm gap-2 border border-base-content/8 font-normal text-xs h-8 min-h-0 normal-case"
-              aria-label="Switch to DaisyUI 4 demo"
+      <div class="drawer-content flex flex-col min-w-0">
+        <header class="sticky top-0 z-30 bg-base-100 border-b border-base-content/10">
+          <div class="flex items-center gap-2 h-14 px-4 lg:px-8">
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square lg:hidden"
+              [attr.aria-label]="ui.openNavigation | loc: lang()"
+              [attr.aria-expanded]="navOpen()"
+              aria-controls="docs-sidebar"
+              (click)="openNav()"
             >
-              <span class="badge badge-soft badge-primary badge-sm font-mono">v4</span>
-              <span>Switch to v4</span>
-              <svg lucideIcon="arrow-right" [size]="12"></svg>
-            </a>
+              <svg lucideIcon="menu" [size]="20" aria-hidden="true"></svg>
+            </button>
+            <a routerLink="/" class="font-semibold tracking-tight lg:hidden">ng-daisyui</a>
 
-            <div class="dropdown dropdown-end">
-              <div
-                tabindex="0"
-                role="button"
-                class="btn btn-ghost btn-sm gap-2 border border-base-content/8 font-normal text-xs h-8 min-h-0"
+            <button
+              #searchTrigger
+              type="button"
+              class="docs-search-trigger"
+              (click)="openSearch()"
+              [attr.aria-label]="ui.search | loc: lang()"
+            >
+              <svg lucideIcon="search" [size]="15" aria-hidden="true"></svg>
+              <span class="hidden sm:inline truncate">{{ ui.search | loc: lang() }}</span>
+              <kbd class="kbd kbd-xs hidden sm:inline-flex ml-auto">{{ modKey }} K</kbd>
+            </button>
+
+            <div class="ml-auto flex items-center gap-1 sm:gap-2">
+              <div class="join" role="group" [attr.aria-label]="ui.language | loc: lang()">
+                @for (l of locales; track l.id) {
+                  <button
+                    type="button"
+                    class="btn btn-xs join-item"
+                    [class]="lang() === l.id ? 'btn-neutral' : 'btn-ghost'"
+                    [attr.aria-pressed]="lang() === l.id"
+                    [attr.lang]="l.id"
+                    [attr.aria-label]="l.label"
+                    (click)="setLocale(l.id)"
+                  >
+                    {{ l.short }}
+                  </button>
+                }
+              </div>
+              <label class="hidden sm:flex items-center">
+                <span class="sr-only">{{ ui.theme | loc: lang() }}</span>
+                <select
+                  class="select select-bordered select-xs w-32 capitalize"
+                  [value]="currentTheme()"
+                  (change)="setTheme($any($event.target).value)"
+                >
+                  @for (theme of themes; track theme) {
+                    <option [value]="theme">{{ theme }}</option>
+                  }
+                </select>
+              </label>
+              <a
+                href="https://github.com/hakistack/ng-daisyui"
+                class="btn btn-ghost btn-sm hidden md:inline-flex font-normal"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <svg lucideIcon="palette" [size]="13"></svg>
-                <span class="capitalize">{{ currentTheme() }}</span>
-                <svg lucideIcon="chevrons-up-down" [size]="12"></svg>
-              </div>
-              <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-72 overflow-y-auto p-2 shadow-2xl mt-2">
-                @for (theme of themes; track theme) {
-                  <li>
-                    <input
-                      type="radio"
-                      name="theme-desktop"
-                      class="theme-controller w-full btn btn-xs btn-block btn-ghost justify-start capitalize"
-                      [attr.aria-label]="theme"
-                      [value]="theme"
-                      [checked]="currentTheme() === theme"
-                      (change)="setTheme(theme)"
-                    />
-                  </li>
-                }
-              </ul>
+                GitHub
+              </a>
             </div>
           </div>
         </header>
 
-        <!-- Mobile header -->
-        <header class="glass-header sticky top-0 z-30 flex lg:hidden items-center justify-between px-4 h-14 border-b border-base-content/5">
-          <div class="flex items-center gap-3">
-            <label for="sidebar" class="btn btn-ghost btn-sm btn-square">
-              <svg lucideIcon="menu" [size]="20"></svg>
-            </label>
-            <span class="font-serif text-base">ng-daisyui</span>
-            <span class="badge badge-soft badge-primary badge-sm font-mono text-[10px]">v5</span>
-          </div>
-          <div class="flex items-center gap-1">
-            <!-- Version switcher (compact) → v4 -->
-            <a href="/v4/" class="btn btn-ghost btn-sm btn-square" aria-label="Switch to DaisyUI 4 demo">
-              <svg lucideIcon="arrow-right" [size]="16"></svg>
-            </a>
-            <div class="dropdown dropdown-end">
-              <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square">
-                <svg lucideIcon="palette" [size]="16"></svg>
-              </div>
-              <ul tabindex="0" class="dropdown-content bg-base-300 rounded-box z-50 w-52 max-h-80 overflow-y-auto p-2 shadow-2xl">
-                @for (theme of themes; track theme) {
-                  <li>
-                    <input
-                      type="radio"
-                      name="theme-mobile"
-                      class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start capitalize"
-                      [attr.aria-label]="theme"
-                      [value]="theme"
-                      [checked]="currentTheme() === theme"
-                      (change)="setTheme(theme)"
-                    />
-                  </li>
-                }
-              </ul>
-            </div>
-          </div>
-        </header>
-
-        <!-- Page content -->
-        <main class="flex-1 px-4 py-4 lg:px-8 lg:py-6">
+        <main id="main" #main tabindex="-1" class="flex-1 px-4 py-6 lg:px-10 lg:py-8 focus:outline-none">
           <div class="max-w-6xl mx-auto">
             <router-outlet />
           </div>
         </main>
 
-        <!-- Footer -->
-        <footer class="px-4 lg:px-8 py-4 border-t border-base-content/5">
-          <div class="max-w-6xl mx-auto flex items-center justify-between text-[11px] text-base-content/25 font-mono">
-            <span>ng-daisyui &middot; Angular 21 &middot; DaisyUI 5</span>
-            <span>OnPush &middot; Signals &middot; Standalone</span>
+        <footer class="px-4 lg:px-10 py-5 border-t border-base-content/10">
+          <div class="max-w-6xl mx-auto flex flex-wrap gap-x-6 gap-y-1 items-center justify-between text-xs text-base-content/70">
+            <span>&#64;hakistack/ng-daisyui · MIT · Angular 21 · daisyUI 5</span>
+            <a href="/v4/" class="link link-hover">daisyUI 4 / Tailwind 3 compatibility demo</a>
           </div>
         </footer>
 
-        <!-- Notification overlay host — singleton, app-wide. -->
         <hk-notification-host />
+        <!-- Search UI is code-split: loaded when the browser is idle or on first click of the search button. -->
+        @defer (on idle; on interaction(searchTrigger)) {
+          <app-docs-search-host [config]="paletteConfig()" [controller]="palette" [openOnMount]="searchRequested()" />
+        }
       </div>
 
-      <!-- ══ Sidebar ══ -->
       <div class="drawer-side z-40">
-        <label for="sidebar" class="drawer-overlay"></label>
-        <aside class="bg-base-100 w-72 min-h-full border-r border-base-content/5 flex flex-col">
-          <!-- Brand -->
-          <div class="px-5 pt-5 pb-4">
-            <div class="flex items-center gap-3">
-              <span
-                class="w-9 h-9 rounded-lg bg-primary text-primary-content flex items-center justify-center text-sm font-black tracking-tight shrink-0 shadow-sm shadow-primary/20"
-                >hk</span
-              >
-              <div class="min-w-0">
-                <div class="font-serif text-base leading-tight">ng-daisyui</div>
-                <div class="text-[10px] text-base-content/30 font-mono tracking-wide">hakistack &middot; v0.3.0</div>
-              </div>
-            </div>
+        <button
+          type="button"
+          class="drawer-overlay"
+          tabindex="-1"
+          [attr.aria-label]="ui.closeNavigation | loc: lang()"
+          (click)="closeNav()"
+        ></button>
+        <aside id="docs-sidebar" class="bg-base-100 w-72 min-h-full border-r border-base-content/10 flex flex-col">
+          <div class="flex items-center justify-between px-5 h-14 border-b border-base-content/10">
+            <a routerLink="/" class="flex items-baseline gap-2">
+              <span class="font-semibold tracking-tight">ng-daisyui</span>
+              <span class="text-xs font-mono text-base-content/70">v0.3</span>
+            </a>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm btn-square lg:hidden"
+              [attr.aria-label]="ui.closeNavigation | loc: lang()"
+              (click)="closeNav()"
+            >
+              <svg lucideIcon="x" [size]="18" aria-hidden="true"></svg>
+            </button>
           </div>
-
-          <div class="h-px bg-base-content/5 mx-4"></div>
-
-          <!-- Navigation -->
-          <nav class="sidebar-menu flex-1 overflow-y-auto sidebar-scroll px-3 py-3">
-            <ul class="menu gap-0.5 w-full">
-              @for (section of navSections; track section.title) {
-                <li class="menu-title mt-5 mb-1 first:mt-1">
-                  {{ section.title }}
-                </li>
-                @for (item of section.items; track item.path) {
-                  <li>
-                    @if (item.children?.length) {
-                      <details [open]="currentPath() === item.path">
-                        <summary>
-                          <svg [lucideIcon]="item.icon" [size]="15"></svg>
-                          {{ item.label }}
-                        </summary>
-                        <ul>
-                          @for (child of item.children; track child.id) {
-                            <li>
-                              <a [routerLink]="item.path + '/' + child.id" routerLinkActive="active">
-                                {{ child.label }}
-                              </a>
-                            </li>
+          <nav class="flex-1 overflow-y-auto px-3 py-4 docs-sidebar" [attr.aria-label]="ui.mainNavigation | loc: lang()" #sidebarNav>
+            @for (section of nav; track section.section) {
+              <div class="mb-5">
+                <h2 class="docs-nav-section">{{ section.title | loc: lang() }}</h2>
+                @for (group of section.groups; track group.id) {
+                  @if (group.title) {
+                    <h3 class="docs-nav-group">{{ group.title | loc: lang() }}</h3>
+                  }
+                  <ul class="space-y-px">
+                    @for (p of group.pages; track p.id) {
+                      <li>
+                        <a
+                          [routerLink]="p.route"
+                          routerLinkActive="docs-nav-active"
+                          #rla="routerLinkActive"
+                          [attr.aria-current]="rla.isActive ? 'page' : null"
+                          class="docs-nav-link"
+                        >
+                          <span class="truncate">{{ p.title | loc: lang() }}</span>
+                          @if (p.status !== 'stable') {
+                            <span class="docs-nav-status">{{ statusLabel(p.status) }}</span>
                           }
-                        </ul>
-                      </details>
-                    } @else {
-                      <a [routerLink]="item.path" routerLinkActive="active">
-                        <svg [lucideIcon]="item.icon" [size]="15"></svg>
-                        {{ item.label }}
-                      </a>
+                        </a>
+                      </li>
                     }
-                  </li>
+                  </ul>
                 }
-              }
-            </ul>
+              </div>
+            }
           </nav>
-
-          <!-- Sidebar footer -->
-          <div class="px-5 py-3 border-t border-base-content/5">
-            <div class="text-[10px] text-base-content/20 font-mono">v0.3.0 &middot; Built with DaisyUI 5 &middot; Tailwind 4</div>
-          </div>
         </aside>
       </div>
     </div>
   `,
 })
-export class App implements OnInit {
-  private router = inject(Router);
-  readonly themes = THEMES;
-  readonly currentTheme = signal('kaizen');
-  readonly currentPath = signal('');
+export class App {
+  private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
+  private readonly locale = inject(DocsLocaleService);
+  private readonly search = inject(DocsSearchService);
+  private readonly manifest = inject(ApiManifestService);
+  private readonly injector = inject(Injector);
+  private readonly main = viewChild.required<ElementRef<HTMLElement>>('main');
+  private readonly sidebarNav = viewChild.required<ElementRef<HTMLElement>>('sidebarNav');
 
-  readonly currentPageLabel = computed(() => {
-    const path = this.currentPath();
-    for (const section of this.navSections) {
-      const item = section.items.find((i) => i.path === path);
-      if (item) return item.label;
-    }
-    return '';
+  protected readonly ui = UI;
+  protected readonly lang = this.locale.locale;
+  protected readonly locales = DOCS_LOCALES;
+  protected readonly themes = THEMES;
+  protected readonly nav = buildNavigation();
+  protected readonly currentTheme = signal(this.readTheme());
+  protected readonly navOpen = signal(false);
+  protected readonly searchRequested = signal(false);
+  private returnFocusToMain = false;
+  protected readonly modKey = /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '') ? '⌘' : 'Ctrl';
+
+  protected readonly palette = createCommandPalette({
+    items: [],
+    groups: [
+      { id: 'pages', label: 'Pages' },
+      { id: 'examples', label: 'Examples' },
+      { id: 'api', label: 'API' },
+    ],
+    filter: (query) => this.search.filter(query),
+    hotkey: 'Mod+K',
+    // The manifest (API symbols) is a lazy chunk: fetch it the first time search opens.
+    onOpen: () => void this.manifest.load(),
   });
 
-  readonly currentSection = computed(() => {
-    const path = this.currentPath();
-    for (const section of this.navSections) {
-      if (section.items.some((i) => i.path === path)) return section.title;
-    }
-    return '';
+  /** Merge live items + localized group labels into the controller's config (keeps its internal bridge). */
+  protected readonly paletteConfig = computed(() => {
+    const lang = this.lang();
+    return {
+      ...this.palette.config(),
+      items: this.search.items(),
+      groups: [
+        { id: 'pages', label: localize(UI.pages, lang) },
+        { id: 'examples', label: localize(UI.examplesGroup, lang) },
+        { id: 'api', label: localize(UI.apiGroup, lang) },
+      ],
+    };
   });
 
-  readonly navSections: NavSection[] = [
-    ...(SHOW_OVERVIEW
-      ? [
-          {
-            title: 'Overview',
-            items: [
-              { path: '/getting-started', label: 'Getting Started', icon: 'rocket' },
-              { path: '/installation', label: 'Installation', icon: 'download' },
-              { path: '/key-patterns', label: 'Key Patterns', icon: 'lightbulb' },
-            ],
-          },
-        ]
-      : []),
-    {
-      title: 'Forms',
-      items: [
-        {
-          path: '/forms',
-          label: 'Dynamic Forms',
-          icon: 'file-input',
-          children: [
-            { id: 'layouts', label: 'Layouts' },
-            { id: 'fields', label: 'Field Types' },
-            { id: 'conditional', label: 'Conditional Logic' },
-            { id: 'dependent', label: 'Dependent Fields' },
-            { id: 'autosave', label: 'Auto-Save' },
-          ],
-        },
-        {
-          path: '/wizard',
-          label: 'Form Wizard',
-          icon: 'list-ordered',
-          children: [
-            { id: 'linear', label: 'Linear Wizard' },
-            { id: 'nonlinear', label: 'Non-linear Wizard' },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Data Display',
-      items: [
-        {
-          path: '/table',
-          label: 'Table',
-          icon: 'table',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'full', label: 'Full Featured' },
-            { id: 'filtering', label: 'Filtering' },
-            { id: 'selectableRow', label: 'Selectable Row' },
-            { id: 'selectionLimit', label: 'Selection Limit' },
-            { id: 'actionsPosition', label: 'Actions Position' },
-            { id: 'sticky', label: 'Sticky' },
-            { id: 'resizable', label: 'Resizable' },
-            { id: 'virtualScroll', label: 'Virtual Scroll' },
-            { id: 'editable', label: 'Editable' },
-            { id: 'footer', label: 'Footer' },
-            { id: 'expandable', label: 'Expandable' },
-            { id: 'grouped', label: 'Grouped' },
-            { id: 'reorderable', label: 'Reorderable' },
-            { id: 'keyboard', label: 'Keyboard' },
-            { id: 'hierarchy', label: 'Hierarchy' },
-            { id: 'masterDetail', label: 'Master-Detail' },
-            { id: 'nestedMasterDetail', label: 'Nested Master-Detail' },
-            { id: 'cellTemplate', label: 'Cell Template' },
-          ],
-        },
-        {
-          path: '/datagrid',
-          label: 'DataGrid',
-          icon: 'table',
-          children: [
-            { id: 'client', label: '100k Rows' },
-            { id: 'server', label: 'Server Data' },
-            { id: 'state', label: 'State as JSON' },
-            { id: 'ai', label: 'Ask AI' },
-          ],
-        },
-        {
-          path: '/tree-table',
-          label: 'Tree Table',
-          icon: 'list-tree',
-          children: [
-            { id: 'treenode', label: 'TreeNode Data' },
-            { id: 'custom', label: 'Custom Children' },
-            { id: 'features', label: 'Full Features' },
-            { id: 'cascade', label: 'Cascade Selection' },
-            { id: 'filtering', label: 'Hierarchy Filtering' },
-            { id: 'large', label: 'Large Dataset' },
-          ],
-        },
-        {
-          path: '/tree',
-          label: 'Tree',
-          icon: 'git-branch',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'selection', label: 'Single Selection' },
-            { id: 'checkbox', label: 'Checkbox' },
-            { id: 'dragdrop', label: 'Drag & Drop' },
-            { id: 'lazy', label: 'Lazy Loading' },
-            { id: 'filter', label: 'Filter' },
-          ],
-        },
-        {
-          path: '/virtual-scroller',
-          label: 'Virtual Scroller',
-          icon: 'scroll-text',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'horizontal', label: 'Horizontal' },
-            { id: 'grid', label: 'Grid' },
-            { id: 'lazy', label: 'Lazy Loading' },
-          ],
-        },
-        {
-          path: '/pdf-viewer',
-          label: 'PDF Viewer',
-          icon: 'file-text',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'controller', label: 'Controller API' },
-            { id: 'preview', label: 'Preview Layout' },
-            { id: 'config', label: 'Config Variants' },
-            { id: 'workspace', label: 'Workspace' },
-          ],
-        },
-        {
-          path: '/document-viewer',
-          label: 'Document Viewer',
-          icon: 'file-spreadsheet',
-          children: [
-            { id: 'basic', label: 'Pick a File' },
-            { id: 'spreadsheet', label: 'Spreadsheet (Rust+WASM)' },
-            { id: 'image', label: 'TIFF + Images (Rust+WASM)' },
-            { id: 'switching', label: 'Format Dispatch' },
-            { id: 'workspace', label: 'Workspace' },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Inputs',
-      items: [
-        {
-          path: '/input',
-          label: 'Input',
-          icon: 'text-cursor-input',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'variants', label: 'Variants' },
-            { id: 'styling', label: 'Styling' },
-            { id: 'forms', label: 'Reactive Forms' },
-            { id: 'mask', label: 'Input Mask' },
-          ],
-        },
-        {
-          path: '/select',
-          label: 'Select',
-          icon: 'chevron-down',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'variants', label: 'Variants' },
-            { id: 'features', label: 'Features' },
-            { id: 'grouped', label: 'Grouped' },
-            { id: 'multiselect', label: 'Multiselect' },
-          ],
-        },
-        {
-          path: '/datepicker',
-          label: 'Datepicker',
-          icon: 'calendar',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'datetime', label: 'Date + Time' },
-            { id: 'options', label: 'Options' },
-            { id: 'advanced', label: 'Advanced' },
-          ],
-        },
-        {
-          path: '/timepicker',
-          label: 'Timepicker',
-          icon: 'clock',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'options', label: 'Options' },
-            { id: 'clockFace', label: 'Clock Face' },
-            { id: 'advanced', label: 'Advanced' },
-          ],
-        },
-        {
-          path: '/editor',
-          label: 'Editor',
-          icon: 'file-text',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'toolbars', label: 'Toolbars' },
-            { id: 'forms', label: 'Reactive Forms' },
-            { id: 'dynamic', label: 'Dynamic Form' },
-            { id: 'slash', label: 'Slash Commands' },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Navigation',
-      items: [
-        {
-          path: '/menu',
-          label: 'Menu',
-          icon: 'menu',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'horizontal', label: 'Horizontal' },
-            { id: 'nested', label: 'Nested & Accordion' },
-            { id: 'rich', label: 'Icons & Badges' },
-            { id: 'collapsed', label: 'Collapsed Rail' },
-            { id: 'rbac', label: 'Visibility (RBAC)' },
-          ],
-        },
-        {
-          path: '/app-shell',
-          label: 'Navbar & Sidebar',
-          icon: 'layout-grid',
-          children: [
-            { id: 'navbar', label: 'Navbar' },
-            { id: 'sidebar', label: 'Sidebar' },
-            { id: 'shell', label: 'App Shell' },
-          ],
-        },
-        {
-          path: '/breadcrumbs',
-          label: 'Breadcrumbs',
-          icon: 'list-tree',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'icons', label: 'With Icons' },
-            { id: 'maxwidth', label: 'Max Width' },
-            { id: 'auto', label: 'Auto (Router)' },
-          ],
-        },
-        {
-          path: '/tabs',
-          label: 'Tabs',
-          icon: 'panel-top',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'features', label: 'Features' },
-            { id: 'vertical', label: 'Vertical' },
-          ],
-        },
-        {
-          path: '/command-palette',
-          label: 'Command Palette',
-          icon: 'search',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'modes', label: 'Mode Prefixes' },
-            { id: 'hotkey', label: 'Hotkey & Filters' },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Feedback',
-      items: [
-        {
-          path: '/toast',
-          label: 'Toast Notifications',
-          icon: 'bell',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'features', label: 'Features' },
-            { id: 'styles', label: 'Styles' },
-            { id: 'advanced', label: 'Advanced' },
-          ],
-        },
-        {
-          path: '/notification',
-          label: 'Notification',
-          icon: 'message-square',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'variants', label: 'Layout Variants' },
-            { id: 'interactions', label: 'Interactions' },
-          ],
-        },
-        {
-          path: '/alert',
-          label: 'Alert Dialogs',
-          icon: 'message-square-warning',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'confirm', label: 'Confirmations' },
-            { id: 'loading', label: 'Loading' },
-            { id: 'advanced', label: 'Advanced' },
-          ],
-        },
-        {
-          path: '/dialog',
-          label: 'Dialog Service',
-          icon: 'panel-top-open',
-          children: [
-            { id: 'basic', label: 'Basic' },
-            { id: 'forms', label: 'Forms' },
-            { id: 'options', label: 'Options' },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Utilities',
-      items: [
-        {
-          path: '/motion',
-          label: 'Motion Directives',
-          icon: 'sparkles',
-          children: [
-            { id: 'animate', label: 'Animate' },
-            { id: 'hover', label: 'Hover' },
-            { id: 'presets', label: 'Presets' },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Lab',
-      items: [
-        {
-          path: '/engine-stress',
-          label: 'Engine Stress',
-          icon: 'zap',
-        },
-      ],
-    },
-  ];
-
-  ngOnInit(): void {
-    const saved = localStorage.getItem('hk-demo-theme');
-    if (saved) {
-      this.setTheme(saved);
-    }
-
-    this.currentPath.set('/' + this.router.url.split('/').filter(Boolean)[0]);
-    this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
-      this.currentPath.set('/' + e.urlAfterRedirects.split('/').filter(Boolean)[0]);
-    });
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+    // Close the drawer when a navigation *starts* (a link was followed). Closing on NavigationEnd would also
+    // fire for a slow initial navigation that completes after the user already opened the drawer.
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationStart => e instanceof NavigationStart),
+        takeUntilDestroyed(destroyRef),
+      )
+      .subscribe(() => {
+        if (!this.navOpen()) return;
+        this.navOpen.set(false);
+        this.returnFocusToMain = true;
+      });
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(destroyRef),
+      )
+      .subscribe((e) => {
+        if (this.returnFocusToMain) {
+          this.returnFocusToMain = false;
+          this.main().nativeElement.focus({ preventScroll: true });
+        }
+        // Section switch without a page match → generic title (pages set their own).
+        if (!pageForUrl(e.urlAfterRedirects)) this.document.title = 'ng-daisyui';
+      });
+    effect(() => this.document.documentElement.setAttribute('data-theme', this.currentTheme()));
   }
 
-  setTheme(theme: string): void {
+  protected openSearch(): void {
+    void this.manifest.load();
+    // Before the deferred palette mounts, open() is a no-op; the host opens it on mount instead.
+    this.searchRequested.set(true);
+    this.palette.open();
+  }
+
+  protected openNav(): void {
+    this.navOpen.set(true);
+    // Move focus into the drawer so keyboard users land in the navigation.
+    afterNextRender(
+      () => {
+        // daisyUI transitions the drawer's visibility (0.3s); focus once it is visible.
+        setTimeout(() => {
+          if (this.navOpen()) this.sidebarNav().nativeElement.querySelector<HTMLElement>('a')?.focus();
+        }, 320);
+      },
+      { injector: this.injector },
+    );
+  }
+
+  protected closeNav(): void {
+    this.navOpen.set(false);
+  }
+
+  protected skipToMain(event: Event): void {
+    event.preventDefault();
+    this.main().nativeElement.focus();
+  }
+
+  protected setLocale(locale: DocsLocale): void {
+    this.locale.set(locale);
+  }
+
+  protected setTheme(theme: string): void {
     this.currentTheme.set(theme);
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('hk-demo-theme', theme);
+    try {
+      localStorage.setItem('hk-demo-theme', theme);
+    } catch {
+      /* storage blocked */
+    }
+  }
+
+  protected statusLabel(status: string): string {
+    const key = status === 'beta' ? UI.statusBeta : status === 'experimental' ? UI.statusExperimental : UI.statusPlanned;
+    return localize(key, this.lang());
+  }
+
+  private readTheme(): string {
+    try {
+      return localStorage.getItem('hk-demo-theme') ?? 'kaizen';
+    } catch {
+      return 'kaizen';
+    }
   }
 }

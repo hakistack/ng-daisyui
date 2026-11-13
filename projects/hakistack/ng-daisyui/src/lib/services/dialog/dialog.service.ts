@@ -4,7 +4,7 @@ import { Dialog, DIALOG_DATA, DialogConfig, DialogRef } from '@angular/cdk/dialo
 import { BasePortalOutlet, ComponentType } from '@angular/cdk/portal';
 import { NavigationStart, Router } from '@angular/router';
 import { filter, take } from 'rxjs';
-import { DialogWrapperComponent } from '../../components';
+import { DialogWrapperComponent } from '../../components/dialog-wrapper/dialog-wrapper.component';
 
 @Injectable({ providedIn: 'root' })
 export class DialogService {

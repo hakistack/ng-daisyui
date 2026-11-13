@@ -28,6 +28,10 @@
     "size": "size-limit",
     "size:check": "size-limit --json",
     "extract-api-docs": "node scripts/extract-api-docs.mjs",
+    "docs:check": "node scripts/extract-api-docs.mjs --check && node scripts/check-docs-coverage.mjs",
+    "docs:report": "node scripts/check-docs-coverage.mjs --write",
+    "docs:snippets": "node scripts/check-doc-snippets.mjs",
+    "test:docs": "vitest run --config vitest.docs.config.ts",
     "engine:check": "cargo check --manifest-path hakistack-engine/Cargo.toml --workspace --all-targets",
     "engine:test": "cargo test --manifest-path hakistack-engine/Cargo.toml --workspace",
     "test:pdf-engine": "node scripts/test-pdf-engine.mjs",
@@ -38,19 +42,15 @@
     "libheif:build": "bash hakistack-engine/external/libheif-wasm/build.sh",
     "libheif:build:dev": "LIBHEIF_BUILD_PROFILE=dev bash hakistack-engine/external/libheif-wasm/build.sh",
     "libheif:clean": "rm -rf hakistack-engine/external/libheif-wasm/build hakistack-engine/external/libheif-wasm/vendor projects/hakistack/ng-daisyui/src/lib/wasm/libheif",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:consumer": "node scripts/consumer-smoke.mjs --max-initial-gzip=240"
   },
   "size-limit": [
     {
+      "name": "Whole-library FESM, gzip (growth guard — NOT what consumers ship; see scripts/consumer-smoke.mjs)",
       "path": "dist/hakistack/ng-daisyui/fesm2022/hakistack-ng-daisyui.mjs",
-      "limit": "250 kB",
       "gzip": true,
-      "name": "Library bundle (fesm2022, gzip)"
-    },
-    {
-      "path": "dist/hakistack/ng-daisyui/fesm2022/hakistack-ng-daisyui.mjs",
-      "limit": "180 kB",
-      "name": "Library bundle (fesm2022, brotli)"
+      "limit": "700 kB"
     }
   ],
   "prettier": {

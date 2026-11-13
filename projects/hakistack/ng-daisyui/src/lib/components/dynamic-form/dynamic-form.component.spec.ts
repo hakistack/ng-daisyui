@@ -5,12 +5,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { DynamicFormComponent } from './dynamic-form.component';
 import { createForm, field, layout, step, validation } from './dynamic-form.helpers';
 import { FormUtils } from './dynamic-form.utils';
-import {
-  ConditionalLogic,
-  FormConfig,
-  FormFieldConfig,
-  FormSubmissionData,
-} from './dynamic-form.types';
+import { ConditionalLogic, FormConfig, FormFieldConfig, FormSubmissionData } from './dynamic-form.types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -59,9 +54,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should create with a simple config', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name'),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')]));
       fixture.detectChanges();
       expect(component).toBeTruthy();
     });
@@ -124,6 +117,30 @@ describe('DynamicFormComponent', () => {
 
       const input = fixture.nativeElement.querySelector('input[type="checkbox"]') as HTMLInputElement;
       expect(input).toBeTruthy();
+    });
+
+    it('should render a multiselect field as hk-select in multiple mode (not a raw input)', () => {
+      const f = field.multiSelect('tags', 'Tags', { choices: ['A', 'B', 'C'] });
+      fixture.componentRef.setInput('config', simpleConfig([f]));
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('input[type="multiselect"]')).toBeNull();
+      const select = fixture.debugElement.query((el) => el.name === 'hk-select');
+      expect(select).toBeTruthy();
+      expect(select.componentInstance.multiple()).toBe(true);
+    });
+
+    it('auto-save never persists password or file field values', () => {
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([field.text('user', 'User'), field.password('secret', 'Password'), field.file('avatar', 'Avatar')]),
+      );
+      fixture.detectChanges();
+
+      const persistable = (
+        component as unknown as { persistableValues(v: Record<string, unknown>): Record<string, unknown> }
+      ).persistableValues({ user: 'ada', secret: 'hunter2', avatar: 'x' });
+      expect(persistable).toEqual({ user: 'ada' });
     });
 
     it('should render radio buttons', () => {
@@ -190,7 +207,7 @@ describe('DynamicFormComponent', () => {
 
       // Hidden fields skip the label in the template via @if (field.type !== 'hidden')
       const labels: HTMLLabelElement[] = Array.from(fixture.nativeElement.querySelectorAll('label'));
-      const hiddenLabel = labels.find(l => l.textContent?.includes('secret'));
+      const hiddenLabel = labels.find((l) => l.textContent?.includes('secret'));
       expect(hiddenLabel).toBeFalsy();
     });
 
@@ -204,10 +221,10 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should display a title and description when configured', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { title: 'User Form', description: 'Please fill in your details.' },
-      ));
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([field.text('name', 'Name')], { title: 'User Form', description: 'Please fill in your details.' }),
+      );
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('User Form');
@@ -257,10 +274,10 @@ describe('DynamicFormComponent', () => {
 
   describe('Form values', () => {
     it('should initialize form with default values', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { defaultValue: 'John' }),
-        field.number('age', 'Age', { defaultValue: 30 }),
-      ]));
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([field.text('name', 'Name', { defaultValue: 'John' }), field.number('age', 'Age', { defaultValue: 30 })]),
+      );
       fixture.detectChanges();
 
       const form = component.formGroup();
@@ -269,10 +286,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should return form values via formGroup()', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('first', 'First'),
-        field.text('last', 'Last'),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('first', 'First'), field.text('last', 'Last')]));
       fixture.detectChanges();
 
       component.formGroup().patchValue({ first: 'Alice', last: 'Smith' });
@@ -280,18 +294,14 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should use getFieldValue to retrieve individual values', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('city', 'City', { defaultValue: 'NYC' }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('city', 'City', { defaultValue: 'NYC' })]));
       fixture.detectChanges();
 
       expect(component.getFieldValue('city')).toBe('NYC');
     });
 
     it('should apply initialValues input over default values', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { defaultValue: 'Default' }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { defaultValue: 'Default' })]));
       fixture.componentRef.setInput('initialValues', { name: 'Override' });
       fixture.detectChanges();
 
@@ -299,12 +309,15 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should set correct default values for different field types', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.checkbox('agree', 'Agree'),
-        field.toggle('notify', 'Notify'),
-        field.number('count', 'Count'),
-        field.text('label', 'Label'),
-      ]));
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([
+          field.checkbox('agree', 'Agree'),
+          field.toggle('notify', 'Notify'),
+          field.number('count', 'Count'),
+          field.text('label', 'Label'),
+        ]),
+      );
       fixture.detectChanges();
 
       const form = component.formGroup();
@@ -321,9 +334,7 @@ describe('DynamicFormComponent', () => {
 
   describe('Validation', () => {
     it('should mark field as invalid when required and empty', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { required: true }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { required: true })]));
       fixture.detectChanges();
 
       const control = component.formGroup().get('name')!;
@@ -334,9 +345,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should validate minLength', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { minLength: 3 }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { minLength: 3 })]));
       fixture.detectChanges();
 
       const control = component.formGroup().get('name')!;
@@ -349,9 +358,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should validate maxLength', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { maxLength: 5 }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { maxLength: 5 })]));
       fixture.detectChanges();
 
       const control = component.formGroup().get('name')!;
@@ -364,9 +371,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should validate pattern', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('code', 'Code', { pattern: '^[A-Z]{3}$' }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('code', 'Code', { pattern: '^[A-Z]{3}$' })]));
       fixture.detectChanges();
 
       const control = component.formGroup().get('code')!;
@@ -378,9 +383,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should validate email fields', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.email('email', 'Email'),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.email('email', 'Email')]));
       fixture.detectChanges();
 
       const control = component.formGroup().get('email')!;
@@ -392,9 +395,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should validate min/max on number fields', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.number('age', 'Age', { min: 18, max: 99 }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.number('age', 'Age', { min: 18, max: 99 })]));
       fixture.detectChanges();
 
       const control = component.formGroup().get('age')!;
@@ -415,9 +416,7 @@ describe('DynamicFormComponent', () => {
         return control.value === 'bad' ? { noBadWord: true } : null;
       };
 
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('word', 'Word', { customValidators: [noBadWord] }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('word', 'Word', { customValidators: [noBadWord] })]));
       fixture.detectChanges();
 
       const control = component.formGroup().get('word')!;
@@ -430,9 +429,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should show error messages for touched invalid fields', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { required: true }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { required: true })]));
       fixture.detectChanges();
 
       const control = component.formGroup().get('name')!;
@@ -446,9 +443,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should not show error messages for untouched fields', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { required: true }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { required: true })]));
       fixture.detectChanges();
 
       const errors = component.getFieldErrors('name');
@@ -456,10 +451,10 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should display required asterisk for required fields', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { required: true }),
-        field.text('optional', 'Optional'),
-      ]));
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([field.text('name', 'Name', { required: true }), field.text('optional', 'Optional')]),
+      );
       fixture.detectChanges();
 
       const asterisks = fixture.nativeElement.querySelectorAll('.text-error');
@@ -468,13 +463,16 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should combine multiple validators on a single field', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('username', 'Username', {
-          required: true,
-          minLength: 3,
-          maxLength: 20,
-        }),
-      ]));
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([
+          field.text('username', 'Username', {
+            required: true,
+            minLength: 3,
+            maxLength: 20,
+          }),
+        ]),
+      );
       fixture.detectChanges();
 
       const control = component.formGroup().get('username')!;
@@ -499,10 +497,7 @@ describe('DynamicFormComponent', () => {
 
   describe('Conditional logic', () => {
     it('should hide a field with hideWhen condition', () => {
-      const fields = [
-        field.checkbox('hide', 'Hide Details'),
-        field.text('details', 'Details', { hideWhen: ['hide', true] }),
-      ];
+      const fields = [field.checkbox('hide', 'Hide Details'), field.text('details', 'Details', { hideWhen: ['hide', true] })];
       fixture.componentRef.setInput('config', simpleConfig(fields));
       fixture.detectChanges();
 
@@ -518,10 +513,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should show a field with showWhen condition', () => {
-      const fields = [
-        field.checkbox('showExtra', 'Show Extra'),
-        field.text('extra', 'Extra', { showWhen: ['showExtra', true] }),
-      ];
+      const fields = [field.checkbox('showExtra', 'Show Extra'), field.text('extra', 'Extra', { showWhen: ['showExtra', true] })];
       fixture.componentRef.setInput('config', simpleConfig(fields));
       fixture.detectChanges();
 
@@ -537,10 +529,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should show a field with string-based showWhen (boolean check)', () => {
-      const fields = [
-        field.checkbox('isAdmin', 'Is Admin'),
-        field.text('adminCode', 'Admin Code', { showWhen: 'isAdmin' }),
-      ];
+      const fields = [field.checkbox('isAdmin', 'Is Admin'), field.text('adminCode', 'Admin Code', { showWhen: 'isAdmin' })];
       fixture.componentRef.setInput('config', simpleConfig(fields));
       fixture.detectChanges();
 
@@ -577,10 +566,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should conditionally require a field via requiredWhen', () => {
-      const fields = [
-        field.checkbox('needsPhone', 'Needs Phone'),
-        field.text('phone', 'Phone', { requiredWhen: ['needsPhone', true] }),
-      ];
+      const fields = [field.checkbox('needsPhone', 'Needs Phone'), field.text('phone', 'Phone', { requiredWhen: ['needsPhone', true] })];
       fixture.componentRef.setInput('config', simpleConfig(fields));
       fixture.detectChanges();
 
@@ -599,10 +585,7 @@ describe('DynamicFormComponent', () => {
       vi.useFakeTimers({ shouldAdvanceTime: false });
 
       try {
-        const fields = [
-          field.checkbox('lockEmail', 'Lock Email'),
-          field.email('email', 'Email', { disabledWhen: ['lockEmail', true] }),
-        ];
+        const fields = [field.checkbox('lockEmail', 'Lock Email'), field.email('email', 'Email', { disabledWhen: ['lockEmail', true] })];
         fixture.componentRef.setInput('config', simpleConfig(fields));
         fixture.detectChanges();
 
@@ -646,10 +629,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should apply horizontal layout classes', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { layout: 'horizontal' },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { layout: 'horizontal' }));
       fixture.detectChanges();
 
       const layoutClasses = component.layoutClasses();
@@ -659,10 +639,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should apply grid layout classes', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { layout: 'grid', gridColumns: 3 },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { layout: 'grid', gridColumns: 3 }));
       fixture.detectChanges();
 
       const layoutClasses = component.layoutClasses();
@@ -671,20 +648,14 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should apply correct gap class for small gap', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { gap: 'sm' },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { gap: 'sm' }));
       fixture.detectChanges();
 
       expect(component.layoutClasses()).toContain('gap-2');
     });
 
     it('should apply correct gap class for medium gap', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { gap: 'md' },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { gap: 'md' }));
       fixture.detectChanges();
 
       expect(component.layoutClasses()).toContain('gap-4');
@@ -698,40 +669,28 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should apply label width class for horizontal layout', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { layout: 'horizontal', labelWidth: 'lg' },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { layout: 'horizontal', labelWidth: 'lg' }));
       fixture.detectChanges();
 
       expect(component.labelWidthClass()).toBe('w-1/3');
     });
 
     it('should apply sm label width', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { layout: 'horizontal', labelWidth: 'sm' },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { layout: 'horizontal', labelWidth: 'sm' }));
       fixture.detectChanges();
 
       expect(component.labelWidthClass()).toBe('w-1/6');
     });
 
     it('should apply xl label width', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { layout: 'horizontal', labelWidth: 'xl' },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { layout: 'horizontal', labelWidth: 'xl' }));
       fixture.detectChanges();
 
       expect(component.labelWidthClass()).toBe('w-2/5');
     });
 
     it('should include form-horizontal class for horizontal layout', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { layout: 'horizontal' },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { layout: 'horizontal' }));
       fixture.detectChanges();
 
       expect(component.formClasses()).toContain('form-horizontal');
@@ -745,10 +704,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should not report horizontal for non-horizontal layouts', () => {
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { layout: 'grid', gridColumns: 2 },
-      ));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')], { layout: 'grid', gridColumns: 2 }));
       fixture.detectChanges();
 
       expect(component.isHorizontalLayout()).toBe(false);
@@ -852,9 +808,7 @@ describe('DynamicFormComponent', () => {
 
     it('should include errors when form is invalid', () => {
       const submitted: FormSubmissionData[] = [];
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { required: true }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { required: true })]));
       fixture.detectChanges();
 
       component.formSubmit.subscribe((data: FormSubmissionData) => submitted.push(data));
@@ -868,10 +822,11 @@ describe('DynamicFormComponent', () => {
 
     it('should call config.onSubmit callback', () => {
       let callbackData: FormSubmissionData | undefined;
-      const config = simpleConfig(
-        [field.text('name', 'Name')],
-        { onSubmit: (data) => { callbackData = data; } },
-      );
+      const config = simpleConfig([field.text('name', 'Name')], {
+        onSubmit: (data) => {
+          callbackData = data;
+        },
+      });
       fixture.componentRef.setInput('config', config);
       fixture.detectChanges();
 
@@ -883,10 +838,10 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should mark all fields as touched on submit', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { required: true }),
-        field.email('email', 'Email', { required: true }),
-      ]));
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([field.text('name', 'Name', { required: true }), field.email('email', 'Email', { required: true })]),
+      );
       fixture.detectChanges();
 
       component.onSubmit();
@@ -935,9 +890,7 @@ describe('DynamicFormComponent', () => {
 
   describe('Form reset', () => {
     it('should reset form values on reset', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { defaultValue: 'Initial' }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { defaultValue: 'Initial' })]));
       fixture.detectChanges();
 
       component.formGroup().patchValue({ name: 'Changed' });
@@ -955,7 +908,9 @@ describe('DynamicFormComponent', () => {
       fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name')]));
       fixture.detectChanges();
 
-      component.formReset.subscribe(() => { resetCalled = true; });
+      component.formReset.subscribe(() => {
+        resetCalled = true;
+      });
       component.onReset();
 
       expect(resetCalled).toBe(true);
@@ -963,10 +918,14 @@ describe('DynamicFormComponent', () => {
 
     it('should call config.onReset callback', () => {
       let resetCallbackCalled = false;
-      fixture.componentRef.setInput('config', simpleConfig(
-        [field.text('name', 'Name')],
-        { onReset: () => { resetCallbackCalled = true; } },
-      ));
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([field.text('name', 'Name')], {
+          onReset: () => {
+            resetCallbackCalled = true;
+          },
+        }),
+      );
       fixture.detectChanges();
 
       component.onReset();
@@ -980,10 +939,10 @@ describe('DynamicFormComponent', () => {
 
   describe('Disabled state', () => {
     it('should disable individual fields when field.disabled is true', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('locked', 'Locked', { disabled: true }),
-        field.text('open', 'Open'),
-      ]));
+      fixture.componentRef.setInput(
+        'config',
+        simpleConfig([field.text('locked', 'Locked', { disabled: true }), field.text('open', 'Open')]),
+      );
       fixture.detectChanges();
 
       expect(component.formGroup().get('locked')!.disabled).toBe(true);
@@ -991,10 +950,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should disable entire form when disabled input is true', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name'),
-        field.text('email', 'Email'),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name'), field.text('email', 'Email')]));
       fixture.componentRef.setInput('disabled', true);
       fixture.detectChanges();
 
@@ -1023,9 +979,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should compute isSubmitDisabled when form is invalid', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name', { required: true }),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name', { required: true })]));
       fixture.detectChanges();
 
       // Form is invalid because required field is empty
@@ -1065,10 +1019,7 @@ describe('DynamicFormComponent', () => {
       expect(component.formGroup().get('age')).toBeFalsy();
 
       // Change config to add a new field
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name'),
-        field.number('age', 'Age'),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name'), field.number('age', 'Age')]));
       fixture.detectChanges();
 
       expect(component.formGroup().get('name')).toBeTruthy();
@@ -1076,10 +1027,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should filter visible fields based on conditions', () => {
-      const fields = [
-        field.text('name', 'Name'),
-        field.text('secret', 'Secret', { showWhen: ['name', (v: unknown) => v === 'magic'] }),
-      ];
+      const fields = [field.text('name', 'Name'), field.text('secret', 'Secret', { showWhen: ['name', (v: unknown) => v === 'magic'] })];
       fixture.componentRef.setInput('config', simpleConfig(fields));
       fixture.detectChanges();
 
@@ -1119,10 +1067,7 @@ describe('DynamicFormComponent', () => {
     });
 
     it('should place ungrouped fields into default group', () => {
-      fixture.componentRef.setInput('config', simpleConfig([
-        field.text('name', 'Name'),
-        field.text('email', 'Email'),
-      ]));
+      fixture.componentRef.setInput('config', simpleConfig([field.text('name', 'Name'), field.text('email', 'Email')]));
       fixture.detectChanges();
 
       const groups = component.groupedFields();
@@ -1154,9 +1099,7 @@ describe('DynamicFormComponent', () => {
           field.text('firstName', 'First Name', { required: true }),
           field.text('lastName', 'Last Name'),
         ]),
-        step.create('contact', 'Contact Info', [
-          field.email('email', 'Email', { required: true }),
-        ]),
+        step.create('contact', 'Contact Info', [field.email('email', 'Email', { required: true })]),
         step.review('review', 'Review'),
       ],
       stepperConfig: {
@@ -1361,9 +1304,9 @@ describe('DynamicFormComponent', () => {
       fixture.componentRef.setInput('config', stepperConfig);
       fixture.detectChanges();
 
-      expect(component.canNavigateToStep(0)).toBe(true);  // current step
-      expect(component.canNavigateToStep(1)).toBe(false);  // not completed yet
-      expect(component.canNavigateToStep(2)).toBe(false);  // not completed yet
+      expect(component.canNavigateToStep(0)).toBe(true); // current step
+      expect(component.canNavigateToStep(1)).toBe(false); // not completed yet
+      expect(component.canNavigateToStep(2)).toBe(false); // not completed yet
     });
 
     it('should allow navigation to any step in non-linear mode', () => {
@@ -1957,9 +1900,7 @@ describe('layout helpers', () => {
 
 describe('step helpers', () => {
   it('should create a step with fields', () => {
-    const s = step.create('info', 'Information', [
-      field.text('name', 'Name'),
-    ]);
+    const s = step.create('info', 'Information', [field.text('name', 'Name')]);
     expect(s.name).toBe('info');
     expect(s.label).toBe('Information');
     expect(s.fields.length).toBe(1);
@@ -2104,9 +2045,7 @@ describe('createForm / FormController', () => {
 
   it('should set stepperConfig defaults when steps are provided', () => {
     const form = createForm({
-      steps: [
-        step.create('step1', 'Step 1', [field.text('name', 'Name')]),
-      ],
+      steps: [step.create('step1', 'Step 1', [field.text('name', 'Name')])],
     });
 
     const config = form.config();
@@ -2118,9 +2057,7 @@ describe('createForm / FormController', () => {
 
   it('should merge custom stepperConfig over defaults', () => {
     const form = createForm({
-      steps: [
-        step.create('step1', 'Step 1', [field.text('name', 'Name')]),
-      ],
+      steps: [step.create('step1', 'Step 1', [field.text('name', 'Name')])],
       stepperConfig: { linear: false },
     });
 
@@ -2170,7 +2107,9 @@ describe('createForm / FormController', () => {
     let resetCalled = false;
     const form = createForm({
       fields: [field.text('name', 'Name')],
-      onReset: () => { resetCalled = true; },
+      onReset: () => {
+        resetCalled = true;
+      },
     });
 
     const fix = TestBed.createComponent(DynamicFormComponent);
@@ -2269,40 +2208,27 @@ describe('FormUtils', () => {
     });
 
     it('should combine conditional required with base validators', () => {
-      const validators = FormUtils.createValidatorsWithConditionalRequired(
-        { minLength: 3, maxLength: 10 } as FormFieldConfig,
-        true,
-      );
+      const validators = FormUtils.createValidatorsWithConditionalRequired({ minLength: 3, maxLength: 10 } as FormFieldConfig, true);
       // required + minLength + maxLength
       expect(validators.length).toBe(3);
     });
 
     it('should not include required when isRequired is false', () => {
-      const validators = FormUtils.createValidatorsWithConditionalRequired(
-        { minLength: 3 } as FormFieldConfig,
-        false,
-      );
+      const validators = FormUtils.createValidatorsWithConditionalRequired({ minLength: 3 } as FormFieldConfig, false);
       expect(validators.length).toBe(1);
     });
   });
 
   describe('createFormGroup', () => {
     it('should create controls for all fields', () => {
-      const fields = [
-        field.text('name', 'Name'),
-        field.email('email', 'Email'),
-      ];
+      const fields = [field.text('name', 'Name'), field.email('email', 'Email')];
       const group = FormUtils.createFormGroup(fields);
       expect(group.get('name')).toBeTruthy();
       expect(group.get('email')).toBeTruthy();
     });
 
     it('should set default values based on field type', () => {
-      const fields = [
-        field.checkbox('agree', 'Agree'),
-        field.text('name', 'Name'),
-        field.number('count', 'Count'),
-      ];
+      const fields = [field.checkbox('agree', 'Agree'), field.text('name', 'Name'), field.number('count', 'Count')];
       const group = FormUtils.createFormGroup(fields);
       expect(group.get('agree')?.value).toBe(false);
       expect(group.get('name')?.value).toBe('');
@@ -2310,25 +2236,19 @@ describe('FormUtils', () => {
     });
 
     it('should use field defaultValue when provided', () => {
-      const fields = [
-        field.text('name', 'Name', { defaultValue: 'John' }),
-      ];
+      const fields = [field.text('name', 'Name', { defaultValue: 'John' })];
       const group = FormUtils.createFormGroup(fields);
       expect(group.get('name')?.value).toBe('John');
     });
 
     it('should set disabled state from field config', () => {
-      const fields = [
-        field.text('locked', 'Locked', { disabled: true }),
-      ];
+      const fields = [field.text('locked', 'Locked', { disabled: true })];
       const group = FormUtils.createFormGroup(fields);
       expect(group.get('locked')?.disabled).toBe(true);
     });
 
     it('should attach validators to controls', () => {
-      const fields = [
-        field.text('name', 'Name', { required: true }),
-      ];
+      const fields = [field.text('name', 'Name', { required: true })];
       const group = FormUtils.createFormGroup(fields);
       const control = group.get('name')!;
       control.setValue('');
@@ -2398,7 +2318,9 @@ describe('FormUtils', () => {
       const cond: ConditionalLogic = {
         field: 'name',
         operator: 'function',
-        value: () => { throw new Error('Boom'); },
+        value: () => {
+          throw new Error('Boom');
+        },
       };
       expect(FormUtils.evaluateCondition(cond, { name: 'test' })).toBe(false);
     });
@@ -2443,7 +2365,14 @@ describe('FormUtils', () => {
       let secondCalled = false;
       const conditions: ConditionalLogic[] = [
         { field: 'a', operator: 'equals', value: false }, // will be false since a=true
-        { field: 'b', operator: 'function', value: () => { secondCalled = true; return true; } },
+        {
+          field: 'b',
+          operator: 'function',
+          value: () => {
+            secondCalled = true;
+            return true;
+          },
+        },
       ];
       FormUtils.evaluateConditions(conditions, { a: true, b: true });
       expect(secondCalled).toBe(false);
@@ -2541,30 +2470,27 @@ describe('FormUtils', () => {
 
   describe('validateFormConfig', () => {
     it('should report duplicate field keys', () => {
-      const fields = [
-        field.text('name', 'Name'),
-        field.text('name', 'Name Again'),
-      ];
+      const fields = [field.text('name', 'Name'), field.text('name', 'Name Again')];
       const errors = FormUtils.validateFormConfig(fields);
-      expect(errors.some(e => e.includes('Duplicate field key: name'))).toBe(true);
+      expect(errors.some((e) => e.includes('Duplicate field key: name'))).toBe(true);
     });
 
     it('should report select field without choices', () => {
       const f = makeField({ key: 'role', type: 'select', label: 'Role' });
       const errors = FormUtils.validateFormConfig([f]);
-      expect(errors.some(e => e.includes('requires choices'))).toBe(true);
+      expect(errors.some((e) => e.includes('requires choices'))).toBe(true);
     });
 
     it('should report radio field without choices', () => {
       const f = makeField({ key: 'size', type: 'radio', label: 'Size' });
       const errors = FormUtils.validateFormConfig([f]);
-      expect(errors.some(e => e.includes('requires choices'))).toBe(true);
+      expect(errors.some((e) => e.includes('requires choices'))).toBe(true);
     });
 
     it('should report multiselect field without choices', () => {
       const f = makeField({ key: 'tags', type: 'multiselect', label: 'Tags' });
       const errors = FormUtils.validateFormConfig([f]);
-      expect(errors.some(e => e.includes('requires choices'))).toBe(true);
+      expect(errors.some((e) => e.includes('requires choices'))).toBe(true);
     });
 
     it('should pass for valid configuration', () => {

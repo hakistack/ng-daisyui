@@ -62,6 +62,7 @@
 
 /* Soft focus ring on the panel when an action button inside has focus. */
 :host .hk-notification-panel:focus-within {
-  outline: 2px solid hsl(var(--p) / 0.4);
+  /* daisyUI v5 token first; v4 fallback. `hsl(var(--p))` exists in neither, so the ring never rendered. */
+  outline: 2px solid color-mix(in oklab, var(--color-primary, oklch(var(--p))) 40%, transparent);
   outline-offset: 2px;
 }

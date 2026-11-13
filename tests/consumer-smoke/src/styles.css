@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+@plugin 'daisyui';
+@import '@hakistack/ng-daisyui';
+/* Extensionless theme import, as documented in themes/kaizen.css — resolves through the `./themes/*` export. */
+@import '@hakistack/ng-daisyui/themes/kaizen';

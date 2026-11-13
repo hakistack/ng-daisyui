@@ -19,6 +19,8 @@
         [class.cursor-pointer]="canNavigateToStep(idx)"
         [attr.aria-selected]="isStepActive(idx)"
         [attr.aria-current]="isStepActive(idx) ? 'step' : null"
+        [id]="_getStepLabelId(idx)"
+        [attr.aria-controls]="_getStepContentId(idx)"
         role="tab"
         [tabindex]="canNavigateToStep(idx) ? 0 : -1"
         (click)="goToStep(idx)"
@@ -39,7 +41,8 @@
     [class.animate-forward]="animateContent() && animationDirection === 'forward'"
     [class.animate-backward]="animateContent() && animationDirection === 'backward'"
     role="tabpanel"
-    [attr.aria-labelledby]="'step-' + selectedIndex"
+    [id]="_getStepContentId(selectedIndex)"
+    [attr.aria-labelledby]="_getStepLabelId(selectedIndex)"
   >
     @if (selected && selected.content) {
       <ng-container [ngTemplateOutlet]="selected.content"></ng-container>

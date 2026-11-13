@@ -12,7 +12,7 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
       <!-- Hero -->
       <div class="space-y-2">
         <h1 class="text-3xl lg:text-4xl font-serif tracking-tight">Installation</h1>
-        <p class="text-base-content/50 text-sm leading-relaxed max-w-2xl">Add ng-daisyui to your Angular project in a few steps.</p>
+        <p class="text-base-content/70 text-sm leading-relaxed max-w-2xl">Add ng-daisyui to your Angular project in a few steps.</p>
       </div>
 
       <!-- Prerequisites -->
@@ -41,14 +41,41 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
               <span class="badge badge-primary badge-lg font-mono">1</span>
               <h2 class="card-title text-base">Install the package</h2>
             </div>
-            <p class="text-sm text-base-content/50 mb-3">
+            <p class="text-sm text-base-content/70 mb-3">
               All dependencies (Tailwind CSS, DaisyUI, icons, animations) are included automatically.
             </p>
 
             <div role="tablist" class="tabs tabs-box tabs-sm w-fit mb-3">
-              <button role="tab" class="tab" [class.tab-active]="pkgManager() === 'npm'" (click)="pkgManager.set('npm')">npm</button>
-              <button role="tab" class="tab" [class.tab-active]="pkgManager() === 'yarn'" (click)="pkgManager.set('yarn')">yarn</button>
-              <button role="tab" class="tab" [class.tab-active]="pkgManager() === 'pnpm'" (click)="pkgManager.set('pnpm')">pnpm</button>
+              <button
+                type="button"
+                role="tab"
+                class="tab text-base-content"
+                [class.tab-active]="pkgManager() === 'npm'"
+                [attr.aria-selected]="pkgManager() === 'npm'"
+                (click)="pkgManager.set('npm')"
+              >
+                npm
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class="tab text-base-content"
+                [class.tab-active]="pkgManager() === 'yarn'"
+                [attr.aria-selected]="pkgManager() === 'yarn'"
+                (click)="pkgManager.set('yarn')"
+              >
+                yarn
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class="tab text-base-content"
+                [class.tab-active]="pkgManager() === 'pnpm'"
+                [attr.aria-selected]="pkgManager() === 'pnpm'"
+                (click)="pkgManager.set('pnpm')"
+              >
+                pnpm
+              </button>
             </div>
 
             @switch (pkgManager()) {
@@ -72,7 +99,7 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
               <span class="badge badge-primary badge-lg font-mono">2</span>
               <h2 class="card-title text-base">Configure styles</h2>
             </div>
-            <p class="text-sm text-base-content/50 mb-3">Update your global stylesheet. With Tailwind v4, configuration lives in CSS.</p>
+            <p class="text-sm text-base-content/70 mb-3">Update your global stylesheet. With Tailwind v4, configuration lives in CSS.</p>
             <app-code-block [code]="stylesCode" />
           </div>
         </div>
@@ -84,13 +111,13 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
               <span class="badge badge-primary badge-lg font-mono">3</span>
               <h2 class="card-title text-base">Set a theme</h2>
             </div>
-            <p class="text-sm text-base-content/50 mb-3">
+            <p class="text-sm text-base-content/70 mb-3">
               Add a <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">data-theme</code> attribute to your root element.
             </p>
             <app-code-block [code]="themeCode" lang="angular-html" />
 
             <div class="mt-4">
-              <p class="text-xs text-base-content/40 font-semibold uppercase tracking-wider mb-2">Custom themes included</p>
+              <p class="text-xs text-base-content/70 font-semibold uppercase tracking-wider mb-2">Custom themes included</p>
               <div class="flex flex-wrap gap-2">
                 @for (theme of customThemes; track theme.name) {
                   <span class="badge badge-soft badge-sm gap-1.5">
@@ -112,7 +139,7 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
               </span>
               <h2 class="card-title text-base text-success">Use a component</h2>
             </div>
-            <p class="text-sm text-base-content/50 mb-3">
+            <p class="text-sm text-base-content/70 mb-3">
               Import standalone components directly into your component's
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">imports</code> array.
             </p>
@@ -129,7 +156,7 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
           <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
             <div class="collapse-title font-semibold text-sm">FormState Provider</div>
             <div class="collapse-content space-y-2">
-              <p class="text-xs text-base-content/50">Configure global form behavior like debounce timing and auto-save intervals.</p>
+              <p class="text-xs text-base-content/70">Configure global form behavior like debounce timing and auto-save intervals.</p>
               <app-code-block [code]="formStateCode" />
             </div>
           </div>
@@ -137,7 +164,7 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
           <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
             <div class="collapse-title font-semibold text-sm">Custom Pipes for Tables</div>
             <div class="collapse-content space-y-2">
-              <p class="text-xs text-base-content/50">
+              <p class="text-xs text-base-content/70">
                 Register custom pipe functions that can be referenced by name in table column definitions.
               </p>
               <app-code-block [code]="customPipesCode" />
@@ -147,7 +174,7 @@ type PkgManager = 'npm' | 'yarn' | 'pnpm';
           <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
             <div class="collapse-title font-semibold text-sm">Custom DaisyUI Theme</div>
             <div class="collapse-content space-y-2">
-              <p class="text-xs text-base-content/50">Create your own theme by defining CSS variables with the DaisyUI theme plugin.</p>
+              <p class="text-xs text-base-content/70">Create your own theme by defining CSS variables with the DaisyUI theme plugin.</p>
               <app-code-block [code]="customThemeCode" />
             </div>
           </div>

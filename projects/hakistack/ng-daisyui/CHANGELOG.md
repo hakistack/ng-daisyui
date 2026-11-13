@@ -1,5 +1,54 @@
 # Changelog
 
+## Unreleased (next: 0.4.0)
+
+Releases 0.2.0–0.3.0 were tagged without changelog entries; their changes are summarised in
+`git log v0.1.92..v0.3.0`. This section covers everything on `main` after `v0.3.0`.
+
+### ⚠ Breaking changes
+
+- **Peer dependencies are pinned to the supported major.** `@angular/*` peers are now `^21.0.0` (were `>=21.0.0`) and
+  `rxjs` is `^7.8.0` (was `>=7.8.0`). With the open ranges npm auto-installed `@angular/router@22` into Angular 21 apps
+  and failed with ERESOLVE.
+- **`@angular/router` is a required peer** (was optional). Menu, Breadcrumbs and `DialogService` import it statically,
+  so apps without it could not build. Every app that already uses the router is unaffected.
+- **PDF viewer:** `HkPdfService`, `HK_PDF_DEFAULTS`, `provideHkPdfDefaults` and the `workerSrc` / `renderPoolSize`
+  config keys were removed with the move to the PDFium engine (pdf.js is gone).
+- **Workspaces take lists only** (`hk-pdf-workspace`, `hk-document-workspace`); a single document uses the plain viewer.
+- **`hk-select` listbox/option ids** are now unique per instance (`hk-select-<id>-listbox`, `…-option-<n>`) instead of the
+  fixed `options-list` / `option-<n>`. Only code that queried those ids directly is affected.
+- **Dynamic-form auto-save no longer persists `password` or `file` fields.** Restored drafts leave those fields empty.
+
+See [docs/maintenance/migration-guide.md](../../../docs/maintenance/migration-guide.md) for upgrade steps.
+
+### Added
+
+- `hk-datagrid` + `grid-core`: enterprise grid (row/column virtualization, multi-sort, serializable state, server
+  data source, AI `ask()`).
+- `hk-pdf-workspace`, `hk-document-workspace` (Mesa workspaces), `hk-breadcrumbs`.
+- PDF viewer: PDFium engine in a worker pool, own incremental PDF writer, annotations with undo/redo, AcroForm filling
+  and form designer, visible and digital signatures, encrypted documents, page organizer, spreads, page labels.
+- `HkTableApi` type export (was documented but not exported).
+- Package `exports` for every shipped theme: `@hakistack/ng-daisyui/themes/<name>` and `/themes/<name>.css`
+  (`kaizen`, `kaizen-light`, `daisyui-v4`, `daisyui-v5`).
+
+### Fixed
+
+- `provideDynamicFormLabels` is exported as a value (it was inside an `export type` block, so calling it failed with TS1361).
+- Tree-shaking: `TableComponent` and `FormUtils` no longer have side-effectful static initializers, so apps that never
+  use the table no longer ship `hk-table` + `hk-datepicker` (basic consumer `main.js`: 1.16 MB → 806 KB raw,
+  261 → 203 KB transfer).
+- `hk-input` / `hk-select` `color` (and size) classes are literal strings, so Tailwind generates them
+  (`color="primary"` had no effect in consumer builds).
+- `field.multiSelect()` renders `hk-select` in multiple mode (it rendered `<input type="multiselect">`).
+- `hk-select` and `hk-datepicker` reflect `control.disable()` / `enable()` after the first render.
+- `AlertService`: an alert replaced by another one now resolves as dismissed instead of never settling.
+- `hk-table`: keyboard navigation ignores keys typed into inputs inside the table (search, filters, inline editor).
+- WASM engines retry after a failed load instead of caching the failure until reload.
+- Accessibility: tree checkboxes have accessible names; stepper tabs/panel reference real ids; command-palette items no
+  longer use `aria-selected` on `<button>`; notification focus ring renders on daisyUI 5.
+- Package `exports` no longer reference the non-existent `esm2022/` build.
+
 ## 0.1.92
 
 ### Cleanup — native daisyUI v4 baseline

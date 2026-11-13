@@ -1141,7 +1141,7 @@ describe('SelectComponent', () => {
 
     it('should have role="listbox" on the options list', () => {
       openDropdown(fixture);
-      const listbox = query(fixture, '#options-list');
+      const listbox = query(fixture, '[role="listbox"]');
       expect(listbox?.getAttribute('role')).toBe('listbox');
     });
 
@@ -1156,13 +1156,13 @@ describe('SelectComponent', () => {
       fixture.detectChanges();
 
       openDropdown(fixture);
-      const listbox = query(fixture, '#options-list');
+      const listbox = query(fixture, '[role="listbox"]');
       expect(listbox?.getAttribute('aria-multiselectable')).toBe('true');
     });
 
     it('should not set aria-multiselectable for single select', () => {
       openDropdown(fixture);
-      const listbox = query(fixture, '#options-list');
+      const listbox = query(fixture, '[role="listbox"]');
       expect(listbox?.getAttribute('aria-multiselectable')).toBe('false');
     });
 
@@ -1172,7 +1172,8 @@ describe('SelectComponent', () => {
       fixture.detectChanges();
 
       const input = query(fixture, 'input[type="text"]') as HTMLElement;
-      expect(input.getAttribute('aria-activedescendant')).toBe('option-0');
+      expect(input.getAttribute('aria-activedescendant')).toBe(component.getOptionId(0));
+      expect(document.getElementById(component.getOptionId(0))).toBeTruthy();
     });
 
     it('should clear aria-activedescendant when no item is highlighted', () => {
@@ -1194,9 +1195,15 @@ describe('SelectComponent', () => {
       expect(options[0].getAttribute('aria-disabled')).toBe('false');
     });
 
-    it('should have aria-controls pointing to options-list', () => {
+    it("should have aria-controls pointing to this instance's listbox", () => {
       const input = query(fixture, 'input[type="text"]');
-      expect(input?.getAttribute('aria-controls')).toBe('options-list');
+      expect(input?.getAttribute('aria-controls')).toBe(component.listboxId);
+    });
+
+    it('should use listbox/option ids that are unique per instance', () => {
+      const other = TestBed.createComponent(SelectComponent).componentInstance;
+      expect(other.listboxId).not.toBe(component.listboxId);
+      expect(other.getOptionId(0)).not.toBe(component.getOptionId(0));
     });
 
     it('should have aria-label on clear button', () => {
@@ -1507,9 +1514,9 @@ describe('SelectComponent', () => {
       expect(component.isHighlighted(1)).toBe(false);
     });
 
-    it('getOptionId returns correct format', () => {
-      expect(component.getOptionId(0)).toBe('option-0');
-      expect(component.getOptionId(5)).toBe('option-5');
+    it('getOptionId returns an instance-scoped id ending in the option index', () => {
+      expect(component.getOptionId(0)).toMatch(/^hk-select-.+-option-0$/);
+      expect(component.getOptionId(5)).toMatch(/^hk-select-.+-option-5$/);
     });
 
     it('getFlatIndex returns correct index from filteredOptions', () => {
@@ -1653,7 +1660,7 @@ describe('SelectComponent', () => {
 
     it('highlightedOptionId returns id when highlighted', () => {
       component.highlightedIndex.set(3);
-      expect(component.highlightedOptionId()).toBe('option-3');
+      expect(component.highlightedOptionId()).toBe(component.getOptionId(3));
     });
 
     it('effectiveOptions returns provided options', () => {
@@ -1764,6 +1771,20 @@ describe('SelectComponent (FormControl integration)', () => {
 
     const selectComponent = hostFixture.debugElement.children[0].componentInstance as SelectComponent;
     expect(selectComponent.isDisabled()).toBe(true);
+  });
+
+  it('should re-enable after control.enable() once isDisabled has been read (regression: stale plain field)', () => {
+    const selectComponent = hostFixture.debugElement.children[0].componentInstance as SelectComponent;
+    hostFixture.detectChanges();
+    expect(selectComponent.isDisabled()).toBe(false);
+
+    host.control.disable();
+    hostFixture.detectChanges();
+    expect(selectComponent.isDisabled()).toBe(true);
+
+    host.control.enable();
+    hostFixture.detectChanges();
+    expect(selectComponent.isDisabled()).toBe(false);
   });
 
   it('should propagate multi-select values to FormControl', () => {

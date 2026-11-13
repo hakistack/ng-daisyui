@@ -1,111 +1,107 @@
+import { Type } from '@angular/core';
 import { Routes } from '@angular/router';
-import { SHOW_OVERVIEW } from '@shared-demos/config';
+
+type Loader = () => Promise<Type<unknown>>;
+
+/**
+ * A component page: `/x` opens the docs overview, `/x/:feature` opens a live
+ * example tab. Both render the same demo component (the demo-page frame
+ * decides which tab to show from the URL).
+ */
+function componentPage(path: string, load: Loader): Routes {
+  return [
+    { path, loadComponent: load },
+    { path: `${path}/:feature`, loadComponent: load },
+  ];
+}
+
+const article: Loader = () => import('@shared-demos/platform/pages/article-page.component').then((m) => m.ArticlePageComponent);
+const api: Loader = () => import('@shared-demos/platform/pages/api-reference.component').then((m) => m.ApiReferenceComponent);
 
 export const routes: Routes = [
-  { path: '', redirectTo: SHOW_OVERVIEW ? 'getting-started' : 'forms/layouts', pathMatch: 'full' },
+  { path: '', pathMatch: 'full', redirectTo: 'getting-started' },
+
+  // Getting started
   {
     path: 'getting-started',
     loadComponent: () => import('@shared-demos/demos/getting-started.component').then((m) => m.GettingStartedComponent),
   },
+  { path: 'installation', loadComponent: () => import('@shared-demos/demos/installation.component').then((m) => m.InstallationComponent) },
+  { path: 'key-patterns', loadComponent: () => import('@shared-demos/demos/key-patterns.component').then((m) => m.KeyPatternsComponent) },
+
+  // Foundations
+  { path: 'foundations/:slug', loadComponent: article },
+  ...componentPage('icons', () => import('@shared-demos/demos/icons-demo.component').then((m) => m.IconsDemoComponent)),
+  ...componentPage('motion', () => import('@shared-demos/demos/motion-demo.component').then((m) => m.MotionDemoComponent)),
+
+  // Components — forms & inputs
+  ...componentPage('forms', () => import('@shared-demos/demos/forms-demo.component').then((m) => m.FormsDemoComponent)),
+  ...componentPage('wizard', () => import('@shared-demos/demos/wizard-demo.component').then((m) => m.WizardDemoComponent)),
+  ...componentPage('input', () => import('@shared-demos/demos/input-demo.component').then((m) => m.InputDemoComponent)),
+  ...componentPage('select', () => import('@shared-demos/demos/select-demo.component').then((m) => m.SelectDemoComponent)),
+  ...componentPage('datepicker', () => import('@shared-demos/demos/datepicker-demo.component').then((m) => m.DatepickerDemoComponent)),
+  ...componentPage('timepicker', () => import('@shared-demos/demos/timepicker-demo.component').then((m) => m.TimepickerDemoComponent)),
+  ...componentPage('editor', () => import('@shared-demos/demos/editor-demo.component').then((m) => m.EditorDemoComponent)),
+
+  // Components — data display
+  ...componentPage('table', () => import('@shared-demos/demos/table-demo.component').then((m) => m.TableDemoComponent)),
+  ...componentPage('datagrid', () => import('@shared-demos/demos/datagrid-demo.component').then((m) => m.DataGridDemoComponent)),
+  ...componentPage('tree-table', () => import('@shared-demos/demos/tree-table-demo.component').then((m) => m.TreeTableDemoComponent)),
+  ...componentPage('tree', () => import('@shared-demos/demos/tree-demo.component').then((m) => m.TreeDemoComponent)),
+  ...componentPage('virtual-scroller', () =>
+    import('@shared-demos/demos/virtual-scroller-demo.component').then((m) => m.VirtualScrollerDemoComponent),
+  ),
+
+  // Components — navigation
+  ...componentPage('menu', () => import('@shared-demos/demos/menu-demo.component').then((m) => m.MenuDemoComponent)),
+  ...componentPage('app-shell', () => import('@shared-demos/demos/app-shell-demo.component').then((m) => m.AppShellDemoComponent)),
   {
-    path: 'installation',
-    loadComponent: () => import('@shared-demos/demos/installation.component').then((m) => m.InstallationComponent),
+    path: 'breadcrumbs',
+    data: { breadcrumb: 'Breadcrumbs' },
+    loadComponent: () => import('@shared-demos/demos/breadcrumbs-demo.component').then((m) => m.BreadcrumbsDemoComponent),
   },
-  {
-    path: 'key-patterns',
-    loadComponent: () => import('@shared-demos/demos/key-patterns.component').then((m) => m.KeyPatternsComponent),
-  },
-  // Forms
-  { path: 'forms', redirectTo: 'forms/layouts', pathMatch: 'full' },
-  { path: 'forms/:feature', loadComponent: () => import('@shared-demos/demos/forms-demo.component').then((m) => m.FormsDemoComponent) },
-  { path: 'wizard', redirectTo: 'wizard/linear', pathMatch: 'full' },
-  { path: 'wizard/:feature', loadComponent: () => import('@shared-demos/demos/wizard-demo.component').then((m) => m.WizardDemoComponent) },
-  // Data Display
-  { path: 'table', redirectTo: 'table/basic', pathMatch: 'full' },
-  { path: 'table/:feature', loadComponent: () => import('@shared-demos/demos/table-demo.component').then((m) => m.TableDemoComponent) },
-  { path: 'datagrid', redirectTo: 'datagrid/client', pathMatch: 'full' },
-  {
-    path: 'datagrid/:feature',
-    loadComponent: () => import('@shared-demos/demos/datagrid-demo.component').then((m) => m.DataGridDemoComponent),
-  },
-  { path: 'tree-table', redirectTo: 'tree-table/treenode', pathMatch: 'full' },
-  {
-    path: 'tree-table/:feature',
-    loadComponent: () => import('@shared-demos/demos/tree-table-demo.component').then((m) => m.TreeTableDemoComponent),
-  },
-  { path: 'virtual-scroller', redirectTo: 'virtual-scroller/basic', pathMatch: 'full' },
-  {
-    path: 'virtual-scroller/:feature',
-    loadComponent: () => import('@shared-demos/demos/virtual-scroller-demo.component').then((m) => m.VirtualScrollerDemoComponent),
-  },
-  { path: 'tree', redirectTo: 'tree/basic', pathMatch: 'full' },
-  { path: 'tree/:feature', loadComponent: () => import('@shared-demos/demos/tree-demo.component').then((m) => m.TreeDemoComponent) },
-  { path: 'pdf-viewer', redirectTo: 'pdf-viewer/basic', pathMatch: 'full' },
-  {
-    path: 'pdf-viewer/:feature',
-    loadComponent: () => import('@shared-demos/demos/pdf-viewer-demo.component').then((m) => m.PdfViewerDemoComponent),
-  },
-  { path: 'document-viewer', redirectTo: 'document-viewer/basic', pathMatch: 'full' },
-  {
-    path: 'document-viewer/:feature',
-    loadComponent: () => import('@shared-demos/demos/document-viewer-demo.component').then((m) => m.DocumentViewerDemoComponent),
-  },
-  // Inputs
-  { path: 'input', redirectTo: 'input/basic', pathMatch: 'full' },
-  { path: 'input/:feature', loadComponent: () => import('@shared-demos/demos/input-demo.component').then((m) => m.InputDemoComponent) },
-  { path: 'select', redirectTo: 'select/basic', pathMatch: 'full' },
-  { path: 'select/:feature', loadComponent: () => import('@shared-demos/demos/select-demo.component').then((m) => m.SelectDemoComponent) },
-  { path: 'datepicker', redirectTo: 'datepicker/basic', pathMatch: 'full' },
-  {
-    path: 'datepicker/:feature',
-    loadComponent: () => import('@shared-demos/demos/datepicker-demo.component').then((m) => m.DatepickerDemoComponent),
-  },
-  { path: 'timepicker', redirectTo: 'timepicker/basic', pathMatch: 'full' },
-  {
-    path: 'timepicker/:feature',
-    loadComponent: () => import('@shared-demos/demos/timepicker-demo.component').then((m) => m.TimepickerDemoComponent),
-  },
-  { path: 'editor', redirectTo: 'editor/basic', pathMatch: 'full' },
-  { path: 'editor/:feature', loadComponent: () => import('@shared-demos/demos/editor-demo.component').then((m) => m.EditorDemoComponent) },
-  // Navigation
-  { path: 'menu', redirectTo: 'menu/basic', pathMatch: 'full' },
-  { path: 'menu/:feature', loadComponent: () => import('@shared-demos/demos/menu-demo.component').then((m) => m.MenuDemoComponent) },
-  { path: 'app-shell', redirectTo: 'app-shell/navbar', pathMatch: 'full' },
-  {
-    path: 'app-shell/:feature',
-    loadComponent: () => import('@shared-demos/demos/app-shell-demo.component').then((m) => m.AppShellDemoComponent),
-  },
-  { path: 'breadcrumbs', redirectTo: 'breadcrumbs/basic', pathMatch: 'full' },
   {
     path: 'breadcrumbs/:feature',
     data: { breadcrumb: 'Breadcrumbs' },
     loadComponent: () => import('@shared-demos/demos/breadcrumbs-demo.component').then((m) => m.BreadcrumbsDemoComponent),
   },
-  { path: 'tabs', redirectTo: 'tabs/basic', pathMatch: 'full' },
-  { path: 'tabs/:feature', loadComponent: () => import('@shared-demos/demos/tabs-demo.component').then((m) => m.TabsDemoComponent) },
-  { path: 'command-palette', redirectTo: 'command-palette/basic', pathMatch: 'full' },
-  {
-    path: 'command-palette/:feature',
-    loadComponent: () => import('@shared-demos/demos/command-palette-demo.component').then((m) => m.CommandPaletteDemoComponent),
-  },
-  // Feedback
-  { path: 'toast', redirectTo: 'toast/basic', pathMatch: 'full' },
-  { path: 'toast/:feature', loadComponent: () => import('@shared-demos/demos/toast-demo.component').then((m) => m.ToastDemoComponent) },
-  { path: 'notification', redirectTo: 'notification/basic', pathMatch: 'full' },
-  {
-    path: 'notification/:feature',
-    loadComponent: () => import('@shared-demos/demos/notification-demo.component').then((m) => m.NotificationDemoComponent),
-  },
-  { path: 'alert', redirectTo: 'alert/basic', pathMatch: 'full' },
-  { path: 'alert/:feature', loadComponent: () => import('@shared-demos/demos/alert-demo.component').then((m) => m.AlertDemoComponent) },
-  { path: 'dialog', redirectTo: 'dialog/basic', pathMatch: 'full' },
-  { path: 'dialog/:feature', loadComponent: () => import('@shared-demos/demos/dialog-demo.component').then((m) => m.DialogDemoComponent) },
-  // Utilities
-  { path: 'motion', redirectTo: 'motion/animate', pathMatch: 'full' },
-  { path: 'motion/:feature', loadComponent: () => import('@shared-demos/demos/motion-demo.component').then((m) => m.MotionDemoComponent) },
-  // WASM engine validation
+  ...componentPage('tabs', () => import('@shared-demos/demos/tabs-demo.component').then((m) => m.TabsDemoComponent)),
+  ...componentPage('command-palette', () =>
+    import('@shared-demos/demos/command-palette-demo.component').then((m) => m.CommandPaletteDemoComponent),
+  ),
+
+  // Components — feedback
+  ...componentPage('toast', () => import('@shared-demos/demos/toast-demo.component').then((m) => m.ToastDemoComponent)),
+  ...componentPage('notification', () =>
+    import('@shared-demos/demos/notification-demo.component').then((m) => m.NotificationDemoComponent),
+  ),
+  ...componentPage('alert', () => import('@shared-demos/demos/alert-demo.component').then((m) => m.AlertDemoComponent)),
+  ...componentPage('dialog', () => import('@shared-demos/demos/dialog-demo.component').then((m) => m.DialogDemoComponent)),
+
+  // Components — editors & documents
+  ...componentPage('pdf-viewer', () => import('@shared-demos/demos/pdf-viewer-demo.component').then((m) => m.PdfViewerDemoComponent)),
+  ...componentPage('document-viewer', () =>
+    import('@shared-demos/demos/document-viewer-demo.component').then((m) => m.DocumentViewerDemoComponent),
+  ),
+  ...componentPage('document-editor', () =>
+    import('@shared-demos/demos/document-editor-demo.component').then((m) => m.DocumentEditorDemoComponent),
+  ),
+
+  // Features & systems, guides, architecture, contributing (long-form articles)
+  { path: 'systems/:slug', loadComponent: article },
+  { path: 'guides/:slug', loadComponent: article },
+  { path: 'architecture/:slug', loadComponent: article },
+  { path: 'contributing', loadComponent: article },
+
+  // API reference (generated)
+  { path: 'api', loadComponent: api },
+  { path: 'api/:name', loadComponent: api },
+
+  // Lab — WASM engine validation (not in the sidebar)
   {
     path: 'engine-stress',
     loadComponent: () => import('@shared-demos/demos/engine-stress-demo.component').then((m) => m.EngineStressDemoComponent),
   },
+
+  { path: '**', loadComponent: () => import('@shared-demos/platform/pages/not-found.component').then((m) => m.NotFoundComponent) },
 ];

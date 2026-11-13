@@ -1,6 +1,6 @@
 /*
- * @hakistack/ui
- * Reusable Angular UI components with DaisyUI and Tailwind CSS
+ * @hakistack/ng-daisyui — public API (the single source of truth for package exports).
+ * Anything not re-exported here is internal. Internal barrels (lib/components/index.ts) must not be re-exported here.
  */
 
 // ============================================================================
@@ -82,8 +82,10 @@ export type {
   FileFieldOptions,
   HiddenFieldOptions,
   DynamicFormLabels,
-  provideDynamicFormLabels,
 } from './lib/components/dynamic-form/dynamic-form.types';
+// Value export: this is a provider function, so it cannot live in the `export type` block above
+// (consumers calling it got TS1361 "cannot be used as a value").
+export { provideDynamicFormLabels } from './lib/components/dynamic-form/dynamic-form.types';
 
 // Table
 export { TableComponent } from './lib/components/table/table.component';
@@ -191,6 +193,7 @@ export type {
   RowGroup,
   GroupExpandEvent,
   ResolvedGroupAggregates,
+  HkTableApi,
 } from './lib/components/table/table.types';
 export type { AggregateFunction } from './lib/grid-core/grid-aggregates';
 

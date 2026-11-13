@@ -1,18 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { ApiTableComponent } from './api-table.component';
 import type { ApiDocEntry } from './api-table.types';
-import { API_DOCS, type ApiComponentName, type ApiOutputEntry } from '../api-docs.generated';
+import type { ApiSymbolName } from '../platform/api/api-manifest.generated';
+import { ApiManifestService } from '../platform/api/api-manifest.service';
 
 /**
- * Drop-in replacement for hand-rolled API tables on demo pages.
- *
- * Pulls the component's inputs/outputs from `api-docs.generated.ts` (built
- * by `npm run extract-api-docs`) and feeds them straight into the existing
- * `<app-api-table>` chrome. The page author writes one tag instead of two
- * `ApiDocEntry[]` literals, and the table stays in sync with the lib's
- * source as long as the extractor is re-run.
- *
- * Renders nothing if both the inputs and outputs lists are empty.
+ * Inputs/outputs table for one component, read from the generated API
+ * manifest (`npm run extract-api-docs`). The `component` name is type-checked
+ * against the exported symbols, so a renamed or removed component fails the
+ * demo build instead of silently showing stale docs.
  *
  * @example
  *   <app-api-docs-for component="EditorComponent" />
@@ -22,10 +18,12 @@ import { API_DOCS, type ApiComponentName, type ApiOutputEntry } from '../api-doc
   imports: [ApiTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (api(); as a) {
+    @if (!manifest.symbols()) {
+      <p class="text-sm text-base-content/70" role="status">Loading API…</p>
+    } @else if (api(); as a) {
       <div class="space-y-4">
         @if (a.description) {
-          <p class="text-sm text-base-content/60 leading-relaxed">{{ a.description }}</p>
+          <p class="text-sm text-base-content/70 leading-relaxed">{{ a.description }}</p>
         }
         @if (inputEntries().length > 0) {
           <app-api-table title="Inputs" [entries]="inputEntries()" />
@@ -37,37 +35,31 @@ import { API_DOCS, type ApiComponentName, type ApiOutputEntry } from '../api-doc
     } @else {
       <div class="alert alert-warning text-sm">
         No API metadata found for <code>{{ component() }}</code
-        >. Run <code>npm run extract-api-docs</code> after adding new components.
+        >. Run <code>npm run extract-api-docs</code>.
       </div>
     }
   `,
 })
 export class ApiDocsForComponent {
-  readonly component = input.required<ApiComponentName>();
+  readonly component = input.required<ApiSymbolName>();
+  protected readonly manifest = inject(ApiManifestService);
 
-  protected readonly api = computed(() => API_DOCS[this.component()] ?? null);
+  protected readonly api = computed(() => this.manifest.byName().get(this.component()) ?? null);
 
-  protected readonly inputEntries = computed<ApiDocEntry[]>(() => {
-    const a = this.api();
-    if (!a) return [];
-    return a.inputs.map((i) => ({
-      name: i.name,
+  protected readonly inputEntries = computed<ApiDocEntry[]>(() =>
+    (this.api()?.inputs ?? []).map((i) => ({
+      name: i.required ? `${i.name} (required)` : i.model ? `${i.name} (model)` : i.name,
       type: i.type,
       default: i.default,
-      description: i.description,
-    }));
-  });
+      description: i.description ?? '',
+    })),
+  );
 
-  protected readonly outputEntries = computed<ApiDocEntry[]>(() => {
-    const a = this.api();
-    if (!a) return [];
-    return a.outputs.map((o: ApiOutputEntry) => ({
-      name: o.name,
-      type: o.type,
-      // `<app-api-table>` always shows a "Default" column; outputs never
-      // have one, so blank it out (the table renders "-" for missing).
-      default: undefined,
-      description: o.description,
-    }));
-  });
+  protected readonly outputEntries = computed<ApiDocEntry[]>(() =>
+    (this.api()?.outputs ?? []).map((o) => ({ name: o.name, type: o.type, default: undefined, description: o.description ?? '' })),
+  );
+
+  constructor() {
+    void this.manifest.load();
+  }
 }

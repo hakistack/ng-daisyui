@@ -705,6 +705,20 @@ describe('TreeComponent', () => {
     });
   });
 
+  // -------- Accessibility --------
+  describe('checkbox accessibility', () => {
+    it('gives every checkbox an accessible name (the node label)', () => {
+      const nodes = makeSimpleTree();
+      fixture.componentRef.setInput('nodes', nodes);
+      fixture.componentRef.setInput('config', { selectionMode: 'checkbox' } as TreeConfig);
+      fixture.detectChanges();
+
+      const boxes = Array.from(fixture.nativeElement.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
+      expect(boxes.length).toBeGreaterThan(0);
+      for (const box of boxes) expect(box.getAttribute('aria-label')).toBeTruthy();
+    });
+  });
+
   // -------- Single selection --------
   describe('single selection', () => {
     it('should select a node', () => {

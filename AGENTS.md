@@ -11,6 +11,8 @@ npm run build              # Production build to dist/hakistack/ng-daisyui
 npm run build:watch        # Development build with watch mode
 npm run watch              # Alias for build:watch with development config
 npm test                   # Run unit tests (Vitest)
+npm run docs:check         # Docs in sync with public API (manifest, ownership, routes, links, ES/EN)
+npm run docs:snippets      # Compile every docs quickStart + playground snippet (strict templates)
 npm run publish:local      # npm link from dist for local testing
 npm run publish:npm        # Publish to npmjs (public, MIT)
 npm run release:patch      # Bump patch version and build
@@ -20,7 +22,7 @@ npm run release:major      # Bump major version and build
 
 ## Architecture
 
-This is an Angular 21 monorepo containing a single UI component library (`@hakistack/ng-daisyui`).
+This is an Angular 21 monorepo for the `@hakistack/ng-daisyui` UI library (plus the smaller `@hakistack/i18n` package in `projects/hakistack/i18n`, built with `npm run build:i18n`).
 
 ### Project Structure
 
@@ -31,7 +33,7 @@ projects/
 │   │   ├── components/     # Standalone UI components
 │   │   ├── grid-core/      # Render-agnostic grid logic shared by hk-table + hk-datagrid (controllers, WASM table engine, aggregates, types). Must not import from components/ (ESLint-enforced)
 │   │   ├── directives/     # Animation and behavior directives
-│   │   ├── services/       # FormStateService, PipeRegistryService, AccessibilityService
+│   │   ├── services/       # DialogService, FormStateService, PipeRegistryService, WASM engine services
 │   │   ├── helpers/        # Pagination helpers, search algorithms, fake data
 │   │   ├── types/          # Shared TypeScript definitions
 │   │   └── utils/          # Utility functions
@@ -48,7 +50,7 @@ projects/
 - **Signals & Computed**: Angular 21 signals for reactive state (`signal()`, `computed()`, `input()`, `output()`)
 - **Builder Functions**: `createForm()`, `createTable()`, `field.*()`, `step()` for type-safe configuration
 - **FormController Pattern**: `createForm()` returns a controller with `config`, `submit()`, `reset()` for external control
-- **Injection Tokens**: `CUSTOM_PIPES`, `FORM_STATE_OPTIONS` for extensibility
+- **Configuration via provider functions** (`providePipes()`, `provideToast()`, `provideHk*Labels()`…); the injection tokens behind them are internal unless exported from `public-api.ts`
 - **Provider Functions**: `provideFormState()` for optional service configuration
 
 ### DynamicFormComponent Usage
@@ -88,16 +90,30 @@ const form = createForm({
 
 - **DynamicFormComponent**: Form builder with wizard support, auto-save, conditional logic (showWhen/hideWhen/requiredWhen/disabledWhen). No built-in buttons - use FormController.
 - **TableComponent**: Data table with sorting, filtering, pagination (cursor + offset), CDK DataSource integration, PipeRegistry formatters
-- **DataGridComponent** (`hk-datagrid`): Enterprise grid built on `grid-core` — one render pipeline with row + column virtualization, multi-sort, ARIA grid keyboard model (aria-activedescendant), serializable `DataGridState` (`getState`/`setState` with validation issues, `stateSchema()` JSON Schema for the AI layer), client or server `dataSource`. AI layer built in: the consumer passes `ai: { apiKey }` (from their environment) and `controller.ask(query)` calls Codex from the browser with structured outputs (`lib/utils/Codex-json.ts`, `@anthropic-ai/sdk` as an optional peer loaded with dynamic import); the reply goes through `setState`. `ai.complete` is an optional custom transport. New grid features go here, not in hk-table.
+- **DataGridComponent** (`hk-datagrid`): Enterprise grid built on `grid-core` — one render pipeline with row + column virtualization, multi-sort, ARIA grid keyboard model (aria-activedescendant), serializable `DataGridState` (`getState`/`setState` with validation issues, `stateSchema()` JSON Schema for the AI layer), client or server `dataSource`. AI layer built in: the consumer passes `ai: { apiKey }` (from their environment) and `controller.ask(query)` calls Codex from the browser with structured outputs (`lib/utils/claude-json.ts`, `@anthropic-ai/sdk` as an optional peer loaded with dynamic import); the reply goes through `setState`. `ai.complete` is an optional custom transport. New grid features go here, not in hk-table.
 - **SelectComponent**: Enhanced dropdown with search and virtual scrolling
 - **DatepickerComponent**: Date/range picker with keyboard navigation
 - **StepperComponent**: Multi-step wizard (extends CDK Stepper)
 - **TabGroup/TabPanel**: Accessible tabs with icon support
 - **ToastService/ToastComponent**: Notification system with stacking
 
+### Docs platform (demo app = official docs)
+
+The `demo` app is the documentation site. Pieces live in `projects/shared-demos/platform/`:
+
+- `catalog/pages.ts` — every docs page (route, section, plain-language summary EN/ES, keywords, examples, and `areas`/`symbols` = which public API it owns). Drives the sidebar, search and coverage.
+- `content/components/<id>.ts`, `content/articles/<id>.ts` — lazy long-form content (`{ en, es }` everywhere).
+- `api/api-manifest.generated.ts` — generated by `npm run extract-api-docs` from `public-api.ts` (TS type checker). Never edit by hand; API tables/pages read only from it.
+- `playground/` — typed playground specs + lazy hosts; controls must map to real inputs (checked).
+- Demo components (`shared-demos/demos/*`) are the live examples; `app-demo-page` wraps them with Overview / Examples / Playground / API / Accessibility / Technical tabs (`?tab=`).
+
+**Adding or changing public API:** export it in `public-api.ts` → `npm run extract-api-docs` → make sure a page in `catalog/pages.ts` owns its area → add the route + demo → `npm run docs:check && npm run docs:snippets && npm run test:docs`. CI runs the same checks; `npm run docs:report` regenerates `docs/audit/documentation-*.md`.
+
 ### Dependencies
 
-**Required peer dependencies**: Tailwind CSS v4+, DaisyUI v5+, @angular/cdk, @lucide/angular, fuse.js, motion
+**Required peer dependencies** (`^21` for Angular): @angular/core, common, forms, router, cdk, aria; rxjs ^7.8; Tailwind CSS v4; daisyUI v5. **Bundled dependencies**: @lucide/angular, fuse.js, motion, libphonenumber-js, uuid, @tiptap/* (editor only, lazy). **Optional peers** (lazy-loaded features): docx-preview, @kenjiuno/msgreader, postal-mime, heic2any, dompurify, foliate-js, @anthropic-ai/sdk, ts-morph (schematics).
+
+**Package checks**: `npm run test:consumer` packs `dist/`, installs it into a clean app with only required peers, builds it and enforces the initial-JS budget. Architecture, conventions and the backlog live in `docs/architecture/` and `docs/maintenance/`.
 
 ## Code Style
 

@@ -397,9 +397,16 @@ export class AlertService {
       return Promise.resolve({ isConfirmed: false, isDismissed: true, isCancelled: false, dismissReason: 'close' });
     }
 
-    // Dismiss previous non-loading alert (single-alert stacking)
+    // Dismiss previous non-loading alert (single-alert stacking). Settle its promise first:
+    // removing the overlay alone left `await alert.confirm()` callers hanging forever.
     if (this.currentAlertId) {
-      this.removeOverlay(this.currentAlertId);
+      const previousId = this.currentAlertId;
+      const previous = this.compRef.instance.overlays().find((o) => o.id === previousId);
+      if (previous?.resolve) {
+        previous.resolve({ isConfirmed: false, isDismissed: true, isCancelled: false, dismissReason: 'close' });
+      } else {
+        this.removeOverlay(previousId);
+      }
     }
 
     return new Promise<AlertResult>((resolve) => {

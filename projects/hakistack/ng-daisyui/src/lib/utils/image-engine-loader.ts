@@ -1,3 +1,5 @@
+import { decodeBase64, onceAsync } from './wasm-loader';
+
 /**
  * Shared loader for the **image** WASM bundle.
  *
@@ -22,8 +24,14 @@ export interface ImageEngineModule {
   [key: string]: unknown;
 }
 
-let modPromise: Promise<ImageEngineModule> | null = null;
 let mod: ImageEngineModule | null = null;
+
+/** First successful load wins; a failed load is retried on the next call (see `onceAsync`). */
+const loadOnce = /* @__PURE__ */ onceAsync(async (urlOverride: string | null): Promise<ImageEngineModule> => {
+  const m = urlOverride ? await loadFromUrl(urlOverride) : await loadInlined();
+  mod = m;
+  return m;
+});
 
 /**
  * Resolve the image engine module, initializing it on first call.
@@ -33,12 +41,7 @@ let mod: ImageEngineModule | null = null;
  */
 export async function loadImageEngineModule(urlOverride: string | null): Promise<ImageEngineModule> {
   if (mod) return mod;
-  modPromise ??= (async () => {
-    const m = urlOverride ? await loadFromUrl(urlOverride) : await loadInlined();
-    mod = m;
-    return m;
-  })();
-  return modPromise;
+  return loadOnce(urlOverride);
 }
 
 /** True when the image engine module has finished loading at least once. */
@@ -68,11 +71,4 @@ async function loadFromUrl(url: string): Promise<ImageEngineModule> {
   }
   await glue.default();
   return glue;
-}
-
-function decodeBase64(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
 }

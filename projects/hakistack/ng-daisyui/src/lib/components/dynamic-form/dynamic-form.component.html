@@ -196,6 +196,28 @@
             }
           </div>
         }
+        @case ('multiselect') {
+          <!-- Without this case, field.multiSelect() fell through to @default and rendered <input type="multiselect">. -->
+          <div class="relative">
+            <hk-select
+              [id]="field.id"
+              [multiple]="true"
+              [options]="getFieldOptions(field)"
+              [formControlName]="field.key"
+              [placeholder]="
+                isFieldOptionsLoading(field)
+                  ? field.optionsFrom?.loadingPlaceholder || formLabels().loadingOptionsPlaceholder
+                  : field.placeholder
+              "
+              [enableSearch]="field.enableSearch"
+              [class.pointer-events-none]="isFieldOptionsLoading(field)"
+              [class.opacity-60]="isFieldOptionsLoading(field)"
+            ></hk-select>
+            @if (isFieldOptionsLoading(field)) {
+              <span class="loading loading-spinner loading-xs absolute right-10 top-1/2 -translate-y-1/2"></span>
+            }
+          </div>
+        }
         @case ('checkbox') {
           <label [for]="field.id" class="flex cursor-pointer items-center gap-2">
             <input [id]="field.id" [formControlName]="field.key" type="checkbox" class="checkbox" />

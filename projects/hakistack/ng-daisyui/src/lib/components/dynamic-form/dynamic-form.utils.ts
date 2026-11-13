@@ -3,12 +3,17 @@ import { FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms'
 import { ConditionEngine } from './condition-engine';
 import { ConditionalLogic, FormFieldConfig } from './dynamic-form.types';
 
+const EMPTY_VALIDATORS = /* @__PURE__ */ Object.freeze([]) as unknown as ValidatorFn[];
+const EMPTY_ARRAY: readonly unknown[] = /* @__PURE__ */ Object.freeze([]);
+
 export class FormUtils {
   private static readonly validatorCache = new Map<string, ValidatorFn[]>();
   private static readonly groupCache = new Map<string, Map<string, readonly FormFieldConfig[]>>();
 
-  private static readonly EMPTY_VALIDATORS: ValidatorFn[] = Object.freeze([]) as unknown as ValidatorFn[];
-  private static readonly EMPTY_ARRAY: readonly unknown[] = Object.freeze([]);
+  // Module-level, PURE-annotated: a static initializer that calls a function (Object.freeze)
+  // makes the class side-effectful and stops bundlers from tree-shaking FormUtils.
+  private static readonly EMPTY_VALIDATORS: ValidatorFn[] = EMPTY_VALIDATORS;
+  private static readonly EMPTY_ARRAY: readonly unknown[] = EMPTY_ARRAY;
 
   private static readonly MAX_VALIDATOR_CACHE_SIZE = 500;
   private static readonly MAX_GROUP_CACHE_SIZE = 100;

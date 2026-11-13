@@ -2,7 +2,17 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, forwardRef, i
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { LucideDynamicIcon, LucideEye, LucideEyeOff } from '@lucide/angular';
 import { VARIANT_STRATEGY_MAP } from './input-variant-strategies';
-import { CurrencyConfig, InputColor, InputSize, InputVariant, PasswordConfig, PercentageConfig, PhoneConfig } from './input.types';
+import {
+  CurrencyConfig,
+  INPUT_COLOR_CLASSES,
+  INPUT_SIZE_CLASSES,
+  InputColor,
+  InputSize,
+  InputVariant,
+  PasswordConfig,
+  PercentageConfig,
+  PhoneConfig,
+} from './input.types';
 
 @Component({
   selector: 'hk-input',
@@ -173,10 +183,10 @@ export class InputComponent implements ControlValueAccessor {
 
   readonly inputClasses = computed(() => {
     const classes = ['input', 'w-full'];
-    const s = this.size();
-    if (s !== 'md') classes.push(`input-${s}`);
+    const sizeClass = INPUT_SIZE_CLASSES[this.size()];
+    if (sizeClass) classes.push(sizeClass);
     const c = this.color();
-    if (c) classes.push(`input-${c}`);
+    if (c) classes.push(INPUT_COLOR_CLASSES[c]);
     if (this.hasPrefix()) classes.push('pl-10');
     if (this.hasSuffix()) classes.push('pr-10');
     return classes.join(' ');

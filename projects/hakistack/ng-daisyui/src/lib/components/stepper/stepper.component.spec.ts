@@ -172,17 +172,17 @@ function getNavigationButtons(fixture: ComponentFixture<unknown>): HTMLButtonEle
 
 function getPreviousButton(fixture: ComponentFixture<unknown>): HTMLButtonElement | null {
   const buttons = getNavigationButtons(fixture);
-  return buttons.find(b => b.textContent?.trim().includes('Previous') || b.textContent?.trim().includes('Back')) ?? null;
+  return buttons.find((b) => b.textContent?.trim().includes('Previous') || b.textContent?.trim().includes('Back')) ?? null;
 }
 
 function getNextButton(fixture: ComponentFixture<unknown>): HTMLButtonElement | null {
   const buttons = getNavigationButtons(fixture);
-  return buttons.find(b => b.textContent?.trim().includes('Next') || b.textContent?.trim().includes('Forward')) ?? null;
+  return buttons.find((b) => b.textContent?.trim().includes('Next') || b.textContent?.trim().includes('Forward')) ?? null;
 }
 
 function getCompleteButton(fixture: ComponentFixture<unknown>): HTMLButtonElement | null {
   const buttons = getNavigationButtons(fixture);
-  return buttons.find(b => b.textContent?.trim().includes('Complete') || b.textContent?.trim().includes('Finish')) ?? null;
+  return buttons.find((b) => b.textContent?.trim().includes('Complete') || b.textContent?.trim().includes('Finish')) ?? null;
 }
 
 function getStepContent(fixture: ComponentFixture<unknown>): HTMLElement | null {
@@ -240,6 +240,23 @@ describe('StepperComponent', () => {
 
       const indicators = getStepIndicators(fixture);
       expect(indicators.length).toBe(3);
+    });
+
+    it('should link each tab to the panel with ids that exist (aria-controls / aria-labelledby)', async () => {
+      await TestBed.configureTestingModule({
+        imports: [BasicStepperTestHostComponent],
+      }).compileComponents();
+
+      const fixture = TestBed.createComponent(BasicStepperTestHostComponent);
+      fixture.detectChanges();
+
+      const root = fixture.nativeElement as HTMLElement;
+      const panel = root.querySelector('[role="tabpanel"]') as HTMLElement;
+      const labelledBy = panel.getAttribute('aria-labelledby');
+      expect(labelledBy).toBeTruthy();
+      const activeTab = root.ownerDocument.getElementById(labelledBy!) as HTMLElement;
+      expect(activeTab?.getAttribute('role')).toBe('tab');
+      expect(activeTab.getAttribute('aria-controls')).toBe(panel.id);
     });
 
     it('should display step labels', async () => {
@@ -1003,7 +1020,10 @@ describe('StepperComponent', () => {
       fixture.detectChanges();
 
       const tabpanel = fixture.nativeElement.querySelector('[role="tabpanel"]');
-      expect(tabpanel?.getAttribute('aria-labelledby')).toBe('step-0');
+      // Must reference the first tab's real id (it used to point at a non-existent 'step-0').
+      const firstTab = fixture.nativeElement.querySelector('[role="tab"]') as HTMLElement;
+      expect(firstTab.id).toBeTruthy();
+      expect(tabpanel?.getAttribute('aria-labelledby')).toBe(firstTab.id);
     });
   });
 

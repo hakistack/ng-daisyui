@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Post-build script to fix package.json exports for dual Angular/Tailwind usage.
+ * Post-build script: adds the non-JS export conditions ng-packagr does not generate.
  *
- * Solution: Use `browser` condition for bundlers (Vite runs in browser context),
- * while `default` falls through to the Tailwind plugin for jiti (Node context).
+ * - `style` on "." lets Tailwind v4 resolve `@import "@hakistack/ng-daisyui";` to styles.css.
+ * - `browser` / `default` both point at the FESM (Angular CLI / Vite resolve the JS entry).
+ * - `./styles`, `./styles-v4(.css)` expose the precompiled stylesheets.
  *
- * - Vite checks `browser` for browser builds → gets Angular code
- * - Angular tooling checks `esm2022` → gets Angular code
- * - Tailwind's jiti (Node) doesn't use `browser`, falls to `default` → gets plugin
+ * Only reference files that ng-packagr actually emits: Angular 21 no longer produces an
+ * `esm2022/` folder, so the old `esm2022` / `esm` conditions pointed at nothing.
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -22,8 +22,6 @@ const packageJson = JSON.parse(readFileSync(distPackageJsonPath, 'utf-8'));
 packageJson.exports['.'] = {
   types: './types/hakistack-ng-daisyui.d.ts',
   browser: './fesm2022/hakistack-ng-daisyui.mjs',
-  esm2022: './esm2022/hakistack-ng-daisyui.mjs',
-  esm: './esm2022/hakistack-ng-daisyui.mjs',
   style: './styles.css',
   default: './fesm2022/hakistack-ng-daisyui.mjs',
 };

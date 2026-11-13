@@ -1059,7 +1059,7 @@ export class DynamicFormComponent {
       if (autoSaveConfig?.enabled && formId && this.isStepperMode() && this.formStateService.isConfigured) {
         this.pendingSave.set({
           formId,
-          values: this.formGroup().value,
+          values: this.persistableValues(this.formGroup().value),
           metadata: {
             currentStep,
             completedSteps: [...completedSteps],
@@ -1090,6 +1090,18 @@ export class DynamicFormComponent {
   }
 
   /** Get normalized auto-save config */
+  /**
+   * Values that auto-save may persist. Password fields are never written to storage (they would
+   * sit in localStorage/sessionStorage in plaintext) and file inputs are not serializable.
+   */
+  private persistableValues(values: Record<string, unknown>): Record<string, unknown> {
+    const config = this.config();
+    const allFields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
+    const excluded = new Set(allFields.filter((f) => f.type === 'password' || f.type === 'file').map((f) => f.key));
+    if (excluded.size === 0) return values;
+    return Object.fromEntries(Object.entries(values).filter(([key]) => !excluded.has(key)));
+  }
+
   private getAutoSaveConfig(): AutoSaveConfig | null {
     const config = this.config();
     if (!config.autoSave) return null;
@@ -1278,7 +1290,7 @@ export class DynamicFormComponent {
         if (autoSaveConfig?.enabled && formId && this.formStateService.isConfigured && this.restorationComplete()) {
           this.pendingSave.set({
             formId,
-            values,
+            values: this.persistableValues(values),
             // Include stepper state in metadata for restoration
             metadata: this.isStepperMode()
               ? {

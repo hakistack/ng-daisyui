@@ -62,6 +62,29 @@ jobs:
 
       - run: npm test
 
+      - run: npm run test:schematics
+
+  docs:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      # API manifest up to date, every public symbol owned by a docs page, routes/links/translations valid.
+      - run: npm run docs:check
+      # Every quickStart and generated playground snippet compiles with strict templates.
+      - run: npm run docs:snippets
+      - run: npm run test:docs
+
   build:
     needs: install
     runs-on: ubuntu-latest
@@ -79,7 +102,13 @@ jobs:
 
       - run: npm run build
 
+      # Growth guard on the whole-library FESM (not what consumers ship).
       - run: npx size-limit --json
+
+      # Install the packed tarball into a clean Angular app with only the required peers and build it:
+      # catches wrong peer metadata, broken `exports`, type-only value exports, tree-shaking regressions
+      # and enforces the consumer initial-JS budget.
+      - run: npm run test:consumer
 
   # Rust workspace check + tests. Covers document-engine, image-engine,
   # and the other pure-Rust crates. The `libheif-bridge` crate is

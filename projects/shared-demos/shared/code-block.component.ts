@@ -1,9 +1,11 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { highlightCode } from './syntax-highlighter';
+import { CodeLang, highlightCode } from './syntax-highlighter';
 
 @Component({
   selector: 'app-code-block',
+  // `lang` is also an HTML attribute; drop it from the host so it is not read as a document language (axe valid-lang).
+  host: { class: 'block', '[attr.lang]': 'null' },
   template: `
     <div class="code-block relative rounded-xl overflow-hidden">
       <div class="code-header flex items-center justify-between px-3.5 py-2">
@@ -13,7 +15,7 @@ import { highlightCode } from './syntax-highlighter';
           </svg>
           <span>{{ langLabel() }}</span>
         </div>
-        <button class="copy-btn text-xs px-2.5 py-1 rounded-md transition-all" (click)="copyCode()">
+        <button type="button" class="copy-btn text-xs px-2.5 py-1 rounded-md transition-all" (click)="copyCode()">
           @if (copied()) {
             <span class="flex items-center gap-1">
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -35,7 +37,14 @@ import { highlightCode } from './syntax-highlighter';
           }
         </button>
       </div>
-      <div class="code-body overflow-x-auto" [innerHTML]="highlightedHtml()"></div>
+      <!-- Focusable so keyboard users can scroll long lines (axe: scrollable-region-focusable). -->
+      <div
+        class="code-body overflow-x-auto"
+        tabindex="0"
+        role="region"
+        [attr.aria-label]="langLabel() + ' code'"
+        [innerHTML]="highlightedHtml() || plainHtml()"
+      ></div>
     </div>
   `,
   styles: `
@@ -48,11 +57,11 @@ import { highlightCode } from './syntax-highlighter';
       border-bottom: 1px solid var(--cb-border, oklch(0.28 0.01 260));
     }
     .lang-tag {
-      color: var(--cb-tag-color, oklch(0.6 0.01 260));
+      color: var(--cb-tag-color, oklch(0.78 0.01 260));
       text-transform: lowercase;
     }
     .copy-btn {
-      color: var(--cb-btn-color, oklch(0.65 0.01 260));
+      color: var(--cb-btn-color, oklch(0.85 0.01 260));
       background: var(--cb-btn-bg, oklch(0.25 0.01 260));
       border: 1px solid var(--cb-btn-border, oklch(0.32 0.01 260));
     }
@@ -75,8 +84,12 @@ import { highlightCode } from './syntax-highlighter';
 })
 export class CodeBlockComponent {
   code = input.required<string>();
-  lang = input<'typescript' | 'angular-html'>('typescript');
-  readonly langLabel = computed(() => (this.lang() === 'angular-html' ? 'html' : 'typescript'));
+  lang = input<CodeLang>('typescript');
+  readonly langLabel = computed(() => (this.lang() === 'angular-html' ? 'html' : this.lang()));
+  /** Unhighlighted fallback shown until Shiki loads, so code is never blank. */
+  readonly plainHtml = computed(
+    () => `<pre class="shiki"><code>${this.code().trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`,
+  );
   copied = signal(false);
   highlightedHtml = signal<SafeHtml>('');
   private sanitizer = inject(DomSanitizer);

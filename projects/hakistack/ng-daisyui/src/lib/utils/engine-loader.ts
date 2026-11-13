@@ -1,3 +1,5 @@
+import { decodeBase64, onceAsync } from './wasm-loader';
+
 /**
  * Shared loader for the WASM engine module.
  *
@@ -35,8 +37,14 @@ export interface EngineModule {
   [key: string]: unknown;
 }
 
-let modPromise: Promise<EngineModule> | null = null;
 let mod: EngineModule | null = null;
+
+/** First successful load wins; a failed load is retried on the next call (see `onceAsync`). */
+const loadOnce = /* @__PURE__ */ onceAsync(async (urlOverride: string | null): Promise<EngineModule> => {
+  const m = urlOverride ? await loadFromUrl(urlOverride) : await loadInlined();
+  mod = m;
+  return m;
+});
 
 /**
  * Resolve the engine module, initializing it on first call.
@@ -47,12 +55,7 @@ let mod: EngineModule | null = null;
  */
 export async function loadEngineModule(urlOverride: string | null): Promise<EngineModule> {
   if (mod) return mod;
-  modPromise ??= (async () => {
-    const m = urlOverride ? await loadFromUrl(urlOverride) : await loadInlined();
-    mod = m;
-    return m;
-  })();
-  return modPromise;
+  return loadOnce(urlOverride);
 }
 
 /** True when the engine module has finished loading at least once. */
@@ -93,11 +96,4 @@ async function loadFromUrl(url: string): Promise<EngineModule> {
   // relative to its own URL.
   await glue.default();
   return glue;
-}
-
-function decodeBase64(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
 }

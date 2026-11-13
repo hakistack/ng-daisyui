@@ -1,0 +1,58 @@
+import type { ArticleContent, ComponentDocContent } from '../catalog/catalog.types';
+
+/**
+ * Lazy loaders for long-form page content. One chunk per page, so a visitor
+ * only downloads the prose for the page they open.
+ *
+ * Keys are DocPageMeta ids with `hasContent: true` (enforced by docs:check).
+ */
+export const COMPONENT_CONTENT: Record<string, () => Promise<ComponentDocContent>> = {
+  forms: () => import('./components/forms').then((m) => m.default),
+  wizard: () => import('./components/wizard').then((m) => m.default),
+  input: () => import('./components/input').then((m) => m.default),
+  select: () => import('./components/select').then((m) => m.default),
+  datepicker: () => import('./components/datepicker').then((m) => m.default),
+  timepicker: () => import('./components/timepicker').then((m) => m.default),
+  editor: () => import('./components/editor').then((m) => m.default),
+  table: () => import('./components/table').then((m) => m.default),
+  datagrid: () => import('./components/datagrid').then((m) => m.default),
+  'tree-table': () => import('./components/tree-table').then((m) => m.default),
+  tree: () => import('./components/tree').then((m) => m.default),
+  'virtual-scroller': () => import('./components/virtual-scroller').then((m) => m.default),
+  menu: () => import('./components/menu').then((m) => m.default),
+  'app-shell': () => import('./components/app-shell').then((m) => m.default),
+  breadcrumbs: () => import('./components/breadcrumbs').then((m) => m.default),
+  tabs: () => import('./components/tabs').then((m) => m.default),
+  'command-palette': () => import('./components/command-palette').then((m) => m.default),
+  toast: () => import('./components/toast').then((m) => m.default),
+  notification: () => import('./components/notification').then((m) => m.default),
+  alert: () => import('./components/alert').then((m) => m.default),
+  dialog: () => import('./components/dialog').then((m) => m.default),
+  'pdf-viewer': () => import('./components/pdf-viewer').then((m) => m.default),
+  'document-viewer': () => import('./components/document-viewer').then((m) => m.default),
+  'document-editor': () => import('./components/document-editor').then((m) => m.default),
+};
+
+export const ARTICLE_CONTENT: Record<string, () => Promise<ArticleContent>> = {
+  theming: () => import('./articles/theming').then((m) => m.default),
+  accessibility: () => import('./articles/accessibility').then((m) => m.default),
+  i18n: () => import('./articles/i18n').then((m) => m.default),
+  builders: () => import('./articles/builders').then((m) => m.default),
+  'form-state': () => import('./articles/form-state').then((m) => m.default),
+  formatters: () => import('./articles/formatters').then((m) => m.default),
+  'wasm-engines': () => import('./articles/wasm-engines').then((m) => m.default),
+  directives: () => import('./articles/directives').then((m) => m.default),
+  'guide-build-a-form': () => import('./articles/guide-build-a-form').then((m) => m.default),
+  'guide-searchable-table': () => import('./articles/guide-searchable-table').then((m) => m.default),
+  'guide-server-side-data': () => import('./articles/guide-server-side-data').then((m) => m.default),
+  'guide-large-datasets': () => import('./articles/guide-large-datasets').then((m) => m.default),
+  'guide-notifications': () => import('./articles/guide-notifications').then((m) => m.default),
+  'guide-document-viewer-integration': () => import('./articles/guide-document-viewer-integration').then((m) => m.default),
+  'guide-bundle-size': () => import('./articles/guide-bundle-size').then((m) => m.default),
+  'guide-troubleshooting': () => import('./articles/guide-troubleshooting').then((m) => m.default),
+  'architecture-library': () => import('./articles/architecture-library').then((m) => m.default),
+  'architecture-data-pipeline': () => import('./articles/architecture-data-pipeline').then((m) => m.default),
+  'architecture-documents': () => import('./articles/architecture-documents').then((m) => m.default),
+  'architecture-wasm': () => import('./articles/architecture-wasm').then((m) => m.default),
+  contributing: () => import('./articles/contributing').then((m) => m.default),
+};

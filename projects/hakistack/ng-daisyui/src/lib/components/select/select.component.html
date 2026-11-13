@@ -6,7 +6,7 @@
     [attr.role]="multiple() && chipDisplay() && hasSelection() ? 'combobox' : null"
     [attr.aria-haspopup]="multiple() && chipDisplay() && hasSelection() ? 'listbox' : null"
     [attr.aria-expanded]="multiple() && chipDisplay() && hasSelection() ? dropdownOpen() : null"
-    [attr.aria-controls]="multiple() && chipDisplay() && hasSelection() ? 'options-list' : null"
+    [attr.aria-controls]="multiple() && chipDisplay() && hasSelection() ? listboxId : null"
     [attr.aria-activedescendant]="multiple() && chipDisplay() && hasSelection() ? highlightedOptionId() : null"
     [attr.tabindex]="multiple() && chipDisplay() && hasSelection() ? 0 : null"
     [attr.aria-label]="multiple() && chipDisplay() && hasSelection() ? placeholder() : null"
@@ -57,7 +57,7 @@
         role="combobox"
         aria-haspopup="listbox"
         [attr.aria-expanded]="dropdownOpen()"
-        aria-controls="options-list"
+        [attr.aria-controls]="listboxId"
         [attr.aria-activedescendant]="highlightedOptionId()"
         [attr.aria-label]="placeholder()"
         (keydown.enter)="$event.preventDefault(); toggleDropdown()"
@@ -134,7 +134,7 @@
             role="searchbox"
             aria-label="Search options"
             aria-autocomplete="list"
-            aria-controls="options-list"
+            [attr.aria-controls]="listboxId"
           />
           @if (hasSearchTerm()) {
             <button
@@ -174,7 +174,7 @@
     <!-- Options List -->
     @if (shouldUseVirtualScroll()) {
       <cdk-virtual-scroll-viewport #viewport [itemSize]="config.defaultItemSize" class="overflow-auto">
-        <ul id="options-list" role="listbox" [attr.aria-multiselectable]="multiple()" class="menu w-full p-1">
+        <ul [id]="listboxId" role="listbox" [attr.aria-multiselectable]="multiple()" class="menu w-full p-1">
           <li
             *cdkVirtualFor="let option of filteredOptions(); let i = index; trackBy: trackByOption"
             role="option"
@@ -220,7 +220,7 @@
       </cdk-virtual-scroll-viewport>
     } @else {
       <div class="max-h-64 flex-1 overflow-auto">
-        <ul id="options-list" role="listbox" [attr.aria-multiselectable]="multiple()" class="menu w-full p-1">
+        <ul [id]="listboxId" role="listbox" [attr.aria-multiselectable]="multiple()" class="menu w-full p-1">
           @if (hasGroups()) {
             @for (group of groupedOptions(); track group.label) {
               @if (group.label) {

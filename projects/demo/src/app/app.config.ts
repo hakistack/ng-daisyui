@@ -1,10 +1,10 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
-import { provideToast, provideAlert, provideHkTheme, provideFormState, provideNotification } from '@hakistack/ng-daisyui';
+import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
+import { provideDocsPlatform } from '@shared-demos/platform/docs-platform';
+import { provideToast, provideAlert, provideHkTheme, provideFormState, provideNotification, providePipes } from '@hakistack/ng-daisyui';
 import * as Lucide from '@lucide/angular';
 
 import { routes } from './app.routes';
-import { providePipes } from '../../../hakistack/ng-daisyui/src/lib/services/pipe-registry.service';
 
 /**
  * Every Lucide icon, auto-registered — so any `lucideIcon="..."` name resolves
@@ -31,7 +31,12 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideHkTheme('daisyui-v5'),
     providePipes(),
-    provideRouter(routes),
+    provideRouter(
+      routes,
+      withComponentInputBinding(),
+      withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
+    ),
+    provideDocsPlatform(),
     provideToast(),
     provideAlert(),
     provideNotification({ position: 'top-right', maxStack: 5, pauseOnHover: true }),

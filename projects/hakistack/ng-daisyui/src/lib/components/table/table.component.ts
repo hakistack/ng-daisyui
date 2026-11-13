@@ -183,6 +183,14 @@ interface BulkActionItem<T> {
   readonly config: TableBulkAction<T>;
 }
 
+/** True for elements that consume typed keys themselves (inputs, selects, textareas, contenteditable). */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
 @Component({
   selector: 'hk-table',
   imports: [
@@ -1232,9 +1240,17 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   // Static properties
   private static readonly ACTION_ORDER: readonly ActionType[] = ['view', 'edit', 'delete', 'upload', 'download', 'print'] as const;
-  private static readonly ACTION_ORDER_INDEX: ReadonlyMap<string, number> = new Map(
-    TableComponent.ACTION_ORDER.map((type, index) => [type as string, index]),
-  );
+  // Literal entries (not derived from ACTION_ORDER via .map()): a static initializer that
+  // calls a function makes the whole class side-effectful, so bundlers can no longer
+  // tree-shake TableComponent out of apps that never use it. Keep in sync with ACTION_ORDER.
+  private static readonly ACTION_ORDER_INDEX: ReadonlyMap<string, number> = new Map<string, number>([
+    ['view', 0],
+    ['edit', 1],
+    ['delete', 2],
+    ['upload', 3],
+    ['download', 4],
+    ['print', 5],
+  ]);
 
   /**
    * Shared comparator: sorts action-like items by ACTION_ORDER_INDEX, putting
@@ -1967,6 +1983,10 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   onTableKeydown(event: KeyboardEvent): void {
     if (!this.enableKeyboardNavSignal()) return;
+    // The host listener sees keys typed into the global search, filter inputs and the inline
+    // editor too. Without this guard Space in the search box toggled a row (preventDefault) and
+    // Enter in the editor confirmed the edit and then restarted it.
+    if (isEditableTarget(event.target)) return;
 
     const cell = this.activeCellSignal();
     if (!cell && !['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;

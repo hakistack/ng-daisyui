@@ -17,7 +17,7 @@ Tick each box; any unticked row is something to fix.
 - [ ] `<html data-theme="…">` is set, and (optional) `provideHkTheme('daisyui-v5' | 'daisyui-v4')` is in app config
 - [ ] App config includes `provideToast()`, `provideAlert()`, `provideNotification(...)` only when those services are actually used
 - [ ] App config includes `provideFormState({ mode })` if any form uses `autoSave`
-- [ ] App config includes `providePipes()` (and `CUSTOM_PIPES` if you use custom formatter names in tables)
+- [ ] App config includes `providePipes()` (pass `providePipes({ myPipe: ... })` if you use custom formatter names in tables)
 - [ ] App config registers Lucide icons used in your templates via `provideLucideIcons(...)`
 - [ ] `<hk-notification-host />` is mounted **once** at the app shell when using `NotificationService`
 - [ ] Every form uses `createForm({...})` + `field.*()` — no hand-written `FormFieldConfig` arrays
@@ -68,8 +68,8 @@ npm install @hakistack/ng-daisyui
 @import "@hakistack/ng-daisyui";
 
 /* Optional custom themes shipped with the lib */
-@import "@hakistack/ng-daisyui/themes/kaizen";
-@import "@hakistack/ng-daisyui/themes/obsidian";
+@import "@hakistack/ng-daisyui/themes/kaizen";        /* dark */
+@import "@hakistack/ng-daisyui/themes/kaizen-light";  /* light */
 ```
 
 ```html
@@ -272,8 +272,8 @@ export class UsersTableComponent {
     globalSearch: { enabled: true },
     pagination: { mode: 'offset', pageSize: 25 },
     actions: [
-      { label: 'Edit',   icon: 'pencil', handler: (row) => this.edit(row) },
-      { label: 'Delete', icon: 'trash-2', handler: (row) => this.remove(row) },
+      { type: 'edit',   label: 'Edit',   icon: 'pencil',  action: (row) => this.edit(row) },
+      { type: 'delete', label: 'Delete', icon: 'trash-2', action: (row) => this.remove(row) },
     ],
   });
 
@@ -292,7 +292,7 @@ export class UsersTableComponent {
 
 - Building a table out of raw `<table>` markup and `*ngFor` "because it's easier" — you lose sorting, filtering, pagination, virtualization, a11y, and column visibility wiring.
 - Writing inline functions for formatting (`(v) => new Date(v).toLocaleDateString()`) when `fmt.date(...)` would do — `fmt.*()` reuses Angular's built-in pipes through the PipeRegistry and is theme/locale-aware.
-- Referencing a pipe by string (`formatter: 'mycustompipe'`) without registering it through `CUSTOM_PIPES` / `providePipes({ mycustompipe: ... })`.
+- Referencing a pipe by string (`formatter: 'mycustompipe'`) without registering it through `providePipes({ mycustompipe: ... })`.
 - Adding new properties to a `FieldConfig` and forgetting to extend `createFieldConfig` in `table.helpers.ts` — the whitelist normalizer silently drops unknown fields. (Library-side rule, but worth knowing as a consumer if you fork a column option.)
 - Reaching into `<hk-table>` with `@ViewChild` to drive it imperatively — the `TableController` returned from `createTable()` exposes everything (`sort`, `gotoPage`, `clearSelection`, `expandToLevel`, `setPagination`, …).
 - Putting cell templates outside of `<hk-table>` — they must be `<ng-template hkCellTemplate="<columnField>">` projected as content children.
@@ -703,14 +703,15 @@ Every component that exposes user-visible strings has a matching `provideHk*Labe
 | ------------------------------------- | ------------------------------------------ |
 | `provideDynamicFormLabels(...)`       | Wizard `Previous` / `Next` / `Submit`, editor placeholder, async-loading placeholder for `<hk-dynamic-form>` |
 | `provideHkPdfLabels(...)`             | All `<hk-pdf-viewer>` chrome text          |
-| `provideHkPdfDefaults(...)`           | Default `<hk-pdf-viewer>` config defaults  |
 | `provideHkCommandPaletteLabels(...)`  | Empty state, hint text, mode indicators    |
 | `provideHkNotificationLabels(...)`    | Dismiss / undo / aria labels               |
+| `provideHkDataGridLabels(...)`        | All `<hk-datagrid>` chrome text            |
+| `provideHkDocumentWorkspaceLabels(...)` | `<hk-document-workspace>` chrome text    |
 | `TOAST_CONFIG` / `provideToast(...)`  | Toast defaults + `ToastLabels`             |
-| `ALERT_CONFIG` / `provideAlert(...)`  | Alert defaults + `AlertLabels`             |
+| `provideAlert(...)`                   | Alert defaults + `AlertLabels`             |
 | `NOTIFICATION_CONFIG` / `provideNotification(...)` | Notification defaults         |
 
-Each ships `DEFAULT_*_LABELS` and `HK_*_LABELS` injection tokens if you need to read or extend the defaults programmatically.
+The `provideHk*Labels` components (PDF viewer, command palette, notification, datagrid, document workspace) also export `DEFAULT_*_LABELS` and an `HK_*_LABELS` injection token if you need to read or extend the defaults programmatically. Toast, alert and dynamic-form labels are configured only through their `provide*` functions.
 
 ### ✅ Intended
 

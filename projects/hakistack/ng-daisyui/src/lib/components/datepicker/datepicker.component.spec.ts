@@ -1639,25 +1639,17 @@ describe('DatepickerComponent', () => {
       expect(host.control.value).toBeNull();
     });
 
-    it('should not open when disabled input is set', () => {
+    it('should reflect control.disable() / enable() after render (regression: stale plain field)', () => {
+      hostFixture.detectChanges();
+      expect(datepicker.isDisabled()).toBe(false);
+
       host.control.disable();
       hostFixture.detectChanges();
-      // Note: isFormDisabled is a plain property in the component, so the isDisabled
-      // computed may not reactively update. Use the disabled input for reliable behavior.
-      // Here we test via the disabled input binding instead.
-    });
+      expect(datepicker.isDisabled()).toBe(true);
 
-    it('should call setDisabledState when form control is disabled', () => {
-      host.control.disable();
-      // setDisabledState is called by the forms infrastructure
-      // Verify the internal flag was set (it's a plain property, not a signal)
-      expect((datepicker as unknown as { isFormDisabled: boolean }).isFormDisabled).toBe(true);
-    });
-
-    it('should call setDisabledState(false) when form control is re-enabled', () => {
-      host.control.disable();
       host.control.enable();
-      expect((datepicker as unknown as { isFormDisabled: boolean }).isFormDisabled).toBe(false);
+      hostFixture.detectChanges();
+      expect(datepicker.isDisabled()).toBe(false);
     });
 
     it('should close the picker after selecting a date with closeOnSelect=true', () => {

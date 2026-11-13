@@ -1,0 +1,30 @@
+{
+  "name": "hk-consumer-smoke",
+  "private": true,
+  "description": "Minimal consumer app that installs the packed @hakistack/ng-daisyui tarball with ONLY the required peers. Driven by scripts/consumer-smoke.mjs.",
+  "type": "module",
+  "scripts": {
+    "build": "ng build"
+  },
+  "dependencies": {
+    "@angular/aria": "~21.2.9",
+    "@angular/cdk": "~21.2.9",
+    "@angular/common": "~21.2.10",
+    "@angular/compiler": "~21.2.10",
+    "@angular/core": "~21.2.10",
+    "@angular/forms": "~21.2.10",
+    "@angular/platform-browser": "~21.2.10",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "~21.2.10",
+    "@angular/cli": "~21.2.6",
+    "@angular/compiler-cli": "~21.2.10",
+    "@tailwindcss/postcss": "^4.2.2",
+    "daisyui": "^5.5.19",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
+    "typescript": "~5.9.2"
+  }
+}

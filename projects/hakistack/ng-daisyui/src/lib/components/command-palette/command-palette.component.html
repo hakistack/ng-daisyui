@@ -100,7 +100,7 @@
                       [class.menu-active]="state().selectedIndex === entry.flatIndex"
                       [class.menu-disabled]="entry.item.disabled"
                       [disabled]="entry.item.disabled"
-                      [attr.aria-selected]="state().selectedIndex === entry.flatIndex ? 'true' : 'false'"
+                      [attr.aria-current]="state().selectedIndex === entry.flatIndex ? 'true' : null"
                       (click)="invokeItem(entry.flatIndex)"
                       (mouseenter)="setSelectedIndex(entry.flatIndex)"
                       class="flex items-center gap-3 w-full text-left"

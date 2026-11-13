@@ -10,7 +10,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <!-- Hero -->
       <div class="space-y-2">
         <h1 class="text-3xl lg:text-4xl font-serif tracking-tight">Key Patterns</h1>
-        <p class="text-base-content/50 text-sm leading-relaxed max-w-2xl">
+        <p class="text-base-content/70 text-sm leading-relaxed max-w-2xl">
           Understand the design decisions behind ng-daisyui -- the why, not just the how. Each pattern exists to solve a real problem.
         </p>
       </div>
@@ -18,7 +18,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
       <!-- TOC -->
       <div class="card bg-base-200 card-sm">
         <div class="card-body">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/40 mb-2">On this page</h3>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/70 mb-2">On this page</h3>
           <ul class="space-y-1">
             @for (section of toc; track section.id) {
               <li>
@@ -42,7 +42,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           </div>
           <div>
             <h2 class="text-2xl font-serif">Builder Functions</h2>
-            <p class="text-sm text-base-content/50 mt-1">
+            <p class="text-sm text-base-content/70 mt-1">
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">createForm()</code>,
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">field.*()</code>,
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">step()</code>
@@ -119,7 +119,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           </div>
           <div>
             <h2 class="text-2xl font-serif">FormController Pattern</h2>
-            <p class="text-sm text-base-content/50 mt-1">Forms render fields. You own the buttons.</p>
+            <p class="text-sm text-base-content/70 mt-1">Forms render fields. You own the buttons.</p>
           </div>
         </div>
 
@@ -168,7 +168,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
                     <svg [lucideIcon]="ex.icon" [size]="14" class="text-primary"></svg>
                     <span class="text-xs font-semibold">{{ ex.title }}</span>
                   </div>
-                  <p class="text-xs text-base-content/45 leading-relaxed">{{ ex.desc }}</p>
+                  <p class="text-xs text-base-content/70 leading-relaxed">{{ ex.desc }}</p>
                 </div>
               }
             </div>
@@ -188,7 +188,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           </div>
           <div>
             <h2 class="text-2xl font-serif">Table Builder</h2>
-            <p class="text-sm text-base-content/50 mt-1">
+            <p class="text-sm text-base-content/70 mt-1">
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">createTable()</code>,
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">fmt.*()</code>, aggregates, pagination, filtering
             </p>
@@ -272,7 +272,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           </div>
           <div>
             <h2 class="text-2xl font-serif">Tree Builder</h2>
-            <p class="text-sm text-base-content/50 mt-1">
+            <p class="text-sm text-base-content/70 mt-1">
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">createTree()</code>,
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">node.*()</code>, tree utilities
             </p>
@@ -312,7 +312,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
               @for (util of treeUtils; track util.name) {
                 <div class="text-xs">
                   <code class="font-mono text-primary">{{ util.name }}</code>
-                  <span class="text-base-content/45 ml-1">{{ util.desc }}</span>
+                  <span class="text-base-content/70 ml-1">{{ util.desc }}</span>
                 </div>
               }
             </div>
@@ -332,7 +332,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           </div>
           <div>
             <h2 class="text-2xl font-serif">Service Patterns</h2>
-            <p class="text-sm text-base-content/50 mt-1">ToastService, AlertService, DialogService -- imperative APIs for feedback.</p>
+            <p class="text-sm text-base-content/70 mt-1">ToastService, AlertService, DialogService -- imperative APIs for feedback.</p>
           </div>
         </div>
 
@@ -390,7 +390,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           </div>
           <div>
             <h2 class="text-2xl font-serif">Standalone & Signals</h2>
-            <p class="text-sm text-base-content/50 mt-1">No NgModules. OnPush + signals everywhere. Zero boilerplate.</p>
+            <p class="text-sm text-base-content/70 mt-1">No NgModules. OnPush + signals everywhere. Zero boilerplate.</p>
           </div>
         </div>
 
@@ -440,7 +440,7 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           </div>
           <div>
             <h2 class="text-2xl font-serif">Icon Registration</h2>
-            <p class="text-sm text-base-content/50 mt-1">
+            <p class="text-sm text-base-content/70 mt-1">
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">provideLucideIcons()</code>,
               <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">&lt;svg lucideHome&gt;&lt;/svg&gt;</code>
             </p>
