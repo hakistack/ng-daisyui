@@ -4,7 +4,7 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: configure a component in plain TypeScript, keep it typed, and control it from your class without `@ViewChild`. Most complex components in the library are set up with a `create*()` function that returns either a ready-made config or a **controller**: an object with a `config` you pass to the template and methods you call from anywhere.',
-      es: 'Objetivo: configurar un componente en TypeScript simple, con tipos, y controlarlo desde tu clase sin `@ViewChild`. La mayoría de los componentes complejos de la librería se preparan con una función `create*()` que devuelve una configuración lista o un **controlador**: un objeto con un `config` que pasas a la plantilla y métodos que llamas desde cualquier parte.',
+      es: 'Objetivo: configurar un componente en TypeScript plano, con tipos, y controlarlo desde tu clase sin `@ViewChild`. La mayoría de los componentes complejos de la librería se preparan con una función `create*()` que devuelve una configuración lista o un **controlador**: un objeto con un `config` que pasas a la plantilla y métodos que llamas desde cualquier parte.',
     },
     {
       en: 'The builders are not all identical. This page lists what each one returns, how the controller reaches the component, and the two rules that trip people up: injection context and calls made before the view mounts.',
@@ -36,7 +36,7 @@ const content: ArticleContent = {
               { en: '[createTable](/api/createTable)', es: '[createTable](/api/createTable)' },
               {
                 en: '`FieldConfiguration`: resolved columns plus forwarding methods (`sort`, `gotoPage`, `clearAllFilters`…)',
-                es: '`FieldConfiguration`: columnas resueltas más métodos que reenvían (`sort`, `gotoPage`, `clearAllFilters`…)',
+                es: '`FieldConfiguration`: columnas resueltas más métodos que se reenvían a la tabla (`sort`, `gotoPage`, `clearAllFilters`…)',
               },
               { en: '`<hk-table [config]="table" [data]="rows()" />`', es: '`<hk-table [config]="table" [data]="rows()" />`' },
             ],
@@ -44,7 +44,7 @@ const content: ArticleContent = {
               { en: '[createTree](/api/createTree)', es: '[createTree](/api/createTree)' },
               {
                 en: '`TreeSetup`: `{ config, nodes }` with defaults and keys applied (no methods)',
-                es: '`TreeSetup`: `{ config, nodes }` con valores por defecto y claves (sin métodos)',
+                es: '`TreeSetup`: `{ config, nodes }` con los valores por defecto y las claves ya aplicados (sin métodos)',
               },
               { en: '`<hk-tree [tree]="tree" />`', es: '`<hk-tree [tree]="tree" />`' },
             ],
@@ -101,7 +101,7 @@ const content: ArticleContent = {
           tone: 'warning',
           text: {
             en: 'Note the three binding shapes: most take `config()` (a signal read), `hk-table` takes the object itself, and `hk-datagrid` and the document editor take the whole controller.',
-            es: 'Fíjate en las tres formas de enlace: la mayoría recibe `config()` (lectura de un signal), `hk-table` recibe el objeto tal cual, y `hk-datagrid` y el editor de documentos reciben el controlador completo.',
+            es: 'Fíjate en las tres formas de enlace: la mayoría recibe `config()` (la lectura de un signal), `hk-table` recibe el objeto tal cual, y `hk-datagrid` y el editor de documentos reciben el controlador completo.',
           },
         },
       ],
@@ -114,7 +114,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'The library uses a few mechanisms, each a closure created by the builder:',
-            es: 'La librería usa varios mecanismos, cada uno un closure creado por el builder:',
+            es: 'La librería usa varios mecanismos; cada uno es un closure creado por el builder:',
           },
         },
         {
@@ -126,15 +126,15 @@ const content: ArticleContent = {
             },
             {
               en: '**Handler binding** (`createPdfViewer`, `createMenu`, `createCommandPalette`, `createDocumentEditor`): `config()` carries an internal channel. When the component mounts it calls `bind(handlers)`, and controller methods dispatch to those handlers. Unmounting unbinds them.',
-              es: '**Enlace de handlers** (`createPdfViewer`, `createMenu`, `createCommandPalette`, `createDocumentEditor`): `config()` lleva un canal interno. Al montarse, el componente llama `bind(handlers)` y los métodos del controlador despachan a esos handlers. Al desmontarse se desenlazan.',
+              es: '**Enlace de handlers** (`createPdfViewer`, `createMenu`, `createCommandPalette`, `createDocumentEditor`): `config()` lleva un canal interno. Al montarse, el componente llama a `bind(handlers)` y los métodos del controlador delegan en esos handlers. Al desmontarse, se desvinculan.',
             },
             {
-              en: '**Instance forwarding** (`createTable`): the table registers itself with the configuration; methods forward to the first registered instance and warn when none is attached. `get(id)` returns a named instance.',
-              es: '**Reenvío a la instancia** (`createTable`): la tabla se registra en la configuración; los métodos reenvían a la primera instancia registrada y avisan si no hay ninguna. `get(id)` devuelve una instancia con nombre.',
+              en: '**Instance forwarding** (`createTable`): the table registers itself with the configuration; methods forward to the first registered instance and, in dev mode, warn when none is attached. `get(id)` returns a named instance.',
+              es: '**Reenvío a la instancia** (`createTable`): la tabla se registra en la configuración; los métodos se reenvían a la primera instancia registrada y, en modo de desarrollo, avisan si no hay ninguna. `get(id)` devuelve una instancia con nombre.',
             },
             {
               en: '**State owner** (`createDataGrid`): the controller holds the state and computes rows itself; the component only renders. The same calls work from code, a saved view or the AI layer.',
-              es: '**Dueño del estado** (`createDataGrid`): el controlador guarda el estado y calcula las filas; el componente solo pinta. Las mismas llamadas funcionan desde código, una vista guardada o la capa de IA.',
+              es: '**Dueño del estado** (`createDataGrid`): el controlador guarda el estado y calcula las filas; el componente solo las renderiza. Las mismas llamadas funcionan desde código, una vista guardada o la capa de IA.',
             },
           ],
         },
@@ -164,19 +164,19 @@ openSettings(): void {
           items: [
             {
               en: '**Create once.** Call builders in a field initializer or constructor, not inside a template method or a `computed()`: each call creates a new controller and a new internal channel.',
-              es: '**Crea una vez.** Llama los builders en un inicializador de campo o en el constructor, no dentro de un método de plantilla ni de un `computed()`: cada llamada crea un controlador y un canal interno nuevos.',
+              es: '**Crea una sola vez.** Llama a los builders en un inicializador de campo o en el constructor, no dentro de un método de plantilla ni de un `computed()`: cada llamada crea un controlador y un canal interno nuevos.',
             },
             {
               en: '**Injection context.** `createTable()` calls `inject(PipeRegistryService)` internally, so it must run in an injection context (field initializer, constructor, or `runInInjectionContext`). Calling it from `computed()` or `effect()` throws NG0203. `createDataGrid()` does not need one.',
-              es: '**Contexto de inyección.** `createTable()` llama `inject(PipeRegistryService)` por dentro, así que debe correr en un contexto de inyección (inicializador de campo, constructor o `runInInjectionContext`). Llamarlo desde `computed()` o `effect()` lanza NG0203. `createDataGrid()` no lo necesita.',
+              es: '**Contexto de inyección.** `createTable()` llama a `inject(PipeRegistryService)` internamente, así que debe correr en un contexto de inyección (inicializador de campo, constructor o `runInInjectionContext`). Llamarlo desde `computed()` o `effect()` lanza NG0203. `createDataGrid()` no lo necesita.',
             },
             {
               en: '**Before mount.** Handler-bound controllers are safe before the view exists: void methods do nothing, and some promise methods of the PDF viewer reject with "Viewer not mounted". Call them again after the component is on screen.',
-              es: '**Antes de montar.** Los controladores con handlers son seguros antes de que exista la vista: los métodos sin retorno no hacen nada, y algunos métodos con promesa del visor PDF se rechazan con "Viewer not mounted". Vuelve a llamarlos cuando el componente esté en pantalla.',
+              es: '**Antes de montar.** Los controladores con handlers se pueden usar antes de que exista la vista: los métodos sin retorno no hacen nada, y algunos métodos del visor de PDF que devuelven una promesa se rechazan con "Viewer not mounted". Vuelve a llamarlos cuando el componente esté en pantalla.',
             },
             {
               en: '**Volatile data stays on inputs.** The PDF source (`[src]`), table rows (`[data]`) and document files stay as inputs so routes and uploads drive them naturally; the builder holds the stable options.',
-              es: '**Los datos volátiles van en inputs.** La fuente del PDF (`[src]`), las filas de la tabla (`[data]`) y los archivos de documentos se quedan como inputs para que las rutas y las subidas los manejen con naturalidad; el builder guarda las opciones estables.',
+              es: '**Los datos volátiles van en inputs.** La fuente del PDF (`[src]`), las filas de la tabla (`[data]`) y los archivos de documentos se quedan como inputs para que las rutas y las cargas de archivos los manejen con naturalidad; el builder guarda las opciones estables.',
             },
           ],
         },
@@ -195,7 +195,7 @@ readonly table = computed(() =>
           tone: 'tip',
           text: {
             en: 'Small, static configs do not need a builder. Menu items, for example, are plain objects (`{ label, routerLink, icon }`); the `item.*` and `field.*` helpers are optional sugar.',
-            es: 'Las configuraciones pequeñas y estáticas no necesitan builder. Los ítems del menú, por ejemplo, son objetos simples (`{ label, routerLink, icon }`); los helpers `item.*` y `field.*` son azúcar opcional.',
+            es: 'Las configuraciones pequeñas y estáticas no necesitan builder. Los ítems del menú, por ejemplo, son objetos simples (`{ label, routerLink, icon }`); los helpers `item.*` y `field.*` son azúcar sintáctico opcional.',
           },
         },
       ],

@@ -31,7 +31,8 @@
 
 .toast-item {
   pointer-events: auto;
-  min-width: 320px;
+  /* Never wider than the viewport minus the 1rem offsets (phones below ~336px overflowed). */
+  min-width: min(320px, calc(100vw - 2rem));
   max-width: 420px;
   box-shadow:
     0 10px 15px -3px rgb(0 0 0 / 0.1),

@@ -79,9 +79,9 @@ export interface DocumentViewerConfig {
   readonly renderers?: readonly DocumentRendererRegistration[];
 
   /**
-   * Optional MIME-type hint. When omitted, the format is detected from
-   * the source's URL extension, the file extension if `filename` is set,
-   * or by sniffing the first few bytes.
+   * Optional MIME-type hint. When omitted, the format is detected from the
+   * `filename` hint, the source's URL extension, or a `Blob`'s type — in that
+   * order. Raw bytes are not sniffed: pass `mimeType` or `filename` for them.
    */
   readonly mimeType?: string;
 

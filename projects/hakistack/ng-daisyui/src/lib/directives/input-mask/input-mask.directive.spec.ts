@@ -263,7 +263,6 @@ describe('InputMaskDirective', () => {
   describe('With FormControl', () => {
     let fixture: ComponentFixture<FormTestHostComponent>;
     let input: HTMLInputElement;
-    let host: FormTestHostComponent;
 
     beforeEach(async () => {
       await TestBed.configureTestingModule({
@@ -271,7 +270,7 @@ describe('InputMaskDirective', () => {
       }).compileComponents();
 
       fixture = TestBed.createComponent(FormTestHostComponent);
-      host = fixture.componentInstance;
+
       fixture.detectChanges();
       input = fixture.nativeElement.querySelector('input');
     });

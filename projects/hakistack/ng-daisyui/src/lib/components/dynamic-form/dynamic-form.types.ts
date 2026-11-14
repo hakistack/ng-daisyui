@@ -238,6 +238,10 @@ export interface ToggleFieldOptions extends BaseFieldOptions {}
 
 export interface DateFieldOptions extends BaseFieldOptions {
   isRange?: boolean;
+  /** Earliest selectable date (Date or ISO string); earlier days are disabled in the picker. */
+  minDate?: Date | string;
+  /** Latest selectable date (Date or ISO string); later days are disabled in the picker. */
+  maxDate?: Date | string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -307,6 +311,9 @@ export interface FormFieldConfig {
   readonly disabledWhen?: ConditionalLogic[];
   readonly enableSearch?: boolean;
   readonly isRangeDate?: boolean;
+  /** Date fields: selectable range passed to `hk-datepicker` as `minDate` / `maxDate`. */
+  readonly minDate?: Date;
+  readonly maxDate?: Date;
   // Editor
   readonly editorHeight?: string;
   readonly editorToolbar?: 'full' | 'basic' | 'minimal';
@@ -453,7 +460,7 @@ export interface FormConfig<T = Record<string, any>> {
    * - `'grid'` — N-column grid; pair with `gridColumns`.
    */
   readonly layout?: 'vertical' | 'horizontal' | 'grid';
-  /** Number of grid columns (1–12). Only applies when `layout === 'grid'`. Default: 12. */
+  /** Number of grid columns (1–12). Only applies when `layout === 'grid'`. Default: 2. */
   readonly gridColumns?: number;
   /** Spacing between fields. Default: `'md'`. */
   readonly gap?: 'sm' | 'md' | 'lg';

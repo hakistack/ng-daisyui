@@ -15,9 +15,8 @@ import { TreeNode, TreeSelectionMode } from '../../api/treenode';
  * (default) keeps ancestors of matched nodes visible so context is preserved;
  * `'strict'` hides everything that doesn't match.
  *
- * **Virtual scrolling** — for large trees (>500 nodes), enable `virtualScroll: true`
- * **and** set `virtualScrollItemHeight` (required, no default — measure your row).
- * Compatible with filtering and drag-drop.
+ * **Large trees** — every visible node is rendered; keep branches collapsed or load children
+ * lazily. (`virtualScroll` / `virtualScrollItemHeight` are reserved and currently have no effect.)
  *
  * **Drag & drop** — `dragDrop: true` enables reordering. Restrict to within-parent
  * moves with `dragDropSameLevel: true` (e.g. preserve a folder hierarchy while
@@ -75,10 +74,10 @@ export interface TreeConfig<T = unknown> {
   /** Indentation size in pixels per level (default: 24) */
   indentSize?: number;
 
-  /** Enable virtual scrolling for large trees */
+  /** Reserved for virtual scrolling. **Not implemented yet — has no effect.** */
   virtualScroll?: boolean;
 
-  /** Virtual scroll item height (required if virtualScroll enabled) */
+  /** Reserved for virtual scrolling. **Not implemented yet — has no effect.** */
   virtualScrollItemHeight?: number;
 
   /** Propagate selection to children (checkbox mode) */
@@ -87,10 +86,10 @@ export interface TreeConfig<T = unknown> {
   /** Propagate selection to parent (checkbox mode) */
   propagateSelectionUp?: boolean;
 
-  /** Allow selecting parent nodes (or only leaf nodes) */
+  /** `false` restricts `'single'` / `'multiple'` selection to leaf nodes. @default true */
   selectionAllowParents?: boolean;
 
-  /** Custom node template */
+  /** Custom node template (a projected `<ng-template #nodeTemplate>` takes precedence) */
   nodeTemplate?: TemplateRef<TreeNodeTemplateContext<T>>;
 
   /** Expand all nodes on init */

@@ -26,7 +26,7 @@ export interface ToastGlobalConfig {
   /** Pause auto-dismiss timer when hovering over toast */
   pauseOnHover: boolean;
 
-  /** Additional time (ms) after hover ends before auto-dismiss */
+  /** Minimum time (ms) a toast stays after hover/pause ends: it resumes with max(remaining time, this). */
   extendedTimeOut: number;
 
   /** Allow clicking anywhere on toast to dismiss (not just close button) */

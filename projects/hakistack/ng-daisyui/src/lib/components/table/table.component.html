@@ -258,6 +258,7 @@
             }
             @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
               <th
+                [attr.aria-sort]="ariaSort(column.field)"
                 class="relative transition-colors duration-200 select-none"
                 [class.sticky-start]="isStickyStart(column.field)"
                 [class.sticky-end]="isStickyEnd(column.field)"
@@ -269,9 +270,10 @@
                   <div
                     class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
                     (click)="sort(column.field)"
+                    role="button"
                     tabindex="0"
                     (keydown.enter)="sort(column.field)"
-                    (keydown.space)="sort(column.field)"
+                    (keydown.space)="$event.preventDefault(); sort(column.field)"
                   >
                     <span>{{ column.header }}</span>
                     <span class="text-sm opacity-70" aria-hidden="true">
@@ -597,14 +599,15 @@
               <th class="text-center">{{ startActionsLabelSignal() }}</th>
             }
             @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
-              <th class="relative transition-colors duration-200 select-none">
+              <th [attr.aria-sort]="ariaSort(column.field)" class="relative transition-colors duration-200 select-none">
                 <div class="flex items-center gap-1">
                   <div
                     class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
                     (click)="sort(column.field)"
+                    role="button"
                     tabindex="0"
                     (keydown.enter)="sort(column.field)"
-                    (keydown.space)="sort(column.field)"
+                    (keydown.space)="$event.preventDefault(); sort(column.field)"
                   >
                     <span>{{ column.header }}</span>
                     <span class="text-sm opacity-70" aria-hidden="true">
@@ -1085,6 +1088,7 @@
           <ng-container [cdkColumnDef]="column.field">
             <!-- Sortable Column Header -->
             <th
+              [attr.aria-sort]="ariaSort(column.field)"
               cdk-header-cell
               *cdkHeaderCellDef
               class="relative transition-colors duration-200 select-none"
@@ -1106,12 +1110,10 @@
                 <div
                   class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
                   (click)="sort(column.field)"
-                  [attr.aria-sort]="
-                    sortFieldSignal() === column.field ? (sortDirectionSignal() === 'Ascending' ? 'ascending' : 'descending') : 'none'
-                  "
+                  role="button"
                   tabindex="0"
                   (keydown.enter)="sort(column.field)"
-                  (keydown.space)="sort(column.field)"
+                  (keydown.space)="$event.preventDefault(); sort(column.field)"
                 >
                   <span>{{ column.header }}</span>
                   <span class="text-sm opacity-70" [attr.aria-hidden]="true">

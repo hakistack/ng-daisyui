@@ -11,6 +11,9 @@
   >
     @for (panel of panels(); track panel.value()) {
       <button ngTab role="tab" [value]="panel.value()" [disabled]="panel.disabled()" [class]="tabButtonClass(panel)">
+        @if (tabIcon(panel); as icon) {
+          <svg [lucideIcon]="icon" [size]="16" class="mr-2 shrink-0" aria-hidden="true"></svg>
+        }
         {{ panel.label() }}
       </button>
     }

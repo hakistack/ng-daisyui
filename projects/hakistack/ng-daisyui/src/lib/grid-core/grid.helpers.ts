@@ -304,14 +304,6 @@ export function getRowChildren<T>(row: T, childrenProperty: string): T[] | undef
   return undefined;
 }
 
-/**
- * Checks if a row has children.
- */
-export function rowHasChildren<T>(row: T, childrenProperty: string): boolean {
-  const children = getRowChildren(row, childrenProperty);
-  return !!children && children.length > 0;
-}
-
 // ============================================================================
 // Row Grouping Utilities
 // ============================================================================

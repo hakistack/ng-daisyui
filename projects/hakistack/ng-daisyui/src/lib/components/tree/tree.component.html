@@ -36,8 +36,15 @@
   </div>
 } @else {
   <!-- Tree Nodes -->
-  <div class="app-tree-container" [class.app-tree-lines]="showLines()" role="group">
-    @for (flatNode of flatNodes(); track trackByNode($index, flatNode)) {
+  <div
+    class="app-tree-container"
+    [class.app-tree-lines]="showLines()"
+    role="tree"
+    [attr.aria-label]="resolvedConfig().ariaLabel"
+    [attr.aria-labelledby]="resolvedConfig().ariaLabelledBy"
+    [attr.aria-multiselectable]="selectionMode() === 'multiple' || selectionMode() === 'checkbox' ? true : null"
+  >
+    @for (flatNode of flatNodes(); track trackByNode($index, flatNode); let i = $index) {
       <div
         class="app-tree-node"
         [class.app-tree-node-selected]="flatNode.state.selected"
@@ -51,9 +58,13 @@
         [attr.data-level]="flatNode.level"
         [attr.data-node-key]="flatNode.node.key"
         [style.--level]="flatNode.level"
-        [attr.aria-selected]="flatNode.state.selected"
+        [attr.aria-selected]="selectionMode() && selectionMode() !== 'checkbox' ? flatNode.state.selected : null"
+        [attr.aria-checked]="selectionMode() === 'checkbox' ? (flatNode.state.partialSelected ? 'mixed' : flatNode.state.selected) : null"
         [attr.aria-expanded]="flatNode.hasChildren ? flatNode.state.expanded : null"
-        [attr.tabindex]="isFocused(flatNode.node) ? 0 : -1"
+        [attr.aria-level]="flatNode.level + 1"
+        [attr.aria-setsize]="setSize(flatNode)"
+        [attr.aria-posinset]="flatNode.index + 1"
+        [attr.tabindex]="isTabStop(flatNode, i) ? 0 : -1"
         role="treeitem"
         [draggable]="isDragDropEnabled() && flatNode.node.draggable !== false"
         (click)="onNodeClick($event, flatNode.node)"
@@ -87,6 +98,7 @@
             } @else {
               <button
                 type="button"
+                tabindex="-1"
                 class="btn btn-ghost btn-xs btn-square"
                 (click)="onToggleClick($event, flatNode.node)"
                 [attr.aria-label]="
@@ -110,6 +122,7 @@
           <div class="app-tree-node-checkbox shrink-0 mr-1">
             <input
               type="checkbox"
+              tabindex="-1"
               class="checkbox checkbox-sm"
               [checked]="flatNode.state.selected"
               [indeterminate]="flatNode.state.partialSelected"
@@ -129,11 +142,11 @@
           [class.ring-2]="isFocused(flatNode.node)"
           [class.ring-primary]="isFocused(flatNode.node)"
         >
-          @if (nodeTemplateRef()) {
+          @if (effectiveNodeTemplate()) {
             <!-- Custom Template -->
             <ng-container
               *ngTemplateOutlet="
-                nodeTemplateRef()!;
+                effectiveNodeTemplate()!;
                 context: {
                   $implicit: flatNode.node,
                   node: flatNode.node,

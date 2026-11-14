@@ -26,7 +26,8 @@ App: `tests/consumer-smoke` — imports `InputComponent`, `SelectComponent`, `To
 |---|---:|---:|---:|
 | `main.js` raw | 1.16 MB | 806 KB | **−354 KB (−31 %)** |
 | `main.js` transfer *(Angular CLI estimate)* | 261.5 KB | 202.6 KB | **−58.9 KB (−23 %)** |
-| `main.js` gzip *(zlib, as measured by the smoke script)* | — | 233.1 KB | budget 240 KB |
+| `main.js` gzip *(zlib, as measured by the smoke script)* | — | 233.1 KB → **196.8 KB** after lazy libphonenumber (2nd pass) | budget 205 KB |
+| `main.js` raw, 2nd pass | — | **634.5 KB** (−45 % vs. 1.16 MB) | consumer builds **without** `@tiptap/*` installed |
 | `styles.css` | 199 KB / 24.6 KB | 202 KB / 24.8 KB | +kaizen theme import + `input-primary` etc. |
 | Library code inside `main.js` | 543 KB min | — | `hk-table` (+4 sub-components), `hk-datepicker`, `FormUtils` no longer included |
 | WASM / Tiptap / document libraries in `main.js` | 0 | 0 | — |
@@ -64,13 +65,13 @@ A scan of the built FESM for static initializers that call functions now reports
 
 `size-limit` used to compare the **whole-library, unminified** FESM against 250 KB — a number no consumer ever ships,
 so the CI check failed permanently and carried no signal. It is now a growth guard (700 KB gzip, current 635 KB);
-the consumer-facing budget lives in `npm run test:consumer --max-initial-gzip=240`.
+the consumer-facing budget lives in `npm run test:consumer` (`--max-initial-gzip=205`).
 
 ## 4. Proposed budgets
 
 | Scenario | Metric | Budget | Enforced by |
 |---|---|---|---|
-| Basic import (Input + Select + Toast) | initial JS gzip (zlib) | 240 KB | `npm run test:consumer` (CI) |
+| Basic import (Input + Select + Toast) | initial JS gzip (zlib) | 205 KB | `npm run test:consumer` (CI) |
 | Whole-library FESM | gzip | 700 KB | `size-limit` (CI) |
 | DataGrid / Dynamic Form / Document Viewer / PDF viewer | initial JS gzip | to be set after adding one smoke variant each (backlog) | — |
 | WASM chunks | raw | engine ≤ 700 KB, document ≤ 800 KB, image ≤ 900 KB, PDFium worker ≤ 6.5 MB | backlog: add to size-limit |

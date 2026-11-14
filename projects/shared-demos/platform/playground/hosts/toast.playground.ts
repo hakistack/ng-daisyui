@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ToastService, ToastSeverity } from '@hakistack/ng-daisyui';
 import { PlaygroundComponent } from '../playground.component';
-import { TOAST_PLAYGROUND, ToastPgState } from '../playground-specs';
+import { TOAST_PLAYGROUND, ToastPgState } from '../specs/toast';
 import type { PlaygroundState } from '../playground.types';
 
 @Component({

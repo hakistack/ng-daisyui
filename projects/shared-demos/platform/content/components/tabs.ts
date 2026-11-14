@@ -3,12 +3,12 @@ import type { ComponentDocContent } from '../../catalog/catalog.types';
 const content: ComponentDocContent = {
   overview: [
     {
-      en: 'Tabs let the user switch between related panels of content without leaving the page — Profile, Security, Billing — while only one panel is visible at a time.',
-      es: 'Las pestañas permiten cambiar entre paneles de contenido relacionados sin salir de la página — Perfil, Seguridad, Facturación — mostrando un solo panel a la vez.',
+      en: 'Tabs let the user switch between related panels of content (Profile, Security, Billing) without leaving the page, while only one panel is visible at a time.',
+      es: 'Las pestañas permiten cambiar entre paneles de contenido relacionados (Perfil, Seguridad, Facturación) sin salir de la página, mostrando un solo panel a la vez.',
     },
     {
       en: 'You write one `hk-tab-group` and, inside it, one `hk-tab-panel` per tab with a `value`, a `label` and its content wrapped in `<ng-template>`. The group draws the tab buttons with DaisyUI styles (`lift`, `box` or `border`, or a vertical layout) and only creates the content of the selected panel.',
-      es: 'Escribes un `hk-tab-group` y, dentro, un `hk-tab-panel` por pestaña con un `value`, un `label` y su contenido envuelto en `<ng-template>`. El grupo dibuja los botones con estilos de DaisyUI (`lift`, `box` o `border`, o un diseño vertical) y solo crea el contenido del panel seleccionado.',
+      es: 'Escribes un `hk-tab-group` y, dentro, un `hk-tab-panel` por pestaña con un `value`, un `label` y su contenido envuelto en `<ng-template>`. El grupo renderiza los botones con estilos de DaisyUI (`lift`, `box` o `border`, o un diseño vertical) y solo crea el contenido del panel seleccionado.',
     },
     {
       en: "Keyboard support and ARIA come from `@angular/aria/tabs`, Angular's headless accessibility primitives, so arrow keys, Home/End and the tab/tabpanel roles behave the standard way.",
@@ -18,7 +18,7 @@ const content: ComponentDocContent = {
   whenToUse: [
     {
       en: 'Several views of the same object where the user looks at one at a time (settings sections, record details).',
-      es: 'Varias vistas del mismo objeto donde el usuario mira una a la vez (secciones de ajustes, detalles de un registro).',
+      es: 'Varias vistas del mismo objeto, de las que el usuario mira una a la vez (secciones de ajustes, detalles de un registro).',
     },
     {
       en: 'Heavy content that should not be created until it is opened — only the active panel is rendered.',
@@ -32,11 +32,11 @@ const content: ComponentDocContent = {
   whenNotToUse: [
     {
       en: 'Navigating between routes or pages: tabs are not router-aware; use [Menu](/menu) or router links.',
-      es: 'Para navegar entre rutas o páginas: las pestañas no se integran con el router; usa [Menu](/menu) o enlaces del router.',
+      es: 'Para navegar entre rutas o páginas: las pestañas no se integran con el router; usa [Menú](/menu) o enlaces del router.',
     },
     {
       en: 'Ordered steps with validation between them: use the [Wizard](/wizard).',
-      es: 'Pasos ordenados con validación entre ellos: usa el [Wizard](/wizard).',
+      es: 'Pasos ordenados con validación entre ellos: usa el [Asistente](/wizard).',
     },
     {
       en: 'Content the user must compare side by side: tabs hide everything but one panel.',
@@ -84,7 +84,7 @@ export class AccountTabsComponent {
           kind: 'p',
           text: {
             en: 'The group template applies the `ngTabs`, `ngTabList`, `ngTab`, `ngTabPanel` and `ngTabContent` directives from `@angular/aria/tabs`. They manage the roving tabindex, `aria-selected`, `aria-controls`, `aria-labelledby` and `inert` on hidden panels; the library adds DaisyUI classes on top.',
-            es: 'El template del grupo usa las directivas `ngTabs`, `ngTabList`, `ngTab`, `ngTabPanel` y `ngTabContent` de `@angular/aria/tabs`. Ellas manejan el tabindex itinerante, `aria-selected`, `aria-controls`, `aria-labelledby` e `inert` en los paneles ocultos; la librería pone encima las clases de DaisyUI.',
+            es: 'La plantilla del grupo usa las directivas `ngTabs`, `ngTabList`, `ngTab`, `ngTabPanel` y `ngTabContent` de `@angular/aria/tabs`. Estas gestionan el tabindex itinerante (roving tabindex), `aria-selected`, `aria-controls`, `aria-labelledby` e `inert` en los paneles ocultos; la librería agrega encima las clases de DaisyUI.',
           },
         },
         {
@@ -107,14 +107,17 @@ export class AccountTabsComponent {
               { en: '`orientation`', es: '`orientation`' },
               { en: "`'horizontal'`", es: "`'horizontal'`" },
               {
-                en: 'Vertical switches arrows to Up/Down and renders a card with a side tab list.',
-                es: 'Vertical cambia las flechas a Up/Down y dibuja una tarjeta con la lista de pestañas al lado.',
+                en: 'Vertical switches navigation to ArrowUp/ArrowDown and renders a card with a side tab list.',
+                es: 'En vertical, la navegación pasa a ArrowUp/ArrowDown y se renderiza una tarjeta con la lista de pestañas al lado.',
               },
             ],
             [
               { en: '`wrap`', es: '`wrap`' },
               { en: '`true`', es: '`true`' },
-              { en: 'Arrow navigation wraps from last to first.', es: 'La navegación con flechas da la vuelta del último al primero.' },
+              {
+                en: 'Arrow navigation wraps from last to first.',
+                es: 'La navegación con flechas pasa de la última pestaña a la primera (y al revés).',
+              },
             ],
             [
               { en: '`variant`', es: '`variant`' },
@@ -130,21 +133,21 @@ export class AccountTabsComponent {
     },
     {
       id: 'lazy-content',
-      heading: { en: 'Panel content is created lazily — and destroyed', es: 'El contenido se crea al abrirse — y se destruye' },
+      heading: { en: 'Panel content is created lazily, and destroyed', es: 'El contenido se crea bajo demanda y se destruye' },
       blocks: [
         {
           kind: 'p',
           text: {
             en: "`ngTabContent` instantiates a panel's template only while that panel is visible. When the user switches away, the view is destroyed, because the library does not enable `preserveContent`.",
-            es: '`ngTabContent` crea el template de un panel solo mientras ese panel está visible. Cuando el usuario cambia de pestaña, la vista se destruye, porque la librería no activa `preserveContent`.',
+            es: '`ngTabContent` crea la plantilla de un panel solo mientras ese panel está visible. Cuando el usuario cambia de pestaña, la vista se destruye, porque la librería no activa `preserveContent`.',
           },
         },
         {
           kind: 'note',
           tone: 'warning',
           text: {
-            en: "State that lives inside a panel — unsaved input, scroll position, a child component's signals — is lost on every switch. Keep it in the parent component, a service, or a [form](/forms) controller created outside the tabs.",
-            es: 'El estado que vive dentro de un panel — texto sin guardar, posición del scroll, señales de un componente hijo — se pierde en cada cambio. Guárdalo en el componente padre, en un servicio o en un controlador de [formulario](/forms) creado fuera de las pestañas.',
+            en: "State that lives inside a panel (unsaved input, scroll position, a child component's signals) is lost on every switch. Keep it in the parent component, a service, or a [form](/forms) controller created outside the tabs.",
+            es: 'El estado que vive dentro de un panel (texto sin guardar, posición de desplazamiento, signals de un componente hijo) se pierde en cada cambio. Guárdalo en el componente padre, en un servicio o en un controlador de [formulario](/forms) creado fuera de las pestañas.',
           },
         },
       ],
@@ -165,8 +168,12 @@ export class AccountTabsComponent {
               es: '`activeIndex` se lee una sola vez, después de inicializar el contenido, y solo si `selectedTab` sigue sin definir; se limita al último panel.',
             },
             {
-              en: "A `disabled` panel renders a disabled tab button. The panel's `icon` input is reserved and not rendered yet.",
-              es: 'Un panel con `disabled` muestra su botón deshabilitado. El input `icon` del panel está reservado y todavía no se dibuja.',
+              en: 'A `disabled` panel renders a disabled tab button.',
+              es: 'Un panel con `disabled` muestra su botón deshabilitado.',
+            },
+            {
+              en: 'The panel\'s `icon` input (`string | LucideIconData`) draws a 16px icon before the label, hidden from assistive technology (`aria-hidden`), so the label stays the tab\'s name. Pass a name registered with `provideLucideIcons(...)` (`icon="credit-card"`; PascalCase such as `\'CreditCard\'` is converted to kebab-case) or icon data (`[icon]="LucideHouse.icon"`). An unregistered name renders no icon and logs a warning in dev mode instead of throwing.',
+              es: 'El input `icon` del panel (`string | LucideIconData`) dibuja un icono de 16px antes de la etiqueta, oculto para las tecnologías de asistencia (`aria-hidden`), así que la etiqueta sigue siendo el nombre de la pestaña. Pasa un nombre registrado con `provideLucideIcons(...)` (`icon=\"credit-card\"`; un nombre en PascalCase como `\'CreditCard\'` se convierte a kebab-case) o los datos del icono (`[icon]=\"LucideHouse.icon\"`). Un nombre no registrado no muestra ningún icono y, en modo desarrollo, avisa en la consola en vez de lanzar un error.',
             },
             {
               en: 'Card and tab classes come from the `HK_THEME` token, so the same markup works with the daisyUI v4 and v5 theme bridges.',
@@ -183,7 +190,7 @@ export class AccountTabsComponent {
         keys: 'ArrowLeft / ArrowRight',
         action: {
           en: 'Previous / next tab in horizontal mode (reversed in right-to-left)',
-          es: 'Pestaña anterior / siguiente en modo horizontal (invertido en derecha a izquierda)',
+          es: 'Pestaña anterior / siguiente en modo horizontal (al revés en idiomas de derecha a izquierda)',
         },
       },
       {
@@ -193,13 +200,13 @@ export class AccountTabsComponent {
       { keys: 'Home / End', action: { en: 'First / last tab', es: 'Primera / última pestaña' } },
       {
         keys: 'Enter / Space',
-        action: { en: 'Select the focused tab (explicit mode)', es: 'Selecciona la pestaña enfocada (modo explícito)' },
+        action: { en: 'Select the focused tab (explicit mode)', es: 'Selecciona la pestaña que tiene el foco (modo explícito)' },
       },
       {
         keys: 'Tab',
         action: {
           en: 'Leave the tab list and move into the panel content',
-          es: 'Sale de la lista de pestañas y entra al contenido del panel',
+          es: 'Sale de la lista de pestañas y entra en el contenido del panel',
         },
       },
     ],
@@ -214,7 +221,7 @@ export class AccountTabsComponent {
       },
       {
         en: 'Common mistake: putting content directly inside `hk-tab-panel` without `<ng-template>`. The panel requires a template and fails without it.',
-        es: 'Error común: poner contenido directo dentro de `hk-tab-panel` sin `<ng-template>`. El panel exige un template y falla sin él.',
+        es: 'Error común: poner contenido directamente dentro de `hk-tab-panel` sin `<ng-template>`. El panel exige una plantilla y falla sin ella.',
       },
     ],
   },

@@ -50,13 +50,13 @@ export interface PlaygroundPreviewContext<S extends PlaygroundState = Playground
   imports: [NgTemplateOutlet, CodeBlockComponent, LocalizePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div [class]="wide() ? 'grid gap-4' : 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]'">
       <section class="rounded-box border border-base-content/10 bg-base-100 min-w-0" [attr.aria-label]="t.preview | loc: lang()">
         <div class="px-4 py-2 border-b border-base-content/10 text-xs font-semibold uppercase tracking-wider text-base-content/70">
           {{ t.preview | loc: lang() }}
         </div>
         <div class="p-6 min-h-40 flex items-center justify-center">
-          <div class="w-full max-w-md">
+          <div [class]="wide() ? 'w-full' : 'w-full max-w-md'">
             <!-- Keyed on the state so every change re-creates the component from scratch:
                  what you see is exactly what the generated code would render. -->
             @for (key of [stateKey()]; track key) {
@@ -67,11 +67,15 @@ export interface PlaygroundPreviewContext<S extends PlaygroundState = Playground
       </section>
 
       <form
-        class="rounded-box border border-base-content/10 bg-base-100 p-4 space-y-3 h-fit"
+        [class]="
+          wide()
+            ? 'rounded-box border border-base-content/10 bg-base-100 p-4 h-fit grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 items-start'
+            : 'rounded-box border border-base-content/10 bg-base-100 p-4 space-y-3 h-fit'
+        "
         (submit)="$event.preventDefault()"
         [attr.aria-label]="t.properties | loc: lang()"
       >
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between col-span-full">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/70">{{ t.properties | loc: lang() }}</h3>
           <div class="flex gap-1">
             <button type="button" class="btn btn-ghost btn-xs" (click)="reset()">{{ t.reset | loc: lang() }}</button>
@@ -141,27 +145,29 @@ export interface PlaygroundPreviewContext<S extends PlaygroundState = Playground
               </label>
             }
           }
+          @if (c.hint) {
+            <p class="-mt-2 text-xs text-base-content/70">{{ c.hint | loc: lang() }}</p>
+          }
         }
       </form>
     </div>
 
-    @if (spec().events?.length) {
-      <section class="mt-4 rounded-box border border-base-content/10" [attr.aria-label]="t.events | loc: lang()">
-        <div class="flex items-center justify-between px-4 py-2 border-b border-base-content/10">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/70">{{ t.events | loc: lang() }}</h3>
-          <button type="button" class="btn btn-ghost btn-xs" (click)="events.set([])">{{ t.clear | loc: lang() }}</button>
-        </div>
-        <ol class="max-h-48 overflow-y-auto font-mono text-xs p-3 space-y-1" aria-live="polite" tabindex="0">
-          @for (e of events(); track e.id) {
-            <li>
-              <span class="text-base-content/60">{{ e.at }}</span> <span class="text-primary">{{ e.name }}</span> {{ e.payload }}
-            </li>
-          } @empty {
-            <li class="font-sans text-base-content/70">{{ t.noEvents | loc: lang() }}</li>
-          }
-        </ol>
-      </section>
-    }
+    <!-- Shown for every playground: hosts log real outputs and builder/service callbacks through log(). -->
+    <section class="mt-4 rounded-box border border-base-content/10" [attr.aria-label]="t.events | loc: lang()">
+      <div class="flex items-center justify-between px-4 py-2 border-b border-base-content/10">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/70">{{ t.events | loc: lang() }}</h3>
+        <button type="button" class="btn btn-ghost btn-xs" (click)="events.set([])">{{ t.clear | loc: lang() }}</button>
+      </div>
+      <ol class="max-h-48 overflow-y-auto font-mono text-xs p-3 space-y-1" aria-live="polite" tabindex="0">
+        @for (e of events(); track e.id) {
+          <li>
+            <span class="text-base-content/70">{{ e.at }}</span> <span class="text-primary">{{ e.name }}</span> {{ e.payload }}
+          </li>
+        } @empty {
+          <li class="font-sans text-base-content/70">{{ t.noEvents | loc: lang() }}</li>
+        }
+      </ol>
+    </section>
 
     <section class="mt-4 space-y-2" [attr.aria-label]="t.code | loc: lang()">
       <div class="flex items-baseline justify-between gap-3">
@@ -174,6 +180,8 @@ export interface PlaygroundPreviewContext<S extends PlaygroundState = Playground
 })
 export class PlaygroundComponent {
   readonly spec = input.required<PlaygroundSpec>();
+  /** Full-width preview with controls below (tables, grids, shells, viewers). */
+  protected readonly wide = computed(() => this.spec().layout === 'wide');
   protected readonly preview = contentChild.required<TemplateRef<PlaygroundPreviewContext>>(TemplateRef);
 
   private readonly route = inject(ActivatedRoute);

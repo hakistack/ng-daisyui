@@ -6,7 +6,7 @@ import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/rout
 import { LucideDynamicIcon } from '@lucide/angular';
 import { filter, map, startWith } from 'rxjs';
 import { SHOW_IMPORT } from '../config';
-import type { ComponentDocContent, Localized } from '../platform/catalog/catalog.types';
+import type { ComponentDocContent, ExampleLevel, Localized } from '../platform/catalog/catalog.types';
 import { pageForUrl } from '../platform/catalog/pages';
 import { DOCS_PLATFORM } from '../platform/docs-platform';
 import { DocsLocaleService, LocalizePipe, UI, localize } from '../platform/i18n/docs-locale.service';
@@ -23,6 +23,14 @@ import { PageStatusComponent } from '../platform/ui/page-status.component';
 import { PrevNextComponent } from '../platform/ui/prev-next.component';
 
 type DocTab = 'overview' | 'examples' | 'playground' | 'api' | 'accessibility' | 'technical';
+
+const LEVELS: readonly ExampleLevel[] = ['basic', 'intermediate', 'advanced', 'real-world'];
+const LEVEL_LABELS: Record<ExampleLevel, Localized> = {
+  basic: { en: 'Basic', es: 'Básico' },
+  intermediate: { en: 'Intermediate', es: 'Intermedio' },
+  advanced: { en: 'Advanced', es: 'Avanzado' },
+  'real-world': { en: 'Real world', es: 'Caso real' },
+};
 
 const TAB_LABELS: Record<DocTab, Localized> = {
   overview: UI.overview,
@@ -104,15 +112,20 @@ const TAB_LABELS: Record<DocTab, Localized> = {
             }
             @case ('examples') {
               @if (p.examples?.length) {
-                <nav class="docs-example-nav" [attr.aria-label]="ui.examples | loc: lang()">
-                  @for (e of p.examples!; track e.id) {
-                    <a
-                      [routerLink]="p.route + '/' + e.id"
-                      [queryParams]="{ tab: 'examples' }"
-                      class="docs-chip"
-                      [attr.aria-current]="feature() === e.id ? 'page' : null"
-                      >{{ e.label | loc: lang() }}</a
-                    >
+                <nav class="docs-example-levels" [attr.aria-label]="ui.examples | loc: lang()">
+                  @for (group of exampleGroups(); track group.level) {
+                    <div class="docs-example-level">
+                      <span class="docs-example-level-label">{{ group.label }}</span>
+                      @for (e of group.items; track e.id) {
+                        <a
+                          [routerLink]="p.route + '/' + e.id"
+                          [queryParams]="{ tab: 'examples' }"
+                          class="docs-chip"
+                          [attr.aria-current]="activeExample() === e.id ? 'page' : null"
+                          >{{ e.label | loc: lang() }}</a
+                        >
+                      }
+                    </div>
                   }
                 </nav>
               }
@@ -223,6 +236,19 @@ export class DemoPageComponent {
   protected readonly page = computed(() => pageForUrl(this.url()));
   protected readonly feature = computed(() => this.params().get('feature'));
   protected readonly content = signal<ComponentDocContent | null | undefined>(undefined);
+
+  /** Example tabs grouped Basic → Intermediate → Advanced → Real-world (catalog order inside a level). */
+  protected readonly exampleGroups = computed(() => {
+    const examples = this.page()?.examples ?? [];
+    const lang = this.lang();
+    return LEVELS.map((level) => ({
+      level,
+      label: localize(LEVEL_LABELS[level], lang),
+      items: examples.filter((e) => (e.level ?? 'basic') === level),
+    })).filter((g) => g.items.length);
+  });
+  /** The example shown when none is in the URL is the page's first one. */
+  protected readonly activeExample = computed(() => this.feature() ?? this.page()?.examples?.[0]?.id ?? null);
 
   protected readonly tabs = computed<DocTab[]>(() => {
     const p = this.page();

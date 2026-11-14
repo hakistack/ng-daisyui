@@ -123,6 +123,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
+            "loader": { ".md": "text" },
             "browser": "projects/demo/src/main.ts",
             "tsConfig": "projects/demo/tsconfig.app.json",
             "assets": [
@@ -144,7 +145,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "3.5MB",
-                  "maximumError": "4.2MB"
+                  "maximumError": "4MB"
                 },
                 {
                   "type": "anyComponentStyle",

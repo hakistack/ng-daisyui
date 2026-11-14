@@ -18,6 +18,22 @@ Releases 0.2.0–0.3.0 were tagged without changelog entries; their changes are 
 - **`hk-select` listbox/option ids** are now unique per instance (`hk-select-<id>-listbox`, `…-option-<n>`) instead of the
   fixed `options-list` / `option-<n>`. Only code that queried those ids directly is affected.
 - **Dynamic-form auto-save no longer persists `password` or `file` fields.** Restored drafts leave those fields empty.
+- **`@tiptap/*` moved from `dependencies` to optional `peerDependencies`.** Apps that use `hk-editor` or
+  `field.editor()` must install them: `npm i @tiptap/core @tiptap/pm @tiptap/starter-kit @tiptap/extension-link
+  @tiptap/extension-placeholder @tiptap/extension-image @tiptap/extension-file-handler @tiptap/suggestion`. Without
+  them the editor shows an inline error and logs the install command.
+- **`AlertService` sanitizes `html` / `htmlUrl` content** with Angular's sanitizer (scripts, event handlers and
+  `style` attributes are removed). Pass `trustedHtml: true` for markup you fully control.
+- **Hidden dynamic-form fields are disabled.** A field hidden by `showWhen` / `hideWhen` is excluded from
+  `form.valid` and `form.value` (still in `getRawValue()`) and re-enabled when shown, so hidden required fields no
+  longer block submit.
+- **Required checkbox / toggle fields must be checked** (`Validators.requiredTrue`); `false` used to pass.
+- **Kaizen themes:** `primary-content`, `info-content`, `error-content` (dark) and `neutral-content` changed to meet
+  WCAG AA contrast (4.5:1); primary/info/error buttons now use dark text.
+- **Toast:** after hovering, a toast resumes with its remaining time (at least `extendedTimeOut`) instead of always
+  closing `extendedTimeOut` ms later.
+- **`hk-tree`:** `role="tree"` (and `ariaLabel` / `ariaLabelledBy`) moved from the host element to the node
+  container, so the filter input is no longer inside the tree.
 
 See [docs/maintenance/migration-guide.md](../../../docs/maintenance/migration-guide.md) for upgrade steps.
 
@@ -31,6 +47,19 @@ See [docs/maintenance/migration-guide.md](../../../docs/maintenance/migration-gu
 - `HkTableApi` type export (was documented but not exported).
 - Package `exports` for every shipped theme: `@hakistack/ng-daisyui/themes/<name>` and `/themes/<name>.css`
   (`kaizen`, `kaizen-light`, `daisyui-v4`, `daisyui-v5`).
+
+- `AlertOptions.trustedHtml`, `NotificationLabels.regionAriaLabel`, `DatepickerLabels.weekNumberHeader`.
+- `hk-datepicker`: `config` input (format options merged over defaults), working `showWeekNumbers` column,
+  `controlId` input (also on `hk-timepicker`) so a `<label for>` names the inner input.
+- `field.date(..., { minDate, maxDate })`; the declarative `date` field's `min` / `max` are applied too.
+- `hk-navbar`: `menuExpanded` / `menuControls` inputs (`aria-expanded` / `aria-controls` on the hamburger).
+- `hk-tab-panel` `icon` is rendered again: a Lucide name registered with `provideLucideIcons` (kebab-case, or
+  PascalCase normalised) or icon data such as `LucideHouse.icon`; unregistered names render nothing (dev-mode warning).
+
+### Deprecated
+
+- 16 unused public `TableComponent` members (e.g. `openFilterPos`, `columnWidthsSignal`, `getCellDisplay`,
+  `trackByPage`); removal planned for 0.5.
 
 ### Fixed
 
@@ -48,6 +77,34 @@ See [docs/maintenance/migration-guide.md](../../../docs/maintenance/migration-gu
 - Accessibility: tree checkboxes have accessible names; stepper tabs/panel reference real ids; command-palette items no
   longer use `aria-selected` on `<button>`; notification focus ring renders on daisyUI 5.
 - Package `exports` no longer reference the non-existent `esm2022/` build.
+- Dynamic form: errors and help text are associated with their control (`aria-invalid`, `aria-describedby`,
+  polite live region); date/time pickers and radio groups are labelled by the field label; linear wizard steps with
+  hidden or disabled fields can be completed; fields with custom validators no longer share cached validators.
+- `hk-select`: Space types into the search box; a `<label for>` is no longer overridden by the placeholder; the WASM
+  fuzzy index is built only after the user searches a list of 200+ options.
+- `hk-input`: `libphonenumber-js` loads only when a phone variant renders (basic consumer `main.js` 806 → 634 KB raw).
+- `hk-timepicker`: `minTime` / `maxTime` disable panel values; focus returns to the field on close; no false
+  `aria-modal`.
+- `hk-tree`: `aria-level` / `aria-setsize` / `aria-posinset`, `aria-checked` in checkbox mode, one default tab stop,
+  `selectionAllowParents: false` works, `config.nodeTemplate` is used.
+- `hk-command-palette`: APG combobox + listbox pattern (`aria-activedescendant`, options, named dialog).
+- `hk-notification-host`: one polite, named live region (items were announced up to three times); severity prefix
+  read before the title; literal severity classes.
+- `hk-table`: `aria-sort` on the header cell in all three layouts; sort triggers are `role="button"` and Space no
+  longer scrolls; `createTable({ id })` keeps the id.
+- `hk-app-shell`: focus is trapped in the open drawer whenever it renders as an overlay (push mode below the
+  breakpoint too).
+- `DialogService`: `openRaw()` dialogs close on router navigation; `Router` is optional.
+- `AlertService.showLoading({ allowClose: true })`: closing it removes the overlay.
+- Motion: `hkHover` / `hkPress` / `hkScroll` outputs fire under `prefers-reduced-motion` (only the animation is
+  skipped); `animateSequence` honours reduced motion; bare `<div hkAnimate>` / `hkResize` / `hkScroll` compile with
+  strict templates; bare `hkScroll` enables progress tracking (`scrollProgress` / `scrollInfo`).
+- `hk-menu` sizes `xs` / `lg` / `xl` render (literal classes); generated item ids are stable across re-processing.
+- `ng add` (v5 path) creates `.postcssrc.json` when no PostCSS config exists.
+- Toasts fit viewports narrower than 336 px.
+- Documentation: `DatepickerConfig`, `DocumentEditorController`, `MenuItem.icon`, `node.file` icon names,
+  `gridColumns` default (2), `DocumentViewerConfig.mimeType`, toolbar template null-safety, tree `virtualScroll`
+  (not implemented), menu `submenuMode` (`'dropdown'` not implemented).
 
 ## 0.1.92
 

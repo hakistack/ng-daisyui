@@ -45,7 +45,8 @@ interface ScrollAnimationOptions {
  * 2. **`true`** (or any non-object truthy) — emits `scrollProgress` (0–1) and `scrollInfo`
  *    on every scroll event without animating anything.
  *
- * Honors `prefers-reduced-motion`: if enabled, the directive does nothing.
+ * Honors `prefers-reduced-motion`: scroll-linked animation is skipped; progress tracking
+ * (`scrollProgress` / `scrollInfo`) keeps working.
  *
  * @example Scroll-progress bar (keyframes mode)
  * <div [hkScroll]="{ scaleX: [0, 1] }"
@@ -70,9 +71,15 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
 
   /**
    * Mode selector. Pass keyframes (object) for scroll-linked animation, or
-   * `true` to only emit `scrollProgress` / `scrollInfo`.
+   * `true` (or the bare attribute `<div hkScroll>`) to only emit `scrollProgress` / `scrollInfo`.
    */
-  readonly hkScroll = input<ScrollAnimationKeyframes | boolean | undefined>(undefined);
+  readonly hkScroll = input<ScrollAnimationKeyframes | boolean | undefined, ScrollAnimationKeyframes | boolean | '' | undefined>(
+    undefined,
+    {
+      // A bare attribute means progress tracking, not off.
+      transform: (value) => (value === '' ? true : value),
+    },
+  );
   /** Bundle of scroll options. Individual inputs below take precedence. */
   readonly scrollOptions = input<ScrollOptions>({});
   /** Custom scroll container. Default: `null` (window). */
@@ -124,13 +131,15 @@ export class MotionScrollDirective implements OnInit, OnDestroy, OnChanges {
 
   private setupScrollAnimation(): void {
     const anim = this.hkScroll();
-    if (!anim || prefersReducedMotion(this.platformId)) return;
+    if (!anim) return;
 
     const options = this.buildScrollOptions();
 
     if (typeof anim === 'object') {
-      this.setupScrollLinkedAnimation(options, anim);
+      // Scroll-linked animation is motion; skip it under prefers-reduced-motion.
+      if (!prefersReducedMotion(this.platformId)) this.setupScrollLinkedAnimation(options, anim);
     } else {
+      // Progress tracking only reports values (scrollProgress / scrollInfo) — keep it on.
       this.setupScrollProgressTracking(options);
     }
   }

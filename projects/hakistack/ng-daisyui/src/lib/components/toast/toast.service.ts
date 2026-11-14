@@ -236,7 +236,9 @@ export class ToastService {
     const toast = this._toasts().find((t) => t.id === id);
     if (!toast || toast.sticky) return;
 
-    const delay = this.config.extendedTimeOut > 0 ? this.config.extendedTimeOut : timerData.remainingTime;
+    // Hovering never shortens a toast: resume with what was left, but at least extendedTimeOut
+    // (it used to REPLACE the remaining time, so hovering a fresh toast dismissed it after 1 s).
+    const delay = Math.max(timerData.remainingTime, this.config.extendedTimeOut);
 
     this.timers.delete(id);
     this.scheduleAutoDismiss(id, delay);

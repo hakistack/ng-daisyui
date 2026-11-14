@@ -8,6 +8,8 @@ import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '
 export interface NotificationLabels {
   /** Close button aria-label. Default: "Close notification" */
   closeAriaLabel?: string;
+  /** Accessible name of the notifications region (landmark). Default: "Notifications" */
+  regionAriaLabel?: string;
   /** Default for the assistive announcement when severity is `info`. Default: "Information" */
   infoAriaPrefix?: string;
   /** Default for the assistive announcement when severity is `success`. Default: "Success" */
@@ -22,6 +24,7 @@ export type ResolvedNotificationLabels = Required<NotificationLabels>;
 
 export const DEFAULT_NOTIFICATION_LABELS: ResolvedNotificationLabels = {
   closeAriaLabel: 'Close notification',
+  regionAriaLabel: 'Notifications',
   infoAriaPrefix: 'Information',
   successAriaPrefix: 'Success',
   warningAriaPrefix: 'Warning',

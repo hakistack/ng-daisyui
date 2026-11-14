@@ -25,6 +25,11 @@
       [style.min-height]="editorHeight()"
       [attr.aria-label]="ariaLabel() || placeholder() || 'Rich text editor'"
     ></div>
+    @if (loadError()) {
+      <div role="alert" class="alert alert-error alert-soft m-3 text-sm">
+        The rich text editor could not load (missing optional dependencies). See the browser console for the install command.
+      </div>
+    }
     @if (slashOpen() && slashItems().length > 0) {
       <hk-editor-slash-menu
         [items]="slashItems()"

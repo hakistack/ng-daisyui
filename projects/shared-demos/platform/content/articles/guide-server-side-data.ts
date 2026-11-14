@@ -4,7 +4,7 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: keep the rows on your server and let your API sort, filter, search and page them. The DataGrid sends its current state as a request, your API answers with one page and a total, and the grid stays in sync as the user interacts. You write one function: the `dataSource`.',
-      es: 'Meta: dejar las filas en tu servidor y que tu API las ordene, filtre, busque y pagine. El DataGrid envía su estado actual como una petición, tu API responde con una página y un total, y la grilla se mantiene sincronizada mientras el usuario interactúa. Escribes una sola función: el `dataSource`.',
+      es: 'Objetivo: dejar las filas en tu servidor y que tu API las ordene, filtre, busque y pagine. El DataGrid envía su estado actual como una petición, tu API responde con una página y un total, y el grid se mantiene sincronizado mientras el usuario interactúa. Escribes una sola función: el `dataSource`.',
     },
   ],
   sections: [
@@ -16,7 +16,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'The grid calls your function with a [DataGridRequest](/api/DataGridRequest) and expects a [DataGridPage](/api/DataGridPage) back, as a Promise or an Observable.',
-            es: 'La grilla llama tu función con un [DataGridRequest](/api/DataGridRequest) y espera de vuelta un [DataGridPage](/api/DataGridPage), como Promise u Observable.',
+            es: 'El grid llama a tu función con un [DataGridRequest](/api/DataGridRequest) y espera de vuelta un [DataGridPage](/api/DataGridPage), como Promise u Observable.',
           },
         },
         {
@@ -54,8 +54,8 @@ const content: ArticleContent = {
               es: '`page.index` empieza en cero. `total` es la cantidad después de filtros y búsqueda, sumando todas las páginas.',
             },
             {
-              en: 'Filter values are already coerced to the column type: numbers for `number` columns, ISO strings for `date` columns, `[min, max]` for `between`, arrays for `in` / `notIn`, and no value for `isEmpty` / `isNotEmpty`.',
-              es: 'Los valores de los filtros ya vienen convertidos al tipo de la columna: números para columnas `number`, strings ISO para columnas `date`, `[min, max]` para `between`, arreglos para `in` / `notIn` y sin valor para `isEmpty` / `isNotEmpty`.',
+              en: 'Filter values are already coerced to the column type: numbers for `number` columns; for `date` columns, `Date` objects arrive as ISO strings while date strings and timestamps pass through as given; `[min, max]` for `between`, arrays for `in` / `notIn`, and no value for `isEmpty` / `isNotEmpty`.',
+              es: 'Los valores de los filtros ya vienen convertidos al tipo de la columna: números para columnas `number`; en columnas `date`, los objetos `Date` llegan como strings ISO y los strings de fecha o timestamps pasan tal cual; `[min, max]` para `between`, arreglos para `in` / `notIn` y sin valor para `isEmpty` / `isNotEmpty`.',
             },
           ],
         },
@@ -64,20 +64,20 @@ const content: ArticleContent = {
           tone: 'warning',
           text: {
             en: 'Validate the request on the server like any other input. Map `field` and `operator` through an allow-list; never paste them into SQL.',
-            es: 'Valida la petición en el servidor como cualquier otra entrada. Pasa `field` y `operator` por una lista permitida; nunca los pegues directo en SQL.',
+            es: 'Valida la petición en el servidor como cualquier otra entrada. Valida `field` y `operator` contra una lista de valores permitidos; nunca los insertes directamente en SQL.',
           },
         },
       ],
     },
     {
       id: 'step-2-grid',
-      heading: { en: '2. Create the grid', es: '2. Crea la grilla' },
+      heading: { en: '2. Create the grid', es: '2. Crea el grid' },
       blocks: [
         {
           kind: 'p',
           text: {
             en: 'Setting `dataSource` switches [createDataGrid](/api/createDataGrid) to server mode. Always set `pageSize`; without it the grid asks for every row at once (and warns in dev mode).',
-            es: 'Al poner `dataSource`, [createDataGrid](/api/createDataGrid) pasa a modo servidor. Pon siempre `pageSize`; sin él la grilla pide todas las filas de una vez (y lo advierte en modo desarrollo).',
+            es: 'Al poner `dataSource`, [createDataGrid](/api/createDataGrid) pasa a modo servidor. Define siempre `pageSize`; sin él, el grid pide todas las filas de una vez (y lo advierte en modo desarrollo).',
           },
         },
         {
@@ -125,7 +125,7 @@ export class InvoicesComponent {
           kind: 'p',
           text: {
             en: 'With `fetch`, forward the abort signal the grid gives you so superseded requests are cancelled:',
-            es: 'Con `fetch`, reenvía la señal de cancelación que te da la grilla para que se cancelen las peticiones reemplazadas:',
+            es: 'Con `fetch`, reenvía la señal de cancelación (`AbortSignal`) que te da el grid para que se cancelen las peticiones reemplazadas:',
           },
         },
         {
@@ -143,7 +143,7 @@ export class InvoicesComponent {
     },
     {
       id: 'step-3-behavior',
-      heading: { en: '3. What the grid handles for you', es: '3. Lo que la grilla maneja por ti' },
+      heading: { en: '3. What the grid handles for you', es: '3. Lo que el grid hace por ti' },
       blocks: [
         {
           kind: 'flow',
@@ -174,10 +174,10 @@ export class InvoicesComponent {
               },
             },
             {
-              label: { en: 'Page rendered', es: 'Se dibuja la página' },
+              label: { en: 'Page rendered', es: 'Se renderiza la página' },
               detail: {
                 en: 'If the page index is past the last page for the new `total`, the grid moves to the last page.',
-                es: 'Si el índice de página pasa la última página según el nuevo `total`, la grilla se mueve a la última página.',
+                es: 'Si el índice de página supera la última página según el nuevo `total`, el grid pasa a la última página.',
               },
             },
           ],
@@ -186,7 +186,7 @@ export class InvoicesComponent {
           kind: 'p',
           text: {
             en: 'The controller exposes `loading()` and `error()` signals, and the grid shows its own loading and error states (with a retry action). Call `grid.refresh()` to re-run the current request, for example after saving a row.',
-            es: 'El controlador expone los signals `loading()` y `error()`, y la grilla muestra sus propios estados de carga y de error (con una acción de reintentar). Llama `grid.refresh()` para repetir la petición actual, por ejemplo después de guardar una fila.',
+            es: 'El controlador expone los signals `loading()` y `error()`, y el grid muestra sus propios estados de carga y de error (con un botón para reintentar). Llama a `grid.refresh()` para repetir la petición actual, por ejemplo después de guardar una fila.',
           },
         },
         {
@@ -206,8 +206,8 @@ export class InvoicesComponent {
         {
           kind: 'p',
           text: {
-            en: 'The request is a subset of [DataGridState](/api/DataGridState). Persist `grid.getState()` and restore it with `grid.setState(saved)`, or pass it as `initialState`. `setState` never throws: invalid entries are dropped and returned as issues.',
-            es: 'La petición es un subconjunto de [DataGridState](/api/DataGridState). Guarda `grid.getState()` y restáuralo con `grid.setState(guardado)`, o pásalo como `initialState`. `setState` nunca lanza errores: las entradas inválidas se descartan y se devuelven como issues.',
+            en: 'The request is a subset of [DataGridState](/api/DataGridState). Persist `grid.getState()` and restore it with `grid.setState(saved)`, or pass it as `initialState`. `setState` never throws: invalid entries are dropped and returned as `issues`.',
+            es: 'La petición es un subconjunto de [DataGridState](/api/DataGridState). Guarda `grid.getState()` y restáuralo con `grid.setState(saved)`, o pásalo como `initialState`. `setState` nunca lanza errores: las entradas inválidas se descartan y se devuelven como `issues`.',
           },
         },
       ],
@@ -220,7 +220,7 @@ export class InvoicesComponent {
           kind: 'p',
           text: {
             en: "hk-table also supports server paging, with more manual wiring: set `pagination: { mode: 'offset', serverSide: true, pageSize }`, pass only the current page as `[data]`, fetch on `(pageChange)`, and report the total with `table.setPagination({ totalItems })`. Selection is page-local and footers aggregate only the current page. For new screens, prefer the DataGrid.",
-            es: "hk-table también soporta paginación en servidor, con más trabajo manual: pon `pagination: { mode: 'offset', serverSide: true, pageSize }`, pasa solo la página actual en `[data]`, pide datos en `(pageChange)` e informa el total con `table.setPagination({ totalItems })`. La selección es por página y los pies solo agregan la página actual. Para pantallas nuevas, prefiere el DataGrid.",
+            es: "hk-table también admite paginación en el servidor, con más trabajo manual: define `pagination: { mode: 'offset', serverSide: true, pageSize }`, pasa solo la página actual en `[data]`, pide datos en `(pageChange)` e informa el total con `table.setPagination({ totalItems })`. La selección es por página y los totales del pie solo cubren la página actual. Para pantallas nuevas, prefiere el DataGrid.",
           },
         },
       ],
@@ -228,10 +228,10 @@ export class InvoicesComponent {
   ],
   related: [
     { id: 'datagrid', note: { en: 'Live server example and full API.', es: 'Ejemplo en vivo con servidor y API completa.' } },
-    { id: 'architecture-data-pipeline', note: { en: 'How state flows through the grid.', es: 'Cómo fluye el estado por la grilla.' } },
+    { id: 'architecture-data-pipeline', note: { en: 'How state flows through the grid.', es: 'Cómo fluye el estado por el grid.' } },
     {
       id: 'guide-large-datasets',
-      note: { en: 'When client-side is still the right call.', es: 'Cuándo el lado del cliente sigue siendo lo correcto.' },
+      note: { en: 'When client-side is still the right call.', es: 'Cuándo procesar en el cliente sigue siendo la mejor opción.' },
     },
   ],
 };

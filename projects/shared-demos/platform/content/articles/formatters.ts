@@ -36,7 +36,7 @@ export const appConfig: ApplicationConfig = {
           tone: 'warning',
           text: {
             en: 'The registry gets pipe instances from the injector. Angular pipes are not injectable by default, so without `providePipes()` a formatter like `fmt.date()` fails to resolve `DatePipe`. Call it once in your application providers.',
-            es: 'El registro obtiene las instancias de los pipes desde el inyector. Los pipes de Angular no son inyectables por defecto, así que sin `providePipes()` un formateador como `fmt.date()` no puede resolver `DatePipe`. Llámalo una vez en los providers de tu aplicación.',
+            es: 'El registro obtiene las instancias de los pipes desde el inyector. Los pipes de Angular no son inyectables por defecto, así que sin `providePipes()` un formateador como `fmt.date()` no puede resolver `DatePipe`. Llámalo una vez en los proveedores de tu aplicación.',
           },
         },
       ],
@@ -49,7 +49,7 @@ export const appConfig: ApplicationConfig = {
           kind: 'p',
           text: {
             en: '`BUILTIN_PIPE_REGISTRY` maps nine names to Angular common pipes. Options are named objects (or a string shorthand) that the service turns into the pipe positional arguments.',
-            es: '`BUILTIN_PIPE_REGISTRY` asocia nueve nombres con pipes comunes de Angular. Las opciones son objetos con nombre (o un atajo de texto) que el servicio convierte en los argumentos posicionales del pipe.',
+            es: '`BUILTIN_PIPE_REGISTRY` asocia nueve nombres con pipes comunes de Angular. Las opciones son objetos con propiedades con nombre (o una forma abreviada en texto) que el servicio convierte en los argumentos posicionales del pipe.',
           },
         },
         {
@@ -63,7 +63,7 @@ export const appConfig: ApplicationConfig = {
             [
               { en: '`date`', es: '`date`' },
               { en: '`DatePipe`', es: '`DatePipe`' },
-              { en: 'Format string, or `{ format, timezone, locale }`', es: 'Texto de formato, o `{ format, timezone, locale }`' },
+              { en: 'Format string, or `{ format, timezone, locale }`', es: 'Cadena de formato, o `{ format, timezone, locale }`' },
             ],
             [
               { en: '`currency`', es: '`currency`' },
@@ -86,7 +86,10 @@ export const appConfig: ApplicationConfig = {
             [
               { en: '`json`', es: '`json`' },
               { en: '`JsonPipe`', es: '`JsonPipe`' },
-              { en: '`{ space }`', es: '`{ space }`' },
+              {
+                en: "`{ space }` is accepted, but Angular's `JsonPipe` ignores it and always indents with 2 spaces",
+                es: 'Se acepta `{ space }`, pero el `JsonPipe` de Angular lo ignora y siempre sangra con 2 espacios',
+              },
             ],
             [
               { en: '`keyvalue`', es: '`keyvalue`' },
@@ -118,7 +121,7 @@ export const appConfig: ApplicationConfig = {
           kind: 'p',
           text: {
             en: 'Locale comes from Angular: pipes use your `LOCALE_ID` unless the options pass `locale`. Register locale data (for example `registerLocaleData(localeEs)`) as you would for template pipes.',
-            es: 'El idioma lo pone Angular: los pipes usan tu `LOCALE_ID` salvo que las opciones pasen `locale`. Registra los datos de idioma (por ejemplo `registerLocaleData(localeEs)`) igual que para los pipes de plantilla.',
+            es: 'La configuración regional viene de Angular: los pipes usan tu `LOCALE_ID` salvo que las opciones indiquen `locale`. Registra los datos regionales (por ejemplo `registerLocaleData(localeEs)`) igual que para los pipes de plantilla.',
           },
         },
       ],
@@ -136,11 +139,11 @@ export const appConfig: ApplicationConfig = {
             },
             {
               en: '[DataGrid](/datagrid): column `format` is a function `(value, row) => string`; call the registry yourself inside it if you want named pipes.',
-              es: '[DataGrid](/datagrid): el `format` de la columna es una función `(value, row) => string`; llama tú el registro dentro de ella si quieres pipes con nombre.',
+              es: '[DataGrid](/datagrid): el `format` de la columna es una función `(value, row) => string`; llama tú al registro dentro de ella si quieres pipes con nombre.',
             },
             {
               en: 'Anywhere else: inject `PipeRegistryService` and call `transform()` or `apply()`.',
-              es: 'En cualquier otro lugar: inyecta `PipeRegistryService` y llama `transform()` o `apply()`.',
+              es: 'En cualquier otro lugar: inyecta `PipeRegistryService` y llama a `transform()` o `apply()`.',
             },
           ],
         },
@@ -194,7 +197,7 @@ export class RolePipe implements PipeTransform {
           kind: 'p',
           text: {
             en: '`PipeFormatter` (the tuple type accepted by `format`) only covers built-in names. For custom pipes, either call the registry from a format function as above or describe your registry with the `PipeRegistry` type.',
-            es: '`PipeFormatter` (el tipo de tupla que acepta `format`) solo cubre los nombres integrados. Para pipes propios, llama el registro desde una función de formato como arriba o describe tu registro con el tipo `PipeRegistry`.',
+            es: '`PipeFormatter` (el tipo de tupla que acepta `format`) solo cubre los nombres integrados. Para pipes propios, llama al registro desde una función de formato como arriba o describe tu registro con el tipo `PipeRegistry`.',
           },
         },
       ],
@@ -206,7 +209,7 @@ export class RolePipe implements PipeTransform {
       id: 'builders',
       note: { en: 'Why createTable needs an injection context.', es: 'Por qué createTable necesita un contexto de inyección.' },
     },
-    { id: 'i18n', note: { en: 'Locales and translated labels.', es: 'Idiomas y etiquetas traducidas.' } },
+    { id: 'i18n', note: { en: 'Locales and translated labels.', es: 'Configuración regional y etiquetas traducidas.' } },
   ],
 };
 

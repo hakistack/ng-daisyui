@@ -3,6 +3,14 @@ import { FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms'
 import { ConditionEngine } from './condition-engine';
 import { ConditionalLogic, FormFieldConfig } from './dynamic-form.types';
 
+/**
+ * A required checkbox / toggle must be checked: `Validators.required` accepts `false`
+ * (it only rejects null/empty), so boolean fields use `requiredTrue`.
+ */
+function requiredValidator(field: FormFieldConfig): ValidatorFn {
+  return field.type === 'checkbox' || field.type === 'toggle' ? Validators.requiredTrue : Validators.required;
+}
+
 const EMPTY_VALIDATORS = /* @__PURE__ */ Object.freeze([]) as unknown as ValidatorFn[];
 const EMPTY_ARRAY: readonly unknown[] = /* @__PURE__ */ Object.freeze([]);
 
@@ -48,6 +56,12 @@ export class FormUtils {
       return this.EMPTY_VALIDATORS;
     }
 
+    // Custom validators are functions without a stable key: two fields with the same rules and the
+    // same NUMBER of custom validators used to share the first field's validator array.
+    if (field.customValidators?.length) {
+      return this.buildValidators(field, true);
+    }
+
     const cacheKey = this.getValidationCacheKey(field);
 
     const cached = this.validatorCache.get(cacheKey);
@@ -78,13 +92,13 @@ export class FormUtils {
     if (!hasBase && !isRequired) return this.EMPTY_VALIDATORS;
 
     if (!hasBase) {
-      return isRequired ? [Validators.required] : this.EMPTY_VALIDATORS;
+      return isRequired ? [requiredValidator(field)] : this.EMPTY_VALIDATORS;
     }
 
     const validators: ValidatorFn[] = [];
 
     if (isRequired) {
-      validators.push(Validators.required);
+      validators.push(requiredValidator(field));
     }
 
     const baseValidators = this.buildValidators(field, false);
@@ -257,7 +271,7 @@ export class FormUtils {
     const validators: ValidatorFn[] = [];
 
     if (includeRequired && field.required) {
-      validators.push(Validators.required);
+      validators.push(requiredValidator(field));
     }
     if (field.minLength != null) {
       validators.push(Validators.minLength(field.minLength));
@@ -288,6 +302,7 @@ export class FormUtils {
     let flags = 0;
     if (field.required) flags |= 1;
     if (field.email) flags |= 2;
+    if (field.type === 'checkbox' || field.type === 'toggle') flags |= 4;
 
     const customLen = field.customValidators?.length ?? 0;
     const pattern = field.pattern?.toString() ?? '';

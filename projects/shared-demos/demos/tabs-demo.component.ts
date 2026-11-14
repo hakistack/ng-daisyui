@@ -78,7 +78,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
 
             <app-doc-section title="Tabs with Icons" description="Lucide icons in tab labels" [codeExample]="iconCode">
               <hk-tab-group>
-                <hk-tab-panel value="home" label="Home" icon="House">
+                <hk-tab-panel value="home" label="Home" icon="house">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Welcome Home</h3>
@@ -87,7 +87,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                   </ng-template>
                 </hk-tab-panel>
 
-                <hk-tab-panel value="profile" label="Profile" icon="User">
+                <hk-tab-panel value="profile" label="Profile" icon="user">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">User Profile</h3>
@@ -96,7 +96,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                   </ng-template>
                 </hk-tab-panel>
 
-                <hk-tab-panel value="settings" label="Settings" icon="Settings">
+                <hk-tab-panel value="settings" label="Settings" icon="settings">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Application Settings</h3>
@@ -105,7 +105,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                   </ng-template>
                 </hk-tab-panel>
 
-                <hk-tab-panel value="notifications" label="Notifications" icon="Bell">
+                <hk-tab-panel value="notifications" label="Notifications" icon="bell">
                   <ng-template>
                     <div class="p-4">
                       <h3 class="text-lg font-semibold mb-2">Notifications</h3>
@@ -185,7 +185,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
         @if (activeTab() === 'vertical') {
           <app-doc-section title="Vertical Tabs" description="Tabs oriented vertically" [codeExample]="verticalCode">
             <hk-tab-group orientation="vertical">
-              <hk-tab-panel value="general" label="General" icon="Settings">
+              <hk-tab-panel value="general" label="General" icon="settings">
                 <ng-template>
                   <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">General Settings</h3>
@@ -194,7 +194,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                 </ng-template>
               </hk-tab-panel>
 
-              <hk-tab-panel value="security" label="Security" icon="Shield">
+              <hk-tab-panel value="security" label="Security" icon="shield">
                 <ng-template>
                   <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">Security Settings</h3>
@@ -203,7 +203,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                 </ng-template>
               </hk-tab-panel>
 
-              <hk-tab-panel value="billing" label="Billing" icon="CreditCard">
+              <hk-tab-panel value="billing" label="Billing" icon="credit-card">
                 <ng-template>
                   <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">Billing Information</h3>
@@ -212,7 +212,7 @@ type TabsTab = 'basic' | 'features' | 'vertical';
                 </ng-template>
               </hk-tab-panel>
 
-              <hk-tab-panel value="integrations" label="Integrations" icon="Puzzle">
+              <hk-tab-panel value="integrations" label="Integrations" icon="puzzle">
                 <ng-template>
                   <div class="p-4">
                     <h3 class="text-lg font-semibold mb-2">Integrations</h3>
@@ -332,12 +332,12 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 // Template
 <hk-tab-group>
-  <hk-tab-panel value="home" label="Home" icon="House">
+  <hk-tab-panel value="home" label="Home" icon="house">
     <ng-template>
       <p>Home content</p>
     </ng-template>
   </hk-tab-panel>
-  <hk-tab-panel value="settings" label="Settings" icon="Settings">
+  <hk-tab-panel value="settings" label="Settings" icon="settings">
     <ng-template>
       <p>Settings content</p>
     </ng-template>
@@ -380,12 +380,12 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
 
 // Template
 <hk-tab-group orientation="vertical">
-  <hk-tab-panel value="general" label="General" icon="Settings">
+  <hk-tab-panel value="general" label="General" icon="settings">
     <ng-template>
       <p>General settings content</p>
     </ng-template>
   </hk-tab-panel>
-  <hk-tab-panel value="security" label="Security" icon="Shield">
+  <hk-tab-panel value="security" label="Security" icon="shield">
     <ng-template>
       <p>Security settings content</p>
     </ng-template>
@@ -405,7 +405,7 @@ import { TabGroupComponent, TabPanelComponent } from '@hakistack/ng-daisyui';
       <hk-tab-panel
         value="tab1"
         label="Tab Label"
-        icon="House"
+        icon="house"
         [disabled]="false">
         <ng-template>
           <!-- Lazy-loaded content -->

@@ -8,7 +8,7 @@ const content: ArticleContent = {
     },
     {
       en: 'Theming has two independent parts: the **CSS** (which colors are active) and an optional **class-name bridge** (`provideHkTheme`) that tells components which daisyUI major version they run on.',
-      es: 'El tema tiene dos partes independientes: el **CSS** (qué colores están activos) y un **puente de nombres de clase** opcional (`provideHkTheme`) que le dice a los componentes en qué versión mayor de daisyUI corren.',
+      es: 'Los temas tienen dos partes independientes: el **CSS** (qué colores están activos) y un **puente de nombres de clase** opcional (`provideHkTheme`) que les dice a los componentes en qué versión mayor de daisyUI corren.',
     },
   ],
   sections: [
@@ -20,7 +20,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'With Tailwind CSS v4 and daisyUI v5, a single import of the package brings the library’s styles. It also adds an `@source` rule that points Tailwind at the compiled library bundle, so every class the components use is generated without a safelist.',
-            es: 'Con Tailwind CSS v4 y daisyUI v5, un solo import del paquete trae los estilos de la librería. También añade una regla `@source` que apunta Tailwind al bundle compilado de la librería, así que cada clase que usan los componentes se genera sin safelist.',
+            es: 'Con Tailwind CSS v4 y daisyUI v5, un solo import del paquete trae los estilos de la librería. También añade una regla `@source` que le indica a Tailwind dónde está el bundle compilado de la librería, así que cada clase que usan los componentes se genera sin safelist.',
           },
         },
         {
@@ -57,14 +57,14 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'Templates use daisyUI classes such as `bg-base-100`, `text-base-content` or `btn-primary`. A few component stylesheets need tints that Tailwind classes cannot express; for those the package defines `--hk-*` custom properties (for example `--hk-color-primary-20` or `--hk-color-base-content-10`) derived from the active daisyUI variables with `color-mix()`. They follow the theme automatically.',
-            es: 'Las plantillas usan clases de daisyUI como `bg-base-100`, `text-base-content` o `btn-primary`. Algunas hojas de estilo de componentes necesitan tonos que las clases de Tailwind no expresan; para esos el paquete define propiedades personalizadas `--hk-*` (por ejemplo `--hk-color-primary-20` o `--hk-color-base-content-10`) derivadas de las variables activas de daisyUI con `color-mix()`. Siguen el tema automáticamente.',
+            es: 'Las plantillas usan clases de daisyUI como `bg-base-100`, `text-base-content` o `btn-primary`. Algunas hojas de estilo de componentes necesitan tonos que las clases de Tailwind no expresan; para esos casos, el paquete define propiedades personalizadas `--hk-*` (por ejemplo `--hk-color-primary-20` o `--hk-color-base-content-10`) derivadas de las variables activas de daisyUI con `color-mix()`. Siguen el tema automáticamente.',
           },
         },
         {
           kind: 'p',
           text: {
             en: 'Panels rendered in a CDK overlay (such as the `hk-select` dropdown) live outside your component tree, so they read these global variables rather than component-scoped ones. That is why they still match the theme.',
-            es: 'Los paneles que se dibujan en un overlay de CDK (como el desplegable de `hk-select`) viven fuera del árbol de tu componente, así que leen estas variables globales y no variables locales del componente. Por eso siguen coincidiendo con el tema.',
+            es: 'Los paneles que se renderizan en un overlay del CDK (como el desplegable de `hk-select`) viven fuera del árbol de tu componente, así que leen estas variables globales y no variables locales del componente. Por eso siguen coincidiendo con el tema.',
           },
         },
       ],
@@ -77,7 +77,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'Dark mode is just another daisyUI theme. Mark one theme `--prefersdark` to follow the operating system, or set `data-theme` yourself to let users choose. Changing the attribute restyles every component immediately; no Angular state is involved.',
-            es: 'El modo oscuro es solo otro tema de daisyUI. Marca un tema con `--prefersdark` para seguir el sistema operativo, o asigna `data-theme` tú mismo para que el usuario escoja. Cambiar el atributo cambia el estilo de todos los componentes al instante; no hay estado de Angular de por medio.',
+            es: 'El modo oscuro es solo otro tema de daisyUI. Marca un tema con `--prefersdark` para seguir el sistema operativo, o asigna `data-theme` tú mismo para que cada usuario elija. Cambiar el atributo cambia el estilo de todos los componentes al instante; no hay estado de Angular de por medio.',
           },
         },
         {
@@ -106,7 +106,7 @@ export class ThemeSwitcher {
           kind: 'p',
           text: {
             en: 'Define a theme with the daisyUI theme plugin. Because components only reference semantic tokens, filling in the standard daisyUI variables is all it takes.',
-            es: 'Define un tema con el plugin de temas de daisyUI. Como los componentes solo usan tokens semánticos, basta con llenar las variables estándar de daisyUI.',
+            es: 'Define un tema con el plugin de temas de daisyUI. Como los componentes solo usan tokens semánticos, basta con definir las variables estándar de daisyUI.',
           },
         },
         {
@@ -131,16 +131,8 @@ export class ThemeSwitcher {
         {
           kind: 'p',
           text: {
-            en: 'The package also ships two sample themes, Kaizen (dark) and Kaizen Light, in its `themes/` folder. They are written the same way and are a useful starting point.',
-            es: 'El paquete también trae dos temas de ejemplo, Kaizen (oscuro) y Kaizen Light, en su carpeta `themes/`. Están escritos de la misma forma y sirven como punto de partida.',
-          },
-        },
-        {
-          kind: 'note',
-          tone: 'warning',
-          text: {
-            en: 'The package `exports` map currently lists only `themes/daisyui-v4.css` and `themes/daisyui-v5.css`. Resolvers that honor `exports` may reject an import of the Kaizen files by package name; if that happens, copy the theme block into your own stylesheet.',
-            es: 'El mapa `exports` del paquete hoy solo incluye `themes/daisyui-v4.css` y `themes/daisyui-v5.css`. Los resolvers que respetan `exports` pueden rechazar un import de los archivos Kaizen por nombre de paquete; si pasa, copia el bloque del tema en tu propia hoja de estilos.',
+            en: 'The package also ships two sample themes, Kaizen (dark) and Kaizen Light, in its `themes/` folder. They are written the same way and are a useful starting point; import one with `@import "@hakistack/ng-daisyui/themes/kaizen";` and set `data-theme="kaizen"`. Their content colors are chosen for WCAG AA contrast: text on `primary` (both themes) and on `info` / `error` (Kaizen) is dark, not white.',
+            es: 'El paquete también trae dos temas de ejemplo, Kaizen (oscuro) y Kaizen Light, en su carpeta `themes/`. Están escritos de la misma forma y sirven como punto de partida; importa uno con `@import "@hakistack/ng-daisyui/themes/kaizen";` y pon `data-theme="kaizen"`. Sus colores de contenido están elegidos para cumplir el contraste WCAG AA: el texto sobre `primary` (en ambos temas) y sobre `info` / `error` (en Kaizen) es oscuro, no blanco.',
           },
         },
       ],
@@ -153,7 +145,7 @@ export class ThemeSwitcher {
           kind: 'p',
           text: {
             en: 'A handful of daisyUI classes were renamed between v4 and v5 (tab styles, the active menu item, bordered cards). Components read those names from the `HK_THEME` token instead of hard-coding them. The default is v5, so a v5 app needs nothing; a v4 app registers [provideHkTheme](/api/provideHkTheme).',
-            es: 'Algunas clases de daisyUI cambiaron de nombre entre v4 y v5 (estilos de tabs, el ítem activo del menú, tarjetas con borde). Los componentes leen esos nombres del token `HK_THEME` en lugar de fijarlos en el código. El valor por defecto es v5, así que una app v5 no necesita nada; una app v4 registra [provideHkTheme](/api/provideHkTheme).',
+            es: 'Algunas clases de daisyUI cambiaron de nombre entre v4 y v5 (estilos de pestañas, el ítem activo del menú, tarjetas con borde). Los componentes leen esos nombres del token `HK_THEME` en lugar de fijarlos en el código. El valor por defecto es v5, así que una app v5 no necesita nada; una app v4 registra [provideHkTheme](/api/provideHkTheme).',
           },
         },
         {
@@ -165,17 +157,17 @@ export class ThemeSwitcher {
           ],
           rows: [
             [
-              { en: 'Lifted tabs', es: 'Tabs elevados' },
+              { en: 'Lifted tabs', es: 'Pestañas elevadas' },
               { en: '`tabs-lift`', es: '`tabs-lift`' },
               { en: '`tabs-lifted`', es: '`tabs-lifted`' },
             ],
             [
-              { en: 'Boxed tabs', es: 'Tabs en caja' },
+              { en: 'Boxed tabs', es: 'Pestañas en caja' },
               { en: '`tabs-box`', es: '`tabs-box`' },
               { en: '`tabs-boxed`', es: '`tabs-boxed`' },
             ],
             [
-              { en: 'Bordered tabs', es: 'Tabs con borde' },
+              { en: 'Bordered tabs', es: 'Pestañas con borde' },
               { en: '`tabs-border`', es: '`tabs-border`' },
               { en: '`tabs-bordered`', es: '`tabs-bordered`' },
             ],
@@ -205,8 +197,8 @@ export const appConfig: ApplicationConfig = {
         {
           kind: 'p',
           text: {
-            en: 'On the Tailwind 3 / daisyUI 4 stack, import the precompiled `@hakistack/ng-daisyui/styles-v4.css` instead of the package root. It contains the `--hk-*` bridge plus every class the library uses, so your Tailwind config only scans your own app. The `ng add` schematic sets this up when you choose the legacy toolchain.',
-            es: 'En el stack Tailwind 3 / daisyUI 4, importa el archivo precompilado `@hakistack/ng-daisyui/styles-v4.css` en lugar de la raíz del paquete. Contiene el puente `--hk-*` y todas las clases que usa la librería, así que tu configuración de Tailwind solo escanea tu propia app. El schematic `ng add` lo configura cuando escoges el toolchain legacy.',
+            en: 'On the Tailwind 3 / daisyUI 4 stack, import the precompiled `@hakistack/ng-daisyui/styles-v4.css` instead of the package root. It contains the `--hk-*` bridge plus every class the library uses, so your Tailwind config only scans your own app. The `ng add` schematic sets this up when you choose `target: v4-legacy`.',
+            es: 'En el stack Tailwind 3 / daisyUI 4, importa el archivo precompilado `@hakistack/ng-daisyui/styles-v4.css` en lugar de la raíz del paquete. Contiene el puente `--hk-*` y todas las clases que usa la librería, así que tu configuración de Tailwind solo escanea tu propia app. El schematic `ng add` lo configura cuando eliges `target: v4-legacy`.',
           },
         },
         {
@@ -214,7 +206,7 @@ export const appConfig: ApplicationConfig = {
           tone: 'tip',
           text: {
             en: 'In your own templates, pick the class names of the daisyUI version you run. `HK_THEME` only affects library components.',
-            es: 'En tus propias plantillas, usa los nombres de clase de la versión de daisyUI que corres. `HK_THEME` solo afecta los componentes de la librería.',
+            es: 'En tus propias plantillas, usa los nombres de clase de la versión de daisyUI que tengas. `HK_THEME` solo afecta a los componentes de la librería.',
           },
         },
       ],

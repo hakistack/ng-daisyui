@@ -4,7 +4,7 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: a client-side table of employees where people can type to search across columns, filter by department and salary, sort by clicking a header, and page through the results. Everything is declared once with [createTable](/api/createTable); the data stays a normal input.',
-      es: 'Meta: una tabla de empleados del lado del cliente donde se pueda escribir para buscar en todas las columnas, filtrar por departamento y salario, ordenar con un clic en el encabezado y paginar los resultados. Todo se declara una vez con [createTable](/api/createTable); los datos siguen siendo un input normal.',
+      es: 'Objetivo: una tabla de empleados del lado del cliente donde se pueda escribir para buscar en todas las columnas, filtrar por departamento y salario, ordenar con un clic en el encabezado y paginar los resultados. Todo se declara una vez con [createTable](/api/createTable); los datos siguen siendo un input normal.',
     },
   ],
   sections: [
@@ -91,6 +91,7 @@ export class EmployeesComponent {
       debounceTime: 300,
       excludeFields: ['id'],
     },
+    enableFiltering: true, // shows the filter icon in the headers (default: false)
     filters: [
       {
         field: 'department',
@@ -119,21 +120,21 @@ export class EmployeesComponent {
               { en: '`globalSearch`', es: '`globalSearch`' },
               {
                 en: 'Adds the search box. Modes: `contains`, `startsWith`, `exact`, `fuzzy` (Fuse.js). See [GlobalSearchConfig](/api/GlobalSearchConfig).',
-                es: 'Añade la caja de búsqueda. Modos: `contains`, `startsWith`, `exact`, `fuzzy` (Fuse.js). Mira [GlobalSearchConfig](/api/GlobalSearchConfig).',
+                es: 'Añade el cuadro de búsqueda. Modos: `contains`, `startsWith`, `exact`, `fuzzy` (Fuse.js). Consulta [GlobalSearchConfig](/api/GlobalSearchConfig).',
               },
             ],
             [
               { en: '`filters`', es: '`filters`' },
               {
-                en: 'A filter icon on each listed column header. Types: `text`, `number`, `date`, `select`, `multiselect`, `boolean`, `dateRange`, `numberRange`. See [ColumnFilter](/api/ColumnFilter).',
-                es: 'Un icono de filtro en el encabezado de cada columna listada. Tipos: `text`, `number`, `date`, `select`, `multiselect`, `boolean`, `dateRange`, `numberRange`. Mira [ColumnFilter](/api/ColumnFilter).',
+                en: 'A filter icon on each listed column header (needs `enableFiltering: true`). Types: `text`, `number`, `date`, `select`, `multiselect`, `boolean`, `dateRange`, `numberRange`. See [ColumnFilter](/api/ColumnFilter).',
+                es: 'Un icono de filtro en el encabezado de cada columna listada (requiere `enableFiltering: true`). Tipos: `text`, `number`, `date`, `select`, `multiselect`, `boolean`, `dateRange`, `numberRange`. Consulta [ColumnFilter](/api/ColumnFilter).',
               },
             ],
             [
               { en: '`pagination`', es: '`pagination`' },
               {
                 en: 'Client-side slicing in `offset` mode. See [PaginationOptions](/api/PaginationOptions).',
-                es: 'Paginación del lado del cliente en modo `offset`. Mira [PaginationOptions](/api/PaginationOptions).',
+                es: 'Paginación del lado del cliente en modo `offset`. Consulta [PaginationOptions](/api/PaginationOptions).',
               },
             ],
           ],
@@ -142,13 +143,13 @@ export class EmployeesComponent {
     },
     {
       id: 'step-3-sorting',
-      heading: { en: '3. Sorting', es: '3. Ordenamiento' },
+      heading: { en: '3. Sorting', es: '3. Ordenación' },
       blocks: [
         {
           kind: 'p',
           text: {
             en: 'Sorting needs no configuration: clicking a header cycles ascending, descending and unsorted on that column. hk-table sorts by one column at a time; if you need multi-column sort, use the [DataGrid](/datagrid).',
-            es: 'El ordenamiento no necesita configuración: un clic en el encabezado alterna ascendente, descendente y sin orden en esa columna. hk-table ordena por una columna a la vez; si necesitas ordenar por varias columnas, usa el [DataGrid](/datagrid).',
+            es: 'La ordenación no necesita configuración: cada clic en el encabezado alterna entre ascendente, descendente y sin orden en esa columna. hk-table ordena por una columna a la vez; si necesitas ordenar por varias columnas, usa el [DataGrid](/datagrid).',
           },
         },
       ],
@@ -160,8 +161,8 @@ export class EmployeesComponent {
         {
           kind: 'p',
           text: {
-            en: 'The object returned by `createTable` is also a controller ([TableController](/api/TableController)). Use it to build a filter bar above the table or a “clear all” button, without `viewChild`. Set `enableFiltering: false` to hide the header icons while keeping the filters usable from code.',
-            es: 'El objeto que devuelve `createTable` también es un controlador ([TableController](/api/TableController)). Úsalo para construir una barra de filtros encima de la tabla o un botón de “limpiar todo”, sin `viewChild`. Pon `enableFiltering: false` para ocultar los iconos del encabezado y seguir usando los filtros desde código.',
+            en: 'The object returned by `createTable` is also a controller ([TableController](/api/TableController)). Use it to build a filter bar above the table or a “clear all” button, without `viewChild`. The header icons only appear with `enableFiltering: true`; leave it off (the default) and the declared filters can still be applied from code.',
+            es: 'El objeto que devuelve `createTable` también es un controlador ([TableController](/api/TableController)). Úsalo para construir una barra de filtros encima de la tabla o un botón de “limpiar todo”, sin `viewChild`. Los iconos del encabezado solo aparecen con `enableFiltering: true`; si lo dejas desactivado (el valor por defecto), los filtros declarados se pueden seguir aplicando desde código.',
           },
         },
         {
@@ -211,7 +212,10 @@ resetView(): void {
     },
   ],
   related: [
-    { id: 'table', note: { en: 'Every table feature with live examples.', es: 'Todas las funciones de la tabla con ejemplos en vivo.' } },
+    {
+      id: 'table',
+      note: { en: 'Every table feature with live examples.', es: 'Todas las funcionalidades de la tabla con ejemplos en vivo.' },
+    },
     { id: 'formatters', note: { en: 'How `fmt.*` and custom pipes work.', es: 'Cómo funcionan `fmt.*` y los pipes personalizados.' } },
     {
       id: 'datagrid',

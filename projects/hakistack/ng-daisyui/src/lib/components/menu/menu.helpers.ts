@@ -2,9 +2,19 @@ import { computed, signal } from '@angular/core';
 import { MenuConfig, MenuController, MenuIcon, MenuInternalApi, MenuInternalHandlers, MenuItem, MenuItemKind } from './menu.types';
 import { generateUniqueId } from '../../utils/generate-uuid';
 
-/** Generate a stable-enough unique id for a menu item that lacks one. */
-function nextMenuId(): string {
-  return `hk-menu-${generateUniqueId()}`;
+/**
+ * Generated ids are remembered per item object, so re-processing the same config (visibility
+ * changes, signal updates) keeps ids — and the expanded / active state keyed by them — stable.
+ */
+const generatedIds = new WeakMap<object, string>();
+
+function menuIdFor(item: object): string {
+  let id = generatedIds.get(item);
+  if (!id) {
+    id = `hk-menu-${generateUniqueId()}`;
+    generatedIds.set(item, id);
+  }
+  return id;
 }
 
 /**
@@ -39,7 +49,7 @@ export function processMenuItems<T>(items: MenuItem<T>[]): MenuItem<T>[] {
       const children = item.children ? walk(item.children) : undefined;
       // A group that has lost all of its visible children is dropped.
       if (item.children?.length && (!children || children.length === 0)) continue;
-      out.push({ ...item, id: item.id || nextMenuId(), children });
+      out.push({ ...item, id: item.id || menuIdFor(item), children });
     }
     return out;
   };

@@ -1675,6 +1675,28 @@ describe('TableComponent', () => {
       expect(component.getCellId(2, 3)).toBe('cell-2-3');
     });
 
+    it('puts aria-sort on the column header cell and reflects the sort direction', () => {
+      const config = buildConfig({ visible: ['name', 'email'] });
+      fixture.componentRef.setInput('config', config);
+      fixture.componentRef.setInput('data', SAMPLE_DATA);
+      fixture.detectChanges();
+
+      const headers = () => Array.from(fixture.nativeElement.querySelectorAll('th[aria-sort]')) as HTMLElement[];
+      expect(headers().length).toBeGreaterThanOrEqual(2);
+      expect(headers().every((th) => th.getAttribute('aria-sort') === 'none')).toBe(true);
+
+      component.sort('name');
+      fixture.detectChanges();
+      const sorted = headers().find((th) => th.textContent?.includes('Name'))!;
+      expect(sorted.getAttribute('aria-sort')).toBe('ascending');
+      expect(sorted.querySelector('[role="button"]')).toBeTruthy();
+    });
+
+    it('createTable keeps the controller id (whitelist normalizer regression)', () => {
+      const config = buildConfig({ id: 'users-table', visible: ['name'] });
+      expect(config.config.id).toBe('users-table');
+    });
+
     it('should ignore keys typed into inputs inside the table (search box, filters, inline editor)', () => {
       const config = buildConfig({
         visible: ['name', 'email'],

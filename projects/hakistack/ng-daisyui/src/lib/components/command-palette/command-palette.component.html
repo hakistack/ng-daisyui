@@ -1,4 +1,4 @@
-<dialog #dialog class="modal" (close)="onDialogClose()">
+<dialog #dialog class="modal" [attr.aria-label]="labels().searchAriaLabel" (close)="onDialogClose()">
   <div [class]="panelClass()">
     <!-- ── Search input ───────────────────────────────────────────────────── -->
     <label
@@ -15,6 +15,11 @@
         #searchInput
         type="search"
         class="grow bg-transparent border-0 outline-none focus:outline-none text-base"
+        role="combobox"
+        aria-autocomplete="list"
+        [attr.aria-expanded]="state().filtered.length > 0"
+        [attr.aria-controls]="listboxId"
+        [attr.aria-activedescendant]="activeOptionId()"
         [placeholder]="labels().searchPlaceholder"
         [attr.aria-label]="labels().searchAriaLabel"
         [value]="state().query"
@@ -84,23 +89,28 @@
         </div>
       } @else if (state().filtered.length > 0) {
         <!-- Grouped results -->
-        <div class="py-2">
+        <!-- APG combobox: focus stays in the input; the highlighted option is aria-activedescendant. -->
+        <div class="py-2" role="listbox" [id]="listboxId" [attr.aria-label]="labels().searchAriaLabel">
           @for (group of groupedResults(); track group.id) {
-            <div class="px-2 py-1">
+            <div class="px-2 py-1" role="group" [attr.aria-label]="group.label || null">
               @if (group.label) {
-                <h2 class="px-3 py-1.5 text-xs font-semibold text-base-content/60 uppercase tracking-wide">
+                <h2 aria-hidden="true" class="px-3 py-1.5 text-xs font-semibold text-base-content/60 uppercase tracking-wide">
                   {{ group.label }}
                 </h2>
               }
-              <ul class="menu menu-md p-0 w-full gap-0">
+              <ul class="menu menu-md p-0 w-full gap-0" role="presentation">
                 @for (entry of group.items; track entry.item.id) {
-                  <li>
+                  <li role="presentation">
                     <button
                       type="button"
+                      role="option"
+                      tabindex="-1"
+                      [id]="optionId(entry.flatIndex)"
                       [class.menu-active]="state().selectedIndex === entry.flatIndex"
                       [class.menu-disabled]="entry.item.disabled"
                       [disabled]="entry.item.disabled"
-                      [attr.aria-current]="state().selectedIndex === entry.flatIndex ? 'true' : null"
+                      [attr.aria-disabled]="entry.item.disabled || null"
+                      [attr.aria-selected]="state().selectedIndex === entry.flatIndex"
                       (click)="invokeItem(entry.flatIndex)"
                       (mouseenter)="setSelectedIndex(entry.flatIndex)"
                       class="flex items-center gap-3 w-full text-left"

@@ -9,7 +9,6 @@ import {
   deleteSelectionRange,
   extractRawValue,
   getFirstUnfilledPosition,
-  getNextEditablePosition,
   handlePaste,
   isComplete,
   parseMask,

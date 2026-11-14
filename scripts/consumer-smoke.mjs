@@ -73,10 +73,14 @@ function ngBuild(cwd) {
             stop();
             rejectBuild(err);
           });
-      } else if (/Application bundle generation failed|An unhandled exception occurred/.test(out)) {
+      } else if (/Application bundle generation failed|An unhandled exception occurred/.test(out) && !settling) {
+        // The error details are printed AFTER the status line: give them a moment to flush.
+        settling = true;
         clearTimeout(timer);
-        stop();
-        rejectBuild(new Error('ng build failed (see output above)'));
+        setTimeout(() => {
+          stop();
+          rejectBuild(new Error('ng build failed (see output above)'));
+        }, 3000);
       }
     };
     child.stdout.on('data', onData);

@@ -42,15 +42,25 @@ export interface AlertOptions {
   /** Alert message/body text */
   text?: string;
 
-  /** HTML content (alternative to text) */
+  /**
+   * HTML content (alternative to text). Passed through Angular's HTML sanitizer: scripts, event
+   * handlers and `style` attributes are removed. Set `trustedHtml: true` to render it verbatim.
+   */
   html?: string;
 
   /**
    * URL to load HTML content from (alternative to `html`).
-   * Fetched at runtime via `fetch()`. The response body is used as HTML content.
+   * Fetched at runtime via `fetch()`. The response body is sanitized like `html`.
    * @example '/assets/alerts/terms.html', 'https://api.example.com/notice'
    */
   htmlUrl?: string;
+
+  /**
+   * Render `html` / `htmlUrl` content **without** sanitizing it. Only for markup you fully control:
+   * never set this for content that contains user input or comes from a third-party URL (XSS).
+   * @default false
+   */
+  trustedHtml?: boolean;
 
   /** Alert icon type */
   icon?: AlertIcon;
@@ -168,8 +178,12 @@ export interface CountdownOptions {
    * Use `{seconds}` placeholder for initial seconds value.
    * The element matching `countdownSelector` will be updated live.
    * @example 'Session expires in <kbd class="kbd">{seconds}</kbd> seconds'
+   * Sanitized like `AlertOptions.html` unless `trustedHtml` is set.
    */
   html: string;
+
+  /** Render `html` without sanitizing it (see `AlertOptions.trustedHtml`). @default false */
+  trustedHtml?: boolean;
 
   /** Time in milliseconds before auto-close */
   timer: number;
@@ -240,6 +254,8 @@ export interface AlertInternalConfig {
   title: string;
   text?: string;
   html?: string;
+  /** Skip Angular's sanitizer for `html` (opt-in via `AlertOptions.trustedHtml`). */
+  trustHtml?: boolean;
   footer?: string;
   icon?: AlertIcon;
   showConfirmButton: boolean;

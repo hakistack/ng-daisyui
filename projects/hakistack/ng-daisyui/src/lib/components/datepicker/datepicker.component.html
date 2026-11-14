@@ -23,7 +23,7 @@
         [attr.aria-controls]="isOpen() ? inputId() + '-dialog' : null"
         aria-haspopup="dialog"
         [attr.aria-expanded]="isOpen()"
-        [attr.aria-label]="placeholder()"
+        [attr.aria-label]="inputAriaLabel()"
       />
 
       <!-- Right-side icons container -->
@@ -169,7 +169,12 @@
               @case ('days') {
                 <div class="calendar-grid" role="grid" [attr.aria-label]="monthLabel() + ' ' + yearLabel()">
                   <!-- Weekday Headers -->
-                  <div class="mb-2 grid grid-cols-7 gap-1" role="row">
+                  <div class="mb-2 grid gap-1" [class]="showWeekNumbers() ? 'grid-cols-8' : 'grid-cols-7'" role="row">
+                    @if (showWeekNumbers()) {
+                      <div class="text-base-content/50 flex items-center justify-center p-2 text-center text-xs" role="columnheader">
+                        <abbr [title]="resolvedLabels().weekNumberHeader" class="no-underline">#</abbr>
+                      </div>
+                    }
                     @for (weekday of weekdays(); track weekday.id) {
                       <div
                         class="text-base-content/70 flex items-center justify-center p-2 text-center text-xs font-medium"
@@ -183,7 +188,12 @@
                   <!-- Calendar Days -->
                   <div class="space-y-1">
                     @for (week of calendarWeeks(); track week.id) {
-                      <div class="grid grid-cols-7 gap-1" role="row">
+                      <div class="grid gap-1" [class]="showWeekNumbers() ? 'grid-cols-8' : 'grid-cols-7'" role="row">
+                        @if (showWeekNumbers()) {
+                          <div class="text-base-content/50 flex items-center justify-center text-xs" role="rowheader">
+                            <span class="sr-only">{{ resolvedLabels().weekNumberHeader }} </span>{{ week.weekNumber }}
+                          </div>
+                        }
                         @for (cell of week.cells; track cell.id) {
                           <div
                             class="flex items-center justify-center"

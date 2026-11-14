@@ -25,6 +25,8 @@ export type PlaygroundControl<K extends string = string> =
  * See playground-definitions.spec.ts.
  */
 export interface PlaygroundSpec<S extends PlaygroundState = PlaygroundState> {
+  /** `'wide'` gives the preview the full width and puts the controls below it. Default: side by side. */
+  readonly layout?: 'default' | 'wide';
   /** Exported symbol the playground exercises (component or service). */
   readonly symbol: string;
   readonly controls: readonly PlaygroundControl<Extract<keyof S, string>>[];
@@ -48,6 +50,11 @@ export interface PlaygroundSpec<S extends PlaygroundState = PlaygroundState> {
    * must match (e.g. `ToastOptions`). Checked against the manifest.
    */
   readonly optionsSymbol?: string;
+  /**
+   * Package that exports `optionsSymbol` when it is not a library type (e.g. `'@angular/cdk/dialog'`
+   * for `DialogConfig`). The checker then reads its members with the TypeScript checker.
+   */
+  readonly optionsFrom?: string;
   /** Full override of code generation (service playgrounds). */
   readonly code?: (state: S) => string;
 }

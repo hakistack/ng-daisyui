@@ -70,7 +70,7 @@ export function createTree<T = unknown>(input: CreateTreeInput<T>): TreeSetup<T>
  *
  * ```ts
  * node.folder('Documents', [
- *   node.file('Resume.pdf', { icon: 'FileText' }),
+ *   node.file('Resume.pdf', { icon: 'file-text' }), // kebab-case name registered with provideLucideIcons(LucideFileText)
  *   node.lazy('Archives'),
  * ]);
  * ```

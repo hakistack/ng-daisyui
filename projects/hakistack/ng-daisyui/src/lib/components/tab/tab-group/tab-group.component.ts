@@ -1,18 +1,43 @@
-import { ChangeDetectionStrategy, Component, computed, contentChildren, inject, input, model, AfterContentInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  contentChildren,
+  inject,
+  input,
+  isDevMode,
+  model,
+  AfterContentInit,
+} from '@angular/core';
+import { LUCIDE_ICONS, LucideDynamicIcon, type LucideIconData } from '@lucide/angular';
 import { CommonModule } from '@angular/common';
 import { Tab, TabContent, TabList, TabPanel, Tabs } from '@angular/aria/tabs';
 import { TabPanelComponent } from '../tab-panel/tab-panel.component';
 import { HK_THEME } from '../../../theme/theme.config';
 
+/** `CreditCard` → `credit-card` (the key format `provideLucideIcons` registers). */
+function toKebabCase(name: string): string {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase();
+}
+
 @Component({
   selector: 'hk-tab-group',
-  imports: [CommonModule, Tabs, TabList, Tab, TabPanel, TabContent],
+  imports: [CommonModule, LucideDynamicIcon, Tabs, TabList, Tab, TabPanel, TabContent],
   templateUrl: './tab-group.component.html',
   styleUrl: './tab-group.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TabGroupComponent implements AfterContentInit {
   private readonly theme = inject(HK_THEME);
+  /**
+   * Name → icon registry filled by `provideLucideIcons(...)`. Looked up here (rather than handing the
+   * name to `[lucideIcon]`, which throws for unknown names) so an unregistered icon can't break the page.
+   */
+  private readonly lucideIcons = inject(LUCIDE_ICONS, { optional: true }) ?? {};
+  private readonly warnedIcons = new Set<string>();
   readonly panels = contentChildren(TabPanelComponent);
 
   /** The index of the initially active tab */
@@ -42,6 +67,19 @@ export class TabGroupComponent implements AfterContentInit {
   wrap = input(true);
 
   readonly isVertical = computed(() => this.orientation() === 'vertical');
+
+  /** Icon data for a panel's `icon` input, or `null` when unset / not registered. */
+  tabIcon(panel: TabPanelComponent): LucideIconData | null {
+    const icon = panel.icon();
+    if (!icon) return null;
+    if (typeof icon !== 'string') return icon;
+    const resolved = this.lucideIcons[icon] ?? this.lucideIcons[toKebabCase(icon)] ?? null;
+    if (!resolved && isDevMode() && !this.warnedIcons.has(icon)) {
+      this.warnedIcons.add(icon);
+      console.warn(`[hk-tab-group] Icon '${icon}' is not registered. Add it with provideLucideIcons(...).`);
+    }
+    return resolved;
+  }
 
   /**
    * Outer container.

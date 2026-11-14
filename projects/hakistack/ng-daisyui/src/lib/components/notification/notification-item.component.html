@@ -64,7 +64,9 @@
      carries the severity tint, matching Tailwind Plus's notification pattern. -->
 <ng-template #textBlock>
   <div class="min-w-0 flex-1">
-    <h3 class="font-bold text-sm truncate text-base-content">{{ notification().title }}</h3>
+    <h3 class="font-bold text-sm truncate text-base-content">
+      <span class="sr-only">{{ ariaPrefix() }}: </span>{{ notification().title }}
+    </h3>
     @if (notification().message) {
       <div class="text-xs text-base-content/70">{{ notification().message }}</div>
     }
@@ -94,7 +96,7 @@
   <!-- DEFAULT — daisyUI alert with vertical-on-mobile, horizontal-on-sm+. Title +
        body stack inside a div per the alert-with-title-and-description pattern.
        Inline action row renders below the body when there are actions. -->
-  <div role="alert" [class]="panelClass() + ' alert-vertical sm:alert-horizontal'">
+  <div [class]="panelClass() + ' alert-vertical sm:alert-horizontal'">
     <ng-container *ngTemplateOutlet="iconBlock" />
     <div class="flex flex-col gap-2 min-w-0 flex-1">
       <ng-container *ngTemplateOutlet="textBlock" />
@@ -121,7 +123,7 @@
        single action button, matching the Tailwind Plus pattern: content on
        the left, hairline divider, action on the right. The negative margin +
        padding lets the border span the alert's full height. -->
-  <div role="alert" [class]="panelClass()">
+  <div [class]="panelClass()">
     <ng-container *ngTemplateOutlet="iconBlock" />
     <ng-container *ngTemplateOutlet="textBlock" />
     @if (notification().actions?.[0]; as action) {
@@ -139,7 +141,7 @@
        between buttons. Mirrors Tailwind Plus's stacked-action notification:
        primary CTA on top, neutral action below, both reading as text-only
        buttons against the panel rather than filled blocks. -->
-  <div role="alert" [class]="panelClass()">
+  <div [class]="panelClass()">
     <ng-container *ngTemplateOutlet="iconBlock" />
     <ng-container *ngTemplateOutlet="textBlock" />
     <div class="self-stretch flex flex-col border-l border-base-content/10 divide-y divide-base-content/10 -my-3 shrink-0">

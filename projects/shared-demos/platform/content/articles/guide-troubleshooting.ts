@@ -4,7 +4,7 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: get from a symptom to the fix quickly. Each entry below is a problem people have actually run into, the reason behind it, and what to change.',
-      es: 'Meta: pasar rápido del síntoma a la solución. Cada entrada de abajo es un problema real que la gente ha encontrado, la razón detrás y qué cambiar.',
+      es: 'Objetivo: pasar rápido del síntoma a la solución. Cada entrada es un problema real con el que alguien se ha topado, su causa y qué cambiar.',
     },
   ],
   sections: [
@@ -36,11 +36,11 @@ const content: ArticleContent = {
             },
             {
               en: 'Tabs or menus look wrong but everything else is fine: the daisyUI major version and `provideHkTheme` do not match. See [Theming](/foundations/theming).',
-              es: 'Los tabs o menús se ven mal pero todo lo demás bien: la versión mayor de daisyUI y `provideHkTheme` no coinciden. Mira [Temas](/foundations/theming).',
+              es: 'Las pestañas o los menús se ven mal pero todo lo demás está bien: la versión mayor de daisyUI y `provideHkTheme` no coinciden. Mira [Temas](/foundations/theming).',
             },
             {
               en: 'Do not “fix” missing classes with safelists; fix the import instead.',
-              es: 'No “arregles” clases faltantes con safelists; arregla el import.',
+              es: 'No “arregles” las clases que faltan con safelists; corrige el import.',
             },
           ],
         },
@@ -57,7 +57,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: '[createTable](/api/createTable) calls `inject()` internally. It works in a field initializer or constructor, but not inside `computed()`, `effect()`, a subscription or an `async` callback. When the table config must be rebuilt from changing data (for example, different columns per sheet), capture the injector and wrap the call. `createForm` and `createDataGrid` do not need an injection context.',
-            es: '[createTable](/api/createTable) llama `inject()` internamente. Funciona en un inicializador de campo o en el constructor, pero no dentro de `computed()`, `effect()`, una suscripción o un callback `async`. Cuando la configuración de la tabla debe reconstruirse con datos que cambian (por ejemplo, columnas distintas por hoja), captura el injector y envuelve la llamada. `createForm` y `createDataGrid` no necesitan contexto de inyección.',
+            es: '[createTable](/api/createTable) llama a `inject()` internamente. Funciona en un inicializador de campo o en el constructor, pero no dentro de `computed()`, `effect()`, una suscripción o un callback `async`. Cuando la configuración de la tabla debe reconstruirse con datos que cambian (por ejemplo, columnas distintas por hoja), captura el injector y envuelve la llamada. `createForm` y `createDataGrid` no necesitan contexto de inyección.',
           },
         },
         {
@@ -89,7 +89,7 @@ export abstract class SheetTableBase {
           kind: 'p',
           text: {
             en: 'The select is wrapped in a `<label>`. The label forwards the click to the control, so one click toggles twice. Use a label that does not wrap the control.',
-            es: 'El select está envuelto en un `<label>`. El label reenvía el clic al control, así que un solo clic alterna dos veces. Usa un label que no envuelva el control.',
+            es: 'El select está envuelto en un `<label>`. El label reenvía el clic al control, así que un solo clic lo abre y lo cierra. Usa un label que no envuelva el control.',
           },
         },
         {
@@ -111,8 +111,8 @@ export abstract class SheetTableBase {
         {
           kind: 'p',
           text: {
-            en: 'An icon was referenced by name but never registered. Names are kebab-case (`file-text`, not `FileText`). Register the icons with `provideLucideIcons(...)` from `@lucide/angular`, or pass icon components / icon data where the API accepts them. The table’s default export options use `sheet`, `file-spreadsheet`, `file-text` and `braces`. See [Optimize bundle size](/guides/bundle-size).',
-            es: 'Se usó un icono por nombre que nunca se registró. Los nombres van en kebab-case (`file-text`, no `FileText`). Registra los iconos con `provideLucideIcons(...)` de `@lucide/angular`, o pasa componentes / datos del icono donde la API los acepte. Las opciones de exportación por defecto de la tabla usan `sheet`, `file-spreadsheet`, `file-text` y `braces`. Mira [Optimiza el tamaño del bundle](/guides/bundle-size).',
+            en: 'An icon was referenced by name but never registered. Names are kebab-case (`file-text`, not `FileText`). Register the icons with `provideLucideIcons(...)` from `@lucide/angular`, or pass icon data (for example `LucideFileText.icon`) where the API accepts it. The table’s default export options use `sheet`, `file-spreadsheet`, `file-text` and `braces`. See [Optimize bundle size](/guides/bundle-size).',
+            es: 'Se usó un icono por nombre que nunca se registró. Los nombres van en kebab-case (`file-text`, no `FileText`). Registra los iconos con `provideLucideIcons(...)` de `@lucide/angular`, o pasa los datos del icono (por ejemplo `LucideFileText.icon`) donde la API los acepte. Las opciones de exportación por defecto de la tabla usan `sheet`, `file-spreadsheet`, `file-text` y `braces`. Mira [Optimiza el tamaño del bundle](/guides/bundle-size).',
           },
         },
       ],
@@ -138,8 +138,8 @@ export abstract class SheetTableBase {
             [
               { en: '`Router`', es: '`Router`' },
               {
-                en: '[DialogService](/api/DialogService) closes dialogs on navigation and needs the router. Add `provideRouter(routes)`.',
-                es: '[DialogService](/api/DialogService) cierra los diálogos al navegar y necesita el router. Añade `provideRouter(routes)`.',
+                en: 'A [Menu](/menu), app-shell or [Breadcrumbs](/breadcrumbs) item with `routerLink` renders Angular’s `RouterLink`, which needs the router. Add `provideRouter(routes)`. [DialogService](/api/DialogService) does not need it: without a router, dialogs simply are not closed on navigation.',
+                es: 'Un elemento de [Menu](/menu), del app shell o de [Breadcrumbs](/breadcrumbs) con `routerLink` usa el `RouterLink` de Angular, que necesita el router. Añade `provideRouter(routes)`. [DialogService](/api/DialogService) no lo necesita: sin router, los diálogos simplemente no se cierran al navegar.',
               },
             ],
           ],
@@ -161,8 +161,8 @@ export abstract class SheetTableBase {
           kind: 'note',
           tone: 'info',
           text: {
-            en: 'Engine-backed features fall back to TypeScript when the module fails to load, so a 404 shows up as slower behavior and a console message, not a broken screen.',
-            es: 'Las funciones con motor vuelven a TypeScript cuando el módulo no carga, así que un 404 se nota como un comportamiento más lento y un mensaje en la consola, no como una pantalla rota.',
+            en: 'Features on the shared engine (table, tree, form conditions, fuzzy search) fall back to TypeScript when the module fails to load, so a 404 there shows up as slower behavior and a console message, not a broken screen. The document and image engines have no fallback: spreadsheets and TIFF/BMP/QOI-style images show an error instead.',
+            es: 'Las funcionalidades del motor compartido (tabla, árbol, condiciones de formularios, búsqueda difusa) vuelven a TypeScript cuando el módulo no carga, así que ahí un 404 se nota como un comportamiento más lento y un mensaje en la consola, no como una pantalla rota. Los motores de documentos e imágenes no tienen respaldo: las hojas de cálculo y las imágenes tipo TIFF, BMP o QOI muestran un error.',
           },
         },
       ],
@@ -195,14 +195,32 @@ export abstract class SheetTableBase {
               es: 'La URL no tiene extensión: pasa `config.filename` o `config.mimeType`.',
             },
             {
-              en: 'The format is recognized but has no renderer yet (`.doc`, `.odt`, presentations).',
-              es: 'El formato se reconoce pero aún no tiene renderizador (`.doc`, `.odt`, presentaciones).',
+              en: 'The format is recognized but has no renderer yet (`.doc`, `.odt`, presentations such as `.pptx`).',
+              es: 'El formato se reconoce, pero aún no tiene renderizador (`.doc`, `.odt`, presentaciones como `.pptx`).',
             },
             {
               en: 'An error that names a package instead (for example `docx-preview`) means an optional peer is missing: install it.',
-              es: 'Si en cambio sale un error que nombra un paquete (por ejemplo `docx-preview`), falta un peer opcional: instálalo.',
+              es: 'Si en cambio sale un error que nombra un paquete (por ejemplo `docx-preview`), falta una dependencia peer opcional: instálala.',
             },
           ],
+        },
+      ],
+    },
+    {
+      id: 'editor',
+      heading: { en: 'The rich text editor says it could not load', es: 'El editor de texto enriquecido dice que no pudo cargar' },
+      blocks: [
+        {
+          kind: 'p',
+          text: {
+            en: '`hk-editor` is built on Tiptap, whose packages are optional peer dependencies. Install them; the exact command is also logged in the browser console.',
+            es: '`hk-editor` está hecho sobre Tiptap, cuyos paquetes son dependencias peer opcionales. Instálalos; el comando exacto también aparece en la consola del navegador.',
+          },
+        },
+        {
+          kind: 'code',
+          lang: 'bash',
+          code: `npm i @tiptap/core @tiptap/pm @tiptap/starter-kit @tiptap/extension-link @tiptap/extension-placeholder @tiptap/extension-image @tiptap/extension-file-handler @tiptap/suggestion`,
         },
       ],
     },
@@ -213,15 +231,15 @@ export abstract class SheetTableBase {
         {
           kind: 'p',
           text: {
-            en: 'A hidden field still has `required: true`. `showWhen` hides a field but keeps its validators. Replace `required` with a `requiredWhen` that matches the `showWhen`. See [Build a complete form](/guides/build-a-form).',
-            es: 'Un campo oculto todavía tiene `required: true`. `showWhen` oculta el campo pero mantiene sus validadores. Reemplaza `required` por un `requiredWhen` igual al `showWhen`. Mira [Construye un formulario completo](/guides/build-a-form).',
+            en: 'A field that is never rendered still validates. Fields declared with `hidden: true` (or `field.hidden(...)`) stay enabled with all their validators, so a `required` one without a value blocks submit invisibly: give it a `defaultValue` or drop the validator. Fields hidden by `showWhen` / `hideWhen` are not the cause: they are disabled while hidden, so they leave `form.valid` and `form.value` (they stay in `getRawValue()`) and come back when shown. See [Build a complete form](/guides/build-a-form).',
+            es: 'Un campo que nunca se renderiza sigue validando. Los campos declarados con `hidden: true` (o `field.hidden(...)`) siguen habilitados con todos sus validadores, así que uno con `required` y sin valor bloquea el envío sin que se vea: dale un `defaultValue` o quita el validador. Los campos que ocultan `showWhen` / `hideWhen` no son la causa: se deshabilitan mientras están ocultos, así que salen de `form.valid` y `form.value` (siguen en `getRawValue()`) y vuelven cuando se muestran. Mira [Construye un formulario completo](/guides/build-a-form).',
           },
         },
       ],
     },
     {
       id: 'feedback',
-      heading: { en: 'Feedback services do nothing, or too much', es: 'Los servicios de aviso no hacen nada, o hacen de más' },
+      heading: { en: 'Feedback services do nothing, or too much', es: 'Los servicios de avisos no hacen nada, o hacen de más' },
       blocks: [
         {
           kind: 'list',
@@ -236,7 +254,7 @@ export abstract class SheetTableBase {
             },
             {
               en: 'A confirm always proceeds: alert methods return an `AlertResult`; check `result.isConfirmed`.',
-              es: 'Un confirm siempre continúa: los métodos de alert devuelven un `AlertResult`; revisa `result.isConfirmed`.',
+              es: 'Una confirmación siempre sigue adelante: los métodos de alert devuelven un `AlertResult`; revisa `result.isConfirmed`.',
             },
           ],
         },
@@ -250,7 +268,7 @@ export abstract class SheetTableBase {
           kind: 'p',
           text: {
             en: 'A template binds a method that returns a new object, array or `Date` on every call, for example `[ngModel]="range()"` on a datepicker or `[config]="buildConfig()"`. Each check produces a “new” value, which the child writes back. Move the value into a `computed()` so the reference only changes when its inputs do.',
-            es: 'Una plantilla enlaza un método que devuelve un objeto, arreglo o `Date` nuevo en cada llamada, por ejemplo `[ngModel]="range()"` en un datepicker o `[config]="buildConfig()"`. Cada verificación produce un valor “nuevo”, que el hijo vuelve a escribir. Pasa el valor a un `computed()` para que la referencia solo cambie cuando cambian sus entradas.',
+            es: 'Una plantilla enlaza un método que devuelve un objeto, un arreglo o un `Date` nuevo en cada llamada, por ejemplo `[ngModel]="range()"` en un datepicker o `[config]="buildConfig()"`. Cada verificación produce un valor “nuevo”, que el hijo vuelve a escribir. Pasa el valor a un `computed()` para que la referencia solo cambie cuando cambian sus entradas.',
           },
         },
       ],

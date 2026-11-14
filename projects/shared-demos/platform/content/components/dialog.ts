@@ -14,7 +14,7 @@ const content: ComponentDocContent = {
   whenToUse: [
     {
       en: 'Create or edit forms that should not take the user to another page.',
-      es: 'Formularios de crear o editar que no deben llevar al usuario a otra página.',
+      es: 'Formularios de creación o edición que no deben llevar al usuario a otra página.',
     },
     {
       en: 'Pickers and detail views that hand a value back to the caller.',
@@ -22,7 +22,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Any custom content where the fixed layout of an alert is not enough.',
-      es: 'Cualquier contenido propio donde el diseño fijo de una alerta no alcanza.',
+      es: 'Cualquier contenido propio para el que el diseño fijo de una alerta no es suficiente.',
     },
   ],
   whenNotToUse: [
@@ -35,8 +35,8 @@ const content: ComponentDocContent = {
       es: 'Avisos que no deben bloquear: usa [Toast](/toast) o [Notification](/notification).',
     },
     {
-      en: 'Content that should survive navigation: dialogs opened with `open()` close on every router navigation.',
-      es: 'Contenido que debe sobrevivir a la navegación: los diálogos abiertos con `open()` se cierran en cada navegación del router.',
+      en: 'Content that should survive navigation: dialogs opened with `open()` or `openRaw()` close on every router navigation.',
+      es: 'Contenido que debe sobrevivir a la navegación: los diálogos abiertos con `open()` u `openRaw()` se cierran en cada navegación del router.',
     },
   ],
   quickStart: {
@@ -97,8 +97,8 @@ export class ProjectTitleComponent {
 }
 `,
     note: {
-      en: "`DialogService` injects the Angular `Router`, so the app needs `provideRouter(...)`. The CDK overlay styles must be present; the library's stylesheet ships them.",
-      es: '`DialogService` inyecta el `Router` de Angular, así que la app necesita `provideRouter(...)`. Deben estar los estilos de overlay del CDK; la hoja de estilos de la librería ya los incluye.',
+      en: "No provider is needed. The `Router` is optional: with `provideRouter(...)` open dialogs close on navigation, and without it dialogs work the same but stay open. The CDK overlay styles must be present; the library's stylesheet ships them.",
+      es: 'No hace falta ningún provider. El `Router` es opcional: con `provideRouter(...)` los diálogos abiertos se cierran al navegar, y sin él los diálogos funcionan igual pero siguen abiertos. Deben estar los estilos de overlay del CDK; la hoja de estilos de la librería ya los incluye.',
     },
   },
   technical: [
@@ -116,15 +116,15 @@ export class ProjectTitleComponent {
             [
               { en: '`open(component, options)`', es: '`open(component, options)`' },
               {
-                en: "Opens `DialogWrapperComponent`, which attaches your component through a CDK portal with a child injector whose `DIALOG_DATA` is your `data`. Defaults: `width: '95vw'`, `maxWidth: '32rem'`, `minWidth: '24rem'`. Closed automatically on `NavigationStart`.",
-                es: "Abre `DialogWrapperComponent`, que monta tu componente con un portal del CDK y un injector hijo cuyo `DIALOG_DATA` es tu `data`. Por defecto: `width: '95vw'`, `maxWidth: '32rem'`, `minWidth: '24rem'`. Se cierra solo en `NavigationStart`.",
+                en: "Opens `DialogWrapperComponent`, which attaches your component through a CDK portal with a child injector whose `DIALOG_DATA` is your `data`. Defaults: `width: '95vw'`, `maxWidth: '32rem'`, `minWidth: '24rem'`. Closed automatically on `NavigationStart` when the app has a router.",
+                es: "Abre `DialogWrapperComponent`, que monta tu componente con un portal del CDK y un injector hijo cuyo `DIALOG_DATA` es tu `data`. Por defecto: `width: '95vw'`, `maxWidth: '32rem'`, `minWidth: '24rem'`. Se cierra solo en `NavigationStart` cuando la app tiene router.",
               },
             ],
             [
               { en: '`openRaw(component, options)`', es: '`openRaw(component, options)`' },
               {
-                en: 'Plain CDK `Dialog.open()` with `DIALOG_DATA` provided; no wrapper, no default sizes, not closed by the service on navigation. Returns `DialogRef` typed with your component.',
-                es: '`Dialog.open()` del CDK tal cual, con `DIALOG_DATA` provisto; sin wrapper, sin tamaños por defecto y el servicio no lo cierra al navegar. Devuelve un `DialogRef` tipado con tu componente.',
+                en: 'Plain CDK `Dialog.open()` with `DIALOG_DATA` provided; no wrapper, no default sizes. Also tracked by the service and closed on `NavigationStart`. Returns `DialogRef` typed with your component.',
+                es: '`Dialog.open()` del CDK tal cual, con `DIALOG_DATA` provisto; sin wrapper y sin tamaños por defecto. El servicio también lo registra y lo cierra en `NavigationStart`. Devuelve un `DialogRef` tipado con tu componente.',
               },
             ],
           ],
@@ -146,16 +146,16 @@ export class ProjectTitleComponent {
           kind: 'list',
           items: [
             {
-              en: 'Read data with `inject(DIALOG_DATA)`; it is `null` when you pass no `data`.',
-              es: 'Lee los datos con `inject(DIALOG_DATA)`; es `null` si no pasas `data`.',
+              en: 'Read data with `inject(DIALOG_DATA)`; with `open()` it is `null` when you pass no `data` (with `openRaw()` it is `undefined`).',
+              es: 'Lee los datos con `inject(DIALOG_DATA)`; con `open()` es `null` si no pasas `data` (con `openRaw()` es `undefined`).',
             },
             {
               en: "Close with `inject(DialogRef).close(result)`. Inside `open()` this is the wrapper's dialog ref, so the caller's `ref.closed` emits your result (or `undefined` on Escape or backdrop).",
-              es: 'Cierra con `inject(DialogRef).close(result)`. Dentro de `open()` ese es el ref del wrapper, así que el `ref.closed` de quien abrió emite tu resultado (o `undefined` con Escape o clic en el fondo).',
+              es: 'Cierra con `inject(DialogRef).close(result)`. Dentro de `open()` ese es el `DialogRef` del wrapper, así que el `ref.closed` de quien abrió emite tu resultado (o `undefined` con Escape o clic en el fondo).',
             },
             {
               en: 'The wrapper adds no background or padding (only a container capped at `90vh`); render your own surface, for example a DaisyUI `card bg-base-100`.',
-              es: 'El wrapper no añade fondo ni relleno (solo un contenedor limitado a `90vh`); dibuja tu propia superficie, por ejemplo una `card bg-base-100` de DaisyUI.',
+              es: 'El wrapper no añade fondo ni relleno (solo un contenedor limitado a `90vh`); renderiza tu propia superficie, por ejemplo una `card bg-base-100` de DaisyUI.',
             },
           ],
         },
@@ -181,7 +181,7 @@ export class ProjectTitleComponent {
       },
       {
         keys: 'Tab / Shift+Tab',
-        action: { en: 'Cycle focus inside the dialog (CDK focus trap)', es: 'Recorre el foco dentro del diálogo (trampa de foco del CDK)' },
+        action: { en: 'Cycle focus inside the dialog (CDK focus trap)', es: 'Mueve el foco dentro del diálogo (trampa de foco del CDK)' },
       },
     ],
     notes: [
@@ -199,18 +199,18 @@ export class ProjectTitleComponent {
       },
       {
         en: "For destructive confirmations use `role: 'alertdialog'` in the config, or use [Alert](/alert).",
-        es: "Para confirmaciones destructivas usa `role: 'alertdialog'` en el config, o usa [Alert](/alert).",
+        es: "Para confirmaciones destructivas usa `role: 'alertdialog'` en la configuración, o usa [Alert](/alert).",
       },
     ],
   },
   performance: [
     {
       en: "Your component is only created while the dialog is open and destroyed when it closes; the portal is detached in the wrapper's `ngOnDestroy`.",
-      es: 'Tu componente solo existe mientras el diálogo está abierto y se destruye al cerrarse; el portal se desconecta en el `ngOnDestroy` del wrapper.',
+      es: 'Tu componente solo existe mientras el diálogo está abierto y se destruye al cerrarse; el portal se desacopla en el `ngOnDestroy` del wrapper.',
     },
     {
-      en: 'The service tracks dialogs opened with `open()` and closes them all on `NavigationStart`, so stale dialogs do not pile up across routes.',
-      es: 'El servicio lleva cuenta de los diálogos abiertos con `open()` y los cierra todos en `NavigationStart`, así no se acumulan diálogos viejos entre rutas.',
+      en: 'The service tracks dialogs opened with `open()` and `openRaw()` and, when the app has a router, closes them all on `NavigationStart`, so stale dialogs do not pile up across routes.',
+      es: 'El servicio lleva la cuenta de los diálogos abiertos con `open()` y `openRaw()` y, cuando la app tiene router, los cierra todos en `NavigationStart`; así no se acumulan diálogos obsoletos entre rutas.',
     },
   ],
   related: [
@@ -218,7 +218,7 @@ export class ProjectTitleComponent {
       id: 'alert',
       note: {
         en: 'Ready-made confirm, question and loading modals with one awaitable call.',
-        es: 'Modales listos de confirmación, pregunta y carga con una llamada que puedes esperar.',
+        es: 'Modales predefinidos de confirmación, pregunta y carga con una sola llamada que puedes esperar con `await`.',
       },
     },
     {

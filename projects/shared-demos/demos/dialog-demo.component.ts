@@ -134,30 +134,36 @@ export class DataDialogComponent {
 
         <form class="space-y-4">
           <div class="form-control">
-            <label class="label">
-              <span class="label-text">Name</span>
-            </label>
-            <input type="text" class="input input-bordered w-full" placeholder="Enter name" [(ngModel)]="formData.name" name="name" />
+            <label class="label" for="dlg-name-0"><span class="label-text">Name</span></label>
+            <input
+              id="dlg-name-0"
+              type="text"
+              class="input input-bordered w-full"
+              placeholder="Enter name"
+              [(ngModel)]="formData.name"
+              name="name"
+            />
           </div>
 
           <div class="form-control">
-            <label class="label">
-              <span class="label-text">Email</span>
-            </label>
-            <input type="email" class="input input-bordered w-full" placeholder="Enter email" [(ngModel)]="formData.email" name="email" />
+            <label class="label" for="dlg-email-1"><span class="label-text">Email</span></label>
+            <input
+              id="dlg-email-1"
+              type="email"
+              class="input input-bordered w-full"
+              placeholder="Enter email"
+              [(ngModel)]="formData.email"
+              name="email"
+            />
           </div>
 
           <div class="form-control">
-            <label class="label">
-              <span class="label-text">Role</span>
-            </label>
+            <span class="label"><span class="label-text">Role</span></span>
             <hk-select [options]="roles" [(ngModel)]="formData.role" name="role" placeholder="Select role" />
           </div>
 
           <div class="form-control">
-            <label class="label">
-              <span class="label-text">Country</span>
-            </label>
+            <span class="label"><span class="label-text">Country</span></span>
             <hk-select
               [options]="countries"
               [(ngModel)]="formData.country"

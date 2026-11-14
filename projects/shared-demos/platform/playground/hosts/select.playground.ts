@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SelectColor, SelectComponent, SelectOption, SelectSize } from '@hakistack/ng-daisyui';
 import { PlaygroundComponent } from '../playground.component';
-import { SELECT_PLAYGROUND, SelectPgState } from '../playground-specs';
+import { SELECT_PLAYGROUND, SelectPgState } from '../specs/select';
 import type { PlaygroundState } from '../playground.types';
 
 @Component({

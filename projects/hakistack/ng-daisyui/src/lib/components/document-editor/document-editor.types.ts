@@ -120,9 +120,9 @@ export interface DocumentEditorConfig {
 }
 
 /**
- * Controller returned by `createDocumentEditor`. Pass `config()` to the
- * facade's `[editor]` input; call the imperative methods from anywhere in the
- * host component. Contract per roadmap §2.1.
+ * Controller returned by `createDocumentEditor`. Pass the controller itself to
+ * the facade's `[editor]` input (`[editor]="editor"`); call the imperative
+ * methods from anywhere in the host component.
  */
 export interface DocumentEditorController {
   /** Reactive state (signals). */

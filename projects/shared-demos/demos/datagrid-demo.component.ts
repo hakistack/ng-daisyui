@@ -16,82 +16,20 @@ import { ApiTableComponent } from '../shared/api-table.component';
 import { CodeBlockComponent } from '../shared/code-block.component';
 import { ApiDocEntry } from '../shared/api-table.types';
 import { DemoPageComponent } from '../shared/demo-page.component';
+import { DataGridColumnsExampleComponent } from './datagrid-columns-example.component';
+import { DataGridCompareExampleComponent } from './datagrid-compare-example.component';
+import { generateInvoices, Invoice, INVOICE_COLUMNS, statusBadgeClass } from './datagrid-demo.data';
+import { DataGridFilteringExampleComponent } from './datagrid-filtering-example.component';
+import { DataGridPersistenceExampleComponent } from './datagrid-persistence-example.component';
+import { DataGridSelectionExampleComponent } from './datagrid-selection-example.component';
 
-interface Invoice {
-  id: number;
-  number: string;
-  customer: string;
-  region: string;
-  amount: number;
-  issued: string;
-  due: string;
-  status: 'paid' | 'open' | 'overdue';
-  paid: boolean;
-  [extra: `m${number}`]: number;
-}
-
-type ExampleTab = 'client' | 'server' | 'state' | 'ai';
+type ExampleTab = 'client' | 'server' | 'state' | 'ai' | 'filtering' | 'columns' | 'selection' | 'persistence' | 'compare';
 type ApiTab = 'controller' | 'state' | 'types';
 
-const CUSTOMERS = [
-  'Acme Corp',
-  'Globex',
-  'Initech',
-  'Umbrella',
-  'Hooli',
-  'Stark Industries',
-  'Wayne Enterprises',
-  'Soylent',
-  'Tyrell',
-  'Cyberdyne',
-];
-const REGIONS = ['North', 'South', 'East', 'West', 'Caribbean'];
-const STATUSES: Invoice['status'][] = ['paid', 'open', 'overdue'];
 const MONTHS = 24;
 
-/** Deterministic pseudo-random data so the demo is identical across reloads. */
-function generateInvoices(count: number): Invoice[] {
-  let seed = 42;
-  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const day = 86_400_000;
-  const start = Date.UTC(2024, 0, 1);
-  return Array.from({ length: count }, (_, i) => {
-    const issued = start + Math.floor(rand() * 600) * day;
-    const status = STATUSES[Math.floor(rand() * 3)];
-    const invoice = {
-      id: i + 1,
-      number: `INV-${String(i + 1).padStart(6, '0')}`,
-      customer: CUSTOMERS[Math.floor(rand() * CUSTOMERS.length)],
-      region: REGIONS[Math.floor(rand() * REGIONS.length)],
-      amount: Math.round(rand() * 2_000_000) / 100,
-      issued: new Date(issued).toISOString().slice(0, 10),
-      due: new Date(issued + 30 * day).toISOString().slice(0, 10),
-      status,
-      paid: status === 'paid',
-    } as Invoice;
-    for (let m = 1; m <= MONTHS; m++) invoice[`m${m}`] = Math.round(rand() * 10_000);
-    return invoice;
-  });
-}
-
-const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-
 const COLUMNS: DataGridColumn<Invoice>[] = [
-  { field: 'number', header: 'Invoice', width: 130 },
-  { field: 'customer', header: 'Customer', width: 180, description: 'Billed company' },
-  { field: 'region', header: 'Region', width: 120, description: 'Sales region of the customer' },
-  {
-    field: 'amount',
-    header: 'Amount',
-    type: 'number',
-    width: 130,
-    format: (v) => currency.format(v as number),
-    description: 'Invoice total in USD',
-  },
-  { field: 'issued', header: 'Issued', type: 'date', width: 120 },
-  { field: 'due', header: 'Due', type: 'date', width: 120, description: 'Payment due date' },
-  { field: 'status', header: 'Status', width: 110, description: 'paid, open or overdue' },
-  { field: 'paid', header: 'Paid', type: 'boolean', width: 90, format: (v) => (v ? 'Yes' : 'No') },
+  ...INVOICE_COLUMNS,
   ...Array.from({ length: MONTHS }, (_, i) => ({
     field: `m${i + 1}`,
     header: `Month ${i + 1}`,
@@ -112,15 +50,21 @@ function readStoredKey(): string {
   }
 }
 
-const STATUS_BADGE: Record<Invoice['status'], string> = {
-  paid: 'bg-success/10 border-success/20 text-success',
-  open: 'bg-info/10 border-info/20 text-info',
-  overdue: 'bg-error/10 border-error/20 text-error',
-};
-
 @Component({
   selector: 'app-datagrid-demo',
-  imports: [DataGridComponent, HkDataGridCellDirective, DocSectionComponent, ApiTableComponent, CodeBlockComponent, DemoPageComponent],
+  imports: [
+    DataGridComponent,
+    HkDataGridCellDirective,
+    DocSectionComponent,
+    ApiTableComponent,
+    CodeBlockComponent,
+    DemoPageComponent,
+    DataGridFilteringExampleComponent,
+    DataGridColumnsExampleComponent,
+    DataGridSelectionExampleComponent,
+    DataGridPersistenceExampleComponent,
+    DataGridCompareExampleComponent,
+  ],
   template: `
     <app-demo-page
       title="DataGrid"
@@ -232,6 +176,22 @@ const STATUS_BADGE: Record<Invoice['status'], string> = {
             }
           </app-doc-section>
         }
+
+        @if (activeTab() === 'filtering') {
+          <app-datagrid-filtering-example />
+        }
+        @if (activeTab() === 'columns') {
+          <app-datagrid-columns-example />
+        }
+        @if (activeTab() === 'selection') {
+          <app-datagrid-selection-example />
+        }
+        @if (activeTab() === 'persistence') {
+          <app-datagrid-persistence-example />
+        }
+        @if (activeTab() === 'compare') {
+          <app-datagrid-compare-example />
+        }
       </div>
 
       <div api class="space-y-6">
@@ -267,7 +227,7 @@ export class DataGridDemoComponent {
   activeTab = computed(() => (this.featureParam() ?? 'client') as ExampleTab);
   apiTab = signal<ApiTab>('controller');
 
-  private readonly invoices = generateInvoices(100_000);
+  private readonly invoices = generateInvoices(100_000, MONTHS);
 
   readonly clientGrid = createDataGrid<Invoice>({
     columns: COLUMNS,
@@ -329,7 +289,7 @@ export class DataGridDemoComponent {
   readonly currentState = computed(() => JSON.stringify(this.stateGrid.state(), null, 2));
 
   statusClass(status: unknown): string {
-    return STATUS_BADGE[status as Invoice['status']] ?? '';
+    return statusBadgeClass(status);
   }
 
   saveAiKey(value: string): void {

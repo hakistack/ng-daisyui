@@ -8,7 +8,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Inject `AlertService` and call one method; it returns a promise you can `await`. The result tells you what the user did, for example `isConfirmed`. No component goes in your templates: the service creates its container the first time you use it.',
-      es: 'Inyecta `AlertService` y llama un método; devuelve una promesa que puedes esperar con `await`. El resultado te dice qué hizo el usuario, por ejemplo `isConfirmed`. No va ningún componente en tus templates: el servicio crea su contenedor la primera vez que lo usas.',
+      es: 'Inyecta `AlertService` y llama a un método; devuelve una promesa que puedes esperar con `await`. El resultado te dice qué hizo el usuario, por ejemplo `isConfirmed`. No tienes que poner ningún componente en tus plantillas: el servicio crea su contenedor la primera vez que lo usas.',
     },
   ],
   whenToUse: [
@@ -26,7 +26,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Timed warnings such as session expiry, with a live counter: `countdown()`.',
-      es: 'Avisos con tiempo como el vencimiento de la sesión, con contador en vivo: `countdown()`.',
+      es: 'Avisos con tiempo límite, como el vencimiento de la sesión, con un contador en vivo: `countdown()`.',
     },
   ],
   whenNotToUse: [
@@ -43,8 +43,8 @@ const content: ComponentDocContent = {
       es: 'Eventos persistentes con varias acciones: usa [Notification](/notification).',
     },
     {
-      en: 'Showing HTML written by users: `html` and `htmlUrl` content is not sanitized.',
-      es: 'Mostrar HTML escrito por usuarios: el contenido de `html` y `htmlUrl` no se sanitiza.',
+      en: 'Rendering markup you do not fully control with `trustedHtml: true`: that option skips sanitization.',
+      es: 'Renderizar con `trustedHtml: true` HTML que no controlas por completo: esa opción omite la sanitización.',
     },
   ],
   quickStart: {
@@ -74,7 +74,7 @@ export class DeleteProjectComponent {
 `,
     note: {
       en: 'No provider is required. Use `provideAlert({ labels })` or `provideAlert({ translate, langChange$ })` in your app config to translate the button texts.',
-      es: 'No hace falta provider. Usa `provideAlert({ labels })` o `provideAlert({ translate, langChange$ })` en la configuración de tu app para traducir los textos de los botones.',
+      es: 'No hace falta ningún provider. Usa `provideAlert({ labels })` o `provideAlert({ translate, langChange$ })` en la configuración de tu app para traducir los textos de los botones.',
     },
   },
   technical: [
@@ -99,22 +99,22 @@ export class DeleteProjectComponent {
             [
               { en: '`show(options)`', es: '`show(options)`' },
               {
-                en: 'OK button, backdrop click closes; optional cancel button, `timer`, `footer`, `size` (`sm`…`full`) or custom width/height.',
-                es: 'Botón OK, clic en el fondo cierra; botón cancelar, `timer`, `footer`, `size` (`sm`…`full`) o ancho/alto propios opcionales.',
+                en: 'OK button; a backdrop click closes it. Optional: cancel button, `timer`, `footer`, `size` (`sm`…`full`) or custom width/height.',
+                es: 'Botón OK; un clic en el fondo la cierra. Opcionales: botón de cancelar, `timer`, `footer`, `size` (`sm`…`full`) o ancho/alto propios.',
               },
             ],
             [
               { en: '`success` / `info` / `warning` / `error`', es: '`success` / `info` / `warning` / `error`' },
               {
                 en: '`show()` with the matching icon; `error()` does not close on backdrop click.',
-                es: '`show()` con el icono correspondiente; `error()` no se cierra con clic en el fondo.',
+                es: '`show()` con el icono correspondiente; `error()` no se cierra con un clic en el fondo.',
               },
             ],
             [
               { en: '`confirm(options)`', es: '`confirm(options)`' },
               {
-                en: 'Warning icon, Confirm + Cancel, `confirmStyle` default `success`, backdrop click disabled.',
-                es: 'Icono de advertencia, Confirmar + Cancelar, `confirmStyle` por defecto `success`, clic en el fondo desactivado.',
+                en: 'Warning icon (overridable with `icon`), Confirm + Cancel, `confirmStyle` default `success`, backdrop click disabled.',
+                es: 'Icono de advertencia (cambiable con `icon`), Confirmar + Cancelar, `confirmStyle` por defecto `success`, clic en el fondo desactivado.',
               },
             ],
             [
@@ -125,21 +125,21 @@ export class DeleteProjectComponent {
               { en: '`confirmDelete(options)`', es: '`confirmDelete(options)`' },
               {
                 en: 'Error-styled Delete button, focus on Cancel, message built from `itemName`.',
-                es: 'Botón Borrar en rojo, foco en Cancelar, mensaje armado con `itemName`.',
+                es: 'Botón de borrar con estilo `error`, foco en Cancelar, mensaje armado con `itemName`.',
               },
             ],
             [
               { en: '`countdown(options)`', es: '`countdown(options)`' },
               {
-                en: 'Required `timer`; `{seconds}` in `html` is replaced and the element matching `countdownSelector` (default `.countdown, kbd`) updates every second.',
-                es: '`timer` obligatorio; `{seconds}` en `html` se reemplaza y el elemento que coincide con `countdownSelector` (por defecto `.countdown, kbd`) se actualiza cada segundo.',
+                en: 'Required `timer`; `{seconds}` in `html` is replaced and the element matching `countdownSelector` (default `.countdown, kbd`) updates every second. Progress bar on and backdrop click off by default.',
+                es: '`timer` obligatorio; `{seconds}` en `html` se reemplaza y el elemento que coincide con `countdownSelector` (por defecto `.countdown, kbd`) se actualiza cada segundo. Por defecto muestra la barra de progreso y no se cierra con clic en el fondo.',
               },
             ],
             [
               { en: '`showLoading` / `updateLoading` / `hideLoading`', es: '`showLoading` / `updateLoading` / `hideLoading`' },
               {
-                en: 'Spinner without buttons; Escape and backdrop are disabled unless `allowClose: true`.',
-                es: 'Spinner sin botones; Escape y el fondo están desactivados salvo con `allowClose: true`.',
+                en: 'Spinner without buttons; Escape and backdrop are disabled unless `allowClose: true`, in which case closing it removes the overlay just like `hideLoading()`.',
+                es: 'Spinner sin botones; Escape y el fondo están desactivados salvo con `allowClose: true`, y en ese caso cerrarlo quita el overlay igual que `hideLoading()`.',
               },
             ],
           ],
@@ -148,8 +148,8 @@ export class DeleteProjectComponent {
           kind: 'note',
           tone: 'warning',
           text: {
-            en: 'Only one alert is shown at a time. Opening a new one removes the current alert, and the promise of the removed alert never resolves. Always `await` an alert before opening the next. The loading overlay is tracked separately and must be closed with `hideLoading()`.',
-            es: 'Solo se muestra una alerta a la vez. Abrir una nueva quita la actual, y la promesa de la que se quitó nunca se resuelve. Espera siempre (`await`) una alerta antes de abrir la siguiente. El overlay de carga se maneja aparte y hay que cerrarlo con `hideLoading()`.',
+            en: "Only one alert is shown at a time. Opening a new one replaces the current alert, whose promise then resolves right away as dismissed (`isDismissed: true`, `dismissReason: 'close'`), so code awaiting it never hangs. The loading overlay is tracked separately: close it with `hideLoading()`, or let the user close it with Escape or the backdrop when it was opened with `allowClose: true`.",
+            es: "Solo se muestra una alerta a la vez. Abrir una nueva reemplaza la actual, cuya promesa se resuelve de inmediato como descartada (`isDismissed: true`, `dismissReason: 'close'`), así que el código que la espera nunca se queda colgado. El overlay de carga se maneja aparte: ciérralo con `hideLoading()`, o deja que el usuario lo cierre con Escape o el fondo si lo abriste con `allowClose: true`.",
           },
         },
       ],
@@ -161,16 +161,16 @@ export class DeleteProjectComponent {
         {
           kind: 'p',
           text: {
-            en: "`html` (and `countdown`'s `html`) is passed through `bypassSecurityTrustHtml`, so Angular does not sanitize it. `htmlUrl` is fetched with `fetch()` before the modal opens, with no caching, and goes through the same path; if the request fails the dialog shows the `contentLoadError` text. `footer` is bound with `[innerHTML]` and is sanitized by Angular.",
-            es: '`html` (y el `html` de `countdown`) pasa por `bypassSecurityTrustHtml`, así que Angular no lo sanitiza. `htmlUrl` se descarga con `fetch()` antes de abrir el modal, sin caché, y sigue el mismo camino; si la petición falla, el diálogo muestra el texto de `contentLoadError`. `footer` se enlaza con `[innerHTML]` y Angular sí lo sanitiza.',
+            en: "`html` (and `countdown`'s `html`) is bound with `[innerHTML]`, so Angular's sanitizer cleans it: scripts, event handlers and `style` attributes are removed. `htmlUrl` is fetched with `fetch()` before the modal opens, with no caching, and its response is sanitized the same way; if the request fails the dialog shows the `contentLoadError` text. `footer` is always sanitized.",
+            es: '`html` (y el `html` de `countdown`) se enlaza con `[innerHTML]`, así que el sanitizador de Angular lo limpia: se eliminan los scripts, los manejadores de eventos y los atributos `style`. `htmlUrl` se descarga con `fetch()` antes de abrir el modal, sin caché, y su respuesta se sanitiza igual; si la petición falla, el diálogo muestra el texto de `contentLoadError`. `footer` siempre se sanitiza.',
           },
         },
         {
           kind: 'note',
           tone: 'warning',
           text: {
-            en: 'Never put user-provided text into `html` or point `htmlUrl` at content you do not control: it would allow script injection. Use `text` for anything dynamic.',
-            es: 'Nunca pongas texto que venga del usuario en `html` ni apuntes `htmlUrl` a contenido que no controlas: permitiría inyectar scripts. Usa `text` para todo lo dinámico.',
+            en: '`trustedHtml: true` (on `show()` options and `countdown()`) renders the markup verbatim, inline styles included. Use it only for HTML you fully control; never for content that contains user input or comes from a third-party URL, because it would allow script injection. For plain dynamic text, `text` is simpler.',
+            es: '`trustedHtml: true` (en las opciones de `show()` y en `countdown()`) renderiza el HTML tal cual, estilos en línea incluidos. Úsalo solo con HTML que controlas por completo; nunca con contenido que incluya datos del usuario o venga de una URL de terceros, porque permitiría inyectar scripts. Para texto dinámico simple, `text` es más sencillo.',
           },
         },
       ],
@@ -183,7 +183,7 @@ export class DeleteProjectComponent {
           kind: 'p',
           text: {
             en: '`provideAlert({ labels })` overrides the default English strings (`confirm`, `cancel`, `ok`, `yes`, `no`, `delete`, `deleteConfirmTitle`, `deleteConfirmText`, `deleteConfirmTextWithItem`, `loadingTitle`, `contentLoadError`). With a `translate(key, fallback, params)` function, keys such as `common.buttons.confirm` go through your i18n library first, and `labels` become the fallback. Button texts are cached; pass `langChange$` so the cache is cleared when the language changes. See [i18n](/foundations/i18n).',
-            es: '`provideAlert({ labels })` reemplaza los textos en inglés (`confirm`, `cancel`, `ok`, `yes`, `no`, `delete`, `deleteConfirmTitle`, `deleteConfirmText`, `deleteConfirmTextWithItem`, `loadingTitle`, `contentLoadError`). Con una función `translate(key, fallback, params)`, claves como `common.buttons.confirm` pasan primero por tu librería de i18n y `labels` queda como respaldo. Los textos de los botones se guardan en caché; pasa `langChange$` para limpiarla cuando cambie el idioma. Ver [i18n](/foundations/i18n).',
+            es: '`provideAlert({ labels })` reemplaza los textos en inglés (`confirm`, `cancel`, `ok`, `yes`, `no`, `delete`, `deleteConfirmTitle`, `deleteConfirmText`, `deleteConfirmTextWithItem`, `loadingTitle`, `contentLoadError`). Con una función `translate(key, fallback, params)`, claves como `common.buttons.confirm` pasan primero por tu librería de i18n y `labels` queda como respaldo. Los textos de los botones se guardan en caché; pasa `langChange$` para vaciarla cuando cambie el idioma. Consulta [i18n](/foundations/i18n).',
           },
         },
         {
@@ -215,7 +215,7 @@ export class DeleteProjectComponent {
       },
       {
         keys: 'Tab / Shift+Tab',
-        action: { en: 'Cycle focus inside the modal (focus is trapped)', es: 'Recorre el foco dentro del modal (el foco queda atrapado)' },
+        action: { en: 'Cycle focus inside the modal (focus is trapped)', es: 'Mueve el foco dentro del modal (el foco queda atrapado)' },
       },
       { keys: 'Enter / Space', action: { en: 'Activate the focused button', es: 'Activa el botón enfocado' } },
     ],
@@ -226,22 +226,22 @@ export class DeleteProjectComponent {
       },
       {
         en: 'Focus moves into the modal through `cdkTrapFocus` with auto-capture, goes to Cancel when `focusCancel` is set (default in `confirmDelete`), and returns to the previously focused element after closing.',
-        es: 'El foco entra al modal mediante `cdkTrapFocus` con captura automática, va a Cancelar cuando `focusCancel` está activo (por defecto en `confirmDelete`) y regresa al elemento que tenía el foco al cerrar.',
+        es: 'El foco entra en el modal mediante `cdkTrapFocus` con captura automática, va a Cancelar cuando `focusCancel` está activo (por defecto en `confirmDelete`) y regresa al elemento que tenía el foco al cerrar.',
       },
       {
         en: 'The close (X) and backdrop buttons are labelled "Close" in English. Icons are decorative colour cues, so state the meaning in the title.',
-        es: 'Los botones de cerrar (X) y del fondo tienen la etiqueta "Close" en inglés. Los iconos son señales de color decorativas, así que di el significado en el título.',
+        es: 'Los botones de cerrar (X) y del fondo tienen la etiqueta "Close" en inglés. Los iconos son indicadores de color decorativos, así que expresa el significado en el título.',
       },
     ],
   },
   performance: [
     {
-      en: 'The container is created once, on first use, and renders the open overlays from one signal.',
-      es: 'El contenedor se crea una sola vez, en el primer uso, y dibuja los overlays abiertos desde una señal.',
+      en: 'The container is created once, on first use, and renders the open overlays from a single signal.',
+      es: 'El contenedor se crea una sola vez, en el primer uso, y renderiza los overlays abiertos a partir de un único signal.',
     },
     {
       en: '`htmlUrl` triggers a network request on every call; cache the HTML yourself and pass it as `html` if you show the same content often.',
-      es: '`htmlUrl` hace una petición de red en cada llamada; guarda tú el HTML y pásalo como `html` si muestras el mismo contenido seguido.',
+      es: '`htmlUrl` hace una petición de red en cada llamada; si muestras el mismo contenido a menudo, guarda tú el HTML y pásalo como `html`.',
     },
   ],
   related: [

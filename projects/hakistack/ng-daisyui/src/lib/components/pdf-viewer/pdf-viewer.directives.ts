@@ -33,7 +33,7 @@ export interface HkPdfToolbarContext {
  *       <ng-template hkPdfToolbar let-state="state">
  *         <div class="flex items-center gap-2 p-2">
  *           <button class="btn btn-sm" (click)="viewer.previousPage()">Back</button>
- *           <span>{{ state.page }} / {{ state.numPages }}</span>
+ *           <span>{{ state?.page }} / {{ state?.numPages }}</span>
  *           <button class="btn btn-sm" (click)="viewer.nextPage()">Forward</button>
  *         </div>
  *       </ng-template>

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { DatepickerComponent, DatepickerPosition } from '@hakistack/ng-daisyui';
 import { PlaygroundComponent } from '../playground.component';
-import { DATEPICKER_PLAYGROUND, DatepickerPgState } from '../playground-specs';
+import { DATEPICKER_PLAYGROUND, DatepickerPgState } from '../specs/datepicker';
 import type { PlaygroundState } from '../playground.types';
 
 @Component({

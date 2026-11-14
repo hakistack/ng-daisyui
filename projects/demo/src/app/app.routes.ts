@@ -21,17 +21,15 @@ const api: Loader = () => import('@shared-demos/platform/pages/api-reference.com
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'getting-started' },
 
-  // Getting started
-  {
-    path: 'getting-started',
-    loadComponent: () => import('@shared-demos/demos/getting-started.component').then((m) => m.GettingStartedComponent),
-  },
-  { path: 'installation', loadComponent: () => import('@shared-demos/demos/installation.component').then((m) => m.InstallationComponent) },
-  { path: 'key-patterns', loadComponent: () => import('@shared-demos/demos/key-patterns.component').then((m) => m.KeyPatternsComponent) },
+  // Getting started (long-form articles; the old hand-built pages remain only in the v4 demo)
+  { path: 'getting-started', loadComponent: article },
+  { path: 'installation', loadComponent: article },
+  { path: 'key-patterns', loadComponent: article },
 
   // Foundations
   { path: 'foundations/:slug', loadComponent: article },
-  ...componentPage('icons', () => import('@shared-demos/demos/icons-demo.component').then((m) => m.IconsDemoComponent)),
+  // Full Lucide set registered on this lazy route only (see icons.routes.ts).
+  { path: 'icons', loadChildren: () => import('./icons.routes').then((m) => m.ICONS_ROUTES) },
   ...componentPage('motion', () => import('@shared-demos/demos/motion-demo.component').then((m) => m.MotionDemoComponent)),
 
   // Components — forms & inputs
@@ -92,6 +90,11 @@ export const routes: Routes = [
   { path: 'guides/:slug', loadComponent: article },
   { path: 'architecture/:slug', loadComponent: article },
   { path: 'contributing', loadComponent: article },
+  // Rendered from the repository's Markdown (CHANGELOG.md / MIGRATION.md) — no duplicated prose.
+  {
+    path: 'contributing/:doc',
+    loadComponent: () => import('@shared-demos/platform/pages/markdown-page.component').then((m) => m.MarkdownPageComponent),
+  },
 
   // API reference (generated)
   { path: 'api', loadComponent: api },

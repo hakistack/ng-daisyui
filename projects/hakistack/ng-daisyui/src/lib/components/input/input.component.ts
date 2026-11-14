@@ -1,7 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, forwardRef, input, output, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  forwardRef,
+  input,
+  output,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { LucideDynamicIcon, LucideEye, LucideEyeOff } from '@lucide/angular';
-import { VARIANT_STRATEGY_MAP } from './input-variant-strategies';
+import { isPhoneLibLoaded, loadPhoneLib, VARIANT_STRATEGY_MAP } from './input-variant-strategies';
 import {
   CurrencyConfig,
   INPUT_COLOR_CLASSES,
@@ -138,6 +150,18 @@ export class InputComponent implements ControlValueAccessor {
   private _onChange = (_value: string | number | null): void => {};
   private _onTouched = (): void => {};
   private readonly _disabled = signal(false);
+
+  /** Loads libphonenumber-js only when a phone variant is rendered, then reformats the shown value. */
+  private readonly phoneLibLoader = effect(() => {
+    if (this.variant() !== 'phone' || isPhoneLibLoaded()) return;
+    void loadPhoneLib().then(() => {
+      untracked(() => {
+        if (this.variant() === 'phone' && !this.isFocused()) {
+          this.displayValue.set(this.strategy().format(this.modelValue, this.getActiveConfig()));
+        }
+      });
+    });
+  });
 
   // ── Computed ───────────────────────────────────────────────────────────
 

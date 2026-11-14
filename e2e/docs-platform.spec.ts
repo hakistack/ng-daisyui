@@ -158,7 +158,77 @@ test.describe('docs platform — mobile', () => {
   });
 });
 
+const PLAYGROUND_ROUTES = [
+  '/dialog',
+  '/input',
+  '/select',
+  '/datepicker',
+  '/timepicker',
+  '/toast',
+  '/alert',
+  '/menu',
+  '/tabs',
+  '/breadcrumbs',
+  '/app-shell',
+  '/command-palette',
+  '/table',
+  '/datagrid',
+  '/tree',
+  '/tree-table',
+  '/virtual-scroller',
+  '/notification',
+  '/editor',
+  '/forms',
+  '/pdf-viewer',
+  '/document-viewer',
+];
+
+test.describe('docs platform — every playground', () => {
+  for (const route of PLAYGROUND_ROUTES) {
+    test(`${route} playground renders the real component without errors`, async ({ page }) => {
+      const errors: string[] = [];
+      page.on('pageerror', (e) => errors.push(e.message));
+      await page.goto(`${route}?tab=playground`);
+      const preview = page.getByRole('region', { name: /preview|vista previa/i });
+      await expect(preview).toBeVisible();
+      // The real component rendered: visible text plus its DOM (inputs have little text of their own).
+      await expect
+        .poll(() => preview.evaluate((el) => (el as HTMLElement).innerText.trim().length + el.querySelectorAll('*').length), {
+          timeout: 15_000,
+        })
+        .toBeGreaterThan(10);
+      await expect(page.locator('app-code-block').last()).toContainText("from '@hakistack/ng-daisyui'");
+      expect(errors).toEqual([]);
+    });
+  }
+});
+
+test.describe('docs platform — repository Markdown pages', () => {
+  test('changelog and migration render from the repo files', async ({ page }) => {
+    await page.goto('/contributing/changelog');
+    await expect(page.locator('.docs-markdown h1, .docs-markdown h2').first()).toBeVisible();
+    await page.goto('/contributing/migration');
+    await expect(page.locator('.docs-markdown')).toContainText(/migration/i);
+  });
+});
+
+test.describe('docs platform — Spanish demo captions', () => {
+  test('live demo section titles switch language with the site', async ({ page }) => {
+    await page.goto('/input/basic');
+    await expect(page.locator('app-doc-section h2').first()).toHaveText('Default Input');
+    await page.getByRole('button', { name: 'Español' }).click();
+    await expect(page.locator('app-doc-section h2').first()).not.toHaveText('Default Input');
+    await expect(page.getByRole('button', { name: /ver código/i }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'English' }).click();
+  });
+});
+
 test.describe('docs platform — visual regression @visual', () => {
+  // Baselines are rendered on macOS (fonts differ per OS); regenerate with --update-snapshots on another OS to enable there.
+  test.skip(
+    ({ browserName }) => process.platform !== 'darwin' || browserName !== 'chromium',
+    'visual baselines exist for macOS Chromium only',
+  );
   for (const route of ['/getting-started', '/datagrid', '/api', '/guides/build-a-form']) {
     test(`snapshot ${route}`, async ({ page }) => {
       await page.emulateMedia({ reducedMotion: 'reduce' });

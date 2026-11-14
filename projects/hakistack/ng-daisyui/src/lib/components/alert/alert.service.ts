@@ -176,6 +176,7 @@ export class AlertService {
       title: options.title,
       text: options.text,
       html,
+      trustHtml: options.trustedHtml === true,
       footer: options.footer,
       icon: options.icon,
       showConfirmButton: true,
@@ -250,6 +251,7 @@ export class AlertService {
       id: generateUniqueId(),
       title: options.title,
       html,
+      trustHtml: options.trustedHtml === true,
       icon: options.icon ?? 'warning',
       showConfirmButton: true,
       confirmButtonText: options.confirmButtonText ?? buttons.ok,
@@ -364,7 +366,12 @@ export class AlertService {
       allowEscapeKey: options.allowClose ?? false,
       timerProgressBar: false,
       size: 'md',
-      resolve: () => {},
+      // Closing via Escape / backdrop (allowClose) resolves the overlay: remove it, otherwise the
+      // modal layer stayed on screen until hideLoading() was called.
+      resolve: () => {
+        if (this.loadingOverlayId === id) this.hideLoading();
+        else this.removeOverlay(id);
+      },
     });
   }
 

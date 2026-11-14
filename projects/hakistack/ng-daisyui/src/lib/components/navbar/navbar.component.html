@@ -6,6 +6,8 @@
         class="btn btn-ghost btn-square"
         [class]="toggleHideClass()"
         (click)="menuToggle.emit()"
+        [attr.aria-expanded]="menuExpanded() ?? null"
+        [attr.aria-controls]="menuControls() ?? null"
         aria-label="Toggle navigation"
       >
         <svg [lucideIcon]="menuIcon" [size]="20"></svg>

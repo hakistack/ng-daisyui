@@ -17,13 +17,6 @@
     "motion",
     "tslib",
     "uuid",
-    "libphonenumber-js",
-    "@tiptap/core",
-    "@tiptap/starter-kit",
-    "@tiptap/extension-link",
-    "@tiptap/extension-placeholder",
-    "@tiptap/extension-image",
-    "@tiptap/extension-file-handler",
-    "@tiptap/suggestion"
+    "libphonenumber-js"
   ]
 }

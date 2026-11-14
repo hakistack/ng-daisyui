@@ -23,7 +23,7 @@
         aria-haspopup="dialog"
         [attr.aria-expanded]="isOpen()"
         [attr.aria-controls]="isOpen() ? inputId() + '-dialog' : null"
-        [attr.aria-label]="placeholder()"
+        [attr.aria-label]="inputAriaLabel()"
       />
 
       <!-- Right-side icons -->
@@ -112,9 +112,9 @@
       [id]="inputId() + '-dialog'"
       [class]="dropdownClasses"
       [style.min-width]="minWidth()"
+      #tpPanel
       role="dialog"
       [attr.aria-label]="placeholder()"
-      aria-modal="true"
     >
       <!-- Views -->
       <div class="timepicker-content">
@@ -228,6 +228,7 @@
                   [class.tp-clock-number-on-hand]="showClockHand() && isClockValueSelected(pos.value)"
                   [style.left.px]="pos.x - getClockNumberOffset(pos)"
                   [style.top.px]="pos.y - getClockNumberOffset(pos)"
+                  [disabled]="isClockValueDisabled(pos.value)"
                   (click)="$event.stopPropagation(); onClockNumberClick(pos)"
                   [attr.aria-pressed]="isClockValueSelected(pos.value)"
                 >

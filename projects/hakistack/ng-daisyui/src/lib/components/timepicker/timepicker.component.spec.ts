@@ -49,6 +49,42 @@ describe('TimepickerComponent', () => {
       expect(component).toBeTruthy();
     });
 
+    it('refuses panel values outside minTime / maxTime (24h)', () => {
+      fixture.componentRef.setInput('use24Hour', true);
+      fixture.componentRef.setInput('minTime', '09:30');
+      fixture.componentRef.setInput('maxTime', '17:00');
+      fixture.detectChanges();
+
+      component.selectHour(8);
+      expect(component.selectedHour()).toBeNull();
+      component.selectHour(9);
+      expect(component.selectedHour()).toBe(9);
+      component.selectMinute(15); // 09:15 < 09:30
+      expect(component.selectedMinute()).toBeNull();
+      component.selectMinute(45);
+      expect(component.selectedMinute()).toBe(45);
+      // Without the clock face the panel stays on the hours view.
+      expect(component.isClockValueDisabled(18)).toBe(true);
+      expect(component.isClockValueDisabled(12)).toBe(false);
+    });
+
+    it('returns focus to the field when the panel closes with focus inside it', async () => {
+      fixture.componentRef.setInput('clockFace', true);
+      fixture.detectChanges();
+      component.openPicker();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const panel = document.querySelector('[role="dialog"]') as HTMLElement;
+      const button = panel.querySelector('button') as HTMLButtonElement;
+      button.focus();
+      component.closePicker();
+
+      const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+      expect(document.activeElement).toBe(input);
+      expect(panel.getAttribute('aria-modal')).toBeNull();
+    });
+
     // -----------------------------------------------------------------------
     // Display
     // -----------------------------------------------------------------------

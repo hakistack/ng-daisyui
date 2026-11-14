@@ -4,7 +4,7 @@ const content: ComponentDocContent = {
   overview: [
     {
       en: '`hk-input` is a text box that knows a few common formats. Set `variant` to `currency`, `phone`, `percentage` or `password` and the field formats what the user types, blocks characters that do not belong, and hands your code a clean value: a number for currency and percentage, an international phone string for phone.',
-      es: '`hk-input` es una caja de texto que conoce varios formatos comunes. Pon `variant` en `currency`, `phone`, `percentage` o `password` y el campo formatea lo que escribe la persona, bloquea caracteres que no corresponden y le entrega a tu código un valor limpio: un número para moneda y porcentaje, y un teléfono en formato internacional para teléfono.',
+      es: '`hk-input` es un campo de texto que conoce varios formatos comunes. Pon `variant` en `currency`, `phone`, `percentage` o `password` y el campo formatea lo que escribe la persona, bloquea caracteres que no corresponden y le entrega a tu código un valor limpio: un número para moneda y porcentaje, y un teléfono en formato internacional para teléfono.',
     },
     {
       en: 'For fixed patterns that are not one of those variants (dates typed by hand, ID numbers, postal codes), add the `hkInputMask` directive to any `<input>` — or to `hk-input` itself — and describe the pattern with `9` for digits, `a` for letters and `*` for either.',
@@ -44,7 +44,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'A whole form built from configuration: [Dynamic Form](/forms) already renders its own inputs.',
-      es: 'Un formulario completo construido desde configuración: el [Formulario dinámico](/forms) ya dibuja sus propios inputs.',
+      es: 'Un formulario completo construido desde configuración: el [Formulario dinámico](/forms) ya renderiza sus propios inputs.',
     },
   ],
   quickStart: {
@@ -115,8 +115,8 @@ export class InputQuickStartComponent {
               { en: '`phone`', es: '`phone`' },
               { en: 'E.164 string when parseable, digits otherwise', es: 'Texto E.164 cuando se puede interpretar; si no, solo dígitos' },
               {
-                en: 'Uses `libphonenumber-js` (`country` default `US`, `format` `national` or `international`). Stops accepting digits at the example length for the country.',
-                es: 'Usa `libphonenumber-js` (`country` por defecto `US`, `format` `national` o `international`). Deja de aceptar dígitos al llegar al largo de ejemplo del país.',
+                en: "Uses `libphonenumber-js`, loaded on demand (`country` default `US`, `format` default `national`, or `international`). Stops accepting digits at the length of the country's example number. Until the library has loaded, the field shows plain digits and emits digits only; it reformats once loaded.",
+                es: 'Usa `libphonenumber-js`, que se carga bajo demanda (`country` por defecto `US`, `format` por defecto `national`, o `international`). Deja de aceptar dígitos al llegar a la longitud del número de ejemplo del país. Mientras la librería no ha cargado, el campo muestra y emite solo dígitos; se reformatea en cuanto carga.',
               },
             ],
             [
@@ -193,7 +193,7 @@ export class InputQuickStartComponent {
           kind: 'p',
           text: {
             en: 'The mask is parsed into slots: `9`, `a` and `*` are editable, every other character is a literal inserted for the user, and a `?` marks where the optional part begins (for example `(999) 999-9999? x99999`). Typing, Backspace, Delete and paste are handled by the directive so the cursor always lands on the next editable slot.',
-            es: 'La máscara se divide en espacios: `9`, `a` y `*` son editables, cualquier otro carácter es un literal que se inserta solo, y un `?` marca dónde empieza la parte opcional (por ejemplo `(999) 999-9999? x99999`). Escribir, Backspace, Delete y pegar los maneja la directiva para que el cursor caiga siempre en el próximo espacio editable.',
+            es: 'La máscara se divide en posiciones: `9`, `a` y `*` son editables, cualquier otro carácter es un literal que se inserta automáticamente, y un `?` marca dónde empieza la parte opcional (por ejemplo `(999) 999-9999? x99999`). La directiva maneja la escritura, Backspace, Delete y el pegado para que el cursor caiga siempre en la siguiente posición editable.',
           },
         },
         {
@@ -201,7 +201,7 @@ export class InputQuickStartComponent {
           items: [
             {
               en: '`slotChar` (default `_`) is shown in empty slots while focused.',
-              es: '`slotChar` (por defecto `_`) se muestra en los espacios vacíos mientras el campo tiene el foco.',
+              es: '`slotChar` (por defecto `_`) se muestra en las posiciones vacías mientras el campo tiene el foco.',
             },
             {
               en: '`autoClear` (default `true`) empties the field on blur when the mask is incomplete.',
@@ -209,7 +209,7 @@ export class InputQuickStartComponent {
             },
             {
               en: '`unmask` makes `maskValueChange` emit only the typed characters; `maskComplete` fires when every required slot is filled.',
-              es: '`unmask` hace que `maskValueChange` emita solo los caracteres escritos; `maskComplete` se dispara cuando todos los espacios requeridos están llenos.',
+              es: '`unmask` hace que `maskValueChange` emita solo los caracteres escritos; `maskComplete` se dispara cuando todas las posiciones requeridas están llenas.',
             },
             {
               en: 'It works on a bare `<input>` or on a component that contains one, and does nothing during server rendering.',
@@ -240,7 +240,7 @@ export class InputQuickStartComponent {
     notes: [
       {
         en: '`aria-label` comes from `ariaLabel`, falling back to `placeholder`. A placeholder is not a real label, so set `ariaLabel` (or a visible label wired through your own markup) on every field.',
-        es: '`aria-label` sale de `ariaLabel` y, si falta, de `placeholder`. Un placeholder no es una etiqueta real, así que pon `ariaLabel` (o una etiqueta visible conectada con tu propio markup) en cada campo.',
+        es: '`aria-label` sale de `ariaLabel` y, si falta, de `placeholder`. Un placeholder no es una etiqueta real, así que pon `ariaLabel` (o una etiqueta visible conectada con tu propio marcado) en cada campo.',
       },
       {
         en: 'Use `ariaInvalid` and `ariaDescribedBy` to connect validation messages; they map to `aria-invalid` and `aria-describedby` on the inner `<input>`.',
@@ -248,26 +248,26 @@ export class InputQuickStartComponent {
       },
       {
         en: 'The password toggle is a real `<button type="button">` labelled by `showPasswordAriaLabel` / `hidePasswordAriaLabel`; translate them for non-English apps. After toggling, focus returns to the input.',
-        es: 'El botón de contraseña es un `<button type="button">` real con etiqueta de `showPasswordAriaLabel` / `hidePasswordAriaLabel`; tradúcelas si tu app no está en inglés. Al alternar, el foco vuelve al input.',
+        es: 'El botón de contraseña es un `<button type="button">` real, etiquetado con `showPasswordAriaLabel` / `hidePasswordAriaLabel`; tradúcelas si tu app no está en inglés. Al alternar, el foco vuelve al input.',
       },
       {
         en: 'Phone and numeric variants set `inputmode` so mobile devices open the right keyboard.',
-        es: 'Las variantes de teléfono y numéricas ponen `inputmode` para que el móvil abra el teclado correcto.',
+        es: 'Las variantes de teléfono y numéricas definen `inputmode` para que el móvil abra el teclado adecuado.',
       },
     ],
   },
   performance: [
     {
       en: '`OnPush` with signals: only the inner `<input>` and its prefix/suffix re-render when their own signals change.',
-      es: '`OnPush` con signals: solo el `<input>` interno y su prefijo/sufijo se vuelven a dibujar cuando cambian sus signals.',
+      es: '`OnPush` con signals: solo el `<input>` interno y su prefijo/sufijo se vuelven a renderizar cuando cambian sus signals.',
     },
     {
       en: 'The strategy objects are shared singletons; a page with many inputs does not create one strategy per field.',
-      es: 'Los objetos estrategia son únicos y compartidos; una página con muchos inputs no crea una estrategia por campo.',
+      es: 'Los objetos estrategia son instancias únicas compartidas; una página con muchos inputs no crea una estrategia por campo.',
     },
     {
-      en: '`libphonenumber-js` and its example-number metadata are imported statically by the variant strategies, so any page that imports `InputComponent` carries them, even without `variant="phone"`. Keep heavy form pages in lazy routes when bundle size matters.',
-      es: '`libphonenumber-js` y sus metadatos de números de ejemplo se importan de forma estática en las estrategias de variante, así que toda página que importe `InputComponent` los carga, aunque no use `variant="phone"`. Mantén las páginas de formularios pesadas en rutas diferidas si el tamaño del bundle importa.',
+      en: '`libphonenumber-js` and its example-number metadata load lazily, in a separate chunk, the first time an `hk-input` with `variant="phone"` renders. Pages that only use the other variants never download them.',
+      es: '`libphonenumber-js` y sus metadatos de números de ejemplo se cargan de forma diferida, en un chunk aparte, la primera vez que se renderiza un `hk-input` con `variant="phone"`. Las páginas que solo usan las otras variantes nunca los descargan.',
     },
   ],
   related: [
@@ -275,7 +275,7 @@ export class InputQuickStartComponent {
       id: 'forms',
       note: {
         en: 'Renders inputs for you from a field list; use `hk-input` when you lay out the form yourself.',
-        es: 'Dibuja los inputs por ti desde una lista de campos; usa `hk-input` cuando armas el formulario a mano.',
+        es: 'Renderiza los inputs por ti desde una lista de campos; usa `hk-input` cuando armas el formulario a mano.',
       },
     },
     {

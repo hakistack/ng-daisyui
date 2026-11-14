@@ -37,8 +37,16 @@ export interface SequenceOptions {
  *   { target: '.cta', keyframes: { scale: [0.8, 1], opacity: 1 }, options: { at: '+0.1' } },
  * ]);
  * ```
+ *
+ * Honors `prefers-reduced-motion`: the sequence completes immediately in its final state.
  */
 export function animateSequence(segments: SequenceSegment[], options?: SequenceOptions): AnimationPlaybackControls {
+  // Under prefers-reduced-motion every segment jumps to its end state (duration 0, no delay).
+  const reduceMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) {
+    segments = segments.map((seg) => ({ ...seg, options: { ...seg.options, duration: 0, delay: 0 } }));
+    options = { ...options, duration: 0, delay: 0, repeat: 0 };
+  }
   const sequence = segments.map((seg) => {
     const entry: [ElementOrSelector, DOMKeyframesDefinition] | [ElementOrSelector, DOMKeyframesDefinition, Record<string, unknown>] = [
       seg.target,

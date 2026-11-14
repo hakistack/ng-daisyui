@@ -4,7 +4,7 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: a sign-up form with validation, a field that only appears for business accounts, a password confirmation check, and your own Submit and Reset buttons. You describe the fields once with [createForm](/api/createForm) and [field](/api/field); the form renders, validates and reports back through a controller.',
-      es: 'Meta: un formulario de registro con validación, un campo que solo aparece para cuentas de empresa, una verificación de confirmación de contraseña y tus propios botones de Enviar y Restablecer. Describes los campos una vez con [createForm](/api/createForm) y [field](/api/field); el formulario se dibuja, valida y te responde a través de un controlador.',
+      es: 'Objetivo: un formulario de registro con validación, un campo que solo aparece para cuentas de empresa, una verificación de confirmación de contraseña y tus propios botones de Enviar y Restablecer. Describes los campos una vez con [createForm](/api/createForm) y [field](/api/field); el formulario se renderiza, se valida y te responde a través de un controlador.',
     },
   ],
   sections: [
@@ -24,7 +24,6 @@ const content: ArticleContent = {
           lang: 'ts',
           title: 'sign-up.component.ts',
           code: `import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { Validators } from '@angular/forms';
 import { createForm, DynamicFormComponent, field, layout, validation } from '@hakistack/ng-daisyui';
 
 interface SignUp {
@@ -62,7 +61,7 @@ export class SignUpComponent {
         showWhen: ['accountType', 'business'],
         requiredWhen: ['accountType', 'business'],
       }),
-      field.checkbox('acceptTerms', 'I accept the terms', { ...validation.custom(Validators.requiredTrue) }),
+      field.checkbox('acceptTerms', 'I accept the terms', { required: true }),
     ],
     validate: (values) =>
       values.password === values.confirmPassword ? null : { confirmPassword: 'Passwords do not match' },
@@ -84,7 +83,7 @@ export class SignUpComponent {
     },
     {
       id: 'step-2-render',
-      heading: { en: '2. Render it and add your buttons', es: '2. Dibújalo y añade tus botones' },
+      heading: { en: '2. Render it and add your buttons', es: '2. Renderízalo y añade tus botones' },
       blocks: [
         {
           kind: 'p',
@@ -122,15 +121,15 @@ export class SignUpComponent {
           kind: 'p',
           text: {
             en: '`showWhen`, `hideWhen`, `requiredWhen` and `disabledWhen` accept the same shorthand: a field key (truthy check), a `[key, value]` pair, a `[key, predicate]` pair, a function, or an Angular signal passed without parentheses so it stays reactive.',
-            es: '`showWhen`, `hideWhen`, `requiredWhen` y `disabledWhen` aceptan el mismo atajo: una clave de campo (verifica que sea truthy), un par `[key, value]`, un par `[key, predicado]`, una función o un signal de Angular pasado sin paréntesis para que siga siendo reactivo.',
+            es: '`showWhen`, `hideWhen`, `requiredWhen` y `disabledWhen` aceptan la misma forma abreviada: una clave de campo (comprueba que su valor sea verdadero), un par `[key, value]`, un par `[key, predicado]`, una función o un signal de Angular pasado sin paréntesis para que siga siendo reactivo.',
           },
         },
         {
           kind: 'note',
-          tone: 'warning',
+          tone: 'info',
           text: {
-            en: 'Hiding a field does not remove its validators. A field with `required: true` and a `showWhen` stays invalid while hidden and blocks the form. Pair `showWhen` with an identical `requiredWhen`, as the `company` field does.',
-            es: 'Ocultar un campo no le quita sus validadores. Un campo con `required: true` y un `showWhen` sigue inválido mientras está oculto y bloquea el formulario. Combina `showWhen` con un `requiredWhen` idéntico, como hace el campo `company`.',
+            en: 'A field hidden by `showWhen` / `hideWhen` is disabled while hidden: it does not block submit (`valid` ignores it) and it is left out of `values`. Its value is kept and comes back when the field is shown again. `requiredWhen` on the `company` field makes the rule explicit, but a plain `required: true` would no longer block the form while the field is hidden.',
+            es: 'Un campo oculto por `showWhen` / `hideWhen` se deshabilita mientras está oculto: no bloquea el envío (`valid` lo ignora) y queda fuera de `values`. Su valor se conserva y vuelve cuando el campo se muestra de nuevo. El `requiredWhen` del campo `company` deja la regla explícita, pero un simple `required: true` ya no bloquearía el formulario mientras el campo está oculto.',
           },
         },
       ],
@@ -150,8 +149,8 @@ export class SignUpComponent {
           kind: 'list',
           items: [
             {
-              en: '**Per field:** `customValidators` (or `validation.custom(...)`) takes any Angular `ValidatorFn`. The error message is generic (“Field is invalid (errorKey)”) unless the error key is one the form knows, such as `required` or `pattern`.',
-              es: '**Por campo:** `customValidators` (o `validation.custom(...)`) acepta cualquier `ValidatorFn` de Angular. El mensaje de error es genérico (“Field is invalid (errorKey)”) a menos que la clave sea una que el formulario conoce, como `required` o `pattern`.',
+              en: '**Per field:** `customValidators` (or `validation.custom(...)`) takes any Angular `ValidatorFn`. The error message is generic (“<Label> is invalid (errorKey)”) unless the error key is one the form knows: `required`, `minlength`, `maxlength`, `min`, `max`, `email` or `pattern`.',
+              es: '**Por campo:** `customValidators` (o `validation.custom(...)`) acepta cualquier `ValidatorFn` de Angular. El mensaje de error es genérico (“<Label> is invalid (errorKey)”) a menos que la clave sea una que el formulario conoce: `required`, `minlength`, `maxlength`, `min`, `max`, `email` o `pattern`.',
             },
             {
               en: '**Per form:** `validate(values)` returns `{ fieldKey: message }` or `null`. Use it for cross-field rules and whenever you need your own message text. It re-runs on every value change and again on submit.',
@@ -163,8 +162,8 @@ export class SignUpComponent {
           kind: 'note',
           tone: 'tip',
           text: {
-            en: 'A required checkbox needs `Validators.requiredTrue`: Angular’s `required` treats `false` as a value. `requiredTrue` reports the `required` key, so the standard “is required” message appears.',
-            es: 'Un checkbox obligatorio necesita `Validators.requiredTrue`: el `required` de Angular considera `false` como un valor. `requiredTrue` reporta la clave `required`, así que aparece el mensaje estándar “is required”.',
+            en: '`required: true` on a checkbox or toggle means “must be checked”, as on `acceptTerms`: the form uses Angular’s `requiredTrue` for boolean fields. It reports the `required` key, so the standard “is required” message appears.',
+            es: '`required: true` en una casilla o un toggle significa “debe estar marcada”, como en `acceptTerms`: el formulario usa `requiredTrue` de Angular en los campos booleanos. Reporta la clave `required`, así que aparece el mensaje estándar “is required”.',
           },
         },
       ],
@@ -178,7 +177,7 @@ export class SignUpComponent {
           items: [
             {
               en: 'Split long forms into steps with `steps` and `step.create(...)`: see [Wizard](/wizard).',
-              es: 'Divide formularios largos en pasos con `steps` y `step.create(...)`: mira [Wizard](/wizard).',
+              es: 'Divide formularios largos en pasos con `steps` y `step.create(...)`: mira [Asistente](/wizard).',
             },
             {
               en: 'Keep drafts across reloads with `autoSave` and `provideFormState()`: see [Form state](/systems/form-state).',

@@ -96,19 +96,19 @@ type ApiSubTab = 'component' | 'configuration' | 'multi-select' | 'keyboard-a11y
             <app-doc-section title="Sizes" description="Different size variants">
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label class="label"><span class="label-text">Extra Small</span></label>
+                  <span class="label"><span class="label-text">Extra Small</span></span>
                   <hk-select [options]="basicOptions" size="xs" placeholder="XS" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Small</span></label>
+                  <span class="label"><span class="label-text">Small</span></span>
                   <hk-select [options]="basicOptions" size="sm" placeholder="SM" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Medium (default)</span></label>
+                  <span class="label"><span class="label-text">Medium (default)</span></span>
                   <hk-select [options]="basicOptions" size="md" placeholder="MD" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Large</span></label>
+                  <span class="label"><span class="label-text">Large</span></span>
                   <hk-select [options]="basicOptions" size="lg" placeholder="LG" />
                 </div>
               </div>
@@ -118,8 +118,8 @@ type ApiSubTab = 'component' | 'configuration' | 'multi-select' | 'keyboard-a11y
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 @for (c of colors; track c) {
                   <div>
-                    <label class="label"
-                      ><span class="label-text capitalize">{{ c }}</span></label
+                    <span class="label"
+                      ><span class="label-text capitalize">{{ c }}</span></span
                     >
                     <hk-select [options]="basicOptions" [color]="c" [placeholder]="c" />
                   </div>

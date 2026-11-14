@@ -15,7 +15,7 @@ import { CommonModule } from '@angular/common';
 import { HK_THEME } from '../../theme/theme.config';
 import { ResolvedNotificationLabels } from './notification.labels';
 import { NotificationService } from './notification.service';
-import { Notification, NotificationAction, NotificationDismissReason } from './notification.types';
+import { Notification, NotificationAction, NotificationDismissReason, NotificationSeverity } from './notification.types';
 
 /**
  * Per-notification renderer — internal companion to `<hk-notification-host>`.
@@ -24,6 +24,20 @@ import { Notification, NotificationAction, NotificationDismissReason } from './n
  *
  * Not exported from public-api: consumers always go through `NotificationService`.
  */
+// Literal class names: Tailwind only generates classes it finds as complete strings in the source.
+const TEXT_SEVERITY_CLASSES: Readonly<Record<NotificationSeverity, string>> = {
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning',
+  error: 'text-error',
+};
+const ALERT_SEVERITY_CLASSES: Readonly<Record<NotificationSeverity, string>> = {
+  info: 'alert-info',
+  success: 'alert-success',
+  warning: 'alert-warning',
+  error: 'alert-error',
+};
+
 @Component({
   selector: 'hk-notification-item',
   imports: [CommonModule],
@@ -32,7 +46,8 @@ import { Notification, NotificationAction, NotificationDismissReason } from './n
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'hk-notification-item pointer-events-auto block w-full',
-    '[attr.role]': '"alert"',
+    // No role="alert" here or on the panels: the host region is the single (polite) live
+    // region, so each notification is announced once instead of up to three times.
     '[attr.aria-atomic]': '"true"',
     // `inert` while exiting: kicks focus out of the subtree, blocks pointer +
     // keyboard interaction, and hides from assistive tech. We can't use
@@ -108,9 +123,24 @@ export class NotificationItemComponent {
     }
     const severity = this.notification().severity;
     if (this.theme.id === 'daisyui-v4') {
-      return `${base} bg-base-100 text-${severity}`;
+      return `${base} bg-base-100 ${TEXT_SEVERITY_CLASSES[severity]}`;
     }
-    return `${base} alert-soft alert-${severity}`;
+    return `${base} alert-soft ${ALERT_SEVERITY_CLASSES[severity]}`;
+  });
+
+  /** Visually hidden severity prefix read before the title ("Error: …"). */
+  readonly ariaPrefix = computed(() => {
+    const labels = this.labels();
+    switch (this.notification().severity) {
+      case 'success':
+        return labels.successAriaPrefix;
+      case 'warning':
+        return labels.warningAriaPrefix;
+      case 'error':
+        return labels.errorAriaPrefix;
+      default:
+        return labels.infoAriaPrefix;
+    }
   });
 
   /**

@@ -27,7 +27,7 @@ import {
  *   filename: 'notes.md',
  *   onSave: (bytes) => this.api.upload(bytes),
  * });
- * // template: <hk-document-viewer [src]="src()" mode="edit" [editor]="editor.config()" />
+ * // template: <hk-document-viewer [src]="src()" mode="edit" [editor]="editor" />
  * // anywhere: this.editor.save(); this.editor.undo();
  */
 export function createDocumentEditor(input: DocumentEditorConfig = {}): DocumentEditorController {

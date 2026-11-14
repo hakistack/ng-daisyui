@@ -513,10 +513,11 @@ describe('TreeComponent', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should have tree role on host', () => {
+    it('should render the tree role on the node container', () => {
+      fixture.componentRef.setInput('nodes', makeSimpleTree());
       fixture.detectChanges();
       const host = fixture.nativeElement as HTMLElement;
-      expect(host.getAttribute('role')).toBe('tree');
+      expect(host.querySelector('[role="tree"]')).toBeTruthy();
     });
 
     it('should render empty message when no nodes', () => {
@@ -716,6 +717,60 @@ describe('TreeComponent', () => {
       const boxes = Array.from(fixture.nativeElement.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
       expect(boxes.length).toBeGreaterThan(0);
       for (const box of boxes) expect(box.getAttribute('aria-label')).toBeTruthy();
+    });
+  });
+
+  describe('tree ARIA structure', () => {
+    it('puts role="tree" on the node container, not around the filter input', () => {
+      fixture.componentRef.setInput('nodes', makeSimpleTree());
+      fixture.componentRef.setInput('config', { filterable: true, ariaLabel: 'Files' } as TreeConfig);
+      fixture.detectChanges();
+
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.getAttribute('role')).toBeNull();
+      const tree = root.querySelector('[role="tree"]') as HTMLElement;
+      expect(tree.getAttribute('aria-label')).toBe('Files');
+      expect(tree.querySelector('input[type="text"]')).toBeNull();
+    });
+
+    it('exposes level, set size and position, with exactly one tab stop', () => {
+      fixture.componentRef.setInput('nodes', makeSimpleTree());
+      fixture.componentRef.setInput('config', { initialExpandLevel: 1 } as TreeConfig);
+      fixture.detectChanges();
+      component.expandAll();
+      fixture.detectChanges();
+
+      const items = Array.from(fixture.nativeElement.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
+      expect(items[0].getAttribute('aria-level')).toBe('1');
+      expect(items[0].getAttribute('aria-posinset')).toBe('1');
+      expect(items[0].getAttribute('aria-setsize')).toBe('3');
+      const child = items.find((el) => el.getAttribute('data-node-key') === 'doc-2')!;
+      expect(child.getAttribute('aria-level')).toBe('2');
+      expect(child.getAttribute('aria-posinset')).toBe('2');
+      expect(child.getAttribute('aria-setsize')).toBe('2');
+      expect(items.filter((el) => el.getAttribute('tabindex') === '0').length).toBe(1);
+    });
+
+    it('uses aria-checked (not aria-selected) in checkbox mode', () => {
+      fixture.componentRef.setInput('nodes', makeSimpleTree());
+      fixture.componentRef.setInput('config', { selectionMode: 'checkbox' } as TreeConfig);
+      fixture.detectChanges();
+
+      const item = fixture.nativeElement.querySelector('[role="treeitem"]') as HTMLElement;
+      expect(item.getAttribute('aria-checked')).toBe('false');
+      expect(item.getAttribute('aria-selected')).toBeNull();
+    });
+
+    it('selectionAllowParents: false restricts selection to leaves', () => {
+      const nodes = makeSimpleTree();
+      fixture.componentRef.setInput('nodes', nodes);
+      fixture.componentRef.setInput('config', { selectionMode: 'single', selectionAllowParents: false } as TreeConfig);
+      fixture.detectChanges();
+
+      component.selectNode(nodes[0]); // folder
+      expect(component.isSelected(nodes[0])).toBe(false);
+      component.selectNode(nodes[2]); // leaf
+      expect(component.isSelected(nodes[2])).toBe(true);
     });
   });
 
@@ -1537,19 +1592,21 @@ describe('TreeComponent', () => {
   // -------- ARIA attributes --------
   describe('accessibility', () => {
     it('should set aria-label from config', () => {
+      fixture.componentRef.setInput('nodes', makeSimpleTree());
       fixture.componentRef.setInput('config', { ariaLabel: 'File Browser' } as TreeConfig);
       fixture.detectChanges();
 
-      const host = fixture.nativeElement as HTMLElement;
-      expect(host.getAttribute('aria-label')).toBe('File Browser');
+      const tree = (fixture.nativeElement as HTMLElement).querySelector('[role="tree"]') as HTMLElement;
+      expect(tree.getAttribute('aria-label')).toBe('File Browser');
     });
 
     it('should set aria-labelledby from config', () => {
+      fixture.componentRef.setInput('nodes', makeSimpleTree());
       fixture.componentRef.setInput('config', { ariaLabelledBy: 'tree-label' } as TreeConfig);
       fixture.detectChanges();
 
-      const host = fixture.nativeElement as HTMLElement;
-      expect(host.getAttribute('aria-labelledby')).toBe('tree-label');
+      const tree = (fixture.nativeElement as HTMLElement).querySelector('[role="tree"]') as HTMLElement;
+      expect(tree.getAttribute('aria-labelledby')).toBe('tree-label');
     });
 
     it('should set aria-selected on selected nodes', () => {

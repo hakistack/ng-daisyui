@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
+import { FuzzyEngineService } from '../../services';
 import { SelectComponent, SelectOption } from './select.component';
 
 // ---------------------------------------------------------------------------
@@ -589,6 +590,24 @@ describe('SelectComponent', () => {
   // -------------------------------------------------------------------------
 
   describe('keyboard navigation', () => {
+    it('lets Space type into the search box instead of toggling the highlighted option', () => {
+      fixture.componentRef.setInput('options', MOCK_OPTIONS);
+      fixture.componentRef.setInput('multiple', true);
+      fixture.componentRef.setInput('enableSearch', true);
+      fixture.detectChanges();
+      openDropdown(fixture);
+      pressKey(component, 'ArrowDown');
+      fixture.detectChanges();
+
+      const search = query(fixture, 'input[role="searchbox"]') as HTMLInputElement;
+      const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+      Object.defineProperty(space, 'target', { value: search });
+      component.onDocumentKeydown(space);
+
+      expect(space.defaultPrevented).toBe(false);
+      expect(component.selectedOptions().length).toBe(0);
+    });
+
     beforeEach(() => {
       fixture.componentRef.setInput('options', MOCK_OPTIONS);
       fixture.detectChanges();
@@ -1849,5 +1868,47 @@ describe('SelectComponent (FormControl integration)', () => {
     const selectComponent = hostFixture.debugElement.children[0].componentInstance as SelectComponent;
     selectComponent.toggleDropdown();
     expect(selectComponent.dropdownOpen()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WASM fuzzy engine is only built when it pays off
+// ---------------------------------------------------------------------------
+describe('SelectComponent fuzzy engine loading', () => {
+  const createIndex = vi.fn(async () => ({ itemCount: 0, search: () => [], dispose: () => undefined }));
+
+  function setup(optionCount: number): ComponentFixture<SelectComponent> {
+    TestBed.configureTestingModule({
+      imports: [SelectComponent],
+      providers: [{ provide: FuzzyEngineService, useValue: { createIndex } }],
+    });
+    const fixture = TestBed.createComponent(SelectComponent);
+    const options = Array.from({ length: optionCount }, (_, i) => ({ label: `Option ${i}`, value: `v${i}` }));
+    fixture.componentRef.setInput('options', options);
+    fixture.componentRef.setInput('enableSearch', true);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  beforeEach(() => createIndex.mockClear());
+
+  it('does not load the engine on mount, even for large lists', () => {
+    setup(500);
+    TestBed.tick();
+    expect(createIndex).not.toHaveBeenCalled();
+  });
+
+  it('does not load the engine for small lists even while searching', () => {
+    const fixture = setup(3);
+    fixture.componentInstance.searchTerm.set('opt');
+    TestBed.tick();
+    expect(createIndex).not.toHaveBeenCalled();
+  });
+
+  it('builds the engine index once the user searches a large list', () => {
+    const fixture = setup(500);
+    fixture.componentInstance.searchTerm.set('opt');
+    TestBed.tick();
+    expect(createIndex).toHaveBeenCalledTimes(1);
   });
 });

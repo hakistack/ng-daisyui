@@ -194,3 +194,16 @@ describe('MenuComponent', () => {
     expect(fixture.componentInstance['flyoutGroup']()).toBeNull();
   });
 });
+
+describe('processMenuItems ids', () => {
+  it('keeps generated ids stable when the same items are processed again', () => {
+    const items = [
+      { label: 'Home', routerLink: '/' },
+      { label: 'Settings', children: [{ label: 'Profile', routerLink: '/p' }] },
+    ];
+    const first = processMenuItems(items);
+    const second = processMenuItems(items);
+    expect(second[0].id).toBe(first[0].id);
+    expect(second[1].children![0].id).toBe(first[1].children![0].id);
+  });
+});

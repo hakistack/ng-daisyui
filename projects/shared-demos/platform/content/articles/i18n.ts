@@ -4,7 +4,7 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Components ship with English defaults for their built-in text: buttons, placeholders, empty states and `aria-label`s. The goal of this page is to make all of that speak your users’ language, either with fixed strings at startup or with a translation library that switches at runtime.',
-      es: 'Los componentes traen textos integrados en inglés por defecto: botones, placeholders, estados vacíos y `aria-label`s. La meta de esta página es que todo eso hable el idioma de tus usuarios, ya sea con textos fijos al iniciar o con una librería de traducción que cambia en tiempo de ejecución.',
+      es: 'Los componentes traen sus textos integrados en inglés por defecto: botones, placeholders, estados vacíos y valores de `aria-label`. La meta de esta página es que todo eso hable el idioma de tus usuarios, ya sea con textos fijos al iniciar o con una librería de traducción que cambia en tiempo de ejecución.',
     },
     {
       en: 'Your own content (field labels, column headers, menu items) is never translated by the library: you pass it in, so you translate it.',
@@ -22,7 +22,7 @@ const content: ArticleContent = {
           items: [
             {
               en: '**App-wide providers.** A `provide*Labels()` function registers an injection token once in `app.config.ts`. Every instance of that component uses it.',
-              es: '**Proveedores globales.** Una función `provide*Labels()` registra un token de inyección una vez en `app.config.ts`. Todas las instancias de ese componente lo usan.',
+              es: '**Proveedores globales.** Una función `provide*Labels()` registra un token de inyección una sola vez en `app.config.ts`. Todas las instancias de ese componente lo usan.',
             },
             {
               en: '**Config objects.** Some builders take a `labels` property (tables, trees), and the toast and alert providers accept `labels` inside their global config.',
@@ -38,7 +38,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'Every labels object is partial: any key you leave out falls back to the English default.',
-            es: 'Todo objeto de labels es parcial: cualquier clave que omitas usa el valor por defecto en inglés.',
+            es: 'Todo objeto de etiquetas es parcial: cualquier clave que omitas usa el valor por defecto en inglés.',
           },
         },
       ],
@@ -58,7 +58,7 @@ const content: ArticleContent = {
               { en: 'Dynamic form', es: 'Formulario dinámico' },
               {
                 en: '[provideDynamicFormLabels](/api/provideDynamicFormLabels) — wizard buttons, editor and loading placeholders',
-                es: '[provideDynamicFormLabels](/api/provideDynamicFormLabels) — botones del wizard, placeholders del editor y de carga',
+                es: '[provideDynamicFormLabels](/api/provideDynamicFormLabels) — botones del asistente, placeholders del editor y de carga',
               },
             ],
             [
@@ -83,7 +83,7 @@ const content: ArticleContent = {
               },
             ],
             [
-              { en: 'PDF viewer', es: 'Visor PDF' },
+              { en: 'PDF viewer', es: 'Visor de PDF' },
               { en: '[provideHkPdfLabels](/api/provideHkPdfLabels)', es: '[provideHkPdfLabels](/api/provideHkPdfLabels)' },
             ],
             [
@@ -104,7 +104,7 @@ const content: ArticleContent = {
               { en: 'Toast', es: 'Toast' },
               {
                 en: '[provideToast](/api/provideToast) with `labels` ([ToastLabels](/api/ToastLabels)) — the online/offline messages',
-                es: '[provideToast](/api/provideToast) con `labels` ([ToastLabels](/api/ToastLabels)) — los mensajes de conexión',
+                es: '[provideToast](/api/provideToast) con `labels` ([ToastLabels](/api/ToastLabels)) — los mensajes de conexión y desconexión',
               },
             ],
             [
@@ -125,7 +125,7 @@ const content: ArticleContent = {
               { en: 'Datepicker', es: 'Datepicker' },
               {
                 en: '`labels` input ([DatepickerLabels](/api/DatepickerLabels)); month and weekday names come from the `locale` input via `Intl`',
-                es: 'Input `labels` ([DatepickerLabels](/api/DatepickerLabels)); los nombres de meses y días vienen del input `locale` vía `Intl`',
+                es: 'Input `labels` ([DatepickerLabels](/api/DatepickerLabels)); los nombres de meses y días salen del input `locale` mediante `Intl`',
               },
             ],
             [
@@ -172,12 +172,12 @@ export const appConfig: ApplicationConfig = {
               es: '**Los mensajes de validación del formulario están en inglés.** Mensajes como “Email is required” se construyen con la etiqueta del campo y no forman parte de `DynamicFormLabels`. Para mensajes localizados, devuélvelos desde la función `validate` a nivel de formulario en [createForm](/api/createForm), que muestra tu texto en el campo indicado.',
             },
             {
-              en: '**Automatic placeholders.** `field.email()` and `field.password()` generate an English placeholder (“Enter email”). Pass `placeholder` to replace it.',
-              es: '**Placeholders automáticos.** `field.email()` y `field.password()` generan un placeholder en inglés (“Enter email”). Pasa `placeholder` para reemplazarlo.',
+              en: '**Automatic placeholders.** Field builders without a `placeholder` generate an English one from the label (“Enter email”). Pass `placeholder` to replace it.',
+              es: '**Placeholders automáticos.** Los builders de campos sin `placeholder` generan uno en inglés a partir de la etiqueta (“Enter email”). Pasa `placeholder` para reemplazarlo.',
             },
             {
               en: '**Providers are static.** A `provide*Labels()` value is read once. To switch language without reloading, use component inputs or the alert `translate` + `langChange$` hooks.',
-              es: '**Los proveedores son estáticos.** El valor de un `provide*Labels()` se lee una vez. Para cambiar de idioma sin recargar, usa inputs del componente o los hooks `translate` + `langChange$` del alert.',
+              es: '**Los proveedores son estáticos.** El valor de un `provide*Labels()` se lee una vez. Para cambiar de idioma sin recargar, usa los inputs del componente o los hooks `translate` + `langChange$` del alert.',
             },
           ],
         },
@@ -191,14 +191,14 @@ export const appConfig: ApplicationConfig = {
           kind: 'p',
           text: {
             en: '`@hakistack/i18n` is a companion package on top of Transloco: you author translations in `.ts` files and a codegen produces typed keys (`TK`) and JSON. It is independent of `@hakistack/ng-daisyui`; the two connect through the mechanisms above.',
-            es: '`@hakistack/i18n` es un paquete complementario sobre Transloco: escribes las traducciones en archivos `.ts` y un codegen produce claves tipadas (`TK`) y JSON. Es independiente de `@hakistack/ng-daisyui`; los dos se conectan con los mecanismos de arriba.',
+            es: '`@hakistack/i18n` es un paquete complementario sobre Transloco: escribes las traducciones en archivos `.ts` y un codegen produce claves tipadas (`TK`) y JSON. Es independiente de `@hakistack/ng-daisyui`; los dos se conectan mediante los mecanismos de arriba.',
           },
         },
         {
           kind: 'p',
           text: {
             en: 'For components with inputs, derive the labels object from translation signals. When the language changes, the signals update and so does the component.',
-            es: 'Para componentes con inputs, deriva el objeto de labels de signals de traducción. Cuando cambia el idioma, los signals se actualizan y el componente también.',
+            es: 'Para componentes con inputs, deriva el objeto de etiquetas de signals de traducción. Cuando cambia el idioma, los signals se actualizan y el componente también.',
           },
         },
         {
@@ -230,7 +230,7 @@ export class BookingComponent {
           kind: 'p',
           text: {
             en: 'For the Alert service, hand it Transloco’s translate function and language stream so cached button texts refresh on every switch. The keys it asks for are its own (for example `common.dialogs.deleteConfirm.title`); the fallback text is used when your translation returns nothing.',
-            es: 'Para el servicio Alert, pásale la función de traducción de Transloco y su stream de idioma para que los textos de botones se refresquen en cada cambio. Las claves que pide son propias (por ejemplo `common.dialogs.deleteConfirm.title`); el texto de respaldo se usa cuando tu traducción no devuelve nada.',
+            es: 'Para el servicio Alert, pásale la función de traducción de Transloco y su stream de idioma para que los textos de los botones se actualicen en cada cambio. Las claves que pide son suyas (por ejemplo `common.dialogs.deleteConfirm.title`); el texto de respaldo se usa cuando tu traducción no devuelve nada.',
           },
         },
         {

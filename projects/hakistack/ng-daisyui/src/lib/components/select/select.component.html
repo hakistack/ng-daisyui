@@ -59,7 +59,7 @@
         [attr.aria-expanded]="dropdownOpen()"
         [attr.aria-controls]="listboxId"
         [attr.aria-activedescendant]="highlightedOptionId()"
-        [attr.aria-label]="placeholder()"
+        [attr.aria-label]="id() ? null : placeholder()"
         (keydown.enter)="$event.preventDefault(); toggleDropdown()"
         (keydown.space)="$event.preventDefault(); toggleDropdown()"
       />

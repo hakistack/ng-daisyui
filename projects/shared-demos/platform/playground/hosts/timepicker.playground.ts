@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { TimepickerComponent, TimepickerPosition } from '@hakistack/ng-daisyui';
 import { PlaygroundComponent } from '../playground.component';
-import { TIMEPICKER_PLAYGROUND, TimepickerPgState } from '../playground-specs';
+import { TIMEPICKER_PLAYGROUND, TimepickerPgState } from '../specs/timepicker';
 import type { PlaygroundState } from '../playground.types';
 
 @Component({

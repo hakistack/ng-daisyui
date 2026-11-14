@@ -19,7 +19,7 @@ Status: **Keep** (sound, incremental fixes only) · **Refactor** (internal restr
 | `AlertService` | SweetAlert-style blocking confirm/prompt | ✓ (new) | ✓ | | own modal instead of CDK Dialog; HTML bypasses sanitizer (decision) | Consolidate internals |
 | `DialogService` + `hk-dialog-wrapper` | CDK dialog wrapper | ✓ | ✓ | CDK handles | `animate__*` classes without animate.css | Keep |
 | `hk-command-palette` | ⌘K palette | ✗ | ✓ | not a combobox | | Refactor (a11y) |
-| `hk-tab-group` / `hk-tab-panel` | tabs on `@angular/aria` | ✓ | ✓ | good | `icon` input never rendered | Keep |
+| `hk-tab-group` / `hk-tab-panel` | tabs on `@angular/aria` | ✓ | ✓ | good | — (`icon` rendered via registry lookup since 0.4.0) | Keep |
 | `hk-stepper` | CDK stepper, non-form | ✓ | ✗ | ids **fixed**; arrow keys open | "Step X of Y" hardcoded | Keep |
 | `hk-menu`, `hk-navbar`, sidebar, app shell | navigation chrome | partial | ✓ | menubar keys | | Keep |
 | `hk-breadcrumbs` | manual + router-driven breadcrumbs | ✓ | ✓ | | | Keep |

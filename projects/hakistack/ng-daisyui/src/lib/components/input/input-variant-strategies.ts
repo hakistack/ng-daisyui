@@ -1,6 +1,28 @@
-import { AsYouType, getExampleNumber, parsePhoneNumberWithError } from 'libphonenumber-js';
-import examples from 'libphonenumber-js/mobile/examples';
+import { onceAsync } from '../../utils/wasm-loader';
 import { CurrencyConfig, InputVariant, PercentageConfig, PhoneConfig } from './input.types';
+
+type PhoneLib = typeof import('./phone-lib');
+
+let phoneLib: PhoneLib | null = null;
+
+const loadPhoneLibOnce = /* @__PURE__ */ onceAsync(() =>
+  import('./phone-lib').then((m) => {
+    phoneLib = m;
+    return m;
+  }),
+);
+
+/**
+ * Load libphonenumber-js on demand (first `hk-input` with `variant="phone"`). Until it
+ * resolves the phone strategy keeps digits only; the component reformats once loaded.
+ */
+export function loadPhoneLib(): Promise<PhoneLib> {
+  return phoneLib ? Promise.resolve(phoneLib) : loadPhoneLibOnce();
+}
+
+export function isPhoneLibLoaded(): boolean {
+  return phoneLib !== null;
+}
 
 export interface InputVariantStrategy {
   format(value: string | number | null, config?: unknown): string;
@@ -120,11 +142,14 @@ class PhoneStrategy implements InputVariantStrategy {
     const digits = String(value).replace(/\D/g, '');
     if (!digits) return '';
 
+    const lib = phoneLib;
+    if (!lib) return digits; // libphonenumber still loading — keep the digits, reformat on load
+
     const country = config?.country ?? 'US';
     const format = config?.format ?? 'national';
 
     try {
-      const phone = parsePhoneNumberWithError(digits, { defaultCountry: country });
+      const phone = lib.parsePhoneNumberWithError(digits, { defaultCountry: country });
       if (phone) {
         return format === 'international' ? phone.formatInternational() : phone.formatNational();
       }
@@ -132,15 +157,18 @@ class PhoneStrategy implements InputVariantStrategy {
       // Partial input — use AsYouType for progressive formatting
     }
 
-    return new AsYouType(country).input(digits);
+    return new lib.AsYouType(country).input(digits);
   }
 
   parse(displayValue: string, config?: PhoneConfig): string {
     if (!displayValue) return '';
 
+    const lib = phoneLib;
+    if (!lib) return displayValue.replace(/\D/g, '');
+
     const country = config?.country ?? 'US';
     try {
-      const phone = parsePhoneNumberWithError(displayValue, { defaultCountry: country });
+      const phone = lib.parsePhoneNumberWithError(displayValue, { defaultCountry: country });
       if (phone) return phone.number;
     } catch {
       // Fall back to raw digits
@@ -161,7 +189,7 @@ class PhoneStrategy implements InputVariantStrategy {
     if (isNavigationKey(event)) return true;
 
     const country = config?.country ?? 'US';
-    const example = getExampleNumber(country, examples);
+    const example = phoneLib?.getExampleNumber(country, phoneLib.examples);
     const maxDigits = example?.nationalNumber.length ?? 15;
     const currentDigits = currentValue.replace(/\D/g, '');
 

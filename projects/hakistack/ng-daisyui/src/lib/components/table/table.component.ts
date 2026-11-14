@@ -105,7 +105,6 @@ import {
   buildSchemaKindMap,
   inferEngineSchema,
   normalizeDirection,
-  translateGroupFields,
   translateSort,
   type ColumnKind,
   type ColumnSchema,
@@ -349,10 +348,13 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   readonly pageIndexSignal = this.pagination.pageIndex;
   readonly pageSizeSignal = this.pagination.pageSize;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly pageSizeOptionsSignal = this.pagination.pageSizeOptions;
   readonly modeSignal = this.pagination.mode;
   readonly isServerSidePaginationSignal = this.pagination.isServerSide;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly nextCursorSignal = this.pagination.nextCursor;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly prevCursorSignal = this.pagination.prevCursor;
   private readonly totalPagesSignal = this.pagination.totalPages;
 
@@ -452,6 +454,7 @@ export class TableComponent<T extends object> implements OnDestroy {
    * anchor positioning is Chromium-only as of 2026 — so we compute it
    * ourselves to work in Firefox / Safari too.
    */
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly openFilterPos = signal<{ top: number; left: number } | null>(null);
   readonly openBulkActionDropdown = signal<string | null>(null); // Track which bulk action dropdown is open
 
@@ -599,6 +602,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   /** Column index of the end-side actions column within displayedColumnsSignal (-1 if none). */
   readonly endActionsColIndexSignal = computed(() => this.displayedColumnsSignal().indexOf('actions_end'));
   /** Column index of the primary actions column — end side if present, else start side. */
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly actionsColIndexSignal = computed(() => {
     const endIdx = this.endActionsColIndexSignal();
     if (endIdx !== -1) return endIdx;
@@ -724,8 +728,10 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly expandedRowKeys = this.tree.expandedKeys;
   readonly treeAnimatingKeys = this.tree.animatingKeys;
   readonly isTreeTableSignal = this.tree.enabled;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly treeIndentSizeSignal = this.tree.indentSize;
   private readonly childrenPropertySignal = this.tree.childrenProperty;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly showIndentGuidesSignal = this.tree.showIndentGuides;
   readonly checkboxCascadeSignal = this.tree.cascadeMode;
   readonly filterHierarchyModeSignal = this.tree.filterHierarchyMode;
@@ -861,6 +867,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly globalSearchTerm = this.globalSearch.term;
   private readonly debouncedSearchTerm = this.globalSearch.debouncedTerm;
   readonly hasGlobalSearchSignal = this.globalSearch.enabled;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly globalSearchModeSignal = this.globalSearch.searchMode;
   readonly globalSearchPlaceholderSignal = this.globalSearch.placeholder;
   readonly globalSearchClearAriaSignal = this.globalSearch.clearAriaLabel;
@@ -1083,6 +1090,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     onFilterChange: (payload) => this.filterChange.emit(payload),
   });
 
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly openFilterField = this.filtering.openField;
   readonly activeFiltersSignal = this.filtering.activeFilters;
   readonly hasActiveFiltersSignal = this.filtering.hasActive;
@@ -1218,9 +1226,12 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly alwaysVisibleColumns = this.columnUi.alwaysVisible;
   readonly columnVisibilityLabels = this.columnUi.visibilityLabels;
   readonly columnOrderOverride = this.columnUi.orderOverride;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly columnWidthsSignal = this.columnUi.widths;
   readonly isResizingSignal = this.columnUi.isResizing;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly stickyStartColumnsSignal = this.columnUi.stickyStartColumns;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly stickyEndColumnsSignal = this.columnUi.stickyEndColumns;
   readonly hasStickyColumnsSignal = this.columnUi.hasStickyColumns;
   readonly stickySelectionSignal = this.columnUi.stickySelection;
@@ -1235,7 +1246,9 @@ export class TableComponent<T extends object> implements OnDestroy {
   readonly trackByField: TrackByFunction<ColumnDefinition<T>> = (_, item) => item.field;
   readonly trackByAction: TrackByFunction<ActionItem<T>> = (_, item) => item.key;
   readonly trackByBulkAction: TrackByFunction<BulkActionItem<T>> = (_, item) => item.key;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly trackByPage: TrackByFunction<number> = (_, page) => page;
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly trackByPageSize: TrackByFunction<number> = (_, size) => size;
 
   // Static properties
@@ -1270,7 +1283,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   private static readonly ACTION_CLASSES: Readonly<Record<string, string>> = {
     view: 'btn btn-sm btn-secondary',
     edit: 'btn btn-sm btn-accent',
-    delete: 'btn btn-sm btn-error text-white',
+    delete: 'btn btn-sm btn-error', // btn-error already sets the theme's error-content text color
     upload: 'btn btn-sm btn-info',
     download: 'btn btn-sm btn-success',
     print: 'btn btn-sm btn-secondary',
@@ -1675,6 +1688,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   /** Get the rendered cell HTML for use in tree-cell-content */
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   getCellDisplay(row: T, column: ColumnDefinition<T>): string {
     const sync = this.getCellDisplaySync(row, column);
     if (sync) {
@@ -1870,6 +1884,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     displayData: this.displayDataSignal,
   });
 
+  /** @deprecated Not used by the component; kept for API compatibility and scheduled for removal in 0.5. */
   readonly hasAggregateFooterSignal = this.footer.hasAggregateFooter;
   readonly hasFooterRowsSignal = this.footer.hasFooterRows;
   readonly hasFooterSignal = this.footer.hasFooter;
@@ -1970,6 +1985,12 @@ export class TableComponent<T extends object> implements OnDestroy {
   // ============================================================================
   // Keyboard Navigation Methods
   // ============================================================================
+
+  /** `aria-sort` for a column header (all three layouts). */
+  ariaSort(field: string): 'ascending' | 'descending' | 'none' {
+    if (this.sortFieldSignal() !== field) return 'none';
+    return this.sortDirectionSignal() === 'Ascending' ? 'ascending' : 'descending';
+  }
 
   getCellId(rowIndex: number, colIndex: number): string {
     return `cell-${rowIndex}-${colIndex}`;

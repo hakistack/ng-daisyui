@@ -33,10 +33,14 @@ export type ComponentGroup = 'forms' | 'data' | 'navigation' | 'feedback' | 'doc
  */
 export type DocStatus = 'stable' | 'beta' | 'experimental' | 'planned';
 
+/** Progression of an example, used to order and group example tabs. */
+export type ExampleLevel = 'basic' | 'intermediate' | 'advanced' | 'real-world';
+
 export interface DocExample {
   /** Route segment under the page route (e.g. `client` → `/datagrid/client`). */
   readonly id: string;
   readonly label: Localized;
+  readonly level?: ExampleLevel;
 }
 
 export interface DocPageMeta {
@@ -66,6 +70,11 @@ export interface DocPageMeta {
   readonly symbols?: readonly string[];
   /** Has a long-form content module in content/ (lazy). */
   readonly hasContent?: boolean;
+  /**
+   * Page body is a Markdown file from the repository, rendered as-is (no
+   * duplicated prose). English only; the page says so in other languages.
+   */
+  readonly markdown?: 'changelog' | 'migration';
   /** Hidden from the sidebar (still searchable and routable). */
   readonly hidden?: boolean;
 }

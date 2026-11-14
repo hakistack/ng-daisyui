@@ -30,7 +30,7 @@ export interface PressEndInfo {
  * `pressEnd` emits `{ event, success }` — `success` is `true` if released over
  * the element (a true tap), `false` if the pointer dragged off before release.
  *
- * Honors `prefers-reduced-motion`.
+ * Honors `prefers-reduced-motion`: the press animation is skipped, but `pressStart` / `pressEnd` still fire.
  *
  * @example Tap-to-shrink button
  * <button [hkPress]="{ scale: 0.95 }">Click</button>
@@ -125,22 +125,24 @@ export class MotionPressDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private setupPressAnimation(): void {
-    if (prefersReducedMotion(this.platformId)) return;
-
     const keyframes = this.pressKeyframes();
     if (!keyframes) return;
+    // Reduced motion skips the animation, not the gesture: pressStart / pressEnd still fire.
+    const reduceMotion = prefersReducedMotion(this.platformId);
 
     try {
       this.cleanup = press(
         this.element,
         (element: Element, startEvent: PointerEvent) => {
           this.pressStart.emit(startEvent);
-          this.stopAnimations();
-          this.currentAnimation = animate(element, keyframes, this.getAnimationOptions()) as AnimationControls;
+          if (!reduceMotion) {
+            this.stopAnimations();
+            this.currentAnimation = animate(element, keyframes, this.getAnimationOptions()) as AnimationControls;
+          }
 
           return (endEvent: PointerEvent, info: PressEndInfo) => {
             this.pressEnd.emit({ event: endEvent, success: info.success });
-            if (this.restoreOnRelease()) this.animateRestore();
+            if (!reduceMotion && this.restoreOnRelease()) this.animateRestore();
           };
         },
         this.pressOptions() || {},

@@ -11,6 +11,7 @@ import {
   LucideMinus,
 } from '@lucide/angular';
 import type { EditorSlashCommand, EditorSlashCommandConfig } from './editor.types';
+import { rethrowMissingPeer } from './missing-peer';
 
 /**
  * Built-in slash commands. Match Notion's defaults — heading, lists,
@@ -156,7 +157,10 @@ export interface SlashCommandRenderState {
  * The renderer receives state changes; the extension itself is stateless.
  */
 export async function createSlashCommandExtension(opts: { items: readonly EditorSlashCommand[]; renderer: SlashCommandRenderer }) {
-  const [{ Extension }, { default: Suggestion }] = await Promise.all([import('@tiptap/core'), import('@tiptap/suggestion')]);
+  const [{ Extension }, { default: Suggestion }] = await Promise.all([
+    import('@tiptap/core').catch(rethrowMissingPeer),
+    import('@tiptap/suggestion').catch(rethrowMissingPeer),
+  ]);
 
   return Extension.create({
     name: 'hkSlashCommand',

@@ -183,12 +183,18 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
             <form [formGroup]="filterGridForm" class="bg-base-200/40 border border-base-content/10 rounded-box p-4 mb-4">
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div class="form-control">
-                  <label class="label py-1"><span class="label-text text-xs font-semibold">Buscar</span></label>
-                  <input type="text" class="input input-bordered input-sm w-full" placeholder="Nombre..." formControlName="name" />
+                  <label class="label py-1" for="tbl-buscar-0"><span class="label-text text-xs font-semibold">Buscar</span></label>
+                  <input
+                    id="tbl-buscar-0"
+                    type="text"
+                    class="input input-bordered input-sm w-full"
+                    placeholder="Nombre..."
+                    formControlName="name"
+                  />
                 </div>
                 <div class="form-control">
-                  <label class="label py-1"><span class="label-text text-xs font-semibold">Oficina</span></label>
-                  <select class="select select-bordered select-sm w-full" formControlName="dept">
+                  <label class="label py-1" for="tbl-oficina-1"><span class="label-text text-xs font-semibold">Oficina</span></label>
+                  <select id="tbl-oficina-1" class="select select-bordered select-sm w-full" formControlName="dept">
                     <option value="">Seleccione</option>
                     <option value="Engineering">Engineering</option>
                     <option value="Marketing">Marketing</option>
@@ -198,7 +204,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
                   </select>
                 </div>
                 <div class="form-control lg:col-span-2">
-                  <label class="label py-1"><span class="label-text text-xs font-semibold">Fecha</span></label>
+                  <span class="label py-1"><span class="label-text text-xs font-semibold">Fecha</span></span>
                   <div class="flex gap-2">
                     <input type="date" class="input input-bordered input-sm flex-1" aria-label="Desde" formControlName="dateFrom" />
                     <input type="date" class="input input-bordered input-sm flex-1" aria-label="Hasta" formControlName="dateTo" />

@@ -25,7 +25,7 @@ export type HoverKeyframes = Record<string, unknown> | Record<string, unknown[]>
  * `ngOnInit`). Pass `customRestoreKeyframes` to override the restore target, or
  * set `[restoreOnLeave]="false"` to leave the hovered state in place.
  *
- * Honors `prefers-reduced-motion`: if enabled, the directive does nothing.
+ * Honors `prefers-reduced-motion`: the hover animation is skipped, but `hoverStart` / `hoverEnd` still fire.
  *
  * @example Lift on hover
  * <button [hkHover]="{ y: -4, scale: 1.02 }">Hover me</button>
@@ -142,22 +142,24 @@ export class MotionHoverDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private setupHoverAnimation(): void {
-    if (prefersReducedMotion(this.platformId)) return;
-
     const keyframes = this.hoverKeyframes();
     if (!keyframes) return;
+    // Reduced motion skips the animation, not the gesture: hoverStart / hoverEnd still fire.
+    const reduceMotion = prefersReducedMotion(this.platformId);
 
     try {
       this.cleanup = hover(
         this.element,
         (element: Element, startEvent: PointerEvent) => {
           this.hoverStart.emit(startEvent);
-          this.stopAnimations();
-          this.currentAnimation = animate(element, keyframes, this.getAnimationOptions()) as AnimationControls;
+          if (!reduceMotion) {
+            this.stopAnimations();
+            this.currentAnimation = animate(element, keyframes, this.getAnimationOptions()) as AnimationControls;
+          }
 
           return (endEvent: PointerEvent) => {
             this.hoverEnd.emit(endEvent);
-            if (this.restoreOnLeave()) this.animateRestore();
+            if (!reduceMotion && this.restoreOnLeave()) this.animateRestore();
           };
         },
         this.hoverOptions() || {},

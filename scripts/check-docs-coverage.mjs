@@ -29,6 +29,8 @@ import { fileURLToPath } from 'node:url';
 import { createJiti } from 'jiti';
 import { Node, Project } from 'ts-morph';
 import { extractPublicApi } from './docs/api-extractor.mjs';
+import { checkDemoSnippets } from './docs/check-demo-snippets.mjs';
+import { extractDemoStrings } from '../projects/shared-demos/platform/i18n/extract-demo-strings.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const WRITE = process.argv.includes('--write');
@@ -105,7 +107,8 @@ const linkOk = (href) => validTargets.has(href.split(/[?#]/)[0].replace(/\/+$/, 
 const contentDir = resolve(ROOT, 'projects/shared-demos/platform/content');
 const content = new Map();
 for (const p of DOC_PAGES.filter((p) => p.hasContent)) {
-  const kind = p.section === 'components' ? 'components' : 'articles';
+  // Pages with live examples (components, Icons, Motion) use component content; the rest are articles.
+  const kind = p.examples?.length ? 'components' : 'articles';
   const file = resolve(contentDir, kind, `${p.id}.ts`);
   if (!existsSync(file)) {
     err(`content: page "${p.id}" has hasContent: true but ${kind}/${p.id}.ts does not exist`);
@@ -136,6 +139,17 @@ for (const p of DOC_PAGES.filter((p) => p.hasContent)) {
 for (const id of loaderIds)
   if (!pageById.get(id)?.hasContent) err(`content: content/index.ts has a loader for "${id}", which is not a page with hasContent`);
 
+// ── 6. Live demos: code examples and Spanish section text ───────────────
+const demoSnippets = checkDemoSnippets(ROOT, symbols);
+for (const e of demoSnippets.errors) err(`demo snippet: ${e}`);
+const { DEMO_STRINGS_ES } = await jiti.import(resolve(ROOT, 'projects/shared-demos/platform/i18n/demo-strings.es.ts'));
+const demoStrings = extractDemoStrings(ROOT);
+for (const key of demoStrings)
+  if (!DEMO_STRINGS_ES[key]?.trim())
+    err(`demo i18n: no Spanish for app-doc-section text "${key}" (add it to platform/i18n/demo-strings.es.ts)`);
+for (const key of Object.keys(DEMO_STRINGS_ES))
+  if (!demoStrings.includes(key)) err(`demo i18n: stale Spanish entry "${key}" — no demo uses this text anymore`);
+
 // ── 5. Playgrounds ──────────────────────────────────────────────────────
 const { PLAYGROUND_SPECS } = await jiti.import(resolve(ROOT, 'projects/shared-demos/platform/playground/playground-specs.ts'));
 const { PLAYGROUNDS } = await jiti.import(resolve(ROOT, 'projects/shared-demos/platform/playground/hosts/index.ts'));
@@ -147,40 +161,89 @@ for (const [pageId, spec] of Object.entries(PLAYGROUND_SPECS)) {
     err(`playground: "${pageId}" targets "${spec.symbol}", which is not exported`);
     continue;
   }
-  if (spec.selector) {
-    const inputs = new Map((sym.inputs ?? []).map((i) => [i.name, i]));
-    const outputs = new Set((sym.outputs ?? []).map((o) => o.name));
-    if (
-      sym.selector &&
-      !sym.selector
-        .split(',')
-        .map((x) => x.trim())
-        .includes(spec.selector)
-    ) {
-      err(`playground: "${pageId}" uses selector <${spec.selector}> but ${spec.symbol} declares "${sym.selector}"`);
-    }
-    for (const key of spec.inputs ?? []) {
-      const input = inputs.get(key);
+  const inputs = new Map((sym.inputs ?? []).map((i) => [i.name, i]));
+  const outputs = new Set((sym.outputs ?? []).map((o) => o.name));
+  if (
+    spec.selector &&
+    sym.selector &&
+    !sym.selector
+      .split(',')
+      .map((x) => x.trim())
+      .includes(spec.selector)
+  ) {
+    err(`playground: "${pageId}" uses selector <${spec.selector}> but ${spec.symbol} declares "${sym.selector}"`);
+  }
+  if (spec.optionsSymbol && !spec.optionsFrom && !byName.get(spec.optionsSymbol))
+    err(`playground: "${pageId}" optionsSymbol "${spec.optionsSymbol}" is not exported`);
+  // Each control is either a component input (listed in spec.inputs) or a — possibly dotted —
+  // member path of the options/config interface (builder playgrounds: createTable, createDataGrid…).
+  for (const c of spec.controls) {
+    if ((spec.inputs ?? []).includes(c.key)) {
+      const input = inputs.get(c.key);
       if (!input) {
-        err(`playground: "${pageId}" binds [${key}], which is not an input of ${spec.symbol}`);
+        err(`playground: "${pageId}" binds [${c.key}], which is not an input of ${spec.symbol}`);
         continue;
       }
-      checkDefault(pageId, key, spec.defaults[key], input.default);
-      const control = spec.controls.find((c) => c.key === key);
-      if (control?.kind === 'select') checkOptions(pageId, key, control.options, input.type);
-    }
-    for (const e of spec.events ?? [])
-      if (!outputs.has(e)) err(`playground: "${pageId}" listens to (${e}), which is not an output of ${spec.symbol}`);
-  } else if (spec.optionsSymbol) {
-    const opts = byName.get(spec.optionsSymbol);
-    const members = new Map((opts?.members ?? []).map((m) => [m.name, m]));
-    if (!opts) err(`playground: "${pageId}" optionsSymbol "${spec.optionsSymbol}" is not exported`);
-    for (const c of spec.controls) {
-      const m = members.get(c.key);
-      if (!m) err(`playground: "${pageId}" control "${c.key}" is not a member of ${spec.optionsSymbol}`);
-      else if (c.kind === 'select') checkOptions(pageId, c.key, c.options, m.type);
+      checkDefault(pageId, c.key, spec.defaults[c.key], input.default);
+      if (c.kind === 'select') checkOptions(pageId, c.key, c.options, input.type);
+    } else if (spec.optionsSymbol) {
+      const member = spec.optionsFrom
+        ? externalMember(spec.optionsFrom, spec.optionsSymbol, c.key)
+        : resolveMemberPath(spec.optionsSymbol, c.key);
+      if (!member) err(`playground: "${pageId}" control "${c.key}" is not a member path of ${spec.optionsSymbol}`);
+      else if (c.kind === 'select' && member.literals?.length) {
+        for (const o of c.options)
+          if (o && !member.literals.includes(o))
+            err(`playground: "${pageId}" offers ${c.key}="${o}", which is not one of ${member.literals.join(' | ')}`);
+      } else if (c.kind === 'select') checkOptions(pageId, c.key, c.options, member.type);
+    } else {
+      err(`playground: "${pageId}" control "${c.key}" is neither a listed input nor covered by an optionsSymbol`);
     }
   }
+  for (const key of spec.inputs ?? [])
+    if (!spec.controls.some((c) => c.key === key)) err(`playground: "${pageId}" lists input "${key}" without a control`);
+  for (const e of spec.events ?? [])
+    if (!outputs.has(e)) err(`playground: "${pageId}" listens to (${e}), which is not an output of ${spec.symbol}`);
+}
+
+/** Member of a type exported by a dependency (e.g. CDK `DialogConfig`), read with the TS type checker. */
+function externalMember(pkg, typeName, key) {
+  // Cache on the function: module-level consts below this point are not initialized yet when checks run.
+  const externalTypes = (externalMember.cache ??= new Map());
+  const id = `${pkg}#${typeName}`;
+  if (!externalTypes.has(id)) {
+    const project = new Project({ tsConfigFilePath: resolve(ROOT, 'tsconfig.json'), skipAddingFilesFromTsConfig: true });
+    const sf = project.createSourceFile(
+      resolve(ROOT, `out-tsc/__ext_${externalTypes.size}.ts`),
+      `import type { ${typeName} } from '${pkg}';\nexport type __T = ${typeName};`,
+      { overwrite: true },
+    );
+    const type = sf.getTypeAliasOrThrow('__T').getType();
+    const members = new Map(
+      type.getProperties().map((p) => {
+        const t = p.getTypeAtLocation(sf);
+        // String-literal members of the (possibly aliased) union, for select-option checks.
+        const literals = (t.isUnion() ? t.getUnionTypes() : [t]).filter((u) => u.isStringLiteral()).map((u) => u.getLiteralValue());
+        return [p.getName(), { name: p.getName(), type: t.getText(sf), literals }];
+      }),
+    );
+    externalTypes.set(id, members);
+  }
+  return key.includes('.') ? null : (externalTypes.get(id).get(key) ?? null);
+}
+
+/** Resolve `a.b.c` through interface members: each segment's type names the next interface. */
+function resolveMemberPath(rootSymbol, path) {
+  let current = byName.get(rootSymbol);
+  let member = null;
+  for (const segment of path.split('.')) {
+    if (!current?.members) return null;
+    member = current.members.find((m) => m.name === segment);
+    if (!member) return null;
+    const next = /^(?:readonly\s+)?([A-Z]\w*)/.exec(member.type.replace(/^Partial<|^Readonly</, ''));
+    current = next ? byName.get(next[1]) : null;
+  }
+  return member;
 }
 
 function checkDefault(pageId, key, specDefault, manifestDefault) {
@@ -221,21 +284,29 @@ function resolveUnion(typeText) {
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────
-function readRoutes(file) {
+function readRoutes(file, prefix = '') {
   const project = new Project({ skipAddingFilesFromTsConfig: true });
   const sf = project.addSourceFileAtPath(file);
   const out = [];
+  const join = (p) => [prefix, p].filter(Boolean).join('/');
   sf.forEachDescendant((node) => {
-    if (Node.isPropertyAssignment(node) && node.getName() === 'path') {
-      const init = node.getInitializer();
-      if (init && Node.isStringLiteral(init)) out.push(init.getLiteralText());
+    if (Node.isObjectLiteralExpression(node)) {
+      const pathProp = node.getProperty('path');
+      const init = pathProp && Node.isPropertyAssignment(pathProp) ? pathProp.getInitializer() : undefined;
+      if (!init || !Node.isStringLiteral(init)) return;
+      const path = init.getLiteralText();
+      const children = node.getProperty('loadChildren');
+      // Follow `loadChildren: () => import('./x.routes')` into the child routes file.
+      const target = children ? /import\(['"](\.[^'"]+)['"]\)/.exec(children.getText())?.[1] : undefined;
+      if (target) out.push(...readRoutes(resolve(dirname(file), `${target}.ts`), join(path)));
+      else if (!Node.isObjectLiteralExpression(node.getParent()?.getParent?.() ?? null) || path) out.push(join(path));
     }
     if (Node.isCallExpression(node) && node.getExpression().getText() === 'componentPage') {
       const arg = node.getArguments()[0];
-      if (arg && Node.isStringLiteral(arg)) out.push(arg.getLiteralText(), `${arg.getLiteralText()}/:feature`);
+      if (arg && Node.isStringLiteral(arg)) out.push(join(arg.getLiteralText()), join(`${arg.getLiteralText()}/:feature`));
     }
   });
-  return out;
+  return out.filter((p, i, all) => all.indexOf(p) === i);
 }
 
 function walkLocalized(value, where, path = '') {
@@ -388,7 +459,7 @@ ${Object.entries(symbols.reduce((a, s) => ((a[s.kind] = (a[s.kind] ?? 0) + 1), a
 // ── result ──────────────────────────────────────────────────────────────
 for (const w of warnings.slice(0, process.env.CI ? 0 : 0)) console.warn(`⚠ ${w}`);
 console.log(
-  `docs:check — ${symbols.length} public symbols, ${DOC_PAGES.length} pages, ${content.size} content modules, ${Object.keys(PLAYGROUND_SPECS).length} playgrounds`,
+  `docs:check — ${demoSnippets.checked} demo snippets, ${demoStrings.length} demo strings, ${symbols.length} public symbols, ${DOC_PAGES.length} pages, ${content.size} content modules, ${Object.keys(PLAYGROUND_SPECS).length} playgrounds`,
 );
 console.log(`  ${warnings.length} warnings (public API without JSDoc; see docs/audit/documentation-coverage.md)`);
 if (errors.length) {

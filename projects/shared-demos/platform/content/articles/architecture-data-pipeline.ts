@@ -16,7 +16,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: '`src/lib/grid-core/` is render-agnostic: no templates, no components, and an ESLint rule that forbids importing from `components/`. It holds:',
-            es: '`src/lib/grid-core/` es independiente del render: sin plantillas, sin componentes y con una regla de ESLint que prohíbe importar de `components/`. Contiene:',
+            es: '`src/lib/grid-core/` es independiente del renderizado: sin plantillas, sin componentes y con una regla de ESLint que prohíbe importar de `components/`. Contiene:',
           },
         },
         {
@@ -46,7 +46,10 @@ const content: ArticleContent = {
             ],
             [
               { en: '`grid.helpers.ts`', es: '`grid.helpers.ts`' },
-              { en: 'CSV / JSON export (`exportToCsv`, `exportToJson`).', es: 'Exportación CSV / JSON (`exportToCsv`, `exportToJson`).' },
+              {
+                en: 'CSV / JSON export (`exportToCsv`, `exportToJson`), footer and group resolution, grouping, and the tree helpers (row keys, hierarchy-aware filter, sort and flatten).',
+                es: 'Exportación CSV / JSON (`exportToCsv`, `exportToJson`), resolución de pies y grupos, agrupación y los helpers de árbol (claves de fila, filtrado, orden y aplanado con jerarquía).',
+              },
             ],
             [
               { en: '`controllers/`', es: '`controllers/`' },
@@ -59,7 +62,7 @@ const content: ArticleContent = {
               { en: '`engine/`', es: '`engine/`' },
               {
                 en: 'The bridge to the Rust table engine: `TableEngineService`, `TableHandle`, and pure routing helpers that decide whether an operation can run in WASM.',
-                es: 'El puente al motor de tablas en Rust: `TableEngineService`, `TableHandle` y helpers de enrutamiento puros que deciden si una operación puede correr en WASM.',
+                es: 'El puente al motor de tablas en Rust: `TableEngineService`, `TableHandle` y helpers de enrutamiento puros que deciden si una operación puede ejecutarse en WASM.',
               },
             ],
           ],
@@ -81,7 +84,7 @@ const content: ArticleContent = {
           kind: 'flow',
           steps: [
             {
-              label: { en: 'data input', es: 'input data' },
+              label: { en: 'data input', es: 'Input data' },
               detail: {
                 en: 'When it changes, the rows are also ingested into the WASM engine if every column type is known.',
                 es: 'Cuando cambia, las filas también se cargan en el motor WASM si se conoce el tipo de cada columna.',
@@ -105,7 +108,7 @@ const content: ArticleContent = {
               label: { en: 'Sort (one column)', es: 'Orden (una columna)' },
               detail: {
                 en: 'WASM sort kernel on indices, or `compareValues` in TypeScript; tree tables sort within each level.',
-                es: 'Kernel de orden WASM sobre índices, o `compareValues` en TypeScript; las tablas en árbol ordenan dentro de cada nivel.',
+                es: 'Kernel de ordenación en WASM sobre índices, o `compareValues` en TypeScript; las tablas en árbol ordenan dentro de cada nivel.',
               },
             },
             {
@@ -119,7 +122,7 @@ const content: ArticleContent = {
               label: { en: 'Page slice', es: 'Recorte de página' },
               detail: {
                 en: 'Client offset: slice `[pageIndex × pageSize, +pageSize)`. Server paging and virtual scroll: pass the view through.',
-                es: 'Offset en cliente: recorta `[pageIndex × pageSize, +pageSize)`. Paginación en servidor y scroll virtual: pasa la vista completa.',
+                es: 'Offset en cliente: recorta `[pageIndex × pageSize, +pageSize)`. Paginación en servidor y desplazamiento virtual: la vista pasa completa.',
               },
             },
           ],
@@ -128,8 +131,8 @@ const content: ArticleContent = {
           kind: 'note',
           tone: 'info',
           text: {
-            en: 'hk-table renders three parallel layouts (virtual scroll, grouped/tree, and the CDK table). A change to row markup has to be made in all three.',
-            es: 'hk-table dibuja tres layouts paralelos (scroll virtual, agrupado/árbol y la tabla de CDK). Un cambio en el markup de las filas tiene que hacerse en los tres.',
+            en: 'hk-table renders three parallel layouts (virtual scroll, grouped, and the standard CDK table, which also renders tree tables). A change to row markup has to be made in all three.',
+            es: 'hk-table renderiza tres diseños paralelos (desplazamiento virtual, agrupado y la tabla estándar del CDK, que también renderiza las tablas en árbol). Un cambio en el markup de las filas tiene que hacerse en los tres.',
           },
         },
       ],
@@ -142,7 +145,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: '[createDataGrid](/api/createDataGrid) owns a single `state` signal. Every UI action, saved view or AI reply becomes a state change, and the view is derived from it.',
-            es: '[createDataGrid](/api/createDataGrid) es dueño de un solo signal `state`. Cada acción de la interfaz, vista guardada o respuesta de IA se convierte en un cambio de estado, y la vista se deriva de él.',
+            es: '[createDataGrid](/api/createDataGrid) administra un solo signal `state`. Cada acción de la interfaz, vista guardada o respuesta de IA se convierte en un cambio de estado, y la vista se deriva de él.',
           },
         },
         {
@@ -158,8 +161,8 @@ const content: ArticleContent = {
             {
               label: { en: 'normalizeStatePatch', es: 'normalizeStatePatch' },
               detail: {
-                en: 'Accepts `unknown`, coerces values to column types, drops invalid parts and returns them as issues. Changing sort, filters or search resets the page to 0.',
-                es: 'Acepta `unknown`, convierte valores al tipo de la columna, descarta las partes inválidas y las devuelve como issues. Cambiar orden, filtros o búsqueda vuelve a la página 0.',
+                en: 'Accepts `unknown`, coerces values to column types, drops invalid parts and returns them as `issues`. Changing sort, filters or search resets the page to 0.',
+                es: 'Acepta `unknown`, convierte valores al tipo de la columna, descarta las partes inválidas y las devuelve como `issues`. Cambiar orden, filtros o búsqueda vuelve a la página 0.',
               },
             },
             {
@@ -174,17 +177,17 @@ const content: ArticleContent = {
               },
             },
             {
-              label: { en: 'Server: request', es: 'Servidor: request' },
+              label: { en: 'Server: request', es: 'Servidor: petición' },
               detail: {
                 en: '`{ sort, filters, search, page }` compared by value; the component’s effect calls `dataSource` and aborts the previous call.',
-                es: '`{ sort, filters, search, page }` comparado por valor; el effect del componente llama `dataSource` y cancela la llamada anterior.',
+                es: '`{ sort, filters, search, page }` comparado por valor; un `effect` del componente llama a `dataSource` y cancela la llamada anterior.',
               },
             },
             {
-              label: { en: 'Render', es: 'Render' },
+              label: { en: 'Render', es: 'Renderizado' },
               detail: {
                 en: 'Row and column ranges from scroll position, fixed row height and column offsets.',
-                es: 'Rangos de filas y columnas según la posición del scroll, la altura fija de fila y los offsets de columna.',
+                es: 'Rangos de filas y columnas según la posición de desplazamiento, la altura fija de fila y los offsets de columna.',
               },
             },
           ],
@@ -226,19 +229,19 @@ const content: ArticleContent = {
             },
             {
               en: '`stateSchema()` returns a JSON Schema (2020-12) of a valid state for this grid’s columns, including each column’s `description` and allowed operators.',
-              es: '`stateSchema()` devuelve un JSON Schema (2020-12) de un estado válido para las columnas de esta grilla, incluyendo la `description` de cada columna y los operadores permitidos.',
+              es: '`stateSchema()` devuelve un JSON Schema (2020-12) de un estado válido para las columnas de este grid, incluyendo la `description` de cada columna y los operadores permitidos.',
             },
             {
-              en: 'Selection is not part of the state: it is data, not view. It lives in its own signals keyed by `rowKey`.',
-              es: 'La selección no es parte del estado: es dato, no vista. Vive en sus propios signals indexados por `rowKey`.',
+              en: 'Selection is not part of the state: it is data, not view. It lives in its own signals keyed by `rowKey` (default `row.id`, else the row object).',
+              es: 'La selección no es parte del estado: es dato, no vista. Vive en sus propios signals, con `rowKey` como clave (por defecto `row.id` o, si no hay, el propio objeto).',
             },
           ],
         },
         {
           kind: 'p',
           text: {
-            en: 'The AI layer reuses this contract. `ask(query)` sends the column catalog, the current view and `stateSchema()` to Claude with structured outputs, then applies the reply with `setState`. Invalid parts come back in the result’s `issues`, and `undoAsk()` restores the previous state.',
-            es: 'La capa de IA reutiliza este contrato. `ask(query)` le envía a Claude el catálogo de columnas, la vista actual y `stateSchema()` con salidas estructuradas, y aplica la respuesta con `setState`. Las partes inválidas vuelven en los `issues` del resultado, y `undoAsk()` restaura el estado anterior.',
+            en: 'The AI layer reuses this contract. `ask(query)` sends Claude the column catalog, the valid operators, the current view and a flat reply schema for structured outputs (kept simpler than `stateSchema()` so it fits within structured-output limits), then applies the reply with `setState`. Invalid parts come back in the result’s `issues`, and `undoAsk()` restores the previous state while the answer is still on screen.',
+            es: 'La capa de IA reutiliza este contrato. `ask(query)` le envía a Claude el catálogo de columnas, los operadores válidos, la vista actual y un esquema de respuesta plano para salidas estructuradas (más simple que `stateSchema()` para no exceder los límites de las salidas estructuradas), y aplica la respuesta con `setState`. Las partes inválidas vuelven en los `issues` del resultado, y `undoAsk()` restaura el estado anterior mientras la respuesta siga en pantalla.',
           },
         },
       ],

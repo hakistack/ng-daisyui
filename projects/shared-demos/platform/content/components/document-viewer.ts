@@ -4,17 +4,17 @@ const content: ComponentDocContent = {
   overview: [
     {
       en: '`hk-document-viewer` is one component for many file types. You give it a file (URL, `Uint8Array`, `Blob` or `File`) and it figures out the format from the name or MIME type, then hands the file to the right renderer: a table for spreadsheets, a page view for Word, a header card for e-mails, a reader for e-books, an image, or the PDF viewer.',
-      es: '`hk-document-viewer` es un solo componente para muchos tipos de archivo. Le das un archivo (URL, `Uint8Array`, `Blob` o `File`) y averigua el formato por el nombre o el tipo MIME; luego le pasa el archivo al renderizador correcto: una tabla para hojas de cálculo, una vista de páginas para Word, una tarjeta de encabezados para correos, un lector para e-books, una imagen o el visor de PDF.',
+      es: '`hk-document-viewer` es un solo componente para muchos tipos de archivo. Le das un archivo (URL, `Uint8Array`, `Blob` o `File`), deduce el formato por el nombre o el tipo MIME y le pasa el archivo al renderizador adecuado: una tabla para hojas de cálculo, una vista de páginas para Word, una tarjeta de encabezados para correos, un lector para libros electrónicos, una imagen o el visor de PDF.',
     },
     {
       en: 'Heavy formats load their code only when such a file is opened: spreadsheets are parsed by a Rust/WASM bundle (calamine), TIFF by another WASM bundle, and Word, e-mail and e-book files by optional npm packages you install only if you need them. Formats with no renderer show a clear "unsupported" card instead of failing.',
-      es: 'Los formatos pesados cargan su código solo cuando se abre un archivo de ese tipo: las hojas de cálculo las parsea un bundle Rust/WASM (calamine), los TIFF otro bundle WASM, y los archivos de Word, correo y e-book paquetes npm opcionales que instalas solo si los necesitas. Los formatos sin renderizador muestran una tarjeta clara de "no soportado" en vez de fallar.',
+      es: 'Los formatos pesados cargan su código solo cuando se abre un archivo de ese tipo: las hojas de cálculo las procesa un bundle Rust/WASM (calamine), los TIFF otro bundle WASM, y los archivos de Word, correo y libros electrónicos, paquetes npm opcionales que instalas solo si los necesitas. Los formatos sin renderizador muestran una tarjeta clara de "formato no compatible" en lugar de fallar.',
     },
   ],
   whenToUse: [
     {
       en: 'Users upload or receive files of mixed types and you want one preview area for all of them.',
-      es: 'Los usuarios suben o reciben archivos de tipos mezclados y quieres un solo espacio de vista previa para todos.',
+      es: 'Los usuarios suben o reciben archivos de distintos tipos y quieres un solo espacio de vista previa para todos.',
     },
     {
       en: 'You need to show spreadsheets (`.xlsx`, `.xls`, `.xlsb`, `.xlsm`, `.ods`) without a server-side conversion.',
@@ -22,25 +22,25 @@ const content: ComponentDocContent = {
     },
     {
       en: 'A case file or inbox holds many documents: `hk-document-workspace` lists them, shows sections and properties, and opens PDFs in the PDF workspace.',
-      es: 'Un expediente o bandeja contiene muchos documentos: `hk-document-workspace` los lista, muestra secciones y propiedades, y abre los PDFs en el workspace de PDF.',
+      es: 'Un expediente o una bandeja contiene muchos documentos: `hk-document-workspace` los lista, muestra sus secciones y propiedades, y abre los PDF en el workspace de PDF.',
     },
     {
       en: 'You want to replace one format renderer with your own without forking: register it in `config.renderers`.',
-      es: 'Quieres reemplazar el renderizador de un formato por uno propio sin hacer fork: regístralo en `config.renderers`.',
+      es: 'Quieres reemplazar el renderizador de un formato por uno propio sin hacer un fork: regístralo en `config.renderers`.',
     },
   ],
   whenNotToUse: [
     {
       en: 'You only show PDFs and need the controller API (search, annotations, save): use [hk-pdf-viewer](/pdf-viewer) directly. The PDF renderer here creates its own default controller you cannot reach.',
-      es: 'Solo muestras PDFs y necesitas la API del controlador (búsqueda, anotaciones, guardar): usa [hk-pdf-viewer](/pdf-viewer) directamente. El renderizador PDF de aquí crea su propio controlador por defecto, que no puedes alcanzar.',
+      es: 'Solo muestras PDF y necesitas la API del controlador (búsqueda, anotaciones, guardado): usa [hk-pdf-viewer](/pdf-viewer) directamente. El renderizador de PDF de este visor crea su propio controlador por defecto, al que no tienes acceso.',
     },
     {
       en: 'You need `.doc`, `.odt`, `.pptx`, `.ppt` or `.odp`: they are detected but have no renderer yet and show the unsupported card.',
-      es: 'Necesitas `.doc`, `.odt`, `.pptx`, `.ppt` u `.odp`: se detectan pero aún no tienen renderizador y muestran la tarjeta de no soportado.',
+      es: 'Necesitas `.doc`, `.odt`, `.pptx`, `.ppt` u `.odp`: se detectan, pero aún no tienen renderizador y muestran la tarjeta de formato no compatible.',
     },
     {
       en: 'You need pixel-perfect Word or RTF output: DOCX goes through `docx-preview` and RTF through a small text extractor (bold, italic, underline, paragraphs; no tables, images or fonts).',
-      es: 'Necesitas Word o RTF idéntico al original: DOCX pasa por `docx-preview` y RTF por un extractor de texto pequeño (negrita, cursiva, subrayado, párrafos; sin tablas, imágenes ni fuentes).',
+      es: 'Necesitas mostrar Word o RTF idénticos al original: DOCX pasa por `docx-preview` y RTF por un pequeño extractor de texto (negrita, cursiva, subrayado, párrafos; sin tablas, imágenes ni fuentes).',
     },
   ],
   quickStart: {
@@ -77,8 +77,8 @@ export class FilePreviewComponent {
 }
 `,
     note: {
-      en: 'Passing `filename` matters for `Blob` and `Uint8Array` sources: bytes are not sniffed, so without a name or MIME type the format is `unknown`. A `File` already carries its name.',
-      es: 'Pasar `filename` importa con fuentes `Blob` y `Uint8Array`: los bytes no se inspeccionan, así que sin nombre ni tipo MIME el formato es `unknown`. Un `File` ya trae su nombre.',
+      en: 'Pass `filename` (and `mimeType` when you have it): bytes are not sniffed, so a `Uint8Array` or `Blob` with no name and no known MIME type resolves to `unknown`. Detection does not read a `File` name either, only its `type`, which browsers often leave empty for `.msg`, `.eml` or `.heic`; that is why the quick start passes `file.name`. The name of a `File` is still shown as the file name.',
+      es: 'Pasa `filename` (y `mimeType` si lo tienes): los bytes no se inspeccionan, así que un `Uint8Array` o un `Blob` sin nombre ni tipo MIME conocido se resuelve como `unknown`. La detección tampoco lee el nombre de un `File`, solo su `type`, que los navegadores suelen dejar vacío para `.msg`, `.eml` o `.heic`; por eso el ejemplo pasa `file.name`. El nombre del `File` sí se muestra como nombre del archivo.',
     },
   },
   technical: [
@@ -100,21 +100,21 @@ export class FilePreviewComponent {
               label: { en: 'resolveFormat()', es: 'resolveFormat()' },
               detail: {
                 en: 'Order: MIME hint, filename extension, URL extension (query and hash stripped), then `Blob.type`.',
-                es: 'Orden: pista MIME, extensión del filename, extensión de la URL (sin query ni hash) y luego `Blob.type`.',
+                es: 'Orden: pista MIME, extensión de `filename`, extensión de la URL (sin query ni hash) y, por último, `Blob.type`.',
               },
             },
             {
               label: { en: 'Renderer registry', es: 'Registro de renderizadores' },
               detail: {
                 en: 'Your `config.renderers` first, then the built-ins; first entry claiming the format wins.',
-                es: 'Primero tus `config.renderers`, luego los integrados; gana la primera entrada que reclame el formato.',
+                es: 'Primero tus `config.renderers` y luego los integrados; gana la primera entrada que declare el formato.',
               },
             },
             {
               label: { en: 'Renderer loads bytes', es: 'El renderizador carga los bytes' },
               detail: {
                 en: '`loadSourceAsBytes()` fetches URLs or unwraps Blobs, then parses with its engine.',
-                es: '`loadSourceAsBytes()` descarga URLs o lee Blobs, y luego parsea con su motor.',
+                es: '`loadSourceAsBytes()` descarga las URL o lee los Blob, y luego el renderizador los procesa con su motor.',
               },
             },
           ],
@@ -137,7 +137,7 @@ export class FilePreviewComponent {
               { en: '.xlsx .xls .xlsb .xlsm .ods', es: '.xlsx .xls .xlsb .xlsm .ods' },
               {
                 en: 'calamine (`document_wasm`) into `hk-table`, one tab per sheet',
-                es: 'calamine (`document_wasm`) hacia `hk-table`, una pestaña por hoja',
+                es: 'calamine (`document_wasm`) en un `hk-table`, una pestaña por hoja',
               },
             ],
             [
@@ -153,14 +153,17 @@ export class FilePreviewComponent {
             [
               { en: '`text`', es: '`text`' },
               { en: '.txt .md .csv .log .json', es: '.txt .md .csv .log .json' },
-              { en: 'Preformatted text; UTF-8 with a Latin-1 fallback', es: 'Texto preformateado; UTF-8 con alternativa Latin-1' },
+              {
+                en: 'Preformatted text; UTF-8 with a Windows-1252 fallback',
+                es: 'Texto preformateado; UTF-8 con Windows-1252 como alternativa',
+              },
             ],
             [
               { en: '`html`', es: '`html`' },
               { en: '.html .htm', es: '.html .htm' },
               {
                 en: 'Iframe with `sandbox=""`, plus DOMPurify when installed',
-                es: 'Iframe con `sandbox=""`, más DOMPurify si está instalado',
+                es: 'Iframe con `sandbox=""`, y además DOMPurify si está instalado',
               },
             ],
             [
@@ -185,14 +188,14 @@ export class FilePreviewComponent {
               { en: '`image-special`', es: '`image-special`' },
               { en: '.tiff .tif .heic .heif', es: '.tiff .tif .heic .heif' },
               {
-                en: 'TIFF: Rust `image` crate (`image_wasm`). HEIC: in-tree libheif build if present, else `heic2any` (optional peer)',
-                es: 'TIFF: crate `image` de Rust (`image_wasm`). HEIC: build de libheif propio si existe, si no `heic2any` (peer opcional)',
+                en: 'TIFF: Rust `image` crate (`image_wasm`). HEIC: `heic2any` (optional peer); an in-tree libheif WASM build is preferred when the library was built with it',
+                es: 'TIFF: crate `image` de Rust (`image_wasm`). HEIC: `heic2any` (peer opcional); se prefiere un build propio de libheif en WASM cuando la librería se compiló con él',
               },
             ],
             [
               { en: '`doc-legacy` / `presentation` / `unknown`', es: '`doc-legacy` / `presentation` / `unknown`' },
               { en: '.doc .odt / .pptx .ppt .odp / anything else', es: '.doc .odt / .pptx .ppt .odp / cualquier otro' },
-              { en: 'Unsupported card (name, extension, MIME)', es: 'Tarjeta de no soportado (nombre, extensión, MIME)' },
+              { en: 'Unsupported card (name, extension, MIME)', es: 'Tarjeta de formato no compatible (nombre, extensión, MIME)' },
             ],
           ],
         },
@@ -200,8 +203,8 @@ export class FilePreviewComponent {
           kind: 'note',
           tone: 'tip',
           text: {
-            en: 'For a file picker, `getSupportedExtensions()` lists every known extension (including ones that end in the unsupported card); `getRenderableExtensions(registrations)` keeps only formats with a renderer.',
-            es: 'Para un selector de archivos, `getSupportedExtensions()` lista todas las extensiones conocidas (incluidas las que terminan en la tarjeta de no soportado); `getRenderableExtensions(registrations)` deja solo los formatos con renderizador.',
+            en: 'For a file picker, `getSupportedExtensions()` lists every known extension (including ones that end in the unsupported card); `getRenderableExtensions(registrations)` keeps only the extensions whose format is claimed by the registrations you pass (native images are always included).',
+            es: 'Para un selector de archivos, `getSupportedExtensions()` lista todas las extensiones conocidas (incluidas las que terminan en la tarjeta de formato no compatible); `getRenderableExtensions(registrations)` deja solo las extensiones cuyo formato declaran los registros que le pasas (las imágenes nativas siempre se incluyen).',
           },
         },
       ],
@@ -214,7 +217,7 @@ export class FilePreviewComponent {
           kind: 'p',
           text: {
             en: 'A renderer is a standalone component with three required inputs: `source`, `format` and `filename` (see [DocumentRendererInputs](/api/DocumentRendererInputs)). Register it for one or more format keys; it wins over the built-in for those keys. Renderers that inject [DocumentViewerHost](/api/DocumentViewerHost) optionally can publish sections and metadata for the workspace.',
-            es: 'Un renderizador es un componente standalone con tres inputs requeridos: `source`, `format` y `filename` (ver [DocumentRendererInputs](/api/DocumentRendererInputs)). Regístralo para una o más claves de formato; le gana al integrado en esas claves. Los renderizadores que inyectan [DocumentViewerHost](/api/DocumentViewerHost) de forma opcional pueden publicar secciones y metadatos para el workspace.',
+            es: 'Un renderizador es un componente standalone con tres inputs requeridos: `source`, `format` y `filename` (consulta [DocumentRendererInputs](/api/DocumentRendererInputs)). Regístralo para una o más claves de formato; para esas claves tiene prioridad sobre el integrado. Los renderizadores que inyectan (de forma opcional) [DocumentViewerHost](/api/DocumentViewerHost) pueden publicar secciones y metadatos para el workspace.',
           },
         },
         {
@@ -236,7 +239,7 @@ export class FilePreviewComponent {
           kind: 'p',
           text: {
             en: 'Each renderer keeps its own loading and error signals and shows a DaisyUI alert with the message. When an optional peer is not installed, the dynamic `import()` fails and the alert says which package to install (for example `npm install @kenjiuno/msgreader`). A URL that answers with a non-2xx status becomes an error such as "Failed to fetch document (HTTP 404)". The viewer has no error output; validate files before passing them if you need to react in code.',
-            es: 'Cada renderizador tiene sus propios signals de carga y error y muestra una alerta de DaisyUI con el mensaje. Si un peer opcional no está instalado, el `import()` dinámico falla y la alerta dice qué paquete instalar (por ejemplo `npm install @kenjiuno/msgreader`). Una URL que responde con un estado distinto de 2xx se convierte en un error como "Failed to fetch document (HTTP 404)". El visor no tiene output de error; valida los archivos antes de pasarlos si necesitas reaccionar en código.',
+            es: 'Cada renderizador tiene sus propios signals de carga y de error, y muestra una alerta de daisyUI con el mensaje. Si una dependencia peer opcional no está instalada, el `import()` dinámico falla y la alerta indica qué paquete instalar (por ejemplo, `npm install @kenjiuno/msgreader`). Una URL que responde con un estado distinto de 2xx se convierte en un error como "Failed to fetch document (HTTP 404)". El visor no tiene ningún output de error; valida los archivos antes de pasarlos si necesitas reaccionar desde tu código.',
           },
         },
         {
@@ -244,7 +247,7 @@ export class FilePreviewComponent {
           tone: 'warning',
           text: {
             en: 'Cross-origin URLs are fetched with plain `fetch()`, so the server must send CORS headers. If it cannot, download the file yourself and pass the `Blob` with a `filename`.',
-            es: 'Las URLs de otro origen se descargan con `fetch()` simple, así que el servidor debe enviar cabeceras CORS. Si no puede, descarga el archivo tú y pasa el `Blob` con un `filename`.',
+            es: 'Las URL de otro origen se descargan con un `fetch()` simple, así que el servidor debe enviar cabeceras CORS. Si no puede, descarga tú el archivo y pasa el `Blob` con un `filename`.',
           },
         },
       ],
@@ -256,10 +259,10 @@ export class FilePreviewComponent {
         keys: 'Tab',
         action: {
           en: 'Move between sheet tabs, the Edit button and the renderer content',
-          es: 'Moverse entre las pestañas de hojas, el botón Editar y el contenido del renderizador',
+          es: 'Moverse entre las pestañas de las hojas, el botón Edit y el contenido del renderizador',
         },
       },
-      { keys: 'Enter / Space', action: { en: 'Activate the focused sheet tab', es: 'Activar la pestaña de hoja enfocada' } },
+      { keys: 'Enter / Space', action: { en: 'Activate the focused sheet tab', es: 'Activar la pestaña de hoja que tiene el foco' } },
       {
         keys: 'ArrowLeft / ArrowRight (workspace strip)',
         action: { en: 'Previous / next section in `hk-document-workspace`', es: 'Sección anterior / siguiente en `hk-document-workspace`' },
@@ -268,8 +271,8 @@ export class FilePreviewComponent {
     ],
     notes: [
       {
-        en: 'Spreadsheet sheets are `role="tab"` buttons with `aria-selected`; the cells inherit the keyboard support of `hk-table`. PDFs get the full keyboard model of the [PDF Viewer](/pdf-viewer).',
-        es: 'Las hojas del libro son botones `role="tab"` con `aria-selected`; las celdas heredan el soporte de teclado de `hk-table`. Los PDFs tienen el modelo de teclado completo del [Visor de PDF](/pdf-viewer).',
+        en: 'Spreadsheet sheets (shown when a workbook has more than one) are `role="tab"` buttons with `aria-selected`; each is a Tab stop (no arrow-key navigation between them). The cells inherit the keyboard support of `hk-table`. PDFs get the full keyboard model of the [PDF Viewer](/pdf-viewer).',
+        es: 'Las hojas del libro (se muestran cuando tiene más de una) son botones `role="tab"` con `aria-selected`; cada uno es una parada de Tab (no se navega entre ellas con flechas). Las celdas heredan el soporte de teclado de `hk-table`. Los PDF tienen el modelo de teclado completo del [visor de PDF](/pdf-viewer).',
       },
       {
         en: 'Images use the file name as `alt` text (or "image"). If the image carries meaning, describe it next to the viewer as well.',
@@ -277,7 +280,7 @@ export class FilePreviewComponent {
       },
       {
         en: 'HTML and e-mail bodies render inside sandboxed iframes; their internal accessibility depends on the document itself.',
-        es: 'El HTML y el cuerpo de los correos se muestran en iframes con sandbox; su accesibilidad interna depende del propio documento.',
+        es: 'El HTML y el cuerpo de los correos se muestran en iframes con `sandbox`; su accesibilidad interna depende del propio documento.',
       },
     ],
   },
@@ -288,17 +291,17 @@ export class FilePreviewComponent {
     },
     {
       en: 'Spreadsheet parsing and TIFF decoding run on the main thread inside WASM; very large workbooks can block the page while they parse.',
-      es: 'El parseo de hojas de cálculo y la decodificación de TIFF corren en el hilo principal dentro de WASM; libros muy grandes pueden bloquear la página mientras se parsean.',
+      es: 'El análisis de hojas de cálculo y la decodificación de TIFF se ejecutan en WASM en el hilo principal; los libros muy grandes pueden bloquear la página mientras se procesan.',
     },
     {
       en: 'Object URLs created for decoded images are revoked when the renderer is destroyed or the source changes.',
-      es: 'Las object URLs creadas para imágenes decodificadas se revocan cuando el renderizador se destruye o cambia la fuente.',
+      es: 'Las object URL creadas para las imágenes decodificadas se revocan cuando el renderizador se destruye o cambia la fuente.',
     },
   ],
   related: [
     {
       id: 'pdf-viewer',
-      note: { en: 'The renderer used for PDFs, with its full API.', es: 'El renderizador que se usa para PDFs, con toda su API.' },
+      note: { en: 'The renderer used for PDFs, with its full API.', es: 'El renderizador que se usa para los PDF, con toda su API.' },
     },
     {
       id: 'document-editor',

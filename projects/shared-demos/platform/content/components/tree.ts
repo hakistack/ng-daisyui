@@ -4,7 +4,7 @@ const content: ComponentDocContent = {
   overview: [
     {
       en: 'The Tree shows nested information as a list you can open and close, like the folders in a file explorer. People can expand a branch, pick one or many items, tick checkboxes, search by name and drag items to a new place.',
-      es: 'El Árbol muestra información anidada como una lista que se abre y se cierra, como las carpetas de un explorador de archivos. La gente puede abrir una rama, escoger uno o varios elementos, marcar casillas, buscar por nombre y arrastrar elementos a otro lugar.',
+      es: 'El Árbol muestra información anidada como una lista que se abre y se cierra, como las carpetas de un explorador de archivos. Los usuarios pueden abrir una rama, escoger uno o varios elementos, marcar casillas, buscar por nombre y arrastrar elementos a otro lugar.',
     },
     {
       en: 'Your data is an array of [TreeNode](/api/TreeNode) objects (`label`, optional `children`, `icon`, `data`). `createTree()` puts the nodes and the options together and makes sure every node has a `key`; the `node.*` helpers (`node.folder`, `node.file`, `node.lazy`, `node.fromData`) and `buildTree()` save typing when your data comes from an API.',
@@ -26,7 +26,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Letting users reorganize the structure with drag and drop.',
-      es: 'Dejar que la gente reorganice la estructura arrastrando y soltando.',
+      es: 'Permitir que los usuarios reorganicen la estructura arrastrando y soltando.',
     },
   ],
   whenNotToUse: [
@@ -81,7 +81,7 @@ export class ProjectTreeComponent {
 `,
     note: {
       en: "`node.folder()` and `node.lazy()` set `icon: 'folder'` / `expandedIcon: 'folder-open'`. Icons are Lucide names, so register the ones you use (see [Icons](/icons)).",
-      es: "`node.folder()` y `node.lazy()` ponen `icon: 'folder'` / `expandedIcon: 'folder-open'`. Los iconos son nombres de Lucide, así que registra los que uses (mira [Iconos](/icons)).",
+      es: "`node.folder()` y `node.lazy()` ponen `icon: 'folder'` / `expandedIcon: 'folder-open'`. Los iconos son nombres de Lucide, así que registra los que uses (consulta [Iconos](/icons)).",
     },
   },
   technical: [
@@ -137,14 +137,14 @@ export class ProjectTreeComponent {
           kind: 'p',
           text: {
             en: 'When the tree has nodes, it builds an index (labels and depths) and loads it into the shared Rust/WASM engine through [TreeEngineService](/api/TreeEngineService). Once loaded, the label filter, the flatten step, descendant collection for checkbox cascades and the upward tri-state cascade run in WASM. Until then — or if the module fails to load — the same operations run in TypeScript.',
-            es: 'Cuando el árbol tiene nodos, arma un índice (etiquetas y profundidades) y lo carga en el motor Rust/WASM compartido mediante [TreeEngineService](/api/TreeEngineService). Ya cargado, el filtro por etiqueta, el aplanado, la recolección de descendientes para las casillas en cascada y la cascada de tres estados hacia arriba corren en WASM. Mientras tanto, o si el módulo no carga, las mismas operaciones corren en TypeScript.',
+            es: 'Cuando el árbol tiene nodos, construye un índice (etiquetas y profundidades) y lo carga en el motor Rust/WASM compartido mediante [TreeEngineService](/api/TreeEngineService). Una vez cargado, el filtro por etiqueta, el aplanado, la recolección de descendientes para las casillas en cascada y la cascada de tres estados hacia arriba se ejecutan en WASM. Mientras tanto, o si el módulo no carga, las mismas operaciones se ejecutan en TypeScript.',
           },
         },
         {
           kind: 'p',
           text: {
             en: 'The engine is the same lazily loaded bundle used by [Table](/table), so it is downloaded once per app. See [WASM engines](/systems/wasm-engines).',
-            es: 'El motor es el mismo bundle de carga diferida que usa [Table](/table), así que se descarga una sola vez por app. Mira [Motores WASM](/systems/wasm-engines).',
+            es: 'El motor es el mismo bundle de carga diferida que usa [Table](/table), así que se descarga una sola vez por app. Consulta [Motores WASM](/systems/wasm-engines).',
           },
         },
       ],
@@ -157,8 +157,8 @@ export class ProjectTreeComponent {
           kind: 'list',
           items: [
             {
-              en: "`selectionMode`: `'single'`, `'multiple'` (click toggles) or `'checkbox'`. In checkbox mode `propagateSelectionDown` and `propagateSelectionUp` (both on by default) give three-state checkboxes. Set `selectable: false` on a node to lock it.",
-              es: "`selectionMode`: `'single'`, `'multiple'` (cada clic alterna) o `'checkbox'`. En modo casillas, `propagateSelectionDown` y `propagateSelectionUp` (activos por defecto) dan casillas de tres estados. Pon `selectable: false` en un nodo para bloquearlo.",
+              en: "`selectionMode`: `'single'`, `'multiple'` (click toggles) or `'checkbox'`. In checkbox mode `propagateSelectionDown` and `propagateSelectionUp` (both on by default) give three-state checkboxes. Set `selectable: false` on a node to lock it, and `selectionAllowParents: false` to allow only leaf nodes in `'single'` / `'multiple'` mode.",
+              es: "`selectionMode`: `'single'`, `'multiple'` (cada clic alterna) o `'checkbox'`. En modo casillas, `propagateSelectionDown` y `propagateSelectionUp` (activos por defecto) dan casillas de tres estados. Pon `selectable: false` en un nodo para bloquearlo, y `selectionAllowParents: false` para permitir solo nodos hoja en modo `'single'` / `'multiple'`.",
             },
             {
               en: 'Bind `[selection]` to set the selection from outside; `(selectionChange)` emits a node, an array or `null`.',
@@ -166,11 +166,11 @@ export class ProjectTreeComponent {
             },
             {
               en: 'Drag & drop (`dragDrop: true`) only reports the move: `(nodeDrop)` gives the dragged node, the target, the old and new parent, `before` / `after` / `inside` and the indices. Your handler moves the node in your data. `dragDropSameLevel` and `droppable: false` restrict targets.',
-              es: 'Arrastrar y soltar (`dragDrop: true`) solo informa el movimiento: `(nodeDrop)` trae el nodo arrastrado, el destino, el padre anterior y el nuevo, `before` / `after` / `inside` y los índices. Tu handler mueve el nodo en tus datos. `dragDropSameLevel` y `droppable: false` limitan dónde se puede soltar.',
+              es: 'Arrastrar y soltar (`dragDrop: true`) solo notifica el movimiento: `(nodeDrop)` trae el nodo arrastrado, el destino, el padre anterior y el nuevo, `before` / `after` / `inside` y los índices. Tu manejador mueve el nodo en tus datos. `dragDropSameLevel` y `droppable: false` limitan dónde se puede soltar.',
             },
             {
-              en: 'Custom rows: project `<ng-template #nodeTemplate let-node let-level="level">` inside `<hk-tree>`; the context also has `expanded`, `selected`, `partialSelected`, `first`, `last` and `index`.',
-              es: 'Filas personalizadas: proyecta `<ng-template #nodeTemplate let-node let-level="level">` dentro de `<hk-tree>`; el contexto también trae `expanded`, `selected`, `partialSelected`, `first`, `last` e `index`.',
+              en: 'Custom rows: project `<ng-template #nodeTemplate let-node let-level="level">` inside `<hk-tree>`; the context also has `expanded`, `selected`, `partialSelected`, `first`, `last` and `index`. A `nodeTemplate` in the config works too; the projected template wins.',
+              es: 'Filas personalizadas: proyecta `<ng-template #nodeTemplate let-node let-level="level">` dentro de `<hk-tree>`; el contexto también trae `expanded`, `selected`, `partialSelected`, `first`, `last` e `index`. También sirve un `nodeTemplate` en la configuración; la plantilla proyectada tiene prioridad.',
             },
           ],
         },
@@ -212,20 +212,20 @@ async load({ node }: TreeLazyLoadEvent): Promise<void> {
     ],
     notes: [
       {
-        en: 'The host has `role="tree"` with `aria-label` / `aria-labelledby` from the config; each row is a `treeitem` with `aria-selected` and, for parents, `aria-expanded`. Focus is roving: only the focused row has `tabindex="0"`, and moving with the arrows moves real DOM focus.',
-        es: 'El host tiene `role="tree"` con `aria-label` / `aria-labelledby` del config; cada fila es un `treeitem` con `aria-selected` y, si es padre, `aria-expanded`. El foco es itinerante: solo la fila enfocada tiene `tabindex="0"`, y al moverte con las flechas se mueve el foco real del DOM.',
+        en: 'The node container has `role="tree"` (the filter input stays outside it) with `aria-label` / `aria-labelledby` from the config and `aria-multiselectable` in `multiple` and `checkbox` modes. Each row is a `treeitem` with `aria-level`, `aria-setsize`, `aria-posinset` and, for parents, `aria-expanded`; it has `aria-selected` in `single` / `multiple` mode and `aria-checked` (`true`, `false` or `mixed`) in `checkbox` mode. Focus is roving: only one row has `tabindex="0"`, and moving with the arrows moves real DOM focus.',
+        es: 'El contenedor de nodos tiene `role="tree"` (el campo de filtro queda fuera) con `aria-label` / `aria-labelledby` de la configuración y `aria-multiselectable` en los modos `multiple` y `checkbox`. Cada fila es un `treeitem` con `aria-level`, `aria-setsize`, `aria-posinset` y, si es padre, `aria-expanded`; lleva `aria-selected` en modo `single` / `multiple` y `aria-checked` (`true`, `false` o `mixed`) en modo `checkbox`. El foco es itinerante: solo una fila tiene `tabindex="0"`, y al moverte con las flechas se mueve el foco real del DOM.',
       },
       {
-        en: 'No row is a tab stop until one has been clicked or reached with the arrows. From the keyboard, Tab first lands on an expand button or checkbox inside the tree, and the arrow keys take over from there.',
-        es: 'Ninguna fila es parada de Tab hasta que se hace clic en una o se llega con las flechas. Con el teclado, Tab cae primero en un botón de expandir o una casilla dentro del árbol, y desde ahí las flechas toman el control.',
+        en: 'The tree is one Tab stop: the last focused row, or the first row before any has been focused. The expand buttons and checkboxes inside rows are out of the Tab order; use the arrow keys and Enter / Space instead. Keyboard handling is on by default (`keyboardNavigation: false` turns it off).',
+        es: 'El árbol es una sola parada de Tab: la última fila enfocada o, si todavía no se ha enfocado ninguna, la primera. Los botones de expandir y las casillas dentro de las filas quedan fuera del orden de Tab; usa las flechas y Enter / Espacio. El manejo de teclado está activo por defecto (`keyboardNavigation: false` lo desactiva).',
       },
       {
-        en: 'Drag & drop uses native mouse drag events and has no keyboard equivalent. If reordering matters, offer another way to move items (for example "Move up" / "Move to…" actions).',
-        es: 'Arrastrar y soltar usa eventos nativos del mouse y no tiene equivalente en teclado. Si reordenar es importante, ofrece otra forma de mover elementos (por ejemplo, acciones "Subir" / "Mover a…").',
+        en: 'Drag & drop uses native drag events and has no keyboard equivalent. If reordering matters, offer another way to move items (for example "Move up" / "Move to…" actions).',
+        es: 'Arrastrar y soltar usa los eventos nativos de arrastre del mouse y no tiene equivalente con teclado. Si reordenar es importante, ofrece otra forma de mover elementos (por ejemplo, acciones "Subir" / "Mover a…").',
       },
       {
         en: 'Common mistake: no `ariaLabel` or `ariaLabelledBy`. Give the tree a name, and translate the toggle and clear-filter labels with `labels`.',
-        es: 'Error común: no poner `ariaLabel` ni `ariaLabelledBy`. Ponle nombre al árbol y traduce los textos de las flechas y del botón de limpiar el filtro con `labels`.',
+        es: 'Error común: no definir `ariaLabel` ni `ariaLabelledBy`. Ponle nombre al árbol y traduce los textos de los botones de expandir/contraer y de limpiar el filtro con `labels`.',
       },
     ],
   },
@@ -236,11 +236,11 @@ async load({ node }: TreeLazyLoadEvent): Promise<void> {
     },
     {
       en: 'Filtering and cascades run in WASM once the engine is ready; the index is rebuilt when the nodes array reference changes and the old handle is disposed.',
-      es: 'El filtro y las cascadas corren en WASM cuando el motor está listo; el índice se reconstruye cuando cambia la referencia del arreglo de nodos y el handle anterior se libera.',
+      es: 'El filtrado y las cascadas se ejecutan en WASM cuando el motor está listo; el índice se reconstruye cuando cambia la referencia del arreglo de nodos y el handle anterior se libera.',
     },
     {
-      en: '`TreeConfig` declares `virtualScroll` and `virtualScrollItemHeight`, but the current component renders every visible node. For very large trees, keep branches collapsed or load them lazily.',
-      es: '`TreeConfig` declara `virtualScroll` y `virtualScrollItemHeight`, pero el componente actual renderiza todos los nodos visibles. Para árboles muy grandes, mantén las ramas cerradas o cárgalas de forma diferida.',
+      en: '`TreeConfig` reserves `virtualScroll` and `virtualScrollItemHeight`, but they have no effect yet: the component renders every visible node. For very large trees, keep branches collapsed or load them lazily.',
+      es: '`TreeConfig` reserva `virtualScroll` y `virtualScrollItemHeight`, pero todavía no tienen efecto: el componente renderiza todos los nodos visibles. Para árboles muy grandes, mantén las ramas cerradas o cárgalas de forma diferida.',
     },
   ],
   related: [

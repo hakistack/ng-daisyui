@@ -33,6 +33,16 @@ import { MenuConfig, MenuExpandEvent, MenuItem, MenuItemKind, MenuOrientation, M
  * @example
  * <hk-menu [config]="menu.config()" (itemSelect)="onSelect($event)" />
  */
+// Literal class names: Tailwind only generates classes it finds as complete strings in the source
+// (`menu-${size}` left menu-xs / menu-lg / menu-xl without CSS).
+const MENU_SIZE_CLASSES: Readonly<Record<MenuSize, string>> = {
+  xs: 'menu-xs',
+  sm: 'menu-sm',
+  md: 'menu-md',
+  lg: 'menu-lg',
+  xl: 'menu-xl',
+};
+
 @Component({
   selector: 'hk-menu',
   imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, LucideDynamicIcon, CdkConnectedOverlay],
@@ -117,7 +127,7 @@ export class MenuComponent<T = unknown> {
   readonly menuClass = computed(() => {
     const cfg = this.resolvedConfig();
     const bg = cfg.background;
-    const classes = [`menu-${cfg.size}`];
+    const classes = [MENU_SIZE_CLASSES[cfg.size ?? 'md']];
     if (cfg.orientation === 'horizontal') classes.push('menu-horizontal');
     // Vertical menus fill their container so rows stretch full width (not ragged),
     // and in the rail so icons center instead of hugging the left edge.

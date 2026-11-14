@@ -261,8 +261,11 @@ describe('ToastService', () => {
       const toast = service.toasts().find((t) => t.id === id);
       expect(toast?.isPaused).toBe(false);
 
-      // After extended timeout, should auto-dismiss
-      vi.advanceTimersByTime(DEFAULT_TOAST_CONFIG.extendedTimeOut + 50);
+      // Resumes with the time that was left (never shorter than extendedTimeOut).
+      const remaining = Math.max(3000 - 500, DEFAULT_TOAST_CONFIG.extendedTimeOut);
+      vi.advanceTimersByTime(remaining - 100);
+      expect(service.toasts().find((t) => t.id === id)?.dismissing).toBe(false);
+      vi.advanceTimersByTime(150);
       const dismissing = service.toasts().find((t) => t.id === id);
       expect(dismissing?.dismissing).toBe(true);
 

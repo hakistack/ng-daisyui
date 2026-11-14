@@ -826,13 +826,19 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "name": "html",
     "type": "string",
     "optional": true,
-    "description": "HTML content (alternative to text)"
+    "description": "HTML content (alternative to text). Passed through Angular's HTML sanitizer: scripts, event handlers and `style` attributes are removed. Set `trustedHtml: true` to render it verbatim."
    },
    {
     "name": "htmlUrl",
     "type": "string",
     "optional": true,
-    "description": "URL to load HTML content from (alternative to `html`). Fetched at runtime via `fetch()`. The response body is used as HTML content."
+    "description": "URL to load HTML content from (alternative to `html`). Fetched at runtime via `fetch()`. The response body is sanitized like `html`."
+   },
+   {
+    "name": "trustedHtml",
+    "type": "boolean",
+    "optional": true,
+    "description": "Render `html` / `htmlUrl` content **without** sanitizing it. Only for markup you fully control: never set this for content that contains user input or comes from a third-party URL (XSS)."
    },
    {
     "name": "icon",
@@ -942,7 +948,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/alert/alert.types.ts",
-   "line": 219
+   "line": 233
   },
   "members": [
    {
@@ -1062,11 +1068,11 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "animateSequence",
   "kind": "function",
   "area": "directives",
-  "description": "Play a sequenced animation across multiple elements. Wraps motion's `animate(array)` with typed segments. ```typescript const controls = animateSequence([ { target: '.title', keyframes: { opacity: 1, y: 0 }, options: { duration: 0.5 } }, { target: '.subtitle', keyframes: { opacity: 1 }, options: { at: '<0.2' } }, { target: '.cta', keyframes: { scale: [0.8, 1], opacity: 1 }, options: { at: '+0.1' } }, ]); ```",
+  "description": "Play a sequenced animation across multiple elements. Wraps motion's `animate(array)` with typed segments. ```typescript const controls = animateSequence([ { target: '.title', keyframes: { opacity: 1, y: 0 }, options: { duration: 0.5 } }, { target: '.subtitle', keyframes: { opacity: 1 }, options: { at: '<0.2' } }, { target: '.cta', keyframes: { scale: [0.8, 1], opacity: 1 }, options: { at: '+0.1' } }, ]); ``` Honors `prefers-reduced-motion`: the sequence completes immediately in its final state.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/directives/motion-sequence.ts",
-   "line": 41
+   "line": 43
   },
   "signatures": [
    "animateSequence(segments: SequenceSegment[], options?: SequenceOptions): AnimationPlaybackControl…"
@@ -1093,7 +1099,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/navbar/app-shell.component.ts",
-   "line": 32
+   "line": 38
   },
   "selector": "hk-app-shell",
   "inputs": [
@@ -1201,7 +1207,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 372
+   "line": 379
   },
   "members": [
    {
@@ -1615,7 +1621,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 288
+   "line": 287
   },
   "typeParams": "<T>",
   "members": [
@@ -1677,7 +1683,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/editor/slash-command.extension.ts",
-   "line": 24
+   "line": 25
   },
   "typeText": "readonly EditorSlashCommand[]"
  },
@@ -1999,7 +2005,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/table/table.helpers.ts",
-   "line": 547
+   "line": 549
   },
   "signatures": [
    "clearHeaderFormatCache(): voi…"
@@ -2052,7 +2058,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.helpers.ts",
-   "line": 62
+   "line": 72
   },
   "signatures": [
    "collectGroupIds<T>(items: MenuItem<T>[], acc?: string[]): string[…"
@@ -2066,7 +2072,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 250
+   "line": 254
   },
   "extends": [
    "BaseFieldOptions"
@@ -2383,7 +2389,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/command-palette/command-palette.component.ts",
-   "line": 62
+   "line": 63
   },
   "selector": "hk-command-palette",
   "inputs": [
@@ -2396,6 +2402,10 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   ],
   "outputs": [],
   "methods": [
+   {
+    "name": "optionId",
+    "signature": "optionId(flatIndex: number): string"
+   },
    {
     "name": "onQueryInput",
     "signature": "onQueryInput(event: Event): void"
@@ -3037,7 +3047,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/alert/alert.types.ts",
-   "line": 116
+   "line": 126
   },
   "members": [
    {
@@ -3092,7 +3102,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/alert/alert.types.ts",
-   "line": 162
+   "line": 172
   },
   "members": [
    {
@@ -3104,6 +3114,12 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "name": "html",
     "type": "string",
     "description": "HTML content with a countdown element. Use `{seconds}` placeholder for initial seconds value. The element matching `countdownSelector` will be updated live."
+   },
+   {
+    "name": "trustedHtml",
+    "type": "boolean",
+    "optional": true,
+    "description": "Render `html` without sanitizing it (see `AlertOptions.trustedHtml`)."
    },
    {
     "name": "timer",
@@ -3252,7 +3268,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 392
+   "line": 399
   },
   "typeParams": "<T = Record<string, any>>",
   "members": [
@@ -3352,7 +3368,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.helpers.ts",
-   "line": 151
+   "line": 161
   },
   "signatures": [
    "createMenu<T = unknown>(input: MenuConfig<T>): MenuController<T…"
@@ -3397,7 +3413,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/editor/slash-command.extension.ts",
-   "line": 424
+   "line": 428
   },
   "signatures": [
    "createSlashCommands(config: EditorSlashCommandConfig): EditorSlashCommandConfi…"
@@ -3443,7 +3459,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 258
+   "line": 257
   },
   "typeParams": "<T = unknown>",
   "extends": [
@@ -4913,6 +4929,18 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "name": "isRange",
     "type": "boolean",
     "optional": true
+   },
+   {
+    "name": "minDate",
+    "type": "Date | string",
+    "optional": true,
+    "description": "Earliest selectable date (Date or ISO string); earlier days are disabled in the picker."
+   },
+   {
+    "name": "maxDate",
+    "type": "Date | string",
+    "optional": true,
+    "description": "Latest selectable date (Date or ISO string); later days are disabled in the picker."
    }
   ]
  },
@@ -4929,6 +4957,12 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   },
   "selector": "hk-datepicker",
   "inputs": [
+   {
+    "name": "config",
+    "type": "Partial<DatepickerConfig>",
+    "default": "{}",
+    "description": "Format options (`dateFormat`, `monthFormat`, `weekdayFormat`, `yearBatchSize`) merged over the defaults. `closeOnSelect` / `showClearButton` / `showTodayButton` are set with their own inputs."
+   },
    {
     "name": "range",
     "type": "boolean",
@@ -5048,6 +5082,12 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
    {
     "name": "customRangeFormatter",
     "type": "((start: Date, end: Date) => string) | undefined"
+   },
+   {
+    "name": "controlId",
+    "type": "string",
+    "default": "''",
+    "description": "Id for the inner `<input>`. Set it when a `<label for=\"…\">` (or `aria-labelledby`) names this control: the label then provides the accessible name instead of the placeholder."
    }
   ],
   "outputs": [
@@ -5215,11 +5255,11 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "DatepickerConfig",
   "kind": "interface",
   "area": "datepicker",
-  "description": "Configuration for `<hk-datepicker>`. All format fields take `Intl.DateTimeFormatOptions` — the same shape consumed by `Intl.DateTimeFormat`. Locale is set on the component via the `locale` input; format options describe **what** to render, locale describes **how**. For UI strings (button text, aria-labels), see `DatepickerLabels` — those are separate because they're translatable strings, not format directives.",
+  "description": "Format configuration for `<hk-datepicker>`, passed through the `config` input (partial objects are merged over the defaults). All format fields take `Intl.DateTimeFormatOptions` — the same shape consumed by `Intl.DateTimeFormat`. Locale is set on the component via the `locale` input; format options describe **what** to render, locale describes **how**. For UI strings (button text, aria-labels), see `DatepickerLabels` — those are separate because they're translatable strings, not format directives.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 67
+   "line": 62
   },
   "members": [
    {
@@ -5251,21 +5291,21 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "type": "boolean",
     "optional": true,
     "readonly": true,
-    "description": "Close the dropdown after a date is selected (default: true for single, false for range)"
+    "description": "Default for the `closeOnSelect` input (true). The **input** controls the behaviour; setting this field through `config` has no effect. Range mode keeps the panel open until the range is complete."
    },
    {
     "name": "showClearButton",
     "type": "boolean",
     "optional": true,
     "readonly": true,
-    "description": "Show a button to clear the current selection"
+    "description": "Default for the `showClearButton` input; use the input to change it."
    },
    {
     "name": "showTodayButton",
     "type": "boolean",
     "optional": true,
     "readonly": true,
-    "description": "Show a button to jump to today's date"
+    "description": "Default for the `showTodayButton` input; use the input to change it."
    },
    {
     "name": "animationDuration",
@@ -5309,7 +5349,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 173
+   "line": 171
   },
   "members": [
    {
@@ -5455,6 +5495,12 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "type": "string",
     "optional": true,
     "description": "aria-label for the \"back to months\" button. Default: \"Back to months\""
+   },
+   {
+    "name": "weekNumberHeader",
+    "type": "string",
+    "optional": true,
+    "description": "Week-number column header / screen-reader prefix (when `showWeekNumbers` is on). Default: \"Week\""
    }
   ]
  },
@@ -5467,7 +5513,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 87
+   "line": 85
   },
   "typeText": "'bottom-left' | 'bottom-right' | 'top-left' | 'top-right' | 'auto'"
  },
@@ -5480,7 +5526,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 92
+   "line": 90
   },
   "members": [
    {
@@ -5655,7 +5701,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 247
+   "line": 251
   },
   "extends": [
    "BaseFieldOptions"
@@ -5690,7 +5736,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 107
+   "line": 105
   },
   "members": [
    {
@@ -5918,7 +5964,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 23
+   "line": 25
   },
   "typeText": "ResolvedNotificationLabels"
  },
@@ -5957,7 +6003,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/alert/alert.types.ts",
-   "line": 142
+   "line": 152
   },
   "members": [
    {
@@ -6001,7 +6047,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/services/dialog/dialog.service.ts",
-   "line": 9
+   "line": 15
   },
   "providedIn": "root",
   "methods": [
@@ -6216,7 +6262,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "DocumentEditorController",
   "kind": "interface",
   "area": "document-editor",
-  "description": "Controller returned by `createDocumentEditor`. Pass `config()` to the facade's `[editor]` input; call the imperative methods from anywhere in the host component. Contract per roadmap §2.1.",
+  "description": "Controller returned by `createDocumentEditor`. Pass the controller itself to the facade's `[editor]` input (`[editor]=\"editor\"`); call the imperative methods from anywhere in the host component.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/document-editor/document-editor.types.ts",
@@ -7136,7 +7182,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "type": "string",
     "optional": true,
     "readonly": true,
-    "description": "Optional MIME-type hint. When omitted, the format is detected from the source's URL extension, the file extension if `filename` is set, or by sniffing the first few bytes."
+    "description": "Optional MIME-type hint. When omitted, the format is detected from the `filename` hint, the source's URL extension, or a `Blob`'s type — in that order. Raw bytes are not sniffed: pass `mimeType` or `filename` for them."
    },
    {
     "name": "filename",
@@ -7620,6 +7666,16 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "signature": "isFieldRequired(field: FormFieldConfig): boolean"
    },
    {
+    "name": "isFieldInvalid",
+    "signature": "isFieldInvalid(field: FormFieldConfig): boolean",
+    "description": "True when the field's control is invalid and has been touched (errors are visible)."
+   },
+   {
+    "name": "describedBy",
+    "signature": "describedBy(field: FormFieldConfig): string | null",
+    "description": "`aria-describedby` for a field: its help text and, when shown, its error messages."
+   },
+   {
     "name": "getFieldValue",
     "signature": "getFieldValue(fieldKey: string): unknown"
    },
@@ -7760,7 +7816,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/editor/editor.component.ts",
-   "line": 48
+   "line": 49
   },
   "selector": "hk-editor",
   "inputs": [
@@ -8698,7 +8754,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.helpers.ts",
-   "line": 504
+   "line": 518
   },
   "typeText": "{ text: (key: string, label?: string, options?: TextFieldOptions) => FormFieldConfig; email: (key: string, label?: string, options?: EmailFieldOptions) => FormFieldConfig; password: (key: string, label?: string, options?: PasswordFieldOptions) => FormFieldConfig; tel: (key: string, label?: string, options?: TelFieldOptions) => FormFieldConfig; url: (key: string, label?: string, options?: UrlFieldOptions) => FormFieldConfig; textarea: (key: string, label?: string, options?: TextareaFieldOptions) => FormFieldConfig; number: (key: string, label?: string, options?: NumberFieldOptions) => FormFiel…"
  },
@@ -9200,7 +9256,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 337
+   "line": 344
   },
   "typeText": "'full' | '1/2' | '1/3' | '1/4' | '2/3' | '3/4' | 'auto'"
  },
@@ -9212,7 +9268,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 252
+   "line": 256
   },
   "extends": [
    "BaseFieldOptions"
@@ -9333,7 +9389,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/editor/slash-command.extension.ts",
-   "line": 119
+   "line": 120
   },
   "signatures": [
    "filterSlashCommands(items: readonly EditorSlashCommand[], query: string): readonly EditorSlashCommand[…"
@@ -9375,7 +9431,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.helpers.ts",
-   "line": 50
+   "line": 60
   },
   "signatures": [
    "findMenuItem<T>(items: MenuItem<T>[], id: string): MenuItem<T> | undefine…"
@@ -9484,7 +9540,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 323
+   "line": 322
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -9731,7 +9787,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 442
+   "line": 449
   },
   "typeParams": "<T = Record<string, any>>",
   "members": [
@@ -9768,7 +9824,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "type": "number",
     "optional": true,
     "readonly": true,
-    "description": "Number of grid columns (1–12). Only applies when `layout === 'grid'`. Default: 12."
+    "description": "Number of grid columns (1–12). Only applies when `layout === 'grid'`. Default: 2."
    },
    {
     "name": "gap",
@@ -9858,7 +9914,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 544
+   "line": 551
   },
   "typeParams": "<T = Record<string, any>>",
   "members": [
@@ -10063,7 +10119,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 273
+   "line": 277
   },
   "members": [
    {
@@ -10263,6 +10319,19 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
    {
     "name": "isRangeDate",
     "type": "boolean",
+    "optional": true,
+    "readonly": true
+   },
+   {
+    "name": "minDate",
+    "type": "Date",
+    "optional": true,
+    "readonly": true,
+    "description": "Date fields: selectable range passed to `hk-datepicker` as `minDate` / `maxDate`."
+   },
+   {
+    "name": "maxDate",
+    "type": "Date",
     "optional": true,
     "readonly": true
    },
@@ -10636,7 +10705,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 341
+   "line": 348
   },
   "members": [
    {
@@ -10706,7 +10775,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 504
+   "line": 511
   },
   "typeParams": "<T = Record<string, any>>",
   "members": [
@@ -10748,7 +10817,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.utils.ts",
-   "line": 9
+   "line": 17
   },
   "methods": [
    {
@@ -10823,7 +10892,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 512
+   "line": 519
   },
   "typeParams": "<T extends readonly FormFieldConfig[]>",
   "typeText": "Record<T[number]['key'], unknown>"
@@ -10837,7 +10906,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 274
+   "line": 273
   },
   "typeParams": "<T>",
   "members": [
@@ -11210,7 +11279,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 266
+   "line": 270
   },
   "members": [
    {
@@ -11294,7 +11363,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 31
+   "line": 34
   },
   "typeText": "InjectionToken<NotificationLabels>"
  },
@@ -11780,7 +11849,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.helpers.ts",
-   "line": 14
+   "line": 24
   },
   "signatures": [
    "inferMenuItemKind<T>(item: MenuItem<T>): MenuItemKin…"
@@ -11982,7 +12051,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/directives/input-mask/input-mask.directive.ts",
-   "line": 43
+   "line": 42
   },
   "selector": "[hkInputMask]",
   "inputs": [
@@ -12079,7 +12148,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/input/input-variant-strategies.ts",
-   "line": 5
+   "line": 27
   },
   "members": [
    {
@@ -12119,7 +12188,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.helpers.ts",
-   "line": 23
+   "line": 33
   },
   "signatures": [
    "isMenuItemVisible<T>(item: MenuItem<T>): boolea…"
@@ -12134,7 +12203,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.helpers.ts",
-   "line": 87
+   "line": 97
   },
   "typeText": "{ link<T = unknown>(label: string, routerLink: string | unknown[], opts?: ItemOptions<T>): MenuItem<T>; external<T = unknown>(label: string, href: string, opts?: ItemOptions<T>): MenuItem<T>; action<T = unknown>(label: string, action: (item: MenuItem<T>) => void, opts?: ItemOptions<T>): MenuItem<T>; group<T = unknown>(label: string, children: MenuItem<T>[], opts?: ItemOptions<T>): MenuItem<T>; title<T = unknown>(label: string, opts?: ItemOptions<T>): MenuItem<T>; divider<T = unknown>(opts?: ItemOptions<T>): MenuItem<T>; }"
  },
@@ -12147,7 +12216,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.helpers.ts",
-   "line": 757
+   "line": 771
   },
   "typeText": "{ vertical: (options?: { gap?: \"sm\" | \"md\" | \"lg\"; }) => { layout: \"vertical\"; gap: \"sm\" | \"md\" | \"lg\" | undefined; }; horizontal: (options?: { gap?: \"sm\" | \"md\" | \"lg\"; labelWidth?: \"sm\" | \"md\" | \"lg\" | \"xl\"; }) => { layout: \"horizontal\"; gap: \"sm\" | \"md\" | \"lg\" | undefined; labelWidth: \"sm\" | \"md\" | \"lg\" | \"xl\" | undefined; }; grid: (columns?: number, options?: { gap?: \"sm\" | \"md\" | \"lg\"; }) => { layout: \"grid\"; gridColumns: number; gap: \"sm\" | \"md\" | \"lg\" | undefined; }; }"
  },
@@ -12191,7 +12260,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/alert/alert.types.ts",
-   "line": 205
+   "line": 219
   },
   "members": [
    {
@@ -12432,11 +12501,11 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "MenuComponent",
   "kind": "component",
   "area": "menu",
-  "description": "`<hk-menu>` — a config-driven, recursive DaisyUI menu. Renders an arbitrary tree of `MenuItem`s vertically (sidebars) or horizontally (navbars) from a single declarative config. Supports collapsible submenus, accordion behaviour, router integration, icons/badges/shortcuts, a generic visibility predicate, and an icon-only collapsed rail. Pass a `MenuConfig` via `[config]` (or build it with `createMenu()` for imperative expand/collapse control), or the `items` shorthand for the common case.",
+  "description": "",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.component.ts",
-   "line": 36
+   "line": 46
   },
   "selector": "hk-menu",
   "inputs": [
@@ -12607,7 +12676,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "name": "submenuMode",
     "type": "MenuSubmenuMode",
     "optional": true,
-    "description": "Render submenus inline (`<details>`) or as floating dropdowns. Default `'inline'`."
+    "description": "Reserved: only `'inline'` (`<details>`) is implemented; `'dropdown'` currently renders inline too. Use `collapsed: true` for hover dropdowns on an icon rail."
    },
    {
     "name": "ariaLabel",
@@ -12638,7 +12707,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.types.ts",
-   "line": 163
+   "line": 166
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -12707,7 +12776,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.types.ts",
-   "line": 154
+   "line": 157
   },
   "members": [
    {
@@ -12913,7 +12982,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 145
+   "line": 143
   },
   "members": [
    {
@@ -12953,7 +13022,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "inputs": [
    {
     "name": "hkAnimate",
-    "type": "Record<string, unknown> | \"zoomIn\" | \"zoomOut\" | \"fadeIn\" | \"fadeOut\" | \"fadeInUp\" | \"fadeInDown\" | \"fadeInLeft\" | \"fadeInRight\" | \"slideInUp\" | \"slideInDown\" | \"bounceIn\" | \"rotateIn\"",
+    "type": "\"\" | Record<string, unknown> | \"zoomIn\" | \"zoomOut\" | \"fadeIn\" | \"fadeOut\" | \"fadeInUp\" | \"fadeInDown\" | \"fadeInLeft\" | \"fadeInRight\" | \"slideInUp\" | \"slideInDown\" | \"bounceIn\" | \"rotateIn\"",
     "default": "'fadeIn'",
     "description": "Animation to play. Pass a preset name (see `AnimationPreset`) or a raw keyframes object (e.g. `{ opacity: [0, 1], y: [20, 0] }`). Default: `'fadeIn'`."
    },
@@ -13131,7 +13200,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "MotionHoverDirective",
   "kind": "directive",
   "area": "directives",
-  "description": "Animate an element on hover, then restore it when the cursor leaves. On hover-start, animates **to** the target keyframes. On hover-end, by default animates **back** to the element's initial computed style (snapshot taken in `ngOnInit`). Pass `customRestoreKeyframes` to override the restore target, or set `[restoreOnLeave]=\"false\"` to leave the hovered state in place. Honors `prefers-reduced-motion`: if enabled, the directive does nothing.",
+  "description": "Animate an element on hover, then restore it when the cursor leaves. On hover-start, animates **to** the target keyframes. On hover-end, by default animates **back** to the element's initial computed style (snapshot taken in `ngOnInit`). Pass `customRestoreKeyframes` to override the restore target, or set `[restoreOnLeave]=\"false\"` to leave the hovered state in place. Honors `prefers-reduced-motion`: the hover animation is skipped, but `hoverStart` / `hoverEnd` still fire.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/directives/motion-hover/motion-hover.directive.ts",
@@ -13200,7 +13269,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "MotionPressDirective",
   "kind": "directive",
   "area": "directives",
-  "description": "Animate an element while pressed (mouse/touch), then restore on release. On press-start, animates **to** the target keyframes. On release, by default animates **back** to the element's initial computed style. The restore is faster than the press-down (60% of duration) for a snappier feel. `pressEnd` emits `{ event, success }` — `success` is `true` if released over the element (a true tap), `false` if the pointer dragged off before release. Honors `prefers-reduced-motion`.",
+  "description": "Animate an element while pressed (mouse/touch), then restore on release. On press-start, animates **to** the target keyframes. On release, by default animates **back** to the element's initial computed style. The restore is faster than the press-down (60% of duration) for a snappier feel. `pressEnd` emits `{ event, success }` — `success` is `true` if released over the element (a true tap), `false` if the pointer dragged off before release. Honors `prefers-reduced-motion`: the press animation is skipped, but `pressStart` / `pressEnd` still fire.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/directives/motion-press/motion-press.directive.ts",
@@ -13271,7 +13340,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "inputs": [
    {
     "name": "hkResize",
-    "type": "boolean | \"viewport\" | undefined",
+    "type": "boolean | \"\" | \"viewport\" | undefined",
     "default": "undefined",
     "description": "Mode: - `'viewport'` — track `window` resize. - any other value (default) — track the host element via `ResizeObserver`."
    }
@@ -13299,19 +13368,19 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "MotionScrollDirective",
   "kind": "directive",
   "area": "directives",
-  "description": "Drive an animation or emit progress based on scroll position. Two modes, picked by what you pass to `[hkScroll]`: 1. **Keyframes object** — animates the host element with progress linked to scroll (e.g. parallax, scroll-progress bar). Animation is paused-and-scrubbed, not played. 2. **`true`** (or any non-object truthy) — emits `scrollProgress` (0–1) and `scrollInfo` on every scroll event without animating anything. Honors `prefers-reduced-motion`: if enabled, the directive does nothing.",
+  "description": "Drive an animation or emit progress based on scroll position. Two modes, picked by what you pass to `[hkScroll]`: 1. **Keyframes object** — animates the host element with progress linked to scroll (e.g. parallax, scroll-progress bar). Animation is paused-and-scrubbed, not played. 2. **`true`** (or any non-object truthy) — emits `scrollProgress` (0–1) and `scrollInfo` on every scroll event without animating anything. Honors `prefers-reduced-motion`: scroll-linked animation is skipped; progress tracking (`scrollProgress` / `scrollInfo`) keeps working.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/directives/motion-scroll/motion-scroll.directive.ts",
-   "line": 64
+   "line": 65
   },
   "selector": "[hkScroll]",
   "inputs": [
    {
     "name": "hkScroll",
-    "type": "boolean | ScrollAnimationKeyframes | undefined",
+    "type": "boolean | \"\" | ScrollAnimationKeyframes | undefined",
     "default": "undefined",
-    "description": "Mode selector. Pass keyframes (object) for scroll-linked animation, or `true` to only emit `scrollProgress` / `scrollInfo`."
+    "description": "Mode selector. Pass keyframes (object) for scroll-linked animation, or `true` (or the bare attribute `<div hkScroll>`) to only emit `scrollProgress` / `scrollInfo`."
    },
    {
     "name": "scrollOptions",
@@ -13471,6 +13540,18 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "name": "ariaLabel",
     "type": "string | undefined",
     "default": "undefined"
+   },
+   {
+    "name": "menuExpanded",
+    "type": "boolean | undefined",
+    "default": "undefined",
+    "description": "Expanded state of the drawer the hamburger controls (`aria-expanded`); unset = not announced."
+   },
+   {
+    "name": "menuControls",
+    "type": "string | undefined",
+    "default": "undefined",
+    "description": "Id of the element the hamburger controls (`aria-controls`)."
    }
   ],
   "outputs": [
@@ -13537,7 +13618,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "node",
   "kind": "constant",
   "area": "tree",
-  "description": "Node builder namespace. Provides convenient factory functions for creating `TreeNode` objects with sensible defaults. ```ts node.folder('Documents', [ node.file('Resume.pdf', { icon: 'FileText' }), node.lazy('Archives'), ]); ```",
+  "description": "Node builder namespace. Provides convenient factory functions for creating `TreeNode` objects with sensible defaults. ```ts node.folder('Documents', [ node.file('Resume.pdf', { icon: 'file-text' }), // kebab-case name registered with provideLucideIcons(LucideFileText) node.lazy('Archives'), ]); ```",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.helpers.ts",
@@ -13829,6 +13910,12 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "type": "string",
     "optional": true,
     "description": "Close button aria-label. Default: \"Close notification\""
+   },
+   {
+    "name": "regionAriaLabel",
+    "type": "string",
+    "optional": true,
+    "description": "Accessible name of the notifications region (landmark). Default: \"Notifications\""
    },
    {
     "name": "infoAriaPrefix",
@@ -19481,7 +19568,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/menu/menu.helpers.ts",
-   "line": 34
+   "line": 44
   },
   "signatures": [
    "processMenuItems<T>(items: MenuItem<T>[]): MenuItem<T>[…"
@@ -19496,7 +19583,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/table/table.helpers.ts",
-   "line": 499
+   "line": 501
   },
   "signatures": [
    "projectFields<T extends object>(data: T[], config: FieldConfig<T>): T[…"
@@ -19626,7 +19713,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 45
+   "line": 48
   },
   "signatures": [
    "provideHkNotificationLabels(labels: NotificationLabels): EnvironmentProvider…"
@@ -20126,7 +20213,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 21
+   "line": 23
   },
   "typeText": "Required<NotificationLabels>"
  },
@@ -20197,7 +20284,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 327
+   "line": 334
   },
   "members": [
    {
@@ -20490,7 +20577,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/select/select.component.ts",
-   "line": 55
+   "line": 56
   },
   "typeText": "'neutral' | 'primary' | 'secondary' | 'accent' | 'info' | 'success' | 'warning' | 'error'"
  },
@@ -20503,7 +20590,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/select/select.component.ts",
-   "line": 57
+   "line": 63
   },
   "selector": "hk-select",
   "inputs": [
@@ -20845,7 +20932,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/select/select.component.ts",
-   "line": 33
+   "line": 34
   },
   "members": [
    {
@@ -20869,7 +20956,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/select/select.component.ts",
-   "line": 52
+   "line": 53
   },
   "typeText": "'xs' | 'sm' | 'md' | 'lg' | 'xl'"
  },
@@ -20901,7 +20988,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/select/select.component.ts",
-   "line": 39
+   "line": 40
   },
   "typeText": "string | string[] | SelectOption | SelectOption[] | null"
  },
@@ -21312,7 +21399,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/editor/slash-command.extension.ts",
-   "line": 298
+   "line": 302
   },
   "typeText": "{ readonly snippet: (opts: SlashSnippetOptions) => EditorSlashCommand; readonly snippetFromUrl: (opts: SlashSnippetFromUrlOptions) => EditorSlashCommand; readonly command: (opts: SlashChainCommandOptions) => EditorSlashCommand; readonly custom: (item: EditorSlashCommand) => EditorSlashCommand; }"
  },
@@ -21325,7 +21412,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/editor/slash-command.extension.ts",
-   "line": 288
+   "line": 292
   },
   "extends": [
    "SlashCommandBaseOptions"
@@ -21348,7 +21435,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/editor/slash-command.extension.ts",
-   "line": 280
+   "line": 284
   },
   "extends": [
    "SlashCommandBaseOptions"
@@ -21378,7 +21465,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/editor/slash-command.extension.ts",
-   "line": 265
+   "line": 269
   },
   "extends": [
    "SlashCommandBaseOptions"
@@ -21503,7 +21590,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.helpers.ts",
-   "line": 798
+   "line": 812
   },
   "typeText": "{ create: (name: string, label: string, fields: FormFieldConfig[], options?: { description?: string; optional?: boolean; nextText?: string; previousText?: string; }) => FormStep; review: (name: string, label: string, description?: string) => FormStep; }"
  },
@@ -21515,7 +21602,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 514
+   "line": 521
   },
   "members": [
    {
@@ -21549,7 +21636,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 525
+   "line": 532
   },
   "members": [
    {
@@ -21697,7 +21784,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 354
+   "line": 361
   },
   "members": [
    {
@@ -21764,7 +21851,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 533
+   "line": 540
   },
   "members": [
    {
@@ -21806,7 +21893,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tab/tab-group/tab-group.component.ts",
-   "line": 7
+   "line": 16
   },
   "selector": "hk-tab-group",
   "inputs": [
@@ -21857,6 +21944,11 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
    }
   ],
   "methods": [
+   {
+    "name": "tabIcon",
+    "signature": "tabIcon(panel: TabPanelComponent): LucideIconData | null",
+    "description": "Icon data for a panel's `icon` input, or `null` when unset / not registered."
+   },
    {
     "name": "tabButtonClass",
     "signature": "tabButtonClass(panel: TabPanelComponent): string",
@@ -22137,7 +22229,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/table/table.component.ts",
-   "line": 194
+   "line": 193
   },
   "selector": "hk-table",
   "inputs": [
@@ -22527,7 +22619,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
    {
     "name": "getCellDisplay",
     "signature": "getCellDisplay(row: T, column: ColumnDefinition<T>): string",
-    "description": "Get the rendered cell HTML for use in tree-cell-content"
+    "deprecated": true
    },
    {
     "name": "isStickyStart",
@@ -22628,6 +22720,11 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
    {
     "name": "isMasterDetailSelected",
     "signature": "isMasterDetailSelected(row: T): boolean"
+   },
+   {
+    "name": "ariaSort",
+    "signature": "ariaSort(field: string): 'ascending' | 'descending' | 'none'",
+    "description": "`aria-sort` for a column header (all three layouts)."
    },
    {
     "name": "getCellId",
@@ -23293,7 +23390,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tab/tab-panel/tab-panel.component.ts",
-   "line": 3
+   "line": 4
   },
   "selector": "hk-tab-panel",
   "inputs": [
@@ -23311,9 +23408,9 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
    },
    {
     "name": "icon",
-    "type": "string | undefined",
+    "type": "string | LucideIconData | undefined",
     "default": "undefined",
-    "description": "Optional icon (reserved for future custom icon support)"
+    "description": "Optional icon shown before the label: a Lucide icon name registered with `provideLucideIcons(...)` (kebab-case `'credit-card'`; PascalCase `'CreditCard'` is normalised), or icon data (`LucideHouse.icon`). Unregistered names render nothing (with a dev-mode warning) instead of throwing."
    },
    {
     "name": "disabled",
@@ -23560,7 +23657,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 244
+   "line": 248
   },
   "extends": [
    "BaseFieldOptions"
@@ -23707,6 +23804,12 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "name": "clockFace",
     "type": "boolean",
     "default": "false"
+   },
+   {
+    "name": "controlId",
+    "type": "string",
+    "default": "''",
+    "description": "Id for the inner `<input>`. Set it when a `<label for=\"…\">` (or `aria-labelledby`) names this control: the label then provides the accessible name instead of the placeholder."
    }
   ],
   "outputs": [
@@ -23751,6 +23854,11 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
    {
     "name": "closePicker",
     "signature": "closePicker(): void"
+   },
+   {
+    "name": "isClockValueDisabled",
+    "signature": "isClockValueDisabled(value: number): boolean",
+    "description": "True when the clock value in the current view is outside `minTime` / `maxTime`."
    },
    {
     "name": "openPicker",
@@ -24182,7 +24290,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
    {
     "name": "extendedTimeOut",
     "type": "number",
-    "description": "Additional time (ms) after hover ends before auto-dismiss"
+    "description": "Minimum time (ms) a toast stays after hover/pause ends: it resumes with max(remaining time, this)."
    },
    {
     "name": "tapToDismiss",
@@ -24478,7 +24586,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 188
+   "line": 187
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -24679,6 +24787,16 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "description": "Activate a row via Enter / Space. Ignored when the key event originates inside an interactive descendant (button, checkbox) — those handle their own activation."
    },
    {
+    "name": "setSize",
+    "signature": "setSize(flatNode: FlatTreeNode<T>): number",
+    "description": "`aria-setsize`: number of siblings at this node's level."
+   },
+   {
+    "name": "isTabStop",
+    "signature": "isTabStop(flatNode: FlatTreeNode<T>, index: number): boolean",
+    "description": "One tab stop: the focused node, or the first node before anything was focused."
+   },
+   {
     "name": "onNodeClick",
     "signature": "onNodeClick(event: Event, node: TreeNode<T>): void",
     "description": "Handle node click"
@@ -24732,11 +24850,11 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "TreeConfig",
   "kind": "interface",
   "area": "tree",
-  "description": "Configuration for `<hk-tree>`. Pass via the `config` input, or use the `createTree({ ...config, nodes })` builder which returns a `TreeInstance` with imperative APIs. **Selection** — set `selectionMode` to `'single' | 'multiple' | 'checkbox'`. In `'checkbox'` mode, `propagateSelectionDown`/`propagateSelectionUp` enable three-state checkboxes (children follow parent, parent reflects children). Set `selectionAllowParents: false` to restrict selection to leaf nodes only. **Filtering** — `filterable: true` renders a search input. `filterMode: 'lenient'` (default) keeps ancestors of matched nodes visible so context is preserved; `'strict'` hides everything that doesn't match. **Virtual scrolling** — for large trees (>500 nodes), enable `virtualScroll: true` **and** set `virtualScrollItemHeight` (required, no default — measure your row). Compatible with filtering and drag-drop. **Drag & drop** — `dragDrop: true` enables reordering. Restrict to within-parent moves with `dragDropSameLevel: true` (e.g. preserve a folder hierarchy while letting users sort siblings).",
+  "description": "Configuration for `<hk-tree>`. Pass via the `config` input, or use the `createTree({ ...config, nodes })` builder which returns a `TreeInstance` with imperative APIs. **Selection** — set `selectionMode` to `'single' | 'multiple' | 'checkbox'`. In `'checkbox'` mode, `propagateSelectionDown`/`propagateSelectionUp` enable three-state checkboxes (children follow parent, parent reflects children). Set `selectionAllowParents: false` to restrict selection to leaf nodes only. **Filtering** — `filterable: true` renders a search input. `filterMode: 'lenient'` (default) keeps ancestors of matched nodes visible so context is preserved; `'strict'` hides everything that doesn't match. **Large trees** — every visible node is rendered; keep branches collapsed or load children lazily. (`virtualScroll` / `virtualScrollItemHeight` are reserved and currently have no effect.) **Drag & drop** — `dragDrop: true` enables reordering. Restrict to within-parent moves with `dragDropSameLevel: true` (e.g. preserve a folder hierarchy while letting users sort siblings).",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 53
+   "line": 52
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -24792,13 +24910,13 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "name": "virtualScroll",
     "type": "boolean",
     "optional": true,
-    "description": "Enable virtual scrolling for large trees"
+    "description": "Reserved for virtual scrolling. **Not implemented yet — has no effect."
    },
    {
     "name": "virtualScrollItemHeight",
     "type": "number",
     "optional": true,
-    "description": "Virtual scroll item height (required if virtualScroll enabled)"
+    "description": "Reserved for virtual scrolling. **Not implemented yet — has no effect."
    },
    {
     "name": "propagateSelectionDown",
@@ -24816,13 +24934,13 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
     "name": "selectionAllowParents",
     "type": "boolean",
     "optional": true,
-    "description": "Allow selecting parent nodes (or only leaf nodes)"
+    "description": "`false` restricts `'single'` / `'multiple'` selection to leaf nodes."
    },
    {
     "name": "nodeTemplate",
     "type": "TemplateRef<TreeNodeTemplateContext<T>>",
     "optional": true,
-    "description": "Custom node template"
+    "description": "Custom node template (a projected `<ng-template #nodeTemplate>` takes precedence)"
    },
    {
     "name": "expandAll",
@@ -24877,7 +24995,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 230
+   "line": 229
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -24902,7 +25020,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 220
+   "line": 219
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -24927,7 +25045,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 198
+   "line": 197
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -25015,7 +25133,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 178
+   "line": 177
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -25040,7 +25158,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 250
+   "line": 249
   },
   "members": [
    {
@@ -25104,7 +25222,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 122
+   "line": 121
   },
   "members": [
    {
@@ -25136,7 +25254,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 240
+   "line": 239
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -25425,7 +25543,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 307
+   "line": 306
   },
   "members": [
    {
@@ -25464,7 +25582,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 134
+   "line": 133
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -25549,7 +25667,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 158
+   "line": 157
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -25587,7 +25705,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 264
+   "line": 263
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -25691,7 +25809,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tree/tree.types.ts",
-   "line": 168
+   "line": 167
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -25759,7 +25877,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.helpers.ts",
-   "line": 703
+   "line": 717
   },
   "typeText": "{ required: (min?: number, max?: number) => { required: true; minLength: number | undefined; maxLength: number | undefined; }; email: (required?: boolean) => { required: boolean; email: true; }; password: (minLength?: number, strongPassword?: boolean) => { required: true; minLength: number; pattern: RegExp | undefined; }; number: (min?: number, max?: number, required?: boolean) => { required: boolean; min: number | undefined; max: number | undefined; }; custom: (...validators: ValidatorFn[]) => { customValidators: ValidatorFn[]; }; }"
  },
@@ -25772,7 +25890,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 102
+   "line": 100
   },
   "typeText": "'days' | 'months' | 'years'"
  },
@@ -26100,7 +26218,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 133
+   "line": 131
   },
   "members": [
    {
@@ -26189,7 +26307,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.types.ts",
-   "line": 159
+   "line": 157
   },
   "members": [
    {

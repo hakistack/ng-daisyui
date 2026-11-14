@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { PdfViewerComponent } from '../../pdf-viewer/pdf-viewer.component';
 import { createPdfViewer } from '../../pdf-viewer/pdf-viewer.helpers';

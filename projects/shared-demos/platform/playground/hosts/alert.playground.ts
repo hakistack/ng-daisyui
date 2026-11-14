@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AlertIcon, AlertService, AlertSize } from '@hakistack/ng-daisyui';
 import { PlaygroundComponent } from '../playground.component';
-import { ALERT_PLAYGROUND, AlertPgState } from '../playground-specs';
+import { ALERT_PLAYGROUND, AlertPgState } from '../specs/alert';
 import type { PlaygroundState } from '../playground.types';
 
 @Component({

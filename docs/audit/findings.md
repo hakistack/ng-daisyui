@@ -107,3 +107,57 @@ were fixed in the docs pass (library code was out of scope and was being edited 
 
 Why the initial bundle is large: in the demo, ~3.3 MB of the initial chunk is the library source itself — importing anything from the `@hakistack/ng-daisyui` barrel pulls in effectively the whole library (dev-build attribution: `lib` 3.37 MB, `@angular/cdk` 0.46 MB, `libphonenumber-js` 0.24 MB, `motion` 0.15 MB). The docs platform adds ~80 KB unminified. Fixing library tree-shaking is the real lever and is outside the docs work.
 | Public symbols documented in a reference page | 30 components' inputs/outputs | 617 symbols, all kinds |
+
+## 5. Second pass (2026-11-13) — what changed
+
+Work was split with the parallel "library modernization" session: it owns `projects/hakistack/**`
+(library source, themes, schematics, CHANGELOG); the docs session owns `projects/shared-demos/**`,
+`projects/demo/**`, the docs scripts and these reports.
+
+### Docs platform
+
+| Area | Before | After |
+|---|---|---|
+| Playgrounds | 6 | 22 of 24 component pages — not Wizard (multi-step forms need a scripted demo, see its examples) and Document Editor (covered by the Document Viewer playground's edit mode) |
+| Pages | 51 | 63 — Learning paths; Foundations: design principles, colors, typography, sizes & variants, responsive; guides: schema forms, custom validators, DataGrid columns, extend components; Changelog + Migration rendered from the repo's Markdown |
+| Written content | 45 modules | 60 modules; the 45 originals reviewed line by line against the current source (factual + Spanish) |
+| Getting started | 3 hand-built English pages (stale "What's new v0.1.92", wrong install claims) | bilingual articles; old components removed from the v5 app (v4 keeps its `-v4` copies) |
+| Demo captions in Spanish | — | 432 `app-doc-section` titles/descriptions, completeness enforced by `docs:check` |
+| Demo code examples | unchecked | 313 snippets validated against the API (Angular template parser + export check) |
+| Example tabs | flat list | grouped Basic → Intermediate → Advanced → Real world |
+| New live demos | — | DataGrid filtering / columns / selection / saved views / Table vs DataGrid; Document & PDF viewer loading + error states |
+| Lucide registration | all 1,695 icons | 219 referenced icons (generated, checked); full set only on the lazy Icons route |
+| CI | docs job | + e2e job: Chromium, Firefox, WebKit (visual snapshots macOS-only) |
+
+Bundle (production `ng build`): demo initial **4.07 MB → 3.93 MB** (error budget back to 4 MB);
+v4 demo initial **3.78 MB → 2.42 MB** (now under its 3 MB error budget).
+
+### Library issues — status
+
+Fixed by the library session and verified by the docs review against source: alert `html`/`htmlUrl`
+sanitized by default (`trustedHtml` opt-in) and replaced alerts resolve; hidden dynamic-form fields
+disabled; `multiselect` field; stepper ARIA ids; command palette combobox/listbox + `aria-activedescendant`;
+tree ARIA (level/setsize/posinset/checked), `selectionAllowParents`, `config.nodeTemplate`; timepicker
+min/max enforced in the panel; datepicker `config`, `showWeekNumbers`, `controlId`; notification single
+polite region; select Space + label naming; Kaizen content colors AA; `@tiptap/*` optional peers;
+lazy `libphonenumber-js`; `ng add` creates `.postcssrc.json`; `@angular/router` required peer.
+
+Also fixed in the library session's second batch (reported by the docs work): wizard `isStepValid` ignores
+disabled (hidden) controls; `showLoading({ allowClose })` removes its overlay; WASM URL-override messages no
+longer mention a `wasm/` folder; custom validators no longer share cached validators; required checkbox/toggle
+uses `requiredTrue`; declarative `date` min/max (+ `field.date({ minDate, maxDate })`); menu `xs`/`lg`/`xl` sizes
+and stable generated ids; motion outputs under reduced motion and `animateSequence` honoring it; bare
+`hkAnimate`/`hkResize`/`hkScroll` under strict templates; app-shell focus trap in push mode + hamburger
+`aria-expanded`; dialog `openRaw` closes on navigation and `Router` is optional; toast resume time and phone
+width; table delete button; JSDoc examples (gridColumns, `[editor]="editor"`, viewer config, icon names,
+PDF toolbar); consumers without `@tiptap/*` build.
+
+Still open — tracked in `docs/maintenance/maintainer-guide.md` backlog #25–30:
+- `text-base-content/50`–`/60` used for text in the library (contrast).
+- Form grid `colSpan` vs responsive column count; horizontal layout never stacks labels.
+- `hkAnimate` reduced-motion transforms and the ignored `offset`/`axis` options.
+- Hard-coded font stacks; daisyUI v4 lacks `input-xl`.
+- Notification per-item `position` only changes the slide direction.
+- 27 public symbols without JSDoc; table action `buttonClass` adds to the default classes.
+- `provideLucideIcons` is not multi (Lucide's API); `getSupportedExtensions()` wording; `createDocumentEditor` `filename`/`mimeType` unused.
+- Documented as not implemented: tree `virtualScroll`, tab `icon`, menu `submenuMode: 'dropdown'`.

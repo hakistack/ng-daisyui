@@ -308,6 +308,9 @@ function declarativeFieldToConfig(key: string, def: FieldDefinition): FormFieldC
         ...shared,
         defaultValue: d.defaultValue ?? null,
         required: v.required,
+        // DateFieldDef.min / max were declared but silently dropped.
+        minDate: d.min,
+        maxDate: d.max,
       });
     }
     default: {
@@ -414,11 +417,20 @@ interface InternalFieldInput extends BaseFieldOptions {
   multiple?: boolean;
   step?: number;
   isRangeDate?: boolean;
+  minDate?: Date | string;
+  maxDate?: Date | string;
   // Editor
   editorHeight?: string;
   editorToolbar?: 'full' | 'basic' | 'minimal';
   editorOutputFormat?: 'html' | 'delta';
   editorFormats?: string[];
+}
+
+/** Accept a Date or an ISO date string; invalid input yields `undefined`. */
+function toDate(value: Date | string | undefined): Date | undefined {
+  if (value == null || value === '') return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 function createField(key: string, type: FieldType, label: string, input: InternalFieldInput = {}): FormFieldConfig {
@@ -469,6 +481,8 @@ function createField(key: string, type: FieldType, label: string, input: Interna
     step: input.step,
     orientation: input.orientation,
     isRangeDate: input.isRangeDate,
+    minDate: toDate(input.minDate),
+    maxDate: toDate(input.maxDate),
     // Editor
     editorHeight: input.editorHeight,
     editorToolbar: input.editorToolbar,
@@ -835,6 +849,3 @@ export const step = {
     fields: [],
   }),
 };
-
-/** @deprecated Use `createForm` with `steps` instead. Kept as an alias for compatibility. */
-export const createWizard = createForm;

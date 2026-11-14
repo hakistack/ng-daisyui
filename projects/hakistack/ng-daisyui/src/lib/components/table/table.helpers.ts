@@ -320,6 +320,8 @@ function overlayRichColumnProps<T extends object>(schema: ColumnDefinition<T>[],
  */
 function createFieldConfig<T>(config: FieldConfig<T>): FieldConfig<T> {
   return {
+    // Whitelist copy: every FieldConfig property must be listed here or it is silently dropped.
+    id: config.id,
     visible: config.visible,
     hidden: config.hidden ?? [],
     headers: config.headers ?? {},

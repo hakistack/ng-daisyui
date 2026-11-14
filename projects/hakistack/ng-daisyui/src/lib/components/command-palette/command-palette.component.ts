@@ -28,6 +28,7 @@ import {
   CommandPaletteState,
 } from './command-palette.types';
 import { isInTextEntry, matchesHotkey, parseHotkey, substringFilter } from './command-palette.utils';
+import { generateUniqueId } from '../../utils/generate-uuid';
 
 interface RenderedGroup {
   readonly id: string;
@@ -90,6 +91,17 @@ export class CommandPaletteComponent implements OnInit {
   private readonly openSignal = signal<boolean>(false);
   private readonly querySignal = signal<string>('');
   private readonly selectedIndexSignal = signal<number>(-1);
+
+  /** Per-instance ids for the combobox → listbox → option relationships. */
+  private readonly instanceId = `hk-command-palette-${generateUniqueId()}`;
+  readonly listboxId = `${this.instanceId}-listbox`;
+  optionId(flatIndex: number): string {
+    return `${this.instanceId}-option-${flatIndex}`;
+  }
+  readonly activeOptionId = computed(() => {
+    const index = this.selectedIndexSignal();
+    return index >= 0 ? this.optionId(index) : null;
+  });
 
   // ── Derived state (computed — no self-triggering) ────────────────────────
 

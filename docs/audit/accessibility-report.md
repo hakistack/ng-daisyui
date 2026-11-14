@@ -19,20 +19,37 @@ Each fix has a spec that fails without it.
 | `hk-table` | Host keydown handler acted on keys typed in the search box/filters/inline editor (Space toggled a row) | 2.1.1, 3.2.2 | Ignore events from editable targets | `table.component.spec.ts` "should ignore keys typed into inputs" |
 | `hk-input` / `hk-select` | `color` classes never generated → error/success colouring invisible | 1.4.1 (when colour carries state) | Literal class maps | consumer smoke CSS check |
 
+### Second pass (same release)
+
+| Component | Fix | Spec |
+|---|---|---|
+| `hk-dynamic-form` | `aria-invalid` + `aria-describedby` (help/error), always-present polite error region; pickers labelled via `controlId`; radios in a labelled `radiogroup`; editor gets the field label | `dynamic-form.component.spec.ts` |
+| `hk-tree` | `role="tree"` moved off the host (filter input no longer inside); `aria-level`/`setsize`/`posinset`; `aria-checked` (incl. `mixed`) in checkbox mode; single default tab stop; inner toggle/checkbox removed from tab order | `tree.component.spec.ts` |
+| `hk-command-palette` | APG combobox: `role=combobox`, `aria-controls`, `aria-activedescendant`, `listbox` / `group` / `option`, named `<dialog>` | `command-palette.component.spec.ts` (new) |
+| `hk-notification-host` | One named polite region; `role="alert"` removed from items/panels; severity prefix read before the title | `notification-host.component.spec.ts` (new) |
+| `hk-table` | `aria-sort` on `th` in virtual, grouped and CDK layouts; sort trigger `role="button"`, Space no longer scrolls | `table.component.spec.ts` |
+| `hk-select` | Space types in the search box; placeholder no longer overrides `<label for>` | `select.component.spec.ts` |
+| `hk-timepicker` | Focus restored to the field on close; false `aria-modal` removed; out-of-range values disabled | `timepicker.component.spec.ts` |
+| `hk-datepicker` | Week numbers rendered as `rowheader`s with a localisable label | `datepicker.component.spec.ts` |
+| `hk-app-shell` / `hk-navbar` | Focus trap whenever the drawer renders as an overlay; hamburger `aria-expanded` + `aria-controls` | `app-shell.component.spec.ts` (new) |
+| Toast | Hover never shortens display time (WCAG 2.2.1) | `toast.component.spec.ts` |
+| Motion | Outputs keep firing under reduced motion; `animateSequence` honours it | — (no motion specs; type-checked only) |
+| Kaizen themes | `*-content` colours raised to ≥ 4.5:1 | computed contrast (script in this audit) |
+
 ## Open findings (prioritised)
 
 | Sev | Component | Finding | Evidence | Recommended fix |
 |---|---|---|---|---|
-| High | `hk-dynamic-form` | No `aria-invalid` / `aria-describedby` on fields; error text not associated nor announced | `dynamic-form.component.html:320-329` | ids on error/help, `aria-describedby`, polite live region |
-| High | `hk-dynamic-form` | Labels not associated for datepicker/timepicker (id lands on the custom element host), radio groups (no fieldset/legend), editor | template | `inputId` input on pickers; `<fieldset><legend>` for radios |
+| ~~High~~ | `hk-dynamic-form` | No `aria-invalid` / `aria-describedby` on fields; error text not associated nor announced | `dynamic-form.component.html:320-329` | ids on error/help, `aria-describedby`, polite live region | **(fixed)**
+| ~~High~~ | `hk-dynamic-form` | Labels not associated for datepicker/timepicker (id lands on the custom element host), radio groups (no fieldset/legend), editor | template | `inputId` input on pickers; `<fieldset><legend>` for radios | **(fixed)**
 | High | `hk-table` | `aria-activedescendant` on inner `<table>` while focus is on the host → nothing announced; `aria-sort` only in CDK layout, on a `div`; sort triggers are `div[tabindex]` without role | `table.component.html:952,1109,270` | move to host; shared header template for all three layouts (see X1) |
-| High | `hk-tree` | No `aria-level`/`aria-setsize`/`aria-posinset`; no `aria-checked` in checkbox mode; filter input inside `role="tree"` | `tree.component.html:39`, `tree.component.ts:64` | add attributes; move filter outside the tree role |
-| High | `hk-command-palette` | Not a combobox/listbox pattern (no `role=combobox`, `aria-controls`, `aria-activedescendant`); `<dialog>` has no name | `command-palette.component.html:1-23` | full APG combobox |
-| High | `hk-notification` | Each item announced up to three times (assertive host region + `role=alert` host + inner `role=alert`) | `notification-host.component.html:1`, `notification-item.component.html:97,124,142` | one polite region at the host; no `role=alert` on items |
+| ~~High~~ | `hk-tree` | No `aria-level`/`aria-setsize`/`aria-posinset`; no `aria-checked` in checkbox mode; filter input inside `role="tree"` | `tree.component.html:39`, `tree.component.ts:64` | add attributes; move filter outside the tree role | **(fixed)**
+| ~~High~~ | `hk-command-palette` | Not a combobox/listbox pattern (no `role=combobox`, `aria-controls`, `aria-activedescendant`); `<dialog>` has no name | `command-palette.component.html:1-23` | full APG combobox | **(fixed)**
+| ~~High~~ | `hk-notification` | Each item announced up to three times (assertive host region + `role=alert` host + inner `role=alert`) | `notification-host.component.html:1`, `notification-item.component.html:97,124,142` | one polite region at the host; no `role=alert` on items | **(fixed)**
 | Medium | `hk-toast` | Per-item live region inserted together with its content (unreliable announcement); `aria-label=summary` hides detail; pause on hover only (not focus, WCAG 2.2.1); hardcoded "Dismiss notification" | `toast.component.html:5-8,41` | persistent live region; focus-pause; label via `ToastLabels` |
 | Medium | `hk-menu` | `menubar` uses Up/Down instead of Left/Right; every item is a tab stop (no roving tabindex); `role=menu` used for site navigation | `menu.component.ts:243-268` | `nav > ul` for navigation; APG menubar keys for real menus |
 | Medium | `hk-select` | With search enabled focus is on the search box, which lacks `aria-activedescendant`; focus not restored to trigger after Escape/selection | `select.component.html:134`, `select.component.ts:700` | |
-| Medium | `hk-timepicker` | Closing the `aria-modal` panel does not restore focus | `timepicker.component.ts:467` | mirror datepicker |
+| ~~Medium~~ | `hk-timepicker` | Closing the `aria-modal` panel does not restore focus | `timepicker.component.ts:467` | mirror datepicker | **(fixed)**
 | Medium | `hk-datagrid` | `aria-multiselectable="true"` regardless of selection mode | `datagrid.component.html:134` | bind to mode |
 | Low | `hk-alert` | `aria-describedby` points at an empty body; hardcoded "Close"/"Loading" | `alert-overlay.html:8` | |
 | Low | motion | `animateSequence` ignores `prefers-reduced-motion` (directives honour it) | `motion-sequence.ts:54` | |

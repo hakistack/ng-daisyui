@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
@@ -6,6 +6,7 @@ import { map } from 'rxjs';
 import {
   DocumentSource,
   DocumentViewerComponent,
+  DocumentViewerConfig,
   DocumentWorkspaceComponent,
   WorkspaceDocument,
   createDocumentEditor,
@@ -16,7 +17,47 @@ import {
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 
-type DocumentViewerTab = 'basic' | 'spreadsheet' | 'image' | 'switching' | 'editor' | 'workspace';
+type DocumentViewerTab = 'basic' | 'spreadsheet' | 'image' | 'switching' | 'editor' | 'workspace' | 'states';
+
+/** Scenarios of the `states` tab. Every one is an in-memory Blob: reproducible, no network. */
+type StateScenario = 'slow' | 'valid' | 'pptx' | 'odt' | 'unknown' | 'corrupt-xlsx' | 'corrupt-docx';
+
+interface StateSample {
+  readonly label: string;
+  /** Filename hint passed as `config.filename`; `null` = none (format comes from `Blob.type` only). */
+  readonly filename: string | null;
+  readonly blob: () => Blob;
+}
+
+/** Bytes that start like a ZIP (`PK\x03\x04`, the container of xlsx/docx/pptx/odt) and then go nowhere. */
+function brokenZip(): Uint8Array {
+  const bytes = new Uint8Array(512);
+  bytes.set([0x50, 0x4b, 0x03, 0x04]);
+  for (let i = 4; i < bytes.length; i++) bytes[i] = (i * 31) % 251;
+  return bytes;
+}
+
+const STATE_SAMPLES: Record<StateScenario, StateSample> = {
+  slow: {
+    label: 'customers.csv',
+    filename: 'customers.csv',
+    blob: () => new Blob(['name,city,balance\nAda,London,1200\nGrace,New York,830\nLinus,Helsinki,410\n'], { type: 'text/csv' }),
+  },
+  valid: {
+    label: 'notes.txt',
+    filename: 'notes.txt',
+    blob: () => new Blob(['A valid plain-text file renders right away.'], { type: 'text/plain' }),
+  },
+  pptx: {
+    label: 'Quarterly review.pptx',
+    filename: 'Quarterly review.pptx',
+    blob: () => new Blob([brokenZip() as BlobPart]),
+  },
+  odt: { label: 'Minutes.odt', filename: 'Minutes.odt', blob: () => new Blob([brokenZip() as BlobPart]) },
+  unknown: { label: 'no name, no type', filename: null, blob: () => new Blob([new Uint8Array([0, 1, 2, 3]) as BlobPart]) },
+  'corrupt-xlsx': { label: 'budget.xlsx', filename: 'budget.xlsx', blob: () => new Blob([brokenZip() as BlobPart]) },
+  'corrupt-docx': { label: 'contract.docx', filename: 'contract.docx', blob: () => new Blob([brokenZip() as BlobPart]) },
+};
 
 /**
  * Sample URLs for the format-dispatch tab.
@@ -198,6 +239,70 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
           </app-doc-section>
         }
 
+        @if (activeTab() === 'states') {
+          <app-doc-section
+            title="Loading, unsupported and broken files"
+            description="Every case here is an in-memory Blob, so it behaves the same on every machine. The viewer takes a source that is already available (URL, bytes or Blob): while your app is still fetching it, show your own placeholder; once it has the source, each renderer shows its own progress line while it parses. A format with no renderer (.pptx, .odt, or no name and no type) gets the unsupported card. A supported format with broken bytes reaches its renderer, which shows the parser's error in an alert instead of throwing."
+            [codeExample]="statesCode"
+          >
+            <div class="mb-3 flex flex-wrap gap-2" role="group" aria-label="Document scenarios">
+              <button type="button" class="btn btn-sm" [class.btn-active]="stateScenario() === 'slow'" (click)="loadState('slow')">
+                Slow fetch (1.5 s)
+              </button>
+              <button type="button" class="btn btn-sm" [class.btn-active]="stateScenario() === 'valid'" (click)="loadState('valid')">
+                Valid .txt
+              </button>
+              <button type="button" class="btn btn-sm" [class.btn-active]="stateScenario() === 'pptx'" (click)="loadState('pptx')">
+                Unsupported .pptx
+              </button>
+              <button type="button" class="btn btn-sm" [class.btn-active]="stateScenario() === 'odt'" (click)="loadState('odt')">
+                Unsupported .odt
+              </button>
+              <button type="button" class="btn btn-sm" [class.btn-active]="stateScenario() === 'unknown'" (click)="loadState('unknown')">
+                Unknown type
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-active]="stateScenario() === 'corrupt-xlsx'"
+                (click)="loadState('corrupt-xlsx')"
+              >
+                Corrupt .xlsx
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-active]="stateScenario() === 'corrupt-docx'"
+                (click)="loadState('corrupt-docx')"
+              >
+                Corrupt .docx
+              </button>
+            </div>
+
+            @if (stateScenario()) {
+              <div class="mb-2 text-xs text-base-content/70">
+                <strong>Source:</strong>
+                <span class="font-mono">{{ stateLabel() }}</span>
+                @if (stateFormat(); as fmt) {
+                  · <strong>Detected format:</strong> <span class="font-mono">{{ fmt }}</span>
+                }
+              </div>
+            }
+            <div class="min-h-48 rounded-md border border-base-content/10 p-2">
+              @if (statePending()) {
+                <div role="status" class="flex flex-col items-center justify-center gap-3 py-12 text-base-content/70">
+                  <span class="loading loading-spinner loading-md" aria-hidden="true"></span>
+                  <span class="text-sm">Fetching {{ stateLabel() }}…</span>
+                </div>
+              } @else if (stateSource(); as src) {
+                <hk-document-viewer [src]="src" [config]="stateConfig()" />
+              } @else {
+                <div class="py-12 text-center text-sm text-base-content/70">Pick a scenario above.</div>
+              }
+            </div>
+          </app-doc-section>
+        }
+
         @if (activeTab() === 'editor') {
           <app-doc-section
             title="Edit mode (Phase 0 — Text slice)"
@@ -315,6 +420,84 @@ export class DocumentViewerDemoComponent {
     this.currentSource.set(null);
     this.currentFilename.set(null);
   }
+
+  // ── States tab ──────────────────────────────────────────────────────────
+
+  readonly stateScenario = signal<StateScenario | null>(null);
+  readonly stateSource = signal<DocumentSource | null>(null);
+  readonly statePending = signal(false);
+  readonly stateLabel = computed(() => {
+    const scenario = this.stateScenario();
+    return scenario ? STATE_SAMPLES[scenario].label : '';
+  });
+  readonly stateConfig = computed<DocumentViewerConfig>(() => {
+    const scenario = this.stateScenario();
+    const filename = scenario ? STATE_SAMPLES[scenario].filename : null;
+    return filename ? { filename } : {};
+  });
+  /** What the viewer will dispatch on — `presentation`, `doc-legacy` and `unknown` have no built-in renderer. */
+  readonly stateFormat = computed(() => {
+    const src = this.stateSource();
+    return src ? resolveFormat(src, undefined, this.stateConfig().filename).format : null;
+  });
+  private stateTimer: ReturnType<typeof setTimeout> | undefined;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.stateTimer));
+  }
+
+  loadState(scenario: StateScenario): void {
+    clearTimeout(this.stateTimer);
+    this.stateScenario.set(scenario);
+    this.stateSource.set(null);
+    const sample = STATE_SAMPLES[scenario];
+    if (scenario !== 'slow') {
+      this.statePending.set(false);
+      this.stateSource.set(sample.blob());
+      return;
+    }
+    // Simulated network: the app shows its own placeholder until it has the bytes.
+    this.statePending.set(true);
+    this.stateTimer = setTimeout(() => {
+      this.statePending.set(false);
+      this.stateSource.set(sample.blob());
+    }, 1500);
+  }
+
+  readonly statesCode = `import { Component, signal } from '@angular/core';
+import { DocumentSource, DocumentViewerComponent } from '@hakistack/ng-daisyui';
+
+@Component({
+  imports: [DocumentViewerComponent],
+  template: \`
+    @if (loading()) {
+      <!-- Your placeholder while the app fetches the file -->
+      <div role="status"><span class="loading loading-spinner"></span> Fetching…</div>
+    } @else if (src(); as s) {
+      <!-- Then the renderer shows its own progress, unsupported card or error alert -->
+      <hk-document-viewer [src]="s" [config]="{ filename: filename() }" />
+    }
+  \`,
+})
+export class AttachmentComponent {
+  loading = signal(false);
+  src = signal<DocumentSource | null>(null);
+  filename = signal('');
+
+  async open(url: string, name: string): Promise<void> {
+    this.loading.set(true);
+    const blob = await fetch(url).then((r) => r.blob());
+    this.filename.set(name);  // 'deck.pptx' → unsupported card; a broken 'budget.xlsx' → error alert
+    this.src.set(blob);
+    this.loading.set(false);
+  }
+
+  // Reproduce the edge cases without a server: "PK.." (a ZIP header) followed by garbage
+  openBroken(name: 'budget.xlsx' | 'deck.pptx'): void {
+    this.filename.set(name);  // .xlsx → spreadsheet renderer → error alert; .pptx → no renderer → unsupported card
+    this.src.set(new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2, 3])]));
+  }
+}`;
 
   readonly workspaceDocs = signal<WorkspaceDocument[]>([
     { id: 'w9', name: 'Form W-9.pdf', src: SAMPLE_PDF, description: 'Taxes · 2024', pages: 6 },

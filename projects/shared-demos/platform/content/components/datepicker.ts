@@ -32,7 +32,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Fast typing of a known date (for example data entry from paper forms): an [Input](/input) with `hkInputMask="99/99/9999"` is quicker than navigating a calendar.',
-      es: 'Escritura rápida de una fecha conocida (por ejemplo, digitar formularios en papel): un [Input](/input) con `hkInputMask="99/99/9999"` es más rápido que navegar un calendario.',
+      es: 'Escritura rápida de una fecha conocida (por ejemplo, transcribir formularios en papel): un [Input](/input) con `hkInputMask="99/99/9999"` es más rápido que navegar un calendario.',
     },
     {
       en: 'Date fields inside a form you build from configuration: use the `date` or `datetime` field of the [Dynamic Form](/forms).',
@@ -65,8 +65,8 @@ export class DatepickerQuickStartComponent {
   readonly pickedLabel = computed(() => this.picked()?.toDateString() ?? 'nothing yet');
 }`,
     note: {
-      en: 'For Angular forms, bind `[formControl]`: the value is a `Date`, or `{ start, end }` in range mode. The component also registers itself as a validator, so `required`, `minDate` and `maxDate` show up in the control errors.',
-      es: 'Con formularios de Angular, usa `[formControl]`: el valor es un `Date`, o `{ start, end }` en modo rango. El componente además se registra como validador, así que `required`, `minDate` y `maxDate` aparecen en los errores del control.',
+      en: 'For Angular forms, bind `[formControl]`: the value is a `Date`, or `{ start, end }` in range mode. The component also registers itself as a validator, so its `required`, `minDate` and `maxDate` inputs show up in the control errors as `required`, `min` and `max`.',
+      es: 'Con formularios de Angular, usa `[formControl]`: el valor es un `Date`, o `{ start, end }` en modo rango. El componente además se registra como validador, así que sus inputs `required`, `minDate` y `maxDate` aparecen en los errores del control como `required`, `min` y `max`.',
     },
   },
   technical: [
@@ -78,7 +78,7 @@ export class DatepickerQuickStartComponent {
           kind: 'p',
           text: {
             en: 'The picker keeps its state in signals: `currentMonth`, `currentView` (`days`, `months` or `years`), `selectedDate`, `rangeStart` / `rangeEnd`, `focusedDate` for the keyboard cursor, and hour, minute and period for time. The visible weeks, weekday headers, month and year grids, the display text and the validation errors are all `computed()` from them, so OnPush change detection only redraws what changed.',
-            es: 'El selector guarda su estado en signals: `currentMonth`, `currentView` (`days`, `months` o `years`), `selectedDate`, `rangeStart` / `rangeEnd`, `focusedDate` para el cursor de teclado, y hora, minuto y periodo para el tiempo. Las semanas visibles, los encabezados de días, las cuadrículas de meses y años, el texto mostrado y los errores de validación son `computed()` de esas signals, así que OnPush solo redibuja lo que cambió.',
+            es: 'El selector guarda su estado en signals: `currentMonth`, `currentView` (`days`, `months` o `years`), `selectedDate`, `rangeStart` / `rangeEnd`, `focusedDate` para el cursor de teclado, y hora, minuto y periodo (AM/PM) para la hora. Las semanas visibles, los encabezados de días, las cuadrículas de meses y años, el texto mostrado y los errores de validación son `computed()` de esos signals, así que OnPush solo vuelve a renderizar lo que cambió.',
           },
         },
         {
@@ -107,8 +107,8 @@ export class DatepickerQuickStartComponent {
             {
               label: { en: 'Pick', es: 'Elegir' },
               detail: {
-                en: 'Single mode emits `dateSelected` and `selectionChange`. Range mode takes two clicks, swaps them if the second is earlier, then emits `rangeSelected`.',
-                es: 'En modo simple emite `dateSelected` y `selectionChange`. En modo rango toma dos clics, los invierte si el segundo es anterior y luego emite `rangeSelected`.',
+                en: 'Single mode emits `dateSelected` and `selectionChange`. Range mode takes two clicks, swaps them if the second is earlier, then emits `rangeSelected` and `selectionChange`. Clicking the start day again clears the range.',
+                es: 'En modo simple emite `dateSelected` y `selectionChange`. En modo rango toma dos clics, los invierte si el segundo es anterior y luego emite `rangeSelected` y `selectionChange`. Volver a hacer clic en el día de inicio limpia el rango.',
               },
             },
             {
@@ -121,8 +121,8 @@ export class DatepickerQuickStartComponent {
             {
               label: { en: 'Close', es: 'Cerrar' },
               detail: {
-                en: 'With `closeOnSelect` (default `true`) the panel closes and focus returns to the field. With `showTime` it stays open so the user can set the time.',
-                es: 'Con `closeOnSelect` (por defecto `true`) el panel se cierra y el foco vuelve al campo. Con `showTime` se queda abierto para que la persona ajuste la hora.',
+                en: 'With `closeOnSelect` (default `true`) the panel closes and focus returns to the field. With `showTime`, picking a day keeps it open so the user can set the time.',
+                es: 'Con `closeOnSelect` (por defecto `true`) el panel se cierra y el foco vuelve al campo. Con `showTime`, elegir un día lo deja abierto para que la persona ajuste la hora.',
               },
             },
           ],
@@ -131,7 +131,7 @@ export class DatepickerQuickStartComponent {
           kind: 'p',
           text: {
             en: 'Because the component is also an `NG_VALIDATORS` provider, a touched invalid field shows its own message below the input (`requiredError`, `minError`, `maxError`) and sets `aria-invalid`.',
-            es: 'Como el componente también es un proveedor `NG_VALIDATORS`, un campo tocado e inválido muestra su propio mensaje debajo del input (`requiredError`, `minError`, `maxError`) y pone `aria-invalid`.',
+            es: 'Como el componente también es un proveedor de `NG_VALIDATORS`, un campo tocado e inválido muestra su propio mensaje debajo del input (`requiredError`, `minError`, `maxError`) y activa `aria-invalid`.',
           },
         },
       ],
@@ -143,8 +143,8 @@ export class DatepickerQuickStartComponent {
         {
           kind: 'p',
           text: {
-            en: 'Every visible string and aria-label can be replaced with the `labels` input (`DatepickerLabels`); anything you leave out falls back to English. The calendar is a CDK connected overlay: `dropdownPosition` sets the preferred corner and it flips automatically when there is no room, and it follows the field as the page scrolls.',
-            es: 'Cada texto visible y cada aria-label se puede reemplazar con el input `labels` (`DatepickerLabels`); lo que no pongas vuelve al inglés. El calendario es un overlay conectado de CDK: `dropdownPosition` define la esquina preferida, se voltea solo cuando no hay espacio y sigue al campo al hacer scroll.',
+            en: 'The visible strings and the navigation aria-labels can be replaced with the `labels` input (`DatepickerLabels`); anything you leave out falls back to English. A few button labels ("Clear selection", "Open calendar", "Select month", "Select year") are fixed in English. The calendar is a CDK connected overlay: `dropdownPosition` sets the preferred corner, it flips automatically when there is no room, and it follows the field as the page scrolls.',
+            es: 'Los textos visibles y los aria-labels de navegación se pueden reemplazar con el input `labels` (`DatepickerLabels`); lo que no indiques vuelve al inglés. Algunas etiquetas de botones ("Clear selection", "Open calendar", "Select month", "Select year") están fijas en inglés. El calendario es un overlay conectado de CDK: `dropdownPosition` define la esquina preferida, cambia de lado automáticamente cuando no hay espacio y sigue al campo cuando la página se desplaza.',
           },
         },
         {
@@ -157,6 +157,13 @@ export class DatepickerQuickStartComponent {
   [firstDayOfWeek]="1"
   [labels]="{ todayLabel: 'Hoy', clearLabel: 'Borrar', closeLabel: 'Cerrar', requiredError: 'Este campo es obligatorio.' }"
 />`,
+        },
+        {
+          kind: 'p',
+          text: {
+            en: 'The `config` input ([DatepickerConfig](/api/DatepickerConfig)) takes the format options (`dateFormat`, `monthFormat`, `weekdayFormat`, `yearBatchSize`) and merges them over the defaults, so you pass only what you change. `closeOnSelect`, `showClearButton` and `showTodayButton` are set with their own inputs, not through `config`. `[showWeekNumbers]="true"` adds an ISO week-number column; its header and the screen-reader prefix of each number come from the `weekNumberHeader` label (default "Week").',
+            es: 'El input `config` ([DatepickerConfig](/api/DatepickerConfig)) recibe las opciones de formato (`dateFormat`, `monthFormat`, `weekdayFormat`, `yearBatchSize`) y las combina con los valores por defecto, así que solo pasas lo que cambias. `closeOnSelect`, `showClearButton` y `showTodayButton` se configuran con sus propios inputs, no con `config`. `[showWeekNumbers]="true"` agrega una columna con el número de semana ISO; su encabezado y el prefijo que oye el lector de pantalla antes de cada número salen de la etiqueta `weekNumberHeader` (por defecto "Week").',
+          },
         },
       ],
     },
@@ -176,7 +183,10 @@ export class DatepickerQuickStartComponent {
       { keys: 'Home / End', action: { en: 'First / last day of the week.', es: 'Primer / último día de la semana.' } },
       { keys: 'PageUp / PageDown', action: { en: 'Previous / next month.', es: 'Mes anterior / siguiente.' } },
       { keys: 'Shift + PageUp / PageDown', action: { en: 'Previous / next year.', es: 'Año anterior / siguiente.' } },
-      { keys: 'Enter / Space', action: { en: 'In the grid: select the focused day.', es: 'En la cuadrícula: elige el día enfocado.' } },
+      {
+        keys: 'Enter / Space',
+        action: { en: 'In the grid: select the focused day.', es: 'En la cuadrícula: elige el día que tiene el foco.' },
+      },
       {
         keys: 'Tab / Shift + Tab',
         action: { en: 'Cycle through the controls inside the open calendar.', es: 'Recorre los controles dentro del calendario abierto.' },
@@ -193,11 +203,11 @@ export class DatepickerQuickStartComponent {
       },
       {
         en: 'The day grid is `role="grid"` with a roving tabindex: only the focused day is tabbable. Each day has a full-date `aria-label`, today has `aria-current="date"`, and selected days get `aria-selected`.',
-        es: 'La cuadrícula de días es `role="grid"` con tabindex itinerante: solo el día enfocado es tabulable. Cada día tiene un `aria-label` con la fecha completa, hoy lleva `aria-current="date"` y los días elegidos llevan `aria-selected`.',
+        es: 'La cuadrícula de días es `role="grid"` con tabindex itinerante: solo el día con el foco es accesible con Tab. Cada día tiene un `aria-label` con la fecha completa, hoy lleva `aria-current="date"` y los días elegidos llevan `aria-selected`.',
       },
       {
-        en: 'The field `aria-label` is the `placeholder`, so write a meaningful one ("Appointment date"). Validation messages are linked with `aria-describedby` and announced with `role="alert"`.',
-        es: 'El `aria-label` del campo es el `placeholder`, así que escribe uno con sentido ("Fecha de la cita"). Los mensajes de validación se enlazan con `aria-describedby` y se anuncian con `role="alert"`.',
+        en: 'Set `controlId` when a visible `<label for="...">` names the field: the inner input takes that id and the label becomes the accessible name. Without `controlId`, the `placeholder` is used as the `aria-label`, so write a meaningful one ("Appointment date"). Validation messages are linked with `aria-describedby` and announced with `role="alert"`.',
+        es: 'Usa `controlId` cuando un `<label for="...">` visible da nombre al campo: el input interno toma ese id y la etiqueta pasa a ser el nombre accesible. Sin `controlId`, el `placeholder` se usa como `aria-label`, así que escribe uno con sentido ("Fecha de la cita"). Los mensajes de validación se enlazan con `aria-describedby` y se anuncian con `role="alert"`.',
       },
       {
         en: 'Translate the navigation aria-labels (`previousMonthAriaLabel`, `nextMonthAriaLabel` and the rest) through `labels` when your app is not in English.',
@@ -208,7 +218,7 @@ export class DatepickerQuickStartComponent {
   performance: [
     {
       en: 'The calendar panel is only rendered while open; a closed picker renders just the field and its icons.',
-      es: 'El panel del calendario solo se dibuja mientras está abierto; un selector cerrado dibuja solo el campo y sus iconos.',
+      es: 'El panel del calendario solo se renderiza mientras está abierto; un selector cerrado renderiza solo el campo y sus iconos.',
     },
     {
       en: 'Day cell ids are cached per month and the cache is cleared when the month changes, so ids stay stable while you navigate within a month.',
@@ -228,7 +238,7 @@ export class DatepickerQuickStartComponent {
       id: 'forms',
       note: {
         en: '`date` and `datetime` fields render a date control for you inside a form config.',
-        es: 'Los campos `date` y `datetime` dibujan un control de fecha por ti dentro de la configuración del formulario.',
+        es: 'Los campos `date` y `datetime` renderizan un control de fecha por ti dentro de la configuración del formulario.',
       },
     },
     {

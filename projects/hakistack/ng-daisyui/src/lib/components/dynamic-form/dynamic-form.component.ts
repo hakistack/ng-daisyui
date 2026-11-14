@@ -113,7 +113,8 @@ export class DynamicFormComponent {
     this.formValues();
     return stepFields.every((field) => {
       const control = form.get(field.key);
-      return !control || control.valid;
+      // A disabled control (hidden by showWhen, or disabledWhen) is never `valid` — it doesn't count.
+      return !control || control.disabled || control.valid;
     });
   });
 
@@ -130,7 +131,8 @@ export class DynamicFormComponent {
 
     return stepFields.every((field) => {
       const control = form.get(field.key);
-      return !control || control.valid;
+      // A disabled control (hidden by showWhen, or disabledWhen) is never `valid` — it doesn't count.
+      return !control || control.disabled || control.valid;
     });
   }
 
@@ -347,9 +349,63 @@ export class DynamicFormComponent {
     this.setupFormReactivity();
     this.setupExternalTriggers();
     this.setupFocusOnLoad();
+    this.setupHiddenFieldSync();
     // Release the WASM-heap slot when the component is torn down. Idempotent
     // — `dispose()` no-ops on second call via `DisposableHandle`.
     this.destroyRef.onDestroy(() => this.disposeEngineHandle());
+  }
+
+  /** Controls disabled because a showWhen/hideWhen condition currently hides their field. */
+  private readonly hiddenByCondition = new Set<string>();
+  private hiddenSyncForm: FormGroup | null = null;
+
+  /**
+   * Hidden fields are disabled: a disabled control is excluded from `form.valid` and `form.value`
+   * (still available through `getRawValue()`), so a required field hidden by `showWhen` no longer
+   * blocks submit invisibly and its stale value is not submitted. Re-enabled when shown again —
+   * unless the whole form is disabled or `disabledWhen` still applies.
+   */
+  private setupHiddenFieldSync(): void {
+    effect(() => {
+      const form = this.formGroup();
+      const formDisabled = this.disabled();
+      const config = this.config();
+      const fields = config.steps ? config.steps.flatMap((step) => [...step.fields]) : (config.fields ?? []);
+      const conditional = fields.filter((f) => !f.hidden && (f.showWhen?.length || f.hideWhen?.length));
+      if (conditional.length === 0) return;
+
+      // shouldShowField reads the engine generation / form values, so this re-runs on changes.
+      const visibility = conditional.map((f) => [f.key, this.shouldShowField(f)] as const);
+      untracked(() => this.applyHiddenState(form, visibility, formDisabled));
+    });
+  }
+
+  private applyHiddenState(form: FormGroup, visibility: readonly (readonly [string, boolean])[], formDisabled: boolean): void {
+    if (this.hiddenSyncForm !== form) {
+      this.hiddenByCondition.clear();
+      this.hiddenSyncForm = form;
+    }
+    let reshown = false;
+    for (const [key, visible] of visibility) {
+      const control = form.get(key);
+      if (!control) continue;
+      if (!visible) {
+        this.hiddenByCondition.add(key);
+        if (control.enabled) control.disable({ emitEvent: false });
+      } else if (this.hiddenByCondition.delete(key)) {
+        if (!formDisabled) {
+          control.enable({ emitEvent: false });
+          reshown = true;
+        }
+      }
+    }
+    // A re-shown field may still be disabled by its own `disabledWhen`.
+    if (reshown) this.updateConditionalValidation(this.formValues(), null);
+  }
+
+  /** True when the control is disabled only because its field is hidden. */
+  private isHiddenByCondition(key: string): boolean {
+    return this.hiddenByCondition.has(key);
   }
 
   /** Focus on field with focusOnLoad: true after the form renders */
@@ -663,6 +719,20 @@ export class DynamicFormComponent {
     const values = this.formValuesWithContext();
     const form = this.formGroup();
     return field.requiredWhen?.length ? ConditionEngine.evaluateConditions(field.requiredWhen, values, form) : false;
+  }
+
+  /** True when the field's control is invalid and has been touched (errors are visible). */
+  isFieldInvalid(field: FormFieldConfig): boolean {
+    const control = this.formGroup().get(field.key);
+    return !!control && control.invalid && control.touched;
+  }
+
+  /** `aria-describedby` for a field: its help text and, when shown, its error messages. */
+  describedBy(field: FormFieldConfig): string | null {
+    const ids: string[] = [];
+    if (field.helpText) ids.push(`${field.id}-help`);
+    if (this.isFieldInvalid(field)) ids.push(`${field.id}-error`);
+    return ids.length ? ids.join(' ') : null;
   }
 
   getFieldValue(fieldKey: string): unknown {
@@ -1231,7 +1301,7 @@ export class DynamicFormComponent {
         case 'disabled':
           if (e.value) {
             control.disable({ emitEvent: false });
-          } else {
+          } else if (!this.isHiddenByCondition(e.field)) {
             control.enable({ emitEvent: false });
           }
           break;
@@ -1433,6 +1503,8 @@ export class DynamicFormComponent {
       // Handle conditional disabled state
       if (field.disabledWhen?.length) {
         const shouldBeDisabled = ConditionEngine.evaluateConditions(field.disabledWhen, valuesWithContext, form);
+        // Never re-enable a control that stays disabled because its field is hidden.
+        if (!shouldBeDisabled && this.isHiddenByCondition(field.key)) continue;
         if (shouldBeDisabled !== control.disabled) {
           stateUpdates.push({ control, shouldDisable: shouldBeDisabled });
         }

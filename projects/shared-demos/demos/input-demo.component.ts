@@ -158,24 +158,24 @@ type ApiTab = 'component' | 'configs' | 'types';
             <app-doc-section title="Sizes" description="Different size variants matching DaisyUI">
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div>
-                  <label class="label"><span class="label-text">Extra Small</span></label>
-                  <hk-input size="xs" placeholder="XS" />
+                  <span class="label"><span class="label-text">Extra Small</span></span>
+                  <hk-input ariaLabel="Extra Small" size="xs" placeholder="XS" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Small</span></label>
-                  <hk-input size="sm" placeholder="SM" />
+                  <span class="label"><span class="label-text">Small</span></span>
+                  <hk-input ariaLabel="Small" size="sm" placeholder="SM" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Medium (default)</span></label>
-                  <hk-input size="md" placeholder="MD" />
+                  <span class="label"><span class="label-text">Medium (default)</span></span>
+                  <hk-input ariaLabel="Medium (default)" size="md" placeholder="MD" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Large</span></label>
-                  <hk-input size="lg" placeholder="LG" />
+                  <span class="label"><span class="label-text">Large</span></span>
+                  <hk-input ariaLabel="Large" size="lg" placeholder="LG" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Extra Large</span></label>
-                  <hk-input size="xl" placeholder="XL" />
+                  <span class="label"><span class="label-text">Extra Large</span></span>
+                  <hk-input ariaLabel="Extra Large" size="xl" placeholder="XL" />
                 </div>
               </div>
             </app-doc-section>
@@ -184,10 +184,10 @@ type ApiTab = 'component' | 'configs' | 'types';
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 @for (c of colors; track c) {
                   <div>
-                    <label class="label"
-                      ><span class="label-text capitalize">{{ c }}</span></label
+                    <span class="label"
+                      ><span class="label-text capitalize">{{ c }}</span></span
                     >
-                    <hk-input [color]="c" [placeholder]="c" />
+                    <hk-input [ariaLabel]="c" [color]="c" [placeholder]="c" />
                   </div>
                 }
               </div>
@@ -196,16 +196,16 @@ type ApiTab = 'component' | 'configs' | 'types';
             <app-doc-section title="Combined" description="Variants with sizes and colors">
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <label class="label"><span class="label-text">Small Currency (Primary)</span></label>
-                  <hk-input variant="currency" size="sm" color="primary" placeholder="Amount" />
+                  <span class="label"><span class="label-text">Small Currency (Primary)</span></span>
+                  <hk-input ariaLabel="Small Currency (Primary)" variant="currency" size="sm" color="primary" placeholder="Amount" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Large Phone (Accent)</span></label>
-                  <hk-input variant="phone" size="lg" color="accent" placeholder="Phone" />
+                  <span class="label"><span class="label-text">Large Phone (Accent)</span></span>
+                  <hk-input ariaLabel="Large Phone (Accent)" variant="phone" size="lg" color="accent" placeholder="Phone" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Password (Error)</span></label>
-                  <hk-input variant="password" color="error" placeholder="Password" />
+                  <span class="label"><span class="label-text">Password (Error)</span></span>
+                  <hk-input ariaLabel="Password (Error)" variant="password" color="error" placeholder="Password" />
                 </div>
               </div>
             </app-doc-section>
@@ -223,16 +223,16 @@ type ApiTab = 'component' | 'configs' | 'types';
             >
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <label class="label"><span class="label-text">Name</span></label>
-                  <hk-input [formControl]="nameControl" placeholder="Full name" />
+                  <span class="label"><span class="label-text">Name</span></span>
+                  <hk-input ariaLabel="Name" [formControl]="nameControl" placeholder="Full name" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Salary</span></label>
-                  <hk-input variant="currency" [formControl]="salaryControl" placeholder="Annual salary" />
+                  <span class="label"><span class="label-text">Salary</span></span>
+                  <hk-input ariaLabel="Salary" variant="currency" [formControl]="salaryControl" placeholder="Annual salary" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Phone</span></label>
-                  <hk-input variant="phone" [formControl]="demoPhoneControl" placeholder="Phone number" />
+                  <span class="label"><span class="label-text">Phone</span></span>
+                  <hk-input ariaLabel="Phone" variant="phone" [formControl]="demoPhoneControl" placeholder="Phone number" />
                 </div>
               </div>
               <div class="mt-4 p-4 bg-base-200 rounded-lg">

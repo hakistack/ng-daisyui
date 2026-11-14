@@ -4,17 +4,17 @@ const content: ComponentDocContent = {
   overview: [
     {
       en: 'A wizard splits a long form into smaller steps — "Account", "Personal info", "Review" — so people see a few questions at a time. A bar at the top shows where they are, and Previous / Next buttons move between steps.',
-      es: 'Un asistente divide un formulario largo en pasos más pequeños —"Cuenta", "Datos personales", "Revisión"— para que la persona vea pocas preguntas a la vez. Una barra arriba muestra en qué paso va, y los botones Anterior / Siguiente mueven entre pasos.',
+      es: 'Un asistente divide un formulario largo en pasos más pequeños —"Cuenta", "Datos personales", "Revisión"— para que la persona vea pocas preguntas a la vez. Una barra arriba muestra en qué paso está, y los botones Anterior / Siguiente permiten moverse entre pasos.',
     },
     {
-      en: 'The easiest way to build one is the [Dynamic Form](/forms): give `createForm()` a list of `steps` instead of `fields`, using `step.create()` for each step and `step.review()` for a final summary page. By default the wizard is linear: Next stays disabled until every field in the current step is valid. Under the hood it uses `hk-stepper`, which you can also use on its own to page through any content.',
-      es: 'La forma más fácil de construirlo es con el [Formulario dinámico](/forms): pásale a `createForm()` una lista de `steps` en vez de `fields`, usando `step.create()` para cada paso y `step.review()` para una página final de resumen. Por defecto el asistente es lineal: Siguiente queda deshabilitado hasta que todos los campos del paso actual sean válidos. Por dentro usa `hk-stepper`, que también puedes usar por separado para paginar cualquier contenido.',
+      en: 'The easiest way to build one is the [Dynamic Form](/forms): give `createForm()` a list of `steps` instead of `fields`, using `step.create()` for each step and `step.review()` for a final summary page. By default the wizard is linear: Next stays disabled until every field in the current step is valid (fields that are hidden or disabled do not count). Under the hood it uses `hk-stepper`, which you can also use on its own to page through any content.',
+      es: 'La forma más fácil de construirlo es con el [Formulario dinámico](/forms): pásale a `createForm()` una lista de `steps` en vez de `fields`, usando `step.create()` para cada paso y `step.review()` para una página final de resumen. Por defecto el asistente es lineal: Siguiente queda deshabilitado hasta que todos los campos del paso actual sean válidos (los campos ocultos o deshabilitados no cuentan). Por dentro usa `hk-stepper`, que también puedes usar por separado para paginar cualquier contenido.',
     },
   ],
   whenToUse: [
     {
       en: 'Sign-up, onboarding or checkout flows with more fields than fit comfortably on one screen.',
-      es: 'Flujos de registro, bienvenida o pago con más campos de los que caben cómodamente en una pantalla.',
+      es: 'Flujos de registro, incorporación (onboarding) o pago con más campos de los que caben cómodamente en una pantalla.',
     },
     {
       en: 'Processes where later questions depend on earlier answers and the user should confirm everything on a review step.',
@@ -70,7 +70,7 @@ export class WizardQuickStartComponent {
 }`,
     note: {
       en: 'In wizard mode the stepper renders its own Previous, Next and complete buttons; the complete button on the last step submits the form. `form.submit()` and `form.reset()` still work from outside.',
-      es: 'En modo asistente el stepper dibuja sus propios botones Anterior, Siguiente y de completar; el botón de completar del último paso envía el formulario. `form.submit()` y `form.reset()` siguen funcionando desde afuera.',
+      es: 'En modo asistente el stepper renderiza sus propios botones Anterior, Siguiente y de completar; el botón de completar del último paso envía el formulario. `form.submit()` y `form.reset()` siguen funcionando desde afuera.',
     },
   },
   technical: [
@@ -81,8 +81,8 @@ export class WizardQuickStartComponent {
         {
           kind: 'p',
           text: {
-            en: '`step.create(name, label, fields, options?)` builds a `FormStep`; `options` takes `description`, `optional`, `nextText` and `previousText`. `step.review(name, label)` is a step with no fields: when `showStepSummary` is on, it lists every previous step with its labels and values (option labels, not raw values, for selects and radios).',
-            es: '`step.create(name, label, fields, options?)` construye un `FormStep`; `options` acepta `description`, `optional`, `nextText` y `previousText`. `step.review(name, label)` es un paso sin campos: cuando `showStepSummary` está activo, lista cada paso anterior con sus etiquetas y valores (la etiqueta de la opción, no el valor crudo, en selects y radios).',
+            en: '`step.create(name, label, fields, options?)` builds a `FormStep`; `options` takes `description`, `optional`, `nextText` and `previousText`. `step.review(name, label, description?)` is a step with no fields: when `showStepSummary` is on, it lists every step that has fields, with their labels and values (option labels, not raw values, for selects and radios).',
+            es: '`step.create(name, label, fields, options?)` construye un `FormStep`; `options` acepta `description`, `optional`, `nextText` y `previousText`. `step.review(name, label, description?)` es un paso sin campos: cuando `showStepSummary` está activo, lista cada paso que tiene campos, con sus etiquetas y valores (la etiqueta de la opción, no el valor interno, en selects y radios).',
           },
         },
         {
@@ -97,8 +97,8 @@ export class WizardQuickStartComponent {
               { en: '`linear`', es: '`linear`' },
               { en: '`true`', es: '`true`' },
               {
-                en: 'Next is disabled until the current step is valid; the step bar only allows going back.',
-                es: 'Siguiente se deshabilita hasta que el paso actual sea válido; la barra de pasos solo permite volver atrás.',
+                en: 'Next is disabled until the current step is valid (hidden or disabled fields are ignored); the step bar only allows going back.',
+                es: 'Siguiente se deshabilita hasta que el paso actual sea válido (los campos ocultos o deshabilitados se ignoran); la barra de pasos solo permite volver atrás.',
               },
             ],
             [
@@ -121,8 +121,8 @@ export class WizardQuickStartComponent {
         {
           kind: 'p',
           text: {
-            en: 'Conditions in wizard mode also receive step context in the values object: `__stepIndex`, `__stepName`, `__isFirstStep`, `__isLastStep` and `__completedSteps`. The form emits `stepChange` with `{ previousStep, currentStep, stepIndex, formValues }`, and `onSubmit` receives `completedSteps` and `currentStep`. With auto-save, the current step and completed steps are saved and restored too.',
-            es: 'En modo asistente, las condiciones también reciben contexto del paso en el objeto de valores: `__stepIndex`, `__stepName`, `__isFirstStep`, `__isLastStep` y `__completedSteps`. El formulario emite `stepChange` con `{ previousStep, currentStep, stepIndex, formValues }`, y `onSubmit` recibe `completedSteps` y `currentStep`. Con autoguardado, el paso actual y los pasos completados también se guardan y se restauran.',
+            en: 'Conditions in wizard mode also receive step context in the values object: `__stepIndex`, `__stepName`, `__isFirstStep`, `__isLastStep` and `__completedSteps`. The form emits `stepChange` with `{ previousStep, currentStep, stepIndex, formValues }`, and `onSubmit` receives `completedSteps` and `currentStep`. Fields hidden by `showWhen` / `hideWhen` (and fields disabled by `disabledWhen`) are disabled controls, so they never block Next and are left out of the submitted `values`. With auto-save, the current step and completed steps are saved and restored too.',
+            es: 'En modo asistente, las condiciones también reciben contexto del paso en el objeto de valores: `__stepIndex`, `__stepName`, `__isFirstStep`, `__isLastStep` y `__completedSteps`. El formulario emite `stepChange` con `{ previousStep, currentStep, stepIndex, formValues }`, y `onSubmit` recibe `completedSteps` y `currentStep`. Los campos ocultos por `showWhen` / `hideWhen` (y los deshabilitados por `disabledWhen`) son controles deshabilitados, así que nunca bloquean Siguiente y quedan fuera de los `values` enviados. Con autoguardado, el paso actual y los pasos completados también se guardan y se restauran.',
           },
         },
       ],
@@ -159,7 +159,7 @@ export class WizardQuickStartComponent {
           items: [
             {
               en: 'Inputs: `showStepIndicator`, `showCard` (wrap in a daisyUI card, default `true`), `animateContent`, `previousButtonText`, `nextButtonText`, `completeButtonText`, `optionalLabel`.',
-              es: 'Inputs: `showStepIndicator`, `showCard` (envolver en una card de daisyUI, por defecto `true`), `animateContent`, `previousButtonText`, `nextButtonText`, `completeButtonText`, `optionalLabel`.',
+              es: 'Inputs: `showStepIndicator`, `showCard` (envolver en una tarjeta `card` de daisyUI, por defecto `true`), `animateContent`, `previousButtonText`, `nextButtonText`, `completeButtonText`, `optionalLabel`.',
             },
             {
               en: 'Outputs: `stepChange` with `{ previousIndex, currentIndex }` and `completed` when the last button is pressed.',
@@ -167,7 +167,7 @@ export class WizardQuickStartComponent {
             },
             {
               en: 'Only the selected step content is rendered; the others stay as templates until visited.',
-              es: 'Solo se dibuja el contenido del paso seleccionado; los demás se quedan como plantillas hasta visitarlos.',
+              es: 'Solo se renderiza el contenido del paso seleccionado; los demás se quedan como plantillas hasta visitarlos.',
             },
           ],
         },
@@ -193,8 +193,8 @@ export class WizardQuickStartComponent {
     ],
     notes: [
       {
-        en: 'The step bar is a `role="tablist"` with `role="tab"` items; the active step has `aria-selected` and `aria-current="step"`. Steps the user cannot reach yet get `tabindex="-1"`.',
-        es: 'La barra de pasos es un `role="tablist"` con elementos `role="tab"`; el paso activo tiene `aria-selected` y `aria-current="step"`. Los pasos que todavía no se pueden alcanzar llevan `tabindex="-1"`.',
+        en: 'The step bar is a `role="tablist"` with `role="tab"` items; the active step has `aria-selected` and `aria-current="step"`. Each tab has a stable id and `aria-controls`, and the step content is a `role="tabpanel"` labelled by the active tab. Steps the user cannot reach yet get `tabindex="-1"`.',
+        es: 'La barra de pasos es un `role="tablist"` con elementos `role="tab"`; el paso activo tiene `aria-selected` y `aria-current="step"`. Cada pestaña tiene un id estable y `aria-controls`, y el contenido del paso es un `role="tabpanel"` cuyo nombre es la pestaña activa. Los pasos que todavía no se pueden alcanzar llevan `tabindex="-1"`.',
       },
       {
         en: 'Previous, Next and complete are real `<button type="button">` elements and are disabled (not hidden) when they cannot act, so screen readers still announce them.',
@@ -213,7 +213,7 @@ export class WizardQuickStartComponent {
   performance: [
     {
       en: 'Only the active step is rendered, so a wizard with many steps costs about the same as its largest step.',
-      es: 'Solo se dibuja el paso activo, así que un asistente con muchos pasos cuesta más o menos lo mismo que su paso más grande.',
+      es: 'Solo se renderiza el paso activo, así que un asistente con muchos pasos cuesta más o menos lo mismo que su paso más grande.',
     },
     {
       en: 'All steps share one `FormGroup`, so values typed in earlier steps are kept when the user goes back and forth.',
@@ -229,7 +229,7 @@ export class WizardQuickStartComponent {
       id: 'forms',
       note: {
         en: 'The same builders on a single page, with all field types and layouts.',
-        es: 'Los mismos builders en una sola página, con todos los tipos de campo y layouts.',
+        es: 'Los mismos builders en una sola página, con todos los tipos de campo y diseños.',
       },
     },
     {

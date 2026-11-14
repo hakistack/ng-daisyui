@@ -1,7 +1,7 @@
-import type { DocExample, DocPageMeta, DocSection, ComponentGroup, Localized } from './catalog.types';
+import type { ComponentGroup, DocExample, DocPageMeta, DocSection, ExampleLevel, Localized } from './catalog.types';
 
 /** Shorthand for an example tab. */
-const ex = (id: string, en: string, es: string): DocExample => ({ id, label: { en, es } });
+const ex = (id: string, en: string, es: string, level?: ExampleLevel): DocExample => ({ id, label: { en, es }, level });
 const l = (en: string, es: string): Localized => ({ en, es });
 
 /**
@@ -23,6 +23,7 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'Qué es ng-daisyui, qué te ofrece y cómo encajan sus piezas.',
     ),
     status: 'stable',
+    hasContent: true,
     keywords: ['what is', 'qué es', 'overview', 'resumen', 'why', 'por qué', 'first component', 'primer componente'],
   },
   {
@@ -36,6 +37,7 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'Instala el paquete y sus dependencias, y configura Tailwind CSS v4 y daisyUI v5.',
     ),
     status: 'stable',
+    hasContent: true,
     keywords: ['install', 'instalar', 'npm', 'ng add', 'setup', 'configurar', 'tailwind', 'daisyui', 'peer dependencies', 'quick start'],
   },
   {
@@ -49,10 +51,108 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'Funciones builder, controladores y signals: las tres ideas que comparten todos los componentes.',
     ),
     status: 'stable',
+    hasContent: true,
     keywords: ['controller', 'controlador', 'builder', 'signals', 'patterns', 'createForm', 'createTable', 'onpush'],
   },
 
+  {
+    id: 'learning-paths',
+    route: '/guides/learning-paths',
+    section: 'getting-started',
+    title: l('Learning paths', 'Rutas de aprendizaje'),
+    icon: 'route',
+    summary: l(
+      'Three ordered reading lists — beginner, intermediate, advanced — so you know what to read next.',
+      'Tres listas de lectura en orden —principiante, intermedio, avanzado— para saber qué leer después.',
+    ),
+    status: 'stable',
+    hasContent: true,
+    keywords: [
+      'learn',
+      'aprender',
+      'tutorial',
+      'beginner',
+      'principiante',
+      'advanced',
+      'avanzado',
+      'path',
+      'ruta',
+      'where to start',
+      'por dónde empezar',
+    ],
+  },
+
   // ── Foundations ─────────────────────────────────────────────────────────
+  {
+    id: 'design-principles',
+    route: '/foundations/design-principles',
+    section: 'foundations',
+    title: l('Design principles', 'Principios de diseño'),
+    icon: 'compass',
+    summary: l(
+      'The rules the components follow: daisyUI tokens over custom CSS, signals over RxJS, configuration over boilerplate.',
+      'Las reglas que siguen los componentes: tokens de daisyUI en lugar de CSS propio, signals en lugar de RxJS, configuración en lugar de código repetitivo.',
+    ),
+    status: 'stable',
+    hasContent: true,
+    keywords: ['principles', 'principios', 'philosophy', 'filosofía', 'design', 'diseño'],
+  },
+  {
+    id: 'colors',
+    route: '/foundations/colors',
+    section: 'foundations',
+    title: l('Colors', 'Colores'),
+    icon: 'swatch-book',
+    summary: l(
+      'Components only use daisyUI semantic colors (primary, base-100, error…), so the theme decides every color.',
+      'Los componentes solo usan colores semánticos de daisyUI (primary, base-100, error…), así que el tema decide cada color.',
+    ),
+    status: 'stable',
+    hasContent: true,
+    keywords: ['color', 'colores', 'palette', 'paleta', 'primary', 'semantic', 'tokens'],
+  },
+  {
+    id: 'typography',
+    route: '/foundations/typography',
+    section: 'foundations',
+    title: l('Typography', 'Tipografía'),
+    icon: 'type',
+    summary: l(
+      'Components inherit your fonts and text sizes; nothing ships its own typeface.',
+      'Los componentes heredan tus fuentes y tamaños de texto; ninguno trae su propia tipografía.',
+    ),
+    status: 'stable',
+    hasContent: true,
+    keywords: ['font', 'fuente', 'typography', 'tipografía', 'text size', 'tamaño de texto'],
+  },
+  {
+    id: 'sizes-and-variants',
+    route: '/foundations/sizes-and-variants',
+    section: 'foundations',
+    title: l('Sizes & variants', 'Tamaños y variantes'),
+    icon: 'ruler',
+    summary: l(
+      'The shared size scale (xs–xl) and color variants that inputs, selects and other controls accept.',
+      'La escala de tamaños compartida (xs–xl) y las variantes de color que aceptan inputs, selects y otros controles.',
+    ),
+    status: 'stable',
+    hasContent: true,
+    keywords: ['size', 'tamaño', 'variant', 'variante', 'xs', 'sm', 'md', 'lg', 'xl', 'color input'],
+  },
+  {
+    id: 'responsive',
+    route: '/foundations/responsive',
+    section: 'foundations',
+    title: l('Responsive behavior', 'Comportamiento responsive'),
+    icon: 'smartphone',
+    summary: l(
+      'How components adapt to small screens: breakpoints, drawers, scroll containers and touch.',
+      'Cómo se adaptan los componentes a pantallas pequeñas: breakpoints, drawers, contenedores con scroll y táctil.',
+    ),
+    status: 'stable',
+    hasContent: true,
+    keywords: ['responsive', 'mobile', 'móvil', 'breakpoint', 'tablet', 'touch', 'táctil'],
+  },
   {
     id: 'theming',
     route: '/foundations/theming',
@@ -119,8 +219,13 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'Los componentes muestran iconos de Lucide por nombre a través de @lucide/angular; registra los que usa tu app.',
     ),
     status: 'stable',
+    hasContent: true,
     keywords: ['icon', 'icono', 'lucide', 'svg'],
-    examples: [ex('basic', 'Basic', 'Básico'), ex('categories', 'Categories', 'Categorías'), ex('playground', 'Playground', 'Playground')],
+    examples: [
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('categories', 'Categories', 'Categorías', 'basic'),
+      ex('playground', 'Playground', 'Playground', 'intermediate'),
+    ],
   },
   {
     id: 'motion',
@@ -133,9 +238,14 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'Directivas que añaden animaciones de entrada, hover, pulsación y scroll a cualquier elemento, con Motion.',
     ),
     status: 'stable',
+    hasContent: true,
     areas: ['directives'],
     keywords: ['animation', 'animación', 'motion', 'hover', 'scroll', 'stagger', 'fade', 'reduced motion'],
-    examples: [ex('animate', 'Animate', 'Animar'), ex('hover', 'Hover', 'Hover'), ex('presets', 'Presets', 'Presets')],
+    examples: [
+      ex('animate', 'Animate', 'Animar', 'basic'),
+      ex('hover', 'Hover', 'Hover', 'intermediate'),
+      ex('presets', 'Presets', 'Presets', 'intermediate'),
+    ],
   },
 
   // ── Components: Forms & inputs ──────────────────────────────────────────
@@ -169,11 +279,11 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'reactive forms',
     ],
     examples: [
-      ex('layouts', 'Layouts', 'Layouts'),
-      ex('fields', 'Field types', 'Tipos de campo'),
-      ex('conditional', 'Conditional logic', 'Lógica condicional'),
-      ex('dependent', 'Dependent fields', 'Campos dependientes'),
-      ex('autosave', 'Auto-save', 'Autoguardado'),
+      ex('layouts', 'Layouts', 'Layouts', 'basic'),
+      ex('fields', 'Field types', 'Tipos de campo', 'basic'),
+      ex('conditional', 'Conditional logic', 'Lógica condicional', 'intermediate'),
+      ex('dependent', 'Dependent fields', 'Campos dependientes', 'intermediate'),
+      ex('autosave', 'Auto-save', 'Autoguardado', 'advanced'),
     ],
   },
   {
@@ -191,7 +301,10 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     areas: ['stepper'],
     hasContent: true,
     keywords: ['wizard', 'asistente', 'stepper', 'steps', 'pasos', 'multi-step', 'multipaso', 'step()'],
-    examples: [ex('linear', 'Linear wizard', 'Asistente lineal'), ex('nonlinear', 'Non-linear wizard', 'Asistente no lineal')],
+    examples: [
+      ex('linear', 'Linear wizard', 'Asistente lineal', 'intermediate'),
+      ex('nonlinear', 'Non-linear wizard', 'Asistente no lineal', 'advanced'),
+    ],
   },
   {
     id: 'input',
@@ -223,11 +336,11 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'percentage',
     ],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('variants', 'Variants', 'Variantes'),
-      ex('styling', 'Styling', 'Estilos'),
-      ex('forms', 'Reactive forms', 'Formularios reactivos'),
-      ex('mask', 'Input mask', 'Máscara'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('variants', 'Variants', 'Variantes', 'basic'),
+      ex('styling', 'Styling', 'Estilos', 'basic'),
+      ex('forms', 'Reactive forms', 'Formularios reactivos', 'intermediate'),
+      ex('mask', 'Input mask', 'Máscara', 'intermediate'),
     ],
   },
   {
@@ -246,11 +359,11 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['select', 'dropdown', 'desplegable', 'combobox', 'multiselect', 'selección múltiple', 'search options', 'autocomplete'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('variants', 'Variants', 'Variantes'),
-      ex('features', 'Features', 'Funciones'),
-      ex('grouped', 'Grouped', 'Agrupado'),
-      ex('multiselect', 'Multiselect', 'Selección múltiple'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('variants', 'Variants', 'Variantes', 'basic'),
+      ex('features', 'Features', 'Funciones', 'intermediate'),
+      ex('grouped', 'Grouped', 'Agrupado', 'intermediate'),
+      ex('multiselect', 'Multiselect', 'Selección múltiple', 'intermediate'),
     ],
   },
   {
@@ -269,10 +382,10 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['date', 'fecha', 'date range', 'rango de fechas', 'calendar', 'calendario', 'datetime'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('datetime', 'Date + time', 'Fecha + hora'),
-      ex('options', 'Options', 'Opciones'),
-      ex('advanced', 'Advanced', 'Avanzado'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('datetime', 'Date + time', 'Fecha + hora', 'intermediate'),
+      ex('options', 'Options', 'Opciones', 'intermediate'),
+      ex('advanced', 'Advanced', 'Avanzado', 'advanced'),
     ],
   },
   {
@@ -291,10 +404,10 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['time', 'hora', 'clock', 'reloj', 'hours', 'minutes'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('options', 'Options', 'Opciones'),
-      ex('clockFace', 'Clock face', 'Esfera'),
-      ex('advanced', 'Advanced', 'Avanzado'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('options', 'Options', 'Opciones', 'intermediate'),
+      ex('clockFace', 'Clock face', 'Esfera', 'intermediate'),
+      ex('advanced', 'Advanced', 'Avanzado', 'advanced'),
     ],
   },
   {
@@ -313,11 +426,11 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['editor', 'rich text', 'texto enriquecido', 'wysiwyg', 'tiptap', 'slash commands', 'toolbar', 'html'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('toolbars', 'Toolbars', 'Barras'),
-      ex('forms', 'Reactive forms', 'Formularios reactivos'),
-      ex('dynamic', 'Dynamic form', 'Formulario dinámico'),
-      ex('slash', 'Slash commands', 'Comandos con barra'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('toolbars', 'Toolbars', 'Barras', 'intermediate'),
+      ex('forms', 'Reactive forms', 'Formularios reactivos', 'intermediate'),
+      ex('dynamic', 'Dynamic form', 'Formulario dinámico', 'advanced'),
+      ex('slash', 'Slash commands', 'Comandos con barra', 'advanced'),
     ],
   },
 
@@ -352,25 +465,25 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'editable',
     ],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('full', 'Full featured', 'Completo'),
-      ex('filtering', 'Filtering', 'Filtrado'),
-      ex('selectableRow', 'Selectable row', 'Fila seleccionable'),
-      ex('selectionLimit', 'Selection limit', 'Límite de selección'),
-      ex('actionsPosition', 'Actions position', 'Posición de acciones'),
-      ex('sticky', 'Sticky', 'Fijo'),
-      ex('resizable', 'Resizable', 'Redimensionable'),
-      ex('virtualScroll', 'Virtual scroll', 'Scroll virtual'),
-      ex('editable', 'Editable', 'Editable'),
-      ex('footer', 'Footer', 'Pie'),
-      ex('expandable', 'Expandable', 'Expandible'),
-      ex('grouped', 'Grouped', 'Agrupado'),
-      ex('reorderable', 'Reorderable', 'Reordenable'),
-      ex('keyboard', 'Keyboard', 'Teclado'),
-      ex('hierarchy', 'Hierarchy', 'Jerarquía'),
-      ex('masterDetail', 'Master-detail', 'Maestro-detalle'),
-      ex('nestedMasterDetail', 'Nested master-detail', 'Maestro-detalle anidado'),
-      ex('cellTemplate', 'Cell template', 'Plantilla de celda'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('full', 'Full featured', 'Completo', 'real-world'),
+      ex('filtering', 'Filtering', 'Filtrado', 'intermediate'),
+      ex('selectableRow', 'Selectable row', 'Fila seleccionable', 'intermediate'),
+      ex('selectionLimit', 'Selection limit', 'Límite de selección', 'intermediate'),
+      ex('actionsPosition', 'Actions position', 'Posición de acciones', 'intermediate'),
+      ex('sticky', 'Sticky', 'Fijo', 'intermediate'),
+      ex('resizable', 'Resizable', 'Redimensionable', 'intermediate'),
+      ex('virtualScroll', 'Virtual scroll', 'Scroll virtual', 'advanced'),
+      ex('editable', 'Editable', 'Editable', 'advanced'),
+      ex('footer', 'Footer', 'Pie', 'intermediate'),
+      ex('expandable', 'Expandable', 'Expandible', 'intermediate'),
+      ex('grouped', 'Grouped', 'Agrupado', 'advanced'),
+      ex('reorderable', 'Reorderable', 'Reordenable', 'advanced'),
+      ex('keyboard', 'Keyboard', 'Teclado', 'intermediate'),
+      ex('hierarchy', 'Hierarchy', 'Jerarquía', 'advanced'),
+      ex('masterDetail', 'Master-detail', 'Maestro-detalle', 'advanced'),
+      ex('nestedMasterDetail', 'Nested master-detail', 'Maestro-detalle anidado', 'advanced'),
+      ex('cellTemplate', 'Cell template', 'Plantilla de celda', 'intermediate'),
     ],
   },
   {
@@ -403,10 +516,16 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'large data',
     ],
     examples: [
-      ex('client', '100k rows', '100k filas'),
-      ex('server', 'Server data', 'Datos del servidor'),
-      ex('state', 'State as JSON', 'Estado como JSON'),
-      ex('ai', 'Ask AI', 'Preguntar a la IA'),
+      ex('client', '100k rows', '100k filas', 'basic'),
+      ex('server', 'Server data', 'Datos del servidor', 'advanced'),
+      ex('state', 'State as JSON', 'Estado como JSON', 'advanced'),
+      ex('ai', 'Ask AI', 'Preguntar a la IA', 'advanced'),
+
+      ex('filtering', 'Filtering', 'Filtrado', 'intermediate'),
+      ex('columns', 'Columns', 'Columnas', 'intermediate'),
+      ex('selection', 'Selection', 'Selección', 'intermediate'),
+      ex('persistence', 'Saved views', 'Vistas guardadas', 'real-world'),
+      ex('compare', 'Table vs DataGrid', 'Tabla vs DataGrid', 'advanced'),
     ],
   },
   {
@@ -425,12 +544,12 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['tree table', 'tabla en árbol', 'hierarchy', 'jerarquía', 'nested rows', 'filas anidadas', 'cascade selection'],
     examples: [
-      ex('treenode', 'TreeNode data', 'Datos TreeNode'),
-      ex('custom', 'Custom children', 'Hijos personalizados'),
-      ex('features', 'Full features', 'Todas las funciones'),
-      ex('cascade', 'Cascade selection', 'Selección en cascada'),
-      ex('filtering', 'Hierarchy filtering', 'Filtrado jerárquico'),
-      ex('large', 'Large dataset', 'Conjunto grande'),
+      ex('treenode', 'TreeNode data', 'Datos TreeNode', 'basic'),
+      ex('custom', 'Custom children', 'Hijos personalizados', 'intermediate'),
+      ex('features', 'Full features', 'Todas las funciones', 'intermediate'),
+      ex('cascade', 'Cascade selection', 'Selección en cascada', 'intermediate'),
+      ex('filtering', 'Hierarchy filtering', 'Filtrado jerárquico', 'advanced'),
+      ex('large', 'Large dataset', 'Conjunto grande', 'advanced'),
     ],
   },
   {
@@ -449,12 +568,12 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['tree', 'árbol', 'treeview', 'hierarchy', 'checkbox tree', 'drag and drop', 'lazy load', 'createTree'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('selection', 'Single selection', 'Selección simple'),
-      ex('checkbox', 'Checkbox', 'Casillas'),
-      ex('dragdrop', 'Drag & drop', 'Arrastrar y soltar'),
-      ex('lazy', 'Lazy loading', 'Carga diferida'),
-      ex('filter', 'Filter', 'Filtro'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('selection', 'Single selection', 'Selección simple', 'basic'),
+      ex('checkbox', 'Checkbox', 'Casillas', 'intermediate'),
+      ex('dragdrop', 'Drag & drop', 'Arrastrar y soltar', 'advanced'),
+      ex('lazy', 'Lazy loading', 'Carga diferida', 'advanced'),
+      ex('filter', 'Filter', 'Filtro', 'intermediate'),
     ],
   },
   {
@@ -473,10 +592,10 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['virtual scroll', 'scroll virtual', 'large list', 'lista grande', 'infinite scroll', 'performance', 'rendimiento'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('horizontal', 'Horizontal', 'Horizontal'),
-      ex('grid', 'Grid', 'Cuadrícula'),
-      ex('lazy', 'Lazy loading', 'Carga diferida'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('horizontal', 'Horizontal', 'Horizontal', 'intermediate'),
+      ex('grid', 'Grid', 'Cuadrícula', 'intermediate'),
+      ex('lazy', 'Lazy loading', 'Carga diferida', 'advanced'),
     ],
   },
 
@@ -497,12 +616,12 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['menu', 'menú', 'navigation', 'navegación', 'sidebar menu', 'rbac', 'roles', 'createMenu'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('horizontal', 'Horizontal', 'Horizontal'),
-      ex('nested', 'Nested & accordion', 'Anidado y acordeón'),
-      ex('rich', 'Icons & badges', 'Iconos y badges'),
-      ex('collapsed', 'Collapsed rail', 'Riel colapsado'),
-      ex('rbac', 'Visibility (RBAC)', 'Visibilidad (RBAC)'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('horizontal', 'Horizontal', 'Horizontal', 'basic'),
+      ex('nested', 'Nested & accordion', 'Anidado y acordeón', 'intermediate'),
+      ex('rich', 'Icons & badges', 'Iconos y badges', 'intermediate'),
+      ex('collapsed', 'Collapsed rail', 'Riel colapsado', 'intermediate'),
+      ex('rbac', 'Visibility (RBAC)', 'Visibilidad (RBAC)', 'advanced'),
     ],
   },
   {
@@ -520,7 +639,11 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     areas: ['navbar'],
     hasContent: true,
     keywords: ['navbar', 'sidebar', 'barra lateral', 'app shell', 'layout', 'drawer', 'header'],
-    examples: [ex('navbar', 'Navbar', 'Navbar'), ex('sidebar', 'Sidebar', 'Sidebar'), ex('shell', 'App shell', 'App shell')],
+    examples: [
+      ex('navbar', 'Navbar', 'Navbar', 'basic'),
+      ex('sidebar', 'Sidebar', 'Sidebar', 'basic'),
+      ex('shell', 'App shell', 'App shell', 'real-world'),
+    ],
   },
   {
     id: 'breadcrumbs',
@@ -538,10 +661,10 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['breadcrumbs', 'migas de pan', 'trail', 'router', 'navigation'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('icons', 'With icons', 'Con iconos'),
-      ex('maxwidth', 'Max width', 'Ancho máximo'),
-      ex('auto', 'Auto (router)', 'Automático (router)'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('icons', 'With icons', 'Con iconos', 'basic'),
+      ex('maxwidth', 'Max width', 'Ancho máximo', 'intermediate'),
+      ex('auto', 'Auto (router)', 'Automático (router)', 'advanced'),
     ],
   },
   {
@@ -559,7 +682,11 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     areas: ['tab'],
     hasContent: true,
     keywords: ['tabs', 'pestañas', 'tab group', 'panels', 'vertical tabs'],
-    examples: [ex('basic', 'Basic', 'Básico'), ex('features', 'Features', 'Funciones'), ex('vertical', 'Vertical', 'Vertical')],
+    examples: [
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('features', 'Features', 'Funciones', 'intermediate'),
+      ex('vertical', 'Vertical', 'Vertical', 'intermediate'),
+    ],
   },
   {
     id: 'command-palette',
@@ -577,9 +704,9 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['command palette', 'paleta de comandos', 'search', 'buscar', 'cmd+k', 'ctrl+k', 'launcher', 'spotlight'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('modes', 'Mode prefixes', 'Prefijos de modo'),
-      ex('hotkey', 'Hotkey & filters', 'Atajo y filtros'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('modes', 'Mode prefixes', 'Prefijos de modo', 'intermediate'),
+      ex('hotkey', 'Hotkey & filters', 'Atajo y filtros', 'intermediate'),
     ],
   },
 
@@ -600,10 +727,10 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['toast', 'snackbar', 'notification', 'notificación', 'message', 'mensaje', 'configure notifications', 'success', 'error'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('features', 'Features', 'Funciones'),
-      ex('styles', 'Styles', 'Estilos'),
-      ex('advanced', 'Advanced', 'Avanzado'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('features', 'Features', 'Funciones', 'intermediate'),
+      ex('styles', 'Styles', 'Estilos', 'basic'),
+      ex('advanced', 'Advanced', 'Avanzado', 'advanced'),
     ],
   },
   {
@@ -622,9 +749,9 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['notification', 'notificación', 'alert', 'inbox', 'avatar', 'persistent'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('variants', 'Layout variants', 'Variantes de diseño'),
-      ex('interactions', 'Interactions', 'Interacciones'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('variants', 'Layout variants', 'Variantes de diseño', 'intermediate'),
+      ex('interactions', 'Interactions', 'Interacciones', 'advanced'),
     ],
   },
   {
@@ -643,10 +770,10 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     hasContent: true,
     keywords: ['alert', 'alerta', 'confirm', 'confirmar', 'sweetalert', 'modal', 'delete confirmation', 'loading'],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('confirm', 'Confirmations', 'Confirmaciones'),
-      ex('loading', 'Loading', 'Cargando'),
-      ex('advanced', 'Advanced', 'Avanzado'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('confirm', 'Confirmations', 'Confirmaciones', 'intermediate'),
+      ex('loading', 'Loading', 'Cargando', 'intermediate'),
+      ex('advanced', 'Advanced', 'Avanzado', 'advanced'),
     ],
   },
   {
@@ -664,7 +791,11 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     areas: ['dialog', 'dialog-wrapper'],
     hasContent: true,
     keywords: ['dialog', 'diálogo', 'modal', 'popup', 'DialogService', 'cdk dialog'],
-    examples: [ex('basic', 'Basic', 'Básico'), ex('forms', 'Forms', 'Formularios'), ex('options', 'Options', 'Opciones')],
+    examples: [
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('forms', 'Forms', 'Formularios', 'real-world'),
+      ex('options', 'Options', 'Opciones', 'intermediate'),
+    ],
   },
 
   // ── Components: Documents ───────────────────────────────────────────────
@@ -696,11 +827,13 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'zoom',
     ],
     examples: [
-      ex('basic', 'Basic', 'Básico'),
-      ex('controller', 'Controller API', 'API del controlador'),
-      ex('preview', 'Preview layout', 'Diseño de vista previa'),
-      ex('config', 'Config variants', 'Variantes de configuración'),
-      ex('workspace', 'Workspace', 'Workspace'),
+      ex('basic', 'Basic', 'Básico', 'basic'),
+      ex('controller', 'Controller API', 'API del controlador', 'advanced'),
+      ex('preview', 'Preview layout', 'Diseño de vista previa', 'intermediate'),
+      ex('config', 'Config variants', 'Variantes de configuración', 'intermediate'),
+      ex('workspace', 'Workspace', 'Workspace', 'real-world'),
+
+      ex('states', 'Loading & errors', 'Carga y errores', 'advanced'),
     ],
   },
   {
@@ -733,11 +866,13 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
       'vista previa',
     ],
     examples: [
-      ex('basic', 'Pick a file', 'Elige un archivo'),
-      ex('spreadsheet', 'Spreadsheet (Rust+WASM)', 'Hoja de cálculo (Rust+WASM)'),
-      ex('image', 'TIFF + images (Rust+WASM)', 'TIFF + imágenes (Rust+WASM)'),
-      ex('switching', 'Format dispatch', 'Selección de formato'),
-      ex('workspace', 'Workspace', 'Workspace'),
+      ex('basic', 'Pick a file', 'Elige un archivo', 'basic'),
+      ex('spreadsheet', 'Spreadsheet (Rust+WASM)', 'Hoja de cálculo (Rust+WASM)', 'intermediate'),
+      ex('image', 'TIFF + images (Rust+WASM)', 'TIFF + imágenes (Rust+WASM)', 'intermediate'),
+      ex('switching', 'Format dispatch', 'Selección de formato', 'advanced'),
+      ex('workspace', 'Workspace', 'Workspace', 'real-world'),
+
+      ex('states', 'Loading & errors', 'Carga y errores', 'advanced'),
     ],
   },
   {
@@ -755,7 +890,11 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     areas: ['document-editor', 'utils'],
     hasContent: true,
     keywords: ['document editor', 'editor de documentos', 'markdown', 'csv', 'text editor', 'undo', 'redo', 'createDocumentEditor'],
-    examples: [ex('text', 'Plain text', 'Texto plano'), ex('markdown', 'Markdown', 'Markdown'), ex('csv', 'CSV', 'CSV')],
+    examples: [
+      ex('text', 'Plain text', 'Texto plano', 'basic'),
+      ex('markdown', 'Markdown', 'Markdown', 'intermediate'),
+      ex('csv', 'CSV', 'CSV', 'intermediate'),
+    ],
   },
 
   // ── Features & systems ──────────────────────────────────────────────────
@@ -954,6 +1093,46 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     ['bundle size', 'tamaño del bundle', 'lazy loading', 'carga diferida', 'tree shaking', 'performance', 'icons'],
   ),
   guide(
+    'schema-forms',
+    'file-json',
+    l('Dynamic forms from schemas', 'Formularios dinámicos desde esquemas'),
+    l(
+      'Describe a form as a typed object, get inferred value types, and build it from data you load at runtime.',
+      'Describe un formulario como un objeto tipado, obtén los tipos de sus valores inferidos y constrúyelo con datos que cargas en tiempo de ejecución.',
+    ),
+    ['schema', 'esquema', 'json', 'dynamic form', 'declarative', 'DeclarativeFormConfig', 'InferFormValues'],
+  ),
+  guide(
+    'custom-validators',
+    'shield-check',
+    l('Custom validators', 'Validadores personalizados'),
+    l(
+      'Add your own rules to a form — per field, across fields, and async — and show helpful messages.',
+      'Añade tus propias reglas a un formulario —por campo, entre campos y asíncronas— y muestra mensajes útiles.',
+    ),
+    ['validator', 'validador', 'validation', 'validación', 'async', 'custom', 'personalizado'],
+  ),
+  guide(
+    'datagrid-columns',
+    'columns-3',
+    l('Customize DataGrid columns', 'Personaliza las columnas del DataGrid'),
+    l(
+      'Column types, widths, pinning, visibility, formatting and custom cell templates.',
+      'Tipos de columna, anchos, columnas fijas, visibilidad, formato y plantillas de celda propias.',
+    ),
+    ['datagrid', 'columns', 'columnas', 'cell template', 'plantilla de celda', 'format', 'width', 'ancho', 'pin'],
+  ),
+  guide(
+    'extend-components',
+    'puzzle',
+    l('Extend components', 'Extiende los componentes'),
+    l(
+      'The supported extension points: templates, renderers, editors, label providers, formatters and WASM URLs.',
+      'Los puntos de extensión soportados: plantillas, renderizadores, editores, proveedores de labels, formateadores y URLs de WASM.',
+    ),
+    ['extend', 'extender', 'custom renderer', 'renderizador', 'plugin', 'registry', 'registro', 'override'],
+  ),
+  guide(
     'troubleshooting',
     'life-buoy',
     l('Troubleshooting', 'Solución de problemas'),
@@ -1039,6 +1218,34 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     status: 'stable',
     hasContent: true,
     keywords: ['contributing', 'contribuir', 'development', 'desarrollo', 'setup', 'tests', 'publish', 'release', 'add component'],
+  },
+  {
+    id: 'changelog',
+    route: '/contributing/changelog',
+    section: 'contributing',
+    title: l('Changelog', 'Registro de cambios'),
+    icon: 'history',
+    summary: l(
+      'What changed in each release, rendered from the package CHANGELOG.md.',
+      'Qué cambió en cada versión, mostrado desde el CHANGELOG.md del paquete.',
+    ),
+    status: 'stable',
+    markdown: 'changelog',
+    keywords: ['changelog', 'release notes', 'notas de versión', 'versions', 'versiones', 'what changed', 'qué cambió'],
+  },
+  {
+    id: 'migration',
+    route: '/contributing/migration',
+    section: 'contributing',
+    title: l('Migration guide', 'Guía de migración'),
+    icon: 'arrow-up-circle',
+    summary: l(
+      'Breaking changes and how to upgrade, rendered from the repository migration guide.',
+      'Cambios incompatibles y cómo actualizar, mostrado desde la guía de migración del repositorio.',
+    ),
+    status: 'stable',
+    markdown: 'migration',
+    keywords: ['migration', 'migración', 'upgrade', 'actualizar', 'breaking changes', 'cambios incompatibles'],
   },
 ];
 

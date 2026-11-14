@@ -4,7 +4,7 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'This page gets you from a fresh clone to a merged change: running the demo, the standards code is reviewed against, the test suites, and the checklist for adding a component together with its documentation. A component is not done until its docs page, API reference and demo exist.',
-      es: 'Esta página te lleva de un clon nuevo a un cambio integrado: correr la demo, los estándares con los que se revisa el código, las suites de pruebas y la lista para añadir un componente junto con su documentación. Un componente no está terminado hasta que existen su página de documentación, su referencia de API y su demo.',
+      es: 'Esta página te lleva de un clon recién hecho a un cambio integrado: correr la demo, los estándares con los que se revisa el código, las suites de pruebas y la lista de pasos para añadir un componente junto con su documentación. Un componente no está terminado hasta que existen su página de documentación, su referencia de API y su demo.',
     },
   ],
   sections: [
@@ -26,7 +26,7 @@ npm run demo:v4      # http://localhost:58791`,
           kind: 'p',
           text: {
             en: 'You only need a Rust toolchain to change the WASM engines (`npm run engine:build`); their generated output is consumed by the TypeScript build. Repository layout and dependency rules are described in [Library architecture](/architecture/library).',
-            es: 'Solo necesitas un toolchain de Rust para cambiar los motores WASM (`npm run engine:build`); el build de TypeScript consume lo que generan. La estructura del repositorio y las reglas de dependencias están en [Arquitectura de la librería](/architecture/library).',
+            es: 'Solo necesitas el toolchain de Rust si vas a cambiar los motores WASM (`npm run engine:build`); el build de TypeScript consume lo que generan. La estructura del repositorio y las reglas de dependencias están en [Arquitectura de la librería](/architecture/library).',
           },
         },
       ],
@@ -62,8 +62,8 @@ npm run demo:v4      # http://localhost:58791`,
               es: 'La accesibilidad es un requisito: pasar las verificaciones de axe y WCAG AA (manejo del foco, contraste, ARIA).',
             },
             {
-              en: 'Prettier: 2 spaces, single quotes, 140 columns. A Husky pre-commit hook runs Prettier on staged `.ts` and `.html` files; run `npm run lint` before pushing.',
-              es: 'Prettier: 2 espacios, comillas simples, 140 columnas. Un hook pre-commit de Husky corre Prettier sobre los archivos `.ts` y `.html` en stage; corre `npm run lint` antes de hacer push.',
+              en: 'Prettier: 2 spaces, single quotes, 140 columns. A Husky pre-commit hook (lint-staged) runs Prettier on staged `.ts` and `.html` files; run `npm run lint` before pushing.',
+              es: 'Prettier: 2 espacios, comillas simples, 140 columnas. Un hook pre-commit de Husky (lint-staged) corre Prettier sobre los archivos `.ts` y `.html` preparados para el commit; corre `npm run lint` antes de hacer push.',
             },
           ],
         },
@@ -103,6 +103,20 @@ npm run demo:v4      # http://localhost:58791`,
               },
             ],
             [
+              { en: '`npm run test:docs`', es: '`npm run test:docs`' },
+              {
+                en: 'Docs platform tests (separate Vitest config).',
+                es: 'Pruebas de la plataforma de documentación (configuración de Vitest aparte).',
+              },
+            ],
+            [
+              { en: '`npm run test:consumer`', es: '`npm run test:consumer`' },
+              {
+                en: 'Packs `dist/`, installs it into a clean app with only the required peers, builds it and enforces the initial-JS budget. Run `npm run build` first.',
+                es: 'Empaqueta `dist/`, lo instala en una app limpia solo con las dependencias peer obligatorias, la compila y verifica el presupuesto de JS inicial. Corre `npm run build` antes.',
+              },
+            ],
+            [
               { en: '`npm run engine:test`', es: '`npm run engine:test`' },
               {
                 en: '`cargo test` across the Rust workspace (`engine:check` for a quick compile check).',
@@ -123,11 +137,11 @@ npm run demo:v4      # http://localhost:58791`,
           items: [
             {
               en: 'Create `src/lib/components/<name>/` with `<name>.component.ts`, co-located `.types.ts` / `.helpers.ts`, and specs. Grid logic that both tables could use goes in `grid-core/` instead.',
-              es: 'Crea `src/lib/components/<name>/` con `<name>.component.ts`, `.types.ts` / `.helpers.ts` al lado y sus specs. La lógica de grillas que puedan usar ambas tablas va en `grid-core/`.',
+              es: 'Crea `src/lib/components/<name>/` con `<name>.component.ts`, sus `.types.ts` / `.helpers.ts` al lado y sus specs. La lógica de grid que puedan usar ambas tablas va en `grid-core/`.',
             },
             {
               en: 'Give user-visible strings a labels interface with English defaults (a `provideHk*Labels()` provider or a `labels` input).',
-              es: 'Dale a los textos visibles una interfaz de labels con valores por defecto en inglés (un proveedor `provideHk*Labels()` o un input `labels`).',
+              es: 'Dale a los textos visibles una interfaz de etiquetas con valores por defecto en inglés (un proveedor `provideHk*Labels()` o un input `labels`).',
             },
             {
               en: 'Export the public symbols from `src/public-api.ts`.',
@@ -147,11 +161,11 @@ npm run demo:v4      # http://localhost:58791`,
             },
             {
               en: 'Add the demo page in `projects/shared-demos/demos/` and its route in `projects/demo/src/app/app.routes.ts`. Shared demos also render under daisyUI v4, so keep both class spellings where they differ.',
-              es: 'Añade la página de demo en `projects/shared-demos/demos/` y su ruta en `projects/demo/src/app/app.routes.ts`. Las demos compartidas también se dibujan con daisyUI v4, así que conserva ambas formas de las clases donde difieren.',
+              es: 'Añade la página de demo en `projects/shared-demos/demos/` y su ruta en `projects/demo/src/app/app.routes.ts`. Las demos compartidas también se renderizan con daisyUI v4, así que conserva ambas formas de las clases donde difieren.',
             },
             {
-              en: 'Run `npm run docs:check`, the documentation coverage check: every public symbol must belong to a page and every page must have its content.',
-              es: 'Corre `npm run docs:check`, la verificación de cobertura de la documentación: cada símbolo público debe pertenecer a una página y cada página debe tener su contenido.',
+              en: 'Run `npm run docs:check` (every public symbol must belong to a page and every page must have its content), `npm run docs:snippets` (compiles every quick start with strict templates) and `npm run test:docs`. CI runs the same checks.',
+              es: 'Corre `npm run docs:check` (cada símbolo público debe pertenecer a una página y cada página debe tener su contenido), `npm run docs:snippets` (compila cada inicio rápido con plantillas estrictas) y `npm run test:docs`. La CI corre las mismas verificaciones.',
             },
           ],
         },
@@ -159,7 +173,7 @@ npm run demo:v4      # http://localhost:58791`,
     },
     {
       id: 'build-release',
-      heading: { en: 'Build, publish and release', es: 'Build, publicación y release' },
+      heading: { en: 'Build, publish and release', es: 'Build, publicación y versiones' },
       blocks: [
         {
           kind: 'table',
@@ -181,7 +195,10 @@ npm run demo:v4      # http://localhost:58791`,
             ],
             [
               { en: '`npm run size`', es: '`npm run size`' },
-              { en: 'size-limit on the built main FESM file.', es: 'size-limit sobre el archivo FESM principal ya construido.' },
+              {
+                en: 'size-limit growth guard on the built whole-library FESM file (not what consumers ship; `test:consumer` measures that).',
+                es: 'Control de crecimiento con size-limit sobre el archivo FESM de toda la librería ya construido (no es lo que reciben las apps; eso lo mide `test:consumer`).',
+              },
             ],
             [
               { en: '`npm run publish:local`', es: '`npm run publish:local`' },
@@ -193,8 +210,8 @@ npm run demo:v4      # http://localhost:58791`,
             [
               { en: '`npm run release:patch` / `:minor` / `:major`', es: '`npm run release:patch` / `:minor` / `:major`' },
               {
-                en: 'Bumps the library version, commits and tags from the repository root, then builds. Refuses to run with unrelated uncommitted changes.',
-                es: 'Sube la versión de la librería, hace commit y tag desde la raíz del repositorio y luego construye. No corre si hay otros cambios sin commit.',
+                en: 'Bumps the library version, commits and tags from the repository root, then builds. Refuses to run if the working tree is not clean.',
+                es: 'Sube la versión de la librería, hace commit y crea el tag desde la raíz del repositorio, y luego construye. No corre si hay cambios sin commit en el árbol de trabajo.',
               },
             ],
             [
@@ -236,7 +253,7 @@ npm run demo:v4      # http://localhost:58791`,
     },
     {
       id: 'architecture-data-pipeline',
-      note: { en: 'Read before touching tables or grids.', es: 'Léelo antes de tocar tablas o grillas.' },
+      note: { en: 'Read before touching tables or grids.', es: 'Léelo antes de tocar tablas o grids.' },
     },
     { id: 'accessibility', note: { en: 'What every component must provide.', es: 'Lo que todo componente debe ofrecer.' } },
   ],

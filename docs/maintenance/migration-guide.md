@@ -45,6 +45,40 @@ document.querySelector('hk-select [role="listbox"]') /* or */ selectComponent.li
 
 Password and file fields are no longer written to storage. Restored drafts leave them empty; no code change is needed.
 
+### Tiptap is now an optional peer dependency
+
+Only if you use `hk-editor` or `field.editor()`:
+
+```bash
+npm i @tiptap/core @tiptap/pm @tiptap/starter-kit @tiptap/extension-link @tiptap/extension-placeholder @tiptap/extension-image @tiptap/extension-file-handler @tiptap/suggestion
+```
+
+### Alert HTML is sanitized
+
+`alert.show({ html })` / `htmlUrl` content now goes through Angular's sanitizer. If you relied on inline `style`
+attributes or other stripped markup **that you control**, add `trustedHtml: true`. Never set it for content that
+contains user input.
+
+### Hidden dynamic-form fields are disabled
+
+Fields hidden by `showWhen` / `hideWhen` are no longer part of `form.value` or validity. If you need their values,
+read `formGroup().getRawValue()`.
+
+### Required checkboxes must be checked
+
+`field.checkbox(..., { required: true })` (and toggles) now use `Validators.requiredTrue`. If you used `required` on
+a checkbox to mean "must have a value", remove it.
+
+### `hk-tree` ARIA attributes moved
+
+`role="tree"`, `aria-label` and `aria-labelledby` are on the node container inside `<hk-tree>`, not on the host.
+Update tests or styles that target `hk-tree[role="tree"]`.
+
+### Kaizen theme contrast
+
+`primary-content`, `info-content`, `error-content` (dark Kaizen) and `primary-content` (Kaizen light) are now dark
+to meet WCAG AA. Override them in your own theme block if you need the previous colours.
+
 ### Theme imports
 
 New, previously unreachable paths now resolve:
@@ -58,6 +92,5 @@ New, previously unreachable paths now resolve:
 
 | Change | Why | Migration |
 |---|---|---|
-| `@tiptap/*` from `dependencies` to optional peers | stop installing 7 packages for apps that never use `hk-editor` | apps using `hk-editor` (or `field.editor()`) add `npm i @tiptap/core @tiptap/starter-kit @tiptap/extension-link @tiptap/extension-placeholder @tiptap/extension-image @tiptap/extension-file-handler @tiptap/suggestion` |
 | `@hakistack/ng-daisyui/documents` secondary entry point | keep PDF/document code and its multi-MB lazy chunks out of apps that don't use them | change imports of `PdfViewerComponent`, `DocumentViewerComponent`, `createPdfViewer`, `Document*Renderer`, workspaces… to the new path; root re-exports stay (deprecated) for one minor |
 | `[appAutoFocus]` → `[hkAutoFocus]` | consistent `hk` prefix | both selectors work during the deprecation window |

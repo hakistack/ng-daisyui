@@ -30,6 +30,7 @@ import type {
   EditorToolbarItem,
 } from './editor.types';
 import { BUILT_IN_SLASH_COMMANDS } from './slash-command.extension';
+import { rethrowMissingPeer } from './missing-peer';
 
 /**
  * Rich text editor — TipTap (ProseMirror) backed, DaisyUI-native.
@@ -101,6 +102,9 @@ export class EditorComponent implements ControlValueAccessor, Validator {
   readonly editorReady = output<void>();
 
   readonly ready = signal(false);
+  /** Set when the optional `@tiptap/*` peer dependencies cannot be loaded. */
+  readonly loadError = signal<string | null>(null);
+  private destroyed = false;
   /** Bumped on every ProseMirror transaction — toolbar closures read this reactively. */
   readonly tick = signal(0);
 
@@ -172,21 +176,36 @@ export class EditorComponent implements ControlValueAccessor, Validator {
     });
 
     this.destroyRef.onDestroy(() => {
+      this.destroyed = true;
       this.instance?.destroy();
       this.instance = null;
     });
   }
 
   private async initialize(): Promise<void> {
-    const [{ Editor }, { default: StarterKit }, { default: Link }, { default: Placeholder }, { default: Image }, { FileHandler }] =
-      await Promise.all([
-        import('@tiptap/core'),
-        import('@tiptap/starter-kit'),
-        import('@tiptap/extension-link'),
-        import('@tiptap/extension-placeholder'),
-        import('@tiptap/extension-image'),
-        import('@tiptap/extension-file-handler'),
+    let tiptap;
+    try {
+      tiptap = await Promise.all([
+        import('@tiptap/core').catch(rethrowMissingPeer),
+        import('@tiptap/starter-kit').catch(rethrowMissingPeer),
+        import('@tiptap/extension-link').catch(rethrowMissingPeer),
+        import('@tiptap/extension-placeholder').catch(rethrowMissingPeer),
+        import('@tiptap/extension-image').catch(rethrowMissingPeer),
+        import('@tiptap/extension-file-handler').catch(rethrowMissingPeer),
       ]);
+    } catch (err) {
+      // @tiptap/* are optional peer dependencies: only apps that use hk-editor install them.
+      const message =
+        'hk-editor needs its optional peer dependencies. Install them with:\n' +
+        '  npm i @tiptap/core @tiptap/pm @tiptap/starter-kit @tiptap/extension-link @tiptap/extension-placeholder ' +
+        '@tiptap/extension-image @tiptap/extension-file-handler @tiptap/suggestion';
+      console.error(message, err);
+      this.loadError.set(message);
+      return;
+    }
+    // The component may have been destroyed while the chunks were loading.
+    if (this.destroyed) return;
+    const [{ Editor }, { default: StarterKit }, { default: Link }, { default: Placeholder }, { default: Image }, { FileHandler }] = tiptap;
 
     const slashItems = this.resolveSlashItems();
     const slashExtension = slashItems
@@ -219,6 +238,7 @@ export class EditorComponent implements ControlValueAccessor, Validator {
         })
       : null;
 
+    if (this.destroyed) return;
     const extraClass = this.contentClass().trim();
     this.instance = new Editor({
       element: this.hostRef().nativeElement,

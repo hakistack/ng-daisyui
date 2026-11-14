@@ -4,7 +4,7 @@ const content: ComponentDocContent = {
   overview: [
     {
       en: 'The DataGrid is an advanced table for working with large amounts of information. You can search, sort, filter and organize the data without building any of those features yourself.',
-      es: 'El DataGrid es una tabla avanzada para trabajar con grandes cantidades de información. Puedes buscar, ordenar, filtrar y organizar los datos sin tener que construir todas esas funciones por tu cuenta.',
+      es: 'El DataGrid es una tabla avanzada para trabajar con grandes cantidades de información. Puedes buscar, ordenar, filtrar y organizar los datos sin tener que construir esas funcionalidades por tu cuenta.',
     },
     {
       en: 'Everything the grid shows — sort order, filters, search text, page and column layout — lives in one plain object, the `DataGridState`. You can save it, send it to your server, restore it later, or let Claude produce it from a sentence like "overdue invoices over 10k, newest first".',
@@ -12,7 +12,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'You create it with `createDataGrid()` and render it with `<hk-datagrid [controller]="grid" />`. Data can live in the browser (`data`) or come one page at a time from your API (`dataSource`). New grid features are added here, not to [Table](/table).',
-      es: 'Lo creas con `createDataGrid()` y lo muestras con `<hk-datagrid [controller]="grid" />`. Los datos pueden estar en el navegador (`data`) o llegar página por página desde tu API (`dataSource`). Las funciones nuevas de grid se añaden aquí, no a [Table](/table).',
+      es: 'Lo creas con `createDataGrid()` y lo muestras con `<hk-datagrid [controller]="grid" />`. Los datos pueden estar en el navegador (`data`) o llegar página por página desde tu API (`dataSource`). Las funcionalidades nuevas de grid se añaden aquí, no a [Table](/table).',
     },
   ],
   whenToUse: [
@@ -36,7 +36,7 @@ const content: ComponentDocContent = {
   whenNotToUse: [
     {
       en: 'You need row actions, inline editing, footers with totals, grouping, master-detail or row reordering today: those exist in [Table](/table), not in the DataGrid yet.',
-      es: 'Necesitas hoy acciones por fila, edición en línea, pies con totales, agrupación, maestro-detalle o reordenar filas: eso existe en [Table](/table), todavía no en el DataGrid.',
+      es: 'Hoy necesitas acciones por fila, edición en línea, pies de tabla con totales, agrupación, maestro-detalle o reordenar filas: eso existe en [Table](/table), pero todavía no en el DataGrid.',
     },
     {
       en: 'Rows have children (folders, org charts): use [Tree Table](/tree-table). The DataGrid has no hierarchy.',
@@ -148,7 +148,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
           kind: 'p',
           text: {
             en: 'In client mode the view is a pure function of the data and the state, memoized in a `computed()`. It runs in TypeScript; the WASM table engine is used by [Table](/table), not by the DataGrid.',
-            es: 'En modo cliente la vista es una función pura de los datos y el estado, memorizada en un `computed()`. Corre en TypeScript; el motor WASM de tablas lo usa [Table](/table), no el DataGrid.',
+            es: 'En modo cliente la vista es una función pura de los datos y el estado, memoizada en un `computed()`. Se ejecuta en TypeScript; el motor WASM de tablas lo usa [Table](/table), no el DataGrid.',
           },
         },
         {
@@ -172,7 +172,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
               label: { en: 'Multi-key sort', es: 'Orden por varias claves' },
               detail: {
                 en: 'Stable; each accessor runs once per row, not per comparison.',
-                es: 'Estable; cada accessor corre una vez por fila, no por comparación.',
+                es: 'Estable; cada accessor se ejecuta una vez por fila, no una vez por comparación.',
               },
             },
             {
@@ -183,7 +183,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
               },
             },
             {
-              label: { en: 'Render window', es: 'Ventana de render' },
+              label: { en: 'Render window', es: 'Ventana de renderizado' },
               detail: { en: 'Visible rows and columns plus overscan.', es: 'Filas y columnas visibles más un margen extra.' },
             },
           ],
@@ -192,7 +192,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
           kind: 'p',
           text: {
             en: 'With a `dataSource`, the grid sends `{ sort, filters, search, page }` plus an `AbortSignal` and expects `{ rows, total }` back, as a Promise or an Observable. Requests are compared by value, so resizing or hiding a column does not refetch, and a superseded request is aborted so a slow answer never overwrites a newer one. `refresh()` re-runs the current request. See [Server-side pagination](/guides/server-side-data).',
-            es: 'Con un `dataSource`, el grid envía `{ sort, filters, search, page }` junto con un `AbortSignal` y espera `{ rows, total }` de vuelta, como Promise u Observable. Las peticiones se comparan por valor, así que cambiar el ancho u ocultar una columna no vuelve a pedir datos, y una petición reemplazada se cancela para que una respuesta lenta nunca pise una más nueva. `refresh()` repite la petición actual. Mira [Paginación en el servidor](/guides/server-side-data).',
+            es: 'Con un `dataSource`, el grid envía `{ sort, filters, search, page }` junto con un `AbortSignal` y espera `{ rows, total }` de vuelta, como Promise u Observable. Las peticiones se comparan por valor, así que cambiar el ancho u ocultar una columna no vuelve a pedir datos, y una petición reemplazada se cancela para que una respuesta lenta nunca sobrescriba una más reciente. `refresh()` repite la petición actual. Consulta [Paginación en el servidor](/guides/server-side-data).',
           },
         },
         {
@@ -213,7 +213,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
           kind: 'p',
           text: {
             en: 'There is one render pipeline for every mode. Rows use fixed-height math: the window is the rows that intersect the viewport plus 6 on each side. Columns use prefix-sum offsets and a binary search: the window is the columns in view plus 2 on each side. The header is sticky and the selection checkbox column is pinned. Because of this, the grid needs a bounded `height` (default `480px`) and every row must fit `rowHeight` (default 36px).',
-            es: 'Hay un solo pipeline de render para todos los modos. Las filas usan cálculo de altura fija: la ventana son las filas que tocan el viewport más 6 por cada lado. Las columnas usan offsets acumulados y búsqueda binaria: la ventana son las columnas visibles más 2 por cada lado. El encabezado queda fijo y la columna de casillas de selección queda anclada. Por eso el grid necesita un `height` acotado (por defecto `480px`) y cada fila debe caber en `rowHeight` (por defecto 36px).',
+            es: 'Hay un solo pipeline de renderizado para todos los modos. Las filas usan cálculo de altura fija: la ventana son las filas que intersecan el viewport más 6 por cada lado. Las columnas usan offsets acumulados y búsqueda binaria: la ventana son las columnas visibles más 2 por cada lado. El encabezado queda fijo y la columna de casillas de selección queda fija a la izquierda. Por eso el grid necesita un `height` acotado (por defecto `480px`) y cada fila debe caber en `rowHeight` (por defecto 36px).',
           },
         },
         {
@@ -252,7 +252,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
           kind: 'p',
           text: {
             en: 'Pass `ai: { apiKey }` (usually from your app environment) and the grid shows an AI box and enables `controller.ask(query)`. The grid sends Claude the column catalog, the valid operators, the current view and the request, with a JSON Schema for structured output. The reply goes through the same `setState()` validation as any other input, so an invalid answer can only be dropped, never applied.',
-            es: 'Pasa `ai: { apiKey }` (normalmente desde el environment de tu app) y el grid muestra una caja de IA y habilita `controller.ask(query)`. El grid le envía a Claude el catálogo de columnas, los operadores válidos, la vista actual y la petición, con un JSON Schema para la salida estructurada. La respuesta pasa por la misma validación de `setState()` que cualquier otra entrada, así que una respuesta inválida solo se descarta, nunca se aplica.',
+            es: 'Pasa `ai: { apiKey }` (normalmente desde el environment de tu app) y el grid muestra un cuadro de IA y habilita `controller.ask(query)`. El grid le envía a Claude el catálogo de columnas, los operadores válidos, la vista actual y la petición, con un JSON Schema para la salida estructurada. La respuesta pasa por la misma validación de `setState()` que cualquier otra entrada, así que una respuesta inválida solo se descarta, nunca se aplica.',
           },
         },
         {
@@ -266,7 +266,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
           items: [
             {
               en: '`ask()` never rejects: it resolves to `applied` (with a one-sentence `explanation` and any `issues`), `error` or `cancelled`. A new call cancels the one in flight; `undoAsk()` restores the previous view while the answer is still on screen.',
-              es: '`ask()` nunca rechaza: resuelve como `applied` (con una `explanation` de una oración y los `issues` que haya), `error` o `cancelled`. Una llamada nueva cancela la que está en curso; `undoAsk()` restaura la vista anterior mientras la respuesta siga en pantalla.',
+              es: 'La promesa de `ask()` nunca se rechaza: se resuelve con `applied` (con una `explanation` de una oración y los `issues` que haya), `error` o `cancelled`. Una llamada nueva cancela la que está en curso; `undoAsk()` restaura la vista anterior mientras la respuesta siga en pantalla.',
             },
             {
               en: '`@anthropic-ai/sdk` is loaded with a dynamic import on the first request, so apps that never ask do not ship it. Default model: `claude-opus-5-5` (override with `ai.model`).',
@@ -274,7 +274,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
             },
             {
               en: 'No row data is sent by default. `sampleValues: n` (client mode only) shares up to n frequent values per text column and min/max for number and date columns, so the model can match names exactly.',
-              es: 'Por defecto no se envía ningún dato de las filas. `sampleValues: n` (solo en modo cliente) comparte hasta n valores frecuentes por columna de texto y el mínimo/máximo de las columnas de número y fecha, para que el modelo pueda emparejar nombres exactos.',
+              es: 'Por defecto no se envía ningún dato de las filas. `sampleValues: n` (solo en modo cliente) comparte hasta n valores frecuentes por columna de texto y el mínimo/máximo de las columnas de número y fecha, para que el modelo pueda usar los nombres exactos.',
             },
             {
               en: 'Column `description` text is included in the prompt and in `stateSchema()`; it is the best way to map business words ("overdue") to fields.',
@@ -330,8 +330,8 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
       {
         keys: 'Escape',
         action: {
-          en: 'Collapse the range; in the column menu, close it and return to the grid',
-          es: 'Reduce el rango; en el menú de columna, lo cierra y vuelve al grid',
+          en: 'Collapse the range to the active cell; in the column menu, close it and return to the grid',
+          es: 'Reduce el rango a la celda activa; en el menú de columna, lo cierra y vuelve al grid',
         },
       },
       {
@@ -354,15 +354,15 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
     notes: [
       {
         en: 'The scroll viewport is the `role="grid"` element and keeps focus. The active cell is exposed with `aria-activedescendant`, so focus is never lost when virtualization removes rows; moving with the keyboard scrolls the cell into view first.',
-        es: 'El viewport con scroll es el elemento `role="grid"` y mantiene el foco. La celda activa se expone con `aria-activedescendant`, así que el foco nunca se pierde cuando la virtualización quita filas; al moverte con el teclado, primero se hace scroll hasta la celda.',
+        es: 'El viewport desplazable es el elemento `role="grid"` y conserva el foco. La celda activa se expone con `aria-activedescendant`, así que el foco nunca se pierde cuando la virtualización quita filas; al moverte con el teclado, primero se desplaza hasta la celda.',
       },
       {
         en: 'Rendered rows and cells carry `aria-rowindex` / `aria-colindex`, and the grid sets `aria-rowcount` / `aria-colcount`, so screen readers report positions correctly. The primary sort column has `aria-sort`; rows have `aria-selected` when selection is on; `aria-busy` is set while loading.',
         es: 'Las filas y celdas renderizadas llevan `aria-rowindex` / `aria-colindex`, y el grid define `aria-rowcount` / `aria-colcount`, así que los lectores de pantalla anuncian bien la posición. La columna principal de orden tiene `aria-sort`; las filas tienen `aria-selected` cuando hay selección; `aria-busy` se activa mientras carga.',
       },
       {
-        en: 'A polite live region announces the row count after each change (or the loading message); AI answers are announced through a `role="status"` region and errors use `role="alert"`.',
-        es: 'Una región en vivo educada anuncia la cantidad de filas después de cada cambio (o el mensaje de carga); las respuestas de la IA se anuncian en una región `role="status"` y los errores usan `role="alert"`.',
+        en: 'A polite live region (`aria-live="polite"`) announces the row count after each change (or the loading message); AI answers are announced through a `role="status"` region and errors use `role="alert"`.',
+        es: 'Una región viva (`aria-live="polite"`) anuncia la cantidad de filas después de cada cambio (o el mensaje de carga); las respuestas de la IA se anuncian en una región `role="status"` y los errores usan `role="alert"`.',
       },
       {
         en: 'Common mistake: forgetting `ariaLabel`. The grid has no other accessible name.',
@@ -381,7 +381,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
     },
     {
       en: 'State, view and render windows are signals and `computed()` values under OnPush; scrolling only recomputes the window, not the filtered and sorted view. The search box is debounced by 250 ms.',
-      es: 'El estado, la vista y las ventanas de render son signals y valores `computed()` con OnPush; el scroll solo recalcula la ventana, no la vista filtrada y ordenada. La caja de búsqueda tiene un debounce de 250 ms.',
+      es: 'El estado, la vista y las ventanas de render son signals y valores `computed()` con OnPush; el desplazamiento solo recalcula la ventana, no la vista filtrada y ordenada. El cuadro de búsqueda tiene un debounce de 250 ms.',
     },
     {
       en: 'In server mode only one page is held in memory; selection is kept by key so rows stay selected on pages that are no longer loaded.',
@@ -397,7 +397,7 @@ grid.stateSchema(); // JSON Schema (2020-12) of a valid state for these columns`
       id: 'table',
       note: {
         en: 'Feature-rich table for CRUD screens: actions, inline editing, footers, grouping, master-detail. Single-column sort, no column virtualization.',
-        es: 'Tabla con muchas funciones para pantallas CRUD: acciones, edición en línea, pies, agrupación, maestro-detalle. Orden por una sola columna, sin virtualizar columnas.',
+        es: 'Tabla completa para pantallas CRUD: acciones, edición en línea, pies de tabla, agrupación, maestro-detalle. Orden por una sola columna, sin virtualización de columnas.',
       },
     },
     {

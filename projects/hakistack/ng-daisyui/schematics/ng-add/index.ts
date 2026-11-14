@@ -145,8 +145,18 @@ function addStyleSetup(options: Schema, target: Toolchain): Rule {
   return target === 'v5' ? wireV5Styles(options) : wireLegacyStyles(options);
 }
 
+const POSTCSS_CONFIG_FILES = ['/.postcssrc.json', '/.postcssrc', '/postcss.config.js', '/postcss.config.mjs', '/postcss.config.cjs'];
+const V5_POSTCSS_CONFIG = `{\n  "plugins": {\n    "@tailwindcss/postcss": {}\n  }\n}\n`;
+
 function wireV5Styles(options: Schema): Rule {
   return (tree: Tree, context: SchematicContext) => {
+    // Angular's application builder runs PostCSS only when it finds a config file; without one,
+    // Tailwind v4 never processes styles.css even though @tailwindcss/postcss is installed.
+    if (!POSTCSS_CONFIG_FILES.some((file) => tree.exists(file))) {
+      tree.create('/.postcssrc.json', V5_POSTCSS_CONFIG);
+      context.logger.info('  Created /.postcssrc.json (Tailwind v4 PostCSS plugin)');
+    }
+
     if (options.skipStyleImport) {
       return tree;
     }

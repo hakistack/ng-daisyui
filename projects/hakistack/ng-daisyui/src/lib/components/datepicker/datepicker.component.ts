@@ -83,6 +83,13 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     showTodayButton: false,
   };
 
+  /**
+   * Format options (`dateFormat`, `monthFormat`, `weekdayFormat`, `yearBatchSize`) merged over the
+   * defaults. `closeOnSelect` / `showClearButton` / `showTodayButton` are set with their own inputs.
+   */
+  readonly config = input<Partial<DatepickerConfig>>({});
+  private readonly formatConfig = computed<DatepickerConfig>(() => ({ ...this.defaultConfig, ...this.config() }));
+
   // Selection mode
   readonly range = input<boolean>(false);
   /** Show time selection panel alongside the calendar */
@@ -125,6 +132,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     nextYearsAriaLabel: 'Next years',
     backToCalendarAriaLabel: 'Back to calendar',
     backToMonthsAriaLabel: 'Back to months',
+    weekNumberHeader: 'Week',
     ...this.labels(),
   }));
 
@@ -207,10 +215,21 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
   readonly isDisabled = computed(() => this.disabled() || this.isFormDisabled());
 
+  /**
+   * Id for the inner `<input>`. Set it when a `<label for="…">` (or `aria-labelledby`) names this
+   * control: the label then provides the accessible name instead of the placeholder.
+   */
+  readonly controlId = input<string>('');
+
   readonly inputId = computed(() => {
+    const explicit = this.controlId();
+    if (explicit) return explicit;
     const name = this.name() || this.formControlName();
     return name ? `datepicker-${name}-${this.instanceId}` : `datepicker-${this.instanceId}`;
   });
+
+  /** Placeholder is only used as the accessible name when no external label targets the input. */
+  readonly inputAriaLabel = computed(() => (this.controlId() ? null : this.placeholder() || null));
 
   readonly currentValue = computed(() => {
     if (this.range()) {
@@ -231,7 +250,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   readonly weekdays = computed((): WeekdayInfo[] => {
     const firstDay = this.firstDayOfWeek();
     const locale = this.locale();
-    const formatter = new Intl.DateTimeFormat(locale, this.defaultConfig.weekdayFormat);
+    const formatter = new Intl.DateTimeFormat(locale, this.formatConfig().weekdayFormat);
 
     return Array.from({ length: 7 }, (_, i) => {
       const adjustedDay = (firstDay + i) % 7;
@@ -267,11 +286,11 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
     return customRangeFormatter
       ? customRangeFormatter(start, end)
-      : this.dateUtils.formatDateRange(start, end, this.locale(), this.defaultConfig.dateFormat);
+      : this.dateUtils.formatDateRange(start, end, this.locale(), this.formatConfig().dateFormat);
   });
 
   readonly monthLabel = computed(() => {
-    const formatter = new Intl.DateTimeFormat(this.locale(), this.defaultConfig.monthFormat);
+    const formatter = new Intl.DateTimeFormat(this.locale(), this.formatConfig().monthFormat);
     return formatter.format(this.currentMonth());
   });
 
@@ -282,7 +301,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   });
 
   readonly months = computed((): MonthInfo[] => {
-    const formatter = new Intl.DateTimeFormat(this.locale(), this.defaultConfig.monthFormat);
+    const formatter = new Intl.DateTimeFormat(this.locale(), this.formatConfig().monthFormat);
     return Array.from({ length: 12 }, (_, i) => ({
       index: i,
       label: formatter.format(new Date(2023, i, 1)),
@@ -295,7 +314,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     const startYear = this.yearWindowStart().getFullYear();
     const currentYear = this.currentMonth().getFullYear();
 
-    return Array.from({ length: this.defaultConfig.yearBatchSize }, (_, i) => ({
+    return Array.from({ length: this.formatConfig().yearBatchSize }, (_, i) => ({
       year: startYear + i,
       isSelected: startYear + i === currentYear,
       id: `year-${startYear + i}`,
@@ -670,7 +689,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
   navigateYears(direction: 'prev' | 'next'): void {
     const current = this.yearWindowStart().getFullYear();
-    const offset = direction === 'prev' ? -this.defaultConfig.yearBatchSize : this.defaultConfig.yearBatchSize;
+    const offset = direction === 'prev' ? -this.formatConfig().yearBatchSize : this.formatConfig().yearBatchSize;
     this.yearWindowStart.set(new Date(current + offset, 0, 1));
   }
 
@@ -927,7 +946,8 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
     return Array.from({ length: 6 }, (_, weekIndex) => ({
       cells: cells.slice(weekIndex * 7, (weekIndex + 1) * 7),
       id: `week-${year}-${month}-${weekIndex}`,
-      weekNumber: this.showWeekNumbers() ? this.dateUtils.getISOWeekNumber(cells[weekIndex * 7].date!) : undefined,
+      // Mid-row date, so Sunday-first rows report the right ISO week.
+      weekNumber: this.showWeekNumbers() ? this.dateUtils.getISOWeekNumber(cells[weekIndex * 7 + 3].date!) : undefined,
     }));
   }
 
@@ -1005,7 +1025,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   private formatDate(date: Date): string {
-    return new Intl.DateTimeFormat(this.locale(), this.defaultConfig.dateFormat).format(date);
+    return new Intl.DateTimeFormat(this.locale(), this.formatConfig().dateFormat).format(date);
   }
 
   private clearCellIdCache(): void {
@@ -1025,7 +1045,7 @@ export class DatepickerComponent implements ControlValueAccessor, Validator, OnD
 
   private getYearWindowStart(): Date {
     const currentYear = new Date().getFullYear();
-    const startYear = this.dateUtils.getYearWindowStart(currentYear, this.defaultConfig.yearBatchSize);
+    const startYear = this.dateUtils.getYearWindowStart(currentYear, this.formatConfig().yearBatchSize);
     return new Date(startYear, 0, 1);
   }
 

@@ -33,10 +33,10 @@ import { CodeBlockComponent } from '../shared/code-block.component';
           <ul class="space-y-1">
             @for (section of toc; track section.id) {
               <li>
-                <a class="link link-hover text-sm flex items-center gap-2 cursor-pointer" (click)="scrollTo(section.id)">
+                <button type="button" class="link link-hover text-sm flex items-center gap-2 cursor-pointer" (click)="scrollTo(section.id)">
                   <svg [lucideIcon]="section.icon" [size]="14" class="text-primary"></svg>
                   {{ section.label }}
-                </a>
+                </button>
               </li>
             }
           </ul>

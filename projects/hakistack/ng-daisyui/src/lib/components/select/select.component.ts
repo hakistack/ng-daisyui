@@ -10,6 +10,7 @@ import {
   input,
   output,
   signal,
+  untracked,
   viewChild,
   WritableSignal,
   forwardRef,
@@ -53,6 +54,11 @@ export type SelectSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 /** Available color variants matching daisyUI */
 export type SelectColor = 'neutral' | 'primary' | 'secondary' | 'accent' | 'info' | 'success' | 'warning' | 'error';
+
+/** True for a text field the user is typing in (the search box). */
+function isTextEntry(target: EventTarget | null): boolean {
+  return target instanceof HTMLInputElement && !target.readOnly && (target.type === 'text' || target.type === 'search');
+}
 
 @Component({
   selector: 'hk-select',
@@ -299,6 +305,12 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   // ── Engine state ────────────────────────────────────────────────────────
   private readonly engineService = inject(FuzzyEngineService);
   private readonly engineHandleSignal = signal<FuzzyHandle | null>(null);
+  /**
+   * Below this many options Fuse.js answers instantly, so the 672 KB WASM engine chunk is not
+   * worth downloading. The engine is also only built once the user actually starts searching.
+   */
+  private static readonly ENGINE_MIN_OPTIONS = 200;
+  private readonly searchStarted = signal(false);
 
   // Keyboard event handlers map
   private readonly keyboardHandlers: KeyboardEventHandler = {
@@ -333,18 +345,23 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   /**
-   * Build a fuzzy handle whenever the option list reference changes (and
-   * search is enabled). On data swap or component teardown, dispose the
+   * Build a fuzzy handle whenever the option list reference changes, once search is enabled, the
+   * user has typed a query and the list is large enough to benefit (ENGINE_MIN_OPTIONS). On data swap or component teardown, dispose the
    * previous handle. The Fuse cache stays as the JS fallback.
    */
   private setupFuzzyEngineLifecycle(): void {
+    // Remember the first non-empty query; from then on the index follows the option list.
+    effect(() => {
+      if (this.searchTerm().trim()) untracked(() => this.searchStarted.set(true));
+    });
+
     effect((onCleanup) => {
-      if (!this.enableSearch()) {
+      if (!this.enableSearch() || !this.searchStarted()) {
         this.disposeEngineHandle();
         return;
       }
       const opts = this.effectiveOptions();
-      if (opts.length === 0) {
+      if (opts.length < SelectComponent.ENGINE_MIN_OPTIONS) {
         this.disposeEngineHandle();
         return;
       }
@@ -634,6 +651,8 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   onDocumentKeydown(event: KeyboardEvent): void {
     if (!this.dropdownOpen()) return;
+    // Space (and Home/End) belong to the text being typed in the search box.
+    if (isTextEntry(event.target) && (event.key === ' ' || event.key === 'Home' || event.key === 'End')) return;
 
     const handler = this.keyboardHandlers[event.key];
     if (handler) {

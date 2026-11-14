@@ -166,20 +166,20 @@ type ApiSubTab = 'component' | 'configuration' | 'time-mode' | 'types';
             <app-doc-section title="Dropdown Positions" description="Control where the calendar appears">
               <div class="grid grid-cols-2 gap-4 max-w-lg">
                 <div>
-                  <label class="label"><span class="label-text">Bottom Left (default)</span></label>
-                  <hk-datepicker placeholder="Bottom Left" dropdownPosition="bottom-left" />
+                  <label class="label" for="dp-bottom-left-default-0"><span class="label-text">Bottom Left (default)</span></label>
+                  <hk-datepicker controlId="dp-bottom-left-default-0" placeholder="Bottom Left" dropdownPosition="bottom-left" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Bottom Right</span></label>
-                  <hk-datepicker placeholder="Bottom Right" dropdownPosition="bottom-right" />
+                  <label class="label" for="dp-bottom-right-1"><span class="label-text">Bottom Right</span></label>
+                  <hk-datepicker controlId="dp-bottom-right-1" placeholder="Bottom Right" dropdownPosition="bottom-right" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Top Left</span></label>
-                  <hk-datepicker placeholder="Top Left" dropdownPosition="top-left" />
+                  <label class="label" for="dp-top-left-2"><span class="label-text">Top Left</span></label>
+                  <hk-datepicker controlId="dp-top-left-2" placeholder="Top Left" dropdownPosition="top-left" />
                 </div>
                 <div>
-                  <label class="label"><span class="label-text">Top Right</span></label>
-                  <hk-datepicker placeholder="Top Right" dropdownPosition="top-right" />
+                  <label class="label" for="dp-top-right-3"><span class="label-text">Top Right</span></label>
+                  <hk-datepicker controlId="dp-top-right-3" placeholder="Top Right" dropdownPosition="top-right" />
                 </div>
               </div>
             </app-doc-section>

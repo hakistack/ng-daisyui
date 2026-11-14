@@ -37,6 +37,10 @@ export class NavbarComponent {
   readonly showMenuToggle = input<boolean | undefined>(undefined);
   readonly menuToggleBreakpoint = input<ShellBreakpoint | 'never' | undefined>(undefined);
   readonly ariaLabel = input<string | undefined>(undefined);
+  /** Expanded state of the drawer the hamburger controls (`aria-expanded`); unset = not announced. */
+  readonly menuExpanded = input<boolean | undefined>(undefined);
+  /** Id of the element the hamburger controls (`aria-controls`). */
+  readonly menuControls = input<string | undefined>(undefined);
 
   /** Emitted when the hamburger is clicked. */
   readonly menuToggle = output<void>();

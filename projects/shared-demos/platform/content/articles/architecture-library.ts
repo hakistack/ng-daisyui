@@ -30,14 +30,14 @@ const content: ArticleContent = {
               { en: '`components/`', es: '`components/`' },
               {
                 en: 'One folder per component family: `name.component.ts` with co-located `.types.ts`, `.helpers.ts` (builders such as `createTable`), `.labels.ts` and specs.',
-                es: 'Una carpeta por familia de componentes: `name.component.ts` con `.types.ts`, `.helpers.ts` (builders como `createTable`), `.labels.ts` y specs al lado.',
+                es: 'Una carpeta por familia de componentes: `name.component.ts` junto a sus `.types.ts`, `.helpers.ts` (builders como `createTable`), `.labels.ts` y specs.',
               },
             ],
             [
               { en: '`grid-core/`', es: '`grid-core/`' },
               {
                 en: 'Render-agnostic data logic shared by hk-table and hk-datagrid: controllers, predicates, aggregates, helpers, types, and the WASM table-engine bridge.',
-                es: 'Lógica de datos independiente del render, compartida por hk-table y hk-datagrid: controladores, predicados, agregados, helpers, tipos y el puente al motor WASM de tablas.',
+                es: 'Lógica de datos independiente del renderizado, compartida por hk-table y hk-datagrid: controladores, predicados, agregados, helpers, tipos y el puente al motor WASM de tablas.',
               },
             ],
             [
@@ -48,7 +48,7 @@ const content: ArticleContent = {
               { en: '`services/`', es: '`services/`' },
               {
                 en: 'App-wide services: form state, pipe registry, dialog, and the lazy engine façades (fuzzy, form, PDF search, document, image).',
-                es: 'Servicios globales: estado de formularios, registro de pipes, diálogo y las fachadas diferidas de motores (fuzzy, formularios, búsqueda PDF, documentos, imágenes).',
+                es: 'Servicios globales: estado de formularios, registro de pipes, diálogo y las fachadas de los motores de carga diferida (búsqueda difusa, formularios, búsqueda en PDF, documentos, imágenes).',
               },
             ],
             [
@@ -59,10 +59,10 @@ const content: ArticleContent = {
               },
             ],
             [
-              { en: '`types/`, `api/`, `helpers/`, `utils/`', es: '`types/`, `api/`, `helpers/`, `utils/`' },
+              { en: '`types/`, `api/`, `utils/`', es: '`types/`, `api/`, `utils/`' },
               {
-                en: 'Shared types (pipes, currencies, tree nodes), pagination helpers, and internal utilities such as the engine loaders and `claude-json.ts`.',
-                es: 'Tipos compartidos (pipes, monedas, nodos de árbol), helpers de paginación y utilidades internas como los cargadores de motores y `claude-json.ts`.',
+                en: 'Shared types (pipes, currencies, tree nodes) and internal utilities such as the engine loaders and `claude-json.ts`.',
+                es: 'Tipos compartidos (pipes, monedas, nodos de árbol) y utilidades internas como los cargadores de motores y `claude-json.ts`.',
               },
             ],
             [
@@ -105,14 +105,14 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'The grid-core rule is enforced in `eslint.config.mjs` with `no-restricted-imports` on `projects/hakistack/ng-daisyui/src/lib/grid-core/**`: any import matching `**/components/**` fails lint. When grid-core needs something a component owns, the component passes it in through the controller’s `Deps` interface.',
-            es: 'La regla de grid-core se aplica en `eslint.config.mjs` con `no-restricted-imports` sobre `projects/hakistack/ng-daisyui/src/lib/grid-core/**`: cualquier import que coincida con `**/components/**` falla el lint. Cuando grid-core necesita algo que pertenece a un componente, el componente se lo pasa a través de la interfaz `Deps` del controlador.',
+            es: 'La regla de grid-core se aplica en `eslint.config.mjs` con `no-restricted-imports` sobre `projects/hakistack/ng-daisyui/src/lib/grid-core/**`: cualquier import que coincida con `**/components/**` hace fallar el lint. Cuando grid-core necesita algo que pertenece a un componente, el componente se lo pasa a través de la interfaz `Deps` del controlador.',
           },
         },
         {
           kind: 'p',
           text: {
             en: 'ESLint also requires the `hk` or `app` prefix on selectors (kebab-case elements, camelCase attribute directives), errors on non-standalone components, and runs the Angular template accessibility rules on every `.html` file.',
-            es: 'ESLint también exige el prefijo `hk` o `app` en los selectores (elementos en kebab-case, directivas de atributo en camelCase), marca error en componentes que no son standalone y corre las reglas de accesibilidad de plantillas de Angular en cada archivo `.html`.',
+            es: 'ESLint también exige el prefijo `hk` o `app` en los selectores (elementos en kebab-case, directivas de atributo en camelCase), marca como error los componentes que no son standalone y aplica las reglas de accesibilidad de plantillas de Angular a cada archivo `.html`.',
           },
         },
       ],
@@ -126,11 +126,11 @@ const content: ArticleContent = {
           items: [
             {
               en: 'The only TypeScript entry point is the package root, built from `src/public-api.ts`. Anything not exported there is internal, even if it is reachable in `dist/`.',
-              es: 'El único punto de entrada de TypeScript es la raíz del paquete, construida desde `src/public-api.ts`. Lo que no se exporta ahí es interno, aunque se pueda alcanzar en `dist/`.',
+              es: 'El único punto de entrada de TypeScript es la raíz del paquete, generada desde `src/public-api.ts`. Lo que no se exporta ahí es interno, aunque se pueda acceder a ello en `dist/`.',
             },
             {
-              en: 'Subpath exports are CSS only: `./styles`, `./styles-v4.css`, `./themes/daisyui-v4.css`, `./themes/daisyui-v5.css`, and `./plugin` (kept for backward compatibility).',
-              es: 'Las exportaciones por subruta son solo CSS: `./styles`, `./styles-v4.css`, `./themes/daisyui-v4.css`, `./themes/daisyui-v5.css` y `./plugin` (se mantiene por compatibilidad).',
+              en: 'The other subpath exports are stylesheets (`./styles`, `./styles-v4`, `./themes/*`) plus `./plugin` (kept for backward compatibility).',
+              es: 'Las demás exportaciones por subruta son hojas de estilo (`./styles`, `./styles-v4`, `./themes/*`) más `./plugin` (se mantiene por compatibilidad).',
             },
             {
               en: 'The grid-core barrel is internal and is not re-exported wholesale. Engine types whose names clash with table types are exported with an `Engine` prefix (`EngineSortDirection`, `EngineFilterDef`, …).',
@@ -176,14 +176,14 @@ const content: ArticleContent = {
               label: { en: 'build-lib-css', es: 'build-lib-css' },
               detail: {
                 en: 'Runs Tailwind 3 + daisyUI 4 (from `projects/demo-v4/node_modules`) over the FESM to emit `styles-v4.css` for legacy consumers.',
-                es: 'Corre Tailwind 3 + daisyUI 4 (desde `projects/demo-v4/node_modules`) sobre el FESM para generar `styles-v4.css` para consumidores legacy.',
+                es: 'Corre Tailwind 3 + daisyUI 4 (desde `projects/demo-v4/node_modules`) sobre el FESM para generar `styles-v4.css` para las apps que siguen en esa versión.',
               },
             },
             {
               label: { en: 'fix-exports', es: 'fix-exports' },
               detail: {
-                en: 'Rewrites the root export conditions (`browser`, `esm2022`, `style`, `default`) so bundlers get code and Tailwind gets the stylesheet, and adds the `styles` entries.',
-                es: 'Reescribe las condiciones del export raíz (`browser`, `esm2022`, `style`, `default`) para que los bundlers reciban código y Tailwind la hoja de estilos, y añade las entradas `styles`.',
+                en: 'Rewrites the root export conditions (`types`, `browser`, `style`, `default`) so bundlers get code and Tailwind gets the stylesheet, and adds the `./styles` and `./styles-v4` entries.',
+                es: 'Reescribe las condiciones del export raíz (`types`, `browser`, `style`, `default`) para que los bundlers reciban código y Tailwind la hoja de estilos, y añade las entradas `./styles` y `./styles-v4`.',
               },
             },
             {
@@ -200,7 +200,7 @@ const content: ArticleContent = {
           tone: 'info',
           text: {
             en: 'Rust/WASM is built separately with `npm run engine:build` (see [Rust/WASM architecture](/architecture/wasm)). Under `src/lib/wasm/`, only the shared engine’s `engine_wasm_glue.ts` and `engine_wasm_inline.ts` are committed; the other generated outputs there are git-ignored.',
-            es: 'Rust/WASM se construye aparte con `npm run engine:build` (mira [Arquitectura Rust/WASM](/architecture/wasm)). Dentro de `src/lib/wasm/` solo se versionan `engine_wasm_glue.ts` y `engine_wasm_inline.ts` del motor compartido; las demás salidas generadas ahí están en git-ignore.',
+            es: 'Rust/WASM se construye aparte con `npm run engine:build` (mira [Arquitectura Rust/WASM](/architecture/wasm)). Dentro de `src/lib/wasm/` solo se versionan `engine_wasm_glue.ts` y `engine_wasm_inline.ts` del motor compartido; las demás salidas generadas ahí las ignora git.',
           },
         },
       ],
@@ -217,24 +217,24 @@ const content: ArticleContent = {
           ],
           rows: [
             [
-              { en: 'Peer (required)', es: 'Peer (obligatorias)' },
+              { en: 'Peer (required)', es: 'Dependencias peer (obligatorias)' },
               {
-                en: 'Angular ≥ 21 (`core`, `common`, `forms`, `cdk`, `aria`), `rxjs`, `tailwindcss` ^4, `daisyui` ^5',
-                es: 'Angular ≥ 21 (`core`, `common`, `forms`, `cdk`, `aria`), `rxjs`, `tailwindcss` ^4, `daisyui` ^5',
+                en: 'Angular ^21 (`core`, `common`, `forms`, `router`, `cdk`, `aria`), `rxjs` ^7.8, `tailwindcss` ^4, `daisyui` ^5',
+                es: 'Angular ^21 (`core`, `common`, `forms`, `router`, `cdk`, `aria`), `rxjs` ^7.8, `tailwindcss` ^4, `daisyui` ^5',
               },
             ],
             [
-              { en: 'Peer (optional)', es: 'Peer (opcionales)' },
+              { en: 'Peer (optional)', es: 'Dependencias peer (opcionales)' },
               {
-                en: '`@angular/router`, document-format peers (`docx-preview`, `dompurify`, `postal-mime`, `@kenjiuno/msgreader`, `foliate-js`, `heic2any`), `@anthropic-ai/sdk` (DataGrid AI), `ts-morph` (the table migration schematic)',
-                es: '`@angular/router`, peers de formatos de documento (`docx-preview`, `dompurify`, `postal-mime`, `@kenjiuno/msgreader`, `foliate-js`, `heic2any`), `@anthropic-ai/sdk` (IA del DataGrid), `ts-morph` (el schematic de migración de tablas)',
+                en: 'Document-format peers (`docx-preview`, `dompurify`, `postal-mime`, `@kenjiuno/msgreader`, `foliate-js`, `heic2any`), `@tiptap/*` (`hk-editor`), `@anthropic-ai/sdk` (DataGrid AI), `ts-morph` (the table migration schematic)',
+                es: 'Dependencias peer de formatos de documento (`docx-preview`, `dompurify`, `postal-mime`, `@kenjiuno/msgreader`, `foliate-js`, `heic2any`), `@tiptap/*` (`hk-editor`), `@anthropic-ai/sdk` (IA del DataGrid), `ts-morph` (el schematic de migración de tablas)',
               },
             ],
             [
               { en: 'Bundled dependencies', es: 'Dependencias incluidas' },
               {
-                en: '`@lucide/angular`, `@tiptap/*`, `fuse.js`, `motion`, `libphonenumber-js`, `uuid`, `tslib`',
-                es: '`@lucide/angular`, `@tiptap/*`, `fuse.js`, `motion`, `libphonenumber-js`, `uuid`, `tslib`',
+                en: '`@lucide/angular`, `fuse.js`, `motion`, `libphonenumber-js` (loaded on demand by the phone input), `uuid`, `tslib`',
+                es: '`@lucide/angular`, `fuse.js`, `motion`, `libphonenumber-js` (el input de teléfono lo carga bajo demanda), `uuid`, `tslib`',
               },
             ],
           ],
@@ -242,8 +242,8 @@ const content: ArticleContent = {
         {
           kind: 'p',
           text: {
-            en: 'Optional peers are only reached through dynamic `import()`, so an app that does not install them still builds; the feature that needs one reports the missing package at runtime.',
-            es: 'Los peers opcionales solo se alcanzan con `import()` dinámico, así que una app que no los instala igual compila; la función que necesita uno reporta el paquete que falta en tiempo de ejecución.',
+            en: 'Optional peers are only reached through dynamic `import()`, so an app that does not install them still builds; the feature that needs one reports the missing package at runtime. `hk-editor`, for example, logs the `npm i` command for the `@tiptap/*` packages and shows an error in place of the editor.',
+            es: 'Las dependencias peer opcionales solo se alcanzan con `import()` dinámico, así que una app que no las instala compila igual; la funcionalidad que necesita una reporta el paquete que falta en tiempo de ejecución. `hk-editor`, por ejemplo, muestra en la consola el comando `npm i` para los paquetes `@tiptap/*` y un error en lugar del editor.',
           },
         },
       ],
@@ -257,7 +257,7 @@ const content: ArticleContent = {
           items: [
             {
               en: '`ng add @hakistack/ng-daisyui` installs peers and wires the stylesheet. Options: `target` (`v5` or `v4-legacy`), `project`, `skipInstall`, `skipStyleImport`.',
-              es: '`ng add @hakistack/ng-daisyui` instala los peers y conecta la hoja de estilos. Opciones: `target` (`v5` o `v4-legacy`), `project`, `skipInstall`, `skipStyleImport`.',
+              es: '`ng add @hakistack/ng-daisyui` instala las dependencias peer y conecta la hoja de estilos. Opciones: `target` (`v5` o `v4-legacy`), `project`, `skipInstall`, `skipStyleImport`.',
             },
             {
               en: '`migrate-table-columns` rewrites legacy `createTable` projection configs (`visible` plus parallel maps) to the declarative `columns` map.',
@@ -276,7 +276,7 @@ const content: ArticleContent = {
           items: [
             {
               en: 'Standalone components (no `standalone: true`, it is the default), `ChangeDetectionStrategy.OnPush`, `input()` / `output()` / `computed()` / `signal()`.',
-              es: 'Componentes standalone (sin `standalone: true`, es el valor por defecto), `ChangeDetectionStrategy.OnPush`, `input()` / `output()` / `computed()` / `signal()`.',
+              es: 'Componentes standalone (sin `standalone: true`, que ya es el valor por defecto), `ChangeDetectionStrategy.OnPush`, `input()` / `output()` / `computed()` / `signal()`.',
             },
             {
               en: 'Host bindings in the `host` object, never `@HostBinding` / `@HostListener`. Native control flow and `[class]` / `[style]` bindings in templates.',

@@ -94,6 +94,25 @@ describe('DatepickerComponent', () => {
       expect(component).toBeTruthy();
     });
 
+    it('renders a week-number column when showWeekNumbers is on', async () => {
+      fixture.componentRef.setInput('showWeekNumbers', true);
+      fixture.detectChanges();
+      component.openPicker();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const rowHeaders = Array.from(document.querySelectorAll('[role="rowheader"]')) as HTMLElement[];
+      expect(rowHeaders.length).toBe(6);
+      expect(rowHeaders[0].textContent).toMatch(/Week\s*\d+/);
+    });
+
+    it('applies format options from the config input (merged over defaults)', () => {
+      fixture.componentRef.setInput('config', { monthFormat: { month: 'long' } });
+      fixture.detectChanges();
+      const month = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date());
+      expect(component.monthLabel()).toBe(month);
+    });
+
     it('should start with the picker closed', () => {
       expect(component.isOpen()).toBe(false);
     });

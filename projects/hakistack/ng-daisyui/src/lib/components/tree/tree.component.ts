@@ -61,9 +61,7 @@ const NO_FILTER: FilterState = { visibleKeys: null, visibleIndices: null, matchC
   encapsulation: ViewEncapsulation.None,
   host: {
     class: 'app-tree block',
-    '[attr.role]': '"tree"',
-    '[attr.aria-label]': 'resolvedConfig()?.ariaLabel',
-    '[attr.aria-labelledby]': 'resolvedConfig()?.ariaLabelledBy',
+    // role="tree" lives on the node container (not the host) so the filter input is not inside it.
     '(keydown)': 'onKeyDown($event)',
   },
 })
@@ -121,6 +119,8 @@ export class TreeComponent<T = unknown> {
 
   /** Custom node template */
   readonly nodeTemplateRef = contentChild<TemplateRef<TreeNodeTemplateContext<T>>>('nodeTemplate');
+  /** Projected `#nodeTemplate` wins; otherwise `config.nodeTemplate` (was ignored before). */
+  readonly effectiveNodeTemplate = computed(() => this.nodeTemplateRef() ?? this.resolvedConfig()?.nodeTemplate ?? null);
 
   /** Map of node key -> expanded state */
   private readonly expandedKeys = signal<Set<string>>(new Set());
@@ -660,6 +660,7 @@ export class TreeComponent<T = unknown> {
   selectNode(node: TreeNode<T>, event?: Event): void {
     const mode = this.selectionMode();
     if (!mode) return;
+    if (!this.canSelect(node)) return;
 
     const key = this.getNodeKey(node);
     if (!key) return;
@@ -770,6 +771,29 @@ export class TreeComponent<T = unknown> {
     if (event.target !== event.currentTarget) return;
     event.preventDefault();
     this.onNodeClick(event, node);
+  }
+
+  /**
+   * `selectionAllowParents: false` restricts single/multiple selection to leaf nodes. Checkbox
+   * mode is unaffected: parents there reflect their children's state.
+   */
+  private canSelect(node: TreeNode<T>): boolean {
+    if (node.selectable === false) return false;
+    if (this.selectionMode() === 'checkbox') return true;
+    if (this.resolvedConfig()?.selectionAllowParents !== false) return true;
+    return !(node.children?.length || node.leaf === false);
+  }
+
+  /** `aria-setsize`: number of siblings at this node's level. */
+  setSize(flatNode: FlatTreeNode<T>): number {
+    return flatNode.parent ? (flatNode.parent.children?.length ?? 0) : this.rootCount();
+  }
+
+  private readonly rootCount = computed(() => this.flatNodes().filter((fn) => fn.level === 0).length);
+
+  /** One tab stop: the focused node, or the first node before anything was focused. */
+  isTabStop(flatNode: FlatTreeNode<T>, index: number): boolean {
+    return this.focusedKey() ? this.isFocused(flatNode.node) : index === 0;
   }
 
   /** Handle node click */

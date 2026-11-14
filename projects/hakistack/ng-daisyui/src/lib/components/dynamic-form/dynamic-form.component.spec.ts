@@ -143,6 +143,42 @@ describe('DynamicFormComponent', () => {
       expect(persistable).toEqual({ user: 'ada' });
     });
 
+    it('associates errors and help text with the control (aria-invalid / aria-describedby)', () => {
+      const f = field.text('name', 'Name', { required: true, helpText: 'Your full name' });
+      fixture.componentRef.setInput('config', simpleConfig([f]));
+      fixture.detectChanges();
+
+      const input = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+      expect(input.getAttribute('aria-invalid')).toBeNull();
+      expect(input.getAttribute('aria-describedby')).toBe(`${input.id}-help`);
+
+      component.formGroup().get('name')!.markAsTouched();
+      fixture.detectChanges();
+
+      expect(input.getAttribute('aria-invalid')).toBe('true');
+      const describedBy = input.getAttribute('aria-describedby')!.split(' ');
+      expect(describedBy).toContain(`${input.id}-error`);
+      const errorRegion = document.getElementById(`${input.id}-error`) as HTMLElement;
+      expect(errorRegion.getAttribute('aria-live')).toBe('polite');
+      expect(errorRegion.textContent?.trim().length).toBeGreaterThan(0);
+    });
+
+    it('labels date pickers and radio groups through the field label', () => {
+      const fields = [field.date('birthday', 'Birthday'), field.radio('color', 'Color', { choices: ['Red', 'Blue'] })];
+      fixture.componentRef.setInput('config', simpleConfig(fields));
+      fixture.detectChanges();
+
+      const root = fixture.nativeElement as HTMLElement;
+      const dateLabel = Array.from(root.querySelectorAll('label')).find((l) => l.textContent?.includes('Birthday'))!;
+      const dateInput = document.getElementById(dateLabel.getAttribute('for')!) as HTMLInputElement;
+      expect(dateInput?.tagName).toBe('INPUT');
+      expect(dateInput.getAttribute('aria-label')).toBeNull();
+
+      const group = root.querySelector('[role="radiogroup"]') as HTMLElement;
+      const label = document.getElementById(group.getAttribute('aria-labelledby')!) as HTMLElement;
+      expect(label.textContent).toContain('Color');
+    });
+
     it('should render radio buttons', () => {
       const f = field.radio('color', 'Favorite Color', { choices: ['Red', 'Blue', 'Green'] });
       fixture.componentRef.setInput('config', simpleConfig([f]));
@@ -526,6 +562,50 @@ describe('DynamicFormComponent', () => {
       fixture.detectChanges();
 
       expect(component.shouldShowField(fields[1])).toBe(true);
+    });
+
+    it('disables a required field while it is hidden, so it neither blocks submit nor is submitted', () => {
+      const fields = [
+        field.checkbox('showExtra', 'Show Extra'),
+        field.text('extra', 'Extra', { required: true, showWhen: ['showExtra', true] }),
+      ];
+      fixture.componentRef.setInput('config', simpleConfig(fields));
+      fixture.detectChanges();
+      TestBed.tick();
+
+      const form = component.formGroup();
+      expect(form.get('extra')!.disabled).toBe(true);
+      expect(form.valid).toBe(true);
+      expect('extra' in form.value).toBe(false);
+
+      form.get('showExtra')!.setValue(true);
+      component.formValues.set(form.value);
+      fixture.detectChanges();
+      TestBed.tick();
+
+      expect(form.get('extra')!.enabled).toBe(true);
+      expect(form.valid).toBe(false); // required again once visible
+    });
+
+    it('keeps a re-shown field disabled while its disabledWhen still applies', () => {
+      const fields = [
+        field.checkbox('showExtra', 'Show Extra'),
+        field.checkbox('lock', 'Lock'),
+        field.text('extra', 'Extra', { showWhen: ['showExtra', true], disabledWhen: ['lock', true] }),
+      ];
+      fixture.componentRef.setInput('config', simpleConfig(fields));
+      fixture.detectChanges();
+      TestBed.tick();
+
+      const form = component.formGroup();
+      form.get('lock')!.setValue(true);
+      form.get('showExtra')!.setValue(true);
+      component.formValues.set(form.value);
+      fixture.detectChanges();
+      TestBed.tick();
+
+      expect(component.shouldShowField(fields[2])).toBe(true);
+      expect(form.get('extra')!.disabled).toBe(true);
     });
 
     it('should show a field with string-based showWhen (boolean check)', () => {
@@ -1107,6 +1187,30 @@ describe('DynamicFormComponent', () => {
         validateStepOnNext: true,
       },
     };
+
+    it('a step with a hidden conditional field can still be valid (disabled controls do not count)', () => {
+      fixture.componentRef.setInput('config', {
+        steps: [
+          step.create('one', 'One', [
+            field.text('name', 'Name', { required: true }),
+            field.checkbox('hasCompany', 'Company?'),
+            field.text('company', 'Company', { required: true, showWhen: ['hasCompany', true] }),
+          ]),
+          step.review('review', 'Review'),
+        ],
+        stepperConfig: { linear: true, validateStepOnNext: true },
+      } satisfies FormConfig);
+      fixture.detectChanges();
+      TestBed.tick();
+
+      component.formGroup().get('name')!.setValue('Ada');
+      component.formValues.set(component.formGroup().value);
+      fixture.detectChanges();
+
+      expect(component.formGroup().get('company')!.disabled).toBe(true);
+      expect(component.isCurrentStepValid()).toBe(true);
+      expect(component.isStepValid(0)).toBe(true);
+    });
 
     it('should detect stepper mode', () => {
       fixture.componentRef.setInput('config', stepperConfig);

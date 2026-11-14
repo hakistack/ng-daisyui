@@ -9,50 +9,61 @@
 |---|---|
 | Public symbols (public-api.ts) | 617 |
 | Symbols owned by a docs page | 617 (100%) |
-| Docs pages | 51 |
-| Pages with written content | 45 |
-| Interactive playgrounds | 6 |
+| Docs pages | 63 |
+| Pages with written content | 60 |
+| Interactive playgrounds | 22 |
 | Errors | 0 |
-| Warnings (missing JSDoc) | 26 |
+| Warnings (missing JSDoc) | 27 |
 
 ## Components
 
 | Component | Beginner docs | Technical docs | Live demo | API reference | Accessibility | Playground | Maturity | Docs status |
 |---|---|---|---|---|---|---|---|---|
-| Icons | — | — | ✅ (3) | — | — | — | stable | Partial |
-| Motion | — | — | ✅ (3) | ✅ (24) | — | — | stable | Partial |
-| Dynamic Form | ✅ | ✅ | ✅ (5) | ✅ (74) | ✅ | — | stable | Complete |
+| Icons | ✅ | ✅ | ✅ (3) | — | ✅ | — | stable | Partial |
+| Motion | ✅ | ✅ | ✅ (3) | ✅ (24) | ✅ | — | stable | Complete |
+| Dynamic Form | ✅ | ✅ | ✅ (5) | ✅ (74) | ✅ | ✅ | stable | Complete |
 | Form Wizard & Stepper | ✅ | ✅ | ✅ (2) | ✅ (1) | ✅ | — | stable | Complete |
 | Input | ✅ | ✅ | ✅ (5) | ✅ (14) | ✅ | ✅ | stable | Complete |
 | Select | ✅ | ✅ | ✅ (5) | ✅ (6) | ✅ | ✅ | stable | Complete |
 | Datepicker | ✅ | ✅ | ✅ (4) | ✅ (14) | ✅ | ✅ | stable | Complete |
 | Timepicker | ✅ | ✅ | ✅ (4) | ✅ (5) | ✅ | ✅ | stable | Complete |
-| Rich Text Editor | ✅ | ✅ | ✅ (5) | ✅ (20) | ✅ | — | stable | Complete |
-| Table | ✅ | ✅ | ✅ (19) | ✅ (72) | ✅ | — | stable | Complete |
-| DataGrid | ✅ | ✅ | ✅ (4) | ✅ (31) | ✅ | — | beta | Complete |
-| Tree Table | ✅ | ✅ | ✅ (6) | ✅ (2) | ✅ | — | stable | Complete |
-| Tree | ✅ | ✅ | ✅ (6) | ✅ (38) | ✅ | — | stable | Complete |
-| Virtual Scroller | ✅ | ✅ | ✅ (4) | ✅ (7) | ✅ | — | stable | Complete |
-| Menu | ✅ | ✅ | ✅ (6) | ✅ (17) | ✅ | — | stable | Complete |
-| Navbar & App Shell | ✅ | ✅ | ✅ (3) | ✅ (9) | ✅ | — | stable | Complete |
-| Breadcrumbs | ✅ | ✅ | ✅ (4) | ✅ (6) | ✅ | — | stable | Complete |
-| Tabs | ✅ | ✅ | ✅ (3) | ✅ (2) | ✅ | — | stable | Complete |
-| Command Palette | ✅ | ✅ | ✅ (3) | ✅ (15) | ✅ | — | stable | Complete |
+| Rich Text Editor | ✅ | ✅ | ✅ (5) | ✅ (20) | ✅ | ✅ | stable | Complete |
+| Table | ✅ | ✅ | ✅ (19) | ✅ (72) | ✅ | ✅ | stable | Complete |
+| DataGrid | ✅ | ✅ | ✅ (9) | ✅ (31) | ✅ | ✅ | beta | Complete |
+| Tree Table | ✅ | ✅ | ✅ (6) | ✅ (2) | ✅ | ✅ | stable | Complete |
+| Tree | ✅ | ✅ | ✅ (6) | ✅ (38) | ✅ | ✅ | stable | Complete |
+| Virtual Scroller | ✅ | ✅ | ✅ (4) | ✅ (7) | ✅ | ✅ | stable | Complete |
+| Menu | ✅ | ✅ | ✅ (6) | ✅ (17) | ✅ | ✅ | stable | Complete |
+| Navbar & App Shell | ✅ | ✅ | ✅ (3) | ✅ (9) | ✅ | ✅ | stable | Complete |
+| Breadcrumbs | ✅ | ✅ | ✅ (4) | ✅ (6) | ✅ | ✅ | stable | Complete |
+| Tabs | ✅ | ✅ | ✅ (3) | ✅ (2) | ✅ | ✅ | stable | Complete |
+| Command Palette | ✅ | ✅ | ✅ (3) | ✅ (15) | ✅ | ✅ | stable | Complete |
 | Toast | ✅ | ✅ | ✅ (4) | ✅ (12) | ✅ | ✅ | stable | Complete |
-| Notification | ✅ | ✅ | ✅ (3) | ✅ (20) | ✅ | — | stable | Complete |
+| Notification | ✅ | ✅ | ✅ (3) | ✅ (20) | ✅ | ✅ | stable | Complete |
 | Alert Dialogs | ✅ | ✅ | ✅ (4) | ✅ (13) | ✅ | ✅ | stable | Complete |
-| Dialog | ✅ | ✅ | ✅ (3) | ✅ (2) | ✅ | — | stable | Complete |
-| PDF Viewer | ✅ | ✅ | ✅ (5) | ✅ (73) | ✅ | — | beta | Complete |
-| Document Viewer | ✅ | ✅ | ✅ (5) | ✅ (35) | ✅ | — | beta | Complete |
+| Dialog | ✅ | ✅ | ✅ (3) | ✅ (2) | ✅ | ✅ | stable | Complete |
+| PDF Viewer | ✅ | ✅ | ✅ (6) | ✅ (73) | ✅ | ✅ | beta | Complete |
+| Document Viewer | ✅ | ✅ | ✅ (6) | ✅ (35) | ✅ | ✅ | beta | Complete |
 | Document Editor | ✅ | ✅ | ✅ (3) | ✅ (29) | ✅ | — | experimental | Complete |
 
 ## Guides, foundations, systems and architecture
 
 | Page | Route | Written | Sections |
 |---|---|---|---|
+| Introduction | `/getting-started` | ✅ | 6 |
+| Installation | `/installation` | ✅ | 10 |
+| Key patterns | `/key-patterns` | ✅ | 6 |
+| Learning paths | `/guides/learning-paths` | ✅ | 4 |
+| Design principles | `/foundations/design-principles` | ✅ | 9 |
+| Colors | `/foundations/colors` | ✅ | 4 |
+| Typography | `/foundations/typography` | ✅ | 5 |
+| Sizes & variants | `/foundations/sizes-and-variants` | ✅ | 3 |
+| Responsive behavior | `/foundations/responsive` | ✅ | 7 |
 | Theming | `/foundations/theming` | ✅ | 5 |
 | Accessibility | `/foundations/accessibility` | ✅ | 5 |
 | Internationalization | `/foundations/i18n` | ✅ | 4 |
+| Icons | `/icons` | ✅ | 0 |
+| Motion | `/motion` | ✅ | 0 |
 | Builders & controllers | `/systems/builders` | ✅ | 3 |
 | Form state & auto-save | `/systems/form-state` | ✅ | 4 |
 | Formatters & pipes | `/systems/formatters` | ✅ | 4 |
@@ -65,7 +76,11 @@
 | Configure notifications | `/guides/notifications` | ✅ | 5 |
 | Integrate a document viewer | `/guides/document-viewer-integration` | ✅ | 6 |
 | Optimize bundle size | `/guides/bundle-size` | ✅ | 5 |
-| Troubleshooting | `/guides/troubleshooting` | ✅ | 11 |
+| Dynamic forms from schemas | `/guides/schema-forms` | ✅ | 7 |
+| Custom validators | `/guides/custom-validators` | ✅ | 6 |
+| Customize DataGrid columns | `/guides/datagrid-columns` | ✅ | 10 |
+| Extend components | `/guides/extend-components` | ✅ | 11 |
+| Troubleshooting | `/guides/troubleshooting` | ✅ | 12 |
 | Library architecture | `/architecture/library` | ✅ | 7 |
 | Data pipeline (grid-core) | `/architecture/data-pipeline` | ✅ | 4 |
 | Document rendering | `/architecture/documents` | ✅ | 5 |
@@ -76,30 +91,31 @@
 
 - No errors.
 
-<details><summary>26 warnings (public API without JSDoc)</summary>
+<details><summary>27 warnings (public API without JSDoc)</summary>
 
 - jsdoc: service "AlertService" has no description (projects/hakistack/ng-daisyui/src/lib/components/alert/alert.service.ts:142)
 - jsdoc: directive "AutoFocusDirective" has no description (projects/hakistack/ng-daisyui/src/lib/directives/auto-focus/auto-focus.directive.ts:3)
 - jsdoc: component "DatepickerComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker.component.ts:33)
 - jsdoc: service "DatepickerUtilsService" has no description (projects/hakistack/ng-daisyui/src/lib/components/datepicker/datepicker-utils.service.ts:3)
-- jsdoc: service "DialogService" has no description (projects/hakistack/ng-daisyui/src/lib/services/dialog/dialog.service.ts:9)
+- jsdoc: service "DialogService" has no description (projects/hakistack/ng-daisyui/src/lib/services/dialog/dialog.service.ts:15)
 - jsdoc: component "DynamicFormComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.component.ts:46)
 - jsdoc: service "FormEngineService" has no description (projects/hakistack/ng-daisyui/src/lib/services/form-engine/form-engine.service.ts:28)
 - jsdoc: service "FuzzyEngineService" has no description (projects/hakistack/ng-daisyui/src/lib/services/fuzzy-engine/fuzzy-engine.service.ts:22)
 - jsdoc: component "InputComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/input/input.component.ts:17)
+- jsdoc: component "MenuComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/menu/menu.component.ts:46)
 - jsdoc: function "parseCertificate" has no description (projects/hakistack/ng-daisyui/src/lib/components/pdf-viewer/core/signatures/x509.ts:64)
 - jsdoc: service "PdfSearchService" has no description (projects/hakistack/ng-daisyui/src/lib/services/pdf-search/pdf-search.service.ts:27)
 - jsdoc: provider "provideHkTheme" has no description (projects/hakistack/ng-daisyui/src/lib/theme/theme.config.ts:48)
-- jsdoc: component "SelectComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/select/select.component.ts:57)
+- jsdoc: component "SelectComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/select/select.component.ts:63)
 - jsdoc: component "StepperComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/stepper/stepper.component.ts:6)
-- jsdoc: component "TabGroupComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/tab/tab-group/tab-group.component.ts:7)
+- jsdoc: component "TabGroupComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/tab/tab-group/tab-group.component.ts:16)
 - jsdoc: component "TableColumnVisibilityComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/table/table-column-visibility.component.ts:19)
-- jsdoc: component "TableComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/table/table.component.ts:194)
+- jsdoc: component "TableComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/table/table.component.ts:193)
 - jsdoc: service "TableEngineService" has no description (projects/hakistack/ng-daisyui/src/lib/grid-core/engine/table-engine.service.ts:29)
 - jsdoc: component "TableFilterComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/table/table-filter.component.ts:124)
 - jsdoc: component "TableGlobalSearchComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/table/table-global-search.component.ts:5)
 - jsdoc: component "TablePaginationComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/table/table-pagination.component.ts:62)
-- jsdoc: component "TabPanelComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/tab/tab-panel/tab-panel.component.ts:3)
+- jsdoc: component "TabPanelComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/tab/tab-panel/tab-panel.component.ts:4)
 - jsdoc: component "TimepickerComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/timepicker/timepicker.component.ts:21)
 - jsdoc: component "ToastComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/toast/toast.component.ts:19)
 - jsdoc: component "TreeComponent" has no description (projects/hakistack/ng-daisyui/src/lib/components/tree/tree.component.ts:55)

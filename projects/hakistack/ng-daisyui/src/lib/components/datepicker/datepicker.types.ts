@@ -27,7 +27,8 @@ export interface DatepickerEvent {
 }
 
 /**
- * Configuration for `<hk-datepicker>`. All format fields take
+ * Format configuration for `<hk-datepicker>`, passed through the `config` input (partial objects are
+ * merged over the defaults). All format fields take
  * `Intl.DateTimeFormatOptions` — the same shape consumed by
  * `Intl.DateTimeFormat`. Locale is set on the component via the `locale` input;
  * format options describe **what** to render, locale describes **how**.
@@ -41,9 +42,8 @@ export interface DatepickerEvent {
  *   monthFormat: { month: 'long', year: 'numeric' },                    // "January 2026"
  *   weekdayFormat: { weekday: 'short' },                                // "Mon", "Tue", ...
  *   yearBatchSize: 12,
- *   showTodayButton: true,
- *   showClearButton: true,
  * };
+ * // <hk-datepicker [config]="config" [showTodayButton]="true" />
  *
  * @example ISO-style + Spanish locale
  * // template:
@@ -55,14 +55,9 @@ export interface DatepickerEvent {
  *   yearBatchSize: 16,
  * };
  *
- * @example Range picker (close-on-select must be false)
- * config = {
- *   dateFormat: { day: 'numeric', month: 'short', year: 'numeric' },
- *   monthFormat: { month: 'long', year: 'numeric' },
- *   weekdayFormat: { weekday: 'short' },
- *   yearBatchSize: 12,
- *   closeOnSelect: false,
- * };
+ * @example Range picker — behaviour flags are inputs, not config fields
+ * // <hk-datepicker [range]="true" [closeOnSelect]="false" [config]="config" />
+ * config = { dateFormat: { day: 'numeric', month: 'short', year: 'numeric' } };
  */
 export interface DatepickerConfig {
   /** Format options for displaying dates (e.g., `{ day: 'numeric', month: 'short', year: 'numeric' }`) */
@@ -73,11 +68,14 @@ export interface DatepickerConfig {
   readonly yearBatchSize: number;
   /** Format options for weekday column headers (e.g., `{ weekday: 'short' }`) */
   readonly weekdayFormat: Intl.DateTimeFormatOptions;
-  /** Close the dropdown after a date is selected (default: true for single, false for range) */
+  /**
+   * Default for the `closeOnSelect` input (true). The **input** controls the behaviour; setting this
+   * field through `config` has no effect. Range mode keeps the panel open until the range is complete.
+   */
   readonly closeOnSelect?: boolean;
-  /** Show a button to clear the current selection */
+  /** Default for the `showClearButton` input; use the input to change it. */
   readonly showClearButton?: boolean;
-  /** Show a button to jump to today's date */
+  /** Default for the `showTodayButton` input; use the input to change it. */
   readonly showTodayButton?: boolean;
   /** Duration of view transition animations in milliseconds */
   readonly animationDuration?: number;
@@ -219,4 +217,6 @@ export interface DatepickerLabels {
   backToCalendarAriaLabel?: string;
   /** aria-label for the "back to months" button. Default: "Back to months" */
   backToMonthsAriaLabel?: string;
+  /** Week-number column header / screen-reader prefix (when `showWeekNumbers` is on). Default: "Week" */
+  weekNumberHeader?: string;
 }

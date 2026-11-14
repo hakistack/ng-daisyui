@@ -32,7 +32,10 @@ export class MotionResizeDirective implements OnInit, OnDestroy, OnChanges {
    * - `'viewport'` — track `window` resize.
    * - any other value (default) — track the host element via `ResizeObserver`.
    */
-  readonly hkResize = input<'viewport' | boolean | undefined>(undefined);
+  // Accepts the bare attribute (`<div hkResize>`), which Angular passes as ''.
+  readonly hkResize = input<'viewport' | boolean | undefined, 'viewport' | boolean | '' | undefined>(undefined, {
+    transform: (value) => (value === '' ? undefined : value),
+  });
 
   /** Fires on every resize with the current `{ width, height }` in CSS px. */
   readonly resizeChange = output<ResizeInfo>();

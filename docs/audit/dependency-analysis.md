@@ -15,8 +15,8 @@ Input + Select + Toast imported from the package root, Angular 21.2 application 
 | `fuse.js` | dependency | Select search, Table fuzzy search (fallback when WASM is unavailable) | static | correct, 26 KB min in a basic consumer |
 | `motion` | dependency | motion-* directives | static | correct; only reached when a motion directive is used |
 | `uuid` | dependency | `generateUniqueId()` | static | 0.8 KB; kept on purpose (works in insecure contexts where `crypto.randomUUID` does not) |
-| `libphonenumber-js` | dependency | Input `variant="phone"` | **static, via module-level `VARIANT_STRATEGY_MAP`** | 154 KB min in *every* app that uses `hk-input`, phone or not → make lazy (backlog D3) |
-| `@tiptap/*` (7 packages) | **dependency** | `hk-editor` only | dynamic `import()` | bundle impact zero, install impact on every consumer → optional peers (proposed, breaking for editor users) |
+| `libphonenumber-js` | dependency | Input `variant="phone"` | dynamic `import('./phone-lib')` on first phone input (was static) | **changed** — no longer in the initial bundle of apps using `hk-input` |
+| `@tiptap/*` (8 packages incl. `@tiptap/pm`) | optional peer (was **dependency**) | `hk-editor` only | dynamic `import()` with install-hint error | **changed in 0.4.0** — consumers without the editor no longer install Tiptap |
 | `docx-preview`, `@kenjiuno/msgreader`, `postal-mime`, `heic2any`, `dompurify`, `foliate-js` | optional peer | document-viewer renderers, markdown editor | dynamic `import()` inside try/catch | correct — verified: consumer builds **without** them installed |
 | `@anthropic-ai/sdk` | optional peer | `hk-datagrid` `ask()` | dynamic `import()` | correct |
 | `ts-morph` | optional peer | `migrate-table-columns` schematic only | dynamic require in schematic | correct (schematic prints an install hint) |

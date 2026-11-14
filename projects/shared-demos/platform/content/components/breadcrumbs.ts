@@ -28,15 +28,15 @@ const content: ComponentDocContent = {
   whenNotToUse: [
     {
       en: 'Flat apps with one or two levels: the active item in the [Menu](/menu) already tells the user where they are.',
-      es: 'Apps planas de uno o dos niveles: el item activo del [Menu](/menu) ya le dice al usuario dónde está.',
+      es: 'Apps planas de uno o dos niveles: el elemento activo del [Menú](/menu) ya le indica al usuario dónde está.',
     },
     {
       en: 'Primary navigation between sections: use [Menu](/menu) or the [App shell](/app-shell).',
-      es: 'Navegación principal entre secciones: usa [Menu](/menu) o el [App shell](/app-shell).',
+      es: 'Navegación principal entre secciones: usa [Menú](/menu) o el [App shell](/app-shell).',
     },
     {
       en: 'Progress through the steps of a process: use the [Wizard](/wizard), which tracks completed and pending steps.',
-      es: 'Avance por los pasos de un proceso: usa el [Wizard](/wizard), que lleva cuenta de los pasos completados y pendientes.',
+      es: 'Avance por los pasos de un proceso: usa el [Asistente](/wizard), que lleva la cuenta de los pasos completados y pendientes.',
     },
   ],
   quickStart: {
@@ -59,7 +59,7 @@ export class DocumentHeaderComponent {
 `,
     note: {
       en: 'Crumbs with `routerLink` need `provideRouter(...)`. Icon names must be registered with `provideLucideIcons(...)`. For router-derived trails, replace `[items]` with `auto` (see below).',
-      es: 'Las migas con `routerLink` necesitan `provideRouter(...)`. Los nombres de iconos deben registrarse con `provideLucideIcons(...)`. Para rastros derivados del router, cambia `[items]` por `auto` (ver abajo).',
+      es: 'Las migas con `routerLink` necesitan `provideRouter(...)`. Los nombres de iconos deben registrarse con `provideLucideIcons(...)`. Para rastros derivados del router, cambia `[items]` por `auto` (consulta más abajo).',
     },
   },
   technical: [
@@ -102,7 +102,7 @@ export class DocumentHeaderComponent {
           kind: 'p',
           text: {
             en: 'A `breadcrumb` value can be a string, a partial item (label, icon, `ariaLabel`, `class`…) or a function that receives `{ data, params, url }` and returns either. `routerLink` and `current` are always computed by the service.',
-            es: 'Un valor `breadcrumb` puede ser un string, un item parcial (label, icon, `ariaLabel`, `class`…) o una función que recibe `{ data, params, url }` y devuelve cualquiera de los dos. `routerLink` y `current` siempre los calcula el servicio.',
+            es: 'Un valor `breadcrumb` puede ser una cadena, un elemento parcial (label, icon, `ariaLabel`, `class`…) o una función que recibe `{ data, params, url }` y devuelve cualquiera de los dos. `routerLink` y `current` siempre los calcula el servicio.',
           },
         },
         {
@@ -117,26 +117,26 @@ export class DocumentHeaderComponent {
     },
     {
       id: 'manual-mode',
-      heading: { en: 'Manual items and rendering', es: 'Items manuales y cómo se dibujan' },
+      heading: { en: 'Manual items and rendering', es: 'Elementos manuales y cómo se renderizan' },
       blocks: [
         {
           kind: 'list',
           items: [
             {
               en: 'The last item becomes the current page unless another item sets `current: true`. The current crumb is a `<span>`, never a link.',
-              es: 'El último item pasa a ser la página actual, a menos que otro tenga `current: true`. La miga actual es un `<span>`, nunca un enlace.',
+              es: 'El último elemento pasa a ser la página actual, a menos que otro tenga `current: true`. La miga actual es un `<span>`, nunca un enlace.',
             },
             {
-              en: 'Other crumbs render as `<a href>` (with `rel="noopener noreferrer"` for `target: \'_blank\'`), `<a routerLink>`, a `<button>` when only `action` is set, or a plain `<span>` when disabled.',
-              es: 'Las demás migas se dibujan como `<a href>` (con `rel="noopener noreferrer"` si `target` es `\'_blank\'`), `<a routerLink>`, un `<button>` si solo tienen `action`, o un `<span>` simple si están deshabilitadas.',
+              en: 'Other crumbs render as `<a href>` (with `rel="noopener noreferrer"` for `target: \'_blank\'`), `<a routerLink>`, a `<button>` when only `action` is set, or a plain `<span>` when disabled or when it has no link or action.',
+              es: 'Las demás migas se renderizan como `<a href>` (con `rel="noopener noreferrer"` si `target` es `\'_blank\'`), `<a routerLink>`, un `<button>` si solo tienen `action`, o un `<span>` simple si están deshabilitadas o no tienen enlace ni acción.',
             },
             {
               en: 'Activating a crumb runs its `action` and emits `(itemSelect)`. `size` maps to `text-xs` … `text-lg`; `maxWidth` limits the width so long trails scroll horizontally.',
               es: 'Activar una miga ejecuta su `action` y emite `(itemSelect)`. `size` se traduce a `text-xs` … `text-lg`; `maxWidth` limita el ancho para que los rastros largos se desplacen horizontalmente.',
             },
             {
-              en: '`BreadcrumbService` injects the Router as optional, so the component also works in apps without a router; `auto` then yields an empty trail. Inject the service directly if you only need its `trail` signal.',
-              es: '`BreadcrumbService` inyecta el Router como opcional, así que el componente también funciona en apps sin router; en ese caso `auto` da un rastro vacío. Inyecta el servicio directamente si solo necesitas su señal `trail`.',
+              en: '`BreadcrumbService` injects the Router as optional, so the component also works in apps without a router; `auto` then yields an empty trail. Inject the service directly if you only need its `trail` signal (which uses the default `breadcrumb` key).',
+              es: '`BreadcrumbService` inyecta el Router como opcional, así que el componente también funciona en apps sin router; en ese caso `auto` da un rastro vacío. Inyecta el servicio directamente si solo necesitas su signal `trail` (que usa la clave por defecto `breadcrumb`).',
             },
           ],
         },
@@ -156,7 +156,7 @@ export class DocumentHeaderComponent {
         keys: 'Enter',
         action: {
           en: 'Follow the focused link or run the focused action crumb',
-          es: 'Sigue el enlace enfocado o ejecuta la miga de acción enfocada',
+          es: 'Sigue el enlace o ejecuta la miga de acción que tiene el foco',
         },
       },
       {
@@ -175,18 +175,18 @@ export class DocumentHeaderComponent {
       },
       {
         en: 'An icon-only crumb (for example a house icon with no visible text) needs `ariaLabel` so it has an accessible name.',
-        es: 'Una miga de solo icono (por ejemplo una casita sin texto visible) necesita `ariaLabel` para tener un nombre accesible.',
+        es: 'Una miga de solo icono (por ejemplo, un icono de casa sin texto visible) necesita `ariaLabel` para tener un nombre accesible.',
       },
     ],
   },
   performance: [
     {
       en: 'In `auto` mode the trail is a `computed()` that depends on a navigation signal, so it rebuilds once per completed navigation, not on every change-detection pass.',
-      es: 'En modo `auto` el rastro es un `computed()` que depende de una señal de navegación, así que se reconstruye una vez por navegación completada, no en cada ciclo de detección de cambios.',
+      es: 'En modo `auto` el rastro es un `computed()` que depende de un signal de navegación, así que se reconstruye una vez por navegación completada, no en cada ciclo de detección de cambios.',
     },
     {
       en: 'Function-form labels run on every navigation. Keep them cheap: read resolved route data instead of fetching inside them.',
-      es: 'Las etiquetas en forma de función corren en cada navegación. Mantenlas livianas: lee datos ya resueltos de la ruta en vez de hacer peticiones dentro de ellas.',
+      es: 'Las etiquetas en forma de función se ejecutan en cada navegación. Mantenlas livianas: lee datos ya resueltos de la ruta en vez de hacer peticiones dentro de ellas.',
     },
   ],
   related: [

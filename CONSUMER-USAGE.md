@@ -605,8 +605,8 @@ class MyComponent {
 
   async onSave() {
     this.toast.success('Saved!');                         // transient
-    const ok = await this.alert.confirm({ title: 'Replace existing?' });
-    if (!ok) return;
+    const { isConfirmed } = await this.alert.confirm({ title: 'Replace existing?' });
+    if (!isConfirmed) return;
 
     this.notifications.success({                          // persistent overlay event
       title: 'Document shared',

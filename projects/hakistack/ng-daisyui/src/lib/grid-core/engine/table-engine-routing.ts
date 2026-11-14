@@ -9,7 +9,7 @@
 
 import type { AggregateFunction } from '../grid-aggregates';
 import type { ColumnDefinition, FilterConfig } from '../grid.types';
-import type { AggFn, ColumnKind, ColumnSchema, FilterDef, NumberOp, SortDef, TextOp, BoolOp, DateOp } from './table-engine.types';
+import type { AggFn, ColumnKind, ColumnSchema, FilterDef, NumberOp, SortDef, TextOp, DateOp } from './table-engine.types';
 
 /**
  * Index a schema array as `field → kind` for O(1) lookup. Both

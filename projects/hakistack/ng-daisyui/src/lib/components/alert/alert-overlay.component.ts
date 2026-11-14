@@ -135,9 +135,14 @@ export class AlertOverlayComponent {
     return BUTTON_CLASS_MAP[style] ?? BUTTON_CLASS_MAP['primary'];
   });
 
-  readonly trustedHtml = computed<SafeHtml>(() => {
-    const html = this.config().html;
-    return html ? this.sanitizer.bypassSecurityTrustHtml(html) : '';
+  /**
+   * Body markup. A plain string bound to `[innerHTML]` goes through Angular's sanitizer (scripts,
+   * event handlers and `style` are stripped); only an explicit `trustedHtml: true` skips it.
+   */
+  readonly bodyHtml = computed<SafeHtml | string>(() => {
+    const { html, trustHtml } = this.config();
+    if (!html) return '';
+    return trustHtml ? this.sanitizer.bypassSecurityTrustHtml(html) : html;
   });
 
   constructor() {

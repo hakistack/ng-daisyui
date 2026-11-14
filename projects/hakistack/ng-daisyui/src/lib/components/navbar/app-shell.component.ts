@@ -1,10 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, input, model } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { map, switchMap } from 'rxjs';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { NavbarComponent } from './navbar.component';
 import { SidebarComponent } from './sidebar.component';
 import { drawerOpenAtBreakpoint } from './navbar.helpers';
 import { NavbarConfig, ShellBreakpoint, ShellConfig, ShellMode, SidebarConfig, SidebarSide } from './navbar.types';
 import { generateUniqueId } from '../../utils/generate-uuid';
+
+/** Tailwind's default breakpoints (min-width, px) — the drawer becomes permanent from here up in push mode. */
+const BREAKPOINT_PX: Readonly<Record<ShellBreakpoint, number>> = { sm: 640, md: 768, lg: 1024, xl: 1280 };
 
 /**
  * `<hk-app-shell>` — the DaisyUI **drawer** scaffold that composes an
@@ -81,8 +87,22 @@ export class AppShellComponent {
   /** Hide the hamburger at the breakpoint (push) or never (overlay = always shown). */
   readonly toggleBreakpoint = computed<ShellBreakpoint | 'never'>(() => (this.isOverlay() ? 'never' : this.cfg().bp));
 
-  /** Trap focus inside the drawer only while it's an open overlay. */
-  readonly trapActive = computed(() => this.isOverlay() && this.drawerOpen());
+  private readonly breakpoints = inject(BreakpointObserver);
+
+  /** True below the push breakpoint, where the push drawer also renders as an overlay. */
+  private readonly belowBreakpoint = toSignal(
+    toObservable(computed(() => this.cfg().bp)).pipe(
+      switchMap((bp) => this.breakpoints.observe(`(max-width: ${BREAKPOINT_PX[bp] - 0.02}px)`)),
+      map((state) => state.matches),
+    ),
+    { initialValue: false },
+  );
+
+  /** Trap focus inside the drawer while it is open as an overlay (overlay mode, or push mode below the breakpoint). */
+  readonly trapActive = computed(() => this.drawerOpen() && (this.isOverlay() || this.belowBreakpoint()));
+
+  /** Id of the drawer panel, referenced by the hamburger's `aria-controls`. */
+  readonly drawerSideId = `${this.drawerId}-side`;
 
   onToggleChange(checked: boolean): void {
     this.drawerOpen.set(checked);

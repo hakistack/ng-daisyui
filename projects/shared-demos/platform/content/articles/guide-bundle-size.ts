@@ -4,19 +4,19 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: a small initial bundle, with heavy features downloaded only by users who reach them. Most of the expensive parts of the library are already split out; this guide shows what is automatic, what is up to you, and how to check the result.',
-      es: 'Meta: un bundle inicial pequeño, donde las funciones pesadas solo las descarguen quienes llegan a ellas. La mayoría de las partes costosas de la librería ya vienen separadas; esta guía muestra qué es automático, qué depende de ti y cómo verificar el resultado.',
+      es: 'Objetivo: un bundle inicial pequeño, donde las funcionalidades pesadas solo las descarguen quienes llegan a usarlas. La mayoría de las partes costosas de la librería ya vienen separadas; esta guía muestra qué es automático, qué depende de ti y cómo verificar el resultado.',
     },
   ],
   sections: [
     {
       id: 'automatic',
-      heading: { en: 'Already lazy: nothing to do', es: 'Ya es diferido: no tienes que hacer nada' },
+      heading: { en: 'Already lazy: nothing to do', es: 'Ya se carga de forma diferida: no tienes que hacer nada' },
       blocks: [
         {
           kind: 'p',
           text: {
             en: 'The WebAssembly modules are embedded as base64 in their own chunks and loaded with dynamic `import()` the first time a feature needs them. No asset copying, no HTTP setup.',
-            es: 'Los módulos WebAssembly vienen incrustados en base64 en sus propios chunks y se cargan con `import()` dinámico la primera vez que una función los necesita. Sin copiar assets ni configurar HTTP.',
+            es: 'Los módulos WebAssembly vienen incrustados en base64 en sus propios chunks y se cargan con `import()` dinámico la primera vez que una funcionalidad los necesita. No hay que copiar assets ni configurar HTTP.',
           },
         },
         {
@@ -29,8 +29,8 @@ const content: ArticleContent = {
             [
               { en: 'Shared engine (Rust)', es: 'Motor compartido (Rust)' },
               {
-                en: 'A dynamic form builds its condition engine, a table receives client data, a searchable select or the command palette indexes options, a tree uses its engine, or a PDF is searched. Loaded once, shared by all of them.',
-                es: 'Un formulario dinámico arma su motor de condiciones, una tabla recibe datos del cliente, un select con búsqueda o el command palette indexa opciones, un árbol usa su motor, o se busca en un PDF. Se carga una vez y todos lo comparten.',
+                en: 'A dynamic form builds its condition engine, a table receives client data, the command palette indexes its items, a searchable select with 200 or more options gets its first query, a tree uses its engine, or a PDF is searched. Loaded once, shared by all of them.',
+                es: 'Un formulario dinámico arma su motor de condiciones, una tabla recibe datos del cliente, el command palette indexa sus ítems, un select con búsqueda de 200 opciones o más recibe su primera consulta, un árbol usa su motor o se busca en un PDF. Se carga una vez y todos lo comparten.',
               },
             ],
             [
@@ -44,15 +44,22 @@ const content: ArticleContent = {
             [
               { en: 'PDFium worker', es: 'Worker de PDFium' },
               {
-                en: 'A PDF is first opened. This is the largest chunk (about 9 MB before compression), started as a `blob:` worker.',
-                es: 'Se abre un PDF por primera vez. Es el chunk más grande (unos 9 MB sin comprimir), iniciado como worker `blob:`.',
+                en: 'A PDF is first opened. This is the largest chunk (several MB before compression), started as a `blob:` worker.',
+                es: 'Se abre un PDF por primera vez. Es el chunk más grande (varios MB sin comprimir) y se inicia como worker `blob:`.',
               },
             ],
             [
-              { en: 'Optional peers', es: 'Peers opcionales' },
+              { en: 'Phone formatting', es: 'Formato de teléfono' },
               {
-                en: '`docx-preview`, `dompurify`, `postal-mime`, `@kenjiuno/msgreader`, `foliate-js`, `heic2any` load when a file of their format opens; `@anthropic-ai/sdk` when a DataGrid AI request runs.',
-                es: '`docx-preview`, `dompurify`, `postal-mime`, `@kenjiuno/msgreader`, `foliate-js`, `heic2any` se cargan cuando se abre un archivo de su formato; `@anthropic-ai/sdk` cuando corre una petición de IA del DataGrid.',
+                en: '`libphonenumber-js` (a regular dependency) loads when the first `hk-input` with `variant="phone"` renders. Until then the field keeps plain digits.',
+                es: '`libphonenumber-js` (una dependencia normal) se carga cuando se renderiza el primer `hk-input` con `variant="phone"`. Mientras tanto, el campo muestra solo dígitos.',
+              },
+            ],
+            [
+              { en: 'Optional peers', es: 'Dependencias peer opcionales' },
+              {
+                en: 'Installed only by apps that need them. `docx-preview`, `dompurify`, `postal-mime`, `@kenjiuno/msgreader`, `foliate-js` and `heic2any` load when a file of their format opens; `@tiptap/*` when `hk-editor` first renders; `@anthropic-ai/sdk` when a DataGrid AI request runs.',
+                es: 'Solo las instalan las apps que las necesitan. `docx-preview`, `dompurify`, `postal-mime`, `@kenjiuno/msgreader`, `foliate-js` y `heic2any` se cargan cuando se abre un archivo de su formato; `@tiptap/*`, cuando `hk-editor` se renderiza por primera vez; `@anthropic-ai/sdk`, cuando corre una petición de IA del DataGrid.',
               },
             ],
           ],
@@ -61,8 +68,8 @@ const content: ArticleContent = {
           kind: 'note',
           tone: 'info',
           text: {
-            en: 'Every engine-backed feature has a TypeScript fallback, so the UI works while a chunk downloads or if it fails to load.',
-            es: 'Cada función con motor tiene una ruta de respaldo en TypeScript, así que la interfaz funciona mientras se descarga un chunk o si falla al cargar.',
+            en: 'Features on the shared engine (table, tree, form conditions, fuzzy search) have a TypeScript fallback, so the UI works while that chunk downloads or if it fails to load. The document and image engines have none: if they fail, the viewer shows an error for that file.',
+            es: 'Las funcionalidades del motor compartido (tabla, árbol, condiciones de formularios, búsqueda difusa) tienen una ruta de respaldo en TypeScript, así que la interfaz funciona mientras se descarga ese chunk o si falla al cargar. Los motores de documentos e imágenes no la tienen: si fallan, el visor muestra un error para ese archivo.',
           },
         },
       ],
@@ -81,11 +88,11 @@ const content: ArticleContent = {
             },
             {
               en: '**Lazy-load heavy routes.** The document viewer, PDF viewer and rich editor carry real code. Put them behind `loadComponent` routes or `@defer` blocks.',
-              es: '**Carga diferida de rutas pesadas.** El visor de documentos, el visor PDF y el editor enriquecido traen bastante código. Ponlos detrás de rutas con `loadComponent` o de bloques `@defer`.',
+              es: '**Usa carga diferida en las rutas pesadas.** El visor de documentos, el visor de PDF y el editor enriquecido traen bastante código. Ponlos detrás de rutas con `loadComponent` o de bloques `@defer`.',
             },
             {
               en: '**Register only the icons you use.** See below.',
-              es: '**Registra solo los iconos que usas.** Mira abajo.',
+              es: '**Registra solo los iconos que usas.** Más abajo te explicamos cómo.',
             },
           ],
         },
@@ -111,8 +118,8 @@ export const routes: Routes = [
         {
           kind: 'p',
           text: {
-            en: 'Icons come from `@lucide/angular`. When you refer to an icon by name (for example `icon: \'house\'` in a menu item, or `lucideIcon="star"` in a template), that name must be registered with `provideLucideIcons`. Registering the whole Lucide set adds roughly 1.2 MB minified to the initial chunk, because Lucide’s name map cannot be split; the docs demo does it on purpose, an app should not.',
-            es: 'Los iconos vienen de `@lucide/angular`. Cuando te refieres a un icono por nombre (por ejemplo `icon: \'house\'` en un ítem de menú, o `lucideIcon="star"` en una plantilla), ese nombre debe estar registrado con `provideLucideIcons`. Registrar todo el set de Lucide añade cerca de 1.2 MB minificado al chunk inicial, porque el mapa de nombres de Lucide no se puede dividir; la demo de la documentación lo hace a propósito, una app no debería.',
+            en: 'Icons come from `@lucide/angular`. When you refer to an icon by name (for example `icon: \'house\'` in a menu item, or `lucideIcon="star"` in a template), that name must be registered with `provideLucideIcons`. Registering the whole Lucide set (about 1,700 icons) added roughly 1.2 MB to this docs site’s initial bundle, because a name map cannot be tree-shaken; register only the icons you reference by name.',
+            es: 'Los iconos vienen de `@lucide/angular`. Cuando te refieres a un icono por nombre (por ejemplo `icon: \'house\'` en un ítem de menú, o `lucideIcon="star"` en una plantilla), ese nombre debe estar registrado con `provideLucideIcons`. Registrar todo el set de Lucide (unos 1,700 iconos) añadía cerca de 1.2 MB al bundle inicial de este sitio de documentación, porque un mapa de nombres no admite tree-shaking; registra solo los iconos que usas por nombre.',
           },
         },
         {
@@ -129,8 +136,8 @@ export const appConfig: ApplicationConfig = {
         {
           kind: 'p',
           text: {
-            en: 'Where an API accepts an icon component or icon data (menu items accept `LucideHouse`, table actions accept `LucideEye.icon`), passing it directly avoids the name lookup altogether.',
-            es: 'Cuando una API acepta un componente de icono o los datos del icono (los ítems de menú aceptan `LucideHouse`, las acciones de tabla aceptan `LucideEye.icon`), pasarlo directo evita por completo la búsqueda por nombre.',
+            en: 'Where an API accepts icon data (menu items, table actions and tab panels accept `LucideHouse.icon`), passing it directly avoids the name lookup altogether.',
+            es: 'Cuando una API acepta los datos del icono (los ítems de menú, las acciones de tabla y los paneles de pestañas aceptan `LucideHouse.icon`), pasarlos directamente evita por completo la búsqueda por nombre.',
           },
         },
         {
@@ -138,7 +145,7 @@ export const appConfig: ApplicationConfig = {
           tone: 'warning',
           text: {
             en: 'A table bulk action of type `export` shows default options with the icon names `sheet`, `file-spreadsheet`, `file-text` and `braces`. Register those icons, or pass your own `dropdownOptions`, if you use it.',
-            es: 'Una acción masiva de tabla de tipo `export` muestra opciones por defecto con los nombres de icono `sheet`, `file-spreadsheet`, `file-text` y `braces`. Registra esos iconos, o pasa tus propias `dropdownOptions`, si la usas.',
+            es: 'Una acción masiva de tabla de tipo `export` muestra opciones por defecto con los nombres de icono `sheet`, `file-spreadsheet`, `file-text` y `braces`. Si la usas, registra esos iconos o pasa tus propias `dropdownOptions`.',
           },
         },
       ],
@@ -150,8 +157,8 @@ export const appConfig: ApplicationConfig = {
         {
           kind: 'p',
           text: {
-            en: 'Base64 embedding is about a third larger than the raw binary and is cached with its JavaScript chunk. If you prefer the `.wasm` as its own long-cached asset, copy it from the package and point the library at it with [provideTableEngineWasmUrl](/api/provideTableEngineWasmUrl), [provideDocumentEngineWasmUrl](/api/provideDocumentEngineWasmUrl) or [provideImageEngineWasmUrl](/api/provideImageEngineWasmUrl). The `.js` glue and its `_bg.wasm` must sit in the same folder. Details in [WASM engines](/systems/wasm-engines).',
-            es: 'Incrustar en base64 ocupa cerca de un tercio más que el binario y se cachea junto con su chunk de JavaScript. Si prefieres el `.wasm` como asset propio con caché larga, cópialo del paquete y apunta la librería a él con [provideTableEngineWasmUrl](/api/provideTableEngineWasmUrl), [provideDocumentEngineWasmUrl](/api/provideDocumentEngineWasmUrl) o [provideImageEngineWasmUrl](/api/provideImageEngineWasmUrl). El glue `.js` y su `_bg.wasm` deben estar en la misma carpeta. Detalles en [Motores WASM](/systems/wasm-engines).',
+            en: 'Base64 embedding is about a third larger than the raw binary and is cached with its JavaScript chunk. If you prefer the `.wasm` as its own long-cached asset, build it with `npm run engine:build` in the ng-daisyui repository (the package ships only the inlined copies, with no `wasm/` folder), serve it from your app and point the library at it with [provideTableEngineWasmUrl](/api/provideTableEngineWasmUrl), [provideDocumentEngineWasmUrl](/api/provideDocumentEngineWasmUrl) or [provideImageEngineWasmUrl](/api/provideImageEngineWasmUrl). The `.js` glue and its `_bg.wasm` must sit in the same folder. Details in [WASM engines](/systems/wasm-engines).',
+            es: 'Incrustado en base64, el binario ocupa cerca de un tercio más y se cachea junto con su chunk de JavaScript. Si prefieres el `.wasm` como asset propio con caché de larga duración, genéralo con `npm run engine:build` en el repositorio de ng-daisyui (el paquete solo incluye las copias incrustadas, sin carpeta `wasm/`), sírvelo desde tu app y apunta la librería a él con [provideTableEngineWasmUrl](/api/provideTableEngineWasmUrl), [provideDocumentEngineWasmUrl](/api/provideDocumentEngineWasmUrl) o [provideImageEngineWasmUrl](/api/provideImageEngineWasmUrl). El glue `.js` y su `_bg.wasm` deben estar en la misma carpeta. Detalles en [Motores WASM](/systems/wasm-engines).',
           },
         },
       ],
@@ -163,8 +170,8 @@ export const appConfig: ApplicationConfig = {
         {
           kind: 'p',
           text: {
-            en: 'In your app, `ng build` prints the initial and lazy chunk sizes; set `budgets` in `angular.json` to fail the build when the initial bundle grows. In this repository, `size-limit` guards the library’s main FESM file (250 kB gzip, 180 kB brotli); lazy chunks are separate files and are not counted there.',
-            es: 'En tu app, `ng build` muestra los tamaños de los chunks iniciales y diferidos; define `budgets` en `angular.json` para que el build falle si crece el bundle inicial. En este repositorio, `size-limit` vigila el archivo FESM principal de la librería (250 kB gzip, 180 kB brotli); los chunks diferidos son archivos aparte y no cuentan ahí.',
+            en: 'In your app, `ng build` prints the initial and lazy chunk sizes; set `budgets` in `angular.json` to fail the build when the initial bundle grows. In this repository, `npm run size` (size-limit) is a growth guard on the whole-library FESM file (700 kB gzip), which is not what consumers ship; `npm run test:consumer` installs the packed library into a clean app and fails if its initial JS goes over 240 kB gzip.',
+            es: 'En tu app, `ng build` muestra los tamaños de los chunks iniciales y diferidos; define `budgets` en `angular.json` para que el build falle si crece el bundle inicial. En este repositorio, `npm run size` (size-limit) vigila el crecimiento del archivo FESM de toda la librería (700 kB gzip), que no es lo que reciben las apps; `npm run test:consumer` instala la librería empaquetada en una app limpia y falla si su JS inicial pasa de 240 kB gzip.',
           },
         },
         {
@@ -172,7 +179,8 @@ export const appConfig: ApplicationConfig = {
           lang: 'bash',
           title: 'Library repository',
           code: `npm run build
-npm run size`,
+npm run size
+npm run test:consumer`,
         },
       ],
     },

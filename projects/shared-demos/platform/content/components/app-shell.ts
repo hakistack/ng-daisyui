@@ -7,8 +7,8 @@ const content: ComponentDocContent = {
       es: 'Son las tres piezas que forman el marco de una app. `hk-navbar` es la barra superior, con espacios para tu logo, enlaces y botones. `hk-sidebar` es el panel lateral, con un menú vertical, un encabezado, un pie y un botón opcional que lo reduce a solo iconos. `hk-app-shell` junta las dos con tu página en el centro.',
     },
     {
-      en: 'On large screens the shell keeps the sidebar always visible; on small screens it hides it and shows a hamburger button that slides it over the page. Picking a menu item or pressing Escape closes it again. Everything app-specific — brand, avatar, theme switch — is your own markup, projected into named slots.',
-      es: 'En pantallas grandes el shell deja la barra lateral siempre visible; en pantallas pequeñas la esconde y muestra un botón de hamburguesa que la desliza sobre la página. Elegir un item del menú o pulsar Escape la vuelve a cerrar. Todo lo propio de tu app — marca, avatar, selector de tema — es tu propio HTML, proyectado en slots con nombre.',
+      en: 'On large screens the shell keeps the sidebar always visible; on small screens it hides it and shows a hamburger button that slides it over the page. Picking a menu item or pressing Escape closes it again. Everything app-specific (brand, avatar, theme switch) is your own markup, projected into named slots.',
+      es: 'En pantallas grandes el shell deja la barra lateral siempre visible; en pantallas pequeñas la oculta y muestra un botón de hamburguesa que la desliza sobre la página. Elegir un elemento del menú o pulsar Escape la vuelve a cerrar. Todo lo propio de tu app (marca, avatar, selector de tema) es tu propio HTML, proyectado en slots con nombre.',
     },
   ],
   whenToUse: [
@@ -18,7 +18,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Simple sites that only need a top bar with a horizontal menu and a hamburger: use `hk-navbar` alone.',
-      es: 'Sitios sencillos que solo necesitan una barra superior con menú horizontal y hamburguesa: usa `hk-navbar` solo.',
+      es: 'Sitios sencillos que solo necesitan una barra superior con menú horizontal y hamburguesa: usa solo `hk-navbar`.',
     },
     {
       en: 'Your own layout that just needs the sidebar panel: `hk-sidebar` renders only the `<aside>`, so you can place it inside your own drawer.',
@@ -28,11 +28,11 @@ const content: ComponentDocContent = {
   whenNotToUse: [
     {
       en: 'Only a list of links without the surrounding chrome: use [Menu](/menu) directly.',
-      es: 'Si solo necesitas una lista de enlaces sin el marco alrededor: usa [Menu](/menu) directamente.',
+      es: 'Si solo necesitas una lista de enlaces sin el marco alrededor: usa [Menú](/menu) directamente.',
     },
     {
       en: 'Switching sections inside one page: use [Tabs](/tabs).',
-      es: 'Para cambiar de sección dentro de una página: usa [Tabs](/tabs).',
+      es: 'Para cambiar de sección dentro de una página: usa [Pestañas](/tabs).',
     },
     {
       en: 'Layouts with two sidebars: the shell manages a single sidebar, on the start or the end side.',
@@ -63,7 +63,7 @@ export class AppComponent {
   readonly sidebar: SidebarConfig = {
     collapsible: true,
     menu: {
-      ariaLabel: 'Main',
+      ariaLabel: 'Main menu',
       items: [
         { label: 'Dashboard', routerLink: '/dashboard', icon: 'house' },
         { label: 'Reports', routerLink: '/reports', icon: 'chart-line' },
@@ -74,7 +74,7 @@ export class AppComponent {
 `,
     note: {
       en: 'Requires `provideRouter(...)` for the `routerLink` items and the outlet. Icon names must be registered with `provideLucideIcons(...)`; the hamburger and collapse icons are bundled by the library and need no registration.',
-      es: 'Requiere `provideRouter(...)` para los items con `routerLink` y el outlet. Los nombres de iconos deben registrarse con `provideLucideIcons(...)`; los iconos de la hamburguesa y del botón de plegar vienen incluidos en la librería y no hay que registrarlos.',
+      es: 'Requiere `provideRouter(...)` para los elementos con `routerLink` y el outlet. Los nombres de iconos deben registrarse con `provideLucideIcons(...)`; los iconos de la hamburguesa y del botón de plegar vienen incluidos en la librería y no hay que registrarlos.',
     },
   },
   technical: [
@@ -86,7 +86,7 @@ export class AppComponent {
           kind: 'p',
           text: {
             en: '`hk-app-shell` renders a DaisyUI `drawer`. A hidden `drawer-toggle` checkbox is bound to the `drawerOpen` model; the content side holds an `hk-navbar` (hamburger always enabled, `sticky` defaulting to `true`), a `<main>` with the default slot and an `[hk-footer]` slot; the side holds the overlay and an `hk-sidebar`. Both inner components also take a whole-config input, and any individual input overrides the matching config field.',
-            es: '`hk-app-shell` genera un `drawer` de DaisyUI. Un checkbox `drawer-toggle` oculto está enlazado al modelo `drawerOpen`; el lado del contenido tiene un `hk-navbar` (con la hamburguesa siempre habilitada y `sticky` en `true` por defecto), un `<main>` con el slot por defecto y un slot `[hk-footer]`; el lado lateral tiene el overlay y un `hk-sidebar`. Ambos componentes internos aceptan también un input de config completo, y cualquier input individual tiene prioridad sobre el campo equivalente del config.',
+            es: '`hk-app-shell` genera un `drawer` de DaisyUI. Una casilla `drawer-toggle` oculta está enlazada al modelo `drawerOpen`; el lado del contenido tiene un `hk-navbar` (con la hamburguesa siempre habilitada y `sticky` en `true` por defecto), un `<main>` con el slot por defecto y un slot `[hk-footer]`; el lado lateral tiene el overlay y un `hk-sidebar`. Ambos componentes internos aceptan también un input con la configuración completa, y cualquier input individual tiene prioridad sobre el campo equivalente de la configuración.',
           },
         },
         {
@@ -114,7 +114,7 @@ export class AppComponent {
             ],
             [
               { en: '(default)', es: '(por defecto)' },
-              { en: 'Inside `<main>` — usually your `<router-outlet>`', es: 'Dentro de `<main>` — normalmente tu `<router-outlet>`' },
+              { en: 'Inside `<main>`; usually your `<router-outlet>`', es: 'Dentro de `<main>`; normalmente, tu `<router-outlet>`' },
             ],
           ],
         },
@@ -122,7 +122,7 @@ export class AppComponent {
     },
     {
       id: 'responsive',
-      heading: { en: 'Push vs overlay, and breakpoints', es: 'Push vs overlay, y breakpoints' },
+      heading: { en: 'Push vs overlay, and breakpoints', es: 'Push frente a overlay, y breakpoints' },
       blocks: [
         {
           kind: 'list',
@@ -137,7 +137,7 @@ export class AppComponent {
             },
             {
               en: "`side: 'end'` on the sidebar config maps to DaisyUI `drawer-end` and moves the border to the inner edge.",
-              es: "`side: 'end'` en el config de la barra lateral se traduce a `drawer-end` de DaisyUI y mueve el borde al lado interior.",
+              es: "`side: 'end'` en la configuración de la barra lateral se traduce a `drawer-end` de DaisyUI y mueve el borde al lado interior.",
             },
             {
               en: "Standalone `hk-navbar` uses `menuToggleBreakpoint` the same way: at that breakpoint the hamburger hides and the centre menu appears; `'never'` keeps the hamburger at all sizes.",
@@ -149,8 +149,8 @@ export class AppComponent {
           kind: 'note',
           tone: 'info',
           text: {
-            en: "Breakpoint classes come from maps with literal keys such as `'lg:drawer-open'`, so Tailwind's source scanning finds them. Switching between permanent and overlay is pure CSS; there are no resize listeners.",
-            es: "Las clases de breakpoint salen de mapas con claves literales como `'lg:drawer-open'`, para que el escaneo de Tailwind las encuentre. El cambio entre fijo y overlay es solo CSS; no hay listeners de resize.",
+            en: "Breakpoint classes come from maps with literal keys such as `'lg:drawer-open'`, so Tailwind's source scanning finds them. Switching between permanent and overlay is pure CSS; the only breakpoint check in code is a CDK `BreakpointObserver` (a media query, not a resize listener) that turns the focus trap on below the breakpoint in `push` mode.",
+            es: "Las clases de breakpoint salen de mapas con claves literales como `'lg:drawer-open'`, para que el escaneo de Tailwind las encuentre. El cambio entre fijo y overlay es solo CSS; la única verificación de breakpoint en código es un `BreakpointObserver` del CDK (una media query, no un listener de `resize`) que activa la trampa de foco por debajo del breakpoint en modo `push`.",
           },
         },
       ],
@@ -163,7 +163,7 @@ export class AppComponent {
           kind: 'p',
           text: {
             en: '`[(drawerOpen)]` and `[(collapsed)]` are two-way models on the shell. Selecting a leaf menu item closes the drawer; `collapsed` is forwarded to the sidebar, which narrows to `4rem` and puts its `hk-menu` in rail mode.',
-            es: '`[(drawerOpen)]` y `[(collapsed)]` son modelos bidireccionales del shell. Elegir un item final del menú cierra el drawer; `collapsed` pasa a la barra lateral, que se reduce a `4rem` y pone su `hk-menu` en modo riel.',
+            es: '`[(drawerOpen)]` y `[(collapsed)]` son modelos bidireccionales del shell. Elegir un elemento final del menú cierra el drawer; `collapsed` pasa a la barra lateral, que se reduce a `4rem` y pone su `hk-menu` en modo riel.',
           },
         },
         {
@@ -202,44 +202,47 @@ export class AppComponent {
       {
         keys: 'Tab / Shift+Tab',
         action: {
-          en: "With `mode: 'overlay'` and the drawer open, focus is trapped inside the sidebar",
-          es: "Con `mode: 'overlay'` y el drawer abierto, el foco queda atrapado dentro de la barra lateral",
+          en: "While the drawer is open over the page (`mode: 'overlay'`, or `push` below the breakpoint), focus is trapped inside the sidebar",
+          es: "Mientras el drawer está abierto sobre la página (`mode: 'overlay'`, o `push` por debajo del breakpoint), el foco queda atrapado dentro de la barra lateral",
         },
       },
       {
         keys: 'Arrow keys, Home, End',
-        action: { en: 'Navigate the embedded menus (see Menu)', es: 'Navegan los menús incluidos (ver Menu)' },
+        action: { en: 'Navigate the embedded menus (see Menu)', es: 'Navegan por los menús incluidos (consulta Menú)' },
       },
     ],
     notes: [
       {
-        en: 'The navbar is a `<nav>` labelled by `ariaLabel` (default "Main"); the sidebar is an `<aside>` labelled "Sidebar" that wraps a `<nav>`. Give them distinct, translated labels.',
-        es: 'El navbar es un `<nav>` con la etiqueta de `ariaLabel` (por defecto "Main"); la barra lateral es un `<aside>` con la etiqueta "Sidebar" que envuelve un `<nav>`. Ponles etiquetas distintas y traducidas.',
+        en: 'The navbar is a `<nav>` labelled by `ariaLabel` (default "Main"); the sidebar is an `<aside>` labelled by its own `ariaLabel` (default "Sidebar") that wraps a `<nav>`. Give them distinct, translated labels.',
+        es: 'El navbar es un `<nav>` con la etiqueta de `ariaLabel` (por defecto "Main"); la barra lateral es un `<aside>` con la etiqueta de su propio `ariaLabel` (por defecto "Sidebar") que envuelve un `<nav>`. Ponles etiquetas distintas y traducidas.',
       },
       {
-        en: 'The focus trap is only active in `overlay` mode. In the default `push` mode, the drawer that slides in on small screens does not trap focus.',
-        es: 'La trampa de foco solo se activa en modo `overlay`. En el modo `push` por defecto, el drawer que aparece en pantallas pequeñas no atrapa el foco.',
+        en: 'The focus trap is active whenever the drawer is open as an overlay: always in `overlay` mode, and in the default `push` mode below `responsiveBreakpoint`, where the drawer slides in over the page. From the breakpoint up, the permanent `push` sidebar is part of the page and does not trap focus.',
+        es: 'La trampa de foco se activa siempre que el drawer está abierto como overlay: siempre en modo `overlay`, y en el modo `push` por defecto por debajo de `responsiveBreakpoint`, donde el drawer aparece sobre la página. Desde el breakpoint hacia arriba, la barra lateral fija de `push` forma parte de la página y no atrapa el foco.',
       },
       {
-        en: 'Built-in control labels are fixed English strings: "Toggle navigation" on the hamburger, "Close sidebar" on the overlay, and "Collapse sidebar" / "Expand sidebar" on the rail button (which also sets `aria-pressed`). The hamburger does not set `aria-expanded`.',
-        es: 'Las etiquetas de los controles integrados son textos fijos en inglés: "Toggle navigation" en la hamburguesa, "Close sidebar" en el overlay y "Collapse sidebar" / "Expand sidebar" en el botón del riel (que además usa `aria-pressed`). La hamburguesa no define `aria-expanded`.',
+        en: 'Built-in control labels are fixed English strings: "Toggle navigation" on the hamburger, "Close sidebar" on the overlay, and "Collapse sidebar" / "Expand sidebar" on the rail button (which also sets `aria-pressed`). Inside the shell the hamburger also has `aria-expanded` (the drawer’s open state) and `aria-controls` (the drawer panel’s id). A standalone `hk-navbar` sets them only when you pass its `menuExpanded` and `menuControls` inputs.',
+        es: 'Las etiquetas de los controles integrados son textos fijos en inglés: "Toggle navigation" en la hamburguesa, "Close sidebar" en el overlay y "Collapse sidebar" / "Expand sidebar" en el botón del riel (que además usa `aria-pressed`). Dentro del shell, la hamburguesa también tiene `aria-expanded` (si el drawer está abierto) y `aria-controls` (el id del panel del drawer). Un `hk-navbar` independiente los define solo cuando le pasas sus inputs `menuExpanded` y `menuControls`.',
       },
     ],
   },
   performance: [
     {
-      en: 'Responsive behavior is CSS only (DaisyUI drawer plus Tailwind breakpoint classes); no `BreakpointObserver` or resize handlers run.',
-      es: 'El comportamiento responsivo es solo CSS (drawer de DaisyUI más clases de breakpoint de Tailwind); no corre ningún `BreakpointObserver` ni handler de resize.',
+      en: 'Layout changes are CSS only (DaisyUI drawer plus Tailwind breakpoint classes). One CDK `BreakpointObserver` media query decides whether the `push` drawer traps focus; no resize handlers run.',
+      es: 'Los cambios de diseño son solo CSS (drawer de DaisyUI más clases de breakpoint de Tailwind). Una media query del `BreakpointObserver` del CDK decide si el drawer en modo `push` atrapa el foco; no se ejecuta ningún manejador de `resize`.',
     },
     {
       en: 'Keep `menu` and sidebar configs in fields so their references stay stable; a new object on every change-detection pass makes the embedded menu re-process its items.',
-      es: 'Guarda los configs del `menu` y de la barra lateral en campos para que su referencia se mantenga; un objeto nuevo en cada ciclo de detección de cambios obliga al menú a reprocesar sus items.',
+      es: 'Guarda las configuraciones del `menu` y de la barra lateral en campos para que su referencia se mantenga estable; un objeto nuevo en cada ciclo de detección de cambios obliga al menú a reprocesar sus elementos.',
     },
   ],
   related: [
     {
       id: 'menu',
-      note: { en: 'The menu rendered inside the navbar and sidebar.', es: 'El menú que se dibuja dentro del navbar y la barra lateral.' },
+      note: {
+        en: 'The menu rendered inside the navbar and sidebar.',
+        es: 'El menú que se renderiza dentro del navbar y de la barra lateral.',
+      },
     },
     {
       id: 'breadcrumbs',
@@ -252,7 +255,7 @@ export class AppComponent {
       id: 'command-palette',
       note: {
         en: 'Keyboard launcher that complements the sidebar navigation.',
-        es: 'Buscador de teclado que complementa la navegación lateral.',
+        es: 'Buscador controlado con el teclado que complementa la navegación lateral.',
       },
     },
   ],

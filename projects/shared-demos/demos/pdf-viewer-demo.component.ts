@@ -5,14 +5,28 @@ import { map } from 'rxjs';
 import {
   createPdfViewer,
   HkPdfToolbarDirective,
+  PdfDocumentSource,
+  PdfLoadedInfo,
   PdfViewerComponent,
+  PdfViewerError,
   PdfWorkspaceComponent,
   WorkspaceDocument,
 } from '@hakistack/ng-daisyui';
 import { DemoPageComponent } from '../shared/demo-page.component';
 import { DocSectionComponent } from '../shared/doc-section.component';
 
-type PdfViewerTab = 'basic' | 'controller' | 'preview' | 'config' | 'workspace';
+type PdfViewerTab = 'basic' | 'controller' | 'preview' | 'config' | 'workspace' | 'states';
+
+/** Scenarios of the `states` tab. All but `valid` are built in memory: reproducible, no network. */
+type PdfStateScenario = 'valid' | 'not-pdf' | 'truncated' | 'unreachable';
+
+interface PdfEventEntry {
+  readonly id: number;
+  /** Milliseconds since the source was set. */
+  readonly ms: number;
+  readonly kind: 'loaded' | 'viewerError';
+  readonly detail: string;
+}
 
 /** Served from the demo app (`public/samples/`): the demo works offline and without CORS (IRS Form W-9, public domain). */
 const SAMPLE_PDF_URL = '/samples/fw9.pdf';
@@ -105,6 +119,97 @@ const SAMPLE_PDF_URL = '/samples/fw9.pdf';
               </div>
             </app-doc-section>
           </div>
+        }
+
+        @if (activeTab() === 'states') {
+          <app-doc-section
+            title="Loading and errors"
+            description="While a document opens, the viewer shows a spinner over the page area (Reload repeats it). When the source can't be used, the page area shows an error panel and (viewerError) / onError receive a PdfViewerError: code, message, recoverable and the original cause. Bytes that aren't a PDF, or a file cut off after its header, are rejected by PDFium (typically invalid_pdf, not recoverable); a URL that can't be fetched gives load_failed (recoverable, so the panel offers Retry). The broken sources are built in memory, so they fail the same way everywhere."
+            [codeExample]="statesCode"
+          >
+            <div class="mb-3 flex flex-wrap gap-2" role="group" aria-label="PDF scenarios">
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-active]="statesScenario() === 'valid'"
+                (click)="loadStatesScenario('valid')"
+              >
+                Valid PDF
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-active]="statesScenario() === 'not-pdf'"
+                (click)="loadStatesScenario('not-pdf')"
+              >
+                Not a PDF
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-active]="statesScenario() === 'truncated'"
+                (click)="loadStatesScenario('truncated')"
+              >
+                Truncated PDF
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-active]="statesScenario() === 'unreachable'"
+                (click)="loadStatesScenario('unreachable')"
+              >
+                Unreachable URL
+              </button>
+              <button type="button" class="btn btn-sm btn-ghost" (click)="reloadStates()">Reload</button>
+            </div>
+
+            <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+              <div class="h-[60vh] min-h-96 min-w-0">
+                <hk-pdf-viewer
+                  class="h-full"
+                  [src]="statesSrc()"
+                  [config]="statesViewer.config()"
+                  fileName="scenario.pdf"
+                  (loaded)="onStatesLoaded($event)"
+                  (viewerError)="onStatesError($event)"
+                />
+              </div>
+              <div class="flex min-w-0 flex-col gap-3 text-xs">
+                <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-box border border-base-300 p-3">
+                  <dt class="text-base-content/70">state().loaded</dt>
+                  <dd class="font-mono">{{ statesViewer.state().loaded }}</dd>
+                  <dt class="text-base-content/70">state().numPages</dt>
+                  <dd class="font-mono">{{ statesViewer.state().numPages }}</dd>
+                  <dt class="text-base-content/70">state().error?.code</dt>
+                  <dd class="font-mono">{{ statesViewer.state().error?.code ?? 'null' }}</dd>
+                </dl>
+                <div>
+                  <div class="mb-1 text-sm font-medium" id="pdf-states-error">Last (viewerError) payload</div>
+                  <pre class="max-h-56 overflow-auto rounded-box bg-base-200 p-3" aria-labelledby="pdf-states-error">{{
+                    lastStatesError() ?? '(none yet)'
+                  }}</pre>
+                </div>
+                <div>
+                  <div class="mb-1 text-sm font-medium" id="pdf-states-log">Events</div>
+                  <ol
+                    class="max-h-48 space-y-1 overflow-auto rounded-box bg-base-200 p-3 font-mono"
+                    aria-labelledby="pdf-states-log"
+                    aria-live="polite"
+                  >
+                    @for (e of statesEvents(); track e.id) {
+                      <li>
+                        <span class="text-base-content/70">+{{ e.ms }} ms</span>
+                        <span [class]="e.kind === 'viewerError' ? 'text-error' : 'text-success'"> ({{ e.kind }})</span>
+                        {{ e.detail }}
+                      </li>
+                    } @empty {
+                      <li class="text-base-content/70">Pick a scenario.</li>
+                    }
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </app-doc-section>
         }
 
         @if (activeTab() === 'workspace') {
@@ -277,6 +382,115 @@ export class PdfViewerDemoComponent {
   readonly activeTab = computed(() => (this.featureParam() ?? 'basic') as PdfViewerTab);
 
   readonly pdfUrl = signal<string>(SAMPLE_PDF_URL);
+
+  // ── States demo ─────────────────────────────────────────────────────────
+
+  readonly statesViewer = createPdfViewer({ zoom: 'fit-width' });
+  readonly statesScenario = signal<PdfStateScenario>('valid');
+  readonly statesSrc = signal<PdfDocumentSource>(SAMPLE_PDF_URL);
+  readonly statesEvents = signal<PdfEventEntry[]>([]);
+  readonly lastStatesError = signal<string | null>(null);
+  private statesStartedAt = performance.now();
+  private statesEventId = 0;
+
+  loadStatesScenario(scenario: PdfStateScenario): void {
+    this.statesScenario.set(scenario);
+    this.statesEvents.set([]);
+    this.lastStatesError.set(null);
+    this.statesStartedAt = performance.now();
+    const text = new TextEncoder();
+    switch (scenario) {
+      case 'valid':
+        this.statesSrc.set(SAMPLE_PDF_URL);
+        break;
+      case 'not-pdf':
+        // A text file renamed to .pdf
+        this.statesSrc.set(text.encode('Quarterly results — this is plain text, not a PDF.'));
+        break;
+      case 'truncated':
+        // A real header and the start of an object, then the file ends
+        this.statesSrc.set(text.encode('%PDF-1.7\n%\u00e2\u00e3\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R'));
+        break;
+      case 'unreachable': {
+        // An object URL revoked before the viewer fetches it: fetch() fails like an offline request
+        const url = URL.createObjectURL(new Blob(['%PDF-1.7'], { type: 'application/pdf' }));
+        URL.revokeObjectURL(url);
+        this.statesSrc.set(url);
+        break;
+      }
+    }
+  }
+
+  reloadStates(): void {
+    this.statesEvents.set([]);
+    this.lastStatesError.set(null);
+    this.statesStartedAt = performance.now();
+    this.statesViewer.reload();
+  }
+
+  onStatesLoaded(info: PdfLoadedInfo): void {
+    this.logStatesEvent(
+      'loaded',
+      info.fileSize ? `${info.numPages} pages, ${Math.round(info.fileSize / 1024)} KB` : `${info.numPages} pages`,
+    );
+  }
+
+  onStatesError(error: PdfViewerError): void {
+    const cause = error.cause instanceof Error ? error.cause.message : error.cause === undefined ? undefined : String(error.cause);
+    this.lastStatesError.set(JSON.stringify({ code: error.code, message: error.message, recoverable: error.recoverable, cause }, null, 2));
+    this.logStatesEvent('viewerError', `${error.code} — ${error.message}`);
+  }
+
+  private logStatesEvent(kind: PdfEventEntry['kind'], detail: string): void {
+    const ms = Math.round(performance.now() - this.statesStartedAt);
+    this.statesEvents.update((list) => [...list, { id: ++this.statesEventId, ms, kind, detail }]);
+  }
+
+  readonly statesCode = `import { Component, signal } from '@angular/core';
+import { createPdfViewer, PdfDocumentSource, PdfLoadedInfo, PdfViewerComponent, PdfViewerError } from '@hakistack/ng-daisyui';
+
+@Component({
+  imports: [PdfViewerComponent],
+  template: \`
+    <div class="h-[60vh]">
+      <hk-pdf-viewer
+        class="h-full"
+        [src]="src()"
+        [config]="viewer.config()"
+        (loaded)="onLoaded($event)"
+        (viewerError)="onError($event)"
+      />
+    </div>
+    @if (viewer.state().error; as err) {
+      <p>{{ err.code }}: {{ err.message }} (recoverable: {{ err.recoverable }})</p>
+    }
+  \`,
+})
+export class StatementComponent {
+  src = signal<PdfDocumentSource>('/files/statement.pdf');
+
+  // Same events as callbacks: createPdfViewer({ onLoaded, onError })
+  viewer = createPdfViewer({ zoom: 'fit-width' });
+
+  onLoaded(info: PdfLoadedInfo): void {
+    console.log(info.numPages, 'pages');
+  }
+
+  onError(error: PdfViewerError): void {
+    // code: 'load_failed' | 'invalid_pdf' | 'password_cancelled' | 'render_failed' | 'unsupported' | 'unknown'
+    if (error.recoverable) console.warn('Retry possible', error.message);
+    else console.error('Cannot open this file', error.code, error.cause);
+  }
+
+  retry(): void {
+    this.viewer.reload();
+  }
+
+  // Bytes that aren't a PDF → invalid_pdf
+  openBroken(): void {
+    this.src.set(new TextEncoder().encode('plain text, not a PDF'));
+  }
+}`;
 
   readonly workspaceViewer = createPdfViewer({
     zoom: 'fit-width',
@@ -513,7 +727,10 @@ await fetch('/api/store-pdf', { method: 'POST', body: bytes });`;
   readonly customToolbarCode = `import {
   createPdfViewer,
   HkPdfToolbarDirective,
+  PdfDocumentSource,
+  PdfLoadedInfo,
   PdfViewerComponent,
+  PdfViewerError,
 } from '@hakistack/ng-daisyui';
 
 @Component({

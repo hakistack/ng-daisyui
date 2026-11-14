@@ -2,6 +2,8 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import { createForm, field, layout, validation } from './dynamic-form.helpers';
 import { FormConfig, FormSubmissionData } from './dynamic-form.types';
+import { FormUtils } from './dynamic-form.utils';
+import { AbstractControl, FormControl } from '@angular/forms';
 
 describe('createForm', () => {
   describe('object form (classic)', () => {
@@ -271,5 +273,36 @@ describe('createForm', () => {
       });
       expect(true).toBe(true);
     });
+  });
+});
+
+describe('field validation regressions', () => {
+  it('a required checkbox must be checked (requiredTrue, not required)', () => {
+    const [validator] = FormUtils.createValidators(field.checkbox('terms', 'Accept terms', { required: true }));
+    expect(validator(new FormControl(false))).toEqual({ required: true });
+    expect(validator(new FormControl(true))).toBeNull();
+  });
+
+  it('fields with custom validators do not share each other’s validators through the cache', () => {
+    const rejectA = (c: AbstractControl) => (c.value === 'a' ? { notA: true } : null);
+    const rejectB = (c: AbstractControl) => (c.value === 'b' ? { notB: true } : null);
+    const first = FormUtils.createValidators(field.text('x', 'X', { required: true, customValidators: [rejectA] }));
+    const second = FormUtils.createValidators(field.text('y', 'Y', { required: true, customValidators: [rejectB] }));
+    expect(second).toContain(rejectB);
+    expect(second).not.toContain(rejectA);
+    expect(first).toContain(rejectA);
+  });
+
+  it('declarative date fields keep min / max as the picker range', () => {
+    const form = createForm({ fields: { start: { type: 'date', label: 'Start', min: '2026-01-01', max: '2026-12-31' } } });
+    const [start] = form.config().fields!;
+    expect(start.minDate?.toISOString().slice(0, 10)).toBe('2026-01-01');
+    expect(start.maxDate?.toISOString().slice(0, 10)).toBe('2026-12-31');
+  });
+
+  it('builder date fields accept minDate / maxDate', () => {
+    const f = field.date('due', 'Due', { minDate: new Date(2026, 0, 1) });
+    expect(f.minDate?.getFullYear()).toBe(2026);
+    expect(f.maxDate).toBeUndefined();
   });
 });

@@ -172,8 +172,8 @@ type IconsTab = 'basic' | 'categories' | 'playground';
             <div class="grid md:grid-cols-2 gap-8">
               <div class="space-y-4">
                 <div class="form-control">
-                  <label class="label"><span class="label-text">Icon Name</span></label>
-                  <select class="select select-bordered" [(ngModel)]="playgroundIcon">
+                  <label class="label" for="icn-icon-name-0"><span class="label-text">Icon Name</span></label>
+                  <select id="icn-icon-name-0" class="select select-bordered" [(ngModel)]="playgroundIcon">
                     @for (icon of allIcons; track icon) {
                       <option [value]="icon">{{ icon }}</option>
                     }
@@ -181,22 +181,22 @@ type IconsTab = 'basic' | 'categories' | 'playground';
                 </div>
 
                 <div class="form-control">
-                  <label class="label"
+                  <label class="label" for="icn-size-px-1"
                     ><span class="label-text">Size: {{ playgroundSize }}px</span></label
                   >
-                  <input type="range" class="range" min="16" max="96" [(ngModel)]="playgroundSize" />
+                  <input id="icn-size-px-1" type="range" class="range" min="16" max="96" [(ngModel)]="playgroundSize" />
                 </div>
 
                 <div class="form-control">
-                  <label class="label"
+                  <label class="label" for="icn-stroke-width-2"
                     ><span class="label-text">Stroke Width: {{ playgroundStroke }}</span></label
                   >
-                  <input type="range" class="range" min="0.5" max="4" step="0.5" [(ngModel)]="playgroundStroke" />
+                  <input id="icn-stroke-width-2" type="range" class="range" min="0.5" max="4" step="0.5" [(ngModel)]="playgroundStroke" />
                 </div>
 
                 <div class="form-control">
-                  <label class="label"><span class="label-text">Color</span></label>
-                  <input type="color" class="w-full h-10 rounded cursor-pointer" [(ngModel)]="playgroundColor" />
+                  <label class="label" for="icn-color-3"><span class="label-text">Color</span></label>
+                  <input id="icn-color-3" type="color" class="w-full h-10 rounded cursor-pointer" [(ngModel)]="playgroundColor" />
                 </div>
               </div>
 

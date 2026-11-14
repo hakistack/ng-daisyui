@@ -4,11 +4,11 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: a user who closes the tab halfway through a long form (or a wizard) comes back and finds their answers where they left them. The library does this with two pieces: [FormStateService](/api/FormStateService), which stores and loads drafts, and the `autoSave` option of [createForm](/api/createForm), which saves while the user types and restores on load.',
-      es: 'Objetivo: un usuario que cierra la pestaña a mitad de un formulario largo (o de un wizard) vuelve y encuentra sus respuestas donde las dejó. La librería lo hace con dos piezas: [FormStateService](/api/FormStateService), que guarda y carga borradores, y la opción `autoSave` de [createForm](/api/createForm), que guarda mientras el usuario escribe y restaura al cargar.',
+      es: 'Objetivo: un usuario que cierra la pestaña a mitad de un formulario largo (o de un asistente) vuelve y encuentra sus respuestas donde las dejó. La librería lo hace con dos piezas: [FormStateService](/api/FormStateService), que guarda y carga borradores, y la opción `autoSave` de [createForm](/api/createForm), que guarda mientras el usuario escribe y restaura al cargar.',
     },
     {
       en: 'Drafts can live in the browser (`localStorage`) or in your backend (`api` mode). Nothing is stored until you call `provideFormState()`.',
-      es: 'Los borradores pueden vivir en el navegador (`localStorage`) o en tu backend (modo `api`). No se guarda nada hasta que llamas `provideFormState()`.',
+      es: 'Los borradores pueden vivir en el navegador (`localStorage`) o en tu backend (modo `api`). No se guarda nada hasta que llamas a `provideFormState()`.',
     },
   ],
   sections: [
@@ -82,14 +82,14 @@ export const appConfig: ApplicationConfig = {
               label: { en: 'Restore', es: 'Restaurar' },
               detail: {
                 en: 'Values are patched in; in a wizard, `currentStep` and `completedSteps` from the metadata are restored too. The `formRestored` output fires.',
-                es: 'Se aplican los valores; en un wizard también se restauran `currentStep` y `completedSteps` desde los metadatos. Se emite el output `formRestored`.',
+                es: 'Se aplican los valores; en un asistente también se restauran `currentStep` y `completedSteps` desde los metadatos. Se emite el output `formRestored`.',
               },
             },
             {
               label: { en: 'User types', es: 'El usuario escribe' },
               detail: {
                 en: 'After restoration finishes, each change queues a save, debounced by `debounceMs`.',
-                es: 'Cuando termina la restauración, cada cambio pone en cola un guardado, con debounce de `debounceMs`.',
+                es: 'Cuando termina la restauración, cada cambio pone en cola un guardado, con un debounce de `debounceMs`.',
               },
             },
             {
@@ -104,8 +104,8 @@ export const appConfig: ApplicationConfig = {
         {
           kind: 'p',
           text: {
-            en: 'Saving waits for restoration to complete, so a freshly mounted empty form never overwrites a stored draft. Failed saves are swallowed: the form keeps working, but nothing tells the user the draft was not stored.',
-            es: 'El guardado espera a que termine la restauración, así que un formulario recién montado y vacío nunca sobrescribe un borrador guardado. Los guardados fallidos se ignoran: el formulario sigue funcionando, pero nada le avisa al usuario que el borrador no se guardó.',
+            en: 'Saving waits for restoration to complete, so a freshly mounted empty form never overwrites a stored draft. The draft holds the form value, so disabled fields (including fields hidden by `showWhen` / `hideWhen`) are not saved, and `password` and `file` fields are always left out. Failed saves are swallowed: the form keeps working, but nothing tells the user the draft was not stored.',
+            es: 'El guardado espera a que termine la restauración, así que un formulario recién montado y vacío nunca sobrescribe un borrador guardado. El borrador contiene el valor del formulario, así que los campos deshabilitados (incluidos los ocultos por `showWhen` / `hideWhen`) no se guardan, y los campos `password` y `file` siempre se excluyen. Los guardados fallidos se ignoran: el formulario sigue funcionando, pero nada le avisa al usuario que el borrador no se guardó.',
           },
         },
       ],
@@ -144,8 +144,8 @@ export const appConfig: ApplicationConfig = {
               },
             ],
             [
-              { en: 'Failure', es: 'Fallas' },
-              { en: 'Quota or parse errors are ignored', es: 'Errores de cuota o de parseo se ignoran' },
+              { en: 'Failure', es: 'Errores' },
+              { en: 'Quota or parse errors are ignored', es: 'Se ignoran los errores de cuota o de análisis del JSON' },
               { en: 'A failed load returns `null`', es: 'Una carga fallida devuelve `null`' },
             ],
           ],
@@ -161,8 +161,8 @@ export const appConfig: ApplicationConfig = {
           kind: 'note',
           tone: 'warning',
           text: {
-            en: 'Drafts are stored as plain JSON. Do not auto-save forms with passwords, card numbers or other secrets to `localStorage`; exclude them or use `api` mode with your own server-side protection.',
-            es: 'Los borradores se guardan como JSON simple. No autoguardes en `localStorage` formularios con contraseñas, números de tarjeta u otros secretos; exclúyelos o usa el modo `api` con tu propia protección en el servidor.',
+            en: 'Drafts are stored as plain JSON. `password` and `file` fields are never saved, but every other field is, so do not auto-save forms with card numbers or other secrets in text fields to `localStorage`; use `api` mode with your own server-side protection instead.',
+            es: 'Los borradores se guardan como JSON simple. Los campos `password` y `file` nunca se guardan, pero todos los demás sí, así que no autoguardes en `localStorage` formularios con números de tarjeta u otros secretos en campos de texto; usa el modo `api` con tu propia protección en el servidor.',
           },
         },
       ],
@@ -175,7 +175,7 @@ export const appConfig: ApplicationConfig = {
           kind: 'p',
           text: {
             en: "`FormStateService` is `providedIn: 'root'` and returns observables, so you can manage drafts for your own forms. `isConfigured` and `mode` tell you whether a provider was registered.",
-            es: "`FormStateService` es `providedIn: 'root'` y devuelve observables, así que puedes manejar borradores de tus propios formularios. `isConfigured` y `mode` indican si se registró un provider.",
+            es: "`FormStateService` es `providedIn: 'root'` y devuelve observables, así que puedes manejar borradores de tus propios formularios. `isConfigured` y `mode` indican si se registró un proveedor.",
           },
         },
         {

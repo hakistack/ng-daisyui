@@ -4,7 +4,7 @@ const content: ComponentDocContent = {
   overview: [
     {
       en: 'The Virtual Scroller shows very long lists without slowing the page down. Instead of drawing ten thousand items, it only draws the few that fit on screen (plus a small buffer) and swaps them as you scroll. To the user it looks like one long list.',
-      es: 'El Virtual Scroller muestra listas muy largas sin poner lenta la página. En lugar de dibujar diez mil elementos, solo dibuja los pocos que caben en pantalla (más un pequeño margen) y los va cambiando mientras haces scroll. Para el usuario se ve como una sola lista larga.',
+      es: 'El Virtual Scroller muestra listas muy largas sin ralentizar la página. En lugar de dibujar diez mil elementos, solo dibuja los pocos que caben en pantalla (más un pequeño margen) y los va cambiando mientras te desplazas. Para el usuario se ve como una sola lista larga.',
     },
     {
       en: 'You give it the array and a template for one item; it does the rest. It can also lay items out in several columns (a grid of cards) and ask you for data only when an empty part of the list comes into view.',
@@ -12,13 +12,13 @@ const content: ComponentDocContent = {
     },
     {
       en: 'It is a thin layer over the Angular CDK virtual scroll viewport, with templates, grid mode and lazy loading built in.',
-      es: 'Es una capa delgada sobre el viewport de scroll virtual del Angular CDK, con plantillas, modo cuadrícula y carga diferida ya incluidos.',
+      es: 'Es una capa delgada sobre el viewport de desplazamiento virtual del Angular CDK, con plantillas, modo cuadrícula y carga diferida ya incluidos.',
     },
   ],
   whenToUse: [
     {
       en: 'Long feeds, logs, contact lists or search results where every item has the same height.',
-      es: 'Feeds largos, logs, listas de contactos o resultados de búsqueda donde todos los elementos tienen la misma altura.',
+      es: 'Feeds largos, registros (logs), listas de contactos o resultados de búsqueda donde todos los elementos tienen la misma altura.',
     },
     {
       en: 'Image or card galleries with a fixed row height (`numColumns > 1`).',
@@ -26,7 +26,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Lists whose total size you know but whose items arrive page by page from an API (`lazy` mode).',
-      es: 'Listas de las que sabes el tamaño total pero cuyos elementos llegan página por página desde una API (modo `lazy`).',
+      es: 'Listas cuyo tamaño total conoces, pero cuyos elementos llegan página por página desde una API (modo `lazy`).',
     },
   ],
   whenNotToUse: [
@@ -82,19 +82,19 @@ export class ContactListComponent {
 `,
     note: {
       en: 'The rendered item must be exactly `itemSize` pixels tall (here `h-14` = 56px). If it is not, scroll position and the visible range drift.',
-      es: 'El elemento renderizado debe medir exactamente `itemSize` píxeles de alto (aquí `h-14` = 56px). Si no, la posición del scroll y el rango visible se desfasan.',
+      es: 'El elemento renderizado debe medir exactamente `itemSize` píxeles de alto (aquí `h-14` = 56px). Si no, la posición de desplazamiento y el rango visible se desfasan.',
     },
   },
   technical: [
     {
       id: 'how-it-renders',
-      heading: { en: 'How it renders', es: 'Cómo renderiza' },
+      heading: { en: 'How it renders', es: 'Cómo se renderiza' },
       blocks: [
         {
           kind: 'p',
           text: {
             en: 'The component wraps `cdk-virtual-scroll-viewport` with a fixed-size strategy (`itemSize`). The CDK keeps between `minBufferPx` (default 100) and `maxBufferPx` (default 200) pixels of items rendered beyond the viewport and recycles the rest. There is no WASM here: the per-frame work is the CDK range math plus your item template.',
-            es: 'El componente envuelve `cdk-virtual-scroll-viewport` con una estrategia de tamaño fijo (`itemSize`). El CDK mantiene entre `minBufferPx` (por defecto 100) y `maxBufferPx` (por defecto 200) píxeles de elementos renderizados fuera del viewport y recicla el resto. Aquí no hay WASM: el trabajo por frame es el cálculo de rango del CDK más tu plantilla.',
+            es: 'El componente envuelve `cdk-virtual-scroll-viewport` con una estrategia de tamaño fijo (`itemSize`). El CDK mantiene entre `minBufferPx` (por defecto 100) y `maxBufferPx` (por defecto 200) píxeles de elementos renderizados fuera del viewport y recicla el resto. Aquí no hay WASM: el trabajo por fotograma es el cálculo de rango del CDK más tu plantilla.',
           },
         },
         {
@@ -122,7 +122,7 @@ export class ContactListComponent {
               { en: '`#header` / `#footer`', es: '`#header` / `#footer`' },
               {
                 en: 'Rendered above and below the viewport, outside the scrolling area.',
-                es: 'Se muestran arriba y abajo del viewport, fuera del área con scroll.',
+                es: 'Se muestran arriba y abajo del viewport, fuera del área desplazable.',
               },
             ],
           ],
@@ -161,7 +161,7 @@ export class ContactListComponent {
               },
             },
             {
-              label: { en: 'User scrolls', es: 'El usuario hace scroll' },
+              label: { en: 'User scrolls', es: 'El usuario se desplaza' },
               detail: {
                 en: 'The scroller checks the visible range plus a buffer for `null` slots.',
                 es: 'El scroller revisa el rango visible más un margen buscando espacios `null`.',
@@ -214,7 +214,7 @@ async load({ first, rows }: VirtualScrollerLazyLoadEvent): Promise<void> {
         keys: 'Arrow keys, Page Up / Down',
         action: {
           en: 'Scroll the viewport natively when it (or an item in it) has focus',
-          es: 'Hacen scroll del viewport de forma nativa cuando él (o un elemento dentro) tiene el foco',
+          es: 'Desplazan el viewport de forma nativa cuando este (o un elemento dentro de él) tiene el foco',
         },
       },
     ],
@@ -225,22 +225,22 @@ async load({ first, rows }: VirtualScrollerLazyLoadEvent): Promise<void> {
       },
       {
         en: 'Only rendered items exist in the DOM, so screen readers and find-in-page cannot see the rest. Show the total count (for example in the `#header` template) so people know how long the list is.',
-        es: 'Solo los elementos renderizados existen en el DOM, así que los lectores de pantalla y la búsqueda del navegador no ven el resto. Muestra el total (por ejemplo en la plantilla `#header`) para que la gente sepa qué tan larga es la lista.',
+        es: 'Solo los elementos renderizados existen en el DOM, así que los lectores de pantalla y la búsqueda del navegador no ven el resto. Muestra el total (por ejemplo en la plantilla `#header`) para que los usuarios sepan qué tan larga es la lista.',
       },
       {
         en: 'An item that scrolls far out of view is destroyed, and focus inside it is lost. Avoid keeping important focus (an open inline editor, for instance) inside list items.',
-        es: 'Un elemento que sale lejos de la vista se destruye, y el foco dentro de él se pierde. Evita dejar un foco importante (por ejemplo, un editor abierto) dentro de los elementos de la lista.',
+        es: 'Un elemento que queda lejos del área visible se destruye, y el foco dentro de él se pierde. Evita dejar un foco importante (por ejemplo, un editor abierto) dentro de los elementos de la lista.',
       },
       {
         en: 'Common mistake: items with no focusable content. Then keyboard users cannot scroll the viewport and axe reports `scrollable-region-focusable`; add a focusable element per item or make the region reachable.',
-        es: 'Error común: elementos sin contenido enfocable. Así, quien usa teclado no puede hacer scroll en el viewport y axe reporta `scrollable-region-focusable`; añade un elemento enfocable por elemento o haz que la región sea alcanzable.',
+        es: 'Error común: elementos sin contenido enfocable. En ese caso, quien usa el teclado no puede desplazar el viewport y axe reporta `scrollable-region-focusable`; añade un control enfocable en cada elemento o haz que la región sea alcanzable con el teclado.',
       },
     ],
   },
   performance: [
     {
       en: 'DOM size depends on viewport height and buffer, not on the number of items. The demo scrolls a list of 10,000 products and a lazy list of 5,000 slots with only a screenful rendered.',
-      es: 'El tamaño del DOM depende de la altura del viewport y del margen, no de la cantidad de elementos. El demo recorre una lista de 10,000 productos y una lista diferida de 5,000 espacios con solo una pantalla renderizada.',
+      es: 'El tamaño del DOM depende de la altura del viewport y del margen, no de la cantidad de elementos. La demo recorre una lista de 10,000 productos y una lista diferida de 5,000 espacios con solo una pantalla renderizada.',
     },
     {
       en: 'Pass `trackByFn` when items are objects. Without it rows are tracked by index, and replacing the array with new objects re-creates the DOM for visible items.',
@@ -248,7 +248,7 @@ async load({ first, rows }: VirtualScrollerLazyLoadEvent): Promise<void> {
     },
     {
       en: 'Keep the item template cheap: it runs for every row the CDK recycles while scrolling. Precompute display values instead of calling formatting methods in the template.',
-      es: 'Mantén la plantilla del elemento liviana: se ejecuta en cada fila que el CDK recicla mientras haces scroll. Calcula de antemano los valores a mostrar en lugar de llamar métodos de formato en la plantilla.',
+      es: 'Mantén la plantilla del elemento liviana: se ejecuta en cada fila que el CDK recicla mientras te desplazas. Calcula de antemano los valores a mostrar en lugar de llamar métodos de formato en la plantilla.',
     },
     {
       en: 'Grid mode rebuilds the row chunks when `items` or `numColumns` change; update `items` in batches rather than one slot at a time.',

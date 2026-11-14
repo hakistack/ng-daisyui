@@ -4,7 +4,7 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: pick the component and data strategy that stay responsive for the amount of data you actually have. The deciding questions are how many rows reach the browser, whether the data is tabular, and which table features you need.',
-      es: 'Meta: escoger el componente y la estrategia de datos que se mantengan fluidos con la cantidad de datos que realmente tienes. Las preguntas que deciden son cuántas filas llegan al navegador, si los datos son tabulares y qué funciones de tabla necesitas.',
+      es: 'Objetivo: escoger el componente y la estrategia de datos que se mantengan fluidos con la cantidad de datos que realmente tienes. Las preguntas que deciden son cuántas filas llegan al navegador, si los datos son tabulares y qué funcionalidades de tabla necesitas.',
     },
   ],
   sections: [
@@ -22,7 +22,7 @@ const content: ArticleContent = {
             [
               {
                 en: 'A few thousand rows, and you need grouping, tree rows, inline editing, child grids or master-detail',
-                es: 'Unos miles de filas y necesitas agrupación, filas en árbol, edición en línea, grillas hijas o maestro-detalle',
+                es: 'Unos miles de filas y necesitas agrupación, filas en árbol, edición en línea, grids hijos o maestro-detalle',
               },
               { en: '[Table](/table) with pagination or `virtualScroll`', es: '[Table](/table) con paginación o `virtualScroll`' },
             ],
@@ -54,7 +54,7 @@ const content: ArticleContent = {
           tone: 'info',
           text: {
             en: 'The DataGrid demo renders 100,000 generated rows client-side. That is a reference point, not a guarantee: cost depends on columns, formatters and the device.',
-            es: 'La demo del DataGrid dibuja 100,000 filas generadas en el cliente. Es un punto de referencia, no una garantía: el costo depende de las columnas, los formateadores y el dispositivo.',
+            es: 'La demo del DataGrid renderiza 100,000 filas generadas en el cliente. Es un punto de referencia, no una garantía: el costo depende de las columnas, los formateadores y el dispositivo.',
           },
         },
       ],
@@ -67,7 +67,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'The DataGrid only creates DOM for the rows and columns intersecting the viewport, plus a small overscan. Rows have a fixed height (`rowHeight`, default 36 px), which is what makes this cheap. Omit `pageSize` to virtualize every row, or set it to paginate.',
-            es: 'El DataGrid solo crea DOM para las filas y columnas que se cruzan con el viewport, más un pequeño margen. Las filas tienen altura fija (`rowHeight`, 36 px por defecto), y eso es lo que lo hace económico. Omite `pageSize` para virtualizar todas las filas, o ponlo para paginar.',
+            es: 'El DataGrid solo crea DOM para las filas y columnas que intersecan el viewport, más un pequeño margen. Las filas tienen altura fija (`rowHeight`, 36 px por defecto), y eso es lo que lo hace económico. Omite `pageSize` para virtualizar todas las filas, o ponlo para paginar.',
           },
         },
         {
@@ -85,7 +85,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'Filtering, search and sort run in TypeScript inside a memoized `computed()`: they re-run when the data or the state changes, not on scroll. Sorting decorates each row once, so a column accessor runs n times rather than n·log(n).',
-            es: 'El filtrado, la búsqueda y el orden corren en TypeScript dentro de un `computed()` memorizado: se recalculan cuando cambian los datos o el estado, no al hacer scroll. El orden decora cada fila una sola vez, así que el accesor de una columna corre n veces y no n·log(n).',
+            es: 'El filtrado, la búsqueda y el orden se ejecutan en TypeScript dentro de un `computed()` memoizado: se recalculan cuando cambian los datos o el estado, no al desplazarse. El orden decora cada fila una sola vez, así que el accessor de una columna se ejecuta n veces y no n·log(n).',
           },
         },
       ],
@@ -98,7 +98,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'hk-table hands client-side filtering and sorting to a Rust/WebAssembly engine when it can. The engine module is lazy-loaded the first time a table receives data, and the table keeps working on its TypeScript path until it is ready, or if it fails to load.',
-            es: 'hk-table le pasa el filtrado y el orden del lado del cliente a un motor en Rust/WebAssembly cuando puede. El módulo del motor se carga de forma diferida la primera vez que una tabla recibe datos, y la tabla sigue funcionando con su ruta en TypeScript hasta que está listo, o si falla al cargar.',
+            es: 'hk-table delega el filtrado y el orden del lado del cliente en un motor en Rust/WebAssembly cuando puede. El módulo del motor se carga de forma diferida la primera vez que una tabla recibe datos, y la tabla usa su implementación en TypeScript mientras el motor no esté listo o si falla al cargar.',
           },
         },
         {
@@ -114,7 +114,7 @@ const content: ArticleContent = {
             },
             {
               en: 'If any active filter cannot be translated exactly, the whole filter step runs in TypeScript, so results never differ between the two paths.',
-              es: 'Si algún filtro activo no se puede traducir con exactitud, todo el paso de filtrado corre en TypeScript, así que los resultados nunca difieren entre ambas rutas.',
+              es: 'Si algún filtro activo no se puede traducir con exactitud, todo el paso de filtrado se ejecuta en TypeScript, así que los resultados nunca difieren entre ambas rutas.',
             },
           ],
         },
@@ -122,7 +122,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'For long tables without pagination, turn on row virtualization (CDK virtual scroll, fixed row height):',
-            es: 'Para tablas largas sin paginación, activa la virtualización de filas (scroll virtual de CDK, altura de fila fija):',
+            es: 'Para tablas largas sin paginación, activa la virtualización de filas (desplazamiento virtual del CDK, altura de fila fija):',
           },
         },
         {
@@ -150,7 +150,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'For millions of records, the fastest client-side pipeline still loses to not transferring the data. Let the database do the work and stream one page at a time with a DataGrid `dataSource`: see [Server-side pagination](/guides/server-side-data).',
-            es: 'Con millones de registros, el pipeline más rápido del cliente sigue perdiendo contra no transferir los datos. Deja que la base de datos haga el trabajo y trae una página a la vez con un `dataSource` del DataGrid: mira [Paginación en el servidor](/guides/server-side-data).',
+            es: 'Con millones de registros, el pipeline más rápido del cliente sigue perdiendo contra no transferir los datos. Deja que la base de datos haga el trabajo y trae una página a la vez con un `dataSource` del DataGrid: consulta [Paginación en el servidor](/guides/server-side-data).',
           },
         },
       ],
@@ -163,7 +163,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: '[VirtualScrollerComponent](/api/VirtualScrollerComponent) wraps CDK virtual scrolling with a template-first API: fixed `itemSize`, vertical or horizontal `orientation`, `numColumns` for grids, and a `lazy` mode that emits `(lazyLoad)` for `null` placeholder slots as they scroll into view.',
-            es: '[VirtualScrollerComponent](/api/VirtualScrollerComponent) envuelve el scroll virtual de CDK con una API basada en plantillas: `itemSize` fijo, `orientation` vertical u horizontal, `numColumns` para mosaicos y un modo `lazy` que emite `(lazyLoad)` para los espacios `null` a medida que entran en pantalla.',
+            es: '[VirtualScrollerComponent](/api/VirtualScrollerComponent) envuelve el desplazamiento virtual del CDK con una API basada en plantillas: `itemSize` fijo, `orientation` vertical u horizontal, `numColumns` para cuadrículas y un modo `lazy` que emite `(lazyLoad)` para los espacios `null` a medida que entran en pantalla.',
           },
         },
       ],
@@ -181,11 +181,11 @@ const content: ArticleContent = {
             },
             {
               en: '**Create the controller once.** Call `createTable` / `createDataGrid` in a field initializer, not inside a `computed()` that re-runs.',
-              es: '**Crea el controlador una vez.** Llama `createTable` / `createDataGrid` en un inicializador de campo, no dentro de un `computed()` que se recalcula.',
+              es: '**Crea el controlador una vez.** Llama a `createTable` / `createDataGrid` en un inicializador de campo, no dentro de un `computed()` que se recalcula.',
             },
             {
               en: '**Keep `format` cheap.** DataGrid search matches the formatted text, so a column formatter runs for every row on each search.',
-              es: '**Mantén barato el `format`.** La búsqueda del DataGrid compara el texto formateado, así que el formateador de una columna corre para cada fila en cada búsqueda.',
+              es: '**Mantén barato el `format`.** La búsqueda del DataGrid compara el texto formateado, así que el formateador de una columna se ejecuta para cada fila en cada búsqueda.',
             },
             {
               en: '**Use `searchable: false`** on DataGrid columns users never search, to shrink that work.',
@@ -198,8 +198,8 @@ const content: ArticleContent = {
   ],
   related: [
     { id: 'datagrid', note: { en: 'The 100k-row client example.', es: 'El ejemplo de 100k filas en el cliente.' } },
-    { id: 'wasm-engines', note: { en: 'What runs in Rust and how it loads.', es: 'Qué corre en Rust y cómo se carga.' } },
-    { id: 'virtual-scroller', note: { en: 'Virtualized lists and grids of items.', es: 'Listas y mosaicos virtualizados.' } },
+    { id: 'wasm-engines', note: { en: 'What runs in Rust and how it loads.', es: 'Qué se ejecuta en Rust y cómo se carga.' } },
+    { id: 'virtual-scroller', note: { en: 'Virtualized lists and grids of items.', es: 'Listas y cuadrículas virtualizadas.' } },
   ],
 };
 

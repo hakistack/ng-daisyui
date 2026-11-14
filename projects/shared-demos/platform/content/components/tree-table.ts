@@ -4,11 +4,11 @@ const content: ComponentDocContent = {
   overview: [
     {
       en: 'A Tree Table is a regular table where some rows contain other rows: a department with its teams, a folder with its files, a product with its parts. Each parent row has a small arrow to show or hide its children, and the children are indented under it.',
-      es: 'Una tabla en árbol es una tabla normal donde algunas filas contienen otras filas: un departamento con sus equipos, una carpeta con sus archivos, un producto con sus piezas. Cada fila padre tiene una flechita para mostrar u ocultar sus hijos, y los hijos aparecen con sangría debajo.',
+      es: 'Una tabla en árbol es una tabla normal donde algunas filas contienen otras filas: un departamento con sus equipos, una carpeta con sus archivos, un producto con sus piezas. Cada fila padre tiene una flecha para mostrar u ocultar sus hijos, y los hijos aparecen con sangría debajo.',
     },
     {
       en: 'It is not a separate component. It is [Table](/table) (`<hk-table>`) with `treeTable: { enabled: true }` in `createTable()`. Your data stays nested — each row keeps its children in a property, `children` by default — and you keep columns, formatting, search, filters, selection and paging from the normal table.',
-      es: 'No es un componente aparte. Es [Table](/table) (`<hk-table>`) con `treeTable: { enabled: true }` en `createTable()`. Tus datos se quedan anidados (cada fila guarda sus hijos en una propiedad, `children` por defecto) y conservas las columnas, el formato, la búsqueda, los filtros, la selección y la paginación de la tabla normal.',
+      es: 'No es un componente aparte. Es [Table](/table) (`<hk-table>`) con `treeTable: { enabled: true }` en `createTable()`. Tus datos siguen anidados (cada fila guarda sus hijos en una propiedad, `children` por defecto) y conservas las columnas, el formato, la búsqueda, los filtros, la selección y la paginación de la tabla normal.',
     },
   ],
   whenToUse: [
@@ -102,7 +102,7 @@ export class DepartmentsComponent {
           kind: 'p',
           text: {
             en: 'Tree mode uses the same pipeline as the table, but each step understands nesting. At the end, the visible tree is flattened into a list of [FlattenedRow](/api/FlattenedRow) items (row, level, key, parent key, last-child flags) and that list is what gets paged or virtual-scrolled.',
-            es: 'El modo árbol usa el mismo pipeline de la tabla, pero cada paso entiende el anidamiento. Al final, el árbol visible se aplana en una lista de [FlattenedRow](/api/FlattenedRow) (fila, nivel, clave, clave del padre, marcas de último hijo) y esa lista es la que se pagina o se muestra con scroll virtual.',
+            es: 'El modo árbol usa el mismo pipeline de la tabla, pero cada paso entiende el anidamiento. Al final, el árbol visible se aplana en una lista de [FlattenedRow](/api/FlattenedRow) (fila, nivel, clave, clave del padre, marcas de último hijo) y esa lista es la que se pagina o se muestra con desplazamiento virtual.',
           },
         },
         {
@@ -120,7 +120,7 @@ export class DepartmentsComponent {
               label: { en: 'Sort siblings', es: 'Ordenar hermanos' },
               detail: {
                 en: 'Each level is sorted on its own; children never leave their parent.',
-                es: 'Cada nivel se ordena por separado; los hijos nunca salen de su padre.',
+                es: 'Cada nivel se ordena por separado; los hijos nunca se separan de su padre.',
               },
             },
             {
@@ -128,7 +128,7 @@ export class DepartmentsComponent {
               detail: { en: 'Only children of expanded rows are included.', es: 'Solo se incluyen los hijos de las filas expandidas.' },
             },
             {
-              label: { en: 'Page or virtual scroll', es: 'Paginar o scroll virtual' },
+              label: { en: 'Page or virtual scroll', es: 'Paginación o desplazamiento virtual' },
               detail: { en: 'Pages count visible rows, not root rows.', es: 'Las páginas cuentan filas visibles, no filas raíz.' },
             },
           ],
@@ -151,7 +151,7 @@ export class DepartmentsComponent {
               { en: '`descendants`', es: '`descendants`' },
               {
                 en: 'A matching row is kept with all its children; parents of deeper matches are kept too.',
-                es: 'Una fila que coincide se queda con todos sus hijos; también se conservan los padres de coincidencias más profundas.',
+                es: 'Una fila que coincide se conserva con todos sus hijos; también se conservan los padres de coincidencias más profundas.',
               },
             ],
             [
@@ -171,7 +171,7 @@ export class DepartmentsComponent {
           kind: 'p',
           text: {
             en: 'While a filter or search is active (and the mode is not `none`), the table expands the ancestors of every match so results are not hidden inside collapsed rows. The WASM table engine is not used in tree mode; the hierarchy steps run in TypeScript.',
-            es: 'Mientras hay un filtro o una búsqueda activa (y el modo no es `none`), la tabla expande los ancestros de cada coincidencia para que los resultados no queden escondidos en filas cerradas. El motor WASM de tablas no se usa en modo árbol; los pasos de jerarquía corren en TypeScript.',
+            es: 'Mientras hay un filtro o una búsqueda activa (y el modo no es `none`), la tabla expande los ancestros de cada coincidencia para que los resultados no queden escondidos en filas cerradas. El motor WASM de tablas no se usa en modo árbol; los pasos de jerarquía se ejecutan en TypeScript.',
           },
         },
       ],
@@ -195,7 +195,7 @@ export class DepartmentsComponent {
   childrenProperty: 'items',      // default: 'children'
   initialExpandedKeys: ['eng'],   // or expandAll: true, or initialExpandLevel: 1
   indentSize: 20,                 // px per level, default 24
-  showIndentGuides: true,         // vertical guide lines
+  showIndentGuides: false,        // vertical guide lines, default true
   checkboxCascade: 'both',        // 'none' | 'downward' | 'upward' | 'both'
 },
 
@@ -208,8 +208,8 @@ table.expandToLevel(2);`,
           kind: 'list',
           items: [
             {
-              en: '`checkboxCascade` (with `hasSelection: true`): `downward` ticks all descendants; `upward` ticks the parent once every sibling is ticked; `both` does both. Parents with some ticked children show an indeterminate checkbox.',
-              es: '`checkboxCascade` (con `hasSelection: true`): `downward` marca todos los descendientes; `upward` marca al padre cuando todos los hermanos están marcados; `both` hace ambas cosas. Los padres con algunos hijos marcados muestran una casilla indeterminada.',
+              en: '`checkboxCascade` (with `hasSelection: true`): `downward` ticks all descendants; `upward` ticks the parent once all its children are ticked; `both` does both. Parents with some ticked children show an indeterminate checkbox.',
+              es: '`checkboxCascade` (con `hasSelection: true`): `downward` marca todos los descendientes; `upward` marca al padre cuando todos sus hijos están marcados; `both` hace ambas cosas. Los padres con algunos hijos marcados muestran una casilla indeterminada.',
             },
             {
               en: '`(expansionChange)` emits `{ row, expanded }` each time a row is opened or closed.',
@@ -228,7 +228,7 @@ table.expandToLevel(2);`,
     keyboard: [
       {
         keys: 'Tab',
-        action: { en: 'Reach each expand/collapse button and header', es: 'Llega a cada botón de expandir/contraer y a los encabezados' },
+        action: { en: 'Reach each expand/collapse button and header', es: 'Recorre los botones de expandir/contraer y los encabezados' },
       },
       { keys: 'Enter / Space (toggle)', action: { en: 'Expand or collapse the row', es: 'Expande o contrae la fila' } },
       { keys: 'Enter / Space (header)', action: { en: 'Sort siblings by that column', es: 'Ordena los hermanos por esa columna' } },
@@ -251,7 +251,7 @@ table.expandToLevel(2);`,
       },
       {
         en: 'The rest of the table semantics (sort headers, selection checkboxes, live regions) are the same as [Table](/table).',
-        es: 'El resto de la semántica (encabezados ordenables, casillas de selección, regiones en vivo) es igual que en [Table](/table).',
+        es: 'El resto de la semántica (encabezados ordenables, casillas de selección, regiones vivas) es igual que en [Table](/table).',
       },
     ],
   },
@@ -266,7 +266,7 @@ table.expandToLevel(2);`,
     },
     {
       en: 'Sorting copies parent rows to attach their sorted children; your source objects are not modified.',
-      es: 'Ordenar copia las filas padre para colgarles sus hijos ordenados; tus objetos originales no se modifican.',
+      es: 'Al ordenar se copian las filas padre para asignarles sus hijos ordenados; tus objetos originales no se modifican.',
     },
   ],
   related: [
@@ -281,7 +281,7 @@ table.expandToLevel(2);`,
       id: 'tree',
       note: {
         en: 'Label-only hierarchy with drag-and-drop, lazy loading and a WASM-backed filter.',
-        es: 'Jerarquía de solo etiquetas con arrastrar y soltar, carga diferida y filtro con WASM.',
+        es: 'Jerarquía de solo etiquetas con arrastrar y soltar, carga diferida y filtrado con WASM.',
       },
     },
     { id: 'datagrid', note: { en: 'Flat data at large scale; no child rows.', es: 'Datos planos a gran escala; sin filas hijas.' } },

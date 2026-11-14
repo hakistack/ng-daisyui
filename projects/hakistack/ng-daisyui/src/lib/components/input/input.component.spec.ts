@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import { InputComponent } from './input.component';
-import { VARIANT_STRATEGY_MAP } from './input-variant-strategies';
+import { loadPhoneLib, VARIANT_STRATEGY_MAP } from './input-variant-strategies';
 import { InputVariant } from './input.types';
 
 // ---------------------------------------------------------------------------
@@ -89,6 +89,10 @@ describe('InputVariantStrategies', () => {
 
   describe('PhoneStrategy', () => {
     const strategy = VARIANT_STRATEGY_MAP['phone'];
+
+    beforeAll(async () => {
+      await loadPhoneLib();
+    });
 
     it('should format US phone number', () => {
       expect(strategy.format('5551234567')).toBe('(555) 123-4567');
@@ -272,7 +276,8 @@ describe('InputComponent', () => {
   });
 
   describe('Phone variant', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
+      await loadPhoneLib();
       host.variant.set('phone');
       fixture.detectChanges();
     });

@@ -18,9 +18,21 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    // Cross-browser coverage for the docs platform (shell, search, i18n, playgrounds, a11y).
+    {
+      name: 'firefox',
+      testMatch: /docs-platform\.spec\.ts/,
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      testMatch: /docs-platform\.spec\.ts/,
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
   webServer: {
-    command: 'npm start',
+    // No --open: `npm start` opens a browser, which CI cannot do.
+    command: 'npx ng serve demo --port 58790',
     url: 'http://localhost:58790',
     reuseExistingServer: !process.env['CI'],
     timeout: 120_000,

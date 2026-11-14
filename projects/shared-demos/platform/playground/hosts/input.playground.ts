@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { InputColor, InputComponent, InputSize, InputVariant } from '@hakistack/ng-daisyui';
 import { PlaygroundComponent } from '../playground.component';
-import { INPUT_PLAYGROUND, InputPgState } from '../playground-specs';
+import { INPUT_PLAYGROUND, InputPgState } from '../specs/input';
 import type { PlaygroundState } from '../playground.types';
 
 @Component({

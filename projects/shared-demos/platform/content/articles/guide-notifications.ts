@@ -4,13 +4,13 @@ const content: ArticleContent = {
   intro: [
     {
       en: 'Goal: tell users what happened with the right amount of interruption, and configure it once for the whole app. The library has four feedback tools; they differ in how much they demand from the user.',
-      es: 'Meta: decirle al usuario qué pasó con el nivel de interrupción adecuado, y configurarlo una sola vez para toda la app. La librería tiene cuatro herramientas de aviso; se diferencian en cuánto le exigen al usuario.',
+      es: 'Objetivo: decirle al usuario qué pasó con el nivel de interrupción adecuado, y configurarlo una sola vez para toda la app. La librería tiene cuatro herramientas de aviso; se diferencian en cuánto le exigen al usuario.',
     },
   ],
   sections: [
     {
       id: 'choose',
-      heading: { en: '1. Pick the right one', es: '1. Escoge la correcta' },
+      heading: { en: '1. Pick the right one', es: '1. Elige la adecuada' },
       blocks: [
         {
           kind: 'table',
@@ -32,7 +32,7 @@ const content: ArticleContent = {
               { en: '[NotificationService](/api/NotificationService)', es: '[NotificationService](/api/NotificationService)' },
               {
                 en: 'An event the user may want to act on later: a shared document, a finished export, an invitation. Supports avatars and action buttons.',
-                es: 'Un evento sobre el que el usuario quizás quiera actuar luego: un documento compartido, una exportación terminada, una invitación. Soporta avatares y botones de acción.',
+                es: 'Un evento sobre el que el usuario quizás quiera actuar luego: un documento compartido, una exportación terminada, una invitación. Admite avatares y botones de acción.',
               },
               { en: 'No. Stays until dismissed by default.', es: 'No. Por defecto se queda hasta que la cierren.' },
             ],
@@ -40,9 +40,9 @@ const content: ArticleContent = {
               { en: '[AlertService](/api/AlertService)', es: '[AlertService](/api/AlertService)' },
               {
                 en: 'A decision is needed now: confirm a delete, answer yes or no, or wait for a blocking operation.',
-                es: 'Hace falta una decisión ya: confirmar un borrado, responder sí o no, o esperar una operación que bloquea.',
+                es: 'Hace falta una decisión en ese momento: confirmar un borrado, responder sí o no, o esperar una operación que bloquea.',
               },
-              { en: 'Yes. Modal; returns a Promise.', es: 'Sí. Modal; devuelve una Promise.' },
+              { en: 'Yes. Modal; returns a `Promise`.', es: 'Sí. Modal; devuelve una promesa (`Promise`).' },
             ],
             [
               { en: '[DialogService](/api/DialogService)', es: '[DialogService](/api/DialogService)' },
@@ -50,7 +50,7 @@ const content: ArticleContent = {
                 en: 'The user needs a whole UI: a form, a detail view, a picker.',
                 es: 'El usuario necesita una interfaz completa: un formulario, una vista de detalle, un selector.',
               },
-              { en: 'Yes. Renders your component in a CDK dialog.', es: 'Sí. Dibuja tu componente en un diálogo de CDK.' },
+              { en: 'Yes. Renders your component in a CDK dialog.', es: 'Sí. Renderiza tu componente en un diálogo del CDK.' },
             ],
           ],
         },
@@ -59,7 +59,7 @@ const content: ArticleContent = {
           tone: 'tip',
           text: {
             en: 'If you would put an “OK” button on a toast, it is an alert. If the message must survive the user looking away, it is a notification.',
-            es: 'Si le pondrías un botón “OK” a un toast, es un alert. Si el mensaje debe seguir ahí cuando el usuario mire a otro lado, es una notificación.',
+            es: 'Si le pondrías un botón “OK” a un toast, lo que necesitas es una alerta. Si el mensaje debe seguir ahí cuando el usuario mire a otro lado, es una notificación.',
           },
         },
       ],
@@ -72,7 +72,7 @@ const content: ArticleContent = {
           kind: 'p',
           text: {
             en: 'Each service works without configuration. Add a provider only to change its defaults.',
-            es: 'Cada servicio funciona sin configuración. Añade un proveedor solo para cambiar sus valores por defecto.',
+            es: 'Cada servicio funciona sin configuración. Añade un provider solo para cambiar sus valores por defecto.',
           },
         },
         {
@@ -97,7 +97,7 @@ export const appConfig: ApplicationConfig = {
           kind: 'p',
           text: {
             en: 'See [ToastGlobalConfig](/api/ToastGlobalConfig), [NotificationGlobalConfig](/api/NotificationGlobalConfig) and [AlertConfig](/api/AlertConfig) for every option.',
-            es: 'Mira [ToastGlobalConfig](/api/ToastGlobalConfig), [NotificationGlobalConfig](/api/NotificationGlobalConfig) y [AlertConfig](/api/AlertConfig) para todas las opciones.',
+            es: 'Consulta [ToastGlobalConfig](/api/ToastGlobalConfig), [NotificationGlobalConfig](/api/NotificationGlobalConfig) y [AlertConfig](/api/AlertConfig) para ver todas las opciones.',
           },
         },
       ],
@@ -110,7 +110,7 @@ export const appConfig: ApplicationConfig = {
           kind: 'p',
           text: {
             en: 'Toasts and alerts create their own container the first time they are used. Notifications render into [NotificationHostComponent](/api/NotificationHostComponent), which you place once in the app shell.',
-            es: 'Los toasts y los alerts crean su propio contenedor la primera vez que se usan. Las notificaciones se dibujan en [NotificationHostComponent](/api/NotificationHostComponent), que colocas una vez en el shell de la app.',
+            es: 'Los toasts y las alertas crean su propio contenedor la primera vez que se usan. Las notificaciones se renderizan en [NotificationHostComponent](/api/NotificationHostComponent), que colocas una vez en el shell de la app.',
           },
         },
         {
@@ -125,7 +125,7 @@ export const appConfig: ApplicationConfig = {
           tone: 'warning',
           text: {
             en: 'Do not add `<hk-toast>` or an alert container to your templates; the services mount them, and a second copy duplicates every message.',
-            es: 'No añadas `<hk-toast>` ni un contenedor de alerts a tus plantillas; los servicios los montan, y una segunda copia duplica cada mensaje.',
+            es: 'No añadas `<hk-toast>` ni un contenedor de alertas a tus plantillas; los servicios los montan, y una segunda copia duplica cada mensaje.',
           },
         },
       ],
@@ -181,15 +181,15 @@ export class DocumentsComponent {
           kind: 'note',
           tone: 'warning',
           text: {
-            en: 'Alert methods resolve to an [AlertResult](/api/AlertResult) object, never to a boolean. Check `result.isConfirmed`; `if (!result)` is always false.',
-            es: 'Los métodos de Alert resuelven a un objeto [AlertResult](/api/AlertResult), nunca a un booleano. Revisa `result.isConfirmed`; `if (!result)` siempre es falso.',
+            en: '`AlertService` methods resolve to an [AlertResult](/api/AlertResult) object, never to a boolean. Check `result.isConfirmed`; `if (!result)` is always false.',
+            es: 'Los métodos de `AlertService` se resuelven con un objeto [AlertResult](/api/AlertResult), nunca a un booleano. Revisa `result.isConfirmed`; `if (!result)` siempre es falso.',
           },
         },
         {
           kind: 'p',
           text: {
-            en: 'Inside the dialog component, read the payload with `inject(DIALOG_DATA)` and close with `inject(DialogRef).close()`, both from `@angular/cdk/dialog`. `DialogService` closes every open dialog on navigation, and it injects the Angular `Router`, so the app must call `provideRouter`.',
-            es: 'Dentro del componente del diálogo, lee los datos con `inject(DIALOG_DATA)` y ciérralo con `inject(DialogRef).close()`, ambos de `@angular/cdk/dialog`. `DialogService` cierra todos los diálogos abiertos al navegar, e inyecta el `Router` de Angular, así que la app debe llamar `provideRouter`.',
+            en: 'Inside the dialog component, read the payload with `inject(DIALOG_DATA)` and close with `inject(DialogRef).close()`, both from `@angular/cdk/dialog`. `DialogService` closes every open dialog on navigation when the app has a router (`provideRouter`); the router is optional, and without it dialogs simply stay open.',
+            es: 'Dentro del componente del diálogo, lee los datos con `inject(DIALOG_DATA)` y ciérralo con `inject(DialogRef).close()`, ambos de `@angular/cdk/dialog`. `DialogService` cierra todos los diálogos abiertos al navegar cuando la app tiene router (`provideRouter`); el router es opcional y, sin él, los diálogos simplemente siguen abiertos.',
           },
         },
       ],
@@ -202,8 +202,8 @@ export class DocumentsComponent {
           kind: 'list',
           items: [
             {
-              en: 'Toasts are live regions: auto-dismissing ones are announced assertively, sticky ones politely. Keep the summary short.',
-              es: 'Los toasts son regiones live: los que se cierran solos se anuncian de forma assertive, los fijos de forma polite. Mantén corto el resumen.',
+              en: 'Toasts are live regions: auto-dismissing ones are announced with `aria-live="assertive"`, sticky ones with `"polite"`. Keep the `summary` short.',
+              es: 'Los toasts son regiones vivas: los que se cierran solos se anuncian con `aria-live="assertive"` y los fijos con `"polite"`. Mantén breve el `summary`.',
             },
             {
               en: 'Do not put the only path to an action in a toast that disappears. Use a notification, which stays until dismissed.',
@@ -211,7 +211,7 @@ export class DocumentsComponent {
             },
             {
               en: 'Alerts trap focus and restore it to the previous element when closed.',
-              es: 'Los alerts atrapan el foco y lo devuelven al elemento anterior al cerrarse.',
+              es: 'Las alertas atrapan el foco y lo devuelven al elemento anterior al cerrarse.',
             },
           ],
         },
@@ -220,7 +220,7 @@ export class DocumentsComponent {
   ],
   related: [
     { id: 'toast', note: { en: 'Toast options and examples.', es: 'Opciones y ejemplos de toast.' } },
-    { id: 'notification', note: { en: 'Layouts, avatars and actions.', es: 'Layouts, avatares y acciones.' } },
+    { id: 'notification', note: { en: 'Layouts, avatars and actions.', es: 'Diseños, avatares y acciones.' } },
     { id: 'alert', note: { en: 'Confirm, question, countdown and loading.', es: 'Confirmar, preguntar, cuenta regresiva y carga.' } },
     { id: 'dialog', note: { en: 'Opening your own components in a dialog.', es: 'Abrir tus propios componentes en un diálogo.' } },
   ],

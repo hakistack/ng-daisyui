@@ -4,7 +4,7 @@ const content: ComponentDocContent = {
   overview: [
     {
       en: 'The dynamic form turns a list of fields written in TypeScript into a complete form on screen. Instead of writing an `<input>`, a label, validators and error messages for every field, you describe each one ("a required email", "a number between 18 and 99") and `<hk-dynamic-form>` renders it, validates it and tells you when the user submits.',
-      es: 'El formulario dinámico convierte una lista de campos escrita en TypeScript en un formulario completo en pantalla. En vez de escribir un `<input>`, una etiqueta, validadores y mensajes de error para cada campo, describes cada uno ("un email obligatorio", "un número entre 18 y 99") y `<hk-dynamic-form>` lo dibuja, lo valida y te avisa cuando la persona lo envía.',
+      es: 'El formulario dinámico convierte una lista de campos escrita en TypeScript en un formulario completo en pantalla. En vez de escribir un `<input>`, una etiqueta, validadores y mensajes de error para cada campo, describes cada uno ("un email obligatorio", "un número entre 18 y 99") y `<hk-dynamic-form>` lo renderiza, lo valida y te avisa cuando la persona lo envía.',
     },
     {
       en: 'You build it with `createForm()`, which returns a small controller: `config` (what you pass to the component), `submit()` and `reset()`. The form has no buttons of its own, so you place your Save or Cancel buttons wherever your design needs them. Fields can appear, become required or become disabled based on other answers, load their options from another field, and be saved as a draft while the user types.',
@@ -22,21 +22,21 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Forms generated from data (a configuration from your API) rather than hand-written markup.',
-      es: 'Formularios generados a partir de datos (una configuración de tu API) en vez de markup escrito a mano.',
+      es: 'Formularios generados a partir de datos (una configuración de tu API) en vez de marcado escrito a mano.',
     },
     {
       en: 'Long forms that should survive a page refresh, with auto-save.',
-      es: 'Formularios largos que deben sobrevivir una recarga de la página, con autoguardado.',
+      es: 'Formularios largos que deben sobrevivir a una recarga de la página, con autoguardado.',
     },
   ],
   whenNotToUse: [
     {
       en: 'A single search box or one or two controls: use [Input](/input) or [Select](/select) directly.',
-      es: 'Una sola caja de búsqueda o uno o dos controles: usa [Input](/input) o [Select](/select) directamente.',
+      es: 'Un solo cuadro de búsqueda o uno o dos controles: usa [Input](/input) o [Select](/select) directamente.',
     },
     {
       en: 'Highly custom layouts where each field has unique markup around it: build a Reactive Form by hand and use the individual components.',
-      es: 'Layouts muy personalizados donde cada campo tiene markup único alrededor: arma un Reactive Form a mano y usa los componentes individuales.',
+      es: 'Diseños muy personalizados donde cada campo tiene marcado propio alrededor: arma un Reactive Form a mano y usa los componentes individuales.',
     },
     {
       en: 'Editing many rows of tabular data at once: use the [DataGrid](/datagrid).',
@@ -74,7 +74,7 @@ export class FormsQuickStartComponent {
 }`,
     note: {
       en: '`createForm` does not need an injection context, so it can run in a field initializer like above. `onSubmit` in this declarative style only runs when the form is valid, and `data` is typed from the field map.',
-      es: '`createForm` no necesita contexto de inyección, así que puede ir en un inicializador de campo como arriba. En este estilo declarativo, `onSubmit` solo corre cuando el formulario es válido, y `data` tiene tipos inferidos del mapa de campos.',
+      es: '`createForm` no necesita contexto de inyección, así que puede ir en un inicializador de campo como arriba. En este estilo declarativo, `onSubmit` solo se ejecuta cuando el formulario es válido, y `data` tiene tipos inferidos del mapa de campos.',
     },
   },
   technical: [
@@ -132,6 +132,7 @@ readonly form = createForm({
     field.text('company', 'Company name', { showWhen: ['accountType', 'business'], requiredWhen: ['accountType', 'business'] }),
     field.password('password', 'Password', validation.password(8, true)),
     field.toggle('newsletter', 'Send me news'),
+    field.date('startDate', 'Start date', { minDate: '2026-01-01', maxDate: '2026-12-31' }),
   ],
   validate: (values) => (values['company'] === 'ACME' ? { company: 'That name is taken' } : null),
   onSubmit: ({ values, valid, errors }) => console.log(values, valid, errors),
@@ -140,8 +141,23 @@ readonly form = createForm({
         {
           kind: 'p',
           text: {
+            en: '`field.date` takes `minDate` / `maxDate` (a `Date` or an ISO string; an invalid string is ignored). Days outside the range are disabled in the picker, and a value outside it fails with the `min` / `max` error key. `isRange: true` turns the field into a date-range picker.',
+            es: '`field.date` acepta `minDate` / `maxDate` (un `Date` o un texto ISO; un texto inválido se ignora). Los días fuera del rango quedan deshabilitados en el selector, y un valor fuera de él falla con la clave de error `min` / `max`. `isRange: true` convierte el campo en un selector de rango de fechas.',
+          },
+        },
+        {
+          kind: 'p',
+          text: {
             en: "Conditions accept several shapes: a field name (`'hasReferral'`, truthy), `[field, value]`, `[field, (value, values) => boolean]`, a `Signal<boolean>` or a function that reads signals. Pass the signal itself, without parentheses: `showWhen: this.isEditMode()` is evaluated once, `showWhen: this.isEditMode` stays reactive.",
-            es: "Las condiciones aceptan varias formas: un nombre de campo (`'hasReferral'`, verdadero), `[campo, valor]`, `[campo, (valor, valores) => boolean]`, un `Signal<boolean>` o una función que lee signals. Pasa la signal sin paréntesis: `showWhen: this.isEditMode()` se evalúa una sola vez, `showWhen: this.isEditMode` se mantiene reactiva.",
+            es: "Las condiciones aceptan varias formas: un nombre de campo (`'hasReferral'`, con valor verdadero), `[campo, valor]`, `[campo, (valor, valores) => boolean]`, un `Signal<boolean>` o una función que lee signals. Pasa el signal sin paréntesis: `showWhen: this.isEditMode()` se evalúa una sola vez, `showWhen: this.isEditMode` se mantiene reactivo.",
+          },
+        },
+        {
+          kind: 'note',
+          tone: 'info',
+          text: {
+            en: 'A field hidden by `showWhen` / `hideWhen` is also disabled: it no longer counts toward `valid` (a hidden required field blocks neither submit nor the wizard’s Next button) and it is left out of the submitted `values`. Its value is kept, still readable through the `FormGroup` `getRawValue()`, and the control is enabled again when the field shows up (unless `disabledWhen` or the form `disabled` input still applies).',
+            es: 'Un campo oculto por `showWhen` / `hideWhen` también se deshabilita: deja de contar para `valid` (un campo obligatorio oculto no bloquea ni el envío ni el botón Siguiente del asistente) y queda fuera de los `values` enviados. Su valor se conserva, se puede leer con `getRawValue()` del `FormGroup`, y el control se vuelve a habilitar cuando el campo reaparece (salvo que `disabledWhen` o el input `disabled` del formulario sigan aplicando).',
           },
         },
       ],
@@ -157,7 +173,7 @@ readonly form = createForm({
               label: { en: 'createForm', es: 'createForm' },
               detail: {
                 en: 'Normalizes any of the three styles into one `FormConfig` exposed as a `computed()` signal. `submit()` and `reset()` bump trigger signals the component watches.',
-                es: 'Normaliza cualquiera de los tres estilos en un solo `FormConfig` expuesto como signal `computed()`. `submit()` y `reset()` incrementan signals disparadoras que el componente observa.',
+                es: 'Normaliza cualquiera de los tres estilos en un solo `FormConfig` expuesto como un signal `computed()`. `submit()` y `reset()` incrementan signals disparadores que el componente observa.',
               },
             },
             {
@@ -171,14 +187,14 @@ readonly form = createForm({
               label: { en: 'Conditions', es: 'Condiciones' },
               detail: {
                 en: 'A Rust/WASM form engine tracks which fields depend on which, so a change only re-evaluates affected fields. Until it loads (or on the server) a TypeScript `ConditionEngine` with the same dependency graph does the work.',
-                es: 'Un motor de formularios en Rust/WASM sabe qué campos dependen de cuáles, así que un cambio solo vuelve a evaluar los campos afectados. Mientras carga (o en el servidor) un `ConditionEngine` en TypeScript con el mismo grafo de dependencias hace el trabajo.',
+                es: 'Un motor de formularios en Rust/WASM sabe qué campos dependen de cuáles, así que un cambio solo vuelve a evaluar los campos afectados. Mientras carga (o en el servidor), un `ConditionEngine` en TypeScript con el mismo grafo de dependencias hace el trabajo.',
               },
             },
             {
               label: { en: 'Submit', es: 'Envío' },
               detail: {
-                en: 'All controls are marked touched, the form-level `validate` runs, and `onSubmit` / `formSubmit` receive `{ values, valid, errors }`.',
-                es: 'Todos los controles se marcan como tocados, corre el `validate` del formulario, y `onSubmit` / `formSubmit` reciben `{ values, valid, errors }`.',
+                en: 'All controls are marked touched, the form-level `validate` runs, and `onSubmit` / `formSubmit` receive `{ values, valid, errors }`. `values` holds the enabled controls only, so hidden and disabled fields are not included.',
+                es: 'Todos los controles se marcan como tocados, se ejecuta el `validate` del formulario, y `onSubmit` / `formSubmit` reciben `{ values, valid, errors }`. `values` solo incluye los controles habilitados, así que los campos ocultos y deshabilitados no aparecen.',
               },
             },
           ],
@@ -194,14 +210,14 @@ readonly form = createForm({
     },
     {
       id: 'layout-and-options',
-      heading: { en: 'Layout, dependent options and auto-save', es: 'Layout, opciones dependientes y autoguardado' },
+      heading: { en: 'Layout, dependent options and auto-save', es: 'Diseño, opciones dependientes y autoguardado' },
       blocks: [
         {
           kind: 'list',
           items: [
             {
               en: '`layout`: `vertical` (default), `horizontal` with `labelWidth`, or `grid` with `gridColumns`. Per field, `colSpan` accepts a number or a responsive object (`{ default: 12, md: 6 }`); outside the grid use `width` (`1/2`, `1/3`...).',
-              es: '`layout`: `vertical` (por defecto), `horizontal` con `labelWidth`, o `grid` con `gridColumns`. Por campo, `colSpan` acepta un número o un objeto responsive (`{ default: 12, md: 6 }`); fuera de la cuadrícula usa `width` (`1/2`, `1/3`...).',
+              es: '`layout`: `vertical` (por defecto), `horizontal` con `labelWidth`, o `grid` con `gridColumns`. Por campo, `colSpan` acepta un número o un objeto adaptable (`{ default: 12, md: 6 }`); fuera de la cuadrícula usa `width` (`1/2`, `1/3`...).',
             },
             {
               en: '`optionsFrom: { field, loadFn }` reloads a select or radio list when another field changes; `loadFn` may return an array, a Promise or an Observable, and the old value is cleared unless `clearOnChange` is `false`.',
@@ -212,8 +228,8 @@ readonly form = createForm({
               es: '`autoSave: { enabled: true, formId }` guarda borradores con `FormStateService` y los restaura en la próxima visita. Requiere `provideFormState()`; mira [Estado de formularios y autoguardado](/systems/form-state).',
             },
             {
-              en: '`provideDynamicFormLabels()` sets app-wide text for the wizard buttons and loading placeholders.',
-              es: '`provideDynamicFormLabels()` define los textos de toda la app para los botones del asistente y los placeholders de carga.',
+              en: '`provideDynamicFormLabels()` sets app-wide text for the wizard buttons, the editor placeholder and the options-loading placeholder.',
+              es: '`provideDynamicFormLabels()` define los textos de toda la app para los botones del asistente, el placeholder del editor y el placeholder de carga de opciones.',
             },
           ],
         },
@@ -232,16 +248,16 @@ readonly form = createForm({
     keyboard: [],
     notes: [
       {
-        en: 'The form is a real `<form>`, and every visible field gets a `<label for>` tied to its control id, so clicking the label focuses the field and screen readers announce it.',
-        es: 'El formulario es un `<form>` real, y cada campo visible tiene un `<label for>` atado al id de su control, así que al hacer clic en la etiqueta se enfoca el campo y los lectores de pantalla lo anuncian.',
+        en: 'The form is a real `<form>`, and every visible field gets a `<label for>` tied to its control id (date and time fields pass it through `controlId`), so clicking the label focuses the field and screen readers announce it. Radio options are wrapped in a `role="radiogroup"` labelled by the field label.',
+        es: 'El formulario es un `<form>` real, y cada campo visible tiene un `<label for>` vinculado al id de su control (los campos de fecha y hora lo reciben por `controlId`), así que al hacer clic en la etiqueta se enfoca el campo y los lectores de pantalla lo anuncian. Las opciones de radio van dentro de un `role="radiogroup"` con la etiqueta del campo como nombre.',
       },
       {
-        en: 'Required fields show a visual asterisk; error messages and `helpText` are rendered under the field but are not linked with `aria-describedby`, and the native inputs do not set `aria-invalid`. Keep error text short and specific.',
-        es: 'Los campos obligatorios muestran un asterisco visual; los mensajes de error y el `helpText` se muestran debajo del campo pero no se enlazan con `aria-describedby`, y los inputs nativos no ponen `aria-invalid`. Mantén los mensajes de error cortos y específicos.',
+        en: 'Required fields show a visual asterisk. Native controls get `aria-describedby` pointing at their `helpText` and, once touched and invalid, at their error messages, plus `aria-invalid`. The error container is an `aria-live="polite"` region that is always present, so new errors are announced. Keep error text short and specific.',
+        es: 'Los campos obligatorios muestran un asterisco visual. Los controles nativos reciben `aria-describedby` apuntando a su `helpText` y, una vez tocados e inválidos, a sus mensajes de error, además de `aria-invalid`. El contenedor de errores es una región viva `aria-live="polite"` que siempre está presente, así que los errores nuevos se anuncian. Mantén los mensajes de error cortos y específicos.',
       },
       {
         en: 'Use `focusOnLoad: true` on one field to move focus there when the form first renders, for example the first field of a dialog.',
-        es: 'Usa `focusOnLoad: true` en un campo para mover el foco allí cuando el formulario se dibuja por primera vez, por ejemplo el primer campo de un diálogo.',
+        es: 'Usa `focusOnLoad: true` en un campo para mover el foco allí cuando el formulario se renderiza por primera vez, por ejemplo el primer campo de un diálogo.',
       },
       {
         en: 'Your Submit and Reset buttons live outside the component: give them `type="button"` and clear text, and keep them in a logical tab order after the fields.',
@@ -252,7 +268,7 @@ readonly form = createForm({
   performance: [
     {
       en: '`OnPush` everywhere; the config is a `computed()` signal, so passing `form.config()` in the template does not rebuild the form on every change detection.',
-      es: '`OnPush` en todo; la configuración es una signal `computed()`, así que pasar `form.config()` en la plantilla no reconstruye el formulario en cada detección de cambios.',
+      es: '`OnPush` en todo; la configuración es un signal `computed()`, así que pasar `form.config()` en la plantilla no reconstruye el formulario en cada detección de cambios.',
     },
     {
       en: 'Conditional logic is incremental: only fields that depend on the changed field are re-evaluated, through the WASM engine when available and the TypeScript dependency graph otherwise.',

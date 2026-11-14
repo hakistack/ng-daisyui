@@ -1,4 +1,4 @@
-<div [class]="containerClass()" aria-live="assertive" role="region">
+<div [class]="containerClass()" role="region" aria-live="polite" [attr.aria-label]="labels().regionAriaLabel">
   <div [class]="stackClass()">
     @for (notification of service.notifications(); track notification.id) {
       <hk-notification-item [notification]="notification" [labels]="labels()" />

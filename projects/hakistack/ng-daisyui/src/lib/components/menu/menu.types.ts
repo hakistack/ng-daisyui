@@ -35,16 +35,16 @@ export type MenuSubmenuMode = 'inline' | 'dropdown';
  * RBAC on top by returning a boolean from `visible`.
  *
  * @example Link with icon and badge
- * { label: 'Users', routerLink: '/users', icon: LucideUsers, badge: 12 }
+ * { label: 'Users', routerLink: '/users', icon: LucideUsers.icon, badge: 12 } // or a registered name: 'users'
  *
  * @example Collapsible group
- * { label: 'Settings', icon: LucideSettings, children: [
+ * { label: 'Settings', icon: LucideSettings.icon, children: [
  *   { label: 'Account', routerLink: '/settings/account' },
  *   { label: 'Security', routerLink: '/settings/security' },
  * ]}
  *
  * @example Action item gated by a permission
- * { label: 'Delete workspace', icon: LucideTrash, action: () => confirmDelete(),
+ * { label: 'Delete workspace', icon: LucideTrash.icon, action: () => confirmDelete(),
  *   visible: () => auth.can('workspace:delete') }
  */
 export interface MenuItem<T = unknown> {
@@ -134,7 +134,10 @@ export interface MenuConfig<T = unknown> {
    * via tooltip; groups become hover dropdowns.
    */
   collapsed?: boolean;
-  /** Render submenus inline (`<details>`) or as floating dropdowns. Default `'inline'`. */
+  /**
+   * Reserved: only `'inline'` (`<details>`) is implemented; `'dropdown'` currently renders inline too.
+   * Use `collapsed: true` for hover dropdowns on an icon rail.
+   */
   submenuMode?: MenuSubmenuMode;
   /** Accessible label for the menu landmark. */
   ariaLabel?: string;

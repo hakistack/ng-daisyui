@@ -8,11 +8,11 @@ const content: ComponentDocContent = {
     },
     {
       en: "You describe the table once with `createTable()` — which columns, how to format them, which features to turn on — and pass the rows separately with `[data]`. The same object is also a controller: call `table.clearAllFilters()`, `table.nextPage()` or `table.sort('name')` from anywhere, without a `viewChild`.",
-      es: "Describes la tabla una sola vez con `createTable()` (qué columnas, cómo formatearlas, qué funciones activar) y pasas las filas aparte con `[data]`. Ese mismo objeto es también un controlador: llama `table.clearAllFilters()`, `table.nextPage()` o `table.sort('name')` desde cualquier parte, sin `viewChild`.",
+      es: "Describes la tabla una sola vez con `createTable()` (qué columnas, cómo formatearlas, qué funcionalidades activar) y pasas las filas aparte con `[data]`. Ese mismo objeto es también un controlador: llama a `table.clearAllFilters()`, `table.nextPage()` o `table.sort('name')` desde cualquier parte, sin `viewChild`.",
     },
     {
       en: 'It is the right choice for most business screens. For very large data, multi-column sort or a serializable view state, use the [DataGrid](/datagrid), which is where new grid features are added.',
-      es: 'Es la opción correcta para la mayoría de las pantallas de negocio. Para datos muy grandes, orden por varias columnas o un estado de vista serializable, usa el [DataGrid](/datagrid), que es donde se añaden las funciones nuevas de grid.',
+      es: 'Es la opción correcta para la mayoría de las pantallas de negocio. Para datos muy grandes, orden por varias columnas o un estado de vista serializable, usa el [DataGrid](/datagrid), que es donde se añaden las funcionalidades nuevas de grid.',
     },
   ],
   whenToUse: [
@@ -30,7 +30,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Rows with children: turn on `treeTable` (see [Tree Table](/tree-table)).',
-      es: 'Filas con hijos: activa `treeTable` (mira [Tabla en árbol](/tree-table)).',
+      es: 'Filas con hijos: activa `treeTable` (consulta [Tabla en árbol](/tree-table)).',
     },
   ],
   whenNotToUse: [
@@ -89,7 +89,7 @@ export class UsersTableComponent {
 `,
     note: {
       en: '`createTable()` needs an injection context. Call it in a field initializer or the constructor, not inside `computed()` or `effect()` (that throws NG0203); if you must, wrap it in `runInInjectionContext()`.',
-      es: '`createTable()` necesita un contexto de inyección. Llámalo en un inicializador de campo o en el constructor, no dentro de `computed()` ni `effect()` (eso lanza NG0203); si no queda otra, envuélvelo en `runInInjectionContext()`.',
+      es: '`createTable()` necesita un contexto de inyección. Llámalo en un inicializador de campo o en el constructor, no dentro de `computed()` ni `effect()` (eso lanza NG0203); si no tienes alternativa, envuélvelo en `runInInjectionContext()`.',
     },
   },
   technical: [
@@ -101,7 +101,7 @@ export class UsersTableComponent {
           kind: 'p',
           text: {
             en: 'The table turns `[data]` into what you see through a chain of signals. Between stages it passes index arrays instead of copied rows, and only the rows of the current page are materialized. Header sorting is single-column and cycles ascending → descending → off.',
-            es: 'La tabla convierte `[data]` en lo que ves mediante una cadena de signals. Entre etapas pasa arreglos de índices en lugar de copiar filas, y solo se materializan las filas de la página actual. El orden por encabezado es de una sola columna y rota entre ascendente → descendente → sin orden.',
+            es: 'La tabla convierte `[data]` en lo que ves mediante una cadena de signals. Entre etapas pasa arreglos de índices en lugar de copiar filas, y solo se materializan las filas de la página actual. El orden por encabezado es de una sola columna y alterna entre ascendente → descendente → sin orden.',
           },
         },
         {
@@ -127,7 +127,7 @@ export class UsersTableComponent {
               label: { en: 'Page slice', es: 'Corte de página' },
               detail: {
                 en: 'Client offset pages are sliced here; virtual scroll and server pages render `data` as is.',
-                es: 'Las páginas offset del cliente se cortan aquí; el scroll virtual y las páginas del servidor muestran `data` tal cual.',
+                es: 'Las páginas offset del cliente se cortan aquí; el desplazamiento virtual y las páginas del servidor muestran `data` tal cual.',
               },
             },
           ],
@@ -149,7 +149,7 @@ export class UsersTableComponent {
           kind: 'p',
           text: {
             en: 'When `[data]` gets a new array, the table tries to load it into the Rust/WASM engine through [TableEngineService](/api/TableEngineService). If that works, filters, `contains`/`startsWith`/`exact` search, sort, grouping and footer aggregates run in WASM and return indices. If anything is not supported, that step runs the TypeScript version instead — the results are the same.',
-            es: 'Cuando `[data]` recibe un arreglo nuevo, la tabla intenta cargarlo en el motor Rust/WASM mediante [TableEngineService](/api/TableEngineService). Si funciona, los filtros, la búsqueda `contains`/`startsWith`/`exact`, el orden, la agrupación y los totales del pie corren en WASM y devuelven índices. Si algo no está soportado, ese paso corre la versión en TypeScript; el resultado es el mismo.',
+            es: 'Cuando `[data]` recibe un arreglo nuevo, la tabla intenta cargarlo en el motor Rust/WASM mediante [TableEngineService](/api/TableEngineService). Si funciona, los filtros, la búsqueda `contains`/`startsWith`/`exact`, el orden, la agrupación y los totales del pie se ejecutan en WASM y devuelven índices. Si algo no está soportado, ese paso usa la versión en TypeScript; el resultado es el mismo.',
           },
         },
         {
@@ -157,11 +157,11 @@ export class UsersTableComponent {
           items: [
             {
               en: 'The engine sits out in cursor mode, in tree mode, for empty data, and when any column type cannot be determined. Types come from `filter.type` or from the first 64 rows (string, number, boolean or `Date`); objects or mixed types send the whole dataset to TypeScript.',
-              es: 'El motor no participa en modo cursor, en modo árbol, con datos vacíos, ni cuando no se puede determinar el tipo de alguna columna. Los tipos salen de `filter.type` o de las primeras 64 filas (string, number, boolean o `Date`); objetos o tipos mezclados mandan todo el conjunto a TypeScript.',
+              es: 'El motor no participa en modo cursor, en modo árbol, con datos vacíos, ni cuando no se puede determinar el tipo de alguna columna. Los tipos salen de `filter.type` o de las primeras 64 filas (string, number, boolean o `Date`); si hay objetos o tipos mezclados, todo el conjunto de datos se procesa en TypeScript.',
             },
             {
               en: 'Fuzzy search and `customSearch` always run in TypeScript.',
-              es: 'La búsqueda `fuzzy` y `customSearch` siempre corren en TypeScript.',
+              es: 'La búsqueda `fuzzy` y `customSearch` siempre se ejecutan en TypeScript.',
             },
             {
               en: 'The binary is inlined in a lazy chunk and only downloaded when a table first ingests data. To serve it as a separate cacheable file, use [provideTableEngineWasmUrl](/api/provideTableEngineWasmUrl). Details in [WASM engines](/systems/wasm-engines).',
@@ -197,7 +197,7 @@ export class UsersTableComponent {
           items: [
             {
               en: "`format` can be a function `(value, row) => string | Observable<string>` (the value is typed per column) or a pipe tuple such as `['currency', 'USD']` or `['date', 'short']`, resolved by the PipeRegistry. Pipe tuples need [providePipes](/api/providePipes) in your app config; see [Formatters](/systems/formatters).",
-              es: "`format` puede ser una función `(value, row) => string | Observable<string>` (el valor tiene el tipo de la columna) o una tupla de pipe como `['currency', 'USD']` o `['date', 'short']`, resuelta por el PipeRegistry. Las tuplas de pipe necesitan [providePipes](/api/providePipes) en la configuración de tu app; mira [Formateadores](/systems/formatters).",
+              es: "`format` puede ser una función `(value, row) => string | Observable<string>` (el valor tiene el tipo de la columna) o una tupla de pipe como `['currency', 'USD']` o `['date', 'short']`, resuelta por el PipeRegistry. Las tuplas de pipe necesitan [providePipes](/api/providePipes) en la configuración de tu app; consulta [Formateadores](/systems/formatters).",
             },
             {
               en: 'A formatter that returns HTML is rendered after Angular sanitization. For anything interactive, use a [HkCellTemplateDirective](/api/HkCellTemplateDirective) template instead.',
@@ -205,7 +205,7 @@ export class UsersTableComponent {
             },
             {
               en: 'All built-in text is configurable: `labels` (table), `filterLabels`, `globalSearch.labels`, `columnVisibility.labels` and `pagination` labels.',
-              es: 'Todo el texto incluido se puede configurar: `labels` (tabla), `filterLabels`, `globalSearch.labels`, `columnVisibility.labels` y los labels de `pagination`.',
+              es: 'Todos los textos integrados se pueden configurar: `labels` (tabla), `filterLabels`, `globalSearch.labels`, `columnVisibility.labels` y las etiquetas de `pagination`.',
             },
             {
               en: '`exportToCsv` and `exportToJson` are exported for your own export buttons; `columnVisibility.storageKey` persists hidden columns in `localStorage`.',
@@ -254,11 +254,11 @@ export class UsersTableComponent {
     notes: [
       {
         en: 'Cell navigation is opt-in: with `enableKeyboardNavigation: true` the host becomes focusable, the table gets `role="grid"` and the active cell is scrolled into view. Without it the table keeps `role="table"` semantics and only headers, checkboxes and buttons are focusable.',
-        es: 'La navegación por celdas es opcional: con `enableKeyboardNavigation: true` el host se vuelve enfocable, la tabla recibe `role="grid"` y la celda activa se desplaza a la vista. Sin eso, la tabla mantiene la semántica `role="table"` y solo los encabezados, casillas y botones reciben foco.',
+        es: 'La navegación por celdas es opcional: con `enableKeyboardNavigation: true` el host se vuelve enfocable, la tabla recibe `role="grid"` y la celda activa se desplaza hasta quedar visible. Sin esa opción, la tabla mantiene la semántica `role="table"` y solo los encabezados, casillas y botones reciben foco.',
       },
       {
-        en: 'Sort headers expose `aria-sort`. Selection checkboxes, expand toggles (`aria-expanded`), filter buttons and the clear-selection and clear-filters buttons all have `aria-label`s you can translate through `labels`.',
-        es: 'Los encabezados ordenables exponen `aria-sort`. Las casillas de selección, los botones de expandir (`aria-expanded`), los botones de filtro y los de limpiar selección y filtros tienen `aria-label` que puedes traducir con `labels`.',
+        en: 'In all three layouts (standard, virtual-scroll and grouped), each sortable column header cell carries `aria-sort` (`ascending`, `descending` or `none`), and the sort control inside it is a `role="button"` that Enter and Space activate. Selection checkboxes, expand toggles (`aria-expanded`), filter buttons and the clear-selection and clear-filters buttons all have `aria-label`s you can translate through `labels`.',
+        es: 'En los tres diseños (estándar, con desplazamiento virtual y con agrupación), cada celda de encabezado ordenable lleva `aria-sort` (`ascending`, `descending` o `none`), y el control de orden dentro de ella es un `role="button"` que se activa con Enter y Espacio. Las casillas de selección, los botones de expandir (`aria-expanded`), los botones de filtro y los de limpiar selección y filtros tienen `aria-label` que puedes traducir con `labels`.',
       },
       {
         en: 'The selection and active-filter bars use `role="alert"` with `aria-live="polite"`. They are only rendered while there is a selection or an active filter.',
@@ -273,15 +273,15 @@ export class UsersTableComponent {
   performance: [
     {
       en: 'Stages pass index arrays, and only the visible page is materialized. Building the row lookup is cached per `[data]` reference, not redone on every sort click.',
-      es: 'Las etapas se pasan arreglos de índices y solo se materializa la página visible. El mapa de filas se guarda por referencia de `[data]`, no se rehace en cada clic de orden.',
+      es: 'Las etapas se pasan arreglos de índices y solo se materializa la página visible. El mapa de filas se cachea por cada referencia de `[data]`; no se reconstruye en cada clic para ordenar.',
     },
     {
       en: 'With the WASM engine loaded, filter, search, sort, group and aggregate work on columnar data in WASM. The engine handle is disposed when data changes and when the table is destroyed.',
-      es: 'Con el motor WASM cargado, filtrar, buscar, ordenar, agrupar y calcular totales trabaja sobre datos en columnas dentro de WASM. El handle del motor se libera cuando cambian los datos y cuando se destruye la tabla.',
+      es: 'Con el motor WASM cargado, el filtrado, la búsqueda, el orden, la agrupación y los totales operan sobre datos en columnas dentro de WASM. El handle del motor se libera cuando cambian los datos y cuando se destruye la tabla.',
     },
     {
       en: '`virtualScroll: { enabled, itemHeight, viewportHeight }` uses the CDK virtual scroll viewport for long lists; only rows are virtualized, not columns.',
-      es: '`virtualScroll: { enabled, itemHeight, viewportHeight }` usa el viewport de scroll virtual del CDK para listas largas; solo se virtualizan las filas, no las columnas.',
+      es: '`virtualScroll: { enabled, itemHeight, viewportHeight }` usa el viewport de desplazamiento virtual del CDK para listas largas; solo se virtualizan las filas, no las columnas.',
     },
     {
       en: 'OnPush and signals throughout: an input change recomputes only the stages that depend on it.',
@@ -293,7 +293,7 @@ export class UsersTableComponent {
       id: 'datagrid',
       note: {
         en: 'Enterprise grid: row and column virtualization, multi-sort, JSON state, server `dataSource`, AI queries. New grid features land there.',
-        es: 'Grid empresarial: virtualización de filas y columnas, orden múltiple, estado JSON, `dataSource` en servidor, consultas con IA. Las funciones nuevas de grid llegan ahí.',
+        es: 'Grid empresarial: virtualización de filas y columnas, orden múltiple, estado JSON, `dataSource` en servidor, consultas con IA. Las funcionalidades nuevas de grid se añaden ahí.',
       },
     },
     {

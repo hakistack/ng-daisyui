@@ -7,6 +7,8 @@ import type { ArticleContent, ComponentDocContent } from '../catalog/catalog.typ
  * Keys are DocPageMeta ids with `hasContent: true` (enforced by docs:check).
  */
 export const COMPONENT_CONTENT: Record<string, () => Promise<ComponentDocContent>> = {
+  icons: () => import('./components/icons').then((m) => m.default),
+  motion: () => import('./components/motion').then((m) => m.default),
   forms: () => import('./components/forms').then((m) => m.default),
   wizard: () => import('./components/wizard').then((m) => m.default),
   input: () => import('./components/input').then((m) => m.default),
@@ -34,6 +36,19 @@ export const COMPONENT_CONTENT: Record<string, () => Promise<ComponentDocContent
 };
 
 export const ARTICLE_CONTENT: Record<string, () => Promise<ArticleContent>> = {
+  introduction: () => import('./articles/introduction').then((m) => m.default),
+  installation: () => import('./articles/installation').then((m) => m.default),
+  'key-patterns': () => import('./articles/key-patterns').then((m) => m.default),
+  'learning-paths': () => import('./articles/learning-paths').then((m) => m.default),
+  'design-principles': () => import('./articles/design-principles').then((m) => m.default),
+  colors: () => import('./articles/colors').then((m) => m.default),
+  typography: () => import('./articles/typography').then((m) => m.default),
+  'sizes-and-variants': () => import('./articles/sizes-and-variants').then((m) => m.default),
+  responsive: () => import('./articles/responsive').then((m) => m.default),
+  'guide-schema-forms': () => import('./articles/guide-schema-forms').then((m) => m.default),
+  'guide-custom-validators': () => import('./articles/guide-custom-validators').then((m) => m.default),
+  'guide-datagrid-columns': () => import('./articles/guide-datagrid-columns').then((m) => m.default),
+  'guide-extend-components': () => import('./articles/guide-extend-components').then((m) => m.default),
   theming: () => import('./articles/theming').then((m) => m.default),
   accessibility: () => import('./articles/accessibility').then((m) => m.default),
   i18n: () => import('./articles/i18n').then((m) => m.default),

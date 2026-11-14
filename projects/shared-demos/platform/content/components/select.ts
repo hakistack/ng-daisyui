@@ -8,7 +8,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'It grows with your data: turn on `enableSearch` to filter with fuzzy matching (typos are forgiven), add a `group` to options to show section headings, and turn on `virtualScroll` so lists with thousands of options stay smooth.',
-      es: 'Crece con tus datos: activa `enableSearch` para filtrar con búsqueda difusa (perdona errores de tipeo), añade `group` a las opciones para mostrar títulos de sección y activa `virtualScroll` para que listas con miles de opciones se mantengan fluidas.',
+      es: 'Crece con tus datos: activa `enableSearch` para filtrar con búsqueda difusa (tolera errores de escritura), añade `group` a las opciones para mostrar títulos de sección y activa `virtualScroll` para que listas con miles de opciones se mantengan fluidas.',
     },
   ],
   whenToUse: [
@@ -36,7 +36,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Running app-wide actions or jumping between pages from a search box: use the [Command Palette](/command-palette).',
-      es: 'Ejecutar acciones de la app o saltar entre páginas desde una caja de búsqueda: usa la [Paleta de comandos](/command-palette).',
+      es: 'Ejecutar acciones de la app o saltar entre páginas desde un cuadro de búsqueda: usa la [Paleta de comandos](/command-palette).',
     },
     {
       en: 'Picking items from a hierarchy: use the [Tree](/tree) with selection.',
@@ -93,7 +93,7 @@ export class SelectQuickStartComponent {
           kind: 'p',
           text: {
             en: 'Selection lives in two signals (`selectedOption` for single mode, `selectedOptions` for multiple). Everything the template shows — filtered list, groups, chips, the "+N" counter, select-all state — is a `computed()` over those signals and the inputs.',
-            es: 'La selección vive en dos signals (`selectedOption` en modo simple, `selectedOptions` en modo múltiple). Todo lo que muestra la plantilla —lista filtrada, grupos, chips, el contador "+N", el estado de seleccionar todo— es un `computed()` sobre esas signals y los inputs.',
+            es: 'La selección vive en dos signals (`selectedOption` en modo simple, `selectedOptions` en modo múltiple). Todo lo que muestra la plantilla —lista filtrada, grupos, chips, el contador "+N", el estado de seleccionar todo— es un `computed()` sobre esos signals y los inputs.',
           },
         },
         {
@@ -152,22 +152,22 @@ export class SelectQuickStartComponent {
             {
               label: { en: 'Index', es: 'Índice' },
               detail: {
-                en: 'When `enableSearch` is on, an effect builds a fuzzy index over `label` and `value` in the shared Rust/WASM engine, and disposes the previous one when `options` changes.',
-                es: 'Con `enableSearch` activo, un effect construye un índice difuso sobre `label` y `value` en el motor Rust/WASM compartido, y libera el anterior cuando cambia `options`.',
+                en: 'With `enableSearch` on, once the user has typed a first query and the list has at least 200 options, an effect builds a fuzzy index over `label` and `value` in the shared Rust/WASM engine. It disposes the previous index when `options` changes.',
+                es: 'Con `enableSearch` activo, cuando la persona ya escribió una primera búsqueda y la lista tiene al menos 200 opciones, un effect construye un índice difuso sobre `label` y `value` en el motor Rust/WASM compartido. Libera el índice anterior cuando cambia `options`.',
               },
             },
             {
               label: { en: 'Query', es: 'Consulta' },
               detail: {
                 en: 'Each keystroke updates `searchTerm`; `filteredOptions` returns matches in score order from the WASM index.',
-                es: 'Cada tecla actualiza `searchTerm`; `filteredOptions` devuelve las coincidencias ordenadas por puntaje desde el índice WASM.',
+                es: 'Cada tecla actualiza `searchTerm`; `filteredOptions` devuelve las coincidencias ordenadas por puntuación desde el índice WASM.',
               },
             },
             {
-              label: { en: 'Fallback', es: 'Respaldo' },
+              label: { en: 'Fallback', es: 'Alternativa' },
               detail: {
-                en: 'Until the WASM index is ready (first paint, SSR, tests) a cached Fuse.js index answers instead, so search works immediately.',
-                es: 'Mientras el índice WASM no está listo (primer render, SSR, pruebas) responde un índice de Fuse.js en caché, así que la búsqueda funciona de inmediato.',
+                en: 'Lists under 200 options are always searched with a cached Fuse.js index, so the WASM chunk is never downloaded for them. Larger lists use the same Fuse.js index until the WASM index is ready (first query, SSR, tests), so search works immediately.',
+                es: 'Las listas de menos de 200 opciones siempre se buscan con un índice de Fuse.js en caché, así que nunca descargan el chunk WASM. Las listas más grandes usan ese mismo índice de Fuse.js hasta que el índice WASM está listo (primera búsqueda, SSR, pruebas), así que la búsqueda funciona de inmediato.',
               },
             },
             {
@@ -197,14 +197,14 @@ export class SelectQuickStartComponent {
           kind: 'p',
           text: {
             en: 'The panel is a CDK connected overlay: it is moved to the overlay container at the end of `<body>`, opens below the field and flips above when there is no room, follows the field while the page scrolls, and takes the field width. Because it leaves the component tree, style it through global CSS and theme variables rather than `:host` styles.',
-            es: 'El panel es un overlay conectado de CDK: se mueve al contenedor de overlays al final de `<body>`, se abre debajo del campo y se voltea hacia arriba si no hay espacio, sigue al campo al hacer scroll y toma su ancho. Como sale del árbol del componente, dale estilo con CSS global y variables del tema, no con estilos de `:host`.',
+            es: 'El panel es un overlay conectado de CDK: se mueve al contenedor de overlays al final de `<body>`, se abre debajo del campo y pasa arriba si no hay espacio, sigue al campo cuando la página se desplaza y toma su ancho. Como sale del árbol del componente, dale estilo con CSS global y variables del tema, no con estilos de `:host`.',
           },
         },
         {
           kind: 'p',
           text: {
             en: 'Options with a `group` are rendered under `menu-title` headings in first-seen order. In multiple mode a Select all / Clear all bar applies to the currently filtered options and respects `maxSelectedItems`.',
-            es: 'Las opciones con `group` se muestran bajo títulos `menu-title` en el orden en que aparecen por primera vez. En modo múltiple, una barra Seleccionar todo / Limpiar todo aplica a las opciones filtradas y respeta `maxSelectedItems`.',
+            es: 'Las opciones con `group` se renderizan bajo títulos `menu-title` en el orden en que aparecen por primera vez. En modo múltiple, una barra Seleccionar todo / Limpiar todo aplica a las opciones filtradas y respeta `maxSelectedItems`.',
           },
         },
       ],
@@ -233,7 +233,7 @@ export class SelectQuickStartComponent {
         keys: 'Escape',
         action: {
           en: 'In the search box: clear the search. Elsewhere: close the list.',
-          es: 'En la caja de búsqueda: limpia la búsqueda. En otro lugar: cierra la lista.',
+          es: 'En el cuadro de búsqueda: limpia la búsqueda. En otro lugar: cierra la lista.',
         },
       },
     ],
@@ -243,8 +243,8 @@ export class SelectQuickStartComponent {
         es: 'El campo es un `<input role="combobox">` de solo lectura con `aria-expanded`, `aria-controls` y `aria-activedescendant` apuntando a la `role="option"` resaltada. La lista es `role="listbox"` con `aria-multiselectable` en modo múltiple.',
       },
       {
-        en: 'The inner field always gets its `aria-label` from `placeholder`, and `aria-label` wins over a `<label for>` in the accessible name. Write the placeholder as a meaningful name ("Favorite fruit", not "Select..."). The `id` input is placed on that field, so a visible `<label for="...">` still points at it. Bind it as a property (`[id]`, as in the quick start): a plain `id="fruit"` attribute would also stay on the `hk-select` host and duplicate the id.',
-        es: 'El campo interno siempre toma su `aria-label` del `placeholder`, y `aria-label` tiene prioridad sobre un `<label for>` en el nombre accesible. Escribe el placeholder como un nombre con sentido ("Fruta favorita", no "Selecciona..."). El input `id` se coloca en ese campo, así que un `<label for="...">` visible sigue apuntando a él. Enlázalo como propiedad (`[id]`, como en el inicio rápido): un atributo `id="fruit"` simple también se queda en el host `hk-select` y duplica el id.',
+        en: 'The `id` input is placed on the inner field, so a visible `<label for="...">` names it. When `id` is set the field gets no `aria-label`, and the label is the accessible name; without `id`, the `placeholder` becomes the `aria-label`, so write it as a meaningful name ("Favorite fruit", not "Select..."). Bind `id` as a property (`[id]`, as in the quick start): a plain `id="fruit"` attribute would also stay on the `hk-select` host and duplicate the id.',
+        es: 'El input `id` se coloca en el campo interno, así que un `<label for="...">` visible le da nombre. Cuando hay `id`, el campo no lleva `aria-label` y la etiqueta es el nombre accesible; sin `id`, el `placeholder` se usa como `aria-label`, así que escríbelo como un nombre con sentido ("Fruta favorita", no "Selecciona..."). Enlaza `id` como propiedad (`[id]`, como en el inicio rápido): un atributo `id="fruit"` simple también se queda en el host `hk-select` y duplica el id.',
       },
       {
         en: 'Do not wrap `hk-select` inside a `<label>` element: the label forwards the click, the panel opens and immediately closes. Put the label next to it and use `id` instead.',
@@ -259,7 +259,11 @@ export class SelectQuickStartComponent {
   performance: [
     {
       en: 'Virtual scrolling is opt-in: with `virtualScroll` on, a CDK virtual viewport is used only once the filtered list has more than 100 options; shorter lists render normally. Grouped headings are not shown in the virtualized list.',
-      es: 'El scroll virtual es opcional: con `virtualScroll` activo, se usa un viewport virtual de CDK solo cuando la lista filtrada pasa de 100 opciones; las listas más cortas se dibujan normal. Los títulos de grupo no se muestran en la lista virtualizada.',
+      es: 'El desplazamiento virtual es opcional: con `virtualScroll` activo, se usa un viewport virtual de CDK solo cuando la lista filtrada pasa de 100 opciones; las listas más cortas se renderizan de forma normal. Los títulos de grupo no se muestran en la lista virtualizada.',
+    },
+    {
+      en: 'The WASM search engine is only downloaded when a searchable list with 200 or more options receives its first query; smaller lists never load it.',
+      es: 'El motor de búsqueda WASM solo se descarga cuando una lista con búsqueda y 200 opciones o más recibe su primera consulta; las listas más pequeñas nunca lo cargan.',
     },
     {
       en: 'The fuzzy index is built once per `options` reference, not per keystroke. Replace the array (do not mutate it) when options change so the index is rebuilt.',
@@ -275,7 +279,7 @@ export class SelectQuickStartComponent {
       id: 'forms',
       note: {
         en: '`select` fields in a Dynamic Form render an `hk-select` for you.',
-        es: 'Los campos `select` de un Formulario dinámico dibujan un `hk-select` por ti.',
+        es: 'Los campos `select` de un Formulario dinámico renderizan un `hk-select` por ti.',
       },
     },
     {

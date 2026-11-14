@@ -64,7 +64,8 @@ async function loadFromUrl(url: string): Promise<ImageEngineModule> {
     throw new Error(
       `hakistack image-engine WASM failed to load from "${url}". ` +
         `Make sure image_wasm.js + image_wasm_bg.wasm are served at that URL ` +
-        `(typically by copying node_modules/@hakistack/ng-daisyui/wasm/image/* into your public/ folder), ` +
+        `(the package inlines the engine, so a URL override needs the wasm-bindgen output built with ` +
+        `\`npm run engine:build\` in the ng-daisyui repository, copied into your public/ folder), ` +
         `or remove the override to use the inlined default. ` +
         `Underlying error: ${(e as Error).message}`,
     );

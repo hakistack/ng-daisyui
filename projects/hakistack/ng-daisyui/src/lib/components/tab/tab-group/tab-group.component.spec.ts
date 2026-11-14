@@ -2,10 +2,27 @@ import { Component, viewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TabGroupComponent } from './tab-group.component';
 import { TabPanelComponent } from '../tab-panel/tab-panel.component';
+import { LucideCreditCard, LucideHouse, provideLucideIcons } from '@lucide/angular';
 
 // ---------------------------------------------------------------------------
 // Test host components
 // ---------------------------------------------------------------------------
+
+@Component({
+  selector: 'hk-test-host-registered-icons',
+  imports: [TabGroupComponent, TabPanelComponent],
+  template: `
+    <hk-tab-group>
+      <hk-tab-panel value="a" label="Home" icon="house"><ng-template>A</ng-template></hk-tab-panel>
+      <hk-tab-panel value="b" label="Billing" icon="CreditCard"><ng-template>B</ng-template></hk-tab-panel>
+      <hk-tab-panel value="c" label="Data" [icon]="houseData"><ng-template>C</ng-template></hk-tab-panel>
+      <hk-tab-panel value="d" label="Plain"><ng-template>D</ng-template></hk-tab-panel>
+    </hk-tab-group>
+  `,
+})
+class RegisteredIconTestHostComponent {
+  readonly houseData = LucideHouse.icon;
+}
 
 @Component({
   selector: 'hk-test-host-basic',
@@ -486,7 +503,7 @@ describe('TabGroupComponent', () => {
   // Icons
   // -------------------------------------------------------------------------
   describe('tabs with icons', () => {
-    it('should render tabs without icon elements (icon rendering removed)', async () => {
+    it('renders nothing (and does not throw) for icon names that are not registered', async () => {
       await TestBed.configureTestingModule({
         imports: [IconTabTestHostComponent],
       }).compileComponents();
@@ -497,6 +514,24 @@ describe('TabGroupComponent', () => {
 
       const icons = fixture.nativeElement.querySelectorAll('svg[lucideIcon], svg[data-lucide]');
       expect(icons.length).toBe(0);
+    });
+  });
+
+  describe('registered tab icons', () => {
+    it('renders kebab-case names, PascalCase names and icon data before the label (aria-hidden)', async () => {
+      await TestBed.configureTestingModule({
+        imports: [RegisteredIconTestHostComponent],
+        providers: [provideLucideIcons(LucideHouse, LucideCreditCard)],
+      }).compileComponents();
+
+      const fixture = TestBed.createComponent(RegisteredIconTestHostComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const tabs = Array.from(fixture.nativeElement.querySelectorAll('[role="tab"]')) as HTMLElement[];
+      expect(tabs.slice(0, 3).every((tab) => !!tab.querySelector('svg[aria-hidden="true"]'))).toBe(true);
+      expect(tabs[3].querySelector('svg')).toBeNull();
+      expect(tabs[1].textContent?.trim()).toBe('Billing');
     });
   });
 

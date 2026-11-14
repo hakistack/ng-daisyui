@@ -8,7 +8,7 @@ const content: ComponentDocContent = {
     },
     {
       en: 'Render `<hk-notification-host />` once in a layout that never goes away (usually the app root). Then inject `NotificationService` anywhere and call `show()`, `success()`, `info()`, `warning()` or `error()`. Each call returns a `NotificationRef` you can use to update the text later, close it, or react when it closes.',
-      es: 'Coloca `<hk-notification-host />` una sola vez en un layout que nunca desaparezca (normalmente la raíz de la app). Luego inyecta `NotificationService` donde quieras y llama `show()`, `success()`, `info()`, `warning()` o `error()`. Cada llamada devuelve un `NotificationRef` para actualizar el texto después, cerrarla o reaccionar cuando se cierre.',
+      es: 'Coloca `<hk-notification-host />` una sola vez en un layout que nunca desaparezca (normalmente la raíz de la app). Luego inyecta `NotificationService` donde quieras y llama a `show()`, `success()`, `info()`, `warning()` o `error()`. Cada llamada devuelve un `NotificationRef` para actualizar el texto después, cerrarla o reaccionar cuando se cierre.',
     },
   ],
   whenToUse: [
@@ -87,14 +87,14 @@ export class AppComponent {
           kind: 'p',
           text: {
             en: '`NotificationService` keeps a signal stack with the newest entry first, exposed read-only as `notifications` (plus `count`). The host iterates it and renders one internal item component per entry, inside a fixed full-screen layer that ignores pointer events except on the panels.',
-            es: '`NotificationService` guarda una pila en una señal con la entrada más nueva primero, expuesta en solo lectura como `notifications` (y `count`). El host la recorre y dibuja un componente interno por entrada, dentro de una capa fija de pantalla completa que ignora el puntero salvo en los paneles.',
+            es: '`NotificationService` guarda la pila en un signal, con la entrada más reciente primero, y la expone en solo lectura como `notifications` (además de `count`). El host la recorre y renderiza un componente interno por entrada, dentro de una capa fija de pantalla completa que ignora los eventos del puntero salvo en los paneles.',
           },
         },
         {
           kind: 'p',
           text: {
             en: "The stack is anchored by the global `position` (default `'top-right'`); for bottom positions the column is reversed so the newest panel sits closest to the edge. The per-notification `position` field currently only changes the slide-in direction, not where the panel is placed.",
-            es: "La pila se ancla con la `position` global (por defecto `'top-right'`); en posiciones inferiores la columna se invierte para que el panel más nuevo quede más cerca del borde. El campo `position` de cada notificación hoy solo cambia la dirección de la animación de entrada, no dónde se coloca el panel.",
+            es: "La pila se ancla con la `position` global (por defecto `'top-right'`); en posiciones inferiores la columna se invierte para que el panel más nuevo quede más cerca del borde. El campo `position` de cada notificación por ahora solo cambia la dirección de la animación de entrada, no dónde se coloca el panel.",
           },
         },
         {
@@ -103,7 +103,7 @@ export class AppComponent {
           title: 'app.config.ts',
           code: `providers: [
   provideNotification({ position: 'bottom-right', maxStack: 4, pauseOnHover: true }),
-  provideHkNotificationLabels({ closeAriaLabel: 'Cerrar notificación' }),
+  provideHkNotificationLabels({ closeAriaLabel: 'Cerrar notificación', regionAriaLabel: 'Notificaciones' }),
 ]`,
         },
       ],
@@ -137,6 +137,10 @@ export class AppComponent {
           kind: 'list',
           items: [
             {
+              en: 'The layout is inferred when the notification is shown; `update()` keeps the current layout unless you pass `layout`.',
+              es: 'El diseño se infiere al mostrar la notificación; `update()` conserva el diseño actual salvo que pases `layout`.',
+            },
+            {
               en: 'An explicit `layout` always wins. `avatar` (URL or `TemplateRef`) replaces the severity icon; `iconTemplate` overrides both.',
               es: 'Un `layout` explícito siempre gana. `avatar` (URL o `TemplateRef`) reemplaza el icono de severidad; `iconTemplate` tiene prioridad sobre ambos.',
             },
@@ -146,7 +150,7 @@ export class AppComponent {
             },
             {
               en: "An action's `onClick(ref)` does not close the panel by itself: return `'dismiss'` or call `ref.dismiss()`. This is the opposite of toast actions.",
-              es: "El `onClick(ref)` de una acción no cierra el panel por sí solo: devuelve `'dismiss'` o llama `ref.dismiss()`. Es lo contrario de las acciones del toast.",
+              es: "El `onClick(ref)` de una acción no cierra el panel por sí solo: devuelve `'dismiss'` o llama a `ref.dismiss()`. Es lo contrario de las acciones del toast.",
             },
             {
               en: '`closable: false` hides the close button; `autoFocus: true` moves focus to the first action when the panel appears.',
@@ -164,14 +168,14 @@ export class AppComponent {
           kind: 'p',
           text: {
             en: 'Without `duration` (or with `0`) a notification is persistent. With a positive `duration` it closes itself; hovering pauses the timer and leaving resumes it with the remaining time. `update()` replaces fields and restarts the timer from the new `duration`.',
-            es: 'Sin `duration` (o con `0`) una notificación es persistente. Con un `duration` positivo se cierra sola; pasar el puntero pausa el temporizador y al salir continúa con el tiempo restante. `update()` reemplaza campos y reinicia el temporizador con el nuevo `duration`.',
+            es: 'Sin `duration` (o con `0`) una notificación es persistente. Con un `duration` positivo se cierra sola; al pasar el puntero se pausa el temporizador y, cuando el puntero sale, continúa con el tiempo restante. `update()` reemplaza campos y reinicia el temporizador con el nuevo `duration`.',
           },
         },
         {
           kind: 'p',
           text: {
             en: 'Dismissal has two stages: the entry is flagged as exiting (exit animation, panel becomes `inert`), then removed 240 ms later, and only then do `onDismiss` callbacks run. The reason is one of `manual`, `action`, `auto`, `overflow` (pushed out by `maxStack`, default 5) or `all` (`dismissAll()`).',
-            es: 'El cierre tiene dos etapas: la entrada se marca como saliendo (animación de salida, el panel queda `inert`) y se quita 240 ms después; solo entonces corren los callbacks de `onDismiss`. El motivo es `manual`, `action`, `auto`, `overflow` (desplazada por `maxStack`, por defecto 5) o `all` (`dismissAll()`).',
+            es: 'El cierre tiene dos etapas: la entrada se marca como en salida (animación de salida, el panel queda `inert`) y se quita 240 ms después; solo entonces se ejecutan los callbacks de `onDismiss`. El motivo es `manual`, `action`, `auto`, `overflow` (expulsada por `maxStack`, por defecto 5) o `all` (`dismissAll()`).',
           },
         },
       ],
@@ -181,14 +185,17 @@ export class AppComponent {
     keyboard: [
       {
         keys: 'Tab / Shift+Tab',
-        action: { en: 'Move between the close button and the action buttons', es: 'Recorre el botón de cerrar y los botones de acción' },
+        action: {
+          en: 'Move between the close button and the action buttons',
+          es: 'Se mueve entre el botón de cerrar y los botones de acción',
+        },
       },
       { keys: 'Enter / Space', action: { en: 'Activate the focused button', es: 'Activa el botón enfocado' } },
     ],
     notes: [
       {
-        en: 'The host is a `region` with `aria-live="assertive"`, and every panel has `role="alert"` with `aria-atomic`, so each new notification interrupts the screen reader. Use them for events that deserve it.',
-        es: 'El host es una `region` con `aria-live="assertive"` y cada panel tiene `role="alert"` con `aria-atomic`, así que cada notificación nueva interrumpe al lector de pantalla. Úsalas para eventos que lo merezcan.',
+        en: 'The host is a single `region` with `aria-live="polite"`, named by the `regionAriaLabel` label (default "Notifications", translatable with `provideHkNotificationLabels`). Panels have no `role="alert"` of their own and each item is `aria-atomic`, so a new notification is read once, after what the screen reader is currently saying, instead of being announced several times.',
+        es: 'El host es una única `region` con `aria-live="polite"`, cuyo nombre viene de la etiqueta `regionAriaLabel` (por defecto "Notifications"; tradúcela con `provideHkNotificationLabels`). Los paneles no tienen `role="alert"` propio y cada elemento es `aria-atomic`, así que una notificación nueva se lee una sola vez, cuando el lector de pantalla termina lo que está diciendo, en lugar de anunciarse varias veces.',
       },
       {
         en: 'Severity is shown with icon and colour only. Make the title carry the meaning ("Upload failed"), not just the colour.',
@@ -200,14 +207,14 @@ export class AppComponent {
       },
       {
         en: 'There is no Escape shortcut, and the timer pauses on mouse hover only. Give actionable notifications no `duration` so keyboard users can reach them. `autoFocus` is off by default to avoid stealing focus.',
-        es: 'No hay atajo con Escape, y el temporizador se pausa solo con el mouse. No pongas `duration` a las notificaciones con acciones para que quien usa teclado pueda alcanzarlas. `autoFocus` viene apagado para no robar el foco.',
+        es: 'No hay atajo con Escape, y el temporizador se pausa solo con el mouse. No pongas `duration` a las notificaciones con acciones, para que quien usa el teclado pueda alcanzarlas. `autoFocus` está desactivado por defecto para no robar el foco.',
       },
     ],
   },
   performance: [
     {
       en: 'A single host renders the whole stack from one signal, tracked by id with OnPush change detection.',
-      es: 'Un solo host dibuja toda la pila desde una señal, con seguimiento por id y detección de cambios OnPush.',
+      es: 'Un solo host renderiza toda la pila a partir de un signal, con seguimiento por id y detección de cambios OnPush.',
     },
     {
       en: 'Each panel owns its own timer, cleared when it closes or is destroyed. `maxStack` caps how many panels exist at once.',

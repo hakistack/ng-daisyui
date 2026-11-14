@@ -52,7 +52,10 @@ export class MotionAnimateDirective implements OnInit, OnDestroy, OnChanges {
    * keyframes object (e.g. `{ opacity: [0, 1], y: [20, 0] }`).
    * Default: `'fadeIn'`.
    */
-  readonly hkAnimate = input<AnimationPreset | Record<string, unknown>>('fadeIn');
+  // Accepts the bare attribute (`<div hkAnimate>`), which Angular passes as '' → default preset.
+  readonly hkAnimate = input<AnimationPreset | Record<string, unknown>, AnimationPreset | Record<string, unknown> | ''>('fadeIn', {
+    transform: (value) => (value === '' ? 'fadeIn' : value),
+  });
   /**
    * Trigger, timing, easing, scroll thresholds, and optional child stagger.
    * See `MotionDirectiveOptions` for the full shape.

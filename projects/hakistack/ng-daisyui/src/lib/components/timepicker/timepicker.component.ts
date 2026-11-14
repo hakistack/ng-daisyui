@@ -43,6 +43,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   private readonly hourSegmentRef = viewChild<ElementRef<HTMLInputElement>>('hourSegment');
   private readonly minuteSegmentRef = viewChild<ElementRef<HTMLInputElement>>('minuteSegment');
   private readonly secondSegmentRef = viewChild<ElementRef<HTMLInputElement>>('secondSegment');
+  private readonly panelEl = viewChild<ElementRef<HTMLElement>>('tpPanel');
 
   private readonly overlay = inject(Overlay);
   /** Keep the panel pinned to the field as the page scrolls. */
@@ -120,10 +121,21 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
 
   readonly isDisabled = computed(() => this.disabled() || this.isFormDisabled());
 
+  /**
+   * Id for the inner `<input>`. Set it when a `<label for="…">` (or `aria-labelledby`) names this
+   * control: the label then provides the accessible name instead of the placeholder.
+   */
+  readonly controlId = input<string>('');
+
   readonly inputId = computed(() => {
+    const explicit = this.controlId();
+    if (explicit) return explicit;
     const name = this.name() || this.formControlName();
     return name ? `timepicker-${name}-${this.instanceId}` : `timepicker-${this.instanceId}`;
   });
+
+  /** Placeholder is only used as the accessible name when no external label targets the input. */
+  readonly inputAriaLabel = computed(() => (this.controlId() ? null : this.placeholder() || null));
 
   readonly hasSelection = computed(() => {
     return this.selectedHour() !== null && this.selectedMinute() !== null;
@@ -466,10 +478,26 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
 
   closePicker(): void {
     if (this.isOpen()) {
+      // Return focus to the field when it was inside the panel (Escape, Close, selection),
+      // so keyboard users don't land on <body>.
+      const panelHadFocus = !!this.panelEl()?.nativeElement.contains(document.activeElement);
       this.isOpen.set(false);
       this.pickerClosed.emit();
       this.removeDocumentListeners();
       this.markAsTouched();
+      if (panelHadFocus) this.timeInputRef()?.nativeElement.focus();
+    }
+  }
+
+  /** True when the clock value in the current view is outside `minTime` / `maxTime`. */
+  isClockValueDisabled(value: number): boolean {
+    switch (this.currentView()) {
+      case 'hours':
+        return this.isHourDisabled(value);
+      case 'minutes':
+        return this.isMinuteDisabled(value);
+      default:
+        return this.isSecondDisabled(value);
     }
   }
 
@@ -902,7 +930,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   selectHour(hour: number): void {
-    if (this.isDisabled()) return;
+    if (this.isDisabled() || this.isHourDisabled(hour)) return;
 
     if (!this.use24Hour()) {
       const p = this.period();
@@ -922,7 +950,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   selectMinute(minute: number): void {
-    if (this.isDisabled()) return;
+    if (this.isDisabled() || this.isMinuteDisabled(minute)) return;
     this.selectedMinute.set(minute);
 
     if (this.showSeconds() && this.clockFace()) {
@@ -936,7 +964,7 @@ export class TimepickerComponent implements ControlValueAccessor, Validator, OnD
   }
 
   selectSecond(second: number): void {
-    if (this.isDisabled()) return;
+    if (this.isDisabled() || this.isSecondDisabled(second)) return;
     this.selectedSecond.set(second);
     this.emitIfComplete();
 
