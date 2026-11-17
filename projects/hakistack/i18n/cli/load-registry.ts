@@ -25,6 +25,13 @@ export function keysPath(config: I18nCliConfig): string {
   return path.join(config.definitionsDir, 'keys.generated.ts');
 }
 
+/**
+ * Fresh module graph on every load: the translations change between runs of a
+ * long-lived process (watch mode, tests), and a cached import would serve the
+ * previous registry.
+ */
+const importFresh = (file: string) => createJiti(__filename, { moduleCache: false }).import(file);
+
 function ensureExists(file: string, hint: string): void {
   if (!fs.existsSync(file)) {
     throw new Error(`i18n: expected generated file not found:\n  ${file}\n${hint}`);
@@ -35,8 +42,7 @@ function ensureExists(file: string, hint: string): void {
 export async function loadRegistry(config: I18nCliConfig): Promise<readonly TranslationModule[]> {
   const file = barrelPath(config);
   ensureExists(file, 'Run the `scan` command first (`hakistack-i18n scan`).');
-  const jiti = createJiti(__filename);
-  const mod = (await jiti.import(file)) as { ALL_TRANSLATIONS?: readonly TranslationModule[] };
+  const mod = (await importFresh(file)) as { ALL_TRANSLATIONS?: readonly TranslationModule[] };
   if (!mod.ALL_TRANSLATIONS) {
     throw new Error(`i18n: '${file}' does not export ALL_TRANSLATIONS. Re-run the scan.`);
   }
@@ -47,8 +53,7 @@ export async function loadRegistry(config: I18nCliConfig): Promise<readonly Tran
 export async function loadKeys(config: I18nCliConfig): Promise<Record<string, unknown>> {
   const file = keysPath(config);
   ensureExists(file, 'Run the `scan` command first (`hakistack-i18n scan`).');
-  const jiti = createJiti(__filename);
-  const mod = (await jiti.import(file)) as { TK?: Record<string, unknown> };
+  const mod = (await importFresh(file)) as { TK?: Record<string, unknown> };
   if (!mod.TK) {
     throw new Error(`i18n: '${file}' does not export TK. Re-run the scan.`);
   }

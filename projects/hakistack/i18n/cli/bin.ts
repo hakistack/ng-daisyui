@@ -2,11 +2,12 @@
  * `hakistack-i18n` CLI entry.
  *
  * Subcommands:
+ *   check         scan + validate + generate (stops at the first failure).
  *   scan          Discover *.i18n.ts and emit the barrel, TK literal, directive.
  *   generate      Write JSON translation files.
  *   validate      Gate on missing/placeholder-mismatched translations.
  *   find-unused   Report defined keys with no references.
- *   watch         Re-run scan on *.i18n.ts changes (for `ng serve`).
+ *   watch         Re-run scan + validate + generate on *.i18n.ts changes (for `ng serve`).
  *
  * Flags (all optional — override i18n.config.* / defaults):
  *   --config <path>        Explicit config file.
@@ -17,10 +18,12 @@
  *   --list                 (scan) list modules without emitting.
  *   --strict               (find-unused) exit 1 if unused keys exist.
  *   --verbose              (find-unused) print reference locations.
+ *   --quiet                (check) print changes and errors only.
  */
 
 import * as path from 'path';
 
+import { runCheck } from './check';
 import { I18nUserConfig, loadConfig } from './config';
 import { runFindUnused } from './find-unused';
 import { runGenerate } from './generate';
@@ -69,11 +72,12 @@ const HELP = `hakistack-i18n — type-safe i18n codegen
 Usage: hakistack-i18n <command> [flags]
 
 Commands:
+  check         scan + validate + generate — the everyday command (prebuild, CI)
   scan          Discover *.i18n.ts and emit barrel + TK literal + typed directive
   generate      Write JSON translation files
   validate      Gate on missing / placeholder-mismatched translations
   find-unused   Report defined keys with no references
-  watch         Re-run scan on *.i18n.ts changes
+  watch         Re-run scan + validate + generate on *.i18n.ts changes
 
 Flags:
   --config <path>        Explicit config file
@@ -84,6 +88,7 @@ Flags:
   --list                 (scan) list modules without emitting
   --strict               (find-unused) exit 1 if unused keys exist
   --verbose              (find-unused) print reference locations
+  --quiet                (check) print changes and errors only
 `;
 
 async function main(): Promise<void> {
@@ -103,6 +108,9 @@ async function main(): Promise<void> {
   const config = await loadConfig(process.cwd(), overrides);
 
   switch (command) {
+    case 'check':
+      await runCheck(config, { quiet: flags['quiet'] === true });
+      break;
     case 'scan':
       runScan(config, { listOnly: flags['list'] === true });
       break;

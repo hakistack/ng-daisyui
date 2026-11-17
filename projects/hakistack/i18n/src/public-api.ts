@@ -24,7 +24,9 @@ export {
   buildScopedTree,
   defineTranslations,
   extractLanguage,
+  findKeyConflicts,
   getTranslation,
+  mergeKeys,
   isTranslationValue,
   normalizeScope,
   scopeToFilesystemPath,
@@ -35,9 +37,14 @@ export {
 } from '@hakistack/i18n/engine';
 export type {
   AuthoredTranslationNode,
+  I18nKey,
+  KeyParams,
+  ParamsOf,
   I18nLocales,
+  KeyConflict,
   Language,
   LanguageTree,
+  LanguageTreeOptions,
   LocaleId,
   OtherLocales,
   SourceLang,
@@ -52,7 +59,10 @@ export { provideI18n } from './lib/runtime/provide-i18n';
 export type {
   I18nConfig,
   I18nLanguageOption,
+  I18nLanguagePersistence,
   I18nLoaderStrategy,
+  I18nTranslationLoader,
+  I18nTranslationLoaders,
   MissingKeyDevBehavior,
   ResolvedI18nRuntimeConfig,
 } from './lib/runtime/config';
@@ -61,11 +71,13 @@ export { I18N_KEYS, I18N_RUNTIME_CONFIG } from './lib/runtime/tokens';
 // Loaders / hooks — exported for custom wiring or one-line loader swaps.
 export { TranslocoRegistryLoader } from './lib/runtime/registry-loader';
 export { TranslocoHttpLoader } from './lib/runtime/http-loader';
+export { TranslocoLazyLoader } from './lib/runtime/lazy-loader';
 export { TranslocoCommentInterceptor } from './lib/runtime/comment-interceptor';
 export { TranslocoVisibleMissingHandler } from './lib/runtime/missing-handler';
 
-// Active-language service (localStorage persistence + <html lang> sync).
+// Active-language service (language / locale / dir signals, persistence, <html lang|dir> sync).
 export { LanguageService } from './lib/runtime/language.service';
+export { negotiateLanguage, parseAcceptLanguage, textDirection } from './lib/runtime/locale';
 
 // ============================================================================
 // Template directive (base + context types — codegen emits the typed wrapper)
@@ -74,7 +86,9 @@ export { TranslateDirectiveBase } from './lib/runtime/translate.directive';
 export type { TranslateContext, TranslatedKeys, TranslateFn } from './lib/runtime/translate.directive';
 
 // ============================================================================
-// Transloco signal API — re-exported so consumers don't reach into
-// '@jsverse/transloco' directly.
+// Signal API — `translateSignal` is Transloco's with key params type-checked;
+// `translateObjectSignal` is re-exported as is.
 // ============================================================================
-export { translateSignal, translateObjectSignal } from '@jsverse/transloco';
+export { translateSignal } from './lib/runtime/translate-signal';
+export type { TranslateSignalArgs } from './lib/runtime/translate-signal';
+export { translateObjectSignal } from '@jsverse/transloco';

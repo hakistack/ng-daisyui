@@ -13,6 +13,8 @@
  * autocomplete on exactly the locales the project supports.
  */
 
+import { mergeInto, nestAtScope } from './merge';
+
 // =============================================================================
 // Locale configuration (consumer-augmented)
 // =============================================================================
@@ -150,14 +152,14 @@ type TranslationNode = TranslationValue | { [key: string]: TranslationNode };
 type BuildKeyObject<T, Prefix extends string = ''> = {
   readonly [K in keyof T]: K extends string
     ? T[K] extends TranslationValue | string
-      ? Prefix extends ''
-        ? K
-        : `${Prefix}.${K}`
+      ? Join<Prefix, K>
       : T[K] extends Record<string, unknown>
-        ? BuildKeyObject<T[K], Prefix extends '' ? K : `${Prefix}.${K}`>
+        ? BuildKeyObject<T[K], Join<Prefix, K>>
         : never
     : never;
 };
+
+type Join<Prefix extends string, K extends string> = Prefix extends '' ? K : `${Prefix}.${K}`;
 
 /**
  * Translation module returned by {@link defineTranslations}.
@@ -165,13 +167,16 @@ type BuildKeyObject<T, Prefix extends string = ''> = {
  * `translations` stores the normalized form (every bare string promoted to
  * `{ en: value }`); `keys` is the type-derived companion of dot-paths.
  */
-export interface TranslationModule<T extends Record<string, AuthoredTranslationNode> = Record<string, AuthoredTranslationNode>> {
+export interface TranslationModule<
+  T extends Record<string, AuthoredTranslationNode> = Record<string, AuthoredTranslationNode>,
+  S extends string = string,
+> {
   /** Scope/prefix for these translations (e.g. `'common'`, `'administration.users'`). */
-  scope: string;
+  scope: S;
   /** Normalized translation definitions (strings promoted to `{ en: value }`). */
   translations: T;
-  /** Auto-generated keys object for type-safe usage. */
-  keys: BuildKeyObject<T>;
+  /** Auto-generated keys object for type-safe usage (full keys, scope included: `'common.buttons.save'`). */
+  keys: BuildKeyObject<T, S>;
   /**
    * If `true`, the generator emits this module's data to a subdirectory matching
    * its scope path (`administration.users` → `administration/users/<lang>.json`)
@@ -199,13 +204,13 @@ export interface TranslationModule<T extends Record<string, AuthoredTranslationN
  * });
  * // COMMON.keys.buttons.save === 'common.buttons.save'
  */
-export function defineTranslations<T extends Record<string, AuthoredTranslationNode>>(
-  scope: string,
+export function defineTranslations<T extends Record<string, AuthoredTranslationNode>, const S extends string = string>(
+  scope: S,
   translations: T,
   options?: { scoped?: boolean },
-): TranslationModule<T> {
+): TranslationModule<T, S> {
   const normalized = normalizeTree(translations) as Record<string, TranslationNode>;
-  const keys = buildKeys(normalized, scope) as BuildKeyObject<T>;
+  const keys = buildKeys(normalized, scope) as BuildKeyObject<T, S>;
   return {
     scope,
     translations: normalized as unknown as T,
@@ -265,50 +270,69 @@ export function isTranslationValue(value: unknown): value is TranslationValue {
  * module's `keys` object at its scope path and deep-merging.
  *
  * This is the **runtime** value used by the directive (via the `I18N_KEYS`
- * token) — it produces the exact nested shape the scanner emits as the typed
- * `TK` literal. The scanner emits a concrete literal for *compile-time*
- * autocomplete; this function produces the identical structure at runtime, so
- * the two never diverge.
- *
- * Modules sharing a scope are merged (the scanner emits the same spread for the
- * `TK` literal). Throws on scalar/scope conflicts.
+ * token). It uses the same deep merge as the scanner-emitted `TK` literal
+ * (`mergeKeys`) and the language trees, so all three agree on which keys exist.
+ * Throws when a key is defined twice or is both a translation and a group.
  */
 export function buildKeysTree(modules: readonly TranslationModule[]): Record<string, unknown> {
   const tree: Record<string, unknown> = {};
-
-  // Sort by scope depth so parent scopes are placed before children — guarantees
-  // a deeper scope descends through an already-copied parent slot.
-  const sorted = [...modules].sort((a, b) => a.scope.split('.').length - b.scope.split('.').length);
-
-  for (const mod of sorted) {
-    placeAtScope(tree, mod.scope, mod.keys);
+  for (const mod of modules) {
+    mergeInto(tree, nestAtScope(mod.scope, mod.keys as Record<string, unknown>), '', true);
   }
   return tree;
 }
 
-function placeAtScope(tree: Record<string, unknown>, scope: string, keys: unknown): void {
-  const path = scope.split('.');
-  let current = tree;
+// =============================================================================
+// Key conflicts (reported by the CLI before anything is generated)
+// =============================================================================
 
-  for (let i = 0; i < path.length - 1; i++) {
-    const part = path[i];
-    const slot = current[part];
-    if (slot === undefined) {
-      current[part] = {};
-    } else if (typeof slot !== 'object' || slot === null) {
-      throw new Error(`i18n: scope conflict at '${path.slice(0, i + 1).join('.')}': scalar where nested scope expected`);
+/** A key defined by more than one module, or used both as a translation and as a group. */
+export interface KeyConflict {
+  /** Full dotted key, e.g. `'common.buttons.save'`. */
+  key: string;
+  kind: 'duplicate' | 'translation-and-group';
+  /** Scopes of the modules involved (one entry per contributing module). */
+  scopes: string[];
+}
+
+/**
+ * Find every key collision across the registry, including the ones a deep
+ * merge cannot see: a dotted key name (`'a.b'`) colliding with a nested group
+ * (`a: { b }`) produces the same Transloco key.
+ */
+export function findKeyConflicts(modules: readonly TranslationModule[]): KeyConflict[] {
+  const leaves: { key: string; scope: string }[] = [];
+  const walk = (node: Record<string, unknown>, prefix: string, scope: string): void => {
+    for (const [key, value] of Object.entries(node)) {
+      const full = `${prefix}.${key}`;
+      if (isTranslationValue(value)) leaves.push({ key: full, scope });
+      else if (typeof value === 'object' && value !== null) walk(value as Record<string, unknown>, full, scope);
     }
-    current = current[part] as Record<string, unknown>;
+  };
+  for (const mod of modules) walk(mod.translations as Record<string, unknown>, mod.scope, mod.scope);
+  return conflictsFromLeaves(leaves);
+}
+
+/**
+ * Conflict detection over a flat list of full keys (one entry per definition).
+ * Shared by {@link findKeyConflicts} (runtime registry) and the CLI scanner
+ * (keys read statically from source).
+ */
+export function conflictsFromLeaves(leaves: Iterable<{ key: string; scope: string }>): KeyConflict[] {
+  const byKey = new Map<string, string[]>();
+  const groups = new Map<string, string[]>();
+  const add = (map: Map<string, string[]>, key: string, scope: string) => map.set(key, [...(map.get(key) ?? []), scope]);
+  for (const { key, scope } of leaves) {
+    add(byKey, key, scope);
+    const parts = key.split('.');
+    for (let i = 1; i < parts.length; i++) add(groups, parts.slice(0, i).join('.'), scope);
   }
 
-  const leaf = path[path.length - 1];
-  const existing = current[leaf];
-
-  if (existing === undefined) {
-    current[leaf] = { ...(keys as object) };
-  } else if (typeof existing === 'object' && existing !== null) {
-    current[leaf] = { ...(keys as object), ...(existing as object) };
-  } else {
-    throw new Error(`i18n: scope conflict at '${scope}': scalar where nested scope expected`);
+  const conflicts: KeyConflict[] = [];
+  for (const [key, scopes] of byKey) {
+    if (scopes.length > 1) conflicts.push({ key, kind: 'duplicate', scopes });
+    const groupScopes = groups.get(key);
+    if (groupScopes) conflicts.push({ key, kind: 'translation-and-group', scopes: [...new Set([...scopes, ...groupScopes])] });
   }
+  return conflicts.sort((a, b) => a.key.localeCompare(b.key));
 }

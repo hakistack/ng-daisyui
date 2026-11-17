@@ -16,10 +16,21 @@
  */
 
 import { AuthoredTranslationNode, isTranslationValue, TranslationModule, TranslationValue } from './define-translations';
+import { mergeInto, nestAtScope } from './merge';
 
 /** A nested string-tree as Transloco / the JSON files consume it. */
 export interface LanguageTree {
   [key: string]: string | LanguageTree;
+}
+
+/** Options for building string trees from the registry. */
+export interface LanguageTreeOptions {
+  /**
+   * Emit translator comments as `<key>.comment` siblings. Default `true` (the
+   * translator-facing JSON). The runtime registry loader passes `false` so
+   * comments never reach Transloco's store.
+   */
+  comments?: boolean;
 }
 
 /**
@@ -39,51 +50,41 @@ export function getTranslation(value: TranslationValue, lang: string, defaultLan
  * Walk a normalized translation subtree (all leaves are `TranslationValue`s) and
  * emit a string-only tree for the given language.
  *
- * If a leaf carries a `__comment` (set via `t(en, others, { comment })`), a
- * sibling entry `<key>.comment` is added at the same level. Translators see it;
- * the runtime interceptor strips it before it reaches the store.
+ * If a leaf carries a `__comment` (set via `t(en, others, { comment })`) and
+ * `options.comments` is not `false`, a sibling entry `<key>.comment` is added at
+ * the same level for translators.
  */
-export function extractLanguage(translations: Record<string, unknown>, lang: string, defaultLang: string): LanguageTree {
+export function extractLanguage(
+  translations: Record<string, unknown>,
+  lang: string,
+  defaultLang: string,
+  options: LanguageTreeOptions = {},
+): LanguageTree {
+  const comments = options.comments ?? true;
   const result: LanguageTree = {};
   for (const [key, value] of Object.entries(translations)) {
     if (isTranslationValue(value)) {
       result[key] = getTranslation(value, lang, defaultLang);
-      if (value.__comment) {
+      if (comments && value.__comment) {
         result[`${key}.comment`] = value.__comment;
       }
     } else if (typeof value === 'object' && value !== null) {
-      result[key] = extractLanguage(value as Record<string, unknown>, lang, defaultLang);
+      result[key] = extractLanguage(value as Record<string, unknown>, lang, defaultLang, options);
     }
   }
   return result;
 }
 
 /**
- * Place a subtree at a dot-delimited scope path in the target tree, creating
- * intermediate objects as needed. If the path already holds an object, the new
- * subtree's leaves are merged into it.
+ * Deep-merge a subtree into the target at a dot-delimited scope path, creating
+ * intermediate objects as needed. Throws when a key would be defined twice or
+ * when a translation and a group collide (see `mergeInto`).
  */
 export function setAtScope(target: LanguageTree, scope: string, subtree: LanguageTree): void {
-  const parts = scope.split('.');
-  let current: LanguageTree = target;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    const slot = current[part];
-    if (slot === undefined || typeof slot === 'string') {
-      current[part] = {};
-    }
-    current = current[part] as LanguageTree;
-  }
-
-  const leaf = parts[parts.length - 1];
-  const existing = current[leaf];
-  if (existing && typeof existing === 'object') {
-    Object.assign(existing, subtree);
-  } else {
-    current[leaf] = subtree;
-  }
+  mergeInto(target, nestAtScope(scope, subtree));
 }
+
+type Registry = readonly TranslationModule<Record<string, AuthoredTranslationNode>>[];
 
 /**
  * Build the complete translation tree for a single language from the registry.
@@ -91,15 +92,10 @@ export function setAtScope(target: LanguageTree, scope: string, subtree: Languag
  * and fallbacks — so a consumer cannot tell whether the data came from the
  * registry or from disk.
  */
-export function buildLanguageTree(
-  registry: readonly TranslationModule<Record<string, AuthoredTranslationNode>>[],
-  lang: string,
-  defaultLang: string,
-): LanguageTree {
+export function buildLanguageTree(registry: Registry, lang: string, defaultLang: string, options?: LanguageTreeOptions): LanguageTree {
   const tree: LanguageTree = {};
   for (const mod of registry) {
-    const subtree = extractLanguage(mod.translations, lang, defaultLang);
-    setAtScope(tree, mod.scope, subtree);
+    setAtScope(tree, mod.scope, extractLanguage(mod.translations, lang, defaultLang, options));
   }
   return tree;
 }
@@ -108,43 +104,39 @@ export function buildLanguageTree(
  * Build the eager (root) tree — only modules declared without `{ scoped: true }`.
  * Used by the generator when route-level scope providers are adopted.
  */
-export function buildEagerTree(
-  registry: readonly TranslationModule<Record<string, AuthoredTranslationNode>>[],
-  lang: string,
-  defaultLang: string,
-): LanguageTree {
-  const tree: LanguageTree = {};
-  for (const mod of registry) {
-    if (mod.scoped) continue;
-    const subtree = extractLanguage(mod.translations, lang, defaultLang);
-    setAtScope(tree, mod.scope, subtree);
-  }
-  return tree;
+export function buildEagerTree(registry: Registry, lang: string, defaultLang: string, options?: LanguageTreeOptions): LanguageTree {
+  return buildLanguageTree(
+    registry.filter((mod) => !mod.scoped),
+    lang,
+    defaultLang,
+    options,
+  );
 }
 
 /**
- * Build the per-scope tree for a single scoped module — returned unwrapped
- * (no scope key around it), matching the layout `provideTranslocoScope` expects
- * to load from `<scope-with-slashes>/<lang>.json`.
+ * Build the per-scope tree for a scope — returned unwrapped (no scope key
+ * around it), matching the layout `provideTranslocoScope` expects to load from
+ * `<scope-with-slashes>/<lang>.json`. Every scoped module declaring that scope
+ * is merged in.
  *
  * `scope` may be given in dotted (`administration.users`) or slash form
  * (`administration/users` — what Transloco hands a loader); both match.
  *
- * Returns `null` if no module with the given scope exists, or if it's eager.
+ * Returns `null` if no scoped module declares the scope.
  */
 export function buildScopedTree(
-  registry: readonly TranslationModule<Record<string, AuthoredTranslationNode>>[],
+  registry: Registry,
   lang: string,
   defaultLang: string,
   scope: string,
+  options?: LanguageTreeOptions,
 ): LanguageTree | null {
   const wanted = normalizeScope(scope);
-  for (const mod of registry) {
-    if (mod.scoped && normalizeScope(mod.scope) === wanted) {
-      return extractLanguage(mod.translations, lang, defaultLang);
-    }
-  }
-  return null;
+  const modules = registry.filter((mod) => mod.scoped && normalizeScope(mod.scope) === wanted);
+  if (modules.length === 0) return null;
+  const tree: LanguageTree = {};
+  for (const mod of modules) mergeInto(tree, extractLanguage(mod.translations, lang, defaultLang, options), wanted);
+  return tree;
 }
 
 /**

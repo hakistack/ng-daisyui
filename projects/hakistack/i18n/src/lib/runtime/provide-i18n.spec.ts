@@ -3,6 +3,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 
 import { defineTranslations, t } from '../../../engine/define-translations';
+import { stripCommentKeys } from './comment-interceptor';
 import { provideI18n } from './provide-i18n';
 import { I18N_KEYS } from './tokens';
 
@@ -12,6 +13,10 @@ const APP = defineTranslations('app', {
   greeting: t('Hi', { es: 'Hola' }, { comment: 'greeting context for translators' }),
   nested: {
     deep: t('Deep', { es: 'Profundo' }),
+  },
+  // A real key whose last segment is `comment` — must survive comment stripping.
+  post: {
+    comment: t('Comment', { es: 'Comentario' }),
   },
 });
 
@@ -68,6 +73,34 @@ describe('provideI18n runtime wiring', () => {
     // …but the `.comment` sibling must never be retrievable.
     const comment = transloco.translate('app.greeting.comment');
     expect(comment).not.toBe('greeting context for translators');
+  });
+
+  // Regression: the interceptor dropped every flattened key ending in `.comment`.
+  it('keeps real keys named `comment`', async () => {
+    const transloco = setup();
+    await activate(transloco, 'es');
+    expect(transloco.translate('app.post.comment')).toBe('Comentario');
+  });
+
+  it('strips only comment siblings from flattened JSON (the HTTP loader path)', () => {
+    expect(
+      stripCommentKeys({
+        'app.greeting': 'Hi',
+        'app.greeting.comment': 'for translators',
+        'app.post.comment': 'Comment',
+      }),
+    ).toEqual({ 'app.greeting': 'Hi', 'app.post.comment': 'Comment' });
+  });
+
+  // Regression: providing a missing handler replaced Transloco's default one,
+  // so missing keys were never logged.
+  it('warns once per missing key in dev', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const transloco = setup();
+    transloco.translate('app.nope');
+    transloco.translate('app.nope');
+    expect(warn.mock.calls.filter(([msg]) => String(msg).includes(`'app.nope'`))).toHaveLength(1);
+    warn.mockRestore();
   });
 
   it('surfaces missing keys via the visible missing handler in dev', () => {

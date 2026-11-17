@@ -5,6 +5,9 @@ import { of } from 'rxjs';
 import { buildLanguageTree, buildScopedTree } from '@hakistack/i18n/engine';
 import { I18N_RUNTIME_CONFIG } from './tokens';
 
+/** Translator comments are for the JSON files only; the runtime store never needs them. */
+const NO_COMMENTS = { comments: false };
+
 /**
  * Translation loader backed by the in-memory module registry.
  *
@@ -31,7 +34,7 @@ export class TranslocoRegistryLoader implements TranslocoLoader {
     if (slashIdx === -1) {
       // No scope provider in play — return the full tree (eager + every scoped
       // module merged at its scope path).
-      return of(buildLanguageTree(this.config.registry, input, this.config.fallbackLang) as Translation);
+      return of(buildLanguageTree(this.config.registry, input, this.config.fallbackLang, NO_COMMENTS) as Translation);
     }
 
     // Scoped request — return ONLY that scope's data, unwrapped (Transloco
@@ -40,7 +43,7 @@ export class TranslocoRegistryLoader implements TranslocoLoader {
     // normalizes it against the registry's dotted scopes.
     const scope = input.substring(0, slashIdx);
     const lang = input.substring(slashIdx + 1);
-    const tree = buildScopedTree(this.config.registry, lang, this.config.fallbackLang, scope);
+    const tree = buildScopedTree(this.config.registry, lang, this.config.fallbackLang, scope, NO_COMMENTS);
     return of((tree ?? {}) as Translation);
   }
 }

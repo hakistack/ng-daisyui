@@ -30,7 +30,7 @@
     "skipSample": {
       "type": "boolean",
       "default": false,
-      "description": "Skip creating the sample *.i18n.ts module and locale .d.ts."
+      "description": "Skip creating the sample *.i18n.ts module."
     }
   },
   "required": []

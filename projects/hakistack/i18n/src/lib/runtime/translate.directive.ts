@@ -1,6 +1,9 @@
-import { Directive, EmbeddedViewRef, effect, inject, TemplateRef, untracked, ViewContainerRef } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Directive, EmbeddedViewRef, inject, TemplateRef, ViewContainerRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoService } from '@jsverse/transloco';
+import { catchError, map, of, switchMap } from 'rxjs';
+
+import type { KeyParams } from '@hakistack/i18n/engine';
 
 import { I18N_KEYS } from './tokens';
 
@@ -8,23 +11,33 @@ import { I18N_KEYS } from './tokens';
 // Type Definitions
 // =============================================================================
 
-/** A translation key string transformed into a callable translate function. */
-export interface TranslateFn {
-  /** Get the translated string. */
-  (): string;
-  /** Get the translated string with interpolation params. */
-  (params: Record<string, unknown>): string;
+/**
+ * A translation key turned into a callable translate function. Keys whose
+ * source text has `{{…}}` placeholders (`P`) require exactly those params.
+ */
+export type TranslateFn<P extends string = never> = ([P] extends [never]
+  ? {
+      /** Get the translated string. */
+      (): string;
+      /** Get the translated string with interpolation params. */
+      (params: Record<string, unknown>): string;
+    }
+  : (params: { [N in P]: unknown }) => string) & {
   /** The raw translation key (dev only, for debugging). */
   readonly key: string;
-}
+};
 
 /**
  * Recursively transforms a keys object (`TK`) shape:
- *   - string leaves become {@link TranslateFn}
+ *   - string leaves become {@link TranslateFn} (typed with the key's params)
  *   - nested objects remain nested with transformed children
  */
 export type TranslatedKeys<T> = {
-  readonly [K in keyof T]: T[K] extends string ? TranslateFn : T[K] extends Record<string, unknown> ? TranslatedKeys<T[K]> : never;
+  readonly [K in keyof T]: T[K] extends string
+    ? TranslateFn<KeyParams<T[K]>>
+    : T[K] extends Record<string, unknown>
+      ? TranslatedKeys<T[K]>
+      : never;
 };
 
 /**
@@ -81,10 +94,15 @@ export interface TranslateContext<T = Record<string, unknown>> {
  * }
  * ```
  *
- * **Optimizations** (carried over from the original directive):
+ * **Loading:** the directive loads the active language itself (like
+ * Transloco's own `*transloco`), creates its view once that load settles, and
+ * re-renders after every language switch has loaded — no app initializer or
+ * other translation consumer is required.
+ *
+ * **Optimizations:**
  * - JS Proxy for lazy property access (no upfront tree building).
  * - Proxy objects cached via WeakMap; translate fns cached per key via Map.
- * - Signal-driven language reactivity (`toSignal` + `effect`), CD only on change.
+ * - One `markForCheck` per language change; no work in between.
  */
 @Directive()
 export class TranslateDirectiveBase {
@@ -95,16 +113,10 @@ export class TranslateDirectiveBase {
 
   private viewRef: EmbeddedViewRef<TranslateContext> | null = null;
 
-  /** Tracks the current language (auto-updates on language change). */
-  private readonly currentLang = toSignal(this.transloco.langChanges$, {
-    initialValue: this.transloco.getActiveLang(),
-  });
-
   private readonly proxyCache = new WeakMap<object, unknown>();
   private readonly translateFnCache = new Map<string, TranslateFn>();
 
   private readonly isDev = typeof ngDevMode !== 'undefined' && !!ngDevMode;
-  private readonly warnedKeys = this.isDev ? new Set<string>() : null;
 
   /**
    * Optional prefix prepended to every key (for scoped translations).
@@ -123,8 +135,18 @@ export class TranslateDirectiveBase {
   }
 
   constructor() {
-    this.createView();
-    this.setupLangChangeEffect();
+    this.transloco.langChanges$
+      .pipe(
+        // A failed load still renders: Transloco's fallback / missing handler take over.
+        switchMap((lang) =>
+          this.transloco.load(lang).pipe(
+            map(() => lang),
+            catchError(() => of(lang)),
+          ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((lang) => this.render(lang));
   }
 
   private createLazyTranslationProxy(keysObject: Record<string, unknown>): TranslatedKeys<unknown> {
@@ -142,14 +164,8 @@ export class TranslateDirectiveBase {
             const cachedFn = this.translateFnCache.get(fullKey);
             if (cachedFn) return cachedFn;
 
-            const translateFn = ((params?: Record<string, unknown>) => {
-              const result = this.transloco.translate(fullKey, params);
-              if (this.isDev && result === fullKey && !this.warnedKeys!.has(fullKey)) {
-                console.warn(`[TranslateDirective] Missing translation: "${fullKey}"`);
-                this.warnedKeys!.add(fullKey);
-              }
-              return result;
-            }) as TranslateFn;
+            // Missing keys are reported by the missing handler (dev warning + `[key]`).
+            const translateFn = ((params?: Record<string, unknown>) => this.transloco.translate(fullKey, params)) as unknown as TranslateFn;
 
             if (this.isDev) {
               Object.defineProperty(translateFn, 'key', { value, writable: false, enumerable: false });
@@ -177,27 +193,17 @@ export class TranslateDirectiveBase {
     return createProxy(keysObject) as TranslatedKeys<unknown>;
   }
 
-  private createView(): void {
-    const translationsProxy = this.createLazyTranslationProxy(this.keys);
-
+  private render(lang: string): void {
+    if (this.viewRef) {
+      this.viewRef.context.lang = lang;
+      this.viewRef.markForCheck();
+      return;
+    }
     const context: TranslateContext = {
-      $implicit: translationsProxy as TranslatedKeys<Record<string, unknown>>,
-      lang: this.currentLang(),
+      $implicit: this.createLazyTranslationProxy(this.keys) as TranslatedKeys<Record<string, unknown>>,
+      lang,
       translate: (key: string, params?: Record<string, unknown>) => this.transloco.translate(this.withPrefix(key), params),
     };
-
     this.viewRef = this.viewContainer.createEmbeddedView(this.templateRef, context);
-  }
-
-  private setupLangChangeEffect(): void {
-    effect(() => {
-      const newLang = this.currentLang();
-      untracked(() => {
-        if (this.viewRef) {
-          this.viewRef.context.lang = newLang;
-          this.viewRef.markForCheck();
-        }
-      });
-    });
   }
 }

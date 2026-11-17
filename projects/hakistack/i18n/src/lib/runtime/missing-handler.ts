@@ -11,14 +11,23 @@ import { I18N_RUNTIME_CONFIG } from './tokens';
  * `[scope.key]` in dev so missing-key bugs jump out immediately. In production,
  * behavior is always `''`.
  *
+ * Providing a handler replaces Transloco's default one, which is where the
+ * `missingHandler.logMissingKey` console warning lives — so this handler warns
+ * too (once per key, outside prod mode).
+ *
  * The build-time validator remains the source of truth for *static* keys; this
  * handler catches dynamic / `selectTranslate(varKey)` / typo cases.
  */
 @Injectable()
 export class TranslocoVisibleMissingHandler implements TranslocoMissingHandler {
   private readonly config = inject(I18N_RUNTIME_CONFIG);
+  private readonly warned = new Set<string>();
 
-  handle(key: string, _data: TranslocoMissingHandlerData): string {
+  handle(key: string, data: TranslocoMissingHandlerData): string {
+    if (data.missingHandler?.logMissingKey && !data.prodMode && !this.warned.has(key)) {
+      this.warned.add(key);
+      console.warn(`[@hakistack/i18n] Missing translation for '${key}' (${data.activeLang})`);
+    }
     if (isDevMode() && this.config.missingKeyInDev === 'show') {
       return `[${key}]`;
     }

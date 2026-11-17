@@ -30,7 +30,6 @@ export function ngAdd(options: Schema): Rule {
       addTranslocoDependency(),
       createConfig(setup),
       addNpmScripts(options, setup),
-      createLocaleTypes(options, setup),
       createSampleModule(options, setup),
       addGitignore(setup),
       printNextSteps(setup),
@@ -109,11 +108,12 @@ function addNpmScripts(options: Schema, _setup: ResolvedSetup): Rule {
     set('i18n:scan', 'hakistack-i18n scan');
     set('i18n:generate', 'hakistack-i18n generate');
     set('i18n:validate', 'hakistack-i18n validate');
+    set('i18n:check', 'hakistack-i18n check');
+    set('i18n:watch', 'hakistack-i18n watch');
 
     // Chain codegen before serve/build. Append (don't clobber) existing hooks.
-    mutated = appendToScript(scripts, 'prestart', 'npm run i18n:scan', context) || mutated;
-    mutated =
-      appendToScript(scripts, 'prebuild', 'npm run i18n:scan && npm run i18n:generate && npm run i18n:validate', context) || mutated;
+    mutated = appendToScript(scripts, 'prestart', 'npm run i18n:check', context) || mutated;
+    mutated = appendToScript(scripts, 'prebuild', 'npm run i18n:check', context) || mutated;
 
     if (mutated) writeJson(tree, '/package.json', pkg);
     return tree;
@@ -127,42 +127,13 @@ function appendToScript(scripts: Record<string, string>, name: string, command: 
     context.logger.info(`  Added "${name}": ${command}`);
     return true;
   }
-  if (existing.includes('hakistack-i18n') || existing.includes('i18n:scan')) {
+  if (existing.includes('hakistack-i18n') || existing.includes('i18n:scan') || existing.includes('i18n:check')) {
     context.logger.info(`  "${name}" already runs i18n codegen — skipped`);
     return false;
   }
   scripts[name] = `${existing} && ${command}`;
   context.logger.info(`  Appended i18n codegen to "${name}"`);
   return true;
-}
-
-// =============================================================================
-// Locale type augmentation
-// =============================================================================
-
-function createLocaleTypes(options: Schema, setup: ResolvedSetup): Rule {
-  return (tree: Tree, context: SchematicContext) => {
-    if (options.skipSample) return tree;
-    const path = `/${setup.sourceRoot}/i18n-locales.d.ts`;
-    if (tree.exists(path)) {
-      context.logger.info(`  ${rel(path)} already exists — skipped`);
-      return tree;
-    }
-    const others = setup.locales.filter((l) => l !== 'en');
-    const fields = ['en', ...others].map((l) => `    ${l}: string;`).join('\n');
-    const content = `// Declares this project's locale set so \`t()\` autocompletes the right locales.
-import '@hakistack/i18n/engine';
-
-declare module '@hakistack/i18n/engine' {
-  interface I18nLocales {
-${fields}
-  }
-}
-`;
-    tree.create(path, content);
-    context.logger.info(`  Created ${rel(path)}`);
-    return tree;
-  };
 }
 
 // =============================================================================
@@ -213,6 +184,9 @@ function addGitignore(setup: ResolvedSetup): Rule {
       `${setup.definitionsDir}/index.generated.ts`,
       `${setup.definitionsDir}/keys.generated.ts`,
       `${setup.definitionsDir}/*.directive.ts`,
+      `${setup.definitionsDir}/i18n-locales.generated.d.ts`,
+      `${setup.definitionsDir}/translations.generated.ts`,
+      `${setup.definitionsDir}/translations/`,
     ];
     const block = '\n' + lines.join('\n') + '\n';
 
@@ -242,7 +216,7 @@ function printNextSteps(setup: ResolvedSetup): Rule {
       [
         '',
         '@hakistack/i18n is set up. Next steps:',
-        '  1. Run the first codegen:        npm run i18n:scan',
+        '  1. Run the first codegen:        npm run i18n:check',
         '  2. Add provideI18n to your app config:',
         '',
         `       import { provideI18n } from '@hakistack/i18n';`,

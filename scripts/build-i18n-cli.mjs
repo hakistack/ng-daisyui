@@ -5,8 +5,10 @@
  * Steps:
  *   1. Type-check the CLI sources (`tsc --noEmit -p cli/tsconfig.json`).
  *   2. Bundle `cli/bin.ts` (engine source included) into a single CommonJS
- *      `dist/hakistack/i18n/cli/bin.js` via esbuild. `jiti` and `chokidar` are
- *      kept external (resolved from the consumer's node_modules at runtime).
+ *      `dist/hakistack/i18n/cli/bin.js` via esbuild. `jiti`, `chokidar` and
+ *      `typescript` (the scanner's parser — an optional peer every Angular
+ *      project already has) are kept external, resolved from the consumer's
+ *      node_modules at runtime.
  *   3. Make bin.js executable and ensure the published package.json declares
  *      the `bin` + `schematics` entries.
  *
@@ -43,7 +45,7 @@ await build({
   platform: 'node',
   format: 'cjs',
   target: 'node18',
-  external: ['jiti', 'chokidar'],
+  external: ['jiti', 'chokidar', 'typescript'],
   banner: { js: '#!/usr/bin/env node' },
   logLevel: 'info',
 });

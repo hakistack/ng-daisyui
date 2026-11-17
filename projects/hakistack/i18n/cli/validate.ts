@@ -2,6 +2,7 @@
  * i18n validation — build-time gate.
  *
  * Errors (exit 1):
+ *   - A key defined by more than one module, or both a translation and a group.
  *   - Missing/empty English (source) translation.
  *   - Placeholder parity broken across locales for a `{{…}}` string.
  *   - Empty non-source translation value.
@@ -9,9 +10,10 @@
  * Stubs (report only): English-only leaves — discoverable, never blocking.
  */
 
-import { isTranslationValue, SOURCE_LANG, TranslationModule } from '../engine/define-translations';
+import { findKeyConflicts, isTranslationValue, SOURCE_LANG, TranslationModule } from '../engine/define-translations';
 import { I18nCliConfig } from './config';
 import { loadRegistry } from './load-registry';
+import { createKeyLocator, describeConflict } from './report';
 
 interface ValidationError {
   module: string;
@@ -25,9 +27,11 @@ interface Stub {
   key: string;
 }
 
-function extractPlaceholders(text: string): string[] {
-  return (text.match(/\{\{[^}]+}}/g) || []).sort();
+/** `{{ name }}` and `{{name}}` are the same placeholder to Transloco, so compare them normalized. */
+export function extractPlaceholders(text: string): string[] {
+  return (text.match(/\{\{[^}]+}}/g) || []).map((p) => `{{${p.slice(2, -2).trim()}}}`).sort();
 }
+
 function arraysEqual(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
@@ -108,9 +112,21 @@ function validateNode(
   }
 }
 
-export async function runValidate(config: I18nCliConfig): Promise<void> {
-  console.log('\n🔍 i18n validation\n' + '='.repeat(50));
+/** Validate the executed registry. Returns `true` when there is no error. `quiet` prints errors only. */
+export async function runValidate(config: I18nCliConfig, opts: { quiet?: boolean } = {}): Promise<boolean> {
+  const info = opts.quiet ? () => undefined : (m: string) => console.log(m);
+  info('\n🔍 i18n validation\n' + '='.repeat(50));
   const registry = await loadRegistry(config);
+  const locate = createKeyLocator(config);
+
+  const conflicts = findKeyConflicts(registry);
+  if (conflicts.length) {
+    console.log(`\n❌ ${conflicts.length} key conflict(s):\n`);
+    for (const c of conflicts) console.log(`  ${describeConflict(c, locate(c.key))}`);
+    console.log('\n❌ Validation failed!\n');
+    process.exitCode = 1;
+    return false;
+  }
 
   const errors: ValidationError[] = [];
   const stubs: Stub[] = [];
@@ -122,44 +138,46 @@ export async function runValidate(config: I18nCliConfig): Promise<void> {
   const warnings = errors.filter((e) => e.severity === 'warning');
 
   if (actualErrors.length === 0 && warnings.length === 0 && stubs.length === 0) {
-    console.log('\n✓ All translations are valid!\n');
-    return;
+    info('\n✓ All translations are valid!\n');
+    return true;
   }
 
   if (actualErrors.length) {
     console.log(`\n❌ ${actualErrors.length} error(s):\n`);
     for (const e of actualErrors) {
-      console.log(`  [${e.module}] ${e.key} (${e.language.toUpperCase()})\n    → ${e.issue}`);
+      const where = locate(`${e.module}.${e.key}`)[0];
+      console.log(`  [${e.module}] ${e.key} (${e.language.toUpperCase()})\n    → ${e.issue}${where ? `\n    at ${where}` : ''}`);
     }
   }
 
   if (warnings.length) {
-    console.log(`\n⚠️  ${warnings.length} warning(s):\n`);
+    info(`\n⚠️  ${warnings.length} warning(s):\n`);
     const byLang: Record<string, ValidationError[]> = {};
     for (const w of warnings) (byLang[w.language] ??= []).push(w);
     for (const [lang, list] of Object.entries(byLang)) {
-      console.log(`  ${lang.toUpperCase()}: ${list.length} missing`);
-      for (const w of list.slice(0, 5)) console.log(`    - ${w.key}`);
-      if (list.length > 5) console.log(`    … and ${list.length - 5} more`);
+      info(`  ${lang.toUpperCase()}: ${list.length} missing`);
+      for (const w of list.slice(0, 5)) info(`    - ${w.key}`);
+      if (list.length > 5) info(`    … and ${list.length - 5} more`);
     }
   }
 
   if (stubs.length) {
-    console.log(`\n📝 Stub report — ${stubs.length} source-only ${stubs.length === 1 ? 'leaf' : 'leaves'}:\n`);
+    info(`\n📝 Stub report — ${stubs.length} source-only ${stubs.length === 1 ? 'leaf' : 'leaves'}:\n`);
     const byModule: Record<string, string[]> = {};
     for (const s of stubs) (byModule[s.module] ??= []).push(s.key);
     for (const [moduleName, keys] of Object.entries(byModule)) {
-      console.log(`  ${moduleName}: ${keys.length}`);
-      for (const k of keys.slice(0, 5)) console.log(`    - ${k}`);
-      if (keys.length > 5) console.log(`    … and ${keys.length - 5} more`);
+      info(`  ${moduleName}: ${keys.length}`);
+      for (const k of keys.slice(0, 5)) info(`    - ${k}`);
+      if (keys.length > 5) info(`    … and ${keys.length - 5} more`);
     }
   }
 
-  console.log('\n📊 Summary\n' + `  Errors: ${actualErrors.length}  Warnings: ${warnings.length}  Stubs: ${stubs.length}`);
+  info('\n📊 Summary\n' + `  Errors: ${actualErrors.length}  Warnings: ${warnings.length}  Stubs: ${stubs.length}`);
   if (actualErrors.length) {
     console.log('\n❌ Validation failed!\n');
     process.exitCode = 1;
-  } else {
-    console.log('\n✓ Validation passed.\n');
+    return false;
   }
+  info('\n✓ Validation passed.\n');
+  return true;
 }
