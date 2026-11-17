@@ -35,7 +35,7 @@
 pd​f.js rasterizes text using the **main-thread document's font machinery**
 (`FontFace`/`document.fonts`). Inside a Web Worker there is no `document`, so
 glyphs fall back to `.notdef` boxes — we hit this exactly when wiring the
-OffscreenCanvas worker pool (Phase B of `PERFORMANCE.md`): thumbnails rendered on
+OffscreenCanvas worker pool: thumbnails rendered on
 the main thread were crisp, worker-rendered pages were tofu. That makes truly
 off-thread rendering **impossible** with pd​f.js.
 

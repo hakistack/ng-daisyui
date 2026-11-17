@@ -14,6 +14,7 @@ npm run build:i18n         # @hakistack/i18n → dist/hakistack/i18n (+ CLI, sch
 npm run build:engine       # Rust → WASM, output copied into the ui sources (needs wasm-pack)
 npm run build:watch        # ng-daisyui development build in watch mode
 npm test                   # Unit tests of both libraries (Vitest); test:ui / test:i18n / test:engine per product
+npm run clean              # Delete build output and caches (dist, out-tsc, .angular/cache, test results)
 npm run lint               # ESLint + dependency boundaries (scripts/workspace/check-boundaries.mjs)
 npm run validate:ui        # Validate the BUILT package (exports, types, bin, schematics load, pack)
 npm run test:consumer:ui   # Pack + install into a clean app + build (test:consumer:i18n for i18n)

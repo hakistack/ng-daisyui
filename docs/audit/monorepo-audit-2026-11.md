@@ -93,7 +93,7 @@ graph LR
 | P1 | `projects/hakistack/*` vs a `packages/` folder | Keep. The current path already namespaces products and Angular CLI expects `projects/`; a move churns ~60 path references with no functional gain (ADR-0004). |
 | P2 | Root `angular.json` defined `demo-v4`, but every script uses the nested workspace in `projects/demo-v4` | **Done** — root definition removed with ADR-0003. |
 | P3 | One `ci.yml` runs everything on every PR | Path-filtered jobs per product + one aggregate `ci-ok` check (done, ADR-0008). |
-| P4 | `docs/i18n-library-extraction-analysis.md` proposes moving i18n *into* ng-daisyui | Superseded by the separate package; marked as historical. |
+| P4 | `docs/i18n-library-extraction-analysis.md` proposes moving i18n *into* ng-daisyui | Superseded by the separate package; deleted (in git history). |
 | P5 | Peer ranges `>=21.0.0` / `>=7.8.0` in i18n, `>=0.133.0` / `>=20` (optional) in ng-daisyui claim every future major | Narrow to `^21.0.0` (and widen deliberately per major), as the maintainer guide already prescribes for ng-daisyui. Reported as warnings by `validate:*`; left unchanged because it alters what consumers can install. |
 | P6 | The docs site documents ng-daisyui only (49 pages); `@hakistack/i18n` appears in one article section | Add a product level to the catalog (migration step M7). |
 | P7 | ~1.7 MB + 6 MB of generated base64 WASM in git | Accepted trade-off for reproducible builds without Rust in CI (ADR-0007); revisit with Git LFS only if clone size becomes a problem. |

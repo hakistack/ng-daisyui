@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "ng": "ng",
+    "clean": "rm -rf dist out-tsc test-results playwright-report blob-report coverage .angular/cache tmp && find . -name .DS_Store -not -path \"./node_modules/*\" -delete",
     "start": "ng serve demo --port 58790",
     "demo": "ng serve demo --open --port 58790",
     "start:v4": "npm --prefix projects/demo-v4 start",

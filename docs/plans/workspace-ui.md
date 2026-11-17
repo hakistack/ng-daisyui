@@ -13,7 +13,7 @@ Objetivo: añadir una segunda presentación tipo workspace a los dos visores, co
 Alcance v1: **un documento por workspace**. El diseño deja el panel izquierdo preparado para listar varios documentos
 más adelante (§E.4), que es el sentido de llamarlo workspace.
 
-Relacionado: [`page-workspace.md`](page-workspace.md) (informe previo de `hk-page-workspace`, conjunto de páginas de
+Relacionado: `page-workspace.md` (borrado, está en el historial de git) (informe previo de `hk-page-workspace`, conjunto de páginas de
 imagen multi-lote al estilo Docsy). Las piezas compartidas de §C sirven también para ese componente.
 
 ---
@@ -401,7 +401,7 @@ publican los renderers están en inglés, como el resto de sus textos.
 El conjunto de páginas entre documentos al estilo del expediente de Docsy («página i de n» a través de lotes, tira y
 hoja de contactos cruzadas, etiquetas, verificación) es específico de esa app y no entra en la librería. Los
 workspaces son genéricos; una app lo construye encima con `WorkspaceDocument.thumbnail` / `description`,
-`[extraRail]` y `DocumentViewerHost`. Ver también [`page-workspace.md`](page-workspace.md) (informe previo, no se
+`[extraRail]` y `DocumentViewerHost`. Ver también `page-workspace.md` (borrado, está en el historial de git) (informe previo, no se
 implementará en la librería).
 
 ### W3c ✅ Un workspace es para varios documentos
