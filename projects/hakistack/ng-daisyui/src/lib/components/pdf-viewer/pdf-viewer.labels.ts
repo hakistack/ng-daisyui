@@ -1,4 +1,5 @@
-import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
+import { EnvironmentProviders, InjectionToken } from '@angular/core';
+import { HkLabelsSource, provideLabelsSource } from '../../utils/labels-source';
 
 /**
  * App-wide default text for every `<hk-pdf-viewer>` toolbar / aria-label / state.
@@ -1195,11 +1196,14 @@ export const DEFAULT_PDF_VIEWER_LABELS: ResolvedPdfViewerLabels = {
   discardAndOpen: 'Discard and open',
 };
 
-export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS');
+export const HK_PDF_LABELS = new InjectionToken<HkLabelsSource<PdfViewerLabels>>('HK_PDF_LABELS');
 
 /**
  * Register app-wide text defaults for `<hk-pdf-viewer>`. Any field omitted
  * falls back to the English default in `DEFAULT_PDF_VIEWER_LABELS`.
+ * Accepts a labels object, a `Signal` of labels, or a function run in an injection
+ * context (see `HkLabelsSource`). A signal source makes the component follow language
+ * switches.
  *
  * @example
  * providers: [
@@ -1211,6 +1215,6 @@ export const HK_PDF_LABELS = new InjectionToken<PdfViewerLabels>('HK_PDF_LABELS'
  *   }),
  * ]
  */
-export function provideHkPdfLabels(labels: PdfViewerLabels): EnvironmentProviders {
-  return makeEnvironmentProviders([{ provide: HK_PDF_LABELS, useValue: labels }]);
+export function provideHkPdfLabels(labels: HkLabelsSource<PdfViewerLabels>): EnvironmentProviders {
+  return provideLabelsSource(HK_PDF_LABELS, labels);
 }

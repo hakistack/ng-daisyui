@@ -4,13 +4,13 @@
     class="min-h-0 flex-1"
     [documents]="documents()"
     [active]="activeDoc()?.id ?? null"
-    [labels]="listLabels"
+    [labels]="listLabels()"
     (choose)="openDocument($event)"
   />
 </ng-template>
 
 @if (source() === null) {
-  <hk-mesa-state kind="empty" [message]="labels.documentAria" />
+  <hk-mesa-state kind="empty" [message]="labels().documentAria" />
 } @else if (resolvedFormat().format === 'pdf') {
   <!-- PDFs get the full PDF workspace (annotations, forms, signatures, pages); the list is its first rail mode. -->
   <hk-pdf-workspace
@@ -27,32 +27,32 @@
     <!-- Rail: the documents, at full height. -->
     <div hkMesaRail class="flex min-h-0 flex-1 flex-col">
       <h2 class="border-base-300 truncate border-b px-3 py-2 text-sm font-semibold">
-        {{ labels.documentsTitle.replace('{count}', '' + documents().length) }}
+        {{ labels().documentsTitle.replace('{count}', '' + documents().length) }}
       </h2>
       <ng-container [ngTemplateOutlet]="docList" />
     </div>
 
     <hk-mesa-toolbar>
       <span class="badge badge-lg min-w-0 gap-2" [class.badge-secondary]="editing()" [class.badge-ghost]="!editing()">
-        <span class="min-w-0 truncate" [title]="badge()">{{ editing() ? labels.editing + ' · ' + badge() : badge() }}</span>
+        <span class="min-w-0 truncate" [title]="badge()">{{ editing() ? labels().editing + ' · ' + badge() : badge() }}</span>
       </span>
 
       <ng-container ngProjectAs="[hkMesaActions]">
         @if (!editing()) {
           @if (sections().length > 1) {
-            <div class="join" role="group" [attr.aria-label]="labels.pagerAria">
+            <div class="join" role="group" [attr.aria-label]="labels().pagerAria">
               <button
                 type="button"
                 class="btn btn-sm btn-square join-item"
-                [attr.aria-label]="labels.previous"
-                [title]="labels.previous"
+                [attr.aria-label]="labels().previous"
+                [title]="labels().previous"
                 [disabled]="currentIndex() <= 0"
                 (click)="goToIndex(currentIndex() - 1)"
               >
                 <svg lucideChevronLeft [size]="16" aria-hidden="true"></svg>
               </button>
               <label class="input input-sm input-bordered join-item flex w-28 items-center gap-1 font-mono whitespace-nowrap tabular-nums">
-                <span class="sr-only">{{ labels.goTo }}</span>
+                <span class="sr-only">{{ labels().goTo }}</span>
                 <input
                   #position
                   type="text"
@@ -66,8 +66,8 @@
               <button
                 type="button"
                 class="btn btn-sm btn-square join-item"
-                [attr.aria-label]="labels.next"
-                [title]="labels.next"
+                [attr.aria-label]="labels().next"
+                [title]="labels().next"
                 [disabled]="currentIndex() >= sections().length - 1"
                 (click)="goToIndex(currentIndex() + 1)"
               >
@@ -76,12 +76,12 @@
             </div>
           }
 
-          <div class="join" role="group" [attr.aria-label]="labels.zoomAria">
+          <div class="join" role="group" [attr.aria-label]="labels().zoomAria">
             <button
               type="button"
               class="btn btn-sm btn-square join-item"
-              [attr.aria-label]="labels.zoomOut"
-              [title]="labels.zoomOut"
+              [attr.aria-label]="labels().zoomOut"
+              [title]="labels().zoomOut"
               [disabled]="!canZoom(-1)"
               (click)="zoomBy(-1)"
             >
@@ -90,7 +90,7 @@
             <button
               type="button"
               class="btn btn-sm join-item w-16 font-mono tabular-nums"
-              [attr.aria-label]="labels.zoomReset.replace('{value}', zoomLabel())"
+              [attr.aria-label]="labels().zoomReset.replace('{value}', zoomLabel())"
               (click)="zoom.set(1)"
             >
               {{ zoomLabel() }}
@@ -98,8 +98,8 @@
             <button
               type="button"
               class="btn btn-sm btn-square join-item"
-              [attr.aria-label]="labels.zoomIn"
-              [title]="labels.zoomIn"
+              [attr.aria-label]="labels().zoomIn"
+              [title]="labels().zoomIn"
               [disabled]="!canZoom(1)"
               (click)="zoomBy(1)"
             >
@@ -110,7 +110,7 @@
           @if (canEdit()) {
             <button type="button" class="btn btn-sm btn-primary gap-1.5" (click)="setEditing(true)">
               <svg lucidePencil [size]="14" aria-hidden="true"></svg>
-              {{ labels.edit }}
+              {{ labels().edit }}
             </button>
           }
         }
@@ -129,7 +129,7 @@
       </div>
     } @else {
       <!-- The mesa, with the document on a card; zoom scales the whole card. -->
-      <div class="bg-base-200 min-h-0 flex-1 overflow-auto p-4" role="region" [attr.aria-label]="labels.documentAria" tabindex="0">
+      <div class="bg-base-200 min-h-0 flex-1 overflow-auto p-4" role="region" [attr.aria-label]="labels().documentAria" tabindex="0">
         <div class="bg-base-100 rounded-box border-base-300 mx-auto max-w-5xl border p-4 shadow-sm" [style.zoom]="zoom()">
           @if (renderer(); as r) {
             <ng-container *ngComponentOutlet="r; inputs: { source: source(), format: resolvedFormat(), filename: filename() }" />
@@ -153,7 +153,7 @@
             class="btn btn-ghost btn-sm min-w-0 gap-1.5 font-normal"
             [attr.aria-expanded]="stripOpen()"
             [attr.aria-controls]="'hk-dw-strip-' + uid"
-            [attr.aria-label]="(stripOpen() ? labels.hideSectionStrip : labels.showSectionStrip) + ' — ' + (filename() ?? '')"
+            [attr.aria-label]="(stripOpen() ? labels().hideSectionStrip : labels().showSectionStrip) + ' — ' + (filename() ?? '')"
             (click)="stripOpen.set(!stripOpen())"
           >
             <svg
@@ -168,7 +168,7 @@
           <span class="font-mono text-xs tabular-nums">{{ sectionPosition() }}</span>
         </div>
         @if (stripOpen()) {
-          <ul #strip [id]="'hk-dw-strip-' + uid" class="flex gap-1.5 overflow-x-auto px-2.5 py-2" [attr.aria-label]="labels.rail">
+          <ul #strip [id]="'hk-dw-strip-' + uid" class="flex gap-1.5 overflow-x-auto px-2.5 py-2" [attr.aria-label]="labels().rail">
             @for (section of sections(); track section.id; let i = $index) {
               <li class="shrink-0">
                 <button
@@ -201,7 +201,7 @@
     <!-- Inspector: the file, the format's own properties, actions. -->
     <div hkMesaInspector>
       <section class="border-base-300 border-b px-4 py-3.5">
-        <h2 class="mb-2.5 text-sm font-semibold">{{ labels.fileSection }}</h2>
+        <h2 class="mb-2.5 text-sm font-semibold">{{ labels().fileSection }}</h2>
         <dl class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3.5 gap-y-1.5 text-sm">
           @for (row of fileRows(); track row.label) {
             <dt class="text-base-content/70">{{ row.label }}</dt>
@@ -211,7 +211,7 @@
       </section>
       @if (host.metadata().length > 0) {
         <section class="border-base-300 border-b px-4 py-3.5">
-          <h2 class="mb-2.5 text-sm font-semibold">{{ labels.propertiesSection }}</h2>
+          <h2 class="mb-2.5 text-sm font-semibold">{{ labels().propertiesSection }}</h2>
           <dl class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3.5 gap-y-1.5 text-sm">
             @for (row of host.metadata(); track row.label) {
               <dt class="text-base-content/70">{{ row.label }}</dt>
@@ -221,10 +221,10 @@
         </section>
       }
       <section class="px-4 py-3.5">
-        <h2 class="mb-2.5 text-sm font-semibold">{{ labels.actionsSection }}</h2>
+        <h2 class="mb-2.5 text-sm font-semibold">{{ labels().actionsSection }}</h2>
         <button type="button" class="btn btn-sm w-full justify-start gap-2" (click)="download()">
           <svg lucideDownload [size]="14" aria-hidden="true"></svg>
-          {{ labels.download }}
+          {{ labels().download }}
         </button>
       </section>
     </div>
@@ -234,14 +234,14 @@
 <!-- Leaving a document with unsaved changes. -->
 <dialog #confirm class="modal" [attr.aria-labelledby]="'hk-dw-confirm-' + uid" (close)="cancelOpen()">
   <div class="modal-box max-w-md">
-    <h3 [id]="'hk-dw-confirm-' + uid" class="text-lg font-semibold">{{ labels.unsavedTitle }}</h3>
-    <p class="text-base-content/70 mt-2 text-sm">{{ labels.unsavedBody.replace('{name}', filename() ?? '') }}</p>
+    <h3 [id]="'hk-dw-confirm-' + uid" class="text-lg font-semibold">{{ labels().unsavedTitle }}</h3>
+    <p class="text-base-content/70 mt-2 text-sm">{{ labels().unsavedBody.replace('{name}', filename() ?? '') }}</p>
     <div class="modal-action">
-      <button type="button" class="btn btn-sm" (click)="confirmOpen()">{{ labels.discardAndOpen }}</button>
-      <button type="button" class="btn btn-sm btn-primary" autofocus (click)="cancelOpen()">{{ labels.keepEditing }}</button>
+      <button type="button" class="btn btn-sm" (click)="confirmOpen()">{{ labels().discardAndOpen }}</button>
+      <button type="button" class="btn btn-sm btn-primary" autofocus (click)="cancelOpen()">{{ labels().keepEditing }}</button>
     </div>
   </div>
   <form method="dialog" class="modal-backdrop">
-    <button type="submit" [attr.aria-label]="labels.keepEditing">{{ labels.keepEditing }}</button>
+    <button type="submit" [attr.aria-label]="labels().keepEditing">{{ labels().keepEditing }}</button>
   </form>
 </dialog>

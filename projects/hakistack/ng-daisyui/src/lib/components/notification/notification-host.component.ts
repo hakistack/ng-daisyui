@@ -4,6 +4,7 @@ import { DEFAULT_NOTIFICATION_LABELS, HK_NOTIFICATION_LABELS, ResolvedNotificati
 import { NotificationItemComponent } from './notification-item.component';
 import { NotificationService } from './notification.service';
 import { NotificationPosition } from './notification.types';
+import { injectLabels } from '../../utils/labels-source';
 
 /**
  * Singleton notification host — render once at app root (or any layout that
@@ -37,13 +38,13 @@ import { NotificationPosition } from './notification.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NotificationHostComponent {
-  private readonly userLabels = inject(HK_NOTIFICATION_LABELS, { optional: true });
+  private readonly userLabels = injectLabels(HK_NOTIFICATION_LABELS);
   protected readonly service = inject(NotificationService);
 
   /** Labels with consumer overrides; falls back to English. */
   readonly labels = computed<ResolvedNotificationLabels>(() => ({
     ...DEFAULT_NOTIFICATION_LABELS,
-    ...this.userLabels,
+    ...this.userLabels(),
   }));
 
   /** Outer wrapper alignment classes — derived from the configured position. */

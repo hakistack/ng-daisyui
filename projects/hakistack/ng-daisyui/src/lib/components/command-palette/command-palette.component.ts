@@ -29,6 +29,7 @@ import {
 } from './command-palette.types';
 import { isInTextEntry, matchesHotkey, parseHotkey, substringFilter } from './command-palette.utils';
 import { generateUniqueId } from '../../utils/generate-uuid';
+import { injectLabels } from '../../utils/labels-source';
 
 interface RenderedGroup {
   readonly id: string;
@@ -73,7 +74,7 @@ export class CommandPaletteComponent implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject(ElementRef<HTMLElement>);
-  private readonly userLabels = inject(HK_COMMAND_PALETTE_LABELS, { optional: true });
+  private readonly userLabels = injectLabels(HK_COMMAND_PALETTE_LABELS);
 
   /** Configuration object — pass `controller.config()` from a `createCommandPalette({...})` call. */
   readonly config = input.required<CommandPaletteConfig>();
@@ -178,7 +179,7 @@ export class CommandPaletteComponent implements OnInit {
   /** Labels with consumer overrides applied; falls back to English defaults. */
   readonly labels = computed<ResolvedCommandPaletteLabels>(() => ({
     ...DEFAULT_COMMAND_PALETTE_LABELS,
-    ...this.userLabels,
+    ...this.userLabels(),
   }));
 
   /** Items grouped for rendering. Each item carries its `flatIndex` for keyboard nav. */

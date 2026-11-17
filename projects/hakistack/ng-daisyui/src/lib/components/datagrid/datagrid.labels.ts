@@ -1,6 +1,7 @@
-import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
+import { EnvironmentProviders, InjectionToken } from '@angular/core';
 
 import type { FilterOperator } from '../../grid-core/grid.types';
+import { HkLabelsSource, provideLabelsSource } from '../../utils/labels-source';
 
 /**
  * Text used by `<hk-datagrid>`. Override app-wide with `provideHkDataGridLabels({...})`
@@ -212,11 +213,14 @@ export function resolveDataGridLabels(...overrides: (DataGridLabels | null | und
   return resolved;
 }
 
-export const HK_DATAGRID_LABELS = new InjectionToken<DataGridLabels>('HK_DATAGRID_LABELS');
+export const HK_DATAGRID_LABELS = new InjectionToken<HkLabelsSource<DataGridLabels>>('HK_DATAGRID_LABELS');
 
 /**
  * Register app-wide text for `<hk-datagrid>`. Omitted fields fall back to
  * `DEFAULT_DATAGRID_LABELS`.
+ * Accepts a labels object, a `Signal` of labels, or a function run in an injection
+ * context (see `HkLabelsSource`). A signal source makes the component follow language
+ * switches.
  *
  * @example
  * providers: [
@@ -226,6 +230,6 @@ export const HK_DATAGRID_LABELS = new InjectionToken<DataGridLabels>('HK_DATAGRI
  *   }),
  * ]
  */
-export function provideHkDataGridLabels(labels: DataGridLabels): EnvironmentProviders {
-  return makeEnvironmentProviders([{ provide: HK_DATAGRID_LABELS, useValue: labels }]);
+export function provideHkDataGridLabels(labels: HkLabelsSource<DataGridLabels>): EnvironmentProviders {
+  return provideLabelsSource(HK_DATAGRID_LABELS, labels);
 }

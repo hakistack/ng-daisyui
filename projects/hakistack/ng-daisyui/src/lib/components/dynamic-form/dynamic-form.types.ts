@@ -1,6 +1,7 @@
-import { EnvironmentProviders, InjectionToken, Signal, makeEnvironmentProviders } from '@angular/core';
+import { EnvironmentProviders, InjectionToken, Signal } from '@angular/core';
 import { FormGroup, ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
+import { HkLabelsSource, provideLabelsSource } from '../../utils/labels-source';
 
 /**
  * App-wide default text for every `<hk-dynamic-form>`. Per-form `stepperConfig.*Text`
@@ -19,14 +20,26 @@ export interface DynamicFormLabels {
   loadingOptionsPlaceholder?: string;
 }
 
-export const DYNAMIC_FORM_LABELS = new InjectionToken<DynamicFormLabels>('DYNAMIC_FORM_LABELS');
+/**
+ * Token holding the app-wide text for `<hk-dynamic-form>`. Register it with
+ * `provideHkDynamicFormLabels()`.
+ */
+export const HK_DYNAMIC_FORM_LABELS = new InjectionToken<HkLabelsSource<DynamicFormLabels>>('HK_DYNAMIC_FORM_LABELS');
 
 /**
- * Register app-wide text defaults for `<hk-dynamic-form>`.
+ * The original name of `HK_DYNAMIC_FORM_LABELS` (the same token). Kept so existing code
+ * keeps working; new code can use the `HK_` name, which matches the other label tokens.
+ */
+export const DYNAMIC_FORM_LABELS = HK_DYNAMIC_FORM_LABELS;
+
+/**
+ * Register app-wide text defaults for `<hk-dynamic-form>`. Accepts a labels object, a
+ * `Signal` of labels, or a function run in an injection context (see `HkLabelsSource`).
+ * A signal source makes every form follow language switches.
  *
  * @example
  * providers: [
- *   provideDynamicFormLabels({
+ *   provideHkDynamicFormLabels({
  *     previousButton: 'Anterior',
  *     nextButton: 'Siguiente',
  *     completeButton: 'Enviar',
@@ -35,8 +48,17 @@ export const DYNAMIC_FORM_LABELS = new InjectionToken<DynamicFormLabels>('DYNAMI
  *   }),
  * ]
  */
-export function provideDynamicFormLabels(labels: DynamicFormLabels): EnvironmentProviders {
-  return makeEnvironmentProviders([{ provide: DYNAMIC_FORM_LABELS, useValue: labels }]);
+export function provideHkDynamicFormLabels(labels: HkLabelsSource<DynamicFormLabels>): EnvironmentProviders {
+  return provideLabelsSource(HK_DYNAMIC_FORM_LABELS, labels);
+}
+
+/**
+ * The original name of `provideHkDynamicFormLabels` (same behavior, same token). Kept so
+ * existing code keeps working; new code can use the `Hk` name, which matches the other
+ * `provideHk*Labels` functions.
+ */
+export function provideDynamicFormLabels(labels: HkLabelsSource<DynamicFormLabels>): EnvironmentProviders {
+  return provideHkDynamicFormLabels(labels);
 }
 
 export type FieldType =

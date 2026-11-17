@@ -29,7 +29,7 @@ import { SelectComponent } from '../select/select.component';
 import { StepperComponent } from '../stepper/stepper.component';
 import {
   AutoSaveConfig,
-  DYNAMIC_FORM_LABELS,
+  HK_DYNAMIC_FORM_LABELS,
   DynamicFormLabels,
   FormConfig,
   FormFieldConfig,
@@ -42,6 +42,7 @@ import {
 import { ConditionEngine } from './condition-engine';
 import { FormUtils } from './dynamic-form.utils';
 import { TimepickerComponent } from '../timepicker/timepicker.component';
+import { injectLabels } from '../../utils/labels-source';
 
 @Component({
   selector: 'hk-dynamic-form',
@@ -63,16 +64,19 @@ export class DynamicFormComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly elementRef = inject(ElementRef);
-  private readonly injectedLabels = inject<DynamicFormLabels | null>(DYNAMIC_FORM_LABELS, { optional: true });
+  private readonly injectedLabels = injectLabels(HK_DYNAMIC_FORM_LABELS);
 
   /** Resolved form-wide text with defaults. Use `formLabels().x` in the template. */
-  readonly formLabels = computed<Required<DynamicFormLabels>>(() => ({
-    previousButton: this.injectedLabels?.previousButton ?? 'Previous',
-    nextButton: this.injectedLabels?.nextButton ?? 'Next',
-    completeButton: this.injectedLabels?.completeButton ?? 'Submit',
-    editorPlaceholder: this.injectedLabels?.editorPlaceholder ?? 'Write something...',
-    loadingOptionsPlaceholder: this.injectedLabels?.loadingOptionsPlaceholder ?? 'Loading options...',
-  }));
+  readonly formLabels = computed<Required<DynamicFormLabels>>(() => {
+    const injected = this.injectedLabels();
+    return {
+      previousButton: injected?.previousButton ?? 'Previous',
+      nextButton: injected?.nextButton ?? 'Next',
+      completeButton: injected?.completeButton ?? 'Submit',
+      editorPlaceholder: injected?.editorPlaceholder ?? 'Write something...',
+      loadingOptionsPlaceholder: injected?.loadingOptionsPlaceholder ?? 'Loading options...',
+    };
+  });
   private readonly formStateService = inject(FormStateService);
 
   // Inputs

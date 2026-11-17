@@ -21,16 +21,16 @@ const content: ArticleContent = {
           ordered: true,
           items: [
             {
-              en: '**App-wide providers.** A `provide*Labels()` function registers an injection token once in `app.config.ts`. Every instance of that component uses it.',
-              es: '**Proveedores globales.** Una función `provide*Labels()` registra un token de inyección una sola vez en `app.config.ts`. Todas las instancias de ese componente lo usan.',
+              en: '**App-wide providers.** A `provide*Labels()` function registers an injection token once in `app.config.ts`. Every instance of that component uses it. It takes a labels object, a `Signal` of labels, or a function that returns either one ([HkLabelsSource](/api/HkLabelsSource)). A signal follows language switches.',
+              es: '**Proveedores globales.** Una función `provide*Labels()` registra un token de inyección una sola vez en `app.config.ts`. Todas las instancias de ese componente lo usan. Acepta un objeto de etiquetas, un `Signal` de etiquetas o una función que devuelve cualquiera de los dos ([HkLabelsSource](/api/HkLabelsSource)). Un signal sigue los cambios de idioma.',
             },
             {
               en: '**Config objects.** Some builders take a `labels` property (tables, trees), and the toast and alert providers accept `labels` inside their global config.',
               es: '**Objetos de configuración.** Algunos builders reciben una propiedad `labels` (tablas, árboles), y los proveedores de toast y alert aceptan `labels` dentro de su configuración global.',
             },
             {
-              en: '**Component inputs.** Some components expose a `labels` input or one input per string (Datepicker, DataGrid, Select). Inputs are reactive, which makes them the natural place for runtime language switching.',
-              es: '**Inputs del componente.** Algunos componentes exponen un input `labels` o un input por texto (Datepicker, DataGrid, Select). Los inputs son reactivos, por eso son el lugar natural para cambiar de idioma en tiempo de ejecución.',
+              en: '**Component inputs.** Some components expose a `labels` input or one input per string (Datepicker, DataGrid, Select). Inputs are reactive, so bind them to translation signals to follow language switches.',
+              es: '**Inputs del componente.** Algunos componentes exponen un input `labels` o un input por texto (Datepicker, DataGrid, Select). Los inputs son reactivos: enlázalos a signals de traducción para seguir los cambios de idioma.',
             },
           ],
         },
@@ -57,8 +57,8 @@ const content: ArticleContent = {
             [
               { en: 'Dynamic form', es: 'Formulario dinámico' },
               {
-                en: '[provideDynamicFormLabels](/api/provideDynamicFormLabels) — wizard buttons, editor and loading placeholders',
-                es: '[provideDynamicFormLabels](/api/provideDynamicFormLabels) — botones del asistente, placeholders del editor y de carga',
+                en: '[provideHkDynamicFormLabels](/api/provideHkDynamicFormLabels) (also exported under its original name, `provideDynamicFormLabels`) — wizard buttons, editor and loading placeholders',
+                es: '[provideHkDynamicFormLabels](/api/provideHkDynamicFormLabels) (también exportado con su nombre original, `provideDynamicFormLabels`) — botones del asistente, placeholders del editor y de carga',
               },
             ],
             [
@@ -142,11 +142,11 @@ const content: ArticleContent = {
           lang: 'ts',
           title: 'app.config.ts',
           code: `import { ApplicationConfig } from '@angular/core';
-import { provideAlert, provideDynamicFormLabels, provideHkDataGridLabels, provideToast } from '@hakistack/ng-daisyui';
+import { provideAlert, provideHkDataGridLabels, provideHkDynamicFormLabels, provideToast } from '@hakistack/ng-daisyui';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideDynamicFormLabels({ previousButton: 'Anterior', nextButton: 'Siguiente', completeButton: 'Enviar' }),
+    provideHkDynamicFormLabels({ previousButton: 'Anterior', nextButton: 'Siguiente', completeButton: 'Enviar' }),
     provideAlert({ labels: { confirm: 'Confirmar', cancel: 'Cancelar', ok: 'Aceptar' } }),
     provideToast({ labels: { onlineMessage: '¡Conexión restablecida!', offlineMessage: 'Sin conexión' } }),
     provideHkDataGridLabels({
@@ -176,8 +176,8 @@ export const appConfig: ApplicationConfig = {
               es: '**Placeholders automáticos.** Los builders de campos sin `placeholder` generan uno en inglés a partir de la etiqueta (“Enter email”). Pasa `placeholder` para reemplazarlo.',
             },
             {
-              en: '**Providers are static.** A `provide*Labels()` value is read once. To switch language without reloading, use component inputs or the alert `translate` + `langChange$` hooks.',
-              es: '**Los proveedores son estáticos.** El valor de un `provide*Labels()` se lee una vez. Para cambiar de idioma sin recargar, usa los inputs del componente o los hooks `translate` + `langChange$` del alert.',
+              en: '**Toast, table and tree labels are read from config.** `provideToast({ labels })` is read once, and table and tree labels follow a switch only when you rebuild their config. Every `provide*Labels()` function, the component inputs and the alert `translate` + `langChange$` hooks do follow a switch.',
+              es: '**Las etiquetas de toast, tabla y árbol se leen de la configuración.** `provideToast({ labels })` se lee una vez, y las de tabla y árbol siguen un cambio solo si reconstruyes su configuración. Todas las funciones `provide*Labels()`, los inputs de los componentes y los hooks `translate` + `langChange$` del alert sí siguen un cambio.',
             },
           ],
         },
@@ -192,6 +192,47 @@ export const appConfig: ApplicationConfig = {
           text: {
             en: '`@hakistack/i18n` is a companion package on top of Transloco: you author translations in `.ts` files and a codegen produces typed keys (`TK`) and JSON. It is independent of `@hakistack/ng-daisyui`; the two connect through the mechanisms above.',
             es: '`@hakistack/i18n` es un paquete complementario sobre Transloco: escribes las traducciones en archivos `.ts` y un codegen produce claves tipadas (`TK`) y JSON. Es independiente de `@hakistack/ng-daisyui`; los dos se conectan mediante los mecanismos de arriba.',
+          },
+        },
+        {
+          kind: 'p',
+          text: {
+            en: 'For app-wide providers, pass a function. It runs once, in an injection context, so it can call `translateSignal`. Return a `computed()` over those signals: when the language changes, every instance re-renders with the new text.',
+            es: 'Para los proveedores globales, pasa una función. Se ejecuta una vez, en un contexto de inyección, así que puede llamar a `translateSignal`. Devuelve un `computed()` sobre esos signals: cuando cambia el idioma, todas las instancias se vuelven a pintar con el texto nuevo.',
+          },
+        },
+        {
+          kind: 'code',
+          lang: 'ts',
+          title: 'app.config.ts',
+          code: `import { ApplicationConfig, computed } from '@angular/core';
+import { translateSignal } from '@hakistack/i18n';
+import { provideHkDataGridLabels, provideHkDynamicFormLabels } from '@hakistack/ng-daisyui';
+import { TK } from './i18n/definitions/keys.generated';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // provideI18n({ ... }) from @hakistack/i18n goes here too
+    provideHkDynamicFormLabels(() => {
+      const previous = translateSignal(TK.wizard.previous);
+      const next = translateSignal(TK.wizard.next);
+      const submit = translateSignal(TK.wizard.submit);
+      return computed(() => ({ previousButton: previous(), nextButton: next(), completeButton: submit() }));
+    }),
+    provideHkDataGridLabels(() => {
+      const empty = translateSignal(TK.grid.empty);
+      const search = translateSignal(TK.grid.search);
+      return computed(() => ({ empty: empty(), searchPlaceholder: search() }));
+    }),
+  ],
+};`,
+        },
+        {
+          kind: 'note',
+          tone: 'info',
+          text: {
+            en: 'Create the translation signals in the function body, not inside the `computed()`: `translateSignal` uses `toSignal`, which cannot run inside a reactive context. The same code works with `translateSignal` from `@jsverse/transloco`. Without a translation library, pass a `signal()` you own and `set()` it when the language changes.',
+            es: 'Crea los signals de traducción en el cuerpo de la función, no dentro del `computed()`: `translateSignal` usa `toSignal`, que no puede ejecutarse dentro de un contexto reactivo. El mismo código funciona con `translateSignal` de `@jsverse/transloco`. Sin librería de traducción, pasa un `signal()` propio y llama a `set()` cuando cambie el idioma.',
           },
         },
         {
@@ -229,8 +270,8 @@ export class BookingComponent {
         {
           kind: 'p',
           text: {
-            en: 'For the Alert service, hand it Transloco’s translate function and language stream so cached button texts refresh on every switch. The keys it asks for are its own (for example `common.dialogs.deleteConfirm.title`); the fallback text is used when your translation returns nothing.',
-            es: 'Para el servicio Alert, pásale la función de traducción de Transloco y su stream de idioma para que los textos de los botones se actualicen en cada cambio. Las claves que pide son suyas (por ejemplo `common.dialogs.deleteConfirm.title`); el texto de respaldo se usa cuando tu traducción no devuelve nada.',
+            en: 'For the Alert service, hand it Transloco’s translate function and language stream so cached button texts refresh on every switch. The keys it asks for are its own (for example `common.dialogs.deleteConfirm.title`); the fallback text is used when the key is missing.',
+            es: 'Para el servicio Alert, pásale la función de traducción de Transloco y su stream de idioma para que los textos de los botones se actualicen en cada cambio. Las claves que pide son suyas (por ejemplo `common.dialogs.deleteConfirm.title`); el texto de respaldo se usa cuando falta la clave.',
           },
         },
         {
@@ -238,10 +279,11 @@ export class BookingComponent {
           lang: 'ts',
           title: 'app.config.ts',
           code: `import { ApplicationConfig, inject, provideAppInitializer } from '@angular/core';
-import { translate, TranslocoService } from '@jsverse/transloco';
+import { TranslocoService } from '@jsverse/transloco';
 import { provideAlert } from '@hakistack/ng-daisyui';
 import { Subject } from 'rxjs';
 
+let transloco: TranslocoService | undefined;
 const alertLangChange$ = new Subject<string>();
 
 export const appConfig: ApplicationConfig = {
@@ -249,13 +291,15 @@ export const appConfig: ApplicationConfig = {
     // provideI18n({ ... }) from @hakistack/i18n goes here too
     provideAlert({
       translate: (key, fallback, params) => {
-        const text = translate(key, params);
-        return text && text !== key ? text : fallback;
+        const text = transloco?.translate(key, params);
+        // A missing key comes back empty, as the key itself, or as "[key]" (@hakistack/i18n in dev mode).
+        return text && text !== key && text !== \`[\${key}]\` ? text : fallback;
       },
       langChange$: alertLangChange$,
     }),
     provideAppInitializer(() => {
-      inject(TranslocoService).langChanges$.subscribe(alertLangChange$);
+      transloco = inject(TranslocoService);
+      transloco.langChanges$.subscribe(alertLangChange$);
     }),
   ],
 };`,
@@ -264,8 +308,8 @@ export const appConfig: ApplicationConfig = {
           kind: 'note',
           tone: 'info',
           text: {
-            en: '`provideAlert` takes a plain object and does not inject Transloco for you. The bridge above forwards Transloco’s language stream once the app starts.',
-            es: '`provideAlert` recibe un objeto simple y no inyecta Transloco por ti. El puente de arriba reenvía el stream de idioma de Transloco cuando arranca la app.',
+            en: '`provideAlert` takes a plain object and does not inject Transloco for you. The bridge above keeps the `TranslocoService` the app initializer injects and forwards its language stream. It avoids Transloco’s global `translate()`, which Transloco v9 only enables with `provideGlobalTranslateFn()`.',
+            es: '`provideAlert` recibe un objeto simple y no inyecta Transloco por ti. El puente de arriba guarda el `TranslocoService` que inyecta el inicializador de la app y reenvía su stream de idioma. Evita el `translate()` global de Transloco, que Transloco v9 solo habilita con `provideGlobalTranslateFn()`.',
           },
         },
       ],

@@ -1,4 +1,5 @@
-import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
+import { EnvironmentProviders, InjectionToken } from '@angular/core';
+import { HkLabelsSource, provideLabelsSource } from '../../../utils/labels-source';
 
 /**
  * Text of `<hk-document-workspace>`'s chrome. Override app-wide with
@@ -133,9 +134,15 @@ export const DEFAULT_DOCUMENT_WORKSPACE_LABELS: ResolvedDocumentWorkspaceLabels 
   discardAndOpen: 'Discard and open',
 };
 
-export const HK_DOCUMENT_WORKSPACE_LABELS = new InjectionToken<DocumentWorkspaceLabels>('HK_DOCUMENT_WORKSPACE_LABELS');
+export const HK_DOCUMENT_WORKSPACE_LABELS = new InjectionToken<HkLabelsSource<DocumentWorkspaceLabels>>('HK_DOCUMENT_WORKSPACE_LABELS');
 
-/** Register app-wide text for `<hk-document-workspace>`. */
-export function provideHkDocumentWorkspaceLabels(labels: DocumentWorkspaceLabels): EnvironmentProviders {
-  return makeEnvironmentProviders([{ provide: HK_DOCUMENT_WORKSPACE_LABELS, useValue: labels }]);
+/**
+ * Register app-wide text for `<hk-document-workspace>`. Omitted fields keep the English
+ * defaults.
+ * Accepts a labels object, a `Signal` of labels, or a function run in an injection
+ * context (see `HkLabelsSource`). A signal source makes the component follow language
+ * switches.
+ */
+export function provideHkDocumentWorkspaceLabels(labels: HkLabelsSource<DocumentWorkspaceLabels>): EnvironmentProviders {
+  return provideLabelsSource(HK_DOCUMENT_WORKSPACE_LABELS, labels);
 }

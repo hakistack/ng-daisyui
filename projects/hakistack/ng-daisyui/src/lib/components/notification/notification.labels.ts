@@ -1,4 +1,5 @@
-import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
+import { EnvironmentProviders, InjectionToken } from '@angular/core';
+import { HkLabelsSource, provideLabelsSource } from '../../utils/labels-source';
 
 /**
  * App-wide default text for `<hk-notification-host>`. Override globally
@@ -31,11 +32,14 @@ export const DEFAULT_NOTIFICATION_LABELS: ResolvedNotificationLabels = {
   errorAriaPrefix: 'Error',
 };
 
-export const HK_NOTIFICATION_LABELS = new InjectionToken<NotificationLabels>('HK_NOTIFICATION_LABELS');
+export const HK_NOTIFICATION_LABELS = new InjectionToken<HkLabelsSource<NotificationLabels>>('HK_NOTIFICATION_LABELS');
 
 /**
  * Register app-wide text defaults for `<hk-notification-host>`. Any field
  * omitted falls back to the English default in `DEFAULT_NOTIFICATION_LABELS`.
+ * Accepts a labels object, a `Signal` of labels, or a function run in an injection
+ * context (see `HkLabelsSource`). A signal source makes the component follow language
+ * switches.
  *
  * @example
  * providers: [
@@ -45,6 +49,6 @@ export const HK_NOTIFICATION_LABELS = new InjectionToken<NotificationLabels>('HK
  *   }),
  * ]
  */
-export function provideHkNotificationLabels(labels: NotificationLabels): EnvironmentProviders {
-  return makeEnvironmentProviders([{ provide: HK_NOTIFICATION_LABELS, useValue: labels }]);
+export function provideHkNotificationLabels(labels: HkLabelsSource<NotificationLabels>): EnvironmentProviders {
+  return provideLabelsSource(HK_NOTIFICATION_LABELS, labels);
 }

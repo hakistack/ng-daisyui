@@ -41,6 +41,7 @@ import { CellPos, inRange, normalizeRange, rangeCellCount, rangeToTsv, summarize
 import { minColumnWidth } from './datagrid.state';
 import type { DataGridCellContext, DataGridController, DataGridFilter, DataGridPage, ResolvedDataGridColumn } from './datagrid.types';
 import { columnOffsets, columnRange, rowRange, scrollToReveal } from './datagrid.virtual';
+import { injectLabels } from '../../utils/labels-source';
 
 const OVERSCAN_ROWS = 6;
 const OVERSCAN_COLUMNS = 2;
@@ -142,7 +143,7 @@ export class DataGridComponent<T> {
   /** Per-instance text overrides. */
   readonly labels = input<DataGridLabels>({});
 
-  private readonly userLabels = inject(HK_DATAGRID_LABELS, { optional: true });
+  private readonly userLabels = injectLabels(HK_DATAGRID_LABELS);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly viewportRef = viewChild.required<ElementRef<HTMLElement>>('viewport');
@@ -150,7 +151,7 @@ export class DataGridComponent<T> {
 
   readonly id = `hk-dg-${nextId++}`;
 
-  readonly l = computed<ResolvedDataGridLabels>(() => resolveDataGridLabels(this.userLabels, this.labels()));
+  readonly l = computed<ResolvedDataGridLabels>(() => resolveDataGridLabels(this.userLabels(), this.labels()));
 
   // ── Viewport metrics (estimates until the first measurement) ──────────────
   private readonly scrollTop = signal(0);

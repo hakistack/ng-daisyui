@@ -17,6 +17,7 @@ import {
   PdfViewerInternalApi,
   PdfViewerState,
 } from '../pdf-viewer.types';
+import { injectLabels } from '../../../utils/labels-source';
 
 /**
  * Rendered-page bitmap cache, shared by every service that paints or
@@ -73,7 +74,7 @@ export interface PdfViewerHost {
  */
 @Injectable()
 export class PdfViewerStore {
-  private readonly userLabels = inject(HK_PDF_LABELS, { optional: true });
+  private readonly userLabels = injectLabels(HK_PDF_LABELS);
   private host: PdfViewerHost | null = null;
 
   constructor() {
@@ -102,7 +103,7 @@ export class PdfViewerStore {
     return this.h.element;
   }
 
-  readonly labels = computed<ResolvedPdfViewerLabels>(() => ({ ...DEFAULT_PDF_VIEWER_LABELS, ...this.userLabels }));
+  readonly labels = computed<ResolvedPdfViewerLabels>(() => ({ ...DEFAULT_PDF_VIEWER_LABELS, ...this.userLabels() }));
   readonly layout = computed(() => this.config().layout ?? 'default');
 
   // ── Controller runtime state ────────────────────────────────────────────

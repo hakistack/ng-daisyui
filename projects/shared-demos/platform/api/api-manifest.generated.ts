@@ -296,6 +296,7 @@ export type ApiSymbolName =
   | 'HK_DATAGRID_LABELS'
   | 'HK_DOCUMENT_ENGINE_WASM_URL'
   | 'HK_DOCUMENT_WORKSPACE_LABELS'
+  | 'HK_DYNAMIC_FORM_LABELS'
   | 'HK_IMAGE_ENGINE_WASM_URL'
   | 'HK_NOTIFICATION_LABELS'
   | 'HK_PDF_LABELS'
@@ -307,6 +308,7 @@ export type ApiSymbolName =
   | 'HkCellTemplateDirective'
   | 'HkDataGridCellDirective'
   | 'HkFooterDirective'
+  | 'HkLabelsSource'
   | 'HkPdfToolbarContext'
   | 'HkPdfToolbarDirective'
   | 'HkTableApi'
@@ -462,6 +464,7 @@ export type ApiSymbolName =
   | 'provideHkCommandPaletteLabels'
   | 'provideHkDataGridLabels'
   | 'provideHkDocumentWorkspaceLabels'
+  | 'provideHkDynamicFormLabels'
   | 'provideHkNotificationLabels'
   | 'provideHkPdfLabels'
   | 'provideHkTheme'
@@ -1207,7 +1210,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 379
+   "line": 401
   },
   "members": [
    {
@@ -1249,7 +1252,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 140
+   "line": 162
   },
   "members": [
    {
@@ -1915,7 +1918,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 234
+   "line": 256
   },
   "extends": [
    "BaseFieldOptions"
@@ -2072,7 +2075,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 254
+   "line": 276
   },
   "extends": [
    "BaseFieldOptions"
@@ -2389,7 +2392,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/command-palette/command-palette.component.ts",
-   "line": 63
+   "line": 64
   },
   "selector": "hk-command-palette",
   "inputs": [
@@ -2740,7 +2743,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/command-palette/command-palette.labels.ts",
-   "line": 8
+   "line": 9
   },
   "members": [
    {
@@ -2960,7 +2963,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 71
+   "line": 93
   },
   "members": [
    {
@@ -3034,7 +3037,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 131
+   "line": 153
   },
   "typeText": "| boolean | (() => boolean) | Signal<boolean> | string | [string, unknown] | [string, (value: unknown, formValues?: Record<string, unknown>) => boolean]"
  },
@@ -3268,7 +3271,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 399
+   "line": 421
   },
   "typeParams": "<T = Record<string, any>>",
   "members": [
@@ -3878,7 +3881,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datagrid/datagrid.component.ts",
-   "line": 110
+   "line": 111
   },
   "selector": "hk-datagrid",
   "inputs": [
@@ -4371,7 +4374,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datagrid/datagrid.labels.ts",
-   "line": 9
+   "line": 10
   },
   "members": [
    {
@@ -4919,7 +4922,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 239
+   "line": 261
   },
   "extends": [
    "BaseFieldOptions"
@@ -5701,7 +5704,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 251
+   "line": 273
   },
   "extends": [
    "BaseFieldOptions"
@@ -5899,7 +5902,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/command-palette/command-palette.labels.ts",
-   "line": 31
+   "line": 32
   },
   "typeText": "ResolvedCommandPaletteLabels"
  },
@@ -5912,7 +5915,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datagrid/datagrid.labels.ts",
-   "line": 147
+   "line": 148
   },
   "typeText": "ResolvedDataGridLabels"
  },
@@ -5925,7 +5928,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datagrid/datagrid.labels.ts",
-   "line": 127
+   "line": 128
   },
   "typeText": "Record<FilterOperator, string>"
  },
@@ -5938,7 +5941,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/document-viewer/workspace/document-workspace.labels.ts",
-   "line": 93
+   "line": 94
   },
   "typeText": "ResolvedDocumentWorkspaceLabels"
  },
@@ -5964,7 +5967,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 25
+   "line": 26
   },
   "typeText": "ResolvedNotificationLabels"
  },
@@ -5977,7 +5980,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/pdf-viewer/pdf-viewer.labels.ts",
-   "line": 809
+   "line": 810
   },
   "typeText": "ResolvedPdfViewerLabels"
  },
@@ -7251,7 +7254,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/document-viewer/workspace/document-workspace.component.ts",
-   "line": 74
+   "line": 75
   },
   "selector": "hk-document-workspace",
   "inputs": [
@@ -7318,7 +7321,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/document-viewer/workspace/document-workspace.labels.ts",
-   "line": 8
+   "line": 9
   },
   "members": [
    {
@@ -7572,7 +7575,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.component.ts",
-   "line": 46
+   "line": 47
   },
   "selector": "hk-dynamic-form",
   "inputs": [
@@ -7715,7 +7718,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 9
+   "line": 10
   },
   "members": [
    {
@@ -8211,7 +8214,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 173
+   "line": 195
   },
   "extends": [
    "BaseFieldOptions"
@@ -9243,7 +9246,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 42
+   "line": 64
   },
   "typeText": "| 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'textarea' | 'select' | 'multiselect' | 'radio' | 'checkbox' | 'toggle' | 'date' | 'datetime-local' | 'time' | 'range' | 'file' | 'color' | 'editor' | 'hidden'"
  },
@@ -9256,7 +9259,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 344
+   "line": 366
   },
   "typeText": "'full' | '1/2' | '1/3' | '1/4' | '2/3' | '3/4' | 'auto'"
  },
@@ -9268,7 +9271,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 256
+   "line": 278
   },
   "extends": [
    "BaseFieldOptions"
@@ -9787,7 +9790,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 449
+   "line": 471
   },
   "typeParams": "<T = Record<string, any>>",
   "members": [
@@ -9914,7 +9917,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 551
+   "line": 573
   },
   "typeParams": "<T = Record<string, any>>",
   "members": [
@@ -10119,7 +10122,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 277
+   "line": 299
   },
   "members": [
    {
@@ -10496,7 +10499,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 64
+   "line": 86
   },
   "typeParams": "<T = string>",
   "members": [
@@ -10705,7 +10708,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 348
+   "line": 370
   },
   "members": [
    {
@@ -10775,7 +10778,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 511
+   "line": 533
   },
   "typeParams": "<T = Record<string, any>>",
   "members": [
@@ -10892,7 +10895,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 519
+   "line": 541
   },
   "typeParams": "<T extends readonly FormFieldConfig[]>",
   "typeText": "Record<T[number]['key'], unknown>"
@@ -11279,7 +11282,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 270
+   "line": 292
   },
   "members": [
    {
@@ -11298,9 +11301,9 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/command-palette/command-palette.labels.ts",
-   "line": 42
+   "line": 43
   },
-  "typeText": "InjectionToken<CommandPaletteLabels>"
+  "typeText": "InjectionToken<HkLabelsSource<CommandPaletteLabels>>"
  },
  {
   "name": "HK_DATAGRID_LABELS",
@@ -11311,9 +11314,9 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datagrid/datagrid.labels.ts",
-   "line": 215
+   "line": 216
   },
-  "typeText": "InjectionToken<DataGridLabels>"
+  "typeText": "InjectionToken<HkLabelsSource<DataGridLabels>>"
  },
  {
   "name": "HK_DOCUMENT_ENGINE_WASM_URL",
@@ -11337,9 +11340,22 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/document-viewer/workspace/document-workspace.labels.ts",
-   "line": 136
+   "line": 137
   },
-  "typeText": "InjectionToken<DocumentWorkspaceLabels>"
+  "typeText": "InjectionToken<HkLabelsSource<DocumentWorkspaceLabels>>"
+ },
+ {
+  "name": "HK_DYNAMIC_FORM_LABELS",
+  "localName": "HK_DYNAMIC_FORM_LABELS",
+  "kind": "token",
+  "area": "dynamic-form",
+  "description": "Token holding the app-wide text for `<hk-dynamic-form>`. Register it with `provideHkDynamicFormLabels()`.",
+  "deprecated": false,
+  "source": {
+   "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
+   "line": 27
+  },
+  "typeText": "InjectionToken<HkLabelsSource<DynamicFormLabels>>"
  },
  {
   "name": "HK_IMAGE_ENGINE_WASM_URL",
@@ -11363,9 +11379,9 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 34
+   "line": 35
   },
-  "typeText": "InjectionToken<NotificationLabels>"
+  "typeText": "InjectionToken<HkLabelsSource<NotificationLabels>>"
  },
  {
   "name": "HK_PDF_LABELS",
@@ -11376,9 +11392,9 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/pdf-viewer/pdf-viewer.labels.ts",
-   "line": 1198
+   "line": 1199
   },
-  "typeText": "InjectionToken<PdfViewerLabels>"
+  "typeText": "InjectionToken<HkLabelsSource<PdfViewerLabels>>"
  },
  {
   "name": "HK_TABLE_ENGINE_WASM_URL",
@@ -11513,6 +11529,20 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   ],
   "outputs": [],
   "methods": []
+ },
+ {
+  "name": "HkLabelsSource",
+  "localName": "HkLabelsSource",
+  "kind": "type",
+  "area": "utils",
+  "description": "What an app-wide `provide*Labels()` function accepts, in one of three forms: - **A labels object.** Fixed text (the original form). - **A `Signal` of labels.** Components follow it: when the signal changes (for example on a language switch) they re-render, OnPush included. - **A function.** Called once, the first time a component needs the labels, in an injection context and outside any reactive context, so it may call `inject()`, `toSignal()` or a translation library's `translateSignal()`. Return a `Signal` (usually a `computed()` over translation signals) to follow language switches, or a plain object for text that is fixed but needs something injected. Works with any i18n library, or none: components only read signals.",
+  "deprecated": false,
+  "source": {
+   "path": "projects/hakistack/ng-daisyui/src/lib/utils/labels-source.ts",
+   "line": 35
+  },
+  "typeParams": "<T>",
+  "typeText": "T | Signal<T> | (() => T | Signal<T>)"
  },
  {
   "name": "HkPdfToolbarContext",
@@ -11877,7 +11907,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/input/input.component.ts",
-   "line": 17
+   "line": 29
   },
   "selector": "hk-input",
   "inputs": [
@@ -13468,7 +13498,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 221
+   "line": 243
   },
   "extends": [
    "BaseFieldOptions"
@@ -13886,7 +13916,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification-host.component.ts",
-   "line": 32
+   "line": 33
   },
   "selector": "hk-notification-host",
   "inputs": [],
@@ -13902,7 +13932,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 8
+   "line": 9
   },
   "members": [
    {
@@ -14153,7 +14183,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 203
+   "line": 225
   },
   "extends": [
    "BaseFieldOptions"
@@ -14238,7 +14268,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 81
+   "line": 103
   },
   "typeParams": "<T = unknown>",
   "members": [
@@ -14562,7 +14592,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 178
+   "line": 200
   },
   "extends": [
    "BaseFieldOptions"
@@ -16792,7 +16822,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/pdf-viewer/pdf-viewer.labels.ts",
-   "line": 8
+   "line": 9
   },
   "members": [
    {
@@ -19634,14 +19664,14 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "provideDynamicFormLabels",
   "kind": "provider",
   "area": "dynamic-form",
-  "description": "Register app-wide text defaults for `<hk-dynamic-form>`.",
+  "description": "The original name of `provideHkDynamicFormLabels` (same behavior, same token). Kept so existing code keeps working; new code can use the `Hk` name, which matches the other `provideHk*Labels` functions.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 38
+   "line": 60
   },
   "signatures": [
-   "provideDynamicFormLabels(labels: DynamicFormLabels): EnvironmentProvider…"
+   "provideDynamicFormLabels(labels: HkLabelsSource<DynamicFormLabels>): EnvironmentProvider…"
   ]
  },
  {
@@ -19664,14 +19694,14 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "provideHkCommandPaletteLabels",
   "kind": "provider",
   "area": "command-palette",
-  "description": "Register app-wide text defaults for `<hk-command-palette>`. Any field omitted falls back to the English default in `DEFAULT_COMMAND_PALETTE_LABELS`.",
+  "description": "Register app-wide text defaults for `<hk-command-palette>`. Any field omitted falls back to the English default in `DEFAULT_COMMAND_PALETTE_LABELS`. Accepts a labels object, a `Signal` of labels, or a function run in an injection context (see `HkLabelsSource`). A signal source makes the component follow language switches.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/command-palette/command-palette.labels.ts",
-   "line": 57
+   "line": 61
   },
   "signatures": [
-   "provideHkCommandPaletteLabels(labels: CommandPaletteLabels): EnvironmentProvider…"
+   "provideHkCommandPaletteLabels(labels: HkLabelsSource<CommandPaletteLabels>): EnvironmentProvider…"
   ]
  },
  {
@@ -19679,14 +19709,14 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "provideHkDataGridLabels",
   "kind": "provider",
   "area": "datagrid",
-  "description": "Register app-wide text for `<hk-datagrid>`. Omitted fields fall back to `DEFAULT_DATAGRID_LABELS`.",
+  "description": "Register app-wide text for `<hk-datagrid>`. Omitted fields fall back to `DEFAULT_DATAGRID_LABELS`. Accepts a labels object, a `Signal` of labels, or a function run in an injection context (see `HkLabelsSource`). A signal source makes the component follow language switches.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datagrid/datagrid.labels.ts",
-   "line": 229
+   "line": 233
   },
   "signatures": [
-   "provideHkDataGridLabels(labels: DataGridLabels): EnvironmentProvider…"
+   "provideHkDataGridLabels(labels: HkLabelsSource<DataGridLabels>): EnvironmentProvider…"
   ]
  },
  {
@@ -19694,14 +19724,29 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "provideHkDocumentWorkspaceLabels",
   "kind": "provider",
   "area": "document-viewer",
-  "description": "Register app-wide text for `<hk-document-workspace>`.",
+  "description": "Register app-wide text for `<hk-document-workspace>`. Omitted fields keep the English defaults. Accepts a labels object, a `Signal` of labels, or a function run in an injection context (see `HkLabelsSource`). A signal source makes the component follow language switches.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/document-viewer/workspace/document-workspace.labels.ts",
-   "line": 139
+   "line": 146
   },
   "signatures": [
-   "provideHkDocumentWorkspaceLabels(labels: DocumentWorkspaceLabels): EnvironmentProvider…"
+   "provideHkDocumentWorkspaceLabels(labels: HkLabelsSource<DocumentWorkspaceLabels>): EnvironmentProvider…"
+  ]
+ },
+ {
+  "name": "provideHkDynamicFormLabels",
+  "localName": "provideHkDynamicFormLabels",
+  "kind": "provider",
+  "area": "dynamic-form",
+  "description": "Register app-wide text defaults for `<hk-dynamic-form>`. Accepts a labels object, a `Signal` of labels, or a function run in an injection context (see `HkLabelsSource`). A signal source makes every form follow language switches.",
+  "deprecated": false,
+  "source": {
+   "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
+   "line": 51
+  },
+  "signatures": [
+   "provideHkDynamicFormLabels(labels: HkLabelsSource<DynamicFormLabels>): EnvironmentProvider…"
   ]
  },
  {
@@ -19709,14 +19754,14 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "provideHkNotificationLabels",
   "kind": "provider",
   "area": "notification",
-  "description": "Register app-wide text defaults for `<hk-notification-host>`. Any field omitted falls back to the English default in `DEFAULT_NOTIFICATION_LABELS`.",
+  "description": "Register app-wide text defaults for `<hk-notification-host>`. Any field omitted falls back to the English default in `DEFAULT_NOTIFICATION_LABELS`. Accepts a labels object, a `Signal` of labels, or a function run in an injection context (see `HkLabelsSource`). A signal source makes the component follow language switches.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 48
+   "line": 52
   },
   "signatures": [
-   "provideHkNotificationLabels(labels: NotificationLabels): EnvironmentProvider…"
+   "provideHkNotificationLabels(labels: HkLabelsSource<NotificationLabels>): EnvironmentProvider…"
   ]
  },
  {
@@ -19724,14 +19769,14 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "localName": "provideHkPdfLabels",
   "kind": "provider",
   "area": "pdf-viewer",
-  "description": "Register app-wide text defaults for `<hk-pdf-viewer>`. Any field omitted falls back to the English default in `DEFAULT_PDF_VIEWER_LABELS`.",
+  "description": "Register app-wide text defaults for `<hk-pdf-viewer>`. Any field omitted falls back to the English default in `DEFAULT_PDF_VIEWER_LABELS`. Accepts a labels object, a `Signal` of labels, or a function run in an injection context (see `HkLabelsSource`). A signal source makes the component follow language switches.",
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/pdf-viewer/pdf-viewer.labels.ts",
-   "line": 1214
+   "line": 1218
   },
   "signatures": [
-   "provideHkPdfLabels(labels: PdfViewerLabels): EnvironmentProvider…"
+   "provideHkPdfLabels(labels: HkLabelsSource<PdfViewerLabels>): EnvironmentProvider…"
   ]
  },
  {
@@ -19847,7 +19892,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 227
+   "line": 249
   },
   "extends": [
    "BaseFieldOptions"
@@ -19878,7 +19923,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 209
+   "line": 231
   },
   "extends": [
    "BaseFieldOptions"
@@ -20031,7 +20076,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/command-palette/command-palette.labels.ts",
-   "line": 28
+   "line": 29
   },
   "typeText": "Required<CommandPaletteLabels>"
  },
@@ -20090,7 +20135,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/datagrid/datagrid.labels.ts",
-   "line": 125
+   "line": 126
   },
   "typeText": "Required<Omit<DataGridLabels, 'operators'>> & { operators: Record<FilterOperator, string> }"
  },
@@ -20102,7 +20147,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/document-viewer/workspace/document-workspace.labels.ts",
-   "line": 91
+   "line": 92
   },
   "typeText": "Required<DocumentWorkspaceLabels>"
  },
@@ -20213,7 +20258,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/notification/notification.labels.ts",
-   "line": 23
+   "line": 24
   },
   "typeText": "Required<NotificationLabels>"
  },
@@ -20226,7 +20271,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/pdf-viewer/pdf-viewer.labels.ts",
-   "line": 806
+   "line": 807
   },
   "typeText": "Required<PdfViewerLabels>"
  },
@@ -20284,7 +20329,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 334
+   "line": 356
   },
   "members": [
    {
@@ -20869,7 +20914,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 215
+   "line": 237
   },
   "extends": [
    "BaseFieldOptions"
@@ -21602,7 +21647,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 521
+   "line": 543
   },
   "members": [
    {
@@ -21636,7 +21681,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 532
+   "line": 554
   },
   "members": [
    {
@@ -21784,7 +21829,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 361
+   "line": 383
   },
   "members": [
    {
@@ -21851,7 +21896,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 540
+   "line": 562
   },
   "members": [
    {
@@ -21893,7 +21938,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/tab/tab-group/tab-group.component.ts",
-   "line": 16
+   "line": 26
   },
   "selector": "hk-tab-group",
   "inputs": [
@@ -23430,7 +23475,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 184
+   "line": 206
   },
   "extends": [
    "BaseFieldOptions"
@@ -23511,7 +23556,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 196
+   "line": 218
   },
   "extends": [
    "BaseFieldOptions"
@@ -23592,7 +23637,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 167
+   "line": 189
   },
   "extends": [
    "BaseFieldOptions"
@@ -23657,7 +23702,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 248
+   "line": 270
   },
   "extends": [
    "BaseFieldOptions"
@@ -24531,7 +24576,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 237
+   "line": 259
   },
   "extends": [
    "BaseFieldOptions"
@@ -25845,7 +25890,7 @@ export const API_SYMBOLS: readonly ApiSymbol[] = [
   "deprecated": false,
   "source": {
    "path": "projects/hakistack/ng-daisyui/src/lib/components/dynamic-form/dynamic-form.types.ts",
-   "line": 190
+   "line": 212
   },
   "extends": [
    "BaseFieldOptions"

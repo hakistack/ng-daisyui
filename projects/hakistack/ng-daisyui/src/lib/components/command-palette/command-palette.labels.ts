@@ -1,4 +1,5 @@
-import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
+import { EnvironmentProviders, InjectionToken } from '@angular/core';
+import { HkLabelsSource, provideLabelsSource } from '../../utils/labels-source';
 
 /**
  * App-wide default text for every `<hk-command-palette>`. Override globally
@@ -39,11 +40,14 @@ export const DEFAULT_COMMAND_PALETTE_LABELS: ResolvedCommandPaletteLabels = {
   modePrefix: 'Mode:',
 };
 
-export const HK_COMMAND_PALETTE_LABELS = new InjectionToken<CommandPaletteLabels>('HK_COMMAND_PALETTE_LABELS');
+export const HK_COMMAND_PALETTE_LABELS = new InjectionToken<HkLabelsSource<CommandPaletteLabels>>('HK_COMMAND_PALETTE_LABELS');
 
 /**
  * Register app-wide text defaults for `<hk-command-palette>`. Any field
  * omitted falls back to the English default in `DEFAULT_COMMAND_PALETTE_LABELS`.
+ * Accepts a labels object, a `Signal` of labels, or a function run in an injection
+ * context (see `HkLabelsSource`). A signal source makes the component follow language
+ * switches.
  *
  * @example
  * providers: [
@@ -54,6 +58,6 @@ export const HK_COMMAND_PALETTE_LABELS = new InjectionToken<CommandPaletteLabels
  *   }),
  * ]
  */
-export function provideHkCommandPaletteLabels(labels: CommandPaletteLabels): EnvironmentProviders {
-  return makeEnvironmentProviders([{ provide: HK_COMMAND_PALETTE_LABELS, useValue: labels }]);
+export function provideHkCommandPaletteLabels(labels: HkLabelsSource<CommandPaletteLabels>): EnvironmentProviders {
+  return provideLabelsSource(HK_COMMAND_PALETTE_LABELS, labels);
 }

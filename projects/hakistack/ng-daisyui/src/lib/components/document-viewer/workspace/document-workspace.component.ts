@@ -40,6 +40,7 @@ import {
   HK_DOCUMENT_WORKSPACE_LABELS,
   ResolvedDocumentWorkspaceLabels,
 } from './document-workspace.labels';
+import { injectLabels } from '../../../utils/labels-source';
 
 /** Zoom steps of the zoom buttons. */
 const ZOOM_STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
@@ -99,20 +100,28 @@ export class DocumentWorkspaceComponent {
   protected readonly host = inject(DocumentViewerHost);
   private static nextId = 0;
   protected readonly uid = ++DocumentWorkspaceComponent.nextId;
-  private readonly userLabels = inject(HK_DOCUMENT_WORKSPACE_LABELS, { optional: true });
-  protected readonly labels: ResolvedDocumentWorkspaceLabels = { ...DEFAULT_DOCUMENT_WORKSPACE_LABELS, ...this.userLabels };
-  protected readonly listLabels: MesaDocumentListLabels = {
-    documents: this.labels.documents,
-    listHint: this.labels.listHint,
-    pageCountShort: this.labels.pageCountShort,
-    filter: this.labels.filterDocuments,
-    noMatches: this.labels.noDocumentsMatch,
-  };
+  private readonly userLabels = injectLabels(HK_DOCUMENT_WORKSPACE_LABELS);
+  protected readonly labels = computed<ResolvedDocumentWorkspaceLabels>(() => ({
+    ...DEFAULT_DOCUMENT_WORKSPACE_LABELS,
+    ...this.userLabels(),
+  }));
+  protected readonly listLabels = computed<MesaDocumentListLabels>(() => {
+    const l = this.labels();
+    return {
+      documents: l.documents,
+      listHint: l.listHint,
+      pageCountShort: l.pageCountShort,
+      filter: l.filterDocuments,
+      noMatches: l.noDocumentsMatch,
+    };
+  });
   /** Whether the section strip under the document is unfolded. */
   protected readonly stripOpen = signal(true);
   /** "Section 2 of 3" */
   protected readonly sectionPosition = computed(() =>
-    this.labels.sectionPosition.replace('{current}', String(this.currentIndex() + 1)).replace('{total}', String(this.sections().length)),
+    this.labels()
+      .sectionPosition.replace('{current}', String(this.currentIndex() + 1))
+      .replace('{total}', String(this.sections().length)),
   );
 
   /**
@@ -171,8 +180,8 @@ export class DocumentWorkspaceComponent {
   protected readonly docsRail = computed<PdfWorkspaceRailExtra | null>(() =>
     this.documents().length
       ? {
-          label: this.labels.documents,
-          title: this.labels.documentsTitle.replace('{count}', String(this.documents().length)),
+          label: this.labels().documents,
+          title: this.labels().documentsTitle.replace('{count}', String(this.documents().length)),
           template: this.docListTemplate(),
         }
       : null,
@@ -198,13 +207,13 @@ export class DocumentWorkspaceComponent {
 
   /** "report.xlsx · XLSX" */
   protected readonly badge = computed(() => {
-    const name = this.filename() ?? this.labels.documentAria;
+    const name = this.filename() ?? this.labels().documentAria;
     const ext = this.resolvedFormat().extension?.replace(/^\./, '').toUpperCase();
     return ext ? `${name} · ${ext}` : name;
   });
 
   protected readonly fileRows = computed(() => {
-    const l = this.labels;
+    const l = this.labels();
     const f = this.resolvedFormat();
     const rows = [
       { label: l.fileName, value: this.filename() ?? '—' },
@@ -218,13 +227,13 @@ export class DocumentWorkspaceComponent {
   });
 
   protected readonly layoutLabels = computed<MesaLayoutLabels>(() => ({
-    rail: this.labels.rail,
-    inspector: this.labels.inspector,
-    showRail: this.labels.showRail,
-    hideRail: this.labels.hideRail,
-    showInspector: this.labels.showInspector,
-    hideInspector: this.labels.hideInspector,
-    skipToRail: this.labels.skipToRail,
+    rail: this.labels().rail,
+    inspector: this.labels().inspector,
+    showRail: this.labels().showRail,
+    hideRail: this.labels().hideRail,
+    showInspector: this.labels().showInspector,
+    hideInspector: this.labels().hideInspector,
+    skipToRail: this.labels().skipToRail,
   }));
 
   private downloadUrl: string | null = null;
