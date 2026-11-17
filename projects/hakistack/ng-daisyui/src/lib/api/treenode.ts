@@ -133,17 +133,35 @@ export interface TreeNodeDragStartEvent<T = unknown> {
 }
 
 /**
- * Event emitted when a tree node is dropped
+ * Event emitted when a tree node is dragged and dropped (`hk-tree` `nodeDrop`).
  */
 export interface TreeNodeDropEvent<T = unknown> {
   /** The original drag event */
   originalEvent: DragEvent;
   /** The node being dragged */
   dragNode: TreeNode<T>;
-  /** The node receiving the drop */
+  /** The target node (drop location) */
   dropNode: TreeNode<T> | null;
-  /** Drop position: -1 (before), 0 (into), 1 (after) */
+  /** Original parent of the dragged node */
+  dragNodeParent: TreeNode<T> | null;
+  /** New parent of the dragged node */
+  dropNodeParent: TreeNode<T> | null;
+  /** Drop position relative to `dropNode` */
+  dropPosition: 'before' | 'after' | 'inside';
+  /** Original index of the dragged node among its siblings */
+  dragNodeIndex: number;
+  /** Index among the new siblings after the drop */
   dropIndex: number;
+}
+
+/**
+ * Event emitted when a tree node drag ends
+ */
+export interface TreeNodeDragEndEvent<T = unknown> {
+  /** The original drag event */
+  originalEvent: DragEvent;
+  /** The node that was dragged */
+  node: TreeNode<T>;
 }
 
 /** Selection mode for tree-based components */

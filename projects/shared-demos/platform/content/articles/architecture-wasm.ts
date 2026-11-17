@@ -15,8 +15,8 @@ const content: ArticleContent = {
         {
           kind: 'p',
           text: {
-            en: 'Kernels are plain Rust libraries with no `wasm-bindgen`, testable natively with `npm run engine:test` (`cargo test --workspace`). Only thin umbrella crates talk to JavaScript.',
-            es: 'Los kernels son librerías de Rust simples, sin `wasm-bindgen`, que se prueban de forma nativa con `npm run engine:test` (`cargo test --workspace`). Solo unos pocos crates paraguas, muy delgados, se comunican con JavaScript.',
+            en: 'Kernels are plain Rust libraries with no `wasm-bindgen`, testable natively with `npm run test:engine` (`cargo test --workspace`). Only thin umbrella crates talk to JavaScript.',
+            es: 'Los kernels son librerías de Rust simples, sin `wasm-bindgen`, que se prueban de forma nativa con `npm run test:engine` (`cargo test --workspace`). Solo unos pocos crates paraguas, muy delgados, se comunican con JavaScript.',
           },
         },
         {
@@ -68,8 +68,8 @@ const content: ArticleContent = {
             [
               { en: '`libheif-bridge`', es: '`libheif-bridge`' },
               {
-                en: 'HEIC decoder for `wasm32-unknown-emscripten`; excluded from the workspace and built only with `npm run libheif:build`',
-                es: 'Decodificador HEIC para `wasm32-unknown-emscripten`; está excluido del workspace y solo se compila con `npm run libheif:build`',
+                en: 'HEIC decoder for `wasm32-unknown-emscripten`; excluded from the workspace and built only with `npm run build:libheif`',
+                es: 'Decodificador HEIC para `wasm32-unknown-emscripten`; está excluido del workspace y solo se compila con `npm run build:libheif`',
               },
             ],
           ],
@@ -91,7 +91,7 @@ const content: ArticleContent = {
           kind: 'flow',
           steps: [
             {
-              label: { en: 'npm run engine:build', es: 'npm run engine:build' },
+              label: { en: 'npm run build:engine', es: 'npm run build:engine' },
               detail: {
                 en: '`scripts/build-wasm.mjs` runs `wasm-pack build --target web` for `engine-wasm`, `document-wasm`, `image-wasm` and `pdf-engine`.',
                 es: '`scripts/build-wasm.mjs` ejecuta `wasm-pack build --target web` para `engine-wasm`, `document-wasm`, `image-wasm` y `pdf-engine`.',

@@ -151,9 +151,13 @@ export class TabGroupComponent implements AfterContentInit {
   /** Compose tab button classes for a given panel — base + active + disabled state. */
   tabButtonClass(panel: TabPanelComponent): string {
     const base = this.tabClass();
-    const active = this.selectedTab() === panel.value() ? ` ${this.activeTabClass()}` : '';
+    const isActive = this.selectedTab() === panel.value();
+    const active = isActive ? ` ${this.activeTabClass()}` : '';
     const disabled = panel.disabled() ? (this.isVertical() ? ' btn-disabled' : ' tab-disabled') : '';
-    return `${base}${active}${disabled}`;
+    // daisyUI dims inactive tabs to ~50 % base-content (below 4.5:1 on light themes); keep them at the
+    // library's muted-text minimum. Disabled tabs are exempt from contrast and keep daisyUI's look.
+    const muted = !isActive && !panel.disabled() && !this.isVertical() ? ' text-base-content/70 hover:text-base-content' : '';
+    return `${base}${active}${disabled}${muted}`;
   }
 
   /** The currently selected tab value */

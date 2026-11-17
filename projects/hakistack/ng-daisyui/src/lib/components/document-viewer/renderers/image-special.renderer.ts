@@ -12,7 +12,7 @@ import { loadSourceAsBytes } from '../document-viewer.helpers';
  *   1. **HEIC / HEIF** — three-tier fallback chain:
  *
  *      a. **In-tree libheif WASM** (preferred). Loaded via
- *         [`LibheifService`] when `npm run libheif:build` has been run.
+ *         [`LibheifService`] when `npm run build:libheif` has been run.
  *         Smallest, no third-party deps.
  *      b. **`heic2any` peer dep**. Used when (a) isn't available but
  *         the consumer has installed `heic2any`. Larger, still works.
@@ -32,7 +32,7 @@ import { loadSourceAsBytes } from '../document-viewer.helpers';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">{{ loadingMessage() }}</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">{{ loadingMessage() }}</div>
     } @else if (error(); as e) {
       <div class="alert alert-error whitespace-pre-line">{{ e }}</div>
     } @else if (objectUrl(); as url) {
@@ -123,7 +123,7 @@ export class DocumentImageSpecialRenderer {
     } catch (e) {
       throw new Error(
         'HEIC support unavailable. Pick one:\n' +
-          '  • Build the in-tree libheif WASM:  npm run libheif:build  ' +
+          '  • Build the in-tree libheif WASM:  npm run build:libheif  ' +
           '(see hakistack-engine/external/libheif-wasm/README.md for prereqs)\n' +
           '  • Or install the heic2any peer dep:  npm install heic2any\n\n' +
           `Underlying error: ${(e as Error).message ?? e}`,

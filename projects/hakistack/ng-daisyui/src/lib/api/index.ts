@@ -10,5 +10,6 @@ export type {
   TreeNodeCollapseEvent,
   TreeNodeDragStartEvent,
   TreeNodeDropEvent,
+  TreeNodeDragEndEvent,
   TreeSelectionMode,
 } from './treenode';

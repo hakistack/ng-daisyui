@@ -82,7 +82,7 @@ have `emcc` on PATH.
 From the repo root:
 
 ```bash
-npm run libheif:build
+npm run build:libheif
 ```
 
 Wraps `external/libheif-wasm/build.sh`. The script is **idempotent** —
@@ -120,7 +120,7 @@ re-runs.
 | Emscripten | 3.1.68 | (matches Rust's pre-compiled std for `wasm32-unknown-emscripten`) |
 
 Bump versions in `build.sh` (`LIBDE265_VERSION` / `LIBHEIF_VERSION`).
-Re-run `npm run libheif:build`. The script re-detects sources and
+Re-run `npm run build:libheif`. The script re-detects sources and
 rebuilds.
 
 ---
@@ -170,7 +170,7 @@ service (`services/libheif.service.ts`) follow the same pattern.
 `image-special.renderer.ts` tries HEIC in this order:
 
 1. **In-tree libheif** — used when `libheif_wasm_inline.ts` is present
-   (after you've run `npm run libheif:build`). Fast path.
+   (after you've run `npm run build:libheif`). Fast path.
 2. **`heic2any` peer dep** — used when the in-tree build hasn't been
    run but the consumer has `heic2any` installed.
 3. **Clean error** with install instructions for both options.
@@ -219,7 +219,7 @@ The lib works whether or not you've run the build — it's a
 - **AVIF in the same bundle** — libheif can also decode AVIF when
   built with libdav1d. A future spike could fold AVIF here instead of
   using the Rust `image` crate path for it.
-- **CI** — add a GitHub Actions workflow that runs `npm run libheif:build`
+- **CI** — add a GitHub Actions workflow that runs `npm run build:libheif`
   on `ubuntu-latest` with emsdk + binaryen installed, so the artifacts
   can be cached + downloaded by contributors who don't want to install
   Emscripten locally.

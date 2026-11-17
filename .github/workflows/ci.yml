@@ -10,7 +10,67 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Selective CI: a pull request runs only the jobs of the products it touches. Pushes to main and
+# changes to shared configuration (root package.json/lockfile, angular.json, tsconfig, lint/test
+# configs, workflows, scripts/workspace) run everything. Path groups mirror scripts/workspace/products.mjs.
+# Branch protection should require the single `ci-ok` job (skipped jobs count as success there).
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      ui: ${{ steps.filter.outputs.ui == 'true' || steps.filter.outputs.shared == 'true' || github.event_name == 'push' }}
+      i18n: ${{ steps.filter.outputs.i18n == 'true' || steps.filter.outputs.shared == 'true' || github.event_name == 'push' }}
+      docs: ${{ steps.filter.outputs.docs == 'true' || steps.filter.outputs.ui == 'true' || steps.filter.outputs.shared == 'true' || github.event_name == 'push' }}
+      engine: ${{ steps.filter.outputs.engine == 'true' || steps.filter.outputs.shared == 'true' || github.event_name == 'push' }}
+      libheif: ${{ steps.filter.outputs.libheif == 'true' || github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared:
+              - 'package.json'
+              - 'package-lock.json'
+              - 'angular.json'
+              - 'tsconfig.json'
+              - 'eslint.config.mjs'
+              - 'vitest*.ts'
+              - '.github/workflows/**'
+              - 'scripts/workspace/**'
+            ui:
+              - 'projects/hakistack/ng-daisyui/**'
+              - 'tests/consumer-smoke/**'
+              - 'scripts/build-lib-css.mjs'
+              - 'scripts/lib-css.config.mjs'
+              - 'scripts/fix-exports.mjs'
+              - 'scripts/build-schematics.mjs'
+              - 'scripts/build-pdfium-worker.mjs'
+              - 'scripts/consumer-smoke.mjs'
+            i18n:
+              - 'projects/hakistack/i18n/**'
+              - 'tests/consumer-smoke-i18n/**'
+              - 'scripts/build-i18n-*.mjs'
+              - 'scripts/consumer-smoke.mjs'
+            docs:
+              - 'projects/demo/**'
+              - 'projects/demo-v4/**'
+              - 'projects/shared-demos/**'
+              - 'scripts/docs/**'
+              - 'scripts/extract-api-docs.mjs'
+              - 'scripts/check-doc*.mjs'
+              - 'scripts/check-text-contrast.mjs'
+              - 'e2e/**'
+              - 'playwright.config.ts'
+            engine:
+              - 'hakistack-engine/**'
+            libheif:
+              - 'hakistack-engine/external/libheif-wasm/**'
+              - 'hakistack-engine/crates/libheif-bridge/**'
+
   install:
     runs-on: ubuntu-latest
     steps:
@@ -25,9 +85,13 @@ jobs:
 
       - uses: actions/cache/save@v4
         with:
-          path: node_modules
+          # projects/demo-v4/node_modules: the npm workspace nests Tailwind 3 / daisyUI 4 there (styles-v4.css).
+          path: |
+            node_modules
+            projects/demo-v4/node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
 
+  # Cheap and repo-wide: ESLint for both libraries + dependency boundaries + text contrast.
   lint:
     needs: install
     runs-on: ubuntu-latest
@@ -40,13 +104,20 @@ jobs:
 
       - uses: actions/cache/restore@v4
         with:
-          path: node_modules
+          # projects/demo-v4/node_modules: the npm workspace nests Tailwind 3 / daisyUI 4 there (styles-v4.css).
+          path: |
+            node_modules
+            projects/demo-v4/node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
 
+      # `ng lint` (ng-daisyui + i18n) followed by scripts/workspace/check-boundaries.mjs.
       - run: npm run lint
+      - run: npm run lint:contrast
 
-  test:
-    needs: install
+  # @hakistack/ng-daisyui: unit + schematics tests, build, artifact validation, size guard, consumer install.
+  ui:
+    needs: [changes, install]
+    if: needs.changes.outputs.ui == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,15 +128,55 @@ jobs:
 
       - uses: actions/cache/restore@v4
         with:
-          path: node_modules
+          # projects/demo-v4/node_modules: the npm workspace nests Tailwind 3 / daisyUI 4 there (styles-v4.css).
+          path: |
+            node_modules
+            projects/demo-v4/node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
 
-      - run: npm test
+      - run: npm run test:ui
+      - run: npm run build:ui
+      - run: npm run validate:ui
 
-      - run: npm run test:schematics
+      # Growth guard on the whole-library FESM (not what consumers ship).
+      - run: npx size-limit --json
+
+      # Install the packed tarball into a clean Angular app with only the required peers and build it:
+      # catches wrong peer metadata, broken `exports`, type-only value exports, tree-shaking regressions
+      # and enforces the consumer initial-JS budget.
+      - run: npm run test:consumer:ui
+      # Same, per heavier feature (hk-datagrid, hk-dynamic-form, hk-pdf-viewer), each with its own initial-JS budget.
+      - run: npm run test:consumer:variants
+
+  # @hakistack/i18n: runtime + CLI/engine/schematics tests, build, artifact validation, and a clean
+  # consumer app WITHOUT ng-daisyui that runs the codegen CLI from the tarball and builds.
+  i18n:
+    needs: [changes, install]
+    if: needs.changes.outputs.i18n == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/cache/restore@v4
+        with:
+          # projects/demo-v4/node_modules: the npm workspace nests Tailwind 3 / daisyUI 4 there (styles-v4.css).
+          path: |
+            node_modules
+            projects/demo-v4/node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - run: npm run test:i18n
+      - run: npm run build:i18n
+      - run: npm run validate:i18n
+      - run: npm run test:consumer:i18n
 
   docs:
-    needs: install
+    needs: [changes, install]
+    if: needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +187,10 @@ jobs:
 
       - uses: actions/cache/restore@v4
         with:
-          path: node_modules
+          # projects/demo-v4/node_modules: the npm workspace nests Tailwind 3 / daisyUI 4 there (styles-v4.css).
+          path: |
+            node_modules
+            projects/demo-v4/node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
 
       # API manifest up to date, every public symbol owned by a docs page, routes/links/translations valid.
@@ -86,7 +200,8 @@ jobs:
       - run: npm run test:docs
 
   e2e:
-    needs: install
+    needs: [changes, install]
+    if: needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -98,13 +213,18 @@ jobs:
 
       - uses: actions/cache/restore@v4
         with:
-          path: node_modules
+          # projects/demo-v4/node_modules: the npm workspace nests Tailwind 3 / daisyUI 4 there (styles-v4.css).
+          path: |
+            node_modules
+            projects/demo-v4/node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
 
       - run: npx playwright install --with-deps chromium firefox webkit
       # Docs platform on 3 engines (axe, navigation, search, i18n, playgrounds, mobile) + the demo smoke tests.
       # Visual snapshots skip themselves off macOS.
       - run: npx playwright test e2e/docs-platform.spec.ts e2e/app.spec.ts
+      # axe over the live library components: every example route in the docs catalog (Chromium).
+      - run: npx playwright test e2e/components-a11y.spec.ts --project=chromium
 
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -113,38 +233,15 @@ jobs:
           path: playwright-report
           retention-days: 7
 
-  build:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
-      - run: npm run build
-
-      # Growth guard on the whole-library FESM (not what consumers ship).
-      - run: npx size-limit --json
-
-      # Install the packed tarball into a clean Angular app with only the required peers and build it:
-      # catches wrong peer metadata, broken `exports`, type-only value exports, tree-shaking regressions
-      # and enforces the consumer initial-JS budget.
-      - run: npm run test:consumer
-
   # Rust workspace check + tests. Covers document-engine, image-engine,
   # and the other pure-Rust crates. The `libheif-bridge` crate is
   # excluded from the workspace (targets only wasm32-unknown-emscripten +
   # links against pre-built C libs) — it would need a separate job with
-  # emsdk installed, which we defer to the libheif:build path below.
+  # emsdk installed, which we defer to the build:libheif path below.
+  # No Node install needed: the job only runs cargo.
   rust:
-    needs: install
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -168,7 +265,7 @@ jobs:
         run: cargo clippy --manifest-path hakistack-engine/Cargo.toml --workspace --all-targets -- -D warnings
 
       - name: cargo test
-        run: npm run engine:test
+        run: cargo test --manifest-path hakistack-engine/Cargo.toml --workspace
 
   # libheif WASM build — needs emscripten + binaryen + the
   # wasm32-unknown-emscripten Rust target. Slower and more brittle than
@@ -178,7 +275,8 @@ jobs:
   # keeps the renderer functional without it. Re-evaluate this gating
   # decision once the build has been stable for a few releases.
   libheif:
-    needs: install
+    needs: changes
+    if: needs.changes.outputs.libheif == 'true'
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -211,9 +309,20 @@ jobs:
           rustup target list --installed | grep emscripten
 
       - name: Build libheif WASM
-        run: npm run libheif:build
+        run: bash hakistack-engine/external/libheif-wasm/build.sh
 
       - name: Report bundle size
         run: |
           wasm=projects/hakistack/ng-daisyui/src/lib/wasm/libheif/libheif_wasm_bg.wasm
           echo "::notice title=libheif WASM size::$(du -h "$wasm" | awk '{print $1}') raw, $(gzip -c "$wasm" | wc -c | numfmt --to=iec --suffix=B) gzip"
+
+  # The one check to require in branch protection: fails if any job that ran failed or was cancelled.
+  # Jobs skipped because their product did not change count as success. libheif is non-blocking.
+  ci-ok:
+    if: always()
+    needs: [changes, install, lint, ui, i18n, docs, e2e, rust]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All required jobs passed or were skipped
+        run: |
+          echo '${{ toJSON(needs) }}' | jq -e 'to_entries | all(.value.result == "success" or .value.result == "skipped")'

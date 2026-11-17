@@ -57,8 +57,8 @@ const content: ArticleContent = {
             [
               { en: '[Menu](/menu)', es: '[Menu](/menu)' },
               {
-                en: '`menu` (vertical) or `menubar` (horizontal) with `menuitem`, and `aria-haspopup` / `aria-expanded` on submenus',
-                es: '`menu` (vertical) o `menubar` (horizontal) con `menuitem`, y `aria-haspopup` / `aria-expanded` en los submenús',
+                en: 'Links-only menus are navigation lists (Tab between links, `aria-current="page"`); menus with actions are `menu` / `menubar` with `menuitem`, one Tab stop and arrow keys, and `aria-haspopup` / `aria-expanded` on submenus',
+                es: 'Los menús de solo enlaces son listas de navegación (Tab entre enlaces, `aria-current="page"`); los menús con acciones son `menu` / `menubar` con `menuitem`, una sola parada de Tab y flechas, y `aria-haspopup` / `aria-expanded` en los submenús',
               },
             ],
             [
@@ -71,8 +71,8 @@ const content: ArticleContent = {
             [
               { en: '[Toast](/toast), [Notification](/notification)', es: '[Toast](/toast), [Notification](/notification)' },
               {
-                en: 'Live regions: auto-dismissing toasts are `assertive`, sticky toasts `polite`; the notification host is a single `polite` region',
-                es: 'Regiones vivas: los toasts que se cierran solos son `assertive` y los fijos, `polite`; el host de notificaciones es una única región `polite`',
+                en: 'Toasts are announced through the CDK `LiveAnnouncer` (errors `assertive`, the rest `polite`) with a severity word first; the notification host is a single `polite` region',
+                es: 'Los toasts se anuncian con el `LiveAnnouncer` de la CDK (los errores como `assertive`, el resto como `polite`) con una palabra de severidad delante; el host de notificaciones es una única región `polite`',
               },
             ],
             [

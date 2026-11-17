@@ -117,7 +117,13 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
             description="Upload anything — PDF, xlsx, image, text. The viewer detects the format and dispatches to the matching renderer."
           >
             <div class="flex flex-wrap gap-2 items-center mb-3">
-              <input type="file" class="file-input file-input-sm file-input-bordered" [attr.accept]="acceptAll" (change)="onFile($event)" />
+              <input
+                type="file"
+                class="file-input file-input-sm file-input-bordered"
+                aria-label="Choose a file to preview"
+                [attr.accept]="acceptAll"
+                (change)="onFile($event)"
+              />
               <button class="btn btn-sm" (click)="clear()">Clear</button>
             </div>
 
@@ -132,7 +138,7 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
                 <hk-document-viewer class="h-full" [src]="src" [config]="viewerConfig()" />
               </div>
             } @else {
-              <div class="text-base-content/40 text-sm py-12 text-center">Pick a file above, or jump to a sample in the next tab.</div>
+              <div class="text-base-content/70 text-sm py-12 text-center">Pick a file above, or jump to a sample in the next tab.</div>
             }
           </app-doc-section>
         }
@@ -147,12 +153,13 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
               <input
                 type="file"
                 class="file-input file-input-sm file-input-bordered"
+                aria-label="Choose a spreadsheet"
                 [attr.accept]="acceptSheet"
                 (change)="onFile($event)"
               />
               <button class="btn btn-sm" (click)="clear()">Clear</button>
             </div>
-            <div class="text-xs text-base-content/50 mb-3">
+            <div class="text-xs text-base-content/70 mb-3">
               Open DevTools → Network and watch <code class="font-mono">document_wasm</code> load on the first upload — and stay cached for
               every subsequent file.
             </div>
@@ -161,7 +168,7 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
                 <hk-document-viewer [src]="src" [config]="viewerConfig()" />
               </div>
             } @else {
-              <div class="text-base-content/40 text-sm py-12 text-center">Pick a spreadsheet above to see calamine parse it on-device.</div>
+              <div class="text-base-content/70 text-sm py-12 text-center">Pick a spreadsheet above to see calamine parse it on-device.</div>
             }
           </app-doc-section>
         }
@@ -175,12 +182,13 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
               <input
                 type="file"
                 class="file-input file-input-sm file-input-bordered"
+                aria-label="Choose an image"
                 [attr.accept]="acceptImage"
                 (change)="onFile($event)"
               />
               <button class="btn btn-sm" (click)="clear()">Clear</button>
             </div>
-            <div class="text-xs text-base-content/50 mb-3 space-y-1">
+            <div class="text-xs text-base-content/70 mb-3 space-y-1">
               <div><strong>TIFF</strong> uses our in-tree <code class="font-mono">image_wasm</code> bundle (pure Rust).</div>
               <div>
                 <strong>HEIC</strong> uses <code class="font-mono">heic2any</code> as an optional peer dep — install with
@@ -193,7 +201,7 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
                 <hk-document-viewer [src]="src" [config]="viewerConfig()" />
               </div>
             } @else {
-              <div class="text-base-content/40 text-sm py-12 text-center">Pick a TIFF or HEIC to see the WASM decoder in action.</div>
+              <div class="text-base-content/70 text-sm py-12 text-center">Pick a TIFF or HEIC to see the WASM decoder in action.</div>
             }
           </app-doc-section>
         }
@@ -324,12 +332,12 @@ const SAMPLE_CSV = `data:text/csv;charset=utf-8,${encodeURIComponent(
               </div>
               @if (lastSaved(); as saved) {
                 <div class="mt-2">
-                  <div class="text-xs text-base-content/50 mb-1">Last save (decoded bytes from the controller's onSave):</div>
+                  <div class="text-xs text-base-content/70 mb-1">Last save (decoded bytes from the controller's onSave):</div>
                   <pre class="bg-base-200 rounded p-3 text-xs whitespace-pre-wrap break-words">{{ saved }}</pre>
                 </div>
               }
             } @else {
-              <div class="text-base-content/40 text-sm py-12 text-center">Load the sample note above to start editing.</div>
+              <div class="text-base-content/70 text-sm py-12 text-center">Load the sample note above to start editing.</div>
             }
           </app-doc-section>
         }

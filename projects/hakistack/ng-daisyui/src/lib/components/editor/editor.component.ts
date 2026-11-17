@@ -153,6 +153,18 @@ export class EditorComponent implements ControlValueAccessor, Validator {
   private onTouched: () => void = () => {};
   private cvaDisabled = false;
 
+  /** Accessible name of the editing surface. */
+  readonly accessibleName = computed(() => this.ariaLabel() || this.placeholder() || 'Rich text editor');
+
+  private contentAttributes(extraClass: string): Record<string, string> {
+    return {
+      role: 'textbox',
+      'aria-multiline': 'true',
+      'aria-label': this.accessibleName(),
+      ...(extraClass ? { class: extraClass } : {}),
+    };
+  }
+
   readonly effectiveDisabled = computed(() => this.disabled() || this.readonly() || this.cvaDisabled);
 
   // Closures bound once so the toolbar's `input<()=>boolean>` gets a stable ref.
@@ -169,6 +181,11 @@ export class EditorComponent implements ControlValueAccessor, Validator {
     afterNextRender(() => {
       if (!isPlatformBrowser(this.platformId)) return;
       void this.initialize();
+    });
+
+    effect(() => {
+      const attributes = this.contentAttributes(this.contentClass().trim());
+      this.instance?.setOptions({ editorProps: { attributes } });
     });
 
     effect(() => {
@@ -267,7 +284,9 @@ export class EditorComponent implements ControlValueAccessor, Validator {
       editable: !this.effectiveDisabled(),
       // Pass consumer-supplied classes to the content root per TipTap docs:
       // https://tiptap.dev/docs/editor/getting-started/style-editor#editor
-      ...(extraClass ? { editorProps: { attributes: { class: extraClass } } } : {}),
+      // The contenteditable root is the focusable textbox, so it carries the role and the name
+      // (an aria-label on the wrapping <div> is prohibited and names nothing).
+      editorProps: { attributes: this.contentAttributes(extraClass) },
       onUpdate: ({ editor }) => {
         const html = editor.getHTML();
         this.onChange(html);

@@ -53,13 +53,15 @@ const STORAGE_KEY = 'hk-demo-datagrid-view';
       <div class="mt-3 grid gap-4 lg:grid-cols-2">
         <div class="min-w-0">
           <div class="mb-1 text-sm font-medium" id="dg-persist-current">Current state — getState()</div>
-          <pre class="max-h-72 overflow-auto rounded-box bg-base-200 p-3 text-xs" aria-labelledby="dg-persist-current">{{
+          <pre class="max-h-72 overflow-auto rounded-box bg-base-200 p-3 text-xs" tabindex="0" aria-labelledby="dg-persist-current">{{
             currentJson()
           }}</pre>
         </div>
         <div class="min-w-0">
           <div class="mb-1 text-sm font-medium" id="dg-persist-saved">localStorage["{{ storageKey }}"]</div>
-          <pre class="max-h-72 overflow-auto rounded-box bg-base-200 p-3 text-xs" aria-labelledby="dg-persist-saved">{{ savedJson() }}</pre>
+          <pre class="max-h-72 overflow-auto rounded-box bg-base-200 p-3 text-xs" tabindex="0" aria-labelledby="dg-persist-saved">{{
+            savedJson()
+          }}</pre>
         </div>
       </div>
     </app-doc-section>

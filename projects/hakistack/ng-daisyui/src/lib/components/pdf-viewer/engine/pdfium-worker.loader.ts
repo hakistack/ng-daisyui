@@ -40,8 +40,8 @@ export async function createPdfiumWorker(): Promise<{ worker: Worker; revoke: ()
   const { PDFIUM_WORKER_SRC } = await import('./pdfium/pdfium_worker_inline');
   if (!PDFIUM_WORKER_SRC) {
     throw new Error(
-      'PDFium worker not built. Run `npm run pdfium:fetch` to vendor the binary, ' +
-        '`npm run engine:build`, then `npm run build` (build-pdfium-worker.mjs). See PDFIUM_ENGINE.md §11.',
+      'PDFium worker not built. Run `npm run fetch:pdfium` to vendor the binary, ' +
+        '`npm run build:engine`, then `npm run build` (build-pdfium-worker.mjs). See PDFIUM_ENGINE.md §11.',
     );
   }
   const blob = new Blob([PDFIUM_WORKER_SRC], { type: 'text/javascript' });

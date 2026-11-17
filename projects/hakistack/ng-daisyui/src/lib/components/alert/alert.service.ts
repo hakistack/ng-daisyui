@@ -1,8 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import {
   ApplicationRef,
-  ComponentRef,
-  createComponent,
   DestroyRef,
   EnvironmentInjector,
   EnvironmentProviders,
@@ -15,6 +13,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 
+import { attachToBody, BodyHost } from '../../utils/body-host';
 import { generateUniqueId } from '../../utils/generate-uuid';
 import { AlertContainerComponent } from './alert-container.component';
 import {
@@ -90,6 +89,10 @@ export interface AlertLabels {
   loadingTitle?: string;
   /** HTML shown inside the dialog when `htmlUrl` fetch fails. Default: "Failed to load content." */
   contentLoadError?: string;
+  /** Accessible name of the close (×) button and the backdrop. Default: "Close" */
+  close?: string;
+  /** Screen-reader text of the loading spinner. Default: "Loading" */
+  loading?: string;
 }
 
 const ALERT_CONFIG = new InjectionToken<AlertConfig>('ALERT_CONFIG');
@@ -147,7 +150,10 @@ export class AlertService {
   private readonly appRef = inject(ApplicationRef);
   private readonly envInjector = inject(EnvironmentInjector);
 
-  private compRef?: ComponentRef<AlertContainerComponent>;
+  private host?: BodyHost<AlertContainerComponent>;
+  private get compRef() {
+    return this.host?.ref;
+  }
   private isInitialized = false;
   private cachedButtons: ButtonTexts | null = null;
   private langSubscriptionInit = false;
@@ -432,7 +438,13 @@ export class AlertService {
   }
 
   private addOverlay(config: AlertInternalConfig): void {
-    this.compRef?.instance.overlays.update((list) => [...list, config]);
+    const labels = this.alertConfig?.labels;
+    const resolved: AlertInternalConfig = {
+      ...config,
+      closeLabel: config.closeLabel ?? this.translate('common.buttons.close', labels?.close ?? 'Close'),
+      loadingLabel: config.loadingLabel ?? this.translate('common.loading', labels?.loading ?? 'Loading'),
+    };
+    this.compRef?.instance.overlays.update((list) => [...list, resolved]);
   }
 
   private removeOverlay(id: string): void {
@@ -448,20 +460,12 @@ export class AlertService {
   private bootstrapContainer(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    this.compRef = createComponent(AlertContainerComponent, {
-      environmentInjector: this.envInjector,
-    });
-
-    this.appRef.attachView(this.compRef.hostView);
-    document.body.appendChild(this.compRef.location.nativeElement);
+    this.host = attachToBody(AlertContainerComponent, this.appRef, this.envInjector);
   }
 
   private destroy(): void {
-    if (this.compRef) {
-      this.appRef.detachView(this.compRef.hostView);
-      this.compRef.destroy();
-      this.compRef = undefined;
-    }
+    this.host?.destroy();
+    this.host = undefined;
     this.isInitialized = false;
     this.currentAlertId = null;
     this.loadingOverlayId = null;

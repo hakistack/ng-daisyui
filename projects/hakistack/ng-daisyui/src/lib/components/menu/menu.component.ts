@@ -1,4 +1,5 @@
 import {
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -15,7 +16,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CdkConnectedOverlay, ConnectedPosition } from '@angular/cdk/overlay';
 import { LucideDynamicIcon } from '@lucide/angular';
-import { collectGroupIds, findMenuItem, inferMenuItemKind, processMenuItems } from './menu.helpers';
+import { collectGroupIds, findMenuItem, inferMenuItemKind, isLinkOnlyMenu, processMenuItems } from './menu.helpers';
 import { MenuConfig, MenuExpandEvent, MenuItem, MenuItemKind, MenuOrientation, MenuSize } from './menu.types';
 
 /**
@@ -43,6 +44,15 @@ const MENU_SIZE_CLASSES: Readonly<Record<MenuSize, string>> = {
   xl: 'menu-xl',
 };
 
+/** True when `el` sits in the collapsed part of a `<details>` (its summary does not count). */
+function insideClosedGroup(el: HTMLElement): boolean {
+  const start = el.tagName === 'SUMMARY' ? el.parentElement?.parentElement : el.parentElement;
+  for (let d = start?.closest('details'); d; d = d.parentElement?.closest('details')) {
+    if (!d.open) return true;
+  }
+  return false;
+}
+
 @Component({
   selector: 'hk-menu',
   imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, LucideDynamicIcon, CdkConnectedOverlay],
@@ -53,6 +63,7 @@ const MENU_SIZE_CLASSES: Readonly<Record<MenuSize, string>> = {
     class: 'hk-menu block',
     '(document:click)': 'onDocumentClick($event)',
     '(keydown)': 'onKeyDown($event)',
+    '(focusin)': 'onFocusIn($event)',
   },
 })
 export class MenuComponent<T = unknown> {
@@ -117,6 +128,18 @@ export class MenuComponent<T = unknown> {
   /** Visible, id-assigned, pruned tree ready to render. */
   readonly processedItems = computed(() => processMenuItems(this.resolvedConfig().items));
 
+  /** Navigation semantics (list of links) vs. an ARIA menu — see `MenuConfig.semantics`. */
+  readonly isNavigation = computed(() => {
+    const semantics = this.resolvedConfig().semantics ?? 'auto';
+    return semantics === 'auto' ? isLinkOnlyMenu(this.processedItems()) : semantics === 'navigation';
+  });
+  /** `role` of interactive items and their `<li>`s (none in navigation semantics). */
+  protected readonly itemRole = computed(() => (this.isNavigation() ? null : 'menuitem'));
+  protected readonly noneRole = computed(() => (this.isNavigation() ? null : 'none'));
+
+  /** The item holding the single Tab stop in menu semantics (roving tabindex). */
+  private rovingItem: HTMLElement | null = null;
+
   /** Effective collapsed state (input overrides config). */
   readonly isRail = computed(() => {
     const collapsed = this.collapsed() ?? this.resolvedConfig().collapsed ?? false;
@@ -155,6 +178,15 @@ export class MenuComponent<T = unknown> {
     });
 
     this.destroyRef.onDestroy(() => this.cancelFlyoutClose());
+
+    // Menu semantics: exactly one menuitem is in the Tab order (APG roving tabindex). Re-applied after
+    // every render that can add or reveal items (tree, open groups, rail, semantics).
+    afterRenderEffect(() => {
+      this.processedItems();
+      this.toggles();
+      this.isRail();
+      this.applyRovingTabindex(this.isNavigation());
+    });
   }
 
   /** Resolve the rendered kind of an item. */
@@ -237,18 +269,34 @@ export class MenuComponent<T = unknown> {
   }
 
   /**
-   * Keyboard navigation. Native focus/activation (Tab, Enter, Space) is handled
-   * by the underlying `<a>`/`<button>`/`<summary>` elements; this adds roving
-   * arrow-key movement, Home/End, and Escape/Left to close an open submenu.
+   * Keyboard navigation (WAI-ARIA APG). Native activation (Enter, Space) comes from the underlying
+   * `<a>` / `<button>` / `<summary>`.
+   *
+   * - Navigation semantics: Tab moves between links; only Escape is handled (closes the open group).
+   * - Vertical menu: ↑ ↓ Home End move through the visible items, → opens a group and enters it,
+   *   ← / Escape close the current group.
+   * - Horizontal menubar: ← → Home End move between top-level items; ↓ (↑) opens a group on its first
+   *   (last) item; inside a submenu ↑ ↓ move, Escape returns to the parent, ← → go to the neighbouring
+   *   top-level item.
    */
   onKeyDown(event: KeyboardEvent): void {
     const keys = ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End', 'Escape'];
     if (!keys.includes(event.key)) return;
 
-    const items = this.focusableItems();
     const active = document.activeElement as HTMLElement | null;
-    const idx = active ? items.indexOf(active) : -1;
+    if (event.key === 'Escape') {
+      this.closeCurrent(event, active);
+      return;
+    }
+    if (this.isNavigation()) return;
 
+    if (this.resolvedConfig().orientation === 'horizontal') this.menubarKey(event, active);
+    else this.verticalKey(event, active);
+  }
+
+  private verticalKey(event: KeyboardEvent, active: HTMLElement | null): void {
+    const items = this.focusableItems();
+    const idx = active ? items.indexOf(active) : -1;
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
@@ -266,44 +314,185 @@ export class MenuComponent<T = unknown> {
         event.preventDefault();
         this.focusAt(items, items.length - 1);
         break;
-      case 'ArrowRight': {
-        const summary = active?.closest('summary');
-        const details = summary?.parentElement as HTMLDetailsElement | undefined;
-        if (summary && details && !details.open) {
+      case 'ArrowRight':
+        if (active?.tagName === 'SUMMARY') {
           event.preventDefault();
-          details.open = true;
+          this.openAndEnter(active, 'first');
         }
         break;
-      }
       case 'ArrowLeft':
-      case 'Escape': {
-        if (event.key === 'Escape' && this.flyoutGroup()) {
+        this.closeCurrent(event, active);
+        break;
+    }
+  }
+
+  private menubarKey(event: KeyboardEvent, active: HTMLElement | null): void {
+    const top = this.topLevelItems();
+    const topIdx = active ? top.indexOf(active) : -1;
+    if (topIdx !== -1) {
+      switch (event.key) {
+        case 'ArrowRight':
           event.preventDefault();
-          this.closeFlyout();
+          this.focusAt(top, topIdx + 1);
+          break;
+        case 'ArrowLeft':
+          event.preventDefault();
+          this.focusAt(top, topIdx - 1);
+          break;
+        case 'Home':
+          event.preventDefault();
+          this.focusAt(top, 0);
+          break;
+        case 'End':
+          event.preventDefault();
+          this.focusAt(top, top.length - 1);
+          break;
+        case 'ArrowDown':
+        case 'ArrowUp':
+          if (active?.tagName === 'SUMMARY') {
+            event.preventDefault();
+            this.openAndEnter(active, event.key === 'ArrowDown' ? 'first' : 'last');
+          }
+          break;
+      }
+      return;
+    }
+
+    // Inside a submenu of the menubar.
+    const submenu = active?.closest('ul[role="menu"]') as HTMLElement | null;
+    if (!active || !submenu) return;
+    const siblings = this.itemsIn(submenu);
+    const idx = siblings.indexOf(active);
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.focusAt(siblings, idx + 1);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.focusAt(siblings, idx - 1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.focusAt(siblings, 0);
+        break;
+      case 'End':
+        event.preventDefault();
+        this.focusAt(siblings, siblings.length - 1);
+        break;
+      case 'ArrowRight':
+        if (active.tagName === 'SUMMARY') {
+          event.preventDefault();
+          this.openAndEnter(active, 'first');
           break;
         }
-        const details = active?.closest('details') as HTMLDetailsElement | null;
-        if (details?.open) {
-          event.preventDefault();
-          details.open = false;
-          details.querySelector<HTMLElement>('summary')?.focus();
-        }
+        this.moveToNeighbourTop(event, active, top, 1);
+        break;
+      case 'ArrowLeft': {
+        const parentDetails = active.closest('details');
+        const nested = parentDetails?.parentElement?.closest('ul[role="menu"]');
+        if (nested) this.closeCurrent(event, active);
+        else this.moveToNeighbourTop(event, active, top, -1);
         break;
       }
     }
   }
 
+  /** Close the group that contains `active` (or the open rail flyout) and focus its trigger. */
+  private closeCurrent(event: KeyboardEvent, active: HTMLElement | null): void {
+    if (event.key === 'Escape' && this.flyoutGroup()) {
+      event.preventDefault();
+      this.closeFlyout();
+      return;
+    }
+    // On a summary of an open group, ← / Escape close that group; inside a group, its parent.
+    const own = active?.tagName === 'SUMMARY' ? (active.parentElement as HTMLDetailsElement) : null;
+    const details = own?.open ? own : (active?.closest('details[open]') as HTMLDetailsElement | null);
+    if (details?.open) {
+      event.preventDefault();
+      details.open = false;
+      details.querySelector<HTMLElement>(':scope > summary')?.focus();
+    }
+  }
+
+  private openAndEnter(summary: HTMLElement, which: 'first' | 'last'): void {
+    const details = summary.parentElement as HTMLDetailsElement;
+    details.open = true;
+    // The children render on open; focus once they are visible.
+    queueMicrotask(() => {
+      const submenu = details.querySelector<HTMLElement>(':scope > ul');
+      const items = submenu ? this.itemsIn(submenu) : [];
+      this.focusAt(items, which === 'first' ? 0 : items.length - 1);
+    });
+  }
+
+  private moveToNeighbourTop(event: KeyboardEvent, active: HTMLElement, top: HTMLElement[], step: 1 | -1): void {
+    const owner = top.find((t) => t.parentElement?.contains(active));
+    if (!owner) return;
+    event.preventDefault();
+    const details = owner.parentElement as HTMLDetailsElement | null;
+    if (details?.tagName === 'DETAILS') details.open = false;
+    this.focusAt(top, top.indexOf(owner) + step);
+  }
+
   /** Visible, enabled menuitems in DOM order (items inside closed groups are skipped). */
   private focusableItems(): HTMLElement[] {
-    const all = this.hostRef.nativeElement.querySelectorAll<HTMLElement>('[role="menuitem"]');
-    return Array.from(all).filter(
-      (el) => el.getAttribute('aria-disabled') !== 'true' && !(el as HTMLButtonElement).disabled && el.offsetParent !== null,
+    return this.visibleItems(this.hostRef.nativeElement.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+  }
+
+  /** Top-level menuitems of the root menu / menubar. */
+  private topLevelItems(): HTMLElement[] {
+    const root = this.hostRef.nativeElement.querySelector<HTMLElement>(':scope > ul.menu');
+    return root ? this.itemsIn(root) : [];
+  }
+
+  /** Menuitems that belong directly to `list` (not to a nested submenu). */
+  private itemsIn(list: HTMLElement): HTMLElement[] {
+    const own = Array.from(list.querySelectorAll<HTMLElement>('[role="menuitem"]')).filter(
+      (el) => el.closest('ul[role="menu"], ul[role="menubar"]') === list,
+    );
+    return this.visibleItems(own);
+  }
+
+  /** Enabled items that are not inside a closed group (a group's own summary stays reachable). */
+  private visibleItems(items: Iterable<HTMLElement>): HTMLElement[] {
+    return Array.from(items).filter(
+      (el) => el.getAttribute('aria-disabled') !== 'true' && !(el as HTMLButtonElement).disabled && !insideClosedGroup(el),
     );
   }
 
   private focusAt(items: HTMLElement[], i: number): void {
     if (!items.length) return;
     items[(i + items.length) % items.length].focus();
+  }
+
+  /** Track the item that should keep the Tab stop. */
+  onFocusIn(event: FocusEvent): void {
+    const target = event.target as HTMLElement;
+    if (this.isNavigation() || target.getAttribute('role') !== 'menuitem') return;
+    this.rovingItem = target;
+    this.applyRovingTabindex(false);
+  }
+
+  private applyRovingTabindex(navigation: boolean): void {
+    const all = Array.from(this.hostRef.nativeElement.querySelectorAll<HTMLElement>('a, button, summary'));
+    if (navigation) {
+      for (const el of all)
+        if (el.dataset['hkRoving'] !== undefined) {
+          el.removeAttribute('tabindex');
+          delete el.dataset['hkRoving'];
+        }
+      return;
+    }
+    const items = all.filter((el) => el.getAttribute('role') === 'menuitem');
+    const reachable = this.focusableItems();
+    if (!this.rovingItem || !reachable.includes(this.rovingItem)) {
+      this.rovingItem = (this.resolvedConfig().orientation === 'horizontal' ? this.topLevelItems()[0] : reachable[0]) ?? null;
+    }
+    for (const el of items) {
+      el.setAttribute('tabindex', el === this.rovingItem ? '0' : '-1');
+      el.dataset['hkRoving'] = '';
+    }
   }
 
   /** Close all open submenus when clicking outside (horizontal/dropdown menus). */

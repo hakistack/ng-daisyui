@@ -91,7 +91,7 @@ type DemoTab = 'navbar' | 'sidebar' | 'shell';
                 <button hk-navbar-end class="btn btn-ghost btn-sm btn-circle" aria-label="Settings">⚙️</button>
                 <div hk-sidebar-header class="p-4 border-b border-base-content/10">
                   <div class="font-serif text-base">Acme&nbsp;Admin</div>
-                  <div class="text-xs opacity-50">v1.0.0</div>
+                  <div class="text-xs text-base-content/70">v1.0.0</div>
                 </div>
                 <div class="p-6">
                   <h3 class="text-lg font-semibold mb-2">Dashboard</h3>
@@ -99,7 +99,7 @@ type DemoTab = 'navbar' | 'sidebar' | 'shell';
                     Resize the preview / window: below <code>lg</code> the sidebar overlays and the hamburger appears.
                   </p>
                 </div>
-                <footer hk-footer class="border-t border-base-content/10 px-6 py-3 text-xs opacity-50">© 2026 Acme</footer>
+                <footer hk-footer class="border-t border-base-content/10 px-6 py-3 text-xs text-base-content/70">© 2026 Acme</footer>
               </hk-app-shell>
             </div>
           </app-doc-section>

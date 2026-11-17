@@ -1,4 +1,5 @@
 import { compareValues, matchesFilter } from '../../grid-core/grid-predicates';
+import { lastPageIndex } from '../../grid-core/grid-rules';
 import { columnType, isSearchable } from './datagrid.state';
 import type { DataGridColumn, DataGridState } from './datagrid.types';
 
@@ -71,8 +72,7 @@ export function applyClientView<T>(data: readonly T[], columns: readonly DataGri
   const total = rows.length;
   if (!state.page) return { rows, total, matching: rows, pageIndex: 0 };
 
-  const lastPage = Math.max(0, Math.ceil(total / state.page.size) - 1);
-  const pageIndex = Math.min(state.page.index, lastPage);
+  const pageIndex = Math.min(state.page.index, lastPageIndex(total, state.page.size));
   const start = pageIndex * state.page.size;
   return { rows: rows.slice(start, start + state.page.size), total, matching: rows, pageIndex };
 }

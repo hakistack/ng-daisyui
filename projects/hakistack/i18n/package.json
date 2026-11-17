@@ -6,11 +6,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hakistack/i18n.git"
+    "url": "git+https://github.com/hakistack/ng-daisyui.git",
+    "directory": "projects/hakistack/i18n"
   },
-  "homepage": "https://github.com/hakistack/i18n#readme",
+  "homepage": "https://github.com/hakistack/ng-daisyui/tree/main/projects/hakistack/i18n#readme",
   "bugs": {
-    "url": "https://github.com/hakistack/i18n/issues"
+    "url": "https://github.com/hakistack/ng-daisyui/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -27,10 +28,10 @@
     "hakistack-i18n": "./cli/bin.cjs"
   },
   "peerDependencies": {
-    "@angular/common": ">=21.0.0",
-    "@angular/core": ">=21.0.0",
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0",
     "@jsverse/transloco": "^8.2.0",
-    "rxjs": ">=7.8.0",
+    "rxjs": "^7.8.0",
     "typescript": "^5.4.0 || ^6.0.0"
   },
   "peerDependenciesMeta": {

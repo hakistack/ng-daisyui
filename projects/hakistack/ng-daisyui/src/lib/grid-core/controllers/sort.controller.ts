@@ -1,6 +1,7 @@
 import { computed, Signal, signal } from '@angular/core';
 
 import { compareValues } from '../grid-predicates';
+import { GridSortDirection, nextSort } from '../grid-rules';
 
 /**
  * Three-state sort: empty string means "unsorted" (the third position of the
@@ -56,11 +57,13 @@ export class SortController {
     if (this.deps.isResizing()) return;
 
     const current = this.state();
-    const direction = this.cycleDirection(field, current);
-    const next: SortState = {
-      field: direction ? field : '',
-      direction,
-    };
+    const [key] = nextSort(
+      current.field && current.direction ? [{ field: current.field, direction: toGrid(current.direction) }] : [],
+      field,
+    );
+    const next: SortState = key
+      ? { field: key.field, direction: key.direction === 'asc' ? 'Ascending' : 'Descending' }
+      : { field: '', direction: '' };
 
     this.state.set(next);
     this.emit(next);
@@ -79,19 +82,7 @@ export class SortController {
    * null/undefined (always pushed to the end regardless of direction).
    */
   compareValues(valueA: unknown, valueB: unknown, direction: 'Ascending' | 'Descending'): number {
-    return compareValues(valueA, valueB, direction === 'Ascending' ? 'asc' : 'desc');
-  }
-
-  private cycleDirection(field: string, current: SortState): SortDirection {
-    if (current.field !== field) return 'Ascending';
-    switch (current.direction) {
-      case 'Ascending':
-        return 'Descending';
-      case 'Descending':
-        return '';
-      default:
-        return 'Ascending';
-    }
+    return compareValues(valueA, valueB, toGrid(direction));
   }
 
   private emit(state: SortState): void {
@@ -99,4 +90,8 @@ export class SortController {
     this.deps.onSortDirectionChange?.(state.direction);
     this.deps.onSortChange?.(state);
   }
+}
+
+function toGrid(direction: 'Ascending' | 'Descending'): GridSortDirection {
+  return direction === 'Ascending' ? 'asc' : 'desc';
 }

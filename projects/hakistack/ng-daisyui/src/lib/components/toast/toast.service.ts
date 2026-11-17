@@ -1,29 +1,16 @@
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { isPlatformBrowser } from '@angular/common';
-import {
-  ApplicationRef,
-  ComponentRef,
-  computed,
-  createComponent,
-  DestroyRef,
-  EnvironmentInjector,
-  inject,
-  Injectable,
-  PLATFORM_ID,
-  signal,
-} from '@angular/core';
+import { ApplicationRef, computed, DestroyRef, EnvironmentInjector, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { timer } from 'rxjs';
 
+import { prefersReducedMotion } from '../../directives/motion.utils';
+import { attachToBody, BodyHost } from '../../utils/body-host';
 import { generateUniqueId } from '../../utils/generate-uuid';
+import { createPausableTimer, PausableTimer } from '../../utils/pausable-timer';
 import { ToastComponent } from './toast.component';
-import { DEFAULT_TOAST_CONFIG, TOAST_CONFIG, ToastGlobalConfig } from './toast.config';
+import { DEFAULT_TOAST_CONFIG, DEFAULT_TOAST_SEVERITY_LABELS, TOAST_CONFIG, ToastGlobalConfig } from './toast.config';
 import { Toast, ToastAction, ToastOptions, ToastSeverity } from './toast.types';
-
-interface ToastTimer {
-  timerId: ReturnType<typeof setTimeout>;
-  startTime: number;
-  remainingTime: number;
-}
 
 /**
  * Toast notification service.
@@ -48,21 +35,19 @@ export class ToastService {
   readonly toasts = this._toasts.asReadonly();
   readonly hasToasts = computed(() => this._toasts().length > 0);
 
-  private readonly timers = new Map<string, ToastTimer>();
+  private readonly timers = new Map<string, PausableTimer>();
 
-  private compRef?: ComponentRef<ToastComponent>;
+  private host?: BodyHost<ToastComponent>;
   private isInitialized = false;
 
   private readonly platformId = inject(PLATFORM_ID);
   private readonly appRef = inject(ApplicationRef);
   private readonly envInjector = inject(EnvironmentInjector);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly liveAnnouncer = inject(LiveAnnouncer);
 
   private readonly userConfig = inject(TOAST_CONFIG, { optional: true });
   readonly config: ToastGlobalConfig = { ...DEFAULT_TOAST_CONFIG, ...this.userConfig };
-
-  /** Check if user prefers reduced motion */
-  private readonly prefersReducedMotion = this.checkReducedMotion();
 
   constructor() {
     this.destroyRef.onDestroy(() => this.destroy());
@@ -75,9 +60,9 @@ export class ToastService {
     this.isInitialized = true;
   }
 
-  private checkReducedMotion(): boolean {
-    if (!isPlatformBrowser(this.platformId)) return false;
-    return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  /** Read live, so switching the OS setting applies to the next toast without a reload. */
+  private reducedMotion(): boolean {
+    return prefersReducedMotion(this.platformId);
   }
 
   /**
@@ -111,7 +96,7 @@ export class ToastService {
         life,
         sticky: options.sticky ?? false,
         soft: options.soft ?? false,
-        progressBar: (options.progressBar ?? this.config.progressBar) && !this.prefersReducedMotion,
+        progressBar: (options.progressBar ?? this.config.progressBar) && !this.reducedMotion(),
         pauseOnHover: options.pauseOnHover ?? this.config.pauseOnHover,
         tapToDismiss: options.tapToDismiss ?? this.config.tapToDismiss,
         onTap: options.onTap,
@@ -138,6 +123,10 @@ export class ToastService {
 
         return updated;
       });
+
+      if (this._toasts().some((t) => t.id === id)) {
+        this.announce(toast);
+      }
 
       if (!toast.sticky) {
         this.scheduleAutoDismiss(id, life);
@@ -176,7 +165,7 @@ export class ToastService {
 
     this._toasts.update((toasts) => toasts.map((t) => (t.id === id ? { ...t, dismissing: true } : t)));
 
-    const exitDuration = this.prefersReducedMotion ? 0 : this.config.exitDuration;
+    const exitDuration = this.reducedMotion() ? 0 : this.config.exitDuration;
 
     timer(exitDuration)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -194,23 +183,30 @@ export class ToastService {
   }
 
   /**
-   * Pause auto-dismiss timer (on hover)
+   * Screen readers learn about a toast through the CDK live announcer: one persistent live region
+   * that exists before the message is written into it. A `role="alert"` / `aria-live` element inserted
+   * together with its content (how toasts used to announce) is often missed.
+   * Errors interrupt (assertive); everything else waits for the current speech (polite).
    */
-  pauseAutoDismiss(id: string): void {
-    const timerData = this.timers.get(id);
-    if (!timerData) return;
+  private announce(toast: Toast): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const severity = this.config.labels?.severityLabels?.[toast.severity] ?? DEFAULT_TOAST_SEVERITY_LABELS[toast.severity];
+    const message = [`${severity}: ${toast.summary}`, toast.detail].filter(Boolean).join('. ');
+    void this.liveAnnouncer.announce(message, toast.severity === 'error' ? 'assertive' : 'polite');
+  }
 
-    const elapsed = performance.now() - timerData.startTime;
-    const remaining = Math.max(0, timerData.remainingTime - elapsed);
-
-    clearTimeout(timerData.timerId);
-    this.timers.set(id, { ...timerData, remainingTime: remaining });
+  /**
+   * Pause a toast's auto-dismiss. `reason` lets several pauses overlap (the component uses `'hover'`
+   * and `'focus'`); the toast resumes only when every reason has been released.
+   */
+  pauseAutoDismiss(id: string, reason = 'api'): void {
+    const timer = this.timers.get(id);
+    if (!timer?.hold(reason)) return;
 
     const toast = this._toasts().find((t) => t.id === id);
     if (!toast) return;
 
-    const currentProgress = (remaining / toast.life) * 100;
-
+    const remaining = timer.remaining();
     this._toasts.update((toasts) =>
       toasts.map((t) =>
         t.id === id
@@ -218,7 +214,7 @@ export class ToastService {
               ...t,
               isPaused: true,
               remainingTime: remaining,
-              progressTarget: currentProgress,
+              progressTarget: (remaining / toast.life) * 100,
               transitionDuration: 0,
             }
           : t,
@@ -227,21 +223,16 @@ export class ToastService {
   }
 
   /**
-   * Resume auto-dismiss timer (on hover end)
+   * Release a pause taken with the same `reason`. Pausing never shortens a toast: it resumes with
+   * what was left, but at least `extendedTimeOut`.
    */
-  resumeAutoDismiss(id: string): void {
-    const timerData = this.timers.get(id);
-    if (!timerData) return;
-
+  resumeAutoDismiss(id: string, reason = 'api'): void {
+    const timer = this.timers.get(id);
     const toast = this._toasts().find((t) => t.id === id);
-    if (!toast || toast.sticky) return;
+    if (!timer || !toast || toast.sticky) return;
 
-    // Hovering never shortens a toast: resume with what was left, but at least extendedTimeOut
-    // (it used to REPLACE the remaining time, so hovering a fresh toast dismissed it after 1 s).
-    const delay = Math.max(timerData.remainingTime, this.config.extendedTimeOut);
-
-    this.timers.delete(id);
-    this.scheduleAutoDismiss(id, delay);
+    const delay = timer.release(reason, this.config.extendedTimeOut);
+    if (delay === null) return;
 
     this._toasts.update((toasts) =>
       toasts.map((t) =>
@@ -319,47 +310,34 @@ export class ToastService {
 
   private bootstrapContainer(): void {
     if (!isPlatformBrowser(this.platformId)) return;
-
-    this.compRef = createComponent(ToastComponent, {
-      environmentInjector: this.envInjector,
-    });
-
-    this.appRef.attachView(this.compRef.hostView);
-    document.body.appendChild(this.compRef.location.nativeElement);
+    this.host = attachToBody(ToastComponent, this.appRef, this.envInjector);
   }
 
   private destroy(): void {
     this.clearAllTimers();
     this._toasts.set([]);
-
-    if (this.compRef) {
-      this.appRef.detachView(this.compRef.hostView);
-      this.compRef.destroy();
-      this.compRef = undefined;
-    }
-
+    this.host?.destroy();
+    this.host = undefined;
     this.isInitialized = false;
   }
 
   private scheduleAutoDismiss(id: string, delay: number): void {
-    const timerId = setTimeout(() => this.dismiss(id), delay);
-    this.timers.set(id, {
-      timerId,
-      startTime: performance.now(),
-      remainingTime: delay,
+    this.clearTimer(id);
+    const timer = createPausableTimer(() => {
+      this.timers.delete(id);
+      this.dismiss(id);
     });
+    timer.start(delay);
+    this.timers.set(id, timer);
   }
 
   private clearTimer(id: string): void {
-    const timerData = this.timers.get(id);
-    if (timerData) {
-      clearTimeout(timerData.timerId);
-      this.timers.delete(id);
-    }
+    this.timers.get(id)?.cancel();
+    this.timers.delete(id);
   }
 
   private clearAllTimers(): void {
-    this.timers.forEach((timerData) => clearTimeout(timerData.timerId));
+    this.timers.forEach((timer) => timer.cancel());
     this.timers.clear();
   }
 }

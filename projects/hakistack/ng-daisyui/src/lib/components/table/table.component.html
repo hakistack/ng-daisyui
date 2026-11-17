@@ -20,6 +20,402 @@
   }
 </ng-template>
 
+<!-- ==========================================================================
+     Shared building blocks for the three layouts (virtual scroll, grouped, CDK).
+     Each layout keeps its own <table>/<tr> skeleton — the CDK layout needs
+     cdkColumnDef/cdkCellDef — and renders every cell's contents through these
+     templates, so a header, checkbox, action or cell fix lands in all three.
+     ========================================================================== -->
+
+<!-- Cell contents: an `hkCellTemplate` for the column wins over the formatted value -->
+<ng-template #cellContentTpl let-row let-column="column">
+  @if (cellTemplateMap().get(column.field); as customTpl) {
+    <ng-container *ngTemplateOutlet="customTpl; context: { $implicit: row, column: column }" />
+  } @else {
+    <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
+  }
+</ng-template>
+
+<!-- Column header: sort trigger, filter dropdown, optional resize handle -->
+<ng-template #headerCellTpl let-column let-resizable="resizable">
+  <div class="flex items-center justify-between gap-2">
+    <div
+      class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
+      (click)="sort(column.field)"
+      role="button"
+      tabindex="0"
+      (keydown.enter)="sort(column.field)"
+      (keydown.space)="$event.preventDefault(); sort(column.field)"
+    >
+      <span>{{ column.header }}</span>
+      <span class="text-sm opacity-70" aria-hidden="true">
+        @if (sortFieldSignal() === column.field) {
+          @if (sortDirectionSignal() === 'Ascending') {
+            <svg lucideArrowUp class="h-4 w-4"></svg>
+          } @else {
+            <svg lucideArrowDown class="h-4 w-4"></svg>
+          }
+        } @else {
+          <svg lucideArrowUpDown class="h-4 w-4"></svg>
+        }
+      </span>
+    </div>
+
+    <!-- Filter dropdown — two branches keyed on daisyUI version.
+         v5 uses native popover + CSS anchor positioning (escapes overflow,
+         auto-positions). v4 has neither, so falls back to daisyUI v4's
+         documented `.dropdown`/`tabindex` focus-driven pattern. -->
+    @if (enableFilteringSignal() && hasFilterForColumn(column.field)) {
+      @if (isDaisyV4Signal()) {
+        <!-- daisyUI v4 — uses <details> so the trigger natively toggles
+             on click (v4's pure-CSS .dropdown opens on :focus-within
+             and has no toggle/close-on-second-click). No `dropdown-end`
+             so the panel anchors LEFT of trigger and extends right,
+             which keeps it from clipping off the table's left edge
+             for the leftmost columns. The `data-hk-filter` attribute
+             lets `onDocumentClick` close it on outside clicks. -->
+        <details #filterDetails name="hk-filter-group" class="dropdown" data-hk-filter (toggle)="onFilterDetailsToggle(filterDetails)">
+          <summary
+            class="btn btn-ghost btn-xs"
+            [class.btn-primary]="getActiveFilterForColumn(column.field)"
+            [attr.aria-label]="tableLabels().filterButtonAriaLabel(column.header)"
+          >
+            <svg lucideListFilter class="h-3 w-3"></svg>
+            @if (getActiveFilterForColumn(column.field)) {
+              <span class="badge badge-xs badge-primary">1</span>
+            }
+          </summary>
+          <div class="dropdown-content card card-compact bg-base-100 w-72 shadow-xl z-50 mt-1">
+            <div class="card-body">
+              <hk-table-filter
+                [column]="column"
+                [filterConfig]="getFilterForColumn(column.field)!"
+                [activeFilter]="getActiveFilterForColumn(column.field)"
+                [labels]="filterLabels()"
+                (apply)="applyColumnFilter(column.field, $event.value, $event.operator); filterDetails.open = false"
+                (clear)="removeFilter(column.field); filterDetails.open = false"
+                (closeFilter)="filterDetails.open = false"
+              />
+            </div>
+          </div>
+        </details>
+      } @else {
+        <!-- daisyUI v5: popover API + CSS anchor positioning. -->
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs"
+          [class.btn-primary]="getActiveFilterForColumn(column.field)"
+          (click)="$event.stopPropagation()"
+          [attr.aria-label]="tableLabels().filterButtonAriaLabel(column.header)"
+          [attr.popovertarget]="'filter-popover-' + instanceId + '-' + column.field"
+          [style.anchor-name]="'--filter-anchor-' + instanceId + '-' + column.field"
+        >
+          <svg lucideListFilter class="h-3 w-3"></svg>
+          @if (getActiveFilterForColumn(column.field)) {
+            <span class="badge badge-xs badge-primary">1</span>
+          }
+        </button>
+        <div
+          class="dropdown card card-compact bg-base-100 w-72 shadow-xl"
+          popover
+          [id]="'filter-popover-' + instanceId + '-' + column.field"
+          [style.position-anchor]="'--filter-anchor-' + instanceId + '-' + column.field"
+        >
+          <div class="card-body">
+            <hk-table-filter
+              [column]="column"
+              [filterConfig]="getFilterForColumn(column.field)!"
+              [activeFilter]="getActiveFilterForColumn(column.field)"
+              [labels]="filterLabels()"
+              (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
+              (clear)="removeFilter(column.field)"
+              (closeFilter)="closeAllFilterDropdowns()"
+            />
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  @if (resizable && enableResizingSignal() && column.resizable !== false) {
+    <div
+      class="resize-handle"
+      (pointerdown)="onResizeStart(column.field, $event)"
+      (pointermove)="onResizeMove($event)"
+      (pointerup)="onResizeEnd()"
+      (pointercancel)="onResizeEnd()"
+    ></div>
+  }
+</ng-template>
+
+<!-- Header "select all" — hidden when `selectionLimit === 1` (radio-like UX has
+     no bulk action). For limit ≥ 2 the checkbox stays visible: it disables and
+     shows the limit-reached tooltip at cap, but is fully usable below cap (where
+     toggleSelectAll fills up to the remaining capacity). The empty <th> keeps the
+     column aligned with the row checkboxes below. -->
+<ng-template #selectAllTpl>
+  @if (showSelectAllCheckboxSignal()) {
+    <label>
+      <input
+        type="checkbox"
+        class="checkbox"
+        [checked]="isAllSelected()"
+        [disabled]="isSelectAllDisabled()"
+        (change)="toggleSelectAll(inputChecked($event))"
+        [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
+      />
+    </label>
+  }
+</ng-template>
+
+<!-- Row selection checkbox (indeterminate only for tree rows with cascade) -->
+<ng-template #rowCheckboxTpl let-row>
+  <label>
+    <input
+      type="checkbox"
+      class="checkbox"
+      [checked]="isSelected(row)"
+      [indeterminate]="isIndeterminate(row)"
+      (change)="toggleRow(row, inputChecked($event))"
+      [disabled]="isRowSelectDisabled(row)"
+      [attr.title]="isRowSelectDisabledByLimit(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
+      [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
+    />
+  </label>
+</ng-template>
+
+<!-- Detail expand/collapse toggle -->
+<ng-template #detailToggleTpl let-row>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square"
+    (click)="toggleDetailExpand(row, $event)"
+    [attr.aria-expanded]="isDetailExpanded(row)"
+    [attr.aria-label]="isDetailExpanded(row) ? tableLabels().collapseDetailsAriaLabel : tableLabels().expandDetailsAriaLabel"
+  >
+    @if (isDetailExpanded(row)) {
+      <svg lucideChevronDown class="h-4 w-4"></svg>
+    } @else {
+      <svg lucideChevronRight class="h-4 w-4"></svg>
+    }
+  </button>
+</ng-template>
+
+<!-- Detail panel: the #rowDetail template, or a child hk-table -->
+<ng-template #detailContentTpl let-row>
+  <div
+    class="detail-content"
+    [class]="{
+      'bg-base-200/30': !!rowDetailTemplate(),
+      'border-t': !!rowDetailTemplate(),
+      'border-base-content/10': !!rowDetailTemplate(),
+      'p-4': !!rowDetailTemplate(),
+      'p-0': !rowDetailTemplate(),
+    }"
+  >
+    @if (rowDetailTemplate()) {
+      <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: row }" />
+    } @else if (hasChildGridSignal()) {
+      <div [class]="getChildGridContainerClass()">
+        <hk-table [config]="$any(childGridConfigSignal()!.config)" [data]="$any(getChildGridData(row))" />
+      </div>
+    }
+  </div>
+</ng-template>
+
+<!-- Row action buttons (start or end side), with optional tooltip -->
+<ng-template #actionsTpl let-row let-actions="actions">
+  <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+    @for (action of actions; track trackByAction($index, action)) {
+      @if (!action.config.hidden?.(row)) {
+        @if (isTooltipVisible(row, action)) {
+          <div class="tooltip" [attr.data-tip]="getTooltip(row, action) || action.config.label">
+            <ng-container *ngTemplateOutlet="actionButtonTpl; context: { $implicit: row, action: action }" />
+          </div>
+        } @else {
+          <ng-container *ngTemplateOutlet="actionButtonTpl; context: { $implicit: row, action: action }" />
+        }
+      }
+    }
+  </div>
+</ng-template>
+
+<ng-template #actionButtonTpl let-row let-action="action">
+  <button
+    type="button"
+    [class]="classesFor(action)"
+    [style]="action.config.buttonStyle"
+    [disabled]="action.config.disabled?.(row)"
+    (click)="$event.stopPropagation(); action.config.action(row)"
+  >
+    @if (action.config.icon) {
+      <svg [lucideIcon]="action.config.icon"></svg>
+    }
+    <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
+  </button>
+</ng-template>
+
+<!-- Data cell: inline editor, tree toggle + contents, or plain contents -->
+<ng-template #dataCellTpl let-row let-column="column">
+  @if (enableEditingSignal() && isEditing(row, column.field)) {
+    <div class="edit-cell" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="onEditKeydown($event)">
+      @switch (getEditorType(column)) {
+        @case ('toggle') {
+          <input
+            type="checkbox"
+            class="toggle toggle-sm"
+            [checked]="editingValue()"
+            (change)="editingValue.set(inputChecked($event))"
+            [attr.aria-label]="column.header"
+          />
+        }
+        @case ('select') {
+          <select
+            class="select select-sm w-full"
+            [value]="editingValue()"
+            (change)="editingValue.set(inputValue($event))"
+            [attr.aria-label]="column.header"
+          >
+            @for (opt of column.editOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        }
+        @case ('number') {
+          <input
+            type="number"
+            class="input input-sm w-full"
+            [value]="editingValue()"
+            (input)="editingValue.set(inputNumber($event))"
+            [attr.aria-label]="column.header"
+            appAutoFocus
+          />
+        }
+        @case ('date') {
+          <input
+            type="date"
+            class="input input-sm w-full"
+            [value]="editingValue()"
+            (input)="editingValue.set(inputValue($event))"
+            [attr.aria-label]="column.header"
+            appAutoFocus
+          />
+        }
+        @default {
+          <input
+            type="text"
+            class="input input-sm w-full"
+            [value]="editingValue()"
+            (input)="editingValue.set(inputValue($event))"
+            [attr.aria-label]="column.header"
+            appAutoFocus
+          />
+        }
+      }
+      @if (editError()) {
+        <span class="text-error text-xs" role="alert">{{ editError() }}</span>
+      }
+      <div class="edit-cell-actions">
+        <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()" [attr.aria-label]="tableLabels().confirmEditAriaLabel">
+          <svg lucideCheck class="h-3 w-3" aria-hidden="true"></svg>
+        </button>
+        <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()" [attr.aria-label]="tableLabels().cancelEditAriaLabel">
+          <svg lucideX class="h-3 w-3" aria-hidden="true"></svg>
+        </button>
+      </div>
+    </div>
+  } @else if (isTreeTableSignal() && isTreeColumn(column.field)) {
+    <div class="tree-cell-wrapper">
+      @if (hasChildren(row)) {
+        <button
+          type="button"
+          class="tree-toggle-btn btn btn-ghost btn-xs btn-square"
+          (click)="toggleRowExpand(row, $event)"
+          [attr.aria-expanded]="isRowExpanded(row)"
+          [attr.aria-label]="isRowExpanded(row) ? tableLabels().collapseRowAriaLabel : tableLabels().expandRowAriaLabel"
+        >
+          @if (isRowExpanded(row)) {
+            <svg lucideChevronDown class="h-4 w-4"></svg>
+          } @else {
+            <svg lucideChevronRight class="h-4 w-4"></svg>
+          }
+        </button>
+      } @else {
+        <span class="tree-toggle-spacer"></span>
+      }
+      <span class="tree-cell-content">
+        <ng-container *ngTemplateOutlet="cellContentTpl; context: { $implicit: row, column: column }" />
+      </span>
+    </div>
+  } @else {
+    <div (dblclick)="startEdit(row, column.field)" [class.cursor-pointer]="column.editable">
+      <ng-container *ngTemplateOutlet="cellContentTpl; context: { $implicit: row, column: column }" />
+    </div>
+  }
+</ng-template>
+
+<!-- <tfoot> rows for the virtual and grouped layouts (the CDK layout uses footer row defs).
+     `lead` = one empty cell per utility column before the data columns. -->
+<ng-template #tfootRowsTpl let-lead="lead">
+  @if (hasFooterRowsSignal()) {
+    @for (footerRow of resolvedFooterRowsSignal(); track $index) {
+      <tr class="bg-base-200/50 font-semibold footer-row" [class]="footerRow.class ?? ''">
+        @for (slot of lead; track $index) {
+          <td></td>
+        }
+        @if (footerRow.colspanCells) {
+          @for (cell of footerRow.colspanCells; track $index) {
+            <td [attr.colspan]="cell.colspan" [class]="cell.class ?? ''" class="font-semibold">
+              {{ getColspanCellValue(cell) }}
+            </td>
+          }
+        } @else {
+          @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+            <td class="font-semibold">
+              {{ getFooterRowCellValue(footerRow, column) }}
+            </td>
+          }
+        }
+        @if (hasEndActionsSignal()) {
+          <td></td>
+        }
+      </tr>
+    }
+  } @else {
+    <tr class="bg-base-200/50 font-semibold footer-row">
+      @for (slot of lead; track $index) {
+        <td></td>
+      }
+      @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
+        <td class="font-semibold">
+          @if (column.footer) {
+            {{ getFooterValue(column) }}
+          }
+        </td>
+      }
+      @if (hasEndActionsSignal()) {
+        <td></td>
+      }
+    </tr>
+  }
+  @for (tpl of footerTemplateDirectives(); track $index) {
+    <tr class="bg-base-200/50 footer-template-row">
+      <td [attr.colspan]="totalColumnsCountSignal()">
+        <ng-container
+          *ngTemplateOutlet="
+            tpl.templateRef;
+            context: {
+              $implicit: displayDataSignal(),
+              columns: orderedColumnDefsSignal(),
+              totalColumns: totalColumnsCountSignal(),
+            }
+          "
+        />
+      </td>
+    </tr>
+  }
+</ng-template>
+
 <!-- Main Table Container — `border-base-300` keeps the wrapper visible against
      cards, dialogs, or page backgrounds. `shadow-sm` lifts it slightly so the
      table doesn't merge visually when nested inside an elevated panel. -->
@@ -62,7 +458,7 @@
   <!-- Active Filters Bar -->
   @if (hasActiveFiltersSignal()) {
     <div
-      role="alert"
+      role="status"
       class="bg-info/10 flex flex-wrap items-center justify-between gap-3 border-b border-base-content/10 px-4 py-3"
       aria-live="polite"
       aria-atomic="true"
@@ -104,7 +500,7 @@
   <!-- Selection Bar -->
   @if (selectedSignal().size > 0) {
     <div
-      role="alert"
+      role="status"
       class="bg-info/10 flex flex-wrap items-center justify-between gap-3 border-b border-base-content/10 px-4 py-3"
       aria-live="polite"
       aria-atomic="true"
@@ -195,7 +591,7 @@
     } @else {
       <div class="flex flex-col items-center justify-center gap-4 py-16">
         <span class="loading loading-spinner loading-lg text-primary"></span>
-        <p class="text-base-content/50 text-sm">{{ tableLabels().loading }}</p>
+        <p class="text-base-content/70 text-sm">{{ tableLabels().loading }}</p>
       </div>
     }
   }
@@ -219,7 +615,7 @@
     } @else {
       <div class="flex flex-col items-center justify-center gap-3 py-16">
         <svg lucideFileText [size]="48" class="text-base-content/20"></svg>
-        <p class="text-base-content/50 text-sm">{{ emptyMessage() }}</p>
+        <p class="text-base-content/70 text-sm">{{ emptyMessage() }}</p>
       </div>
     }
   }
@@ -233,24 +629,7 @@
           <tr>
             @if (hasSelectionSignal()) {
               <th class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
-                <!-- Header "select all" — hidden when `selectionLimit === 1` (radio-
-                     like UX has no bulk action). For limit ≥ 2 the checkbox stays
-                     visible: it disables + shows the limit-reached tooltip when
-                     at cap, but is fully usable below cap (where toggleSelectAll
-                     fills up to the remaining capacity). Empty <th> keeps the
-                     column aligned with the row checkboxes below. -->
-                @if (showSelectAllCheckboxSignal()) {
-                  <label>
-                    <input
-                      type="checkbox"
-                      class="checkbox"
-                      [checked]="isAllSelected()"
-                      [disabled]="isSelectAllDisabled()"
-                      (change)="toggleSelectAll(inputChecked($event))"
-                      [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
-                    />
-                  </label>
-                }
+                <ng-container *ngTemplateOutlet="selectAllTpl" />
               </th>
             }
             @if (hasStartActionsSignal()) {
@@ -266,38 +645,7 @@
                 [style.min-width.px]="column.minWidth"
                 [style.max-width.px]="column.maxWidth"
               >
-                <div class="flex items-center justify-between gap-2">
-                  <div
-                    class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
-                    (click)="sort(column.field)"
-                    role="button"
-                    tabindex="0"
-                    (keydown.enter)="sort(column.field)"
-                    (keydown.space)="$event.preventDefault(); sort(column.field)"
-                  >
-                    <span>{{ column.header }}</span>
-                    <span class="text-sm opacity-70" aria-hidden="true">
-                      @if (sortFieldSignal() === column.field) {
-                        @if (sortDirectionSignal() === 'Ascending') {
-                          <svg lucideArrowUp class="h-4 w-4"></svg>
-                        } @else {
-                          <svg lucideArrowDown class="h-4 w-4"></svg>
-                        }
-                      } @else {
-                        <svg lucideArrowUpDown class="h-4 w-4"></svg>
-                      }
-                    </span>
-                  </div>
-                </div>
-                @if (enableResizingSignal() && column.resizable !== false) {
-                  <div
-                    class="resize-handle"
-                    (pointerdown)="onResizeStart(column.field, $event)"
-                    (pointermove)="onResizeMove($event)"
-                    (pointerup)="onResizeEnd()"
-                    (pointercancel)="onResizeEnd()"
-                  ></div>
-                }
+                <ng-container *ngTemplateOutlet="headerCellTpl; context: { $implicit: column, resizable: true }" />
               </th>
             }
             @if (hasEndActionsSignal()) {
@@ -310,6 +658,7 @@
         [itemSize]="virtualScrollItemHeightSignal()"
         [style.height]="virtualScrollViewportHeightSignal()"
         class="overflow-auto"
+        tabindex="0"
       >
         <table class="table virtual-scroll-table virtual-scroll-body-table w-full">
           <tbody>
@@ -324,41 +673,12 @@
             >
               @if (hasSelectionSignal()) {
                 <td class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
-                  <label>
-                    <input
-                      type="checkbox"
-                      class="checkbox"
-                      [checked]="isSelected(row)"
-                      (change)="toggleRow(row, inputChecked($event))"
-                      [disabled]="isRowSelectDisabled(row)"
-                      [attr.title]="
-                        isRowSelectDisabledByLimit(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null
-                      "
-                      [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
-                    />
-                  </label>
+                  <ng-container *ngTemplateOutlet="rowCheckboxTpl; context: { $implicit: row }" />
                 </td>
               }
               @if (hasStartActionsSignal()) {
                 <td class="text-center" [class.sticky-start]="stickyActionsSignal()">
-                  <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                    @for (action of startActionListSignal(); track trackByAction($index, action)) {
-                      @if (!action.config.hidden?.(row)) {
-                        <button
-                          type="button"
-                          [class]="classesFor(action)"
-                          [style]="action.config.buttonStyle"
-                          [disabled]="action.config.disabled?.(row)"
-                          (click)="$event.stopPropagation(); action.config.action(row)"
-                        >
-                          @if (action.config.icon) {
-                            <svg [lucideIcon]="action.config.icon"></svg>
-                          }
-                          <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
-                        </button>
-                      }
-                    }
-                  </div>
+                  <ng-container *ngTemplateOutlet="actionsTpl; context: { $implicit: row, actions: startActionListSignal() }" />
                 </td>
               }
               @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
@@ -371,114 +691,12 @@
                   [style.max-width.px]="column.maxWidth"
                   [style.padding-left.px]="isTreeTableSignal() && isTreeColumn(column.field) ? getRowIndentPadding(row) : null"
                 >
-                  @if (enableEditingSignal() && isEditing(row, column.field)) {
-                    <div class="edit-cell" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="onEditKeydown($event)">
-                      @switch (getEditorType(column)) {
-                        @case ('toggle') {
-                          <input
-                            type="checkbox"
-                            class="toggle toggle-sm"
-                            [checked]="editingValue()"
-                            (change)="editingValue.set(inputChecked($event))"
-                          />
-                        }
-                        @case ('select') {
-                          <select class="select select-sm w-full" [value]="editingValue()" (change)="editingValue.set(inputValue($event))">
-                            @for (opt of column.editOptions; track opt.value) {
-                              <option [value]="opt.value">{{ opt.label }}</option>
-                            }
-                          </select>
-                        }
-                        @case ('number') {
-                          <input
-                            type="number"
-                            class="input input-sm w-full"
-                            [value]="editingValue()"
-                            (input)="editingValue.set(inputNumber($event))"
-                            appAutoFocus
-                          />
-                        }
-                        @case ('date') {
-                          <input
-                            type="date"
-                            class="input input-sm w-full"
-                            [value]="editingValue()"
-                            (input)="editingValue.set(inputValue($event))"
-                            appAutoFocus
-                          />
-                        }
-                        @default {
-                          <input
-                            type="text"
-                            class="input input-sm w-full"
-                            [value]="editingValue()"
-                            (input)="editingValue.set(inputValue($event))"
-                            appAutoFocus
-                          />
-                        }
-                      }
-                      @if (editError()) {
-                        <span class="text-error text-xs">{{ editError() }}</span>
-                      }
-                      <div class="edit-cell-actions">
-                        <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
-                          <svg lucideCheck class="h-3 w-3"></svg>
-                        </button>
-                        <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
-                          <svg lucideX class="h-3 w-3"></svg>
-                        </button>
-                      </div>
-                    </div>
-                  } @else if (isTreeTableSignal() && isTreeColumn(column.field)) {
-                    <div class="tree-cell-wrapper">
-                      @if (hasChildren(row)) {
-                        <button
-                          type="button"
-                          class="tree-toggle-btn btn btn-ghost btn-xs btn-square"
-                          (click)="toggleRowExpand(row, $event)"
-                          [attr.aria-expanded]="isRowExpanded(row)"
-                          [attr.aria-label]="isRowExpanded(row) ? tableLabels().collapseRowAriaLabel : tableLabels().expandRowAriaLabel"
-                        >
-                          @if (isRowExpanded(row)) {
-                            <svg lucideChevronDown class="h-4 w-4"></svg>
-                          } @else {
-                            <svg lucideChevronRight class="h-4 w-4"></svg>
-                          }
-                        </button>
-                      } @else {
-                        <span class="tree-toggle-spacer"></span>
-                      }
-                      <span class="tree-cell-content">
-                        <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
-                      </span>
-                    </div>
-                  } @else {
-                    <div (dblclick)="startEdit(row, column.field)" [class.cursor-pointer]="column.editable">
-                      <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
-                    </div>
-                  }
+                  <ng-container *ngTemplateOutlet="dataCellTpl; context: { $implicit: row, column: column }" />
                 </td>
               }
               @if (hasEndActionsSignal()) {
                 <td class="text-center" [class.sticky-end]="stickyActionsSignal()">
-                  <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                    @for (action of endActionListSignal(); track trackByAction($index, action)) {
-                      @if (!action.config.hidden?.(row)) {
-                        <button
-                          type="button"
-                          [class]="classesFor(action)"
-                          [style]="action.config.buttonStyle"
-                          [disabled]="action.config.disabled?.(row)"
-                          (click)="$event.stopPropagation(); action.config.action(row)"
-                        >
-                          @if (action.config.icon) {
-                            <svg [lucideIcon]="action.config.icon"></svg>
-                          }
-                          <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
-                        </button>
-                      }
-                    }
-                  </div>
+                  <ng-container *ngTemplateOutlet="actionsTpl; context: { $implicit: row, actions: endActionListSignal() }" />
                 </td>
               }
             </tr>
@@ -486,89 +704,16 @@
           <!-- Virtual Scroll Footer -->
           @if (hasFooterSignal()) {
             <tfoot>
-              @if (hasFooterRowsSignal()) {
-                @for (footerRow of resolvedFooterRowsSignal(); track $index) {
-                  @if (footerRow.colspanCells) {
-                    <tr class="bg-base-200/50 font-semibold footer-row" [class]="footerRow.class ?? ''">
-                      @if (hasSelectionSignal()) {
-                        <td></td>
-                      }
-                      @if (hasStartActionsSignal()) {
-                        <td></td>
-                      }
-                      @for (cell of footerRow.colspanCells; track $index) {
-                        <td [attr.colspan]="cell.colspan" [class]="cell.class ?? ''" class="font-semibold">
-                          {{ getColspanCellValue(cell) }}
-                        </td>
-                      }
-                      @if (hasEndActionsSignal()) {
-                        <td></td>
-                      }
-                    </tr>
-                  } @else {
-                    <tr class="bg-base-200/50 font-semibold footer-row" [class]="footerRow.class ?? ''">
-                      @if (hasSelectionSignal()) {
-                        <td></td>
-                      }
-                      @if (hasStartActionsSignal()) {
-                        <td></td>
-                      }
-                      @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
-                        <td class="font-semibold">
-                          {{ getFooterRowCellValue(footerRow, column) }}
-                        </td>
-                      }
-                      @if (hasEndActionsSignal()) {
-                        <td></td>
-                      }
-                    </tr>
-                  }
-                }
-              } @else {
-                <tr class="bg-base-200/50 font-semibold footer-row">
-                  @if (hasSelectionSignal()) {
-                    <td></td>
-                  }
-                  @if (hasStartActionsSignal()) {
-                    <td></td>
-                  }
-                  @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
-                    <td class="font-semibold">
-                      @if (column.footer) {
-                        {{ getFooterValue(column) }}
-                      }
-                    </td>
-                  }
-                  @if (hasEndActionsSignal()) {
-                    <td></td>
-                  }
-                </tr>
-              }
-              @for (tpl of footerTemplateDirectives(); track $index) {
-                <tr class="bg-base-200/50 footer-template-row">
-                  <td [attr.colspan]="totalColumnsCountSignal()">
-                    <ng-container
-                      *ngTemplateOutlet="
-                        tpl.templateRef;
-                        context: {
-                          $implicit: displayDataSignal(),
-                          columns: orderedColumnDefsSignal(),
-                          totalColumns: totalColumnsCountSignal(),
-                        }
-                      "
-                    />
-                  </td>
-                </tr>
-              }
+              <ng-container *ngTemplateOutlet="tfootRowsTpl; context: { lead: virtualLeadCellsSignal() }" />
             </tfoot>
           }
         </table>
       </cdk-virtual-scroll-viewport>
     </div>
   } @else if (!loading() && !hasErrorSignal() && !isEmptySignal() && isGroupedSignal() && !isTreeTableSignal()) {
-    <!-- Grouped Table Mode -->
+    <!-- Grouped Table Mode (no grid keyboard model: role stays "table") -->
     <div class="overflow-x-auto">
-      <table class="table w-full" [attr.role]="enableKeyboardNavSignal() ? 'grid' : 'table'">
+      <table class="table w-full">
         <!-- Header -->
         <thead>
           <tr>
@@ -577,19 +722,7 @@
             }
             @if (hasSelectionSignal()) {
               <th class="w-8 px-4">
-                <!-- See virtual-scroll header for the showSelectAllCheckboxSignal rationale. -->
-                @if (showSelectAllCheckboxSignal()) {
-                  <label>
-                    <input
-                      type="checkbox"
-                      class="checkbox"
-                      [checked]="isAllSelected()"
-                      [disabled]="isSelectAllDisabled()"
-                      (change)="toggleSelectAll(inputChecked($event))"
-                      [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
-                    />
-                  </label>
-                }
+                <ng-container *ngTemplateOutlet="selectAllTpl" />
               </th>
             }
             @if (showExpandColumnSignal()) {
@@ -600,29 +733,7 @@
             }
             @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
               <th [attr.aria-sort]="ariaSort(column.field)" class="relative transition-colors duration-200 select-none">
-                <div class="flex items-center gap-1">
-                  <div
-                    class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
-                    (click)="sort(column.field)"
-                    role="button"
-                    tabindex="0"
-                    (keydown.enter)="sort(column.field)"
-                    (keydown.space)="$event.preventDefault(); sort(column.field)"
-                  >
-                    <span>{{ column.header }}</span>
-                    <span class="text-sm opacity-70" aria-hidden="true">
-                      @if (sortFieldSignal() === column.field) {
-                        @if (sortDirectionSignal() === 'Ascending') {
-                          <svg lucideArrowUp class="h-4 w-4"></svg>
-                        } @else {
-                          <svg lucideArrowDown class="h-4 w-4"></svg>
-                        }
-                      } @else {
-                        <svg lucideArrowUpDown class="h-4 w-4"></svg>
-                      }
-                    </span>
-                  </div>
-                </div>
+                <ng-container *ngTemplateOutlet="headerCellTpl; context: { $implicit: column, resizable: false }" />
               </th>
             }
             @if (hasEndActionsSignal()) {
@@ -640,15 +751,23 @@
               >
                 <td [attr.colspan]="displayedColumnsSignal().length" class="py-2 px-4">
                   <div class="flex items-center gap-2 font-semibold" [style.padding-left.rem]="displayRow.depth * 1.25">
-                    @if (displayRow.group.expanded) {
-                      <svg lucideChevronDown class="h-4 w-4"></svg>
-                    } @else {
-                      <svg lucideChevronRight class="h-4 w-4"></svg>
-                    }
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs btn-square"
+                      [attr.aria-expanded]="displayRow.group.expanded"
+                      [attr.aria-label]="displayRow.group.groupLabel"
+                      (click)="$event.stopPropagation(); toggleGroupExpand(displayRow.group.path)"
+                    >
+                      @if (displayRow.group.expanded) {
+                        <svg lucideChevronDown class="h-4 w-4"></svg>
+                      } @else {
+                        <svg lucideChevronRight class="h-4 w-4"></svg>
+                      }
+                    </button>
                     <span>{{ displayRow.group.groupLabel }}</span>
                     <span class="badge badge-sm badge-neutral">{{ displayRow.group.rows.length }}</span>
                     @if (hasGroupCaptionAggregatesSignal()) {
-                      <span class="ml-2 text-base-content/60 text-sm font-normal flex items-center gap-3">
+                      <span class="ml-2 text-base-content/70 text-sm font-normal flex items-center gap-3">
                         @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                           @let captionVal = getGroupCaptionValue(displayRow.group, column.field);
                           @if (captionVal) {
@@ -673,160 +792,65 @@
                 }
                 @if (hasSelectionSignal()) {
                   <td class="w-8 px-4">
-                    <label>
-                      <input
-                        type="checkbox"
-                        class="checkbox"
-                        [checked]="isSelected(displayRow.row)"
-                        (change)="toggleRow(displayRow.row, inputChecked($event))"
-                        [disabled]="isRowSelectDisabled(displayRow.row)"
-                        [attr.title]="
-                          isRowSelectDisabledByLimit(displayRow.row)
-                            ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!)
-                            : null
-                        "
-                      />
-                    </label>
+                    <ng-container *ngTemplateOutlet="rowCheckboxTpl; context: { $implicit: displayRow.row }" />
                   </td>
                 }
                 @if (showExpandColumnSignal()) {
                   <td class="w-10 px-2">
-                    @if (hasChildGridSignal() || rowDetailTemplate()) {
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-xs btn-square"
-                        (click)="toggleDetailExpand(displayRow.row, $event)"
-                        [attr.aria-expanded]="isDetailExpanded(displayRow.row)"
-                        [attr.aria-label]="
-                          isDetailExpanded(displayRow.row) ? tableLabels().collapseDetailsAriaLabel : tableLabels().expandDetailsAriaLabel
-                        "
-                      >
-                        @if (isDetailExpanded(displayRow.row)) {
-                          <svg lucideChevronDown class="h-4 w-4"></svg>
-                        } @else {
-                          <svg lucideChevronRight class="h-4 w-4"></svg>
-                        }
-                      </button>
-                    }
+                    <ng-container *ngTemplateOutlet="detailToggleTpl; context: { $implicit: displayRow.row }" />
                   </td>
                 }
                 @if (hasStartActionsSignal()) {
                   <td class="text-center">
-                    <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                      @for (action of startActionListSignal(); track trackByAction($index, action)) {
-                        @if (!action.config.hidden?.(displayRow.row)) {
-                          <button
-                            type="button"
-                            [class]="classesFor(action)"
-                            [style]="action.config.buttonStyle"
-                            [disabled]="action.config.disabled?.(displayRow.row)"
-                            (click)="$event.stopPropagation(); action.config.action(displayRow.row)"
-                          >
-                            @if (action.config.icon) {
-                              <svg [lucideIcon]="action.config.icon"></svg>
-                            }
-                            <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
-                          </button>
-                        }
-                      }
-                    </div>
+                    <ng-container
+                      *ngTemplateOutlet="actionsTpl; context: { $implicit: displayRow.row, actions: startActionListSignal() }"
+                    />
                   </td>
                 }
                 @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                   <td>
-                    <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: displayRow.row, column: column }" />
+                    <ng-container *ngTemplateOutlet="dataCellTpl; context: { $implicit: displayRow.row, column: column }" />
                   </td>
                 }
                 @if (hasEndActionsSignal()) {
                   <td class="text-center">
-                    <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                      @for (action of endActionListSignal(); track trackByAction($index, action)) {
-                        @if (!action.config.hidden?.(displayRow.row)) {
-                          <button
-                            type="button"
-                            [class]="classesFor(action)"
-                            [style]="action.config.buttonStyle"
-                            [disabled]="action.config.disabled?.(displayRow.row)"
-                            (click)="$event.stopPropagation(); action.config.action(displayRow.row)"
-                          >
-                            @if (action.config.icon) {
-                              <svg [lucideIcon]="action.config.icon"></svg>
-                            }
-                            <span [class.sr-only]="!!action.config.icon">{{ action.config.label }}</span>
-                          </button>
-                        }
-                      }
-                    </div>
+                    <ng-container *ngTemplateOutlet="actionsTpl; context: { $implicit: displayRow.row, actions: endActionListSignal() }" />
                   </td>
                 }
               </tr>
               <!-- Detail row in grouped mode (when expanded) -->
               @if (isDetailExpanded(displayRow.row)) {
-                <tr>
-                  <td [attr.colspan]="displayedColumnsSignal().length" class="p-0">
-                    <div class="detail-content" [class.px-4]="!!rowDetailTemplate()" [class.py-2]="!!rowDetailTemplate()">
-                      @if (rowDetailTemplate()) {
-                        <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: displayRow.row }" />
-                      } @else if (hasChildGridSignal()) {
-                        <div [class]="getChildGridContainerClass()">
-                          <hk-table [config]="$any(childGridConfigSignal()!.config)" [data]="$any(getChildGridData(displayRow.row))" />
-                        </div>
-                      }
-                    </div>
+                <tr class="detail-row">
+                  <td [attr.colspan]="displayedColumnsSignal().length" class="detail-content-cell">
+                    <ng-container *ngTemplateOutlet="detailContentTpl; context: { $implicit: displayRow.row }" />
                   </td>
                 </tr>
               }
             } @else if (displayRow.type === 'group-footer') {
               @if (displayRow.footerRowIndex !== undefined) {
-                @if (displayRow.group.resolvedGroupFooterRows?.[displayRow.footerRowIndex]?.colspanCells; as colspanCells) {
-                  <!-- Colspan multi-row group footer -->
-                  <tr class="bg-base-200/30 group-footer-row" [attr.data-group-depth]="displayRow.depth">
-                    @if (showDragHandleColumnSignal()) {
-                      <td></td>
-                    }
-                    @if (hasSelectionSignal()) {
-                      <td></td>
-                    }
-                    @if (showExpandColumnSignal()) {
-                      <td></td>
-                    }
-                    @if (hasStartActionsSignal()) {
-                      <td></td>
-                    }
+                <tr class="bg-base-200/30 group-footer-row" [attr.data-group-depth]="displayRow.depth">
+                  @for (slot of groupedLeadCellsSignal(); track $index) {
+                    <td></td>
+                  }
+                  @if (displayRow.group.resolvedGroupFooterRows?.[displayRow.footerRowIndex]?.colspanCells; as colspanCells) {
+                    <!-- Colspan multi-row group footer -->
                     @for (cell of colspanCells; track $index) {
                       <td [attr.colspan]="cell.colspan" [class]="cell.class ?? ''" class="text-sm text-base-content/70 font-medium">
                         {{ getGroupColspanCellValue(cell, displayRow.group) }}
                       </td>
                     }
-                    @if (hasEndActionsSignal()) {
-                      <td></td>
-                    }
-                  </tr>
-                } @else {
-                  <!-- Column-aligned multi-row group footer -->
-                  <tr class="bg-base-200/30 group-footer-row" [attr.data-group-depth]="displayRow.depth">
-                    @if (showDragHandleColumnSignal()) {
-                      <td></td>
-                    }
-                    @if (hasSelectionSignal()) {
-                      <td></td>
-                    }
-                    @if (showExpandColumnSignal()) {
-                      <td></td>
-                    }
-                    @if (hasStartActionsSignal()) {
-                      <td></td>
-                    }
+                  } @else {
+                    <!-- Column-aligned multi-row group footer -->
                     @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
                       <td class="text-sm text-base-content/70 font-medium">
                         {{ getGroupFooterRowCellValue(displayRow.group, displayRow.footerRowIndex, column) }}
                       </td>
                     }
-                    @if (hasEndActionsSignal()) {
-                      <td></td>
-                    }
-                  </tr>
-                }
+                  }
+                  @if (hasEndActionsSignal()) {
+                    <td></td>
+                  }
+                </tr>
               } @else {
                 <!-- Legacy full-colspan group footer (backward compat) -->
                 <tr class="bg-base-200/30 group-footer-row" [attr.data-group-depth]="displayRow.depth">
@@ -847,112 +871,25 @@
         <!-- Footer Row (summary across all groups) -->
         @if (hasFooterSignal()) {
           <tfoot>
-            @if (hasFooterRowsSignal()) {
-              @for (footerRow of resolvedFooterRowsSignal(); track $index) {
-                @if (footerRow.colspanCells) {
-                  <tr class="bg-base-200/50 font-semibold footer-row" [class]="footerRow.class ?? ''">
-                    @if (showDragHandleColumnSignal()) {
-                      <td></td>
-                    }
-                    @if (hasSelectionSignal()) {
-                      <td></td>
-                    }
-                    @if (showExpandColumnSignal()) {
-                      <td></td>
-                    }
-                    @if (hasStartActionsSignal()) {
-                      <td></td>
-                    }
-                    @for (cell of footerRow.colspanCells; track $index) {
-                      <td [attr.colspan]="cell.colspan" [class]="cell.class ?? ''" class="font-semibold">
-                        {{ getColspanCellValue(cell) }}
-                      </td>
-                    }
-                    @if (hasEndActionsSignal()) {
-                      <td></td>
-                    }
-                  </tr>
-                } @else {
-                  <tr class="bg-base-200/50 font-semibold footer-row" [class]="footerRow.class ?? ''">
-                    @if (showDragHandleColumnSignal()) {
-                      <td></td>
-                    }
-                    @if (hasSelectionSignal()) {
-                      <td></td>
-                    }
-                    @if (showExpandColumnSignal()) {
-                      <td></td>
-                    }
-                    @if (hasStartActionsSignal()) {
-                      <td></td>
-                    }
-                    @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
-                      <td class="font-semibold">
-                        {{ getFooterRowCellValue(footerRow, column) }}
-                      </td>
-                    }
-                    @if (hasEndActionsSignal()) {
-                      <td></td>
-                    }
-                  </tr>
-                }
-              }
-            } @else {
-              <tr class="bg-base-200/50 font-semibold footer-row">
-                @if (showDragHandleColumnSignal()) {
-                  <td></td>
-                }
-                @if (hasSelectionSignal()) {
-                  <td></td>
-                }
-                @if (showExpandColumnSignal()) {
-                  <td></td>
-                }
-                @if (hasStartActionsSignal()) {
-                  <td></td>
-                }
-                @for (column of orderedColumnDefsSignal(); track trackByField($index, column)) {
-                  <td class="font-semibold">
-                    @if (column.footer) {
-                      {{ getFooterValue(column) }}
-                    }
-                  </td>
-                }
-                @if (hasEndActionsSignal()) {
-                  <td></td>
-                }
-              </tr>
-            }
-            @for (tpl of footerTemplateDirectives(); track $index) {
-              <tr class="bg-base-200/50 footer-template-row">
-                <td [attr.colspan]="totalColumnsCountSignal()">
-                  <ng-container
-                    *ngTemplateOutlet="
-                      tpl.templateRef;
-                      context: {
-                        $implicit: displayDataSignal(),
-                        columns: orderedColumnDefsSignal(),
-                        totalColumns: totalColumnsCountSignal(),
-                      }
-                    "
-                  />
-                </td>
-              </tr>
-            }
+            <ng-container *ngTemplateOutlet="tfootRowsTpl; context: { lead: groupedLeadCellsSignal() }" />
           </tfoot>
         }
       </table>
     </div>
   } @else if (!loading() && !hasErrorSignal() && !isEmptySignal()) {
-    <!-- Normal CDK Table Mode -->
+    <!-- Normal CDK Table Mode. With keyboard navigation the <table> is the focusable
+         ARIA grid and points aria-activedescendant at the active cell (APG grid,
+         "focus stays on the container" variant). -->
     <div class="overflow-x-auto">
       <table
+        #gridTable
         cdk-table
         [dataSource]="dataSource"
         [multiTemplateDataRows]="showExpandColumnSignal()"
         class="table w-full"
         [attr.role]="enableKeyboardNavSignal() ? 'grid' : 'table'"
-        [attr.aria-activedescendant]="getActiveCellId()"
+        [attr.tabindex]="enableKeyboardNavSignal() ? 0 : null"
+        [attr.aria-activedescendant]="enableKeyboardNavSignal() ? getActiveCellId() : null"
       >
         <!-- Drag Handle Column (Row Reordering) -->
         @if (showDragHandleColumnSignal()) {
@@ -960,12 +897,11 @@
             <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2"></th>
             <td
               cdk-cell
-              *cdkCellDef="let row; let rowIdx = dataIndex"
+              *cdkCellDef="let row; let rowIndex = index; let dataRowIndex = dataIndex"
               class="w-10 px-2 cursor-grab"
-              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, 0)"
-              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, 0) : null"
-              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
-              (click)="onCellClick(rowIdx, 0)"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(dataRowIndex ?? rowIndex, 0)"
+              [id]="enableKeyboardNavSignal() ? getCellId(dataRowIndex ?? rowIndex, 0) : null"
+              (click)="onCellClick(dataRowIndex ?? rowIndex, 0)"
             >
               <svg lucideGripVertical class="h-4 w-4 opacity-40"></svg>
             </td>
@@ -979,42 +915,18 @@
         @if (hasSelectionSignal()) {
           <ng-container cdkColumnDef="select">
             <th cdk-header-cell *cdkHeaderCellDef class="w-8 px-4" [class.sticky-start]="stickySelectionSignal()">
-              <!-- See virtual-scroll header for the showSelectAllCheckboxSignal rationale. -->
-              @if (showSelectAllCheckboxSignal()) {
-                <label>
-                  <input
-                    type="checkbox"
-                    class="checkbox"
-                    [checked]="isAllSelected()"
-                    [disabled]="isSelectAllDisabled()"
-                    (change)="toggleSelectAll(inputChecked($event))"
-                    [attr.aria-label]="isAllSelected() ? tableLabels().deselectAllAriaLabel : tableLabels().selectAllAriaLabel"
-                  />
-                </label>
-              }
+              <ng-container *ngTemplateOutlet="selectAllTpl" />
             </th>
             <td
               cdk-cell
-              *cdkCellDef="let row; let rowIdx = dataIndex"
+              *cdkCellDef="let row; let rowIndex = index; let dataRowIndex = dataIndex"
               class="w-8 px-4"
               [class.sticky-start]="stickySelectionSignal()"
-              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, selectColIndexSignal())"
-              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, selectColIndexSignal()) : null"
-              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
-              (click)="onCellClick(rowIdx, selectColIndexSignal())"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(dataRowIndex ?? rowIndex, selectColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(dataRowIndex ?? rowIndex, selectColIndexSignal()) : null"
+              (click)="onCellClick(dataRowIndex ?? rowIndex, selectColIndexSignal())"
             >
-              <label>
-                <input
-                  type="checkbox"
-                  class="checkbox"
-                  [checked]="isSelected(row)"
-                  [indeterminate]="isIndeterminate(row)"
-                  (change)="toggleRow(row, inputChecked($event))"
-                  [disabled]="isRowSelectDisabled(row)"
-                  [attr.title]="isRowSelectDisabledByLimit(row) ? tableLabels().selectionLimitReachedHint(selectionLimitSignal()!) : null"
-                  [attr.aria-label]="isSelected(row) ? tableLabels().deselectRowAriaLabel : tableLabels().selectRowAriaLabel"
-                />
-              </label>
+              <ng-container *ngTemplateOutlet="rowCheckboxTpl; context: { $implicit: row }" />
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
               <td cdk-footer-cell *cdkFooterCellDef></td>
@@ -1028,26 +940,13 @@
             <th cdk-header-cell *cdkHeaderCellDef class="w-10 px-2"></th>
             <td
               cdk-cell
-              *cdkCellDef="let row; let rowIdx = dataIndex"
+              *cdkCellDef="let row; let rowIndex = index; let dataRowIndex = dataIndex"
               class="w-10 px-2"
-              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, expandColIndexSignal())"
-              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, expandColIndexSignal()) : null"
-              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
-              (click)="onCellClick(rowIdx, expandColIndexSignal())"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(dataRowIndex ?? rowIndex, expandColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(dataRowIndex ?? rowIndex, expandColIndexSignal()) : null"
+              (click)="onCellClick(dataRowIndex ?? rowIndex, expandColIndexSignal())"
             >
-              <button
-                type="button"
-                class="btn btn-ghost btn-xs btn-square"
-                (click)="toggleDetailExpand(row, $event)"
-                [attr.aria-expanded]="isDetailExpanded(row)"
-                [attr.aria-label]="isDetailExpanded(row) ? tableLabels().collapseDetailsAriaLabel : tableLabels().expandDetailsAriaLabel"
-              >
-                @if (isDetailExpanded(row)) {
-                  <svg lucideChevronDown class="h-4 w-4"></svg>
-                } @else {
-                  <svg lucideChevronRight class="h-4 w-4"></svg>
-                }
-              </button>
+              <ng-container *ngTemplateOutlet="detailToggleTpl; context: { $implicit: row }" />
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
               <td cdk-footer-cell *cdkFooterCellDef></td>
@@ -1060,31 +959,14 @@
           <ng-container cdkColumnDef="__detail_content">
             <td cdk-cell *cdkCellDef="let row" [attr.colspan]="displayedColumnsSignal().length" class="detail-content-cell">
               @if (isDetailExpanded(row)) {
-                <div
-                  class="detail-content"
-                  [class]="{
-                    'bg-base-200/30': !!rowDetailTemplate(),
-                    'border-t': !!rowDetailTemplate(),
-                    'border-base-content/10': !!rowDetailTemplate(),
-                    'p-4': !!rowDetailTemplate(),
-                    'p-0': !rowDetailTemplate(),
-                  }"
-                >
-                  @if (rowDetailTemplate()) {
-                    <ng-container *ngTemplateOutlet="rowDetailTemplate()!; context: { $implicit: row }" />
-                  } @else if (hasChildGridSignal()) {
-                    <div [class]="getChildGridContainerClass()">
-                      <hk-table [config]="$any(childGridConfigSignal()!.config)" [data]="$any(getChildGridData(row))" />
-                    </div>
-                  }
-                </div>
+                <ng-container *ngTemplateOutlet="detailContentTpl; context: { $implicit: row }" />
               }
             </td>
           </ng-container>
         }
 
         <!-- Data Columns -->
-        @for (column of orderedColumnDefsSignal(); track trackByField($index, column); let isFirst = $first; let colIdx = $index) {
+        @for (column of orderedColumnDefsSignal(); track trackByField($index, column); let colIdx = $index) {
           <ng-container [cdkColumnDef]="column.field">
             <!-- Sortable Column Header -->
             <th
@@ -1106,236 +988,27 @@
               (drop)="onColumnDrop(column.field, $event)"
               (dragend)="onColumnDragEnd()"
             >
-              <div class="flex items-center justify-between gap-2">
-                <div
-                  class="hover:bg-base-200 -mx-1 -my-2 flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-2"
-                  (click)="sort(column.field)"
-                  role="button"
-                  tabindex="0"
-                  (keydown.enter)="sort(column.field)"
-                  (keydown.space)="$event.preventDefault(); sort(column.field)"
-                >
-                  <span>{{ column.header }}</span>
-                  <span class="text-sm opacity-70" [attr.aria-hidden]="true">
-                    @if (sortFieldSignal() === column.field) {
-                      @if (sortDirectionSignal() === 'Ascending') {
-                        <svg lucideArrowUp class="h-4 w-4"></svg>
-                      } @else {
-                        <svg lucideArrowDown class="h-4 w-4"></svg>
-                      }
-                    } @else {
-                      <svg lucideArrowUpDown class="h-4 w-4"></svg>
-                    }
-                  </span>
-                </div>
-
-                <!-- Filter dropdown — two branches keyed on daisyUI version.
-                     v5 uses native popover + CSS anchor positioning (escapes overflow,
-                     auto-positions). v4 has neither, so falls back to daisyUI v4's
-                     documented `.dropdown`/`tabindex` focus-driven pattern. -->
-                @if (enableFilteringSignal() && hasFilterForColumn(column.field)) {
-                  @if (isDaisyV4Signal()) {
-                    <!-- daisyUI v4 — uses <details> so the trigger natively toggles
-                         on click (v4's pure-CSS .dropdown opens on :focus-within
-                         and has no toggle/close-on-second-click). No `dropdown-end`
-                         so the panel anchors LEFT of trigger and extends right,
-                         which keeps it from clipping off the table's left edge
-                         for the leftmost columns. The `data-hk-filter` attribute
-                         lets `onDocumentClick` close it on outside clicks. -->
-                    <details
-                      #filterDetails
-                      name="hk-filter-group"
-                      class="dropdown"
-                      data-hk-filter
-                      (toggle)="onFilterDetailsToggle(filterDetails)"
-                    >
-                      <summary
-                        class="btn btn-ghost btn-xs"
-                        [class.btn-primary]="getActiveFilterForColumn(column.field)"
-                        [attr.aria-label]="tableLabels().filterButtonAriaLabel(column.header)"
-                      >
-                        <svg lucideListFilter class="h-3 w-3"></svg>
-                        @if (getActiveFilterForColumn(column.field)) {
-                          <span class="badge badge-xs badge-primary">1</span>
-                        }
-                      </summary>
-                      <div class="dropdown-content card card-compact bg-base-100 w-72 shadow-xl z-50 mt-1">
-                        <div class="card-body">
-                          <hk-table-filter
-                            [column]="column"
-                            [filterConfig]="getFilterForColumn(column.field)!"
-                            [activeFilter]="getActiveFilterForColumn(column.field)"
-                            [labels]="filterLabels()"
-                            (apply)="applyColumnFilter(column.field, $event.value, $event.operator); filterDetails.open = false"
-                            (clear)="removeFilter(column.field); filterDetails.open = false"
-                            (closeFilter)="filterDetails.open = false"
-                          />
-                        </div>
-                      </div>
-                    </details>
-                  } @else {
-                    <!-- daisyUI v5: popover API + CSS anchor positioning. -->
-                    <button
-                      type="button"
-                      class="btn btn-ghost btn-xs"
-                      [class.btn-primary]="getActiveFilterForColumn(column.field)"
-                      (click)="$event.stopPropagation()"
-                      [attr.aria-label]="tableLabels().filterButtonAriaLabel(column.header)"
-                      [attr.popovertarget]="'filter-popover-' + column.field"
-                      [style.anchor-name]="'--filter-anchor-' + column.field"
-                    >
-                      <svg lucideListFilter class="h-3 w-3"></svg>
-                      @if (getActiveFilterForColumn(column.field)) {
-                        <span class="badge badge-xs badge-primary">1</span>
-                      }
-                    </button>
-                    <div
-                      class="dropdown card card-compact bg-base-100 w-72 shadow-xl"
-                      popover
-                      [id]="'filter-popover-' + column.field"
-                      [style.position-anchor]="'--filter-anchor-' + column.field"
-                    >
-                      <div class="card-body">
-                        <hk-table-filter
-                          [column]="column"
-                          [filterConfig]="getFilterForColumn(column.field)!"
-                          [activeFilter]="getActiveFilterForColumn(column.field)"
-                          [labels]="filterLabels()"
-                          (apply)="applyColumnFilter(column.field, $event.value, $event.operator)"
-                          (clear)="removeFilter(column.field)"
-                          (closeFilter)="closeAllFilterDropdowns()"
-                        />
-                      </div>
-                    </div>
-                  }
-                }
-              </div>
-
-              <!-- Resize Handle -->
-              @if (enableResizingSignal() && column.resizable !== false) {
-                <div
-                  class="resize-handle"
-                  (pointerdown)="onResizeStart(column.field, $event)"
-                  (pointermove)="onResizeMove($event)"
-                  (pointerup)="onResizeEnd()"
-                  (pointercancel)="onResizeEnd()"
-                ></div>
-              }
+              <ng-container *ngTemplateOutlet="headerCellTpl; context: { $implicit: column, resizable: true }" />
             </th>
 
             <!-- Data Cell with editing support -->
             <td
               cdk-cell
-              *cdkCellDef="let row; let rowIdx = dataIndex"
+              *cdkCellDef="let row; let rowIndex = index; let dataRowIndex = dataIndex"
               class="transition-colors duration-200"
               [class.sticky-start]="isStickyStart(column.field)"
               [class.sticky-end]="isStickyEnd(column.field)"
-              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, colIdx + specialColumnOffsetSignal())"
-              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, colIdx + specialColumnOffsetSignal()) : null"
-              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
+              [class.active-cell]="
+                enableKeyboardNavSignal() && isActiveCell(dataRowIndex ?? rowIndex, colIdx + specialColumnOffsetSignal())
+              "
+              [id]="enableKeyboardNavSignal() ? getCellId(dataRowIndex ?? rowIndex, colIdx + specialColumnOffsetSignal()) : null"
               [style.width.px]="getColumnWidth(column.field)"
               [style.min-width.px]="column.minWidth"
               [style.max-width.px]="column.maxWidth"
               [style.padding-left.px]="isTreeTableSignal() && isTreeColumn(column.field) ? getRowIndentPadding(row) : null"
-              (click)="onCellClick(rowIdx, colIdx + specialColumnOffsetSignal())"
+              (click)="onCellClick(dataRowIndex ?? rowIndex, colIdx + specialColumnOffsetSignal())"
             >
-              @if (enableEditingSignal() && isEditing(row, column.field)) {
-                <!-- Edit Mode -->
-                <div class="edit-cell" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="onEditKeydown($event)">
-                  @switch (getEditorType(column)) {
-                    @case ('toggle') {
-                      <input
-                        type="checkbox"
-                        class="toggle toggle-sm"
-                        [checked]="editingValue()"
-                        (change)="editingValue.set(inputChecked($event))"
-                      />
-                    }
-                    @case ('select') {
-                      <select class="select select-sm w-full" [value]="editingValue()" (change)="editingValue.set(inputValue($event))">
-                        @for (opt of column.editOptions; track opt.value) {
-                          <option [value]="opt.value">{{ opt.label }}</option>
-                        }
-                      </select>
-                    }
-                    @case ('number') {
-                      <input
-                        type="number"
-                        class="input input-sm w-full"
-                        [value]="editingValue()"
-                        (input)="editingValue.set(inputNumber($event))"
-                        appAutoFocus
-                      />
-                    }
-                    @case ('date') {
-                      <input
-                        type="date"
-                        class="input input-sm w-full"
-                        [value]="editingValue()"
-                        (input)="editingValue.set(inputValue($event))"
-                        appAutoFocus
-                      />
-                    }
-                    @default {
-                      <input
-                        type="text"
-                        class="input input-sm w-full"
-                        [value]="editingValue()"
-                        (input)="editingValue.set(inputValue($event))"
-                        appAutoFocus
-                      />
-                    }
-                  }
-                  @if (editError()) {
-                    <span class="text-error text-xs">{{ editError() }}</span>
-                  }
-                  <div class="edit-cell-actions">
-                    <button type="button" class="btn btn-xs btn-success" (click)="confirmEdit()">
-                      <svg lucideCheck class="h-3 w-3"></svg>
-                    </button>
-                    <button type="button" class="btn btn-xs btn-ghost" (click)="cancelEdit()">
-                      <svg lucideX class="h-3 w-3"></svg>
-                    </button>
-                  </div>
-                </div>
-              } @else if (isTreeTableSignal() && isTreeColumn(column.field)) {
-                <!-- Tree Column: inline toggle + cell content -->
-                <div class="tree-cell-wrapper">
-                  @if (hasChildren(row)) {
-                    <button
-                      type="button"
-                      class="tree-toggle-btn btn btn-ghost btn-xs btn-square"
-                      (click)="toggleRowExpand(row, $event)"
-                      [attr.aria-expanded]="isRowExpanded(row)"
-                      [attr.aria-label]="isRowExpanded(row) ? tableLabels().collapseRowAriaLabel : tableLabels().expandRowAriaLabel"
-                    >
-                      @if (isRowExpanded(row)) {
-                        <svg lucideChevronDown class="h-4 w-4"></svg>
-                      } @else {
-                        <svg lucideChevronRight class="h-4 w-4"></svg>
-                      }
-                    </button>
-                  } @else {
-                    <span class="tree-toggle-spacer"></span>
-                  }
-                  <span class="tree-cell-content">
-                    @if (cellTemplateMap().get(column.field); as customTpl) {
-                      <ng-container *ngTemplateOutlet="customTpl; context: { $implicit: row, column: column }" />
-                    } @else {
-                      <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
-                    }
-                  </span>
-                </div>
-              } @else {
-                <!-- Display Mode -->
-                <div (dblclick)="startEdit(row, column.field)" [class.cursor-pointer]="column.editable">
-                  @if (cellTemplateMap().get(column.field); as customTpl) {
-                    <ng-container *ngTemplateOutlet="customTpl; context: { $implicit: row, column: column }" />
-                  } @else {
-                    <ng-container *ngTemplateOutlet="cellValueTpl; context: { $implicit: row, column: column }" />
-                  }
-                </div>
-              }
+              <ng-container *ngTemplateOutlet="dataCellTpl; context: { $implicit: row, column: column }" />
             </td>
 
             <!-- Footer Cell (legacy single-row only; multi-row uses raw tfoot) -->
@@ -1357,53 +1030,14 @@
             </th>
             <td
               cdk-cell
-              *cdkCellDef="let row; let rowIdx = dataIndex"
+              *cdkCellDef="let row; let rowIndex = index; let dataRowIndex = dataIndex"
               class="text-center"
               [class.sticky-start]="stickyActionsSignal()"
-              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, startActionsColIndexSignal())"
-              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, startActionsColIndexSignal()) : null"
-              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
-              (click)="onCellClick(rowIdx, startActionsColIndexSignal())"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(dataRowIndex ?? rowIndex, startActionsColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(dataRowIndex ?? rowIndex, startActionsColIndexSignal()) : null"
+              (click)="onCellClick(dataRowIndex ?? rowIndex, startActionsColIndexSignal())"
             >
-              <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                @for (action of startActionListSignal(); track trackByAction($index, action)) {
-                  @if (!action.config.hidden?.(row)) {
-                    @if (isTooltipVisible(row, action)) {
-                      <div class="tooltip" [attr.data-tip]="getTooltip(row, action) || action.config.label">
-                        <button
-                          type="button"
-                          [class]="classesFor(action)"
-                          [style]="action.config.buttonStyle"
-                          [disabled]="action.config.disabled?.(row)"
-                          (click)="$event.stopPropagation(); action.config.action(row)"
-                        >
-                          @if (action.config.icon) {
-                            <svg [lucideIcon]="action.config.icon"></svg>
-                          }
-                          <span [class.sr-only]="!!action.config.icon">
-                            {{ action.config.label }}
-                          </span>
-                        </button>
-                      </div>
-                    } @else {
-                      <button
-                        type="button"
-                        [class]="classesFor(action)"
-                        [style]="action.config.buttonStyle"
-                        [disabled]="action.config.disabled?.(row)"
-                        (click)="$event.stopPropagation(); action.config.action(row)"
-                      >
-                        @if (action.config.icon) {
-                          <svg [lucideIcon]="action.config.icon"></svg>
-                        }
-                        <span [class.sr-only]="!!action.config.icon">
-                          {{ action.config.label }}
-                        </span>
-                      </button>
-                    }
-                  }
-                }
-              </div>
+              <ng-container *ngTemplateOutlet="actionsTpl; context: { $implicit: row, actions: startActionListSignal() }" />
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
               <td cdk-footer-cell *cdkFooterCellDef></td>
@@ -1419,53 +1053,14 @@
             </th>
             <td
               cdk-cell
-              *cdkCellDef="let row; let rowIdx = dataIndex"
+              *cdkCellDef="let row; let rowIndex = index; let dataRowIndex = dataIndex"
               class="text-center"
               [class.sticky-end]="stickyActionsSignal()"
-              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(rowIdx, endActionsColIndexSignal())"
-              [id]="enableKeyboardNavSignal() ? getCellId(rowIdx, endActionsColIndexSignal()) : null"
-              [attr.tabindex]="enableKeyboardNavSignal() ? -1 : null"
-              (click)="onCellClick(rowIdx, endActionsColIndexSignal())"
+              [class.active-cell]="enableKeyboardNavSignal() && isActiveCell(dataRowIndex ?? rowIndex, endActionsColIndexSignal())"
+              [id]="enableKeyboardNavSignal() ? getCellId(dataRowIndex ?? rowIndex, endActionsColIndexSignal()) : null"
+              (click)="onCellClick(dataRowIndex ?? rowIndex, endActionsColIndexSignal())"
             >
-              <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-                @for (action of endActionListSignal(); track trackByAction($index, action)) {
-                  @if (!action.config.hidden?.(row)) {
-                    @if (isTooltipVisible(row, action)) {
-                      <div class="tooltip" [attr.data-tip]="getTooltip(row, action) || action.config.label">
-                        <button
-                          type="button"
-                          [class]="classesFor(action)"
-                          [style]="action.config.buttonStyle"
-                          [disabled]="action.config.disabled?.(row)"
-                          (click)="$event.stopPropagation(); action.config.action(row)"
-                        >
-                          @if (action.config.icon) {
-                            <svg [lucideIcon]="action.config.icon"></svg>
-                          }
-                          <span [class.sr-only]="!!action.config.icon">
-                            {{ action.config.label }}
-                          </span>
-                        </button>
-                      </div>
-                    } @else {
-                      <button
-                        type="button"
-                        [class]="classesFor(action)"
-                        [style]="action.config.buttonStyle"
-                        [disabled]="action.config.disabled?.(row)"
-                        (click)="$event.stopPropagation(); action.config.action(row)"
-                      >
-                        @if (action.config.icon) {
-                          <svg [lucideIcon]="action.config.icon"></svg>
-                        }
-                        <span [class.sr-only]="!!action.config.icon">
-                          {{ action.config.label }}
-                        </span>
-                      </button>
-                    }
-                  }
-                }
-              </div>
+              <ng-container *ngTemplateOutlet="actionsTpl; context: { $implicit: row, actions: endActionListSignal() }" />
             </td>
             @if (hasFooterSignal() && !hasFooterRowsSignal()) {
               <td cdk-footer-cell *cdkFooterCellDef></td>

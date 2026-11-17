@@ -20,6 +20,19 @@
 }
 
 /* ── Sidebar ── */
+/* One block per package (@hakistack/ng-daisyui, @hakistack/i18n): a rule above and the npm name as its label. */
+.docs-nav-product-block {
+  border-top: 1px solid color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  padding-top: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+.docs-nav-product {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-base-content);
+  padding: 0 0.5rem 0.75rem;
+}
 .docs-nav-section {
   font-size: 0.75rem;
   font-weight: 600;

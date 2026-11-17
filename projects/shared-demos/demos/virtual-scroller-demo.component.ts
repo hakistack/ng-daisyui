@@ -93,7 +93,7 @@ function generateProducts(count: number): Product[] {
                 </ng-template>
                 <ng-template #item let-product let-i="index">
                   <div class="flex items-center gap-3 px-4" [style.height.px]="48">
-                    <span class="text-base-content/40 text-xs w-8">{{ i + 1 }}</span>
+                    <span class="text-base-content/70 text-xs w-8">{{ i + 1 }}</span>
                     <span>{{ product.name }}</span>
                   </div>
                 </ng-template>
@@ -151,7 +151,7 @@ function generateProducts(count: number): Product[] {
                 <ng-template #item let-product let-i="index">
                   <div class="card bg-base-200 m-1 h-[130px]">
                     <div class="card-body p-3">
-                      <div class="text-xs text-base-content/40">#{{ i + 1 }}</div>
+                      <div class="text-xs text-base-content/70">#{{ i + 1 }}</div>
                       <h3 class="font-medium text-sm">{{ product.name }}</h3>
                       <p class="text-xs text-base-content/60">{{ product.category }}</p>
                       <div class="text-sm font-semibold text-primary">{{ '$' + product.price.toFixed(2) }}</div>

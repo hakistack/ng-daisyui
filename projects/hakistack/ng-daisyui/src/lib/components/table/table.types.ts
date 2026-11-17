@@ -431,6 +431,12 @@ export interface TableLabels {
   expandDetailsAriaLabel?: string;
   /** aria-label for "collapse details" button. Default: "Collapse details" */
   collapseDetailsAriaLabel?: string;
+
+  // Inline editing
+  /** aria-label for the inline editor's ✓ button. Default: "Save" */
+  confirmEditAriaLabel?: string;
+  /** aria-label for the inline editor's ✕ button. Default: "Cancel edit" */
+  cancelEditAriaLabel?: string;
 }
 
 /**

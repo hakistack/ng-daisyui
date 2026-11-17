@@ -32,7 +32,7 @@ import { loadSourceAsBytes } from '../document-viewer.helpers';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">Opening EPUB…</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Opening EPUB…</div>
     } @else if (error(); as e) {
       <div class="alert alert-error whitespace-pre-line">{{ e }}</div>
     }

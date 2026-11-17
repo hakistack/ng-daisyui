@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HK_THEME } from '../../theme/theme.config';
+import { createPausableTimer } from '../../utils/pausable-timer';
 import { ResolvedNotificationLabels } from './notification.labels';
 import { NotificationService } from './notification.service';
 import { Notification, NotificationAction, NotificationDismissReason, NotificationSeverity } from './notification.types';
@@ -63,6 +64,8 @@ const ALERT_SEVERITY_CLASSES: Readonly<Record<NotificationSeverity, string>> = {
     '[style.--hk-exit-to]': 'exitTo()',
     '(mouseenter)': 'onHoverEnter()',
     '(mouseleave)': 'onHoverLeave()',
+    '(focusin)': 'onFocusIn()',
+    '(focusout)': 'onFocusOut($event)',
   },
 })
 export class NotificationItemComponent {
@@ -76,6 +79,7 @@ export class NotificationItemComponent {
   readonly closed = output<NotificationDismissReason>();
 
   private readonly firstActionRef = viewChild<ElementRef<HTMLButtonElement>>('firstAction');
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
 
   // ── Layout helpers ───────────────────────────────────────────────────────
 
@@ -176,10 +180,8 @@ export class NotificationItemComponent {
 
   // ── Auto-dismiss timer ───────────────────────────────────────────────────
 
-  private timerId: ReturnType<typeof setTimeout> | null = null;
-  private remainingMs = 0;
-  private timerStartedAt = 0;
-  private hovering = false;
+  /** Shared with toasts/alerts: pauses are held per reason (hover, focus) — see `createPausableTimer`. */
+  private readonly timer = createPausableTimer(() => this.dismiss('auto'));
 
   constructor() {
     // Schedule auto-dismiss on mount (or whenever the notification's duration
@@ -188,12 +190,9 @@ export class NotificationItemComponent {
     // cancelled — no more attempts to dismiss something already on its way out.
     effect(() => {
       const n = this.notification();
-      this.cancelTimer();
+      this.timer.cancel();
       if (n.dismissing) return;
-      if (n.duration && n.duration > 0) {
-        this.remainingMs = n.duration;
-        this.startTimer();
-      }
+      if (n.duration && n.duration > 0) this.timer.start(n.duration);
     });
 
     // Auto-focus first action on mount when requested.
@@ -203,46 +202,37 @@ export class NotificationItemComponent {
       }
     });
 
-    this.destroyRef.onDestroy(() => this.cancelTimer());
+    this.destroyRef.onDestroy(() => this.timer.cancel());
   }
 
-  // ── Hover handlers ───────────────────────────────────────────────────────
+  // ── Hover / focus handlers ───────────────────────────────────────────────
 
   protected onHoverEnter(): void {
-    if (this.notification().dismissing) return;
-    this.hovering = true;
-    if (this.shouldPauseOnHover()) this.pauseTimer();
+    if (this.notification().dismissing || !this.shouldPauseOnHover()) return;
+    this.timer.hold('hover');
   }
 
   protected onHoverLeave(): void {
     if (this.notification().dismissing) return;
-    this.hovering = false;
-    if (this.shouldPauseOnHover() && this.remainingMs > 0) this.startTimer();
+    this.timer.release('hover');
+  }
+
+  /** Keyboard users reaching an action or the close button get unlimited time (WCAG 2.2.1). */
+  protected onFocusIn(): void {
+    if (this.notification().dismissing) return;
+    this.timer.hold('focus');
+  }
+
+  protected onFocusOut(event: FocusEvent): void {
+    const next = event.relatedTarget as Node | null;
+    if (next && this.host.nativeElement.contains(next)) return;
+    if (this.notification().dismissing) return;
+    this.timer.release('focus');
   }
 
   private shouldPauseOnHover(): boolean {
     const local = this.notification().pauseOnHover;
     return local ?? this.service.config.pauseOnHover;
-  }
-
-  private startTimer(): void {
-    this.cancelTimer();
-    this.timerStartedAt = Date.now();
-    this.timerId = setTimeout(() => this.dismiss('auto'), this.remainingMs);
-  }
-
-  private pauseTimer(): void {
-    if (!this.timerId) return;
-    clearTimeout(this.timerId);
-    this.timerId = null;
-    this.remainingMs = Math.max(0, this.remainingMs - (Date.now() - this.timerStartedAt));
-  }
-
-  private cancelTimer(): void {
-    if (this.timerId) {
-      clearTimeout(this.timerId);
-      this.timerId = null;
-    }
   }
 
   // ── User actions ─────────────────────────────────────────────────────────
@@ -268,7 +258,7 @@ export class NotificationItemComponent {
   }
 
   private dismiss(reason: NotificationDismissReason): void {
-    this.cancelTimer();
+    this.timer.cancel();
     this.service.dismiss(this.notification().id, reason);
     this.closed.emit(reason);
   }

@@ -4,19 +4,22 @@
 
 | Task | Command |
 |---|---|
-| Build the package | `npm run build` |
+| Build | `npm run build` (both packages) · `npm run build:ui` · `npm run build:i18n` |
 | Unit tests | `npm test` (Vitest through `@angular/build:unit-test`; filter with `npx ng test @hakistack/ng-daisyui --watch=false --include='**/select/*.spec.ts'`) |
 | Schematics tests | `npm run test:schematics` |
-| Lint | `npm run lint` |
+| Lint | `npm run lint` (ESLint + dependency boundaries) |
+| Validate built packages | `npm run validate` (exports, types, bin, schematics load, pack) |
 | E2E (+axe) | `npm run e2e` (starts or reuses the demo server on :58790) |
-| Packed-artifact test | `npm run build && npm run test:consumer` |
-| Rust engines | `npm run engine:check`, `npm run engine:test`, `npm run engine:build` |
+| Packed-artifact test | `npm run build && npm run test:consumer` (or `test:consumer:ui` / `test:consumer:i18n`) |
+| Rust engines | `npm run check:engine`, `npm run test:engine`, `npm run build:engine` |
 | Docs checks | `npm run docs:check`, `npm run docs:snippets`, `npm run test:docs` |
 
 ## Quality gates (CI)
 
-`lint` · `test` (+ schematics) · `docs` · `build` (+ size-limit growth guard + consumer smoke) · `rust` · `libheif`
-(non-blocking). A PR is mergeable when all blocking jobs are green.
+Selective per product (see [monorepo architecture §4](../architecture/monorepo.md#4-cicd)): `lint` (always, incl.
+dependency boundaries) · `ui` (tests, build, `validate:ui`, size-limit, consumer install) · `i18n` (tests, build,
+`validate:i18n`, consumer install) · `docs` · `e2e` · `rust` · `libheif` (non-blocking). Jobs whose product did not
+change are skipped. A PR is mergeable when the aggregate `ci-ok` check is green.
 
 What each guard prevents:
 
@@ -28,6 +31,9 @@ What each guard prevents:
 | grid-core importing components | ESLint `no-restricted-imports` |
 | Public API without docs, stale API manifest | `docs:check` |
 | Rust formatting / clippy / tests | `rust` job |
+| A package importing an undeclared dependency, another package's sources, `dist/` or an app | `lint:boundaries` |
+| Broken `exports`/typings/bin; schematics that do not load (CJS inside a `"type": "module"` package) | `validate:<id>` |
+| i18n tarball or CLI broken outside the repo, or pulling in ng-daisyui | `test:consumer:i18n` |
 
 ## API stability
 
@@ -43,10 +49,12 @@ Pre-1.0 SemVer as practised here: **minor = may break, patch = never breaks**.
 
 ## Releasing
 
-1. Move the CHANGELOG "Unreleased" section under the new version heading (the release script does not write it).
-2. `npm run release:<patch|minor|major>` (bumps the version and builds).
-3. `npm run test:consumer`.
-4. `npm run publish:npm`, then tag `vX.Y.Z` and push the tag.
+Packages are versioned and released independently. Full procedure: [releasing.md](releasing.md).
+
+1. Move the package CHANGELOG "Unreleased" section under the new version heading (the release script does not write it).
+2. `npm run release -- <ui|i18n> <patch|minor|major>` — bumps that package, commits, tags `<name>@<version>`, builds and validates. No push, no publish.
+3. `npm run test:consumer:<ui|i18n>`.
+4. `git push --follow-tags`, then `npm run publish:<ui|i18n>` (or the manual "Release" workflow, which adds npm provenance).
 
 ## Adding a component
 
@@ -77,20 +85,20 @@ Prioritised remaining work from the 2026-11 audit ([architecture-inventory](../a
 | 8 | Deps | Share one Blob URL / compiled module across PDFium pool workers; ship or remove the libheif path | M |
 | 9 | Deps | Decide on source maps in the tarball (at least drop maps of base64 WASM chunks) | S |
 | 10 | a11y | Dynamic-form error association + label association for pickers/radios/editor | M **[Done]** |
-| 11 | a11y | `hk-table`: move `aria-activedescendant` to the focused host, per-instance cell ids, `aria-sort` on `th` in all layouts | M **[aria-sort done; activedescendant + cell ids open]** |
-| 12 | a11y | Tree level/setsize/posinset/checked; notification single live region; toast focus-pause + persistent live region; command palette combobox; menubar keys | M **[Mostly done (tree, notification, palette); toast focus-pause + menubar keys open]** |
-| 13 | Structure | `hk-table` three layouts → shared `ng-template`s for header cell, row checkbox, select-all, actions (also fixes `hkCell` ignored in virtual/grouped mode) | L |
-| 14 | Structure | Toast/Notification/Alert: shared `body-host` + `pausable-timer` utils, reduced-motion-aware exit delay | M |
-| 15 | Structure | grid-core: pure `nextSort()` and paging helpers used by both grids; one row-key rule | S |
-| 16 | Structure | Two `SelectOption` types → one generic type; two tree drop-event types → alias | S |
-| 17 | Dead code | ~18 unused `TableComponent` members, `rowHasChildren`, `createWizard`, Rust `save_document` path, pdf.js remnants in `angular.json` | S **[Partly: `rowHasChildren`, `createWizard` deleted; table members deprecated]** |
-| 18 | Tests | grid-core controller specs, `table-engine-routing`, `FormHandle`/`FormEngineService` parity with `ConditionEngine`, Editor/CommandPalette/Notification specs | M |
-| 19 | Tests | axe over every demo route; make `e2e/app.spec.ts` assertions unconditional; Playwright in CI | M |
-| 20 | Tests | consumer-smoke variants for DataGrid, Dynamic Form, PDF viewer with their own budgets | S |
+| 11 | a11y | `hk-table`: move `aria-activedescendant` to the focused host, per-instance cell ids, `aria-sort` on `th` in all layouts | M **[Done: focused `<table>` carries `aria-activedescendant`, per-instance cell ids, `aria-sort` in all layouts]** |
+| 12 | a11y | Tree level/setsize/posinset/checked; notification single live region; toast focus-pause + persistent live region; command palette combobox; menubar keys | M **[Done: tree, notification, palette, toast focus-pause + `LiveAnnouncer`, menubar/menu APG keys]** |
+| 13 | Structure | `hk-table` three layouts → shared `ng-template`s for header cell, row checkbox, select-all, actions (also fixes `hkCell` ignored in virtual/grouped mode) | L **[Done: shared templates; `table.layouts.spec.ts` runs each behaviour per layout]** |
+| 14 | Structure | Toast/Notification/Alert: shared `body-host` + `pausable-timer` utils, reduced-motion-aware exit delay | M **[Done: `utils/pausable-timer.ts`, `utils/body-host.ts`, `prefersReducedMotion` for every exit delay]** |
+| 15 | Structure | grid-core: pure `nextSort()` and paging helpers used by both grids; one row-key rule | S **[Done: `grid-core/grid-rules.ts` (`nextSort`, `pageCount`, `lastPageIndex`, `clampPageIndex`, `naturalRowKey`)]** |
+| 16 | Structure | Two `SelectOption` types → one generic type; two tree drop-event types → alias | S **[Done: one `SelectOption<T>`; tree node events defined once in `api/treenode.ts`]** |
+| 17 | Dead code | ~18 unused `TableComponent` members, `rowHasChildren`, `createWizard`, Rust `save_document` path, pdf.js remnants in `angular.json` | S **[Partly: `rowHasChildren`, `createWizard`, the Rust mutation/save exports and the pdf.js prebundle exclude deleted; table members deprecated, removal in 0.5]** |
+| 18 | Tests | grid-core controller specs, `table-engine-routing`, `FormHandle`/`FormEngineService` parity with `ConditionEngine`, Editor spec (CommandPalette/Notification specs added in 0.4.0) | M **[Partly: sort/pagination/selection controller specs (`grid-core/controllers/controllers.spec.ts`); CommandPalette/Notification specs added; editor, `table-engine-routing`, form-engine parity open]** |
+| 19 | Tests | axe over every demo route; make `e2e/app.spec.ts` assertions unconditional; Playwright in CI | M **[Done: `e2e/components-a11y.spec.ts` audits the live examples of all 128 catalog example routes; CI e2e job]** |
+| 20 | Tests | consumer-smoke variants for DataGrid, Dynamic Form, PDF viewer with their own budgets | S **[Done: `npm run test:consumer:variants`, CI ui job]** |
 | 21 | Peers | v4-legacy path vs `daisyui ^5` / `tailwindcss ^4` peers (ERESOLVE with strict peers): widen to `^4.12 \|\| ^5` / `^3.4 \|\| ^4` after testing, or drop the legacy path | S |
 | 22 | Angular | Angular 22 is available (22.2.x): bump the workspace, run all gates, widen peers | M |
 | 23 | Lint | 20 ESLint warnings (unused imports/vars) | S **[Done for unused vars (8); 12 `any` generic defaults remain on purpose]** |
-| 25 | a11y | Text using `text-base-content/50`–`/60` (≈60 places) is below AA on many themes; raise to `/70` or use semantic tokens | M |
+| 25 | a11y | Text using `text-base-content/50`–`/60` (≈60 places) is below AA on many themes; raise to `/70` or use semantic tokens | M **[Done: raised to `/70`, guarded by `npm run lint:contrast`]** |
 | 26 | Layout | Dynamic-form grid: numeric `colSpan` classes stay while the grid collapses responsively; horizontal layout never stacks labels on small screens | M |
 | 27 | Motion | `hkAnimate` under reduced motion only sets opacity (transforms, staggered children untouched); `MotionDirectiveOptions.offset` / `axis` ignored | S |
 | 28 | Theming | Hard-coded font stacks bypass `--font-mono` (timepicker, editor code); `input-xl` / `input-neutral` don't exist in daisyUI 4 (`styles-v4.css`) | S |

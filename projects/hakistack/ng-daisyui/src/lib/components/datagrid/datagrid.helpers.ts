@@ -1,5 +1,6 @@
 import { computed, isDevMode, isSignal, signal, Signal, WritableSignal } from '@angular/core';
 
+import { clampPageIndex, naturalRowKey, nextSort } from '../../grid-core/grid-rules';
 import { requestClaudeJson } from '../../utils/claude-json';
 import { buildAiRequest, parseAiReply } from './datagrid.ai';
 import { applyClientView, ClientView } from './datagrid.pipeline';
@@ -20,7 +21,6 @@ import type {
   DataGridController,
   DataGridPage,
   DataGridRequest,
-  DataGridSort,
   DataGridState,
   DataGridStateIssue,
   DataGridStatePatch,
@@ -158,11 +158,8 @@ export function createDataGrid<T>(config: DataGridConfig<T>): DataGridController
 
   // ── Selection ─────────────────────────────────────────────────────────────
   // Keyed map (key → row) so server mode keeps rows selected on pages that are no longer loaded.
-  const rowKeyOf = (row: T): unknown => {
-    if (options.rowKey) return options.rowKey(row);
-    const id = (row as { id?: unknown } | null)?.id;
-    return typeof id === 'string' || typeof id === 'number' ? id : row;
-  };
+  // The shared row rule; a row without an identity is its own key (object identity).
+  const rowKeyOf = (row: T): unknown => (options.rowKey ? options.rowKey(row) : (naturalRowKey(row) ?? row));
   const selected = signal<ReadonlyMap<unknown, T>>(new Map());
   // Client mode returns the current row objects (data may have been replaced with fresh copies).
   const selectedRows = computed<readonly T[]>(() => {
@@ -282,23 +279,7 @@ export function createDataGrid<T>(config: DataGridConfig<T>): DataGridController
     toggleSort(field, additive = false) {
       const column = columns.find((c) => c.field === field);
       if (!column || !isSortable(column)) return;
-      const current = state().sort;
-      const existing = current.find((s) => s.field === field);
-      // asc → desc → off. A plain click on a column that is not the only sort key starts over at asc.
-      const soleKey = current.length === 1 && !!existing;
-      const nextDir = existing && (additive || soleKey) ? (existing.direction === 'asc' ? 'desc' : null) : 'asc';
-
-      let sort: DataGridSort[];
-      if (!additive) {
-        sort = nextDir ? [{ field, direction: nextDir }] : [];
-      } else if (!existing) {
-        sort = [...current, { field, direction: 'asc' }];
-      } else {
-        sort = nextDir
-          ? current.map((s) => (s.field === field ? { field, direction: nextDir } : s))
-          : current.filter((s) => s.field !== field);
-      }
-      apply({ sort });
+      apply({ sort: nextSort(state().sort, field, additive) });
     },
     setSearch: (search) => {
       if (search !== state().search) apply({ search });
@@ -306,8 +287,7 @@ export function createDataGrid<T>(config: DataGridConfig<T>): DataGridController
     setPage(index) {
       const page = state().page;
       if (!page) return;
-      const last = Math.max(0, Math.ceil(total() / page.size) - 1);
-      const clamped = Math.min(Math.max(0, Math.floor(index)), last);
+      const clamped = clampPageIndex(index, total(), page.size);
       if (clamped !== pageIndex() || clamped !== page.index) apply({ page: { index: clamped, size: page.size } });
     },
     setPageSize(size) {

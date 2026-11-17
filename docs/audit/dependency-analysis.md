@@ -40,15 +40,14 @@ now forbid computed static initializers, and the consumer smoke test catches reg
 
 | Engine | Crates | Loader | Fallback | Init guard | Notes |
 |---|---|---|---|---|---|
-| `engine_wasm` (table, tree, fuzzy, form, pdf-search) | engine-core, table-engine, tree-engine, search-engine, form-engine | `utils/engine-loader.ts` (shared) | JS paths (Fuse, `ConditionEngine`, JS table pipeline) | `modPromise ??=` — **a rejected load is cached forever** | Select and DynamicForm instantiate on mount (backlog D2) |
-| `document_wasm` | document-engine (calamine) | `document-engine-loader.ts` (copy of the above) | none (spreadsheet renderer shows error) | same issue | |
-| `image_wasm` | image-engine | `image-engine-loader.ts` (copy) | browser decode | same issue | |
+| `engine_wasm` (table, tree, fuzzy, form, pdf-search) | engine-core, table-engine, tree-engine, search-engine, form-engine | `utils/engine-loader.ts` (shared) | JS paths (Fuse, `ConditionEngine`, JS table pipeline) | `onceAsync` (`utils/wasm-loader.ts`) — retries after a rejected load | Select loads it only for ≥ 200 options after the first search |
+| `document_wasm` | document-engine (calamine) | `document-engine-loader.ts` | none (spreadsheet renderer shows error) | `onceAsync` | |
+| `image_wasm` | image-engine | `image-engine-loader.ts` | browser decode | `onceAsync` | |
 | PDFium worker | pdf-engine + PDFium | `pdfium-worker.loader.ts` | none | per-engine `destroyed` guard, `terminate()` + `revokeObjectURL` on destroy | each pool worker builds its own 6 MB Blob and compiles both modules (memory/startup cost) |
 | libheif | libheif-bridge (emscripten) | `libheif-loader.ts` | `heic2any` | — | path is not shipped in the package → always falls back |
 
-Recommendation (backlog D4): one `createWasmLoader({ glue, inline, urlOverride })` util — single base64 decode,
-reset-on-reject, shared by the three loaders; share one Blob URL / compiled `WebAssembly.Module` across PDFium pool
-workers. Do not move further JS logic into Rust unless a benchmark shows a win: the JS fallbacks are the simpler path for
+Done in 0.4.0: `utils/wasm-loader.ts` (`decodeBase64` + `onceAsync`, reset-on-reject) is shared by the three loaders and
+libheif. Still open (backlog D4): share one Blob URL / compiled `WebAssembly.Module` across PDFium pool workers. Do not move further JS logic into Rust unless a benchmark shows a win: the JS fallbacks are the simpler path for
 small inputs (Select with < 200 options, forms without conditions).
 
 ## 4. Package weight

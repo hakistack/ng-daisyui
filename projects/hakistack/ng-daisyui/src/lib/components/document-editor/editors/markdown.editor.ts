@@ -19,7 +19,7 @@ import { loadTextSource } from './text-source.helper';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">Loading…</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Loading…</div>
     } @else if (error(); as e) {
       <div class="alert alert-error">{{ e }}</div>
     } @else {

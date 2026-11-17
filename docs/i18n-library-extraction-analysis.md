@@ -1,3 +1,7 @@
+> **Historical (superseded).** This analysis proposed moving the i18n system *into* `@hakistack/ng-daisyui`. It
+> became the separate package `@hakistack/i18n` instead (`projects/hakistack/i18n`), independent of ng-daisyui — see
+> [ADR-0001](architecture/adr/0001-single-monorepo-hakistack-identity.md) and the [package README](../projects/hakistack/i18n/README.md).
+
 # i18n System Analysis & Library Extraction Plan
 
 > **Goal:** Move this entire i18n system into `@hakistack/ng-daisyui` so that a consumer

@@ -31,6 +31,15 @@ const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Resolvemos el stack v4 desde projects/demo-v4/node_modules (ver nota arriba).
 const v4Require = createRequire(resolve(workspaceRoot, 'projects/demo-v4/package.json'));
+try {
+  v4Require.resolve('tailwindcss/package.json');
+} catch {
+  console.error(
+    '✗ The daisyUI 4 / Tailwind 3 stack for styles-v4.css is not installed.\n' +
+      '  It is installed into projects/demo-v4/node_modules by the root `npm install` (npm workspace): run `npm install`.',
+  );
+  process.exit(1);
+}
 const postcss = v4Require('postcss');
 const tailwindcss = v4Require('tailwindcss');
 const autoprefixer = v4Require('autoprefixer');

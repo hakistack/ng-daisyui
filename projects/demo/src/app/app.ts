@@ -17,7 +17,7 @@ import { NavigationEnd, NavigationStart, Router, RouterLink, RouterLinkActive, R
 import { LucideDynamicIcon } from '@lucide/angular';
 import { filter } from 'rxjs';
 import { CommandPaletteLabels, HK_COMMAND_PALETTE_LABELS, NotificationHostComponent, createCommandPalette } from '@hakistack/ng-daisyui';
-import { buildNavigation } from '@shared-demos/platform/catalog/navigation';
+import { buildSidebar } from '@shared-demos/platform/catalog/navigation';
 import { pageForUrl } from '@shared-demos/platform/catalog/pages';
 import type { DocsLocale } from '@shared-demos/platform/catalog/catalog.types';
 import { ApiManifestService } from '@shared-demos/platform/api/api-manifest.service';
@@ -235,31 +235,43 @@ const PALETTE_LABELS: Record<DocsLocale, CommandPaletteLabels> = {
             </button>
           </div>
           <nav class="flex-1 overflow-y-auto px-3 py-4 docs-sidebar" [attr.aria-label]="ui.mainNavigation | loc: lang()" #sidebarNav>
-            @for (section of nav; track section.section) {
-              <div class="mb-5">
-                <h2 class="docs-nav-section">{{ section.title | loc: lang() }}</h2>
-                @for (group of section.groups; track group.id) {
-                  @if (group.title) {
-                    <h3 class="docs-nav-group">{{ group.title | loc: lang() }}</h3>
-                  }
-                  <ul class="space-y-px">
-                    @for (p of group.pages; track p.id) {
-                      <li>
-                        <a
-                          [routerLink]="p.route"
-                          routerLinkActive="docs-nav-active"
-                          #rla="routerLinkActive"
-                          [attr.aria-current]="rla.isActive ? 'page' : null"
-                          class="docs-nav-link"
-                        >
-                          <span class="truncate">{{ p.title | loc: lang() }}</span>
-                          @if (p.status !== 'stable') {
-                            <span class="docs-nav-status">{{ statusLabel(p.status) }}</span>
-                          }
-                        </a>
-                      </li>
+            @for (block of sidebar; track $index) {
+              <!-- A package's sections form one labelled group; ecosystem sections (overview, contributing) stand alone. -->
+              <div
+                [class.docs-nav-product-block]="!!block.label"
+                [attr.role]="block.label ? 'group' : null"
+                [attr.aria-labelledby]="block.label ? 'docs-nav-product-' + block.product : null"
+              >
+                @if (block.label) {
+                  <p class="docs-nav-product" [id]="'docs-nav-product-' + block.product">{{ block.label }}</p>
+                }
+                @for (section of block.sections; track section.section) {
+                  <div class="mb-5">
+                    <h2 class="docs-nav-section">{{ section.title | loc: lang() }}</h2>
+                    @for (group of section.groups; track group.id) {
+                      @if (group.title) {
+                        <h3 class="docs-nav-group">{{ group.title | loc: lang() }}</h3>
+                      }
+                      <ul class="space-y-px">
+                        @for (p of group.pages; track p.id) {
+                          <li>
+                            <a
+                              [routerLink]="p.route"
+                              routerLinkActive="docs-nav-active"
+                              #rla="routerLinkActive"
+                              [attr.aria-current]="rla.isActive ? 'page' : null"
+                              class="docs-nav-link"
+                            >
+                              <span class="truncate">{{ p.title | loc: lang() }}</span>
+                              @if (p.status !== 'stable') {
+                                <span class="docs-nav-status">{{ statusLabel(p.status) }}</span>
+                              }
+                            </a>
+                          </li>
+                        }
+                      </ul>
                     }
-                  </ul>
+                  </div>
                 }
               </div>
             }
@@ -283,7 +295,7 @@ export class App {
   protected readonly lang = this.locale.locale;
   protected readonly locales = DOCS_LOCALES;
   protected readonly themes = THEMES;
-  protected readonly nav = buildNavigation();
+  protected readonly sidebar = buildSidebar();
   protected readonly currentTheme = signal(this.readTheme());
   protected readonly navOpen = signal(false);
   protected readonly searchRequested = signal(false);

@@ -1,5 +1,6 @@
+import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { MenuComponent } from './menu.component';
 import { collectGroupIds, createMenu, findMenuItem, inferMenuItemKind, isMenuItemVisible, item, processMenuItems } from './menu.helpers';
 import { MenuItem } from './menu.types';
@@ -130,7 +131,7 @@ describe('MenuComponent', () => {
 
   it('hides items failing the visibility predicate', () => {
     setItems([item.link('Shown', '/a'), item.link('Gone', '/b', { visible: false })]);
-    const labels = Array.from(host.querySelectorAll('a[role="menuitem"]')).map((a) => a.textContent?.trim());
+    const labels = Array.from(host.querySelectorAll('a')).map((a) => a.textContent?.trim());
     expect(labels).toContain('Shown');
     expect(labels).not.toContain('Gone');
   });
@@ -155,7 +156,7 @@ describe('MenuComponent', () => {
   });
 
   it('renders a collapsible group with aria-expanded reflecting open state', () => {
-    setItems([item.group('Settings', [item.link('Account', '/account')], { expanded: true })]);
+    setItems([item.group('Settings', [item.action('Account', () => {})], { expanded: true })]);
     const summary = host.querySelector('summary[role="menuitem"]');
     expect(summary?.getAttribute('aria-haspopup')).toBe('menu');
     expect(summary?.getAttribute('aria-expanded')).toBe('true');
@@ -164,7 +165,7 @@ describe('MenuComponent', () => {
 
   it('applies the horizontal modifier class', () => {
     fixture.componentRef.setInput('orientation', 'horizontal');
-    setItems([item.link('A', '/a')]);
+    setItems([item.link('A', '/a'), item.action('Run', () => {})]);
     expect(host.querySelector('ul.menu')?.classList.contains('menu-horizontal')).toBe(true);
     expect(host.querySelector('ul.menu')?.getAttribute('role')).toBe('menubar');
   });
@@ -173,14 +174,14 @@ describe('MenuComponent', () => {
     fixture.componentRef.setInput('collapsed', true);
     setItems([item.link('Dashboard', '/dashboard')]);
     expect(host.querySelector('.hk-menu-label')).toBeNull();
-    expect(host.querySelector('a[role="menuitem"]')?.getAttribute('data-tip')).toBe('Dashboard');
+    expect(host.querySelector('a')?.getAttribute('data-tip')).toBe('Dashboard');
   });
 
   it('opens a hover flyout with the group children in collapsed rail mode', () => {
     fixture.componentRef.setInput('collapsed', true);
     setItems([item.group('Admin', [item.link('Users', '/users'), item.link('Roles', '/roles')])]);
 
-    const summary = host.querySelector<HTMLElement>('summary[role="menuitem"]')!;
+    const summary = host.querySelector<HTMLElement>('summary')!;
     summary.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     fixture.detectChanges();
 
@@ -192,6 +193,143 @@ describe('MenuComponent', () => {
     fixture.componentInstance['closeFlyout']();
     fixture.detectChanges();
     expect(fixture.componentInstance['flyoutGroup']()).toBeNull();
+  });
+});
+
+@Component({ template: '' })
+class BlankPage {}
+
+describe('MenuComponent semantics and keyboard (WAI-ARIA APG)', () => {
+  let fixture: ComponentFixture<MenuComponent>;
+  let host: HTMLElement;
+
+  function render(items: MenuItem[], opts: { orientation?: 'horizontal' | 'vertical'; semantics?: 'navigation' | 'menu' } = {}): void {
+    if (opts.orientation) fixture.componentRef.setInput('orientation', opts.orientation);
+    fixture.componentRef.setInput('config', { items, semantics: opts.semantics });
+    fixture.detectChanges();
+    TestBed.tick();
+  }
+
+  function key(target: Element, k: string): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true });
+    target.dispatchEvent(event);
+    return event;
+  }
+
+  const tabStops = () => Array.from(host.querySelectorAll<HTMLElement>('[role="menuitem"]')).filter((el) => el.tabIndex === 0);
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [MenuComponent],
+      providers: [
+        provideRouter([
+          { path: '', component: BlankPage },
+          { path: 'users', component: BlankPage },
+        ]),
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(MenuComponent);
+    host = fixture.nativeElement as HTMLElement;
+    document.body.appendChild(host);
+  });
+
+  afterEach(() => host.remove());
+
+  it('renders a link-only menu as navigation: a plain list of links, no menu roles', () => {
+    render([item.link('Home', '/'), item.group('Admin', [item.link('Users', '/users')], { expanded: true }), item.divider()]);
+    expect(host.querySelector('ul.menu')?.hasAttribute('role')).toBe(false);
+    expect(host.querySelector('[role="menuitem"], [role="menu"], [role="none"]')).toBeNull();
+    expect(host.querySelector('summary')?.hasAttribute('aria-haspopup')).toBe(false);
+    // Dividers are decoration inside a list, not separators.
+    expect(host.querySelector('li[aria-hidden="true"]')).toBeTruthy();
+    // Every link stays in the Tab order.
+    expect(Array.from(host.querySelectorAll('a')).every((a) => !a.hasAttribute('tabindex'))).toBe(true);
+  });
+
+  it('marks the active route with aria-current="page" in navigation semantics', async () => {
+    const router = TestBed.inject(Router);
+    render([item.link('Home', '/'), item.link('Users', '/users')]);
+    await router.navigateByUrl('/users');
+    fixture.detectChanges();
+    const users = Array.from(host.querySelectorAll('a')).find((a) => a.textContent?.includes('Users'));
+    expect(users?.getAttribute('aria-current')).toBe('page');
+  });
+
+  it('can be forced to menu semantics, and switches to it as soon as an item is an action', () => {
+    render([item.link('Home', '/')], { semantics: 'menu' });
+    expect(host.querySelector('ul.menu')?.getAttribute('role')).toBe('menu');
+    render([item.link('Home', '/'), item.action('Sign out', () => {})]);
+    expect(host.querySelector('ul.menu')?.getAttribute('role')).toBe('menu');
+  });
+
+  it('gives a menu a single Tab stop that follows focus (roving tabindex)', () => {
+    render([item.action('New', () => {}), item.action('Open', () => {}), item.action('Save', () => {})]);
+    expect(tabStops().map((el) => el.textContent?.trim())).toEqual(['New']);
+
+    const items = host.querySelectorAll<HTMLElement>('[role="menuitem"]');
+    items[0].focus();
+    key(items[0], 'ArrowDown');
+    expect(document.activeElement).toBe(items[1]);
+    expect(tabStops()).toEqual([items[1]]);
+
+    key(items[1], 'End');
+    expect(document.activeElement).toBe(items[2]);
+    key(items[2], 'ArrowDown');
+    expect(document.activeElement).toBe(items[0]);
+  });
+
+  it('menubar: ← → move between top-level items, ↓ opens a group on its first item, Escape returns', async () => {
+    render(
+      [
+        item.group('File', [item.action('New', () => {}), item.action('Open', () => {})]),
+        item.group('Edit', [item.action('Undo', () => {})]),
+        item.action('Help', () => {}),
+      ],
+      { orientation: 'horizontal' },
+    );
+    const top = () => Array.from(host.querySelectorAll<HTMLElement>('ul.menu > li > details > summary, ul.menu > li > button'));
+    const [file, edit, help] = top();
+    expect(tabStops()).toEqual([file]);
+
+    file.focus();
+    key(file, 'ArrowRight');
+    expect(document.activeElement).toBe(edit);
+    key(edit, 'ArrowRight');
+    expect(document.activeElement).toBe(help);
+    key(help, 'ArrowRight');
+    expect(document.activeElement).toBe(file);
+    // Up/Down on a menubar item must not scroll the page or move along the bar.
+    const down = key(file, 'ArrowDown');
+    expect(down.defaultPrevented).toBe(true);
+    await Promise.resolve();
+    fixture.detectChanges();
+    expect((file.parentElement as HTMLDetailsElement).open).toBe(true);
+    expect(document.activeElement?.textContent?.trim()).toBe('New');
+
+    key(document.activeElement!, 'ArrowDown');
+    expect(document.activeElement?.textContent?.trim()).toBe('Open');
+    key(document.activeElement!, 'Escape');
+    expect((file.parentElement as HTMLDetailsElement).open).toBe(false);
+    expect(document.activeElement).toBe(file);
+  });
+
+  it('menubar: → inside a submenu closes it and moves to the next top-level item', async () => {
+    render([item.group('File', [item.action('New', () => {})]), item.action('Help', () => {})], { orientation: 'horizontal' });
+    const file = host.querySelector<HTMLElement>('summary')!;
+    file.focus();
+    key(file, 'ArrowDown');
+    await Promise.resolve();
+    fixture.detectChanges();
+    key(document.activeElement!, 'ArrowRight');
+    expect((file.parentElement as HTMLDetailsElement).open).toBe(false);
+    expect(document.activeElement?.textContent?.trim()).toBe('Help');
+  });
+
+  it('navigation semantics leave arrow keys to the page', () => {
+    render([item.link('Home', '/'), item.link('Users', '/users')]);
+    const link = host.querySelector('a')!;
+    link.focus();
+    expect(key(link, 'ArrowDown').defaultPrevented).toBe(false);
   });
 });
 

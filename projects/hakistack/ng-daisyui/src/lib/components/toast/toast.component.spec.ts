@@ -1,3 +1,4 @@
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID } from '@angular/core';
 
@@ -767,7 +768,7 @@ describe('ToastComponent', () => {
 
       const toast = service.toasts()[0];
       component.onMouseEnter(toast);
-      expect(spy).toHaveBeenCalledWith(id);
+      expect(spy).toHaveBeenCalledWith(id, 'hover');
     });
 
     it('onMouseEnter should NOT call pauseAutoDismiss for sticky toasts', () => {
@@ -796,15 +797,15 @@ describe('ToastComponent', () => {
       fixture.detectChanges();
       vi.advanceTimersByTime(100);
 
-      // First pause it
-      service.pauseAutoDismiss(id);
+      // First pause it by hovering
+      component.onMouseEnter(service.toasts().find((t) => t.id === id)!);
       fixture.detectChanges();
 
       const toast = service.toasts().find((t) => t.id === id)!;
       expect(toast.isPaused).toBe(true);
 
       component.onMouseLeave(toast);
-      expect(spy).toHaveBeenCalledWith(id);
+      expect(spy).toHaveBeenCalledWith(id, 'hover');
     });
 
     it('onMouseLeave should NOT call resumeAutoDismiss when not paused', () => {
@@ -863,7 +864,9 @@ describe('ToastComponent', () => {
       fixture.detectChanges();
 
       const summary = fixture.nativeElement.querySelector('.toast-summary');
-      expect(summary?.textContent?.trim()).toBe('Hello World');
+      // The severity word is visually hidden and read before the summary.
+      expect(summary?.textContent?.trim()).toBe('Info: Hello World');
+      expect(summary?.querySelector('.sr-only')?.textContent).toBe('Info: ');
     });
 
     it('should render the detail text when provided', () => {
@@ -918,24 +921,80 @@ describe('ToastComponent', () => {
       expect(items.length).toBe(3);
     });
 
-    it('should set appropriate ARIA attributes on toast elements', () => {
-      service.show({ severity: 'info', summary: 'Accessible' });
+    it('does not make each toast its own live region (the LiveAnnouncer announces it) nor hide the detail behind aria-label', () => {
+      service.show({ severity: 'info', summary: 'Accessible', detail: 'More text' });
       fixture.detectChanges();
 
       const item = fixture.nativeElement.querySelector('.toast-item');
-      expect(item.getAttribute('role')).toBe('alert');
-      expect(item.getAttribute('aria-live')).toBe('assertive');
-      expect(item.getAttribute('aria-atomic')).toBe('true');
-      expect(item.getAttribute('aria-label')).toBe('Accessible');
+      expect(item.hasAttribute('role')).toBe(false);
+      expect(item.hasAttribute('aria-live')).toBe(false);
+      expect(item.hasAttribute('aria-label')).toBe(false);
     });
 
-    it('should set role=status and aria-live=polite for sticky toasts', () => {
-      service.show({ severity: 'info', summary: 'Sticky ARIA', sticky: true });
-      fixture.detectChanges();
+    it('announces through the CDK LiveAnnouncer: errors assertive, the rest polite', () => {
+      const announcer = TestBed.inject(LiveAnnouncer);
+      const spy = vi.spyOn(announcer, 'announce').mockResolvedValue();
+      service.show({ severity: 'success', summary: 'Saved', detail: 'All good' });
+      service.show({ severity: 'error', summary: 'Failed' });
 
-      const item = fixture.nativeElement.querySelector('.toast-item');
-      expect(item.getAttribute('role')).toBe('status');
-      expect(item.getAttribute('aria-live')).toBe('polite');
+      expect(spy).toHaveBeenNthCalledWith(1, 'Success: Saved. All good', 'polite');
+      expect(spy).toHaveBeenNthCalledWith(2, 'Error: Failed', 'assertive');
+    });
+
+    it('does not announce a duplicate that was not shown', () => {
+      const spy = vi.spyOn(TestBed.inject(LiveAnnouncer), 'announce').mockResolvedValue();
+      service.show({ severity: 'info', summary: 'Once' });
+      service.show({ severity: 'info', summary: 'Once' });
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('pauses while focus is inside the toast, even with pauseOnHover off, and resumes when focus leaves', () => {
+      const id = service.show({ severity: 'info', summary: 'Focus', pauseOnHover: false, actions: [{ label: 'Undo', onClick: () => {} }] });
+      fixture.detectChanges();
+      const paused = () => service.toasts().find((t) => t.id === id)!.isPaused;
+
+      const item = fixture.nativeElement.querySelector('.toast-item') as HTMLElement;
+      const [action, close] = Array.from(item.querySelectorAll('button')) as HTMLButtonElement[];
+      action.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      expect(paused()).toBe(true);
+
+      // Moving between buttons inside the toast keeps it paused.
+      action.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: close }));
+      expect(paused()).toBe(true);
+
+      close.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }));
+      expect(paused()).toBe(false);
+    });
+
+    it('stays paused while hovered even after focus leaves', () => {
+      service.show({ severity: 'info', summary: 'Both', pauseOnHover: true });
+      fixture.detectChanges();
+      const paused = () => service.toasts()[0].isPaused;
+      const item = fixture.nativeElement.querySelector('.toast-item') as HTMLElement;
+
+      component.onMouseEnter(service.toasts()[0]);
+      item.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      item.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }));
+      expect(paused()).toBe(true);
+      component.onMouseLeave(service.toasts()[0]);
+      expect(paused()).toBe(false);
+    });
+
+    it('localises the close button name and severity word', () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          { provide: PLATFORM_ID, useValue: 'browser' },
+          provideToast({ labels: { dismissAriaLabel: 'Cerrar aviso', severityLabels: { error: 'Error grave' } } }),
+        ],
+      });
+      const svc = TestBed.inject(ToastService);
+      const f = TestBed.createComponent(ToastComponent);
+      svc.show({ severity: 'error', summary: 'Falló' });
+      f.detectChanges();
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.toast-dismiss')?.getAttribute('aria-label')).toBe('Cerrar aviso');
+      expect(el.querySelector('.toast-summary')?.textContent?.trim()).toBe('Error grave: Falló');
     });
 
     it('should render progress bar for non-sticky toasts with progressBar enabled', () => {

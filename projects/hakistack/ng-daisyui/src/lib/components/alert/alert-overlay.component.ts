@@ -8,6 +8,7 @@ import {
   inject,
   Injector,
   input,
+  PLATFORM_ID,
   signal,
   viewChild,
 } from '@angular/core';
@@ -25,6 +26,8 @@ import {
   LucideCircleQuestionMark,
   type LucideIcon,
 } from '@lucide/angular';
+import { prefersReducedMotion } from '../../directives/motion.utils';
+import { createPausableTimer } from '../../utils/pausable-timer';
 import type { AlertIcon, AlertInternalConfig, AlertResult, AlertSize } from './alert.types';
 
 const SIZE_CLASS_MAP: Record<AlertSize, string> = {
@@ -80,9 +83,10 @@ export class AlertOverlayComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly elementRef = inject(ElementRef);
+  private readonly platformId = inject(PLATFORM_ID);
 
   private previousActiveElement: HTMLElement | null = null;
-  private timerId: ReturnType<typeof setTimeout> | undefined;
+  private readonly timer = createPausableTimer(() => this.dismiss('timer'));
   private countdownInterval: ReturnType<typeof setInterval> | undefined;
   private dismissed = false;
 
@@ -193,19 +197,18 @@ export class AlertOverlayComponent {
     this.clearTimers();
     this.dismissing.set(true);
 
-    setTimeout(() => {
-      this.config().resolve(result);
-      this.restoreFocus();
-    }, EXIT_DURATION);
+    setTimeout(
+      () => {
+        this.config().resolve(result);
+        this.restoreFocus();
+      },
+      prefersReducedMotion(this.platformId) ? 0 : EXIT_DURATION,
+    );
   }
 
   private setupTimer(): void {
     const timer = this.config().timer;
-    if (timer && timer > 0) {
-      this.timerId = setTimeout(() => {
-        this.dismiss('timer');
-      }, timer);
-    }
+    if (timer && timer > 0) this.timer.start(timer);
   }
 
   private setupCountdown(): void {
@@ -234,10 +237,7 @@ export class AlertOverlayComponent {
   }
 
   private clearTimers(): void {
-    if (this.timerId !== undefined) {
-      clearTimeout(this.timerId);
-      this.timerId = undefined;
-    }
+    this.timer.cancel();
     if (this.countdownInterval !== undefined) {
       clearInterval(this.countdownInterval);
       this.countdownInterval = undefined;

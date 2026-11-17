@@ -101,7 +101,7 @@ serialization of row payloads.
 ## Testing
 
 The Rust kernels are exhaustively unit-tested under `hakistack-engine/`
-(`npm run engine:test`, currently 95+ tests). The wire-format conversions
+(`npm run test:engine`, currently 95+ tests). The wire-format conversions
 have round-trip serde tests. The full TS↔WASM integration is **not** unit
 tested in vitest because the wasm-pack `--target web` bundle uses browser-only
 APIs that don't work in jsdom.

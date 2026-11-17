@@ -19,7 +19,7 @@ members = [
 # make `cargo check --workspace` on host attempt a link that requires
 # the static libs and the Emscripten linker — neither of which is
 # present on a default host build. Build explicitly with:
-#   npm run libheif:build
+#   npm run build:libheif
 exclude = ["crates/libheif-bridge"]
 
 [workspace.package]

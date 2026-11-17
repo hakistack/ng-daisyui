@@ -1,5 +1,5 @@
 import type { inView } from 'motion';
-import type { StaggerOptions } from 'motion-dom';
+import type { StaggerOptions } from 'motion';
 
 export type EasingFunction = (progress: number) => number;
 

@@ -94,6 +94,12 @@ describe('DatepickerComponent', () => {
       expect(component).toBeTruthy();
     });
 
+    it('exposes the field as a combobox that opens a dialog (aria-expanded is not allowed on a plain textbox)', () => {
+      const input = fixture.nativeElement.querySelector('input[aria-haspopup="dialog"]') as HTMLInputElement;
+      expect(input.getAttribute('role')).toBe('combobox');
+      expect(input.getAttribute('aria-expanded')).toBe('false');
+    });
+
     it('renders a week-number column when showWeekNumbers is on', async () => {
       fixture.componentRef.setInput('showWeekNumbers', true);
       fixture.detectChanges();

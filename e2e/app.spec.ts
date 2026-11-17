@@ -3,7 +3,8 @@ import { test, expect } from '@playwright/test';
 test.describe('Demo App', () => {
   test('should load the demo application', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle(/ng-daisyui/i);
+    // The docs root opens the Hakistack overview (all products).
+    await expect(page).toHaveTitle(/Hakistack/i);
   });
 
   test('should navigate to form demo', async ({ page }) => {

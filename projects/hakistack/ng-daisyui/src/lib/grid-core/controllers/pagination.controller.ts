@@ -1,6 +1,7 @@
 import { computed, effect, Injector, Signal, signal } from '@angular/core';
 
 import type { CursorPageChange, PageSizeChange, PaginationOptions } from '../grid.types';
+import { lastPageIndex, pageCount } from '../grid-rules';
 
 export interface PaginationState {
   readonly pageIndex: number;
@@ -94,7 +95,7 @@ export class PaginationController {
     });
     this.nextCursor = computed(() => deps.paginationOptions()?.nextCursor ?? null);
     this.prevCursor = computed(() => deps.paginationOptions()?.prevCursor ?? null);
-    this.totalPages = computed(() => Math.max(1, Math.ceil(deps.totalItems() / this.pageSize())));
+    this.totalPages = computed(() => pageCount(deps.totalItems(), this.pageSize()));
 
     this.registerEffects();
   }
@@ -165,7 +166,7 @@ export class PaginationController {
    */
   clampToData(totalItems: number): void {
     const pageSize = this.state().pageSize || 10;
-    const maxPageIndex = Math.max(0, Math.ceil(totalItems / pageSize) - 1);
+    const maxPageIndex = lastPageIndex(totalItems, pageSize);
     this.state.update((s) => ({
       ...s,
       pageIndex: Math.min(s.pageIndex, maxPageIndex),

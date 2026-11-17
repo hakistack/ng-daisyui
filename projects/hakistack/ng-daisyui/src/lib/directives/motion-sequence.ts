@@ -1,5 +1,5 @@
 import { animate } from 'motion';
-import type { AnimationPlaybackControls, DOMKeyframesDefinition, DynamicOption, ElementOrSelector } from 'motion-dom';
+import type { AnimationPlaybackControls, DOMKeyframesDefinition, DynamicOption, ElementOrSelector } from 'motion';
 
 export interface SequenceSegment {
   /** CSS selector, Element, Element[], or NodeList */

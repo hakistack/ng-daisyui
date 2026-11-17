@@ -75,8 +75,8 @@ const content: ArticleContent = {
         {
           kind: 'p',
           text: {
-            en: 'The five `engine_wasm` services share one module loader, so the first one to load initializes the module and the others reuse it. libheif is not part of the regular build: it exists only if the package was built with `npm run libheif:build`.',
-            es: 'Los cinco servicios de `engine_wasm` comparten un solo cargador de módulo, así que el primero que lo carga inicializa el módulo y los demás lo reutilizan. libheif no forma parte de la compilación normal: solo existe si el paquete se compiló con `npm run libheif:build`.',
+            en: 'The five `engine_wasm` services share one module loader, so the first one to load initializes the module and the others reuse it. libheif is not part of the regular build: it exists only if the package was built with `npm run build:libheif`.',
+            es: 'Los cinco servicios de `engine_wasm` comparten un solo cargador de módulo, así que el primero que lo carga inicializa el módulo y los demás lo reutilizan. libheif no forma parte de la compilación normal: solo existe si el paquete se compiló con `npm run build:libheif`.',
           },
         },
       ],
@@ -177,8 +177,8 @@ ngOnDestroy(): void {
         {
           kind: 'p',
           text: {
-            en: 'By default nothing is fetched. If you prefer the binary as a separately cached file (for example behind a CDN), serve the wasm-pack output of the bundle (for `engine_wasm`: `engine_wasm.js` and `engine_wasm_bg.wasm`, side by side) and point the token at the `.js` glue. The package build only ships the inlined copies (`ng-package.json` lists no `wasm/` asset), so produce those files from the repository with `npm run engine:build`.',
-            es: 'Por defecto no se descarga nada aparte. Si prefieres el binario como un archivo que se guarde en caché por separado (por ejemplo, detrás de un CDN), sirve la salida de wasm-pack del bundle (para `engine_wasm`: `engine_wasm.js` y `engine_wasm_bg.wasm`, en la misma carpeta) y apunta el token al archivo `.js` de enlace (glue). El paquete publicado solo incluye las copias incrustadas (`ng-package.json` no declara ninguna carpeta `wasm/` como asset), así que genera esos archivos desde el repositorio con `npm run engine:build`.',
+            en: 'By default nothing is fetched. If you prefer the binary as a separately cached file (for example behind a CDN), serve the wasm-pack output of the bundle (for `engine_wasm`: `engine_wasm.js` and `engine_wasm_bg.wasm`, side by side) and point the token at the `.js` glue. The package build only ships the inlined copies (`ng-package.json` lists no `wasm/` asset), so produce those files from the repository with `npm run build:engine`.',
+            es: 'Por defecto no se descarga nada aparte. Si prefieres el binario como un archivo que se guarde en caché por separado (por ejemplo, detrás de un CDN), sirve la salida de wasm-pack del bundle (para `engine_wasm`: `engine_wasm.js` y `engine_wasm_bg.wasm`, en la misma carpeta) y apunta el token al archivo `.js` de enlace (glue). El paquete publicado solo incluye las copias incrustadas (`ng-package.json` no declara ninguna carpeta `wasm/` como asset), así que genera esos archivos desde el repositorio con `npm run build:engine`.',
           },
         },
         {

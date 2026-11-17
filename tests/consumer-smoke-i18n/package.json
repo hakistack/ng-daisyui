@@ -1,0 +1,24 @@
+{
+  "name": "hk-consumer-smoke-i18n",
+  "private": true,
+  "description": "Minimal consumer app that installs the packed @hakistack/i18n tarball WITHOUT @hakistack/ng-daisyui, runs its codegen CLI and builds. Driven by scripts/consumer-smoke.mjs --package=i18n.",
+  "type": "module",
+  "scripts": {
+    "build": "ng build"
+  },
+  "dependencies": {
+    "@angular/common": "~21.2.10",
+    "@angular/compiler": "~21.2.10",
+    "@angular/core": "~21.2.10",
+    "@angular/platform-browser": "~21.2.10",
+    "@jsverse/transloco": "^8.2.1",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "~21.2.10",
+    "@angular/cli": "~21.2.6",
+    "@angular/compiler-cli": "~21.2.10",
+    "typescript": "~5.9.2"
+  }
+}

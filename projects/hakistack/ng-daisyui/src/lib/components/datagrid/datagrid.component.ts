@@ -32,6 +32,7 @@ import {
 } from '@lucide/angular';
 import { isObservable, Subscription, take } from 'rxjs';
 
+import { lastPageIndex, naturalRowKey, pageCount } from '../../grid-core/grid-rules';
 import { HkDataGridCellDirective } from './datagrid-cell.directive';
 import { DataGridColumnMenuComponent } from './datagrid-column-menu.component';
 import { _dataGridInternals } from './datagrid.helpers';
@@ -254,7 +255,7 @@ export class DataGridComponent<T> {
           };
         });
         return {
-          key: rowKey ? rowKey(row) : defaultRowKey(row, index),
+          key: rowKey ? rowKey(row) : (naturalRowKey(row) ?? index),
           index,
           top: header + index * rowHeight,
           row,
@@ -346,16 +347,16 @@ export class DataGridComponent<T> {
     if (!page) return null;
     const total = this.total();
     const index = this.internals().pageIndex();
-    const pageCount = Math.max(1, Math.ceil(total / page.size));
+    const pages = pageCount(total, page.size);
     const options = this.options().pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS;
     return {
       index,
       size: page.size,
-      pageCount,
+      pageCount: pages,
       isFirst: index === 0,
-      isLast: index >= pageCount - 1,
+      isLast: index >= pages - 1,
       range: this.l().range(total === 0 ? 0 : index * page.size + 1, Math.min((index + 1) * page.size, total), total),
-      pageOf: this.l().pageOf(index + 1, pageCount),
+      pageOf: this.l().pageOf(index + 1, pages),
       sizeOptions: [...new Set([...options, page.size])].sort((a, b) => a - b),
     };
   });
@@ -414,7 +415,7 @@ export class DataGridComponent<T> {
         internals.serverPage.set(page);
         internals.loading.set(false);
         const size = pending.request.page?.size;
-        const last = size ? Math.max(0, Math.ceil(page.total / size) - 1) : 0;
+        const last = size ? lastPageIndex(page.total, size) : 0;
         if (size && pending.request.page!.index > last) controller.setPage(last);
       };
       const fail = (err: unknown) => {
@@ -765,11 +766,6 @@ export class DataGridComponent<T> {
   private cellId(row: number, col: number): string {
     return `${this.id}-r${row}c${col}`;
   }
-}
-
-function defaultRowKey(row: unknown, index: number): unknown {
-  const id = (row as { id?: unknown } | null)?.id;
-  return typeof id === 'string' || typeof id === 'number' ? id : index;
 }
 
 function describeFilter(filter: DataGridFilter, header: string, operator: string): string {

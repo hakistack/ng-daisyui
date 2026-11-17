@@ -21,6 +21,7 @@
         (keydown.arrowDown)="$event.preventDefault(); openPicker()"
         (blur)="markAsTouched()"
         [attr.aria-controls]="isOpen() ? inputId() + '-dialog' : null"
+        role="combobox"
         aria-haspopup="dialog"
         [attr.aria-expanded]="isOpen()"
         [attr.aria-label]="inputAriaLabel()"
@@ -57,7 +58,7 @@
 
   <!-- Validation Error Message -->
   @if (isTouched() && validationErrors()) {
-    <div class="text-error mt-1 text-xs" [id]="inputId() + '-error'" role="alert" aria-live="polite">
+    <div class="text-error mt-1 text-xs" [id]="inputId() + '-error'" role="alert">
       @if (validationErrors()!['required']) {
         <span>{{ resolvedLabels().requiredError }}</span>
       }
@@ -121,7 +122,7 @@
                   >
                     {{ monthLabel() }}
                   </button>
-                  <span class="text-base-content/50">/</span>
+                  <span class="text-base-content/70">/</span>
                   <button
                     type="button"
                     class="btn btn-ghost btn-sm hover:bg-primary hover:text-primary-content hover:border-primary"
@@ -171,7 +172,7 @@
                   <!-- Weekday Headers -->
                   <div class="mb-2 grid gap-1" [class]="showWeekNumbers() ? 'grid-cols-8' : 'grid-cols-7'" role="row">
                     @if (showWeekNumbers()) {
-                      <div class="text-base-content/50 flex items-center justify-center p-2 text-center text-xs" role="columnheader">
+                      <div class="text-base-content/70 flex items-center justify-center p-2 text-center text-xs" role="columnheader">
                         <abbr [title]="resolvedLabels().weekNumberHeader" class="no-underline">#</abbr>
                       </div>
                     }
@@ -190,7 +191,7 @@
                     @for (week of calendarWeeks(); track week.id) {
                       <div class="grid gap-1" [class]="showWeekNumbers() ? 'grid-cols-8' : 'grid-cols-7'" role="row">
                         @if (showWeekNumbers()) {
-                          <div class="text-base-content/50 flex items-center justify-center text-xs" role="rowheader">
+                          <div class="text-base-content/70 flex items-center justify-center text-xs" role="rowheader">
                             <span class="sr-only">{{ resolvedLabels().weekNumberHeader }} </span>{{ week.weekNumber }}
                           </div>
                         }
@@ -321,7 +322,7 @@
             <div class="flex gap-1">
               <!-- Hours column -->
               <div class="flex flex-col items-center">
-                <span class="text-base-content/50 mb-1 text-xs">{{ resolvedLabels().hourLabel }}</span>
+                <span class="text-base-content/70 mb-1 text-xs">{{ resolvedLabels().hourLabel }}</span>
                 <div class="max-h-52 w-10 overflow-auto rounded">
                   @for (hour of hourOptions(); track hour) {
                     <button
@@ -339,7 +340,7 @@
 
               <!-- Minutes column -->
               <div class="flex flex-col items-center">
-                <span class="text-base-content/50 mb-1 text-xs">{{ resolvedLabels().minuteLabel }}</span>
+                <span class="text-base-content/70 mb-1 text-xs">{{ resolvedLabels().minuteLabel }}</span>
                 <div class="max-h-52 w-10 overflow-auto rounded">
                   @for (minute of minuteOptions(); track minute) {
                     <button

@@ -9,7 +9,7 @@ description = "Rust↔libheif bridge that compiles to wasm32-unknown-emscripten 
 
 # Excluded from the parent Cargo workspace on purpose — see the
 # top-level hakistack-engine/Cargo.toml for the reason. Build with:
-#   npm run libheif:build
+#   npm run build:libheif
 
 # Bin crate (not cdylib) because the `cdylib` crate-type on
 # wasm32-unknown-emscripten emits `-sSIDE_MODULE=2`, which produces a

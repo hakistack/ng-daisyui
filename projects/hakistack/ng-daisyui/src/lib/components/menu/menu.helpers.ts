@@ -29,6 +29,16 @@ export function inferMenuItemKind<T>(item: MenuItem<T>): MenuItemKind {
   return 'action';
 }
 
+/** True when every actionable item in the tree is a link — such a menu is site navigation, not an ARIA menu. */
+export function isLinkOnlyMenu<T>(items: readonly MenuItem<T>[]): boolean {
+  return items.every((item) => {
+    const kind = inferMenuItemKind(item);
+    if (kind === 'action') return false;
+    if (kind === 'group') return isLinkOnlyMenu(item.children ?? []);
+    return true;
+  });
+}
+
 /** Resolve a `visible` value (boolean or predicate). Defaults to visible. */
 export function isMenuItemVisible<T>(item: MenuItem<T>): boolean {
   const v = item.visible;

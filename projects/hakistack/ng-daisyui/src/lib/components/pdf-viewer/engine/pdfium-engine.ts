@@ -100,10 +100,6 @@ export class PdfiumEngine implements PdfEngine {
     return this.request({ type: 'setHiddenAnnotations', id: 0, doc, entries: [...entries] }) as Promise<void>;
   }
 
-  save(doc: PdfDocHandle): Promise<Uint8Array> {
-    return this.request({ type: 'save', id: 0, doc }) as Promise<Uint8Array>;
-  }
-
   renderPage(doc: PdfDocHandle, page: number, cssWidth: number, dpr: number, priority?: PdfTaskPriority): PdfRenderTask {
     return this.renderTask({ type: 'render', doc, page, cssWidth, dpr, priority });
   }

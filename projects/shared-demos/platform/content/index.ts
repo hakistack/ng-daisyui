@@ -36,6 +36,7 @@ export const COMPONENT_CONTENT: Record<string, () => Promise<ComponentDocContent
 };
 
 export const ARTICLE_CONTENT: Record<string, () => Promise<ArticleContent>> = {
+  hakistack: () => import('./articles/hakistack').then((m) => m.default),
   introduction: () => import('./articles/introduction').then((m) => m.default),
   installation: () => import('./articles/installation').then((m) => m.default),
   'key-patterns': () => import('./articles/key-patterns').then((m) => m.default),
@@ -52,6 +53,10 @@ export const ARTICLE_CONTENT: Record<string, () => Promise<ArticleContent>> = {
   theming: () => import('./articles/theming').then((m) => m.default),
   accessibility: () => import('./articles/accessibility').then((m) => m.default),
   i18n: () => import('./articles/i18n').then((m) => m.default),
+  'i18n-getting-started': () => import('./articles/i18n-getting-started').then((m) => m.default),
+  'i18n-authoring': () => import('./articles/i18n-authoring').then((m) => m.default),
+  'i18n-runtime': () => import('./articles/i18n-runtime').then((m) => m.default),
+  'i18n-cli': () => import('./articles/i18n-cli').then((m) => m.default),
   builders: () => import('./articles/builders').then((m) => m.default),
   'form-state': () => import('./articles/form-state').then((m) => m.default),
   formatters: () => import('./articles/formatters').then((m) => m.default),

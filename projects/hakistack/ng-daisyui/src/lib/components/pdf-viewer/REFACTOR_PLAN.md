@@ -405,7 +405,7 @@ Cada fase se puede publicar por separado, deja la demo en verde y no rompe la AP
 - El 9 tenía causa raíz en `pdfium-render`, que nunca registraba las páginas en el form-fill (`FORM_OnAfterLoadPage`). Se arregló con parches vendorizados y está cubierto por `npm run test:pdf-engine`.
 
 **Diferido:**
-- Sacar `pdfium_worker_inline.ts` (6 MB) del repo. Hoy es el mecanismo de distribución: `src/lib/wasm/pdf/` está en `.gitignore` y generar el worker requiere Rust + `wasm-pack` + `pdfium:fetch`. Para quitarlo hace falta decidir antes entre CI que lo genere, Git LFS o un artefacto de release.
+- Sacar `pdfium_worker_inline.ts` (6 MB) del repo. Hoy es el mecanismo de distribución: `src/lib/wasm/pdf/` está en `.gitignore` y generar el worker requiere Rust + `wasm-pack` + `fetch:pdfium`. Para quitarlo hace falta decidir antes entre CI que lo genere, Git LFS o un artefacto de release.
 - El bug 10 (cancelación en el worker) va en la fase 2.
 - Las referencias restantes a pdf.js en comentarios internos desaparecen con la extracción de la fase 1.
 

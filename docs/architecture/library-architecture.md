@@ -77,6 +77,11 @@ Loader contract (`utils/wasm-loader.ts`): decode once, share one module per app,
 (`onceAsync`), allow a URL override token for CSP/offline setups. Use WASM only where a benchmark shows a win; small
 inputs stay on the JS path.
 
+Overlay contract (toast, notification, alert): auto-dismiss goes through `utils/pausable-timer.ts` — pauses are held
+per reason (`'hover'`, `'focus'`) and the timer resumes only when all are released, so keyboard focus always stops the
+clock (WCAG 2.2.1); service-created containers use `utils/body-host.ts`; exit-animation delays are 0 under
+`prefers-reduced-motion` (`directives/motion.utils.ts`).
+
 ## 6. Styling
 
 - Components use daisyUI semantic classes and tokens only; no hardcoded colours.

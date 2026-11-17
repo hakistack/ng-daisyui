@@ -37,7 +37,7 @@ import { loadSourceAsBytes } from '../document-viewer.helpers';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">Loading…</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Loading…</div>
     } @else if (error(); as e) {
       <div class="alert alert-error whitespace-pre-line">{{ e }}</div>
     } @else {
@@ -231,7 +231,7 @@ function parseRtfToHtml(text: string): string {
   }
 
   flushParagraph();
-  return paragraphs.length > 0 ? paragraphs.join('\n') : '<p class="text-base-content/60 italic">Empty document.</p>';
+  return paragraphs.length > 0 ? paragraphs.join('\n') : '<p class="text-base-content/70 italic">Empty document.</p>';
 }
 
 function htmlEscape(s: string): string {

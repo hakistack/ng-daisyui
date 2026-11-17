@@ -589,6 +589,92 @@ describe('SelectComponent', () => {
   // Keyboard navigation
   // -------------------------------------------------------------------------
 
+  it('does not leave a document keydown listener behind when destroyed before the next frame', () => {
+    const add = vi.spyOn(document, 'addEventListener');
+    let frame: FrameRequestCallback | undefined;
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      frame = cb;
+      return 1;
+    });
+    fixture.componentRef.setInput('options', MOCK_OPTIONS);
+    fixture.detectChanges();
+    openDropdown(fixture);
+    fixture.destroy();
+    frame?.(0);
+    expect(add.mock.calls.some(([type]) => type === 'keydown')).toBe(false);
+    raf.mockRestore();
+    add.mockRestore();
+  });
+
+  describe('search combobox and focus return', () => {
+    it('makes the search box a combobox that points aria-activedescendant at the highlighted option', () => {
+      fixture.componentRef.setInput('options', MOCK_OPTIONS);
+      fixture.componentRef.setInput('enableSearch', true);
+      fixture.detectChanges();
+      openDropdown(fixture);
+
+      const search = query(fixture, 'input[aria-label="Search options"]') as HTMLInputElement;
+      expect(search.getAttribute('role')).toBe('combobox');
+      expect(search.getAttribute('aria-expanded')).toBe('true');
+      expect(search.hasAttribute('aria-activedescendant')).toBe(false);
+
+      pressKey(component, 'ArrowDown');
+      fixture.detectChanges();
+      const id = search.getAttribute('aria-activedescendant')!;
+      expect(id).toBe(component.highlightedOptionId());
+      expect(document.getElementById(id)?.getAttribute('role')).toBe('option');
+    });
+
+    it('Escape in the search box clears the term first, then closes and returns focus to the trigger', () => {
+      fixture.componentRef.setInput('options', MOCK_OPTIONS);
+      fixture.componentRef.setInput('enableSearch', true);
+      fixture.detectChanges();
+      document.body.appendChild(fixture.nativeElement);
+      openDropdown(fixture);
+      const search = query(fixture, 'input[aria-label="Search options"]') as HTMLInputElement;
+      search.focus();
+      component.searchTerm.set('app');
+
+      component.onSearchEscape(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(component.searchTerm()).toBe('');
+      expect(component.dropdownOpen()).toBe(true);
+
+      component.onSearchEscape(new KeyboardEvent('keydown', { key: 'Escape' }));
+      pressKey(component, 'Escape');
+      fixture.detectChanges();
+      expect(component.dropdownOpen()).toBe(false);
+      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('input[role="combobox"]'));
+      fixture.nativeElement.remove();
+    });
+
+    it('returns focus to the trigger after picking an option with the mouse', () => {
+      fixture.componentRef.setInput('options', MOCK_OPTIONS);
+      fixture.detectChanges();
+      document.body.appendChild(fixture.nativeElement);
+      openDropdown(fixture);
+      const optionButton = query(fixture, '[role="option"] button') as HTMLButtonElement;
+      optionButton.focus();
+      optionButton.click();
+      fixture.detectChanges();
+      expect(component.dropdownOpen()).toBe(false);
+      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('input[role="combobox"]'));
+      fixture.nativeElement.remove();
+    });
+
+    it('leaves focus alone when closed by an outside click', () => {
+      fixture.componentRef.setInput('options', MOCK_OPTIONS);
+      fixture.detectChanges();
+      openDropdown(fixture);
+      const outside = document.createElement('button');
+      document.body.appendChild(outside);
+      outside.focus();
+      component.onOverlayOutsideClick(new MouseEvent('click', { relatedTarget: null }) as MouseEvent);
+      expect(component.dropdownOpen()).toBe(false);
+      expect(document.activeElement).toBe(outside);
+      outside.remove();
+    });
+  });
+
   describe('keyboard navigation', () => {
     it('lets Space type into the search box instead of toggling the highlighted option', () => {
       fixture.componentRef.setInput('options', MOCK_OPTIONS);
@@ -599,7 +685,7 @@ describe('SelectComponent', () => {
       pressKey(component, 'ArrowDown');
       fixture.detectChanges();
 
-      const search = query(fixture, 'input[role="searchbox"]') as HTMLInputElement;
+      const search = query(fixture, 'input[aria-label="Search options"]') as HTMLInputElement;
       const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
       Object.defineProperty(space, 'target', { value: search });
       component.onDocumentKeydown(space);

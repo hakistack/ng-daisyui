@@ -20,12 +20,12 @@
 }
 
 /* TipTap Placeholder extension adds .is-editor-empty on the empty paragraph;
-   use data-placeholder attr as the content. Fallback uses currentColor so
-   it adapts to theme luminance even if --hk-* isn't loaded. */
+   use data-placeholder attr as the content. 70 % of currentColor keeps the
+   placeholder at WCAG AA (4.5:1) on the shipped themes in light and dark. */
 .hk-editor__surface .tiptap p.is-editor-empty:first-child::before,
 .hk-editor__surface .tiptap .is-empty:first-child::before {
   content: attr(data-placeholder);
-  color: var(--hk-color-base-content-45, color-mix(in srgb, currentColor 50%, transparent));
+  color: color-mix(in srgb, currentColor 70%, transparent);
   float: left;
   pointer-events: none;
   height: 0;

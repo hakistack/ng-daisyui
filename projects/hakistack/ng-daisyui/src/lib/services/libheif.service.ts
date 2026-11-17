@@ -54,7 +54,7 @@ export class LibheifService {
     }
     if (!this.resolvedModule) {
       throw new Error(
-        'libheif WASM module not available. Build with: npm run libheif:build  ' +
+        'libheif WASM module not available. Build with: npm run build:libheif  ' +
           '(requires Emscripten + the `wasm32-unknown-emscripten` Rust target — ' +
           'see hakistack-engine/external/libheif-wasm/README.md).',
       );

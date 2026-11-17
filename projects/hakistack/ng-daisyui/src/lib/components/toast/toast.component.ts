@@ -9,7 +9,7 @@ import {
   LucideCircleX,
   type LucideIcon,
 } from '@lucide/angular';
-import { TOAST_CONFIG } from './toast.config';
+import { DEFAULT_TOAST_SEVERITY_LABELS, TOAST_CONFIG } from './toast.config';
 import { ToastService } from './toast.service';
 import { Toast, ToastAction, ToastPosition, ToastSeverity } from './toast.types';
 
@@ -30,6 +30,9 @@ export class ToastComponent {
 
   readonly toasts = this.toastService.toasts;
   readonly position = signal<ToastPosition>(this.config?.position || 'bottom-end');
+
+  readonly dismissAriaLabel = this.config?.labels?.dismissAriaLabel ?? 'Dismiss notification';
+  private readonly severityLabels = { ...DEFAULT_TOAST_SEVERITY_LABELS, ...this.config?.labels?.severityLabels };
 
   private readonly severityConfig: Record<ToastSeverity, { class: string; icon: LucideIcon }> = {
     success: { class: 'alert-success', icon: LucideCircleCheck },
@@ -84,6 +87,11 @@ export class ToastComponent {
     return this.severityConfig[severity]?.icon ?? LucideInfo;
   }
 
+  /** Visually hidden severity word ("Error") read before the summary when browsing to a toast. */
+  severityLabel(severity: ToastSeverity): string {
+    return this.severityLabels[severity];
+  }
+
   dismiss(id: string): void {
     this.toastService.dismiss(id);
   }
@@ -93,15 +101,25 @@ export class ToastComponent {
   }
 
   onMouseEnter(toast: Toast): void {
-    if (toast.pauseOnHover && !toast.sticky) {
-      this.toastService.pauseAutoDismiss(toast.id);
-    }
+    if (toast.pauseOnHover && !toast.sticky) this.toastService.pauseAutoDismiss(toast.id, 'hover');
   }
 
   onMouseLeave(toast: Toast): void {
-    if (toast.pauseOnHover && !toast.sticky && toast.isPaused) {
-      this.toastService.resumeAutoDismiss(toast.id);
-    }
+    if (toast.pauseOnHover && !toast.sticky && toast.isPaused) this.toastService.resumeAutoDismiss(toast.id, 'hover');
+  }
+
+  /**
+   * Focus entering a toast (Tab to an action or the close button) pauses it, independent of
+   * `pauseOnHover`; the service's timer only resumes once hover and focus have both been released.
+   */
+  onFocusIn(toast: Toast): void {
+    if (!toast.sticky) this.toastService.pauseAutoDismiss(toast.id, 'focus');
+  }
+
+  onFocusOut(toast: Toast, event: FocusEvent): void {
+    const next = event.relatedTarget as Node | null;
+    if (next && (event.currentTarget as HTMLElement).contains(next)) return;
+    if (!toast.sticky) this.toastService.resumeAutoDismiss(toast.id, 'focus');
   }
 
   handleActionClick(toast: Toast, action: ToastAction, event: Event): void {

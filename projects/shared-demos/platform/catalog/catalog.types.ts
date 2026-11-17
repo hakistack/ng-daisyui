@@ -23,7 +23,24 @@ export interface Localized {
 
 export type DocsLocale = keyof Localized;
 
-export type DocSection = 'getting-started' | 'foundations' | 'components' | 'systems' | 'guides' | 'api' | 'architecture' | 'contributing';
+export type DocSection =
+  | 'overview'
+  | 'getting-started'
+  | 'foundations'
+  | 'components'
+  | 'systems'
+  | 'guides'
+  | 'api'
+  | 'architecture'
+  | 'i18n'
+  | 'contributing';
+
+/**
+ * Which Hakistack product a section documents. `hakistack` = the whole ecosystem (overview,
+ * contributing); the others are npm packages and get their own block in the sidebar.
+ * Each section belongs to exactly one product (see SECTION_PRODUCT in pages.ts).
+ */
+export type DocProduct = 'hakistack' | 'ng-daisyui' | 'i18n';
 
 export type ComponentGroup = 'forms' | 'data' | 'navigation' | 'feedback' | 'documents';
 

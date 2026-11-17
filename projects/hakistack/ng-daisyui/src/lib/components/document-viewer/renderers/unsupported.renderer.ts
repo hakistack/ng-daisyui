@@ -13,12 +13,12 @@ import { DocumentRendererInputs } from '../document-viewer.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col items-center justify-center gap-3 py-12 text-center">
-      <div class="text-base-content/60 text-sm">Unsupported document format</div>
+      <div class="text-base-content/70 text-sm">Unsupported document format</div>
       @if (filename()) {
         <div class="font-mono text-xs">{{ filename() }}</div>
       }
       @if (format().mimeType || format().extension) {
-        <div class="text-base-content/50 text-xs">
+        <div class="text-base-content/70 text-xs">
           {{ format().mimeType ?? '' }}
           @if (format().extension) {
             <span>· {{ format().extension }}</span>

@@ -4,8 +4,8 @@
 <ul
   class="menu"
   [class]="menuClass()"
-  [attr.role]="resolvedConfig().orientation === 'horizontal' ? 'menubar' : 'menu'"
-  [attr.aria-orientation]="resolvedConfig().orientation"
+  [attr.role]="isNavigation() ? null : resolvedConfig().orientation === 'horizontal' ? 'menubar' : 'menu'"
+  [attr.aria-orientation]="isNavigation() ? null : resolvedConfig().orientation"
   [attr.aria-label]="resolvedConfig().ariaLabel ?? null"
 >
   @for (node of processedItems(); track node.id) {
@@ -20,18 +20,22 @@
 <ng-template #menuNode let-item let-siblings="siblings" let-depth="depth" let-rail="rail">
   @switch (kindOf(item)) {
     @case ('divider') {
-      <li role="separator" class="px-2 py-1"><div class="border-t border-base-content/10"></div></li>
+      <li [attr.role]="isNavigation() ? null : 'separator'" [attr.aria-hidden]="isNavigation() ? 'true' : null" class="px-2 py-1">
+        <div class="border-t border-base-content/10"></div>
+      </li>
     }
     @case ('title') {
-      <li role="presentation" class="menu-title" [class]="item.class">{{ item.label }}</li>
+      <li [attr.role]="isNavigation() ? null : 'presentation'" class="menu-title text-base-content/70" [class]="item.class">
+        {{ item.label }}
+      </li>
     }
     @case ('group') {
-      <li [class]="item.class" role="none" (mouseleave)="onGroupLeave()">
+      <li [class]="item.class" [attr.role]="noneRole()" (mouseleave)="onGroupLeave()">
         <details #d [open]="isOpen(item)" (toggle)="onToggle(item, d.open, siblings)">
           <summary
-            role="menuitem"
-            [attr.aria-haspopup]="'menu'"
-            [attr.aria-expanded]="rail ? null : isOpen(item)"
+            [attr.role]="itemRole()"
+            [attr.aria-haspopup]="isNavigation() ? null : 'menu'"
+            [attr.aria-expanded]="rail || isNavigation() ? null : isOpen(item)"
             [attr.aria-label]="rail ? item.label : null"
             [attr.aria-disabled]="item.disabled ? true : null"
             [class]="{ 'menu-disabled': item.disabled, tooltip: rail, 'tooltip-right': rail }"
@@ -41,7 +45,7 @@
           >
             <ng-container *ngTemplateOutlet="itemInner; context: { $implicit: item, rail }" />
           </summary>
-          <ul role="menu" [class]="submenuClass(depth)">
+          <ul [attr.role]="isNavigation() ? null : 'menu'" [class]="submenuClass(depth)">
             @for (child of item.children; track child.id) {
               <ng-container *ngTemplateOutlet="menuNode; context: { $implicit: child, siblings: item.children, depth: depth + 1, rail }" />
             }
@@ -50,10 +54,10 @@
       </li>
     }
     @default {
-      <li [class]="item.class" role="none">
+      <li [class]="item.class" [attr.role]="noneRole()">
         @if (item.href) {
           <a
-            role="menuitem"
+            [attr.role]="itemRole()"
             [href]="item.href"
             [attr.target]="item.target ?? null"
             [attr.rel]="item.target === '_blank' ? 'noopener noreferrer' : null"
@@ -67,9 +71,10 @@
           </a>
         } @else if (item.routerLink != null) {
           <a
-            role="menuitem"
+            [attr.role]="itemRole()"
             [routerLink]="item.disabled ? null : item.routerLink"
             routerLinkActive="menu-active"
+            ariaCurrentWhenActive="page"
             [attr.aria-disabled]="item.disabled ? true : null"
             [attr.aria-label]="rail ? item.label : null"
             [attr.data-tip]="rail ? item.label : null"
@@ -81,7 +86,7 @@
         } @else {
           <button
             type="button"
-            role="menuitem"
+            [attr.role]="itemRole()"
             [disabled]="item.disabled"
             [attr.aria-label]="rail ? item.label : null"
             [attr.data-tip]="rail ? item.label : null"
@@ -123,12 +128,12 @@
 >
   <ul
     class="menu menu-sm bg-base-100 rounded-box shadow-lg border border-base-content/10 w-56 p-2"
-    role="menu"
+    [attr.role]="isNavigation() ? null : 'menu'"
     (mouseenter)="onFlyoutEnter()"
     (mouseleave)="onGroupLeave()"
   >
     @if (flyoutGroup()?.label; as lbl) {
-      <li role="presentation" class="menu-title">{{ lbl }}</li>
+      <li [attr.role]="isNavigation() ? null : 'presentation'" class="menu-title text-base-content/70">{{ lbl }}</li>
     }
     @for (child of flyoutGroup()?.children ?? []; track child.id) {
       <ng-container

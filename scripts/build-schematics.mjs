@@ -36,6 +36,11 @@ for (const file of walkJsonFiles(schematicsSrc)) {
   copyFileSync(file, dest);
 }
 
+// tsc emits CommonJS `.js`, but ng-packagr marks the package `"type": "module"`, so Node would load
+// these files as ESM and the Angular CLI's `require(factory)[name]` would get `undefined`
+// (`ng add @hakistack/ng-daisyui` could not find `ngAdd`). A nested package.json scopes them back to CJS.
+writeFileSync(join(schematicsDist, 'package.json'), JSON.stringify({ type: 'commonjs' }, null, 2) + '\n');
+
 const pkgPath = join(distRoot, 'package.json');
 const pkgJson = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 pkgJson.schematics = './schematics/collection.json';

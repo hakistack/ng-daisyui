@@ -4,13 +4,14 @@ import { Title } from '@angular/platform-browser';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 import type { ArticleContent } from '../catalog/catalog.types';
-import { pageById, pageForUrl } from '../catalog/pages';
+import { PRODUCT_BRANDS, pageById, pageForUrl, productOf } from '../catalog/pages';
 import { ARTICLE_CONTENT } from '../content';
 import { DocsLocaleService, LocalizePipe, UI, localize } from '../i18n/docs-locale.service';
 import { ContentSectionsComponent, RichTextComponent } from '../ui/content-blocks.component';
 import { TocComponent, TocEntry } from '../ui/toc.component';
 import { PageStatusComponent } from '../ui/page-status.component';
 import { PrevNextComponent } from '../ui/prev-next.component';
+import { DocApiIndexComponent } from './component-doc-tabs';
 
 /**
  * Long-form page (foundations, systems, guides, architecture, contributing).
@@ -19,7 +20,16 @@ import { PrevNextComponent } from '../ui/prev-next.component';
  */
 @Component({
   selector: 'app-article-page',
-  imports: [RouterLink, LocalizePipe, ContentSectionsComponent, RichTextComponent, TocComponent, PageStatusComponent, PrevNextComponent],
+  imports: [
+    RouterLink,
+    LocalizePipe,
+    ContentSectionsComponent,
+    RichTextComponent,
+    TocComponent,
+    PageStatusComponent,
+    PrevNextComponent,
+    DocApiIndexComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (page(); as p) {
@@ -55,6 +65,10 @@ import { PrevNextComponent } from '../ui/prev-next.component';
             <div class="alert" role="status">{{ ui.contentMissing | loc: lang() }}</div>
           } @else {
             <p class="text-base-content/70" role="status">{{ ui.loading | loc: lang() }}</p>
+          }
+          @if (p.areas?.length || p.symbols?.length) {
+            <!-- Symbols this page owns (same index as the component pages' overview tab). -->
+            <div class="mt-10"><app-doc-api-index [page]="p" /></div>
           }
           <app-prev-next [pageId]="p.id" />
         </article>
@@ -112,7 +126,7 @@ export class ArticlePageComponent {
     });
     effect(() => {
       const p = this.page();
-      this.title.setTitle(p ? `${localize(p.title, this.lang())} · ng-daisyui` : 'ng-daisyui');
+      this.title.setTitle(p ? `${localize(p.title, this.lang())} · ${PRODUCT_BRANDS[productOf(p)]}` : 'Hakistack');
     });
   }
 

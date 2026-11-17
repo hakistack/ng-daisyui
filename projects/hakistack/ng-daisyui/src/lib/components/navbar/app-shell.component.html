@@ -26,7 +26,8 @@
 
   <!-- Sidebar side -->
   <div class="drawer-side z-40" [id]="drawerSideId" [cdkTrapFocus]="trapActive()" [cdkTrapFocusAutoCapture]="trapActive()">
-    <label [attr.for]="drawerId" aria-label="Close sidebar" class="drawer-overlay"></label>
+    <!-- Pointer affordance only (keyboard users close with Escape or the menu button); a <label> cannot carry aria-label. -->
+    <label [attr.for]="drawerId" aria-hidden="true" class="drawer-overlay"></label>
     <hk-sidebar [config]="sidebarConfig()" [side]="sidebarSide()" [(collapsed)]="collapsed" (itemSelect)="onItemSelect()">
       <ng-content select="[hk-sidebar-header]" ngProjectAs="[hk-sidebar-header]" />
       <ng-content select="[hk-sidebar-footer]" ngProjectAs="[hk-sidebar-footer]" />

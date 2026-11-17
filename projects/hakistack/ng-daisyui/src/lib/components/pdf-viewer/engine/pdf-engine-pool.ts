@@ -103,10 +103,6 @@ export class PdfEnginePool implements PdfEngine {
     return this.engines[0].attachments(this.primary(doc));
   }
 
-  save(doc: PdfDocHandle): Promise<Uint8Array> {
-    return this.engines[0].save(this.primary(doc));
-  }
-
   /** Every worker renders, so every worker gets the set. */
   async setHiddenAnnotations(doc: PdfDocHandle, entries: readonly number[]): Promise<void> {
     const handles = this.docs.get(doc);

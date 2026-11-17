@@ -63,9 +63,14 @@ export interface ApiMember {
   readonly deprecated?: boolean;
 }
 
+/** npm package a symbol is imported from. Symbols without `package` belong to `@hakistack/ng-daisyui`. */
+export type ApiPackage = '@hakistack/ng-daisyui' | '@hakistack/i18n';
+
 export interface ApiSymbol {
-  /** Exported name (what consumers import). */
+  /** Exported name (what consumers import). Unique within its package, not across packages. */
   readonly name: string;
+  /** Set for packages other than ng-daisyui (keeps the ng-daisyui manifest unchanged). */
+  readonly package?: ApiPackage;
   /** Declaration name in the source (differs for `export { A as B }`). */
   readonly localName: string;
   readonly kind: ApiSymbolKind;

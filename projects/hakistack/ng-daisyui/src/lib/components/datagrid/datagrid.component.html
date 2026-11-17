@@ -131,7 +131,7 @@
       class="hk-dg-viewport absolute inset-0 overflow-auto outline-none select-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
       role="grid"
       tabindex="0"
-      aria-multiselectable="true"
+      [attr.aria-multiselectable]="selectionMode() === 'multi' ? 'true' : null"
       [attr.aria-label]="controller().options.ariaLabel ?? null"
       [attr.aria-rowcount]="rows().length + 1"
       [attr.aria-colcount]="columns().length + colIndexBase() - 1"

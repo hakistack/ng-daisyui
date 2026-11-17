@@ -4,7 +4,7 @@
  * **inline it into the library** so consumers configure NOTHING.
  *
  * esbuild bundles `pdfium.worker.ts` together with:
- *   - the `pdf_engine` wasm-bindgen glue (`src/lib/wasm/pdf/`, from build:wasm),
+ *   - the `pdf_engine` wasm-bindgen glue (`src/lib/wasm/pdf/`, from build:engine),
  *   - the emscripten PDFium ES6 module (`src/lib/wasm/pdfium/pdfium.js`),
  *   - BOTH `.wasm` binaries (via esbuild's `binary` loader → embedded as bytes).
  *
@@ -19,12 +19,12 @@
  * `worker-src blob:` CSP allowance. Trade for true zero-config.
  *
  * Requirements (skips gracefully until met):
- *   - `src/lib/wasm/pdf/pdf_engine.js` + `pdf_engine_bg.wasm`  → `npm run engine:build`
+ *   - `src/lib/wasm/pdf/pdf_engine.js` + `pdf_engine_bg.wasm`  → `npm run build:engine`
  *   - `engine/pdfium/pdfium.js` + `pdfium.wasm`               → vendor a
  *     `-sMODULARIZE -sEXPORT_ES6 -sENVIRONMENT=web,worker` PDFium build
  *     (the `-sENVIRONMENT=web,worker` flag strips Node branches so esbuild can
  *     bundle it cleanly). NOTE: vendored under engine/pdfium/, NOT src/lib/wasm/
- *     — `engine:build` rm -rf's the whole wasm/ tree. See PDFIUM_ENGINE.md §9b.
+ *     — `build:engine` rm -rf's the whole wasm/ tree. See PDFIUM_ENGINE.md §9b.
  */
 import { build } from 'esbuild';
 import { existsSync, writeFileSync } from 'node:fs';
@@ -48,7 +48,7 @@ const missing = inputs.filter((p) => !existsSync(p));
 if (missing.length) {
   console.log('⏭  build-pdfium-worker: skipped — missing inputs:');
   for (const m of missing) console.log(`     ${m.replace(root + '/', '')}`);
-  console.log('     (run `npm run engine:build` + vendor a MODULARIZE/ES6 pdfium build — PDFIUM_ENGINE.md §9b)');
+  console.log('     (run `npm run build:engine` + vendor a MODULARIZE/ES6 pdfium build — PDFIUM_ENGINE.md §9b)');
   process.exit(0);
 }
 

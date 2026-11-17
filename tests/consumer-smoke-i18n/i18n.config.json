@@ -1,0 +1,6 @@
+{
+  "srcRoot": "src",
+  "definitionsDir": "src/i18n/definitions",
+  "outputDir": "src/assets/i18n",
+  "locales": ["en", "es"]
+}

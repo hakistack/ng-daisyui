@@ -1,5 +1,5 @@
 /**
- * Public-API extractor for @hakistack/ng-daisyui.
+ * Public-API extractor for the published packages (@hakistack/ng-daisyui, @hakistack/i18n).
  *
  * Walks every symbol exported from `src/public-api.ts` with the TypeScript
  * type checker (via ts-morph) and classifies it: component, directive,
@@ -19,11 +19,23 @@ import { relative, resolve } from 'node:path';
 const MAX_TYPE_LENGTH = 600;
 
 /**
+ * Per-package settings. ng-daisyui symbols carry no `package` field (the docs app's default package);
+ * other packages' symbols are tagged so the docs show the right import path.
+ */
+const PACKAGES = {
+  ui: { libRoot: 'projects/hakistack/ng-daisyui', packageName: null, areaOf: areaFromPath, externalArea: 'external' },
+  i18n: { libRoot: 'projects/hakistack/i18n', packageName: '@hakistack/i18n', areaOf: i18nAreaFromPath, externalArea: 'i18n-runtime' },
+};
+
+/**
  * @param {string} root Repository root.
+ * @param {'ui' | 'i18n'} [pkg] Which package's `src/public-api.ts` to read (default: ng-daisyui).
  * @returns {{ symbols: ApiSymbol[] }}
  */
-export function extractPublicApi(root) {
-  const libRoot = resolve(root, 'projects/hakistack/ng-daisyui');
+export function extractPublicApi(root, pkg = 'ui') {
+  const config = PACKAGES[pkg];
+  if (!config) throw new Error(`extractPublicApi: unknown package "${pkg}"`);
+  const libRoot = resolve(root, config.libRoot);
   const project = new Project({
     tsConfigFilePath: resolve(libRoot, 'tsconfig.lib.json'),
     skipAddingFilesFromTsConfig: true,
@@ -44,16 +56,25 @@ export function extractPublicApi(root) {
 
     const base = {
       name: exportName,
+      ...(config.packageName ? { package: config.packageName } : {}),
       localName: getDeclName(decl) ?? exportName,
       kind: 'constant',
-      area: external ? 'external' : areaFromPath(sourcePath),
+      area: external ? config.externalArea : config.areaOf(sourcePath),
       description: external ? '' : readDoc(decl),
       deprecated: hasTag(decl, 'deprecated'),
       source: external ? null : { path: sourcePath, line: decl.getStartLineNumber() },
     };
 
     if (external) {
-      symbols.push({ ...base, kind: 'type', typeText: `re-exported from ${packageFromPath(file)}` });
+      // getExportedDeclarations() already follows the re-export to the dependency's .d.ts, so classify by what it
+      // declares: values (e.g. Transloco's translateObjectSignal) keep their real kind and signatures; types stay
+      // a pointer to the dependency.
+      const from = packageFromPath(file);
+      const reexported = { ...base, description: `Re-exported from \`${from}\`; its documentation applies.` };
+      if (Node.isFunctionDeclaration(decl)) symbols.push(describeFunction(decl, reexported));
+      else if (Node.isClassDeclaration(decl)) symbols.push(describeClass(decl, reexported));
+      else if (Node.isVariableDeclaration(decl)) symbols.push(describeVariable(decl, reexported));
+      else symbols.push({ ...base, kind: 'type', typeText: `re-exported from ${from}` });
       continue;
     }
 
@@ -305,6 +326,11 @@ function areaFromPath(path) {
   if (m[1] === 'directives') return 'directives';
   if (m[1] === 'services') return m[2].replace(/\.ts$/, '').replace(/\.service$/, '');
   return m[1];
+}
+
+/** @hakistack/i18n: the Angular-free authoring engine (`/engine`) vs the Angular runtime. */
+function i18nAreaFromPath(path) {
+  return /hakistack\/i18n\/engine\//.test(path) ? 'i18n-engine' : 'i18n-runtime';
 }
 
 function packageFromPath(file) {

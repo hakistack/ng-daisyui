@@ -23,7 +23,6 @@
       #host
       class="hk-editor__surface px-4 py-3 cursor-text overflow-y-auto text-base-content selection:bg-primary/30 selection:text-inherit"
       [style.min-height]="editorHeight()"
-      [attr.aria-label]="ariaLabel() || placeholder() || 'Rich text editor'"
     ></div>
     @if (loadError()) {
       <div role="alert" class="alert alert-error alert-soft m-3 text-sm">
@@ -53,7 +52,7 @@
     <div class="modal-box max-w-md">
       <h3 id="hk-text-prompt-title" class="font-semibold text-base mb-1">{{ textPromptTitle() }}</h3>
       @if (textPromptDescription()) {
-        <p class="text-xs text-base-content/60 mb-3">{{ textPromptDescription() }}</p>
+        <p class="text-xs text-base-content/70 mb-3">{{ textPromptDescription() }}</p>
       }
       <input
         #textPromptInput

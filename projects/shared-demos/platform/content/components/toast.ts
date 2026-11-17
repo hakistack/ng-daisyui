@@ -196,16 +196,20 @@ export class SaveActionsComponent {
     ],
     notes: [
       {
-        en: 'Regular toasts use `role="alert"` with `aria-live="assertive"`; sticky toasts use `role="status"` with `aria-live="polite"`. Both are `aria-atomic`, and the accessible name is the `summary`, so put the essential message there.',
-        es: 'Los toasts normales usan `role="alert"` con `aria-live="assertive"`; los fijos usan `role="status"` con `aria-live="polite"`. Ambos son `aria-atomic` y el nombre accesible es el `summary`, así que pon ahí el mensaje esencial.',
+        en: 'Toasts are announced through the CDK `LiveAnnouncer`, a live region that already exists in the page, so screen readers do not miss the first message. `error` toasts are announced `assertive`, every other severity `polite`. The toast element itself has no `role`, `aria-live` or `aria-label`.',
+        es: 'Los toasts se anuncian con el `LiveAnnouncer` de la CDK, una región viva que ya existe en la página, así los lectores de pantalla no se pierden el primer mensaje. Los toasts `error` se anuncian como `assertive` y el resto de severidades como `polite`. El elemento del toast en sí no lleva `role`, `aria-live` ni `aria-label`.',
       },
       {
-        en: 'The timer pauses on mouse hover only, not on keyboard focus. If a toast has actions, make it `sticky` or give it a long `life` so keyboard users have time to reach them.',
-        es: 'El temporizador se pausa solo con el mouse, no con el foco del teclado. Si un toast tiene acciones, hazlo `sticky` o dale un `life` largo para que quien usa el teclado tenga tiempo de llegar a ellas.',
+        en: 'A visually hidden severity word comes before the `summary` ("Error: …"), so put the essential message in `summary`. Translate the words with `provideToast({ labels: { severityLabels } })`.',
+        es: 'Antes del `summary` va una palabra de severidad oculta visualmente ("Error: …"), así que pon el mensaje esencial en `summary`. Traduce esas palabras con `provideToast({ labels: { severityLabels } })`.',
       },
       {
-        en: 'The dismiss button is labelled "Dismiss notification" in English; there is no label override for it.',
-        es: 'El botón de cerrar tiene la etiqueta "Dismiss notification" en inglés; no hay forma de cambiarla.',
+        en: 'The timer pauses while the pointer is over the toast (when `pauseOnHover` is on) and always while keyboard focus is inside it, even with `pauseOnHover: false` (WCAG 2.2.1). Toasts with important actions are still better `sticky`.',
+        es: 'El temporizador se pausa mientras el puntero está sobre el toast (si `pauseOnHover` está activo) y siempre mientras el foco del teclado está dentro, incluso con `pauseOnHover: false` (WCAG 2.2.1). Aun así, conviene que los toasts con acciones importantes sean `sticky`.',
+      },
+      {
+        en: 'The dismiss button is labelled "Dismiss notification" by default; translate it with `provideToast({ labels: { dismissAriaLabel } })`.',
+        es: 'El botón de cerrar tiene la etiqueta "Dismiss notification" por defecto; tradúcela con `provideToast({ labels: { dismissAriaLabel } })`.',
       },
     ],
   },

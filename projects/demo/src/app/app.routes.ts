@@ -19,7 +19,10 @@ const article: Loader = () => import('@shared-demos/platform/pages/article-page.
 const api: Loader = () => import('@shared-demos/platform/pages/api-reference.component').then((m) => m.ApiReferenceComponent);
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'getting-started' },
+  { path: '', pathMatch: 'full', redirectTo: 'overview' },
+
+  // Hakistack overview (all products)
+  { path: 'overview', loadComponent: article },
 
   // Getting started (long-form articles; the old hand-built pages remain only in the v4 demo)
   { path: 'getting-started', loadComponent: article },
@@ -96,7 +99,14 @@ export const routes: Routes = [
     loadComponent: () => import('@shared-demos/platform/pages/markdown-page.component').then((m) => m.MarkdownPageComponent),
   },
 
-  // API reference (generated)
+  // @hakistack/i18n (long-form articles)
+  { path: 'i18n', loadComponent: article },
+  { path: 'i18n/:slug', loadComponent: article },
+
+  // API reference (generated). Symbol names are unique per package, so each package has its own namespace;
+  // the i18n routes come first so `/api/i18n` is not read as a symbol called "i18n".
+  { path: 'api/i18n', loadComponent: api, data: { pkg: 'i18n' } },
+  { path: 'api/i18n/:name', loadComponent: api, data: { pkg: 'i18n' } },
   { path: 'api', loadComponent: api },
   { path: 'api/:name', loadComponent: api },
 

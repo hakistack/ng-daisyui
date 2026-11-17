@@ -67,6 +67,7 @@ describe('DataGridComponent', () => {
     expect(viewport.getAttribute('aria-label')).toBe('Inventory');
     expect(viewport.getAttribute('aria-rowcount')).toBe('201');
     expect(viewport.getAttribute('aria-colcount')).toBe('3');
+    expect(viewport.hasAttribute('aria-multiselectable')).toBe(false);
     expect(headerTexts(el)).toEqual(['Name', 'Qty', 'Status']);
 
     const rendered = el.querySelectorAll('[role="rowgroup"] [role="row"][aria-rowindex]');
@@ -212,6 +213,7 @@ describe('DataGridComponent', () => {
     it('pins a checkbox column, shifts aria-colindex and toggles rows with the mouse and Space', () => {
       const grid = createDataGrid({ columns, data: items, selection: 'multi' });
       const { fixture, el, viewport } = setup(grid);
+      expect(viewport.getAttribute('aria-multiselectable')).toBe('true');
       expect(viewport.getAttribute('aria-colcount')).toBe('4');
       expect(el.querySelector('[role="columnheader"][aria-colindex="2"]')?.textContent).toContain('Name');
 

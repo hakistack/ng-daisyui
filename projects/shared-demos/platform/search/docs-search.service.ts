@@ -1,7 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import type { CommandPaletteItem } from '@hakistack/ng-daisyui';
-import { ApiManifestService, KIND_LABELS } from '../api/api-manifest.service';
+import { ApiManifestService, KIND_LABELS, apiRoute, symbolProduct } from '../api/api-manifest.service';
 import { DOC_PAGES, SECTION_TITLES } from '../catalog/pages';
 import { DocsLocaleService, localize } from '../i18n/docs-locale.service';
 import { SearchDoc, buildIndex, search } from './docs-search';
@@ -52,14 +52,16 @@ export class DocsSearchService {
     }
 
     for (const s of this.manifest.symbols() ?? []) {
+      const i18n = symbolProduct(s) === 'i18n';
       items.push({
-        id: `api:${s.name}`,
+        // Names are unique per package, not across packages.
+        id: i18n ? `api:i18n:${s.name}` : `api:${s.name}`,
         group: 'api',
         rank: 2,
         label: s.name,
-        description: `${localize(KIND_LABELS[s.kind], lang)}${s.description ? ' · ' + firstSentence(s.description) : ''}`,
-        keywords: [s.kind, s.area, ...(s.selector ? [s.selector] : [])],
-        onSelect: go(`/api/${s.name}`),
+        description: `${i18n ? '@hakistack/i18n · ' : ''}${localize(KIND_LABELS[s.kind], lang)}${s.description ? ' · ' + firstSentence(s.description) : ''}`,
+        keywords: [s.kind, s.area, ...(s.selector ? [s.selector] : []), ...(i18n ? ['i18n', '@hakistack/i18n'] : [])],
+        onSelect: go(apiRoute(s)),
       });
     }
     return items;

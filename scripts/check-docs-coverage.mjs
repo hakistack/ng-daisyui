@@ -42,13 +42,24 @@ const err = (msg) => errors.push(msg);
 const warn = (msg) => warnings.push(msg);
 
 // ── 1. API ──────────────────────────────────────────────────────────────
+// `symbols` = @hakistack/ng-daisyui (demo snippets, playgrounds and component defaults are checked against it only);
+// `allSymbols` adds @hakistack/i18n for ownership, links and the reports. Names are unique per package, not across.
 const { symbols } = extractPublicApi(ROOT);
+const { symbols: i18nSymbols } = extractPublicApi(ROOT, 'i18n');
+const allSymbols = [...symbols, ...i18nSymbols];
+const isI18nSymbol = (s) => s.package === '@hakistack/i18n';
 const byName = new Map(symbols.map((s) => [s.name, s]));
+const i18nByName = new Map(i18nSymbols.map((s) => [s.name, s]));
 
 // ── 2. Catalog ──────────────────────────────────────────────────────────
-const { DOC_PAGES } = await jiti.import(resolve(ROOT, 'projects/shared-demos/platform/catalog/pages.ts'));
+const { DOC_PAGES, productOf } = await jiti.import(resolve(ROOT, 'projects/shared-demos/platform/catalog/pages.ts'));
 const pageById = new Map(DOC_PAGES.map((p) => [p.id, p]));
-const ownerOf = (s) => DOC_PAGES.find((p) => p.symbols?.includes(s.name)) ?? DOC_PAGES.find((p) => p.areas?.includes(s.area));
+const isI18nPage = (p) => productOf(p) === 'i18n';
+// Same rule as ownerPage() in api-manifest.service.ts: a symbol is owned only by pages of its own package.
+const ownerOf = (s) => {
+  const candidates = DOC_PAGES.filter((p) => isI18nPage(p) === isI18nSymbol(s));
+  return candidates.find((p) => p.symbols?.includes(s.name)) ?? candidates.find((p) => p.areas?.includes(s.area));
+};
 
 const seenIds = new Set();
 for (const p of DOC_PAGES) {
@@ -57,21 +68,24 @@ for (const p of DOC_PAGES) {
   for (const field of ['title', 'summary']) {
     if (!p[field]?.en?.trim() || !p[field]?.es?.trim()) err(`catalog: page "${p.id}" is missing ${field} in en or es`);
   }
+  const own = isI18nPage(p)
+    ? { names: i18nByName, list: i18nSymbols, pkg: '@hakistack/i18n' }
+    : { names: byName, list: symbols, pkg: '@hakistack/ng-daisyui' };
   for (const name of p.symbols ?? []) {
-    if (!byName.has(name)) err(`catalog: page "${p.id}" lists symbol "${name}", which is not exported anymore`);
+    if (!own.names.has(name)) err(`catalog: page "${p.id}" lists symbol "${name}", which ${own.pkg} does not export anymore`);
   }
   for (const area of p.areas ?? []) {
-    if (!symbols.some((s) => s.area === area)) err(`catalog: page "${p.id}" owns area "${area}", which has no public symbols`);
+    if (!own.list.some((s) => s.area === area)) err(`catalog: page "${p.id}" owns area "${area}", which has no public ${own.pkg} symbols`);
   }
 }
 
-const unowned = symbols.filter((s) => !ownerOf(s));
+const unowned = allSymbols.filter((s) => !ownerOf(s));
 for (const s of unowned)
   err(
-    `api: public symbol "${s.name}" (${s.kind}, area "${s.area}") is not owned by any docs page — add its area or name to a page in catalog/pages.ts`,
+    `api: public symbol "${s.name}"${isI18nSymbol(s) ? ' of @hakistack/i18n' : ''} (${s.kind}, area "${s.area}") is not owned by any docs page — add its area or name to a page in catalog/pages.ts`,
   );
 
-for (const s of symbols) {
+for (const s of allSymbols) {
   if (s.area === 'external') continue;
   if (['component', 'directive', 'service', 'function', 'provider'].includes(s.kind) && !s.description) {
     warn(`jsdoc: ${s.kind} "${s.name}" has no description (${s.source?.path}:${s.source?.line})`);
@@ -90,7 +104,7 @@ const routeExists = (url) => {
   });
 };
 
-const validTargets = new Set(['/api']);
+const validTargets = new Set(['/api', '/api/i18n']);
 for (const p of DOC_PAGES) {
   if (!routeExists(p.route)) err(`routes: page "${p.id}" route ${p.route} has no router route`);
   validTargets.add(p.route);
@@ -101,6 +115,7 @@ for (const p of DOC_PAGES) {
   }
 }
 for (const s of symbols) validTargets.add(`/api/${s.name}`);
+for (const s of i18nSymbols) validTargets.add(`/api/i18n/${s.name}`);
 const linkOk = (href) => validTargets.has(href.split(/[?#]/)[0].replace(/\/+$/, '') || '/');
 
 // ── 4. Content ──────────────────────────────────────────────────────────
@@ -370,7 +385,7 @@ function coverageReport() {
   const pages = DOC_PAGES.filter((p) => p.section === 'components' || p.examples?.length);
   const rows = pages.map((p) => {
     const c = content.get(p.id);
-    const owned = symbols.filter((s) => ownerOf(s) === p);
+    const owned = allSymbols.filter((s) => ownerOf(s) === p);
     const beginner = !!c?.overview?.length && !!c?.whenToUse?.length;
     const technical = !!c?.technical?.length;
     const demo = !!p.examples?.length;
@@ -380,7 +395,7 @@ function coverageReport() {
     return `| ${p.title.en} | ${yes(beginner)} | ${yes(technical)} | ${yes(demo)} ${demo ? `(${p.examples.length})` : ''} | ${owned.length ? `✅ (${owned.length})` : '—'} | ${yes(a11y)} | ${yes(playground)} | ${p.status} | ${done ? 'Complete' : 'Partial'} |`;
   });
   const articles = DOC_PAGES.filter((p) => p.hasContent && p.section !== 'components');
-  const owned = symbols.length - unowned.length;
+  const owned = allSymbols.length - unowned.length;
   return `# Documentation coverage report
 
 > Generated by \`npm run docs:report\` (scripts/check-docs-coverage.mjs). Do not edit by hand.
@@ -390,8 +405,8 @@ function coverageReport() {
 
 | Metric | Value |
 |---|---|
-| Public symbols (public-api.ts) | ${symbols.length} |
-| Symbols owned by a docs page | ${owned} (${Math.round((owned / symbols.length) * 100)}%) |
+| Public symbols (public-api.ts) | ${allSymbols.length} (@hakistack/ng-daisyui ${symbols.length}, @hakistack/i18n ${i18nSymbols.length}) |
+| Symbols owned by a docs page | ${owned} (${Math.round((owned / allSymbols.length) * 100)}%) |
 | Docs pages | ${DOC_PAGES.length} |
 | Pages with written content | ${content.size} |
 | Interactive playgrounds | ${Object.keys(PLAYGROUND_SPECS).length} |
@@ -425,7 +440,7 @@ ${warnings.map((w) => `- ${w}`).join('\n')}
 function inventoryReport() {
   const pages = DOC_PAGES.filter((p) => p.areas?.length || p.symbols?.length);
   const rows = pages.map((p) => {
-    const owned = symbols.filter((s) => ownerOf(s) === p);
+    const owned = allSymbols.filter((s) => ownerOf(s) === p);
     const kinds = {};
     for (const s of owned) kinds[s.kind] = (kinds[s.kind] ?? 0) + 1;
     const api = Object.entries(kinds)
@@ -439,7 +454,7 @@ function inventoryReport() {
 > Generated by \`npm run docs:report\`. The matrix is derived from the code (public-api.ts via the TypeScript compiler), the docs catalog and the router — not written by hand.
 > Discovery notes (what existed before the docs platform, what was reorganized and why) are in [findings.md](./findings.md).
 
-Every public symbol is assigned to exactly one docs page (by source area, or explicitly). ${unowned.length === 0 ? 'All ' + symbols.length + ' exported symbols are covered.' : unowned.length + ' symbols are not covered — see documentation-coverage.md.'}
+Every public symbol is assigned to exactly one docs page (by source area, or explicitly). ${unowned.length === 0 ? 'All ' + allSymbols.length + ' exported symbols are covered.' : unowned.length + ' symbols are not covered — see documentation-coverage.md.'}
 
 | Feature | Public API | Demo | Docs | Examples | Tests | Status |
 |---|---|---|---|---|---|---|
@@ -449,7 +464,7 @@ ${rows.join('\n')}
 
 | Kind | Count |
 |---|---|
-${Object.entries(symbols.reduce((a, s) => ((a[s.kind] = (a[s.kind] ?? 0) + 1), a), {}))
+${Object.entries(allSymbols.reduce((a, s) => ((a[s.kind] = (a[s.kind] ?? 0) + 1), a), {}))
   .sort((a, b) => b[1] - a[1])
   .map(([k, n]) => `| ${k} | ${n} |`)
   .join('\n')}
@@ -459,7 +474,7 @@ ${Object.entries(symbols.reduce((a, s) => ((a[s.kind] = (a[s.kind] ?? 0) + 1), a
 // ── result ──────────────────────────────────────────────────────────────
 for (const w of warnings.slice(0, process.env.CI ? 0 : 0)) console.warn(`⚠ ${w}`);
 console.log(
-  `docs:check — ${demoSnippets.checked} demo snippets, ${demoStrings.length} demo strings, ${symbols.length} public symbols, ${DOC_PAGES.length} pages, ${content.size} content modules, ${Object.keys(PLAYGROUND_SPECS).length} playgrounds`,
+  `docs:check — ${demoSnippets.checked} demo snippets, ${demoStrings.length} demo strings, ${symbols.length} + ${i18nSymbols.length} public symbols (ng-daisyui + i18n), ${DOC_PAGES.length} pages, ${content.size} content modules, ${Object.keys(PLAYGROUND_SPECS).length} playgrounds`,
 );
 console.log(`  ${warnings.length} warnings (public API without JSDoc; see docs/audit/documentation-coverage.md)`);
 if (errors.length) {

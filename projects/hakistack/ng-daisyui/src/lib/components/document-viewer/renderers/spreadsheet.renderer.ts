@@ -46,7 +46,7 @@ type SpreadsheetRow = Record<string, unknown>;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">Parsing spreadsheet…</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Parsing spreadsheet…</div>
     } @else if (error(); as e) {
       <div class="alert alert-error">{{ e }}</div>
     } @else if (workbook(); as wb) {
@@ -71,7 +71,7 @@ type SpreadsheetRow = Record<string, unknown>;
         @if (tableConfig(); as cfg) {
           <hk-table [config]="cfg" [data]="tableData()" />
         } @else {
-          <div class="text-base-content/50 py-8 text-center text-sm">Sheet is empty.</div>
+          <div class="text-base-content/70 py-8 text-center text-sm">Sheet is empty.</div>
         }
       </div>
     }

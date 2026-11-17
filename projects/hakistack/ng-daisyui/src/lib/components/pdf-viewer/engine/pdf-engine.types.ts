@@ -118,8 +118,6 @@ export interface PdfEngine {
    * only: the document and its saved bytes are unchanged.
    */
   setHiddenAnnotations(doc: PdfDocHandle, entries: readonly number[]): Promise<void>;
-  /** A full PDFium save of the document (the viewer saves through hk-pdf-writer; this is for whole-file rewrites). */
-  save(doc: PdfDocHandle): Promise<Uint8Array>;
   /** Release the document + free its WASM memory. */
   dispose(doc: PdfDocHandle): void;
   /** Tear down the worker + engine. */
@@ -163,7 +161,6 @@ export type PdfWorkerRequest = (
   | { type: 'pageLinks'; id: number; doc: PdfDocHandle; page: number }
   | { type: 'attachments'; id: number; doc: PdfDocHandle }
   | { type: 'setHiddenAnnotations'; id: number; doc: PdfDocHandle; entries: number[] }
-  | { type: 'save'; id: number; doc: PdfDocHandle }
   | { type: 'cancel'; id: number }
   | { type: 'dispose'; doc: PdfDocHandle }
 ) & { readonly priority?: PdfTaskPriority };

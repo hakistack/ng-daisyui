@@ -7,6 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 const MAIN_ROUTES = [
+  '/overview',
   '/getting-started',
   '/installation',
   '/foundations/theming',
@@ -19,6 +20,10 @@ const MAIN_ROUTES = [
   '/architecture/library',
   '/api',
   '/api/createDataGrid',
+  '/i18n',
+  '/i18n/runtime',
+  '/api/i18n',
+  '/api/i18n/LanguageService',
   '/contributing',
 ];
 

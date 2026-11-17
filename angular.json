@@ -165,107 +165,12 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-            "prebundle": {
-              "exclude": ["pdfjs-dist"]
-            }
-          },
           "configurations": {
             "production": {
               "buildTarget": "demo:build:production"
             },
             "development": {
               "buildTarget": "demo:build:development"
-            }
-          },
-          "defaultConfiguration": "development"
-        }
-      }
-    },
-    "demo-v4": {
-      "projectType": "application",
-      "schematics": {
-        "@schematics/angular:class": {
-          "skipTests": true
-        },
-        "@schematics/angular:component": {
-          "skipTests": true
-        },
-        "@schematics/angular:directive": {
-          "skipTests": true
-        },
-        "@schematics/angular:guard": {
-          "skipTests": true
-        },
-        "@schematics/angular:interceptor": {
-          "skipTests": true
-        },
-        "@schematics/angular:pipe": {
-          "skipTests": true
-        },
-        "@schematics/angular:resolver": {
-          "skipTests": true
-        },
-        "@schematics/angular:service": {
-          "skipTests": true
-        }
-      },
-      "root": "projects/demo-v4",
-      "sourceRoot": "projects/demo-v4/src",
-      "prefix": "app",
-      "architect": {
-        "build": {
-          "builder": "@angular/build:application",
-          "options": {
-            "browser": "projects/demo-v4/src/main.ts",
-            "tsConfig": "projects/demo-v4/tsconfig.app.json",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "projects/demo-v4/public"
-              }
-            ],
-            "styles": [
-              "projects/demo-v4/src/styles.css"
-            ]
-          },
-          "configurations": {
-            "production": {
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "3.5MB",
-                  "maximumError": "4MB"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "300kB",
-                  "maximumError": "500kB"
-                }
-              ],
-              "outputHashing": "all"
-            },
-            "development": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true
-            }
-          },
-          "defaultConfiguration": "production"
-        },
-        "serve": {
-          "builder": "@angular/build:dev-server",
-          "options": {
-            "prebundle": {
-              "exclude": ["pdfjs-dist"]
-            }
-          },
-          "configurations": {
-            "production": {
-              "buildTarget": "demo-v4:build:production"
-            },
-            "development": {
-              "buildTarget": "demo-v4:build:development"
             }
           },
           "defaultConfiguration": "development"

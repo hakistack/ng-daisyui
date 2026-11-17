@@ -13,7 +13,7 @@
 # Output:  hakistack-engine/external/libheif-wasm/build/libheif_wasm.{js,wasm}
 # Plus a copy lands in:  projects/hakistack/ng-daisyui/src/lib/wasm/libheif/
 #
-# Run from repo root:  npm run libheif:build
+# Run from repo root:  npm run build:libheif
 #
 # See ./README.md for toolchain prerequisites.
 
@@ -213,7 +213,7 @@ export CFLAGS="-I${LIBHEIF_SRC} -I${LIBHEIF_BUILD} -I${LIBDE265_SRC}"
 export CXXFLAGS="$CFLAGS"
 
 # Pin cargo to our isolated target dir so we don't pollute the workspace
-# `target/`. Also lets `libheif:clean` wipe just our build artifacts.
+# `target/`. Also lets `clean:libheif` wipe just our build artifacts.
 export CARGO_TARGET_DIR
 
 echo "▶ cargo build --target wasm32-unknown-emscripten ${CARGO_PROFILE_FLAG}"

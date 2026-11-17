@@ -526,7 +526,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
                   </div>
                   <div class="flex flex-col">
                     <span class="font-medium leading-tight">{{ row.name }}</span>
-                    <span class="text-xs text-base-content/50">ID #{{ row.id }}</span>
+                    <span class="text-xs text-base-content/70">ID #{{ row.id }}</span>
                   </div>
                 </div>
               </ng-template>
@@ -579,7 +579,7 @@ type ApiSubTab = 'hk-table' | 'sub-components' | 'builder' | 'filtering' | 'type
               <ng-template hkCellTemplate="joinDate" let-row let-column="column">
                 <div class="flex flex-col" [title]="column.header">
                   <span class="text-sm">{{ row.joinDate | date: 'mediumDate' }}</span>
-                  <span class="text-xs text-base-content/50">{{ yearsSince(row.joinDate) }}y tenure</span>
+                  <span class="text-xs text-base-content/70">{{ yearsSince(row.joinDate) }}y tenure</span>
                 </div>
               </ng-template>
             </hk-table>

@@ -232,8 +232,8 @@ export class SelectQuickStartComponent {
       {
         keys: 'Escape',
         action: {
-          en: 'In the search box: clear the search. Elsewhere: close the list.',
-          es: 'En el cuadro de búsqueda: limpia la búsqueda. En otro lugar: cierra la lista.',
+          en: 'In the search box: clear the search first; with nothing typed, close the list. Elsewhere: close the list. Focus returns to the field.',
+          es: 'En el cuadro de búsqueda: primero limpia la búsqueda; si no hay nada escrito, cierra la lista. En otro lugar: cierra la lista. El foco vuelve al campo.',
         },
       },
     ],
@@ -241,6 +241,10 @@ export class SelectQuickStartComponent {
       {
         en: 'The field is a read-only `<input role="combobox">` with `aria-expanded`, `aria-controls` and `aria-activedescendant` pointing at the highlighted `role="option"`. The list is `role="listbox"` with `aria-multiselectable` in multiple mode.',
         es: 'El campo es un `<input role="combobox">` de solo lectura con `aria-expanded`, `aria-controls` y `aria-activedescendant` apuntando a la `role="option"` resaltada. La lista es `role="listbox"` con `aria-multiselectable` en modo múltiple.',
+      },
+      {
+        en: 'With `enableSearch`, the search input is also a `combobox` (`aria-autocomplete="list"`) whose `aria-activedescendant` follows the highlight, so typing and arrowing happen in one place. Choosing an option or closing with Escape moves focus back to the field.',
+        es: 'Con `enableSearch`, el input de búsqueda también es un `combobox` (`aria-autocomplete="list"`) cuyo `aria-activedescendant` sigue al resaltado, así que se escribe y se navega con flechas en el mismo lugar. Al elegir una opción o cerrar con Escape, el foco vuelve al campo.',
       },
       {
         en: 'The `id` input is placed on the inner field, so a visible `<label for="...">` names it. When `id` is set the field gets no `aria-label`, and the label is the accessible name; without `id`, the `placeholder` becomes the `aria-label`, so write it as a meaningful name ("Favorite fruit", not "Select..."). Bind `id` as a property (`[id]`, as in the quick start): a plain `id="fruit"` attribute would also stay on the `hk-select` host and duplicate the id.',

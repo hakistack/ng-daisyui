@@ -37,13 +37,13 @@ type CsvRow = Record<string, string>;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">Loading…</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Loading…</div>
     } @else if (error(); as e) {
       <div class="alert alert-error">{{ e }}</div>
     } @else if (tableConfig(); as cfg) {
       <hk-table [config]="cfg" [data]="rows()" (cellEdit)="onCellEdit($event)" />
     } @else {
-      <div class="text-base-content/50 py-8 text-center text-sm">Empty CSV — nothing to edit.</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Empty CSV — nothing to edit.</div>
     }
   `,
   host: { class: 'block w-full' },

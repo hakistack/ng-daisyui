@@ -68,8 +68,8 @@ const content: ArticleContent = {
             [
               { en: '`wasm/`', es: '`wasm/`' },
               {
-                en: 'Generated wasm-bindgen glue and base64-inlined binaries, produced by `npm run engine:build`. Never edited by hand.',
-                es: 'Glue de wasm-bindgen y binarios en base64 generados por `npm run engine:build`. Nunca se edita a mano.',
+                en: 'Generated wasm-bindgen glue and base64-inlined binaries, produced by `npm run build:engine`. Never edited by hand.',
+                es: 'Glue de wasm-bindgen y binarios en base64 generados por `npm run build:engine`. Nunca se edita a mano.',
               },
             ],
           ],
@@ -199,8 +199,8 @@ const content: ArticleContent = {
           kind: 'note',
           tone: 'info',
           text: {
-            en: 'Rust/WASM is built separately with `npm run engine:build` (see [Rust/WASM architecture](/architecture/wasm)). Under `src/lib/wasm/`, only the shared engine’s `engine_wasm_glue.ts` and `engine_wasm_inline.ts` are committed; the other generated outputs there are git-ignored.',
-            es: 'Rust/WASM se construye aparte con `npm run engine:build` (mira [Arquitectura Rust/WASM](/architecture/wasm)). Dentro de `src/lib/wasm/` solo se versionan `engine_wasm_glue.ts` y `engine_wasm_inline.ts` del motor compartido; las demás salidas generadas ahí las ignora git.',
+            en: 'Rust/WASM is built separately with `npm run build:engine` (see [Rust/WASM architecture](/architecture/wasm)). Under `src/lib/wasm/`, only the shared engine’s `engine_wasm_glue.ts` and `engine_wasm_inline.ts` are committed; the other generated outputs there are git-ignored.',
+            es: 'Rust/WASM se construye aparte con `npm run build:engine` (mira [Arquitectura Rust/WASM](/architecture/wasm)). Dentro de `src/lib/wasm/` solo se versionan `engine_wasm_glue.ts` y `engine_wasm_inline.ts` del motor compartido; las demás salidas generadas ahí las ignora git.',
           },
         },
       ],

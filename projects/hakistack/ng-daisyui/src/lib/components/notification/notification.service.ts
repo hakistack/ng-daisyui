@@ -1,4 +1,5 @@
-import { Injectable, Signal, computed, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, Signal, computed, inject, signal } from '@angular/core';
+import { prefersReducedMotion } from '../../directives/motion.utils';
 import { generateUniqueId } from '../../utils/generate-uuid';
 import { DEFAULT_NOTIFICATION_CONFIG, NOTIFICATION_CONFIG } from './notification.config';
 import {
@@ -75,6 +76,7 @@ export class NotificationService {
 
   /** Pending removals — id → timeout. Used to no-op duplicate dismiss() calls. */
   private readonly pendingRemoval = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly platformId = inject(PLATFORM_ID);
 
   // ── Public API ──────────────────────────────────────────────────────────
 
@@ -215,11 +217,14 @@ export class NotificationService {
    */
   private scheduleRemoval(id: string, reason: NotificationDismissReason): void {
     if (this.pendingRemoval.has(id)) return;
-    const timeoutId = setTimeout(() => {
-      this.pendingRemoval.delete(id);
-      this.stack.update((current) => current.filter((n) => n.id !== id));
-      this.fireDismissCallbacks(id, reason);
-    }, NotificationService.EXIT_ANIMATION_MS);
+    const timeoutId = setTimeout(
+      () => {
+        this.pendingRemoval.delete(id);
+        this.stack.update((current) => current.filter((n) => n.id !== id));
+        this.fireDismissCallbacks(id, reason);
+      },
+      prefersReducedMotion(this.platformId) ? 0 : NotificationService.EXIT_ANIMATION_MS,
+    );
     this.pendingRemoval.set(id, timeoutId);
   }
 

@@ -20,6 +20,7 @@
         (keydown.escape)="onInputEscape()"
         (keydown.arrowDown)="$event.preventDefault(); openPicker()"
         autocomplete="off"
+        role="combobox"
         aria-haspopup="dialog"
         [attr.aria-expanded]="isOpen()"
         [attr.aria-controls]="isOpen() ? inputId() + '-dialog' : null"
@@ -73,7 +74,7 @@
 
   <!-- Input Hint (live parse preview) -->
   @if (inputHint()) {
-    <div class="text-base-content/60 mt-1 flex items-center gap-1 text-xs" aria-live="polite">
+    <div class="text-base-content/70 mt-1 flex items-center gap-1 text-xs" aria-live="polite">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
       </svg>
@@ -83,7 +84,7 @@
 
   <!-- Validation Error Message -->
   @if (isTouched() && validationErrors()) {
-    <div class="text-error mt-1 text-xs" [id]="inputId() + '-error'" role="alert" aria-live="polite">
+    <div class="text-error mt-1 text-xs" [id]="inputId() + '-error'" role="alert">
       @if (validationErrors()!['required']) {
         <span>{{ requiredError() }}</span>
       }
@@ -470,7 +471,7 @@
           </div>
 
           <!-- Hint -->
-          <p class="text-base-content/50 mt-1 text-center text-[11px]">Type, scroll, or use ↑ ↓ keys</p>
+          <p class="text-base-content/70 mt-1 text-center text-[11px]">Type, scroll, or use ↑ ↓ keys</p>
         }
       </div>
 

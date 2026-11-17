@@ -64,9 +64,9 @@ Severity: **Critical** = consumers break or data is at risk · **High** = wrong 
 
 | # | Sev | Finding | Evidence | Status |
 |---|---|---|---|---|
-| X1 | High | `hk-table` template renders three parallel layouts (virtual / grouped / CDK) with ~550-600 duplicated lines that have drifted: `hkCell` templates ignored in virtual & grouped mode, `aria-sort` and filters only in CDK mode | `table.component.html:228-565, 566-942, 943-1565` | Open (extract shared `ng-template`s) |
+| X1 | High | `hk-table` template renders three parallel layouts (virtual / grouped / CDK) with ~550-600 duplicated lines that have drifted: `hkCell` templates ignored in virtual & grouped mode, `aria-sort` and filters only in CDK mode | `table.component.html:228-565, 566-942, 943-1565` | **Fixed in 0.4.0** — shared `ng-template`s; each layout keeps only its `<table>`/`<tr>` skeleton |
 | X2 | Medium | grid-core is effectively hk-table-only: hk-datagrid uses `compareValues`/`matchesFilter` but none of the 9 controllers; sort-cycle, last-page and "never hide last column" logic exist twice | `datagrid.pipeline.ts:1`, `sort.controller.ts:85` vs `datagrid.helpers.ts:282` | Open |
-| X3 | Medium | Toast / Notification / Alert each implement their own body-mount, pausable timer and exit delay; only Toast honours reduced motion | `toast.service.ts:318-363`, `alert.service.ts:434-454`, `notification-item.component.ts:149-216` | Open |
+| X3 | Medium | Toast / Notification / Alert each implement their own body-mount, pausable timer and exit delay; only Toast honours reduced motion | `toast.service.ts:318-363`, `alert.service.ts:434-454`, `notification-item.component.ts:149-216` | **Fixed in 0.4.0** — `utils/pausable-timer.ts` (pauses held per reason), `utils/body-host.ts`; all three honour reduced motion |
 | X4 | Medium | Two `SelectOption` types (public generic one vs component's `string`-only one) — the consumer smoke caught `number` values being rejected | `select.types.ts` vs `select.component.ts:23-29` | Open |
 | X5 | Medium | Two diverging tree drop-event types (`api/treenode.ts:138` public vs `tree.types.ts:198` actually emitted) | | Open |
 | X6 | Low | Three id-generation strategies (`uuid`, `Math.random`, module counters) | | Open |
@@ -78,10 +78,10 @@ Severity: **Critical** = consumers break or data is at risk · **High** = wrong 
 | `lib/helpers/` (pagination helper 477 lines, base-list-params) | not in `public-api.ts`, no importers; looks like an unfinished consumer feature | Decision: export or delete (backlog #3) |
 | `lib/utils/list.ts` (`List<T>`, 188 lines) | no importers | **Deleted** |
 | `dialog-wrapper/dialog-wrapper.component.spec.ts.bak` | backup file | **Deleted** |
-| ~18 unused `TableComponent` members (`openFilterPos`, `columnWidthsSignal`, `trackByPage`, `getCellDisplay`, …) and `rowHasChildren` | grid audit §4 | Open |
-| `createWizard` (`dynamic-form.helpers.ts:840`) | not exported, no callers | Open |
-| Rust `save_document` + worker `'save'` path | real save path is the TS writer | Open |
-| pdf.js remnants (`angular.json` `prebundle.exclude: ["pdfjs-dist"]`, demo copy) | no `pdfjs-dist` dependency | Open |
+| ~18 unused `TableComponent` members (`openFilterPos`, `columnWidthsSignal`, `trackByPage`, `getCellDisplay`, …) and `rowHasChildren` | grid audit §4 | `rowHasChildren` **deleted**; members `@deprecated`, removal in 0.5 |
+| `createWizard` (`dynamic-form.helpers.ts:840`) | not exported, no callers | **Deleted** |
+| Rust `save_document` + worker `'save'` path | real save path is the TS writer | **Deleted** (with the other unused Rust exports: `form_fields`, `set_field_value`, `delete_page`, `insert_blank_page`, `set_page_rotation`); the shipped WASM drops them on the next `npm run build:engine` |
+| pdf.js remnants (`angular.json` `prebundle.exclude: ["pdfjs-dist"]`, demo copy) | no `pdfjs-dist` dependency | **Deleted** |
 
 ### Correctness bugs found during the audit
 

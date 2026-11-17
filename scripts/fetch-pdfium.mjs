@@ -13,11 +13,11 @@
  * a wrong (e.g. non-modularize) build again.
  *
  * Placed under engine/pdfium/ — NOT src/lib/wasm/ — because `npm run
- * engine:build` rm -rf's the whole wasm/ tree. See PDFIUM_ENGINE.md §11.
+ * build:engine` rm -rf's the whole wasm/ tree. See PDFIUM_ENGINE.md §11.
  *
- * Usage:  npm run pdfium:fetch            (skips if already present)
- *         npm run pdfium:fetch -- --force (re-download)
- *         PDFIUM_VERSION=7442 npm run pdfium:fetch
+ * Usage:  npm run fetch:pdfium            (skips if already present)
+ *         npm run fetch:pdfium -- --force (re-download)
+ *         PDFIUM_VERSION=7442 npm run fetch:pdfium
  *
  * The release tag is a Chromium/PDFium version. PDFium's C API is additive, so a
  * build >= the `pdfium-render` crate's target works. If runtime init fails with
@@ -78,4 +78,4 @@ cpSync(extractedWasm, wasmOut);
 rmSync(work, { recursive: true, force: true });
 
 console.log(`✓ Vendored pdfium.js (${mb(statSync(jsOut).size)}) + pdfium.wasm (${mb(statSync(wasmOut).size)}) → ${dest.replace(root + '/', '')}`);
-console.log('  Next: `npm run engine:build` then `npm run build` (watch for "✓ Bundled PDFium worker").');
+console.log('  Next: `npm run build:engine` then `npm run build` (watch for "✓ Bundled PDFium worker").');

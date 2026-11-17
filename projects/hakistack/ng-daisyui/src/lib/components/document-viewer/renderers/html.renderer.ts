@@ -37,7 +37,7 @@ import { loadSourceAsBytes } from '../document-viewer.helpers';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">Loading…</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Loading…</div>
     } @else if (error(); as e) {
       <div class="alert alert-error">{{ e }}</div>
     } @else if (rawHtml(); as html) {

@@ -22,10 +22,12 @@ import {
   TemplateRef,
   TrackByFunction,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { isObservable, map, Observable, of } from 'rxjs';
 import { HK_THEME } from '../../theme/theme.config';
+import { generateUniqueId } from '../../utils/generate-uuid';
 
 import { AutoFocusDirective } from '../../directives';
 import { HkCellTemplateDirective } from './table-cell-template.directive';
@@ -182,12 +184,11 @@ interface BulkActionItem<T> {
   readonly config: TableBulkAction<T>;
 }
 
-/** True for elements that consume typed keys themselves (inputs, selects, textareas, contenteditable). */
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  const tag = target.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+/** One slot per utility column that is shown — `@for` renders an empty footer cell for each. */
+function leadCells(shown: readonly boolean[]): number[] {
+  const slots: number[] = [];
+  shown.forEach((on, i) => on && slots.push(i));
+  return slots;
 }
 
 @Component({
@@ -221,8 +222,6 @@ function isEditableTarget(target: EventTarget | null): boolean {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.resizing]': 'isResizingSignal()',
-    '[attr.tabindex]': 'enableKeyboardNavSignal() ? 0 : null',
-    '[style.outline]': "enableKeyboardNavSignal() ? 'none' : null",
     '(document:click)': 'onDocumentClick($event)',
     '(keydown)': 'onTableKeydown($event)',
   },
@@ -522,6 +521,13 @@ export class TableComponent<T extends object> implements OnDestroy {
   /** Total column count including utility columns (selection, actions, etc.) */
   readonly totalColumnsCountSignal = computed(() => this.displayedColumnsSignal().length);
 
+  /** Empty footer cells before the data columns in the virtual layout (selection, start actions). */
+  readonly virtualLeadCellsSignal = computed<readonly number[]>(() => leadCells([this.hasSelectionSignal(), this.hasStartActionsSignal()]));
+  /** Empty footer cells before the data columns in the grouped layout (drag, selection, expand, start actions). */
+  readonly groupedLeadCellsSignal = computed<readonly number[]>(() =>
+    leadCells([this.showDragHandleColumnSignal(), this.hasSelectionSignal(), this.showExpandColumnSignal(), this.hasStartActionsSignal()]),
+  );
+
   // ============================================================================
   // Native Drag State (Row Reordering)
   // ============================================================================
@@ -575,6 +581,13 @@ export class TableComponent<T extends object> implements OnDestroy {
   // ============================================================================
   readonly enableKeyboardNavSignal = computed(() => this.fieldConfig()?.enableKeyboardNavigation ?? false);
   readonly activeCellSignal = signal<[number, number] | null>(null);
+  /**
+   * Per-instance prefix for cell ids and filter popovers, so two tables on a page (or a child grid
+   * inside a row detail) never share ids that `aria-activedescendant` / `popovertarget` resolve against.
+   */
+  readonly instanceId = `hk-table-${generateUniqueId()}`;
+  /** The CDK-layout `<table>`: the focusable ARIA grid when keyboard navigation is on. (`read`: the ref is a CdkTable.) */
+  private readonly gridTable = viewChild('gridTable', { read: ElementRef<HTMLTableElement> });
 
   /** Number of special columns prepended before data columns (drag handle, select, expand, [actions_start?]). */
   readonly specialColumnOffsetSignal = computed(() => {
@@ -769,6 +782,8 @@ export class TableComponent<T extends object> implements OnDestroy {
       collapseRowAriaLabel: overrides.collapseRowAriaLabel ?? 'Collapse row',
       expandDetailsAriaLabel: overrides.expandDetailsAriaLabel ?? 'Expand details',
       collapseDetailsAriaLabel: overrides.collapseDetailsAriaLabel ?? 'Collapse details',
+      confirmEditAriaLabel: overrides.confirmEditAriaLabel ?? 'Save',
+      cancelEditAriaLabel: overrides.cancelEditAriaLabel ?? 'Cancel edit',
     };
   });
   readonly filterLabels = computed(() => this.fieldConfig()?.filterLabels ?? {});
@@ -1993,7 +2008,7 @@ export class TableComponent<T extends object> implements OnDestroy {
   }
 
   getCellId(rowIndex: number, colIndex: number): string {
-    return `cell-${rowIndex}-${colIndex}`;
+    return `${this.instanceId}-cell-${rowIndex}-${colIndex}`;
   }
 
   getActiveCellId(): string | null {
@@ -2004,10 +2019,11 @@ export class TableComponent<T extends object> implements OnDestroy {
 
   onTableKeydown(event: KeyboardEvent): void {
     if (!this.enableKeyboardNavSignal()) return;
-    // The host listener sees keys typed into the global search, filter inputs and the inline
-    // editor too. Without this guard Space in the search box toggled a row (preventDefault) and
-    // Enter in the editor confirmed the edit and then restarted it.
-    if (isEditableTarget(event.target)) return;
+    // Only the grid itself navigates. The host listener also sees keys typed into the global search,
+    // filters, the inline editor and buttons inside cells; acting on those made Space in the search box
+    // toggle a row and Enter in the editor confirm the edit and then restart it.
+    const grid = this.gridTable()?.nativeElement;
+    if (!grid || event.target !== grid) return;
 
     const cell = this.activeCellSignal();
     if (!cell && !['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
@@ -2081,8 +2097,7 @@ export class TableComponent<T extends object> implements OnDestroy {
     this.activeCellSignal.set([row, col]);
     // Scroll active cell into view
     requestAnimationFrame(() => {
-      const id = this.getCellId(row, col);
-      const el = this.elementRef.nativeElement.querySelector(`#${id}`);
+      const el = grid.querySelector(`#${this.getCellId(row, col)}`);
       el?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
   }
@@ -2093,11 +2108,11 @@ export class TableComponent<T extends object> implements OnDestroy {
     return cell[0] === rowIndex && cell[1] === colIndex;
   }
 
-  /** Focus the host and set active cell when a cell is clicked (keyboard nav). */
+  /** Make the clicked cell active and focus the grid, so arrow keys continue from it (keyboard nav). */
   onCellClick(rowIndex: number, colIndex: number): void {
     if (!this.enableKeyboardNavSignal()) return;
     this.activeCellSignal.set([rowIndex, colIndex]);
-    this.elementRef.nativeElement.focus();
+    this.gridTable()?.nativeElement.focus({ preventScroll: true });
   }
 
   // ============================================================================

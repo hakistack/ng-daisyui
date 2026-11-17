@@ -21,8 +21,8 @@
  * same round-trip over each of them (and `pdfinfo`, when Poppler is installed).
  *
  * Requires the built inputs (skips with a notice when missing):
- *   - `npm run pdfium:fetch` → engine/pdfium/pdfium.{js,wasm}
- *   - `npm run engine:build` → src/lib/wasm/pdf/pdf_engine{.js,_bg.wasm}
+ *   - `npm run fetch:pdfium` → engine/pdfium/pdfium.{js,wasm}
+ *   - `npm run build:engine` → src/lib/wasm/pdf/pdf_engine{.js,_bg.wasm}
  */
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
@@ -42,7 +42,7 @@ const inputs = {
 };
 const missing = Object.values(inputs).filter((p) => !existsSync(p));
 if (missing.length) {
-  console.log('⏭  test-pdf-engine: skipped — missing inputs (run `npm run pdfium:fetch` and `npm run engine:build`):');
+  console.log('⏭  test-pdf-engine: skipped — missing inputs (run `npm run fetch:pdfium` and `npm run build:engine`):');
   for (const m of missing) console.log(`     ${m.replace(root + '/', '')}`);
   process.exit(0);
 }

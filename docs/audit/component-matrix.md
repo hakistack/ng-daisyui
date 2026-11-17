@@ -7,28 +7,28 @@ Status: **Keep** (sound, incremental fixes only) · **Refactor** (internal restr
 
 | Component | Purpose | Spec | Demo | a11y (see report) | Main debt | Status |
 |---|---|---|---|---|---|---|
-| `hk-input` | text/currency/phone/percentage/password with CVA | ✓ | ✓ | label via `ariaLabel` only | phone metadata always bundled (D3) | Keep |
-| `hk-select` | single/multi select, search, virtual scroll, CDK overlay | ✓ | ✓ | ids + disabled **fixed**; search focus pattern open | WASM fuzzy engine loaded on mount (D2); two `SelectOption` types | Refactor (small) |
-| `hk-datepicker` / `hk-timepicker` | date/range/time pickers | ✓ | ✓ | grid pattern good; timepicker focus restore open | `formControlName` input shadows forms directive | Keep |
-| `hk-dynamic-form` | builder + declarative forms, wizard, conditions, auto-save | ✓ | ✓ | error association missing | closed `FieldType` union (no custom field registry), no arrays/nested groups, no async validators; hidden-required decision pending | Extend |
-| `hk-table` | feature-rich CRUD table (grouping, tree rows, editing, footers, export) | ✓ (157) | ✓ | several (see report) | three parallel layouts in one template (X1); dead members | Refactor |
+| `hk-input` | text/currency/phone/percentage/password with CVA | ✓ | ✓ | label via `ariaLabel` only | — (phone metadata lazy since 0.4.0) | Keep |
+| `hk-select` | single/multi select, search, virtual scroll, CDK overlay | ✓ | ✓ | ids, disabled, search combobox, focus return **fixed** | two `SelectOption` types (WASM engine now only ≥ 200 options after first search) | Refactor (small) |
+| `hk-datepicker` / `hk-timepicker` | date/range/time pickers | ✓ | ✓ | grid pattern good; timepicker focus restore **fixed** | `formControlName` input shadows forms directive | Keep |
+| `hk-dynamic-form` | builder + declarative forms, wizard, conditions, auto-save | ✓ | ✓ | error association **fixed** | closed `FieldType` union (no custom field registry), no arrays/nested groups, no async validators | Extend |
+| `hk-table` | feature-rich CRUD table (grouping, tree rows, editing, footers, export) | ✓ (190) | ✓ | grid focus model **fixed** | deprecated members until 0.5; virtual layout has no keyboard grid or column widths for unsized columns | Keep |
 | `hk-datagrid` | enterprise grid: virtualization, multi-sort, serializable state, server source, AI | ✓ (7 files) | ✓ | good (APG grid) | uses grid-core only for predicates | Keep — new grid features go here |
-| `hk-tree` | tree with selection, drag/drop, WASM engine | ✓ | ✓ | treeitem attributes missing | duplicate drop-event types (X5) | Refactor (a11y) |
-| `hk-toast` + `ToastService` | transient messages | ✓ | ✓ | live-region pattern | shares nothing with Notification (X3) | Consolidate internals |
-| `hk-notification-host` + service | rich notifications with refs/actions | ✗ | ✓ | triple announcement | | Consolidate internals |
-| `AlertService` | SweetAlert-style blocking confirm/prompt | ✓ (new) | ✓ | | own modal instead of CDK Dialog; HTML bypasses sanitizer (decision) | Consolidate internals |
+| `hk-tree` | tree with selection, drag/drop, WASM engine | ✓ | ✓ | treeitem attributes **fixed** | duplicate drop-event types (X5) | Keep |
+| `hk-toast` + `ToastService` | transient messages | ✓ | ✓ | LiveAnnouncer + focus pause **fixed** | shares nothing with Notification (X3) | Consolidate internals |
+| `hk-notification-host` + service | rich notifications with refs/actions | ✓ | ✓ | single polite region **fixed** | | Consolidate internals |
+| `AlertService` | SweetAlert-style blocking confirm/prompt | ✓ | ✓ | empty `aria-describedby`, hardcoded labels | own modal instead of CDK Dialog (HTML sanitized unless `trustedHtml`) | Consolidate internals |
 | `DialogService` + `hk-dialog-wrapper` | CDK dialog wrapper | ✓ | ✓ | CDK handles | `animate__*` classes without animate.css | Keep |
-| `hk-command-palette` | ⌘K palette | ✗ | ✓ | not a combobox | | Refactor (a11y) |
+| `hk-command-palette` | ⌘K palette | ✓ | ✓ | APG combobox **fixed** | | Keep |
 | `hk-tab-group` / `hk-tab-panel` | tabs on `@angular/aria` | ✓ | ✓ | good | — (`icon` rendered via registry lookup since 0.4.0) | Keep |
 | `hk-stepper` | CDK stepper, non-form | ✓ | ✗ | ids **fixed**; arrow keys open | "Step X of Y" hardcoded | Keep |
-| `hk-menu`, `hk-navbar`, sidebar, app shell | navigation chrome | partial | ✓ | menubar keys | | Keep |
+| `hk-menu`, `hk-navbar`, sidebar, app shell | navigation chrome | partial (menu, app shell) | ✓ | navigation vs menu semantics + APG keys **fixed** | | Keep |
 | `hk-breadcrumbs` | manual + router-driven breadcrumbs | ✓ | ✓ | | | Keep |
 | `hk-virtual-scroller` | list/grid virtualization | ✓ | ✓ | | | Keep |
-| `hk-editor` (+toolbar, slash menu) | Tiptap rich text, lazy | ✗ | ✓ | | Tiptap as hard dependency (D1); leak if destroyed mid-load | Refactor (deps) |
+| `hk-editor` (+toolbar, slash menu) | Tiptap rich text, lazy | ✗ | ✓ | | — (Tiptap optional peer, destroy guard since 0.4.0) | Keep |
 | `hk-pdf-viewer` (+ workspace) | PDFium viewer/editor, forms, signatures | ✓ (25) | ✓ | axe-clean (workspace) | pool workers duplicate 6 MB Blob | Keep |
 | `hk-document-viewer` (+ workspace) | multi-format viewer facade | ✓ (5) | ✓ | | eager renderer registry (D5), MIME detection by hints only | Refactor |
 | `hk-document-editor` shell | editable facade (text/md/csv) | ✓ (4) | ✗ | | | Extend |
-| Directives: motion-*, input-mask, auto-focus | behaviour | 1 | ✓ | reduced-motion honoured | `[appAutoFocus]` breaks `hk` prefix; mask writes slot chars into the control value | Keep / fix mask |
+| Directives: motion-*, input-mask, auto-focus | behaviour | 2 | ✓ | reduced-motion honoured (outputs still fire) | `[appAutoFocus]` breaks `hk` prefix; mask writes slot chars into the control value | Keep / fix mask |
 
 ## 2. daisyUI v5 catalogue vs. this library
 
@@ -68,7 +68,7 @@ adds behaviour — state, forms integration, keyboard/focus, overlay positioning
 | Splitter / resizable panels | inside mesa workspace | | Extract only if a second consumer appears |
 | Color picker | `field.color` uses native input | | Not necessary |
 | Drag and drop | table/tree use CDK DnD | | Use CDK directly |
-| Command palette improvements | exists | a11y pattern | Fix (see report), no new component |
+| Command palette improvements | exists | a11y pattern | Done (APG combobox, 0.4.0) |
 
-No new components were added in this pass: every existing component still has open correctness/a11y items, which take
-priority over catalogue growth.
+No new components were added in this pass: the remaining open correctness/a11y items (table, menu, toast, select
+search focus — see the accessibility report) take priority over catalogue growth.

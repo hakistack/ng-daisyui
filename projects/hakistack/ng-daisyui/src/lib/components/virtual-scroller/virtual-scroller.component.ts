@@ -109,6 +109,11 @@ export class VirtualScrollerComponent<T = any> implements OnInit {
   readonly viewportHeight = input<string>('400px');
   /** Viewport width (CSS value). Default: `'100%'`. */
   readonly viewportWidth = input<string>('100%');
+  /**
+   * Accessible name of the scroll area. The viewport is always keyboard-focusable (so it can be scrolled
+   * without a mouse, WCAG 2.1.1); with a label it is also announced as a named region.
+   */
+  readonly ariaLabel = input<string | undefined>(undefined);
   /** Debounce (ms) before `scrolled` / `lazyLoad` fire. Default: `0`. */
   readonly scrollDelay = input<number>(0);
   /** Minimum off-screen buffer to render ahead, in px. Default: `100`. */

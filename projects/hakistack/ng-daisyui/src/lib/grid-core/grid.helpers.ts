@@ -13,6 +13,7 @@ import type {
   StringKey,
 } from './grid.types';
 import { AGGREGATE_LABELS, AggregateFunction, computeAggregate } from './grid-aggregates';
+import { naturalRowKey } from './grid-rules';
 
 // ============================================================================
 // Export Utilities (CSV & JSON)
@@ -243,28 +244,20 @@ export function resolveGroupAggregates<T>(
 // ============================================================================
 
 /**
- * Generates a unique key for a row based on available properties.
- * Priority: getRowKey function > TreeNode.key > row.id > JSON hash
+ * Generates a string key for a tree row.
+ * Priority: getRowKey function > the shared `naturalRowKey` rule (`id`, then `key`) > index > JSON hash
  */
 export function generateRowKey<T>(row: T, getRowKey?: (row: T) => string, index?: number): string {
-  // 1. Use custom getRowKey function if provided
   if (getRowKey) {
     return getRowKey(row);
   }
 
-  const record = row as Record<string, unknown>;
-
-  // 2. Use TreeNode.key if available
-  if ('key' in record && typeof record['key'] === 'string') {
-    return record['key'];
+  const natural = naturalRowKey(row);
+  if (natural !== undefined) {
+    return String(natural);
   }
 
-  // 3. Use row.id if available
-  if ('id' in record && (typeof record['id'] === 'string' || typeof record['id'] === 'number')) {
-    return String(record['id']);
-  }
-
-  // 4. Fallback to index-based key or JSON hash
+  // Fallback to index-based key or JSON hash
   if (index !== undefined) {
     return `__tree_row_${index}`;
   }

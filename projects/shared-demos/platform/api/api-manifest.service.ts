@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { DOC_PAGES } from '../catalog/pages';
-import type { DocPageMeta } from '../catalog/catalog.types';
-import type { ApiSymbol, ApiSymbolKind } from './api-manifest.types';
+import { DOC_PAGES, productOf } from '../catalog/pages';
+import type { DocPageMeta, DocProduct } from '../catalog/catalog.types';
+import type { ApiPackage, ApiSymbol, ApiSymbolKind } from './api-manifest.types';
 
 export const KIND_ORDER: readonly ApiSymbolKind[] = [
   'component',
@@ -33,16 +33,45 @@ export const KIND_LABELS: Record<ApiSymbolKind, { en: string; es: string }> = {
   enum: { en: 'Enums', es: 'Enums' },
 };
 
-/**
- * Which docs page owns a symbol: explicit `symbols` first, then `areas`.
- * Shared with scripts/check-docs-coverage.mjs through the same catalog data.
- */
-export function ownerPage(symbol: Pick<ApiSymbol, 'name' | 'area'>, pages: readonly DocPageMeta[] = DOC_PAGES): DocPageMeta | undefined {
-  return pages.find((p) => p.symbols?.includes(symbol.name)) ?? pages.find((p) => p.areas?.includes(symbol.area));
+/** Docs products that publish an API (each has its own manifest and `/api` namespace). */
+export type ApiProduct = Exclude<DocProduct, 'hakistack'>;
+
+/** The npm package a symbol is imported from. */
+export function symbolPackage(symbol: Pick<ApiSymbol, 'package'>): ApiPackage {
+  return symbol.package ?? '@hakistack/ng-daisyui';
+}
+
+/** Docs product of a symbol (`ng-daisyui` or `i18n`). Names are unique per product, not across products. */
+export function symbolProduct(symbol: Pick<ApiSymbol, 'package'>): ApiProduct {
+  return symbol.package === '@hakistack/i18n' ? 'i18n' : 'ng-daisyui';
+}
+
+/** Route of a symbol's reference page: `/api/<name>` (ng-daisyui) or `/api/i18n/<name>`. */
+export function apiRoute(symbol: Pick<ApiSymbol, 'name' | 'package'>): string {
+  return `${apiIndexRoute(symbolProduct(symbol))}/${symbol.name}`;
+}
+
+/** Route of a product's API index. */
+export function apiIndexRoute(product: ApiProduct): string {
+  return product === 'i18n' ? '/api/i18n' : '/api';
 }
 
 /**
- * Lazy access to the generated API manifest (~600 symbols). The manifest is a
+ * Which docs page owns a symbol: explicit `symbols` first, then `areas`, searching only the pages of the
+ * symbol's own product (so an i18n symbol never lands on an ng-daisyui page with the same name or area).
+ * Shared with scripts/check-docs-coverage.mjs through the same catalog data.
+ */
+export function ownerPage(
+  symbol: Pick<ApiSymbol, 'name' | 'area' | 'package'>,
+  pages: readonly DocPageMeta[] = DOC_PAGES,
+): DocPageMeta | undefined {
+  const product = symbolProduct(symbol);
+  const candidates = pages.filter((p) => (productOf(p) === 'i18n') === (product === 'i18n'));
+  return candidates.find((p) => p.symbols?.includes(symbol.name)) ?? candidates.find((p) => p.areas?.includes(symbol.area));
+}
+
+/**
+ * Lazy access to the generated API manifests (ng-daisyui ~600 symbols, i18n ~60). Each manifest is a
  * separate chunk, fetched the first time an API view or the search needs it.
  */
 @Injectable({ providedIn: 'root' })
@@ -50,17 +79,27 @@ export class ApiManifestService {
   private readonly symbolsSignal = signal<readonly ApiSymbol[] | null>(null);
   private loading: Promise<readonly ApiSymbol[]> | null = null;
 
+  /** Every symbol of every package (ng-daisyui first). */
   readonly symbols = this.symbolsSignal.asReadonly();
-  readonly byName = computed(() => new Map((this.symbolsSignal() ?? []).map((s) => [s.name, s])));
+  /** ng-daisyui symbols by name (demo API tables and ng-daisyui links). */
+  readonly byName = computed(() => this.index('ng-daisyui'));
+  /** @hakistack/i18n symbols by name. */
+  readonly i18nByName = computed(() => this.index('i18n'));
 
   load(): Promise<readonly ApiSymbol[]> {
     const ready = this.symbolsSignal();
     if (ready) return Promise.resolve(ready);
-    this.loading ??= import('./api-manifest.generated').then((m) => {
-      this.symbolsSignal.set(m.API_SYMBOLS);
-      return m.API_SYMBOLS;
+    this.loading ??= Promise.all([import('./api-manifest.generated'), import('./api-manifest.i18n.generated')]).then(([ui, i18n]) => {
+      const all = [...ui.API_SYMBOLS, ...i18n.I18N_API_SYMBOLS];
+      this.symbolsSignal.set(all);
+      return all;
     });
     return this.loading;
+  }
+
+  /** Names resolve within one product. */
+  find(name: string, product: ApiProduct = 'ng-daisyui'): ApiSymbol | undefined {
+    return (product === 'i18n' ? this.i18nByName() : this.byName()).get(name);
   }
 
   /** Symbols documented by a page, components/services first. */
@@ -69,6 +108,10 @@ export class ApiManifestService {
     return all
       .filter((s) => ownerPage(s) === page)
       .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.name.localeCompare(b.name));
+  }
+
+  private index(product: ApiProduct): Map<string, ApiSymbol> {
+    return new Map((this.symbolsSignal() ?? []).filter((s) => symbolProduct(s) === product).map((s) => [s.name, s]));
   }
 }
 

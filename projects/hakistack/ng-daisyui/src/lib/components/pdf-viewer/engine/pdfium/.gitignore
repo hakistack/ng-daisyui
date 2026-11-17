@@ -1,4 +1,4 @@
-# Vendored PDFium binary — fetched by `npm run pdfium:fetch`, not committed.
+# Vendored PDFium binary — fetched by `npm run fetch:pdfium`, not committed.
 pdfium.js
 pdfium.wasm
 # The committed file here is pdfium_worker_inline.ts (placeholder). A real build

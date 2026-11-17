@@ -27,7 +27,7 @@ import type { EditorSlashCommand } from './editor.types';
   template: `
     @if (groupedItems(); as groups) {
       @if (items().length === 0) {
-        <div class="px-3 py-4 text-xs text-base-content/60 text-center">No matching commands</div>
+        <div class="px-3 py-4 text-xs text-base-content/70 text-center">No matching commands</div>
       }
       <ul class="menu menu-sm w-full p-1 flex-nowrap">
         @for (group of groups; track group.name) {
@@ -52,7 +52,7 @@ import type { EditorSlashCommand } from './editor.types';
                 <span class="flex flex-col items-start min-w-0">
                   <span class="font-medium truncate">{{ item.label }}</span>
                   @if (item.description) {
-                    <span class="text-xs text-base-content/60 truncate">{{ item.description }}</span>
+                    <span class="text-xs text-base-content/70 truncate">{{ item.description }}</span>
                   }
                 </span>
               </button>

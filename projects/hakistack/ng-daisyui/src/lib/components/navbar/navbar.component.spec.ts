@@ -66,7 +66,9 @@ describe('NavbarComponent', () => {
     fixture.detectChanges();
     const menuEl = host.querySelector('.navbar-center ul.menu');
     expect(menuEl?.classList.contains('menu-horizontal')).toBe(true);
-    expect(host.querySelectorAll('.navbar-center a[role="menuitem"]').length).toBe(2);
+    // Links-only menu inside the <nav>: navigation semantics (plain links), not an ARIA menubar.
+    expect(host.querySelectorAll('.navbar-center a').length).toBe(2);
+    expect(host.querySelector('.navbar-center [role="menuitem"], .navbar-center [role="menubar"]')).toBeNull();
   });
 });
 
@@ -90,7 +92,8 @@ describe('SidebarComponent', () => {
     const aside = host.querySelector('aside.hk-sidebar');
     expect(aside).toBeTruthy();
     expect(aside?.getAttribute('aria-label')).toBe('Sidebar');
-    expect(host.querySelectorAll('a[role="menuitem"]').length).toBe(2);
+    expect(host.querySelectorAll('nav a').length).toBe(2);
+    expect(host.querySelector('[role="menuitem"]')).toBeNull();
   });
 
   it('shows the collapse toggle only when collapsible and toggles the model', () => {
@@ -148,7 +151,9 @@ describe('AppShellComponent', () => {
     expect(host.querySelector('input.drawer-toggle')).toBeTruthy();
     expect(host.querySelector('.drawer-content')).toBeTruthy();
     expect(host.querySelector('.drawer-side')).toBeTruthy();
-    expect(host.querySelector('label.drawer-overlay[aria-label="Close sidebar"]')).toBeTruthy();
+    // Pointer-only affordance: hidden from assistive tech (a <label> cannot carry aria-label; axe aria-prohibited-attr).
+    expect(host.querySelector('label.drawer-overlay[aria-hidden="true"]')).toBeTruthy();
+    expect(host.querySelector('label.drawer-overlay[aria-label]')).toBeNull();
     expect(host.querySelector('hk-navbar')).toBeTruthy();
     expect(host.querySelector('hk-sidebar')).toBeTruthy();
   });

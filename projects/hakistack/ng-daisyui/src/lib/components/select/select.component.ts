@@ -22,14 +22,10 @@ import { ConnectedPosition, Overlay, OverlayModule } from '@angular/cdk/overlay'
 import { createFuseCache, FuseCache } from '../../utils/fuse-cache';
 import { FuzzyEngineService, FuzzyHandle } from '../../services';
 import { HK_THEME } from '../../theme/theme.config';
+import type { SelectOption as BaseSelectOption } from './select.types';
 
-export interface SelectOption {
-  readonly value: string;
-  readonly label: string;
-  readonly id?: string;
-  readonly disabled?: boolean;
-  readonly group?: string;
-}
+/** The option shape `hk-select` works with: string values. */
+export type SelectOption = BaseSelectOption<string>;
 
 export interface SelectOptionGroup {
   readonly label: string;
@@ -95,12 +91,14 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
 
   private readonly dropdownRoot = viewChild.required<ElementRef<HTMLElement>>('dropdownRoot');
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
   private readonly viewport = viewChild<CdkVirtualScrollViewport>('viewport');
 
   readonly menuActiveClass = this.theme.classes.menuActive;
 
   // Bound event handler for proper cleanup (global keyboard navigation).
   private boundDocumentKeydown = this.onDocumentKeydown.bind(this);
+  private destroyed = false;
   private documentListenersAttached = false;
 
   // Signal inputs
@@ -318,7 +316,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     ArrowUp: (_, currentIndex) => this.handleArrowUp(currentIndex),
     Enter: (filteredList, currentIndex) => this.handleEnterKey(filteredList, currentIndex),
     ' ': (filteredList, currentIndex) => this.handleSpaceKey(filteredList, currentIndex),
-    Escape: () => this.closeDropdown(),
+    Escape: () => this.closeDropdown({ restoreFocus: true }),
     Home: (filteredList) => this.highlightFirst(filteredList),
     End: (filteredList) => this.highlightLast(filteredList),
   };
@@ -329,6 +327,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.removeDocumentListeners();
     this.disposeEngineHandle();
   }
@@ -472,7 +471,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
       this.selectedOption.set(option);
       this.selectionChange.emit(option);
       this._onChange(option.value);
-      this.closeDropdown();
+      this.closeDropdown({ restoreFocus: true });
     }
     this._onTouched();
   }
@@ -554,6 +553,11 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
   private emitMultiSelectChange(selections: SelectOption[]): void {
     this.selectionChange.emit(selections.length > 0 ? selections : null);
     this._onChange(selections.map((o) => o.value));
+  }
+
+  /** Escape in the search box clears the term first; with nothing typed it closes the panel (APG combobox). */
+  onSearchEscape(event: Event): void {
+    if (this.hasSearchTerm()) this.clearSearch(event);
   }
 
   clearSearch(event: Event): void {
@@ -695,9 +699,11 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     // Match the overlay panel to the trigger's current width.
     this.triggerWidth.set(this.dropdownRoot().nativeElement.offsetWidth);
 
-    // Delay adding the keydown listener to avoid capturing the current event.
+    // Delay adding the keydown listener to avoid capturing the current event. Re-check on the next
+    // frame: if the panel closed or the component was destroyed meanwhile, a listener added now would
+    // never be removed and would swallow arrow keys / Enter page-wide.
     requestAnimationFrame(() => {
-      this.addDocumentListeners();
+      if (this.dropdownOpen() && !this.destroyed) this.addDocumentListeners();
     });
 
     if (this.enableSearch()) {
@@ -717,13 +723,26 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     });
   }
 
-  /** Close the panel. Public so the overlay's `(detach)` can call it. */
-  closeDropdown(): void {
+  /**
+   * Close the panel. Public so the overlay's `(detach)` can call it.
+   * `restoreFocus` (Escape, picking an option) puts focus back on the trigger when it was inside the
+   * panel — the panel is removed, so focus would otherwise fall to `<body>`. Outside clicks keep the
+   * focus where the user clicked.
+   */
+  closeDropdown(options: { restoreFocus?: boolean } = {}): void {
     if (!this.dropdownOpen()) return;
+    const active = document.activeElement;
+    const focusInPanel = !!active && !!this.panel()?.nativeElement.contains(active);
     this.dropdownOpen.set(false);
     this.dropdownToggle.emit(false);
     this.resetHighlight();
     this.removeDocumentListeners();
+    if (options.restoreFocus && (focusInPanel || active === document.body)) this.focusTrigger();
+  }
+
+  /** The element that opened the panel: the combobox input, or the chip container in chip mode. */
+  private focusTrigger(): void {
+    this.dropdownRoot().nativeElement.querySelector<HTMLElement>('[role="combobox"]')?.focus();
   }
 
   private setInitialHighlight(): void {

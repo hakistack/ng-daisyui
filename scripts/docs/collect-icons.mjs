@@ -9,6 +9,10 @@
  * what can be rendered — no icon name is built by string concatenation; this
  * script fails if one ever is).
  *
+ * The superset is deliberate: a literal that only looks like an icon name
+ * (e.g. `'section'` in `Pick<X, 'section'>`) costs one icon's bytes, while a
+ * missed name would render nothing. Rename such a literal only if the bytes matter.
+ *
  *   node scripts/docs/collect-icons.mjs          # regenerate
  *   node scripts/docs/collect-icons.mjs --check  # CI: fail if stale
  */

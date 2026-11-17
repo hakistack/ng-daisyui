@@ -193,6 +193,16 @@
   position: relative;
 }
 
+/* The grid keeps focus and the active cell carries the visible indicator; before
+   a cell is active, the grid itself shows the focus ring (WCAG 2.4.7). */
+:host table[role='grid'] {
+  outline: none;
+}
+:host table[role='grid']:focus-visible:not([aria-activedescendant]) {
+  outline: 2px solid var(--hk-color-primary);
+  outline-offset: -2px;
+}
+
 /* ============================================================================
    Column Reordering (Native Drag)
    ============================================================================ */

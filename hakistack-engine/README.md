@@ -25,7 +25,7 @@ Four WASM bundles, each lazy-loaded only when its renderer is used:
 The `engine-wasm` / `document-wasm` / `image-wasm` crates carry the
 `wasm-bindgen` annotation; everything else is pure Rust testable with
 `cargo test`. `libheif-bridge` is a `bin` crate targeting
-`wasm32-unknown-emscripten` — it builds via `npm run libheif:build`
+`wasm32-unknown-emscripten` — it builds via `npm run build:libheif`
 (see `external/libheif-wasm/README.md`).
 
 ## Why the split?
@@ -60,7 +60,7 @@ its WASM:
 | `image_wasm`    | 652 KB | 249 KB | TIFF + BMP/GIF/ICO/PNM/QOI in hk-document-viewer (Rust `image` crate) | `utils/image-engine-loader.ts` |
 | `libheif_wasm`  | 828 KB | 282 KB | HEIC/HEIF in hk-document-viewer (libheif + libde265 via Rust shim) | `utils/libheif-loader.ts` |
 
-> Run `npm run engine:build && npm run libheif:build` to reproduce — the
+> Run `npm run build:engine && npm run build:libheif` to reproduce — the
 > CI `libheif` job reports sizes on every run via a `::notice`.
 
 **Counter-intuitive finding:** `wasm-opt -O3` produces *smaller* output

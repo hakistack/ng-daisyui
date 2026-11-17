@@ -1,5 +1,5 @@
 import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
-import { ToastPosition } from './toast.types';
+import { ToastPosition, ToastSeverity } from './toast.types';
 
 /**
  * Global configuration options for the toast service
@@ -23,7 +23,10 @@ export interface ToastGlobalConfig {
   /** Show progress bar countdown indicator */
   progressBar: boolean;
 
-  /** Pause auto-dismiss timer when hovering over toast */
+  /**
+   * Pause the auto-dismiss timer while the pointer is over a toast. Keyboard focus inside a toast
+   * (its action or close button) always pauses it, so keyboard users get the time they need (WCAG 2.2.1).
+   */
   pauseOnHover: boolean;
 
   /** Minimum time (ms) a toast stays after hover/pause ends: it resumes with max(remaining time, this). */
@@ -48,11 +51,26 @@ export interface ToastLabels {
   onlineMessage?: string;
   /** Summary shown by `networkStatus('offline')`. Default: "You are offline!" */
   offlineMessage?: string;
+  /** Accessible name of each toast's close (×) button. Default: "Dismiss notification" */
+  dismissAriaLabel?: string;
+  /**
+   * Severity word read before the message (the colour and icon only show it visually).
+   * Default: `{ success: 'Success', info: 'Info', warning: 'Warning', error: 'Error' }`
+   */
+  severityLabels?: Partial<Record<ToastSeverity, string>>;
 }
 
 /**
  * Default configuration for toast service
  */
+/** English defaults for the severity word announced before each toast. */
+export const DEFAULT_TOAST_SEVERITY_LABELS: Readonly<Record<ToastSeverity, string>> = {
+  success: 'Success',
+  info: 'Info',
+  warning: 'Warning',
+  error: 'Error',
+};
+
 export const DEFAULT_TOAST_CONFIG: ToastGlobalConfig = {
   maxToasts: 5,
   defaultLife: 5000,

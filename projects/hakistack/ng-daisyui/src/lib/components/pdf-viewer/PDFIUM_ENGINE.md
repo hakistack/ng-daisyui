@@ -351,7 +351,7 @@ machine):**
    page renders with **crisp text** (the exact thing pd​f.js failed at off-thread)
    and check `pdfium.wasm` size + time-to-first-page. If good → Phase 1.
 
-**Run it:** `npm run build:wasm` (needs network for the Rust deps the first time)
+**Run it:** `npm run build:engine` (needs network for the Rust deps the first time)
 rebuilds all engines incl. `pdf_engine`; artifacts land in
 `projects/hakistack/ng-daisyui/src/lib/wasm/pdf/`.
 
@@ -410,7 +410,7 @@ and a `worker-src blob:` CSP allowance. Accepted in exchange for zero setup.
 
 **⚠️ Vendoring location.** Put the vendored `pdfium.js`/`pdfium.wasm` under
 `components/pdf-viewer/engine/pdfium/` — **NOT** `src/lib/wasm/`. `npm run
-engine:build` does `rm -rf src/lib/wasm` (the `engine_wasm` bundle uses
+build:engine` does `rm -rf src/lib/wasm` (the `engine_wasm` bundle uses
 `libSubdir: '.'`), so anything placed under `wasm/` is destroyed on the next
 engine build. The `pdf_engine` glue legitimately lives under `wasm/pdf/`
 (it's an engine-build output, regenerated each run); the vendored pdfium binary
@@ -506,6 +506,11 @@ dormant). pd​f.js is no longer needed for any read path once the binary lands.
 appearance fidelity vs pd​f.js; verify outline jumps land on the right page.
 
 ## 9e. Phase 4 — interactive forms + save (2026-06-19)
+
+> **Removed (2026-11):** the Rust form/mutation/save exports below (`form_fields`, `set_field_value`,
+> `delete_page`, `insert_blank_page`, `set_page_rotation`, `save_document`, `with_doc_mut`) and the
+> worker `'save'` message. Nothing called them: forms, page edits and saving go through the TS
+> hk-pdf-writer (incremental update). This section is kept as history.
 
 Beyond parity: fillable AcroForm widgets + a save round-trip. Gated/dormant like
 the rest until the binary's verified; all green (1429 tests, demo builds).
@@ -627,7 +632,7 @@ load-time signal. SSR / no-WASM → `'unsupported'` error state (no fallback).
 ## 11. Vendor + verify checklist (do this before Phase 4)
 
 Everything that can be validated without a browser is green: the Rust crate
-compiles to wasm, `npm run engine:build` emits the `pdf_engine` glue with all
+compiles to wasm, `npm run build:engine` emits the `pdf_engine` glue with all
 Phase 1–3 exports (`open/close/page_count/page_size/render/page_text/outline/
 page_links/document_annotations/attachments` + `initialize_pdfium_render`), the
 worker imports resolve against it, and `initialize_pdfium_render(pdfiumModule,
@@ -637,7 +642,7 @@ vendored** — only the browser runtime check remains.
 
 **Setup (now automated — steps 1–3 already run in this repo):**
 
-1. `npm run pdfium:fetch` — downloads paulocoutinhox/pdfium-lib's `wasm.tgz`
+1. `npm run fetch:pdfium` — downloads paulocoutinhox/pdfium-lib's `wasm.tgz`
    (default tag **7623**; override with `PDFIUM_VERSION=…`), extracts the **ES6
    module** build `pdfium.esm.js` (`-sMODULARIZE -sEXPORT_ES6 -sEXPORT_NAME=
    PDFiumModule`, `ALLOW_MEMORY_GROWTH`) + `pdfium.esm.wasm` into
@@ -645,9 +650,9 @@ vendored** — only the browser runtime check remains.
    default` shape. (pdfium-lib's `node/` dir ships UMD **and** ESM variants — we
    take the ESM one. The non-modularize `external/pdfium/runtimes/wasm/native/`
    files do NOT work.) Vendored under `engine/pdfium/`, NOT `src/lib/wasm/`
-   (§9b: `engine:build` rm -rf's `wasm/`).
+   (§9b: `build:engine` rm -rf's `wasm/`).
 
-2. `npm run engine:build` — regenerates `src/lib/wasm/pdf/` (`pdf_engine` glue +
+2. `npm run build:engine` — regenerates `src/lib/wasm/pdf/` (`pdf_engine` glue +
    `pdf_engine_bg.wasm`). Does NOT touch `engine/pdfium/`.
 
 3. `npm run build` — `build-pdfium-worker.mjs` (runs **before** `ng build`)

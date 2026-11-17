@@ -48,7 +48,7 @@ import {
             <svg [lucideIcon]="icon" [size]="16" class="text-base-content/50"></svg>
           }
           @if (effectivePrefixText(); as text) {
-            <span class="text-base-content/50 text-sm">{{ text }}</span>
+            <span class="text-base-content/70 text-sm">{{ text }}</span>
           }
         </div>
       }
@@ -95,7 +95,7 @@ import {
             <svg [lucideIcon]="icon" [size]="16" class="text-base-content/50"></svg>
           }
           @if (effectiveSuffixText(); as text) {
-            <span class="text-base-content/50 text-sm">{{ text }}</span>
+            <span class="text-base-content/70 text-sm">{{ text }}</span>
           }
         </div>
       }

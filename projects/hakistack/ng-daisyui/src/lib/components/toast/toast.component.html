@@ -1,23 +1,24 @@
 <div [class]="containerClasses()">
   @for (toast of toasts(); track toast.id) {
+    <!-- Announced through the CDK LiveAnnouncer (ToastService), so the item itself is not a live region. -->
     <div
       [class]="getToastClasses(toast)"
-      [attr.role]="toast.sticky ? 'status' : 'alert'"
-      [attr.aria-live]="toast.sticky ? 'polite' : 'assertive'"
-      [attr.aria-atomic]="true"
-      [attr.aria-label]="toast.summary"
       [attr.tabindex]="toast.tapToDismiss || toast.onTap ? 0 : null"
       (mouseenter)="onMouseEnter(toast)"
       (mouseleave)="onMouseLeave(toast)"
+      (focusin)="onFocusIn(toast)"
+      (focusout)="onFocusOut(toast, $event)"
       (click)="onToastClick(toast)"
       (keydown.enter)="onToastClick(toast)"
     >
       <!-- Icon -->
-      <svg [lucideIcon]="getIcon(toast.severity)" [size]="20" class="toast-icon"></svg>
+      <svg [lucideIcon]="getIcon(toast.severity)" [size]="20" class="toast-icon" aria-hidden="true"></svg>
 
       <!-- Content -->
       <div class="toast-content">
-        <span class="toast-summary">{{ toast.summary }}</span>
+        <span class="toast-summary"
+          ><span class="sr-only">{{ severityLabel(toast.severity) }}: </span>{{ toast.summary }}</span
+        >
         @if (toast.detail) {
           <p class="toast-detail">{{ toast.detail }}</p>
         }
@@ -38,7 +39,7 @@
       <button
         type="button"
         class="btn btn-sm btn-circle btn-ghost toast-dismiss"
-        aria-label="Dismiss notification"
+        [attr.aria-label]="dismissAriaLabel"
         (click)="dismiss(toast.id); $event.stopPropagation()"
       >
         <svg lucideX [size]="16"></svg>

@@ -20,12 +20,12 @@ import { loadTextSource } from './text-source.helper';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">Loading…</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Loading…</div>
     } @else if (error(); as e) {
       <div class="alert alert-error">{{ e }}</div>
     } @else {
       <div class="border-base-300 bg-base-100 flex max-h-[28rem] overflow-hidden rounded-lg border font-mono text-sm leading-relaxed">
-        <div #gutter class="text-base-content/40 bg-base-200 select-none overflow-hidden py-3 pr-2 pl-3 text-right" aria-hidden="true">
+        <div #gutter class="text-base-content/70 bg-base-200 select-none overflow-hidden py-3 pr-2 pl-3 text-right" aria-hidden="true">
           @for (n of lineNumbers(); track n) {
             <div>{{ n }}</div>
           }

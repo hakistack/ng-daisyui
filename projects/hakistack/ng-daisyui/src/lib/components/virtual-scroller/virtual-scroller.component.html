@@ -13,6 +13,9 @@
   [style.height]="viewportHeight()"
   [style.width]="viewportWidth()"
   [class]="containerClass()"
+  tabindex="0"
+  [attr.role]="ariaLabel() ? 'region' : null"
+  [attr.aria-label]="ariaLabel() ?? null"
 >
   @if (isGridMode()) {
     <!-- Grid mode: iterate virtual rows -->

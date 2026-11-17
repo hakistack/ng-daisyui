@@ -54,7 +54,7 @@ export function emailMetadata(msg: ParsedEmail): DocumentMetadataEntry[] {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="text-base-content/60 py-8 text-center text-sm">Parsing email…</div>
+      <div class="text-base-content/70 py-8 text-center text-sm">Parsing email…</div>
     } @else if (error(); as e) {
       <div class="alert alert-error whitespace-pre-line">{{ e }}</div>
     } @else if (parsed(); as msg) {
@@ -64,18 +64,18 @@ export function emailMetadata(msg: ParsedEmail): DocumentMetadataEntry[] {
             <div class="font-semibold text-base">{{ msg.subject }}</div>
           }
           @if (msg.from) {
-            <div><span class="text-base-content/60">From:</span> {{ msg.from }}</div>
+            <div><span class="text-base-content/70">From:</span> {{ msg.from }}</div>
           }
           @if (msg.to) {
-            <div><span class="text-base-content/60">To:</span> {{ msg.to }}</div>
+            <div><span class="text-base-content/70">To:</span> {{ msg.to }}</div>
           }
           @if (msg.date) {
-            <div class="text-base-content/60">{{ msg.date }}</div>
+            <div class="text-base-content/70">{{ msg.date }}</div>
           }
         </div>
 
         @if (msg.attachments.length > 0) {
-          <div class="text-xs text-base-content/60">
+          <div class="text-xs text-base-content/70">
             <span class="font-semibold">{{ msg.attachments.length }} attachment(s):</span>
             @for (att of msg.attachments; track att.filename; let last = $last) {
               <span

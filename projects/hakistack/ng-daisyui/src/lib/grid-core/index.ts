@@ -14,6 +14,7 @@ export * from './grid.types';
 export * from './grid.helpers';
 export * from './grid-aggregates';
 export * from './grid-predicates';
+export * from './grid-rules';
 
 export { ColumnUiController, type ColumnUiControllerDeps } from './controllers/column-ui.controller';
 export { FilterController, type FilterControllerDeps } from './controllers/filter.controller';

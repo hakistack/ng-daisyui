@@ -1,0 +1,65 @@
+name: Release
+
+# Publishes ONE package to npm, with provenance. Manual only, dry run by default.
+#
+#   1. Locally: `npm run release -- <ui|i18n> <patch|minor|major>` (bumps, commits, tags `<name>@<version>`)
+#   2. `git push --follow-tags`
+#   3. Actions → Release → Run workflow → pick the TAG as the ref, the package, and untick "dry run".
+#
+# scripts/workspace/publish.mjs refuses to publish when HEAD does not carry the package's release tag
+# or when the version is already on the registry. Requires the `NPM_TOKEN` repository secret
+# (an npm automation token with publish rights on the @hakistack scope).
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to publish
+        type: choice
+        options: [ui, i18n]
+        required: true
+      dry_run:
+        description: Dry run (build, validate and `npm publish --dry-run`; nothing is uploaded)
+        type: boolean
+        default: true
+      dist_tag:
+        description: npm dist-tag (leave empty for "latest")
+        type: string
+        required: false
+
+concurrency:
+  group: release-${{ inputs.package }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags, for the release-tag guard
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - run: npm run build:${{ inputs.package }}
+
+      - run: npm run test:consumer:${{ inputs.package }}
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          args=()
+          if [ "${{ inputs.dry_run }}" = "true" ]; then args+=(--dry-run); fi
+          if [ -n "${{ inputs.dist_tag }}" ]; then args+=(--tag "${{ inputs.dist_tag }}"); fi
+          node scripts/workspace/publish.mjs ${{ inputs.package }} "${args[@]}"

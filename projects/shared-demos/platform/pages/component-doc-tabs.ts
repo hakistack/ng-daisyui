@@ -2,7 +2,7 @@ import { NgComponentOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Type, computed, effect, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CodeBlockComponent } from '../../shared/code-block.component';
-import { ApiManifestService, KIND_LABELS, KIND_ORDER } from '../api/api-manifest.service';
+import { ApiManifestService, KIND_LABELS, KIND_ORDER, apiRoute } from '../api/api-manifest.service';
 import type { ComponentDocContent, DocPageMeta } from '../catalog/catalog.types';
 import { pageById } from '../catalog/pages';
 import { COMPONENT_CONTENT } from '../content';
@@ -196,7 +196,7 @@ export class DocTechnicalComponent {
               <ul class="space-y-0.5">
                 @for (s of g.items; track s.name) {
                   <li>
-                    <a class="link link-hover font-mono text-sm" [routerLink]="['/api', s.name]">{{ s.name }}</a>
+                    <a class="link link-hover font-mono text-sm" [routerLink]="route(s)">{{ s.name }}</a>
                   </li>
                 }
               </ul>
@@ -212,6 +212,7 @@ export class DocApiIndexComponent {
   private readonly manifest = inject(ApiManifestService);
   protected readonly ui = UI;
   protected readonly lang = inject(DocsLocaleService).locale;
+  protected readonly route = apiRoute;
   protected readonly groups = computed(() => {
     this.manifest.symbols();
     const owned = this.manifest.forPage(this.page());

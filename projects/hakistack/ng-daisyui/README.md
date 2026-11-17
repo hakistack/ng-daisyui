@@ -366,7 +366,7 @@ npm run build
 ```bash
 # In the library workspace
 npm run build
-npm run publish:local
+npm run link:ui
 
 # In your consuming project
 npm link @hakistack/ng-daisyui

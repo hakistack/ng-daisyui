@@ -18,15 +18,14 @@ const content: ArticleContent = {
           code: `npm install
 npm start            # demo + docs at http://localhost:58790 (imports the library source directly)
 
-# Optional: the same demos on Tailwind 3 / daisyUI 4
-npm run install:v4
+# The same demos on Tailwind 3 / daisyUI 4 (installed by npm install as a workspace)
 npm run demo:v4      # http://localhost:58791`,
         },
         {
           kind: 'p',
           text: {
-            en: 'You only need a Rust toolchain to change the WASM engines (`npm run engine:build`); their generated output is consumed by the TypeScript build. Repository layout and dependency rules are described in [Library architecture](/architecture/library).',
-            es: 'Solo necesitas el toolchain de Rust si vas a cambiar los motores WASM (`npm run engine:build`); el build de TypeScript consume lo que generan. La estructura del repositorio y las reglas de dependencias están en [Arquitectura de la librería](/architecture/library).',
+            en: 'You only need a Rust toolchain to change the WASM engines (`npm run build:engine`); their generated output is consumed by the TypeScript build. Repository layout and dependency rules are described in [Library architecture](/architecture/library).',
+            es: 'Solo necesitas el toolchain de Rust si vas a cambiar los motores WASM (`npm run build:engine`); el build de TypeScript consume lo que generan. La estructura del repositorio y las reglas de dependencias están en [Arquitectura de la librería](/architecture/library).',
           },
         },
       ],
@@ -117,10 +116,10 @@ npm run demo:v4      # http://localhost:58791`,
               },
             ],
             [
-              { en: '`npm run engine:test`', es: '`npm run engine:test`' },
+              { en: '`npm run test:engine`', es: '`npm run test:engine`' },
               {
-                en: '`cargo test` across the Rust workspace (`engine:check` for a quick compile check).',
-                es: '`cargo test` en todo el workspace de Rust (`engine:check` para una verificación rápida de compilación).',
+                en: '`cargo test` across the Rust workspace (`check:engine` for a quick compile check).',
+                es: '`cargo test` en todo el workspace de Rust (`check:engine` para una verificación rápida de compilación).',
               },
             ],
           ],
@@ -201,24 +200,27 @@ npm run demo:v4      # http://localhost:58791`,
               },
             ],
             [
-              { en: '`npm run publish:local`', es: '`npm run publish:local`' },
+              { en: '`npm run link:ui`', es: '`npm run link:ui`' },
               {
                 en: '`npm link` from `dist` to try the build in another app.',
                 es: '`npm link` desde `dist` para probar el build en otra app.',
               },
             ],
             [
-              { en: '`npm run release:patch` / `:minor` / `:major`', es: '`npm run release:patch` / `:minor` / `:major`' },
               {
-                en: 'Bumps the library version, commits and tags from the repository root, then builds. Refuses to run if the working tree is not clean.',
-                es: 'Sube la versión de la librería, hace commit y crea el tag desde la raíz del repositorio, y luego construye. No corre si hay cambios sin commit en el árbol de trabajo.',
+                en: '`npm run release -- ui patch` (`minor` / `major`, or `i18n`)',
+                es: '`npm run release -- ui patch` (`minor` / `major`, o `i18n`)',
+              },
+              {
+                en: 'Bumps ONE package (versions are independent), commits, creates the tag `<name>@<version>` from the repository root, then builds and validates that package. Never pushes or publishes. Refuses to run if the working tree is not clean.',
+                es: 'Sube la versión de UN paquete (las versiones son independientes), hace commit, crea el tag `<nombre>@<versión>` desde la raíz del repositorio y luego construye y valida ese paquete. Nunca hace push ni publica. No corre si hay cambios sin commit en el árbol de trabajo.',
               },
             ],
             [
-              { en: '`npm run publish:npm`', es: '`npm run publish:npm`' },
+              { en: '`npm run publish:ui`', es: '`npm run publish:ui`' },
               {
-                en: 'Publishes `dist/hakistack/ng-daisyui` to npm as a public package.',
-                es: 'Publica `dist/hakistack/ng-daisyui` en npm como paquete público.',
+                en: 'Publishes `dist/hakistack/ng-daisyui` to npm as a public package (`publish:i18n` for `@hakistack/i18n`). Refuses unless the artifact validates, HEAD carries the release tag and the version is not on npm yet.',
+                es: 'Publica `dist/hakistack/ng-daisyui` en npm como paquete público (`publish:i18n` para `@hakistack/i18n`). Se niega si el artefacto no valida, si HEAD no tiene el tag de la versión o si la versión ya está en npm.',
               },
             ],
           ],
@@ -226,8 +228,8 @@ npm run demo:v4      # http://localhost:58791`,
         {
           kind: 'p',
           text: {
-            en: 'The companion `@hakistack/i18n` package has its own `npm run build:i18n` and `npm run publish:i18n:npm`.',
-            es: 'El paquete complementario `@hakistack/i18n` tiene sus propios `npm run build:i18n` y `npm run publish:i18n:npm`.',
+            en: 'The companion `@hakistack/i18n` package has its own `npm run build:i18n` and `npm run publish:i18n`.',
+            es: 'El paquete complementario `@hakistack/i18n` tiene sus propios `npm run build:i18n` y `npm run publish:i18n`.',
           },
         },
       ],

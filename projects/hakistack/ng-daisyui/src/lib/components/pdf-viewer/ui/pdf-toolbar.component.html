@@ -134,7 +134,7 @@
     @for (m of modes; track m.mode) {
       <button
         type="button"
-        class="btn btn-xs btn-square join-item"
+        class="btn btn-xs btn-square join-item min-h-6 min-w-7"
         [attr.aria-label]="store.labels()[m.label]"
         [title]="store.labels()[m.label]"
         [attr.aria-pressed]="isMode(m.mode)"

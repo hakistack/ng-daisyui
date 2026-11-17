@@ -151,87 +151,16 @@ export interface TreeNodeTemplateContext<T = unknown> {
   index: number;
 }
 
-/**
- * Event emitted when a node is selected
- */
-export interface TreeNodeSelectEvent<T = unknown> {
-  /** The original DOM event */
-  originalEvent: Event;
-  /** The selected node */
-  node: TreeNode<T>;
-}
-
-/**
- * Event emitted when a node is unselected
- */
-export interface TreeNodeUnselectEvent<T = unknown> {
-  /** The original DOM event */
-  originalEvent: Event;
-  /** The unselected node */
-  node: TreeNode<T>;
-}
-
-/**
- * Event emitted when a node is expanded
- */
-export interface TreeNodeExpandEvent<T = unknown> {
-  /** The original DOM event */
-  originalEvent: Event;
-  /** The expanded node */
-  node: TreeNode<T>;
-}
-
-/**
- * Event emitted when a node is collapsed
- */
-export interface TreeNodeCollapseEvent<T = unknown> {
-  /** The original DOM event */
-  originalEvent: Event;
-  /** The collapsed node */
-  node: TreeNode<T>;
-}
-
-/**
- * Event emitted when nodes are reordered via drag and drop
- */
-export interface TreeNodeDropEvent<T = unknown> {
-  /** The original drag event */
-  originalEvent: DragEvent;
-  /** The node being dragged */
-  dragNode: TreeNode<T>;
-  /** The target node (drop location) */
-  dropNode: TreeNode<T> | null;
-  /** Original parent of the dragged node */
-  dragNodeParent: TreeNode<T> | null;
-  /** New parent of the dragged node */
-  dropNodeParent: TreeNode<T> | null;
-  /** Drop position: 'before', 'after', or 'inside' */
-  dropPosition: 'before' | 'after' | 'inside';
-  /** Original index of the dragged node */
-  dragNodeIndex: number;
-  /** New index after drop */
-  dropIndex: number;
-}
-
-/**
- * Event emitted when drag starts
- */
-export interface TreeNodeDragStartEvent<T = unknown> {
-  /** The original drag event */
-  originalEvent: DragEvent;
-  /** The node being dragged */
-  node: TreeNode<T>;
-}
-
-/**
- * Event emitted when drag ends
- */
-export interface TreeNodeDragEndEvent<T = unknown> {
-  /** The original drag event */
-  originalEvent: DragEvent;
-  /** The node that was dragged */
-  node: TreeNode<T>;
-}
+// Node events live with `TreeNode` in api/treenode.ts — one definition per event, re-exported here.
+export type {
+  TreeNodeCollapseEvent,
+  TreeNodeDragEndEvent,
+  TreeNodeDragStartEvent,
+  TreeNodeDropEvent,
+  TreeNodeExpandEvent,
+  TreeNodeSelectEvent,
+  TreeNodeUnselectEvent,
+} from '../../api/treenode';
 
 /**
  * Event emitted for lazy loading when a node is expanded

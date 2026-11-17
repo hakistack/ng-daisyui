@@ -256,6 +256,10 @@ export interface AlertInternalConfig {
   html?: string;
   /** Skip Angular's sanitizer for `html` (opt-in via `AlertOptions.trustedHtml`). */
   trustHtml?: boolean;
+  /** Accessible name of the close button and backdrop (resolved from `AlertLabels.close`). */
+  closeLabel?: string;
+  /** Screen-reader text of the loading spinner (resolved from `AlertLabels.loading`). */
+  loadingLabel?: string;
   footer?: string;
   icon?: AlertIcon;
   showConfirmButton: boolean;

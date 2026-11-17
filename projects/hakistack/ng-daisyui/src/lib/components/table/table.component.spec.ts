@@ -1672,7 +1672,9 @@ describe('TableComponent', () => {
       fixture.componentRef.setInput('data', SAMPLE_DATA);
       fixture.detectChanges();
 
-      expect(component.getCellId(2, 3)).toBe('cell-2-3');
+      expect(component.getCellId(2, 3)).toBe(`${component.instanceId}-cell-2-3`);
+      const other = TestBed.createComponent<TableComponent<TestRow>>(TableComponent).componentInstance;
+      expect(other.getCellId(2, 3)).not.toBe(component.getCellId(2, 3));
     });
 
     it('puts aria-sort on the column header cell and reflects the sort direction', () => {

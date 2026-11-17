@@ -268,6 +268,16 @@ describe('TabGroupComponent', () => {
       expect(tabs.length).toBe(3);
     });
 
+    it("keeps inactive tab labels at the muted-text contrast minimum, not daisyUI's 50 %", async () => {
+      await TestBed.configureTestingModule({ imports: [BasicTestHostComponent] }).compileComponents();
+      const fixture = TestBed.createComponent(BasicTestHostComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const [active, ...inactive] = getTabButtons(fixture);
+      expect(active.classList.contains('text-base-content/70')).toBe(false);
+      expect(inactive.every((t) => t.classList.contains('text-base-content/70'))).toBe(true);
+    });
+
     it('should display the correct label text on each tab', async () => {
       await TestBed.configureTestingModule({
         imports: [BasicTestHostComponent],

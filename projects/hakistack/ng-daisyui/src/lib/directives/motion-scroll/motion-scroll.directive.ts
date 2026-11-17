@@ -1,6 +1,6 @@
 import { Directive, ElementRef, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, inject, PLATFORM_ID } from '@angular/core';
 import { scroll, animate } from 'motion';
-import type { AnimationPlaybackControls } from 'motion-dom';
+import type { AnimationPlaybackControls } from 'motion';
 import { prefersReducedMotion } from '../motion.utils';
 
 export type ScrollAxis = 'x' | 'y';

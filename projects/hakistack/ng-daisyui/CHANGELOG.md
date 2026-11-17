@@ -48,7 +48,10 @@ See [docs/maintenance/migration-guide.md](../../../docs/maintenance/migration-gu
 - Package `exports` for every shipped theme: `@hakistack/ng-daisyui/themes/<name>` and `/themes/<name>.css`
   (`kaizen`, `kaizen-light`, `daisyui-v4`, `daisyui-v5`).
 
-- `AlertOptions.trustedHtml`, `NotificationLabels.regionAriaLabel`, `DatepickerLabels.weekNumberHeader`.
+- `AlertOptions.trustedHtml`, `NotificationLabels.regionAriaLabel`, `DatepickerLabels.weekNumberHeader`,
+  `AlertLabels.close` / `AlertLabels.loading`, `TableLabels.confirmEditAriaLabel` / `TableLabels.cancelEditAriaLabel`,
+  `ToastLabels.dismissAriaLabel` / `ToastLabels.severityLabels`.
+- `MenuConfig.semantics` (`'auto' | 'navigation' | 'menu'`, type `MenuSemantics`).
 - `hk-datepicker`: `config` input (format options merged over defaults), working `showWeekNumbers` column,
   `controlId` input (also on `hk-timepicker`) so a `<label for>` names the inner input.
 - `field.date(..., { minDate, maxDate })`; the declarative `date` field's `min` / `max` are applied too.
@@ -61,7 +64,64 @@ See [docs/maintenance/migration-guide.md](../../../docs/maintenance/migration-gu
 - 16 unused public `TableComponent` members (e.g. `openFilterPos`, `columnWidthsSignal`, `getCellDisplay`,
   `trackByPage`); removal planned for 0.5.
 
+### Changed
+
+- `hk-menu` with only links (`routerLink` / `href`) now renders as site navigation — a plain list of links that Tab
+  moves through, with `aria-current="page"` on the active route — instead of an ARIA `menu` / `menubar` (screen readers
+  switch to application mode in a menu and expect arrow keys, which is wrong for a sidebar or navbar). Menus that
+  contain an action keep menu semantics; set `semantics: 'menu'` to keep the old roles for a links-only menu.
+- Toasts are announced through the CDK `LiveAnnouncer` (errors assertive, the rest polite) instead of making every
+  toast a `role="alert"` / `aria-live="assertive"` element; a visually hidden severity word ("Error:") precedes the
+  summary, and the `aria-label` that hid the detail is gone.
+- `hk-table` and `hk-datagrid` share one set of grid rules (`grid-core/grid-rules.ts`): the header-click sort cycle,
+  page count / clamping and row identity. Row identity is now the same in both grids — a key function, else the row's
+  own `id`, else a `TreeNode` `key`; tree tables used to try `key` before `id`, which only matters for rows that carry
+  both.
+- `TreeNodeDropEvent` is a single type: the one `hk-tree`'s `nodeDrop` emits (with `dropPosition`, parents and
+  indexes), also exported as `TreeDropEvent`. The older, smaller declaration with a different `dropIndex` meaning was
+  never emitted and is gone.
+- `SelectOption` is one type: `hk-select` works with `SelectOption<string>`, and the exported type gains the optional
+  `id` the component already used.
+
 ### Fixed
+
+- `hk-menu` (menu semantics): one Tab stop with roving tabindex; vertical menus use ↑ ↓ Home End and → / ← to enter
+  and leave a group; menubars use ← → between top-level items, ↓ / ↑ to open a group on its first / last item, and
+  ← → inside a submenu to move to the neighbouring top-level item (WAI-ARIA APG). Escape closes the current group.
+- `hk-toast`: focus inside a toast (its action or close button) pauses auto-dismiss even with `pauseOnHover: false`,
+  and it resumes only when both pointer and focus have left (WCAG 2.2.1); close-button label is localisable.
+- Accessibility issues found by the new per-example axe audit: `hk-datepicker` / `hk-timepicker` fields are
+  `role="combobox"`; `hk-editor` puts `role="textbox"`, `aria-multiline` and its label on the contenteditable;
+  `hk-virtual-scroller` and the virtual `hk-table` viewport are keyboard-focusable (new `hk-virtual-scroller`
+  `ariaLabel` input names it as a region); `hk-menu` titles and inactive `hk-tab-group` tabs meet AA contrast;
+  the `hk-app-shell` overlay label no longer has a prohibited `aria-label`; `hk-pdf-viewer` display-mode buttons meet
+  the 24 × 24 px target size.
+- `hk-notification-host`: focus inside a notification pauses its auto-dismiss (it only paused on hover).
+- Toast, notification and alert share one auto-dismiss timer (`lib/utils/pausable-timer.ts`) and one body-mounted
+  container helper; notification and alert exit delays are now 0 under `prefers-reduced-motion` (only toasts honoured
+  it). `ToastService.pauseAutoDismiss` / `resumeAutoDismiss` take an optional `reason` so pauses can overlap.
+- `hk-select`: the document keydown listener is added on the next frame only if the panel is still open, so a select
+  destroyed or closed within that frame no longer leaves a listener that swallowed arrow keys page-wide.
+- `hk-select`: with search enabled the search input is the `combobox` with `aria-activedescendant` (screen readers
+  announced nothing while arrowing through options); Escape clears the search term first and then closes; closing
+  with Escape or by picking an option returns focus to the trigger instead of `<body>`.
+- `hk-table`: the virtual-scroll, grouped and CDK layouts now render headers, checkboxes, actions, data cells,
+  detail panels and `<tfoot>` rows from shared templates (template 1 603 → 1 199 lines). As a result
+  `hkCellTemplate`, column filters, action tooltips and inline editing work in every layout (they were CDK-only),
+  and the grouped row checkbox has its accessible name.
+- `hk-table` keyboard navigation (`enableKeyboardNavigation`): the `<table>` is now the focusable ARIA grid and
+  carries `aria-activedescendant` (the host was focused while the attribute sat on the table, so screen readers
+  announced nothing). Cell ids are unique per instance and no longer `cell-undefined-N` when rows have no detail
+  template; cells are no longer separate tab targets. The grouped layout no longer claims `role="grid"`
+  (it has no grid keyboard model); its group headers get a real expand/collapse button.
+- `hk-table` inline editor: inputs are labelled with the column header; ✓ / ✕ buttons have accessible names.
+- Muted text meets WCAG AA contrast: `text-base-content/50`–`/60` (and the timepicker / editor-placeholder
+  `color-mix` equivalents) raised to `/70` in 55 places — 4.5:1 on base-100/200/300 in `light`, `dark`, `kaizen` and
+  `kaizen-light`. Icons and decorative separators keep their lower opacity (non-text contrast is 3:1).
+  `npm run lint:contrast` (CI) keeps it that way.
+- `AlertService`: `aria-describedby` only when a body exists; spinner text and close-button name localisable.
+- `hk-table` filter/selection bars are `role="status"` (were `role="alert"` + `aria-live="polite"`); picker error
+  messages drop the conflicting `aria-live`; `hk-datagrid` sets `aria-multiselectable` only for `selection: 'multi'`.
 
 - `provideDynamicFormLabels` is exported as a value (it was inside an `export type` block, so calling it failed with TS1361).
 - Tree-shaking: `TableComponent` and `FormUtils` no longer have side-effectful static initializers, so apps that never

@@ -302,7 +302,7 @@ ui-library-workspace/
 
 The wasm-bindgen surface for the table lives in `engine-wasm`, not in `table-engine` itself — `table-engine` stays a pure Rust library so it's testable with `cargo test` natively.
 
-Build step adds `npm run build:wasm` (which calls `scripts/build-wasm.mjs` → `wasm-pack build --target web hakistack-engine/crates/engine-wasm`, optimized via `wasm-opt -O3`), and `npm run build` runs it before `ng-packagr`.
+Build step adds `npm run build:engine` (which calls `scripts/build-wasm.mjs` → `wasm-pack build --target web hakistack-engine/crates/engine-wasm`, optimized via `wasm-opt -O3`), and `npm run build` runs it before `ng-packagr`.
 
 ---
 

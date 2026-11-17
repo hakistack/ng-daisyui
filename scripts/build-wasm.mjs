@@ -72,7 +72,9 @@ function buildBundle({ cratePath, pkgDirName, bundleName, libSubdir, publicTarge
   // Lib copy: replace the whole folder so stale files don't linger.
   if (existsSync(libTarget)) rmSync(libTarget, { recursive: true, force: true });
   mkdirSync(libTarget, { recursive: true });
-  cpSync(PKG, libTarget, { recursive: true });
+  // Skip wasm-pack's own `.gitignore` (`*`): it would override lib/wasm/.gitignore, which keeps the
+  // generated glue + inline modules tracked so a clean clone can build.
+  cpSync(PKG, libTarget, { recursive: true, filter: (src) => !src.endsWith('/.gitignore') });
   console.log(`✓ ${libTarget.replace(ROOT + '/', '')}`);
 
   // ─── Inline-bundle generation ───────────────────────────────────────────

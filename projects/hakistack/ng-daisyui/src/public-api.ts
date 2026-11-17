@@ -586,6 +586,7 @@ export type {
   MenuIcon,
   MenuOrientation,
   MenuSize,
+  MenuSemantics,
   MenuSubmenuMode,
 } from './lib/components/menu/menu.types';
 

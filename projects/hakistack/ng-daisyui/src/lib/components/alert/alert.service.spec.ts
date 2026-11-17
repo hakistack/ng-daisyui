@@ -1,7 +1,7 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { AlertService } from './alert.service';
+import { AlertService, provideAlert } from './alert.service';
 import { AlertResult } from './alert.types';
 
 describe('AlertService', () => {
@@ -83,5 +83,53 @@ describe('AlertService loading overlay', () => {
     instance.overlays()[0].resolve({ isConfirmed: false, isDismissed: true, isCancelled: false, dismissReason: 'esc' });
     expect(instance.overlays().length).toBe(0);
     container.remove();
+  });
+});
+
+describe('AlertService accessible names', () => {
+  afterEach(() => {
+    document.body.querySelectorAll('hk-alert-container').forEach((el) => el.remove());
+  });
+
+  async function render(show: (service: AlertService) => void): Promise<HTMLElement> {
+    const service = TestBed.inject(AlertService);
+    show(service);
+    await Promise.resolve();
+    TestBed.tick();
+    await new Promise((r) => setTimeout(r));
+    TestBed.tick();
+    return document.body.querySelector('hk-alert-container [role="dialog"]') as HTMLElement;
+  }
+
+  it('describes the dialog by its body only when there is one', async () => {
+    TestBed.configureTestingModule({ providers: [{ provide: PLATFORM_ID, useValue: 'browser' }] });
+    const dialog = await render((s) => void s.show({ title: 'No body' }));
+    expect(dialog.hasAttribute('aria-describedby')).toBe(false);
+  });
+
+  it('points aria-describedby at the rendered text body', async () => {
+    TestBed.configureTestingModule({ providers: [{ provide: PLATFORM_ID, useValue: 'browser' }] });
+    const dialog = await render((s) => void s.show({ title: 'Saved', text: 'All changes stored.' }));
+    const id = dialog.getAttribute('aria-describedby')!;
+    expect(document.getElementById(id)?.textContent).toContain('All changes stored.');
+  });
+
+  const spanishLabels = () =>
+    TestBed.configureTestingModule({
+      providers: [{ provide: PLATFORM_ID, useValue: 'browser' }, provideAlert({ labels: { close: 'Cerrar', loading: 'Cargando' } })],
+    });
+
+  it('localises the close button through AlertLabels', async () => {
+    spanishLabels();
+    const dialog = await render((s) => void s.show({ title: 'Hola' }));
+    expect(dialog.querySelector('.modal-box button.btn-circle')?.getAttribute('aria-label')).toBe('Cerrar');
+  });
+
+  it('gives the loading spinner localised screen-reader text', async () => {
+    spanishLabels();
+    const loading = await render((s) => s.showLoading({ title: 'Espere' }));
+    const status = loading.querySelector('[role="status"]')!;
+    expect(status.textContent?.trim()).toBe('Cargando');
+    expect(status.querySelector('.loading')?.getAttribute('aria-hidden')).toBe('true');
   });
 });

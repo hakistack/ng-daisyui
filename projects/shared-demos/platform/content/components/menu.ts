@@ -245,19 +245,35 @@ export class SideMenuComponent {
   accessibility: {
     keyboard: [
       {
-        keys: 'ArrowDown / ArrowUp',
+        keys: 'Tab',
         action: {
-          en: 'Move focus to the next / previous visible, enabled item (wraps around)',
-          es: 'Mueve el foco al elemento visible y habilitado siguiente / anterior (vuelve al otro extremo al llegar al final)',
+          en: 'Navigation menu (links only): move from link to link. Action menu: enter or leave the menu (it is a single Tab stop)',
+          es: 'Menú de navegación (solo enlaces): pasa de enlace en enlace. Menú de acciones: entra o sale del menú (es una sola parada de Tab)',
         },
       },
-      { keys: 'Home / End', action: { en: 'Focus the first / last item', es: 'Mueve el foco al primer / último elemento' } },
-      { keys: 'ArrowRight', action: { en: 'Open the focused group if it is closed', es: 'Abre el grupo enfocado si está cerrado' } },
       {
-        keys: 'ArrowLeft / Escape',
+        keys: 'ArrowDown / ArrowUp',
         action: {
-          en: 'Close the group that contains focus and return focus to its header; Escape also closes the rail flyout',
-          es: 'Cierra el grupo que contiene el foco y devuelve el foco a su encabezado; Escape también cierra el panel flotante del riel',
+          en: 'Vertical action menu: move to the next / previous visible, enabled item. Menubar: on a top-level item, open its group on the first / last item; inside a submenu, move through it',
+          es: 'Menú de acciones vertical: pasa al elemento visible y habilitado siguiente / anterior. Menubar: en un elemento de primer nivel, abre su grupo en el primer / último elemento; dentro de un submenú, se mueve por él',
+        },
+      },
+      {
+        keys: 'Home / End',
+        action: { en: 'Action menu: focus the first / last item', es: 'Menú de acciones: mueve el foco al primer / último elemento' },
+      },
+      {
+        keys: 'ArrowRight / ArrowLeft',
+        action: {
+          en: 'Vertical action menu: → opens the focused group and enters it, ← closes the current group. Menubar: move between top-level items, also from inside a submenu',
+          es: 'Menú de acciones vertical: → abre el grupo enfocado y entra en él, ← cierra el grupo actual. Menubar: pasa entre los elementos de primer nivel, también desde dentro de un submenú',
+        },
+      },
+      {
+        keys: 'Escape',
+        action: {
+          en: 'Close the open group and return focus to its header (in a menubar, to the parent item); also closes the rail flyout',
+          es: 'Cierra el grupo abierto y devuelve el foco a su encabezado (en un menubar, al elemento padre); también cierra el panel flotante del riel',
         },
       },
       {
@@ -270,8 +286,12 @@ export class SideMenuComponent {
     ],
     notes: [
       {
-        en: 'The root list has `role="menu"` (vertical) or `role="menubar"` (horizontal) plus `aria-orientation`; entries are `menuitem`s inside `<li role="none">`, dividers are `separator`s. Group headers expose `aria-haspopup="menu"` and `aria-expanded`.',
-        es: 'La lista raíz tiene `role="menu"` (vertical) o `role="menubar"` (horizontal) y `aria-orientation`; las entradas son `menuitem` dentro de `<li role="none">` y los separadores son `separator`. Los encabezados de grupo exponen `aria-haspopup="menu"` y `aria-expanded`.',
+        en: '`semantics` (`MenuSemantics`) picks the ARIA pattern. With `\'auto\'` (default), a menu whose items are all links (`routerLink` / `href`) renders as navigation: a plain list with no menu roles, Tab between links, and `aria-current="page"` on the active route. Put it inside a `<nav>`; `hk-navbar` and `hk-sidebar` already do.',
+        es: '`semantics` (`MenuSemantics`) elige el patrón ARIA. Con `\'auto\'` (por defecto), un menú cuyos elementos son todos enlaces (`routerLink` / `href`) se renderiza como navegación: una lista normal sin roles de menú, Tab entre enlaces y `aria-current="page"` en la ruta activa. Ponlo dentro de un `<nav>`; `hk-navbar` y `hk-sidebar` ya lo hacen.',
+      },
+      {
+        en: 'As soon as one item is an action, or with `semantics: \'menu\'`, the root list is `role="menu"` (vertical) or `role="menubar"` (horizontal) with `aria-orientation`; entries are `menuitem`s inside `<li role="none">`, dividers are `separator`s, and only one item is in the Tab order (roving tabindex). Group headers expose `aria-haspopup="menu"` and `aria-expanded`.',
+        es: 'En cuanto un elemento es una acción, o con `semantics: \'menu\'`, la lista raíz es `role="menu"` (vertical) o `role="menubar"` (horizontal) con `aria-orientation`; las entradas son `menuitem` dentro de `<li role="none">`, los separadores son `separator` y solo un elemento está en el orden de Tab (tabindex itinerante). Los encabezados de grupo exponen `aria-haspopup="menu"` y `aria-expanded`.',
       },
       {
         en: 'Set `ariaLabel` when a page has more than one menu, so screen reader users can tell them apart. In rail mode each item gets its `label` as `aria-label`, so never leave labels empty even if only icons are visible.',

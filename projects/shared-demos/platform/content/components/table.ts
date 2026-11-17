@@ -253,16 +253,20 @@ export class UsersTableComponent {
     ],
     notes: [
       {
-        en: 'Cell navigation is opt-in: with `enableKeyboardNavigation: true` the host becomes focusable, the table gets `role="grid"` and the active cell is scrolled into view. Without it the table keeps `role="table"` semantics and only headers, checkboxes and buttons are focusable.',
-        es: 'La navegación por celdas es opcional: con `enableKeyboardNavigation: true` el host se vuelve enfocable, la tabla recibe `role="grid"` y la celda activa se desplaza hasta quedar visible. Sin esa opción, la tabla mantiene la semántica `role="table"` y solo los encabezados, casillas y botones reciben foco.',
+        en: 'Cell navigation is opt-in and works in the standard layout: with `enableKeyboardNavigation: true` the `<table>` itself takes focus, gets `role="grid"` and points `aria-activedescendant` at the active cell, which is scrolled into view. Cell ids are unique per table instance. Without it the table keeps `role="table"` semantics and only headers, checkboxes and buttons are focusable.',
+        es: 'La navegación por celdas es opcional y funciona en el diseño estándar: con `enableKeyboardNavigation: true` el propio `<table>` recibe el foco, toma `role="grid"` y apunta `aria-activedescendant` a la celda activa, que se desplaza hasta quedar visible. Los ids de celda son únicos por instancia de tabla. Sin esa opción, la tabla mantiene la semántica `role="table"` y solo los encabezados, casillas y botones reciben foco.',
+      },
+      {
+        en: "The grouped layout is not a `grid`; each group header has a button that expands and collapses it (`aria-expanded`). Cell templates, filters, tooltips and inline editing work in all three layouts, and the inline editor's save and cancel buttons are labelled through `labels.confirmEditAriaLabel` and `labels.cancelEditAriaLabel`.",
+        es: 'El diseño agrupado no es un `grid`; cada encabezado de grupo tiene un botón que lo expande y lo contrae (`aria-expanded`). Las plantillas de celda, los filtros, los tooltips y la edición en línea funcionan en los tres diseños, y los botones de guardar y cancelar del editor en línea se etiquetan con `labels.confirmEditAriaLabel` y `labels.cancelEditAriaLabel`.',
       },
       {
         en: 'In all three layouts (standard, virtual-scroll and grouped), each sortable column header cell carries `aria-sort` (`ascending`, `descending` or `none`), and the sort control inside it is a `role="button"` that Enter and Space activate. Selection checkboxes, expand toggles (`aria-expanded`), filter buttons and the clear-selection and clear-filters buttons all have `aria-label`s you can translate through `labels`.',
         es: 'En los tres diseños (estándar, con desplazamiento virtual y con agrupación), cada celda de encabezado ordenable lleva `aria-sort` (`ascending`, `descending` o `none`), y el control de orden dentro de ella es un `role="button"` que se activa con Enter y Espacio. Las casillas de selección, los botones de expandir (`aria-expanded`), los botones de filtro y los de limpiar selección y filtros tienen `aria-label` que puedes traducir con `labels`.',
       },
       {
-        en: 'The selection and active-filter bars use `role="alert"` with `aria-live="polite"`. They are only rendered while there is a selection or an active filter.',
-        es: 'Las barras de selección y de filtros activos usan `role="alert"` con `aria-live="polite"`. Solo se muestran mientras haya una selección o un filtro activo.',
+        en: 'The selection and active-filter bars are `role="status"` regions (`aria-live="polite"`), so changes are announced without interrupting. They are only rendered while there is a selection or an active filter.',
+        es: 'Las barras de selección y de filtros activos son regiones `role="status"` (`aria-live="polite"`), así que los cambios se anuncian sin interrumpir. Solo se muestran mientras haya una selección o un filtro activo.',
       },
       {
         en: 'Common mistake: putting buttons or links inside an HTML string returned by `format`. Use a cell template so the control is a real, focusable element with a proper label.',

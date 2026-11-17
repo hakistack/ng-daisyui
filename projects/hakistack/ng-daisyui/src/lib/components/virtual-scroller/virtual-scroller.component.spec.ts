@@ -147,6 +147,13 @@ describe('VirtualScrollerComponent', () => {
       expect(viewport).toBeTruthy();
     });
 
+    it('makes the viewport keyboard-scrollable (axe scrollable-region-focusable)', () => {
+      const viewport = fixture.nativeElement.querySelector('cdk-virtual-scroll-viewport') as HTMLElement;
+      expect(viewport.getAttribute('tabindex')).toBe('0');
+      // Unlabelled: no anonymous region landmark.
+      expect(viewport.hasAttribute('role')).toBe(false);
+    });
+
     it('should render some items (not all 1000)', () => {
       fixture.detectChanges();
       const items = fixture.nativeElement.querySelectorAll('.test-item');

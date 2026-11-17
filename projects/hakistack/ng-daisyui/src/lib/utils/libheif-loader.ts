@@ -3,7 +3,7 @@ import { decodeBase64 } from './wasm-loader';
 /**
  * Loader for the in-tree libheif WASM module.
  *
- * Built by `npm run libheif:build` — runs Emscripten against pre-built
+ * Built by `npm run build:libheif` — runs Emscripten against pre-built
  * `libde265.a` + `libheif.a` static libs, then `cargo build` of the
  * Rust `libheif-bridge` crate targeting `wasm32-unknown-emscripten`.
  * See `hakistack-engine/external/libheif-wasm/README.md` for toolchain
@@ -16,7 +16,7 @@ import { decodeBase64 } from './wasm-loader';
  * Rust extensions on this target.
  *
  * Loading is **conditional**: if the build artifacts aren't present
- * (consumer hasn't run `npm run libheif:build`), [`tryLoadLibheif`]
+ * (consumer hasn't run `npm run build:libheif`), [`tryLoadLibheif`]
  * resolves to `null` so the caller falls back to the `heic2any` peer
  * dep. The dynamic `import()` uses `webpackIgnore`/`@vite-ignore`
  * pragmas so consumer bundlers don't fail compilation when the
@@ -71,7 +71,7 @@ export async function tryLoadLibheif(): Promise<LibheifModule | null> {
       return m;
     } catch (e) {
       if (typeof console !== 'undefined') {
-        console.debug('[hk-document-viewer] libheif WASM not present; check `npm run libheif:build`. Reason:', (e as Error).message);
+        console.debug('[hk-document-viewer] libheif WASM not present; check `npm run build:libheif`. Reason:', (e as Error).message);
       }
       return null;
     }

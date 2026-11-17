@@ -1,4 +1,4 @@
-import type { ComponentGroup, DocExample, DocPageMeta, DocSection, ExampleLevel, Localized } from './catalog.types';
+import type { ComponentGroup, DocExample, DocPageMeta, DocProduct, DocSection, ExampleLevel, Localized } from './catalog.types';
 
 /** Shorthand for an example tab. */
 const ex = (id: string, en: string, es: string, level?: ExampleLevel): DocExample => ({ id, label: { en, es }, level });
@@ -11,6 +11,22 @@ const l = (en: string, es: string): Localized => ({ en, es });
  * under `src/lib/components/`), add the route, and run `npm run docs:check`.
  */
 export const DOC_PAGES: readonly DocPageMeta[] = [
+  // ── Overview (Hakistack, all products) ──────────────────────────────────
+  {
+    id: 'hakistack',
+    route: '/overview',
+    section: 'overview',
+    title: l('Hakistack overview', 'Panorama de Hakistack'),
+    icon: 'layers',
+    summary: l(
+      'The Hakistack products — @hakistack/ng-daisyui and @hakistack/i18n — what each one does and how they relate.',
+      'Los productos de Hakistack —@hakistack/ng-daisyui y @hakistack/i18n—, qué hace cada uno y cómo se relacionan.',
+    ),
+    status: 'stable',
+    hasContent: true,
+    keywords: ['hakistack', 'products', 'productos', 'packages', 'paquetes', 'ecosystem', 'ecosistema', 'i18n', 'monorepo'],
+  },
+
   // ── Getting started ─────────────────────────────────────────────────────
   {
     id: 'introduction',
@@ -1204,6 +1220,132 @@ export const DOC_PAGES: readonly DocPageMeta[] = [
     ['rust', 'wasm', 'cargo', 'wasm-bindgen', 'memory', 'memoria'],
   ),
 
+  // ── @hakistack/i18n ─────────────────────────────────────────────────────
+  {
+    id: 'i18n-getting-started',
+    route: '/i18n',
+    section: 'i18n',
+    title: l('Getting started', 'Primeros pasos'),
+    icon: 'languages',
+    summary: l(
+      'Type-safe translations for Angular on Transloco: write them in TypeScript, generate typed keys and JSON, wire everything with one provider.',
+      'Traducciones con tipos para Angular sobre Transloco: las escribes en TypeScript, generas claves tipadas y JSON, y lo conectas todo con un solo provider.',
+    ),
+    status: 'beta',
+    hasContent: true,
+    keywords: [
+      'i18n',
+      '@hakistack/i18n',
+      'transloco',
+      'install',
+      'instalar',
+      'ng add',
+      'translations',
+      'traducciones',
+      'provideI18n',
+      'setup',
+    ],
+  },
+  {
+    id: 'i18n-authoring',
+    route: '/i18n/authoring',
+    section: 'i18n',
+    title: l('Writing translations', 'Escribir traducciones'),
+    icon: 'file-pen-line',
+    summary: l(
+      'Translations live in *.i18n.ts files next to the feature: English is required, other languages optional, and each key knows its interpolation params.',
+      'Las traducciones viven en archivos *.i18n.ts junto a la funcionalidad: el inglés es obligatorio, los demás idiomas opcionales, y cada clave conoce sus parámetros de interpolación.',
+    ),
+    status: 'beta',
+    hasContent: true,
+    areas: ['i18n-engine'],
+    keywords: [
+      'defineTranslations',
+      't()',
+      'i18n.ts',
+      'scope',
+      'scoped',
+      'locales',
+      'keys',
+      'claves',
+      'params',
+      'interpolation',
+      'interpolación',
+      'mergeKeys',
+      'conflicts',
+    ],
+  },
+  {
+    id: 'i18n-runtime',
+    route: '/i18n/runtime',
+    section: 'i18n',
+    title: l('Runtime, loading & SSR', 'Runtime, carga y SSR'),
+    icon: 'globe',
+    summary: l(
+      'provideI18n, the typed directive and translateSignal, lazy loading one language at a time, locale and text direction, and server rendering.',
+      'provideI18n, la directiva tipada y translateSignal, carga diferida de un idioma a la vez, locale y dirección del texto, y renderizado en el servidor.',
+    ),
+    status: 'beta',
+    hasContent: true,
+    areas: ['i18n-runtime'],
+    keywords: [
+      'provideI18n',
+      'LanguageService',
+      'translateSignal',
+      'appTranslate',
+      'directive',
+      'lazy',
+      'loader',
+      'ssr',
+      'language cookie',
+      'rtl',
+      'locale',
+      'Accept-Language',
+      'idioma',
+    ],
+  },
+  {
+    id: 'i18n-cli',
+    route: '/i18n/cli',
+    section: 'i18n',
+    title: l('CLI & codegen', 'CLI y codegen'),
+    icon: 'square-terminal',
+    summary: l(
+      'hakistack-i18n check generates TK, the directive and the JSON, and fails the build on missing translations; watch, find-unused and the config file.',
+      'hakistack-i18n check genera TK, la directiva y el JSON, y hace fallar el build si faltan traducciones; además watch, find-unused y el archivo de configuración.',
+    ),
+    status: 'beta',
+    hasContent: true,
+    keywords: [
+      'cli',
+      'hakistack-i18n',
+      'i18n check',
+      'i18n scan',
+      'generate',
+      'validate',
+      'watch mode',
+      'find-unused',
+      'i18n.config.json',
+      'codegen',
+      'TK',
+      'prebuild',
+      'ci',
+    ],
+  },
+  {
+    id: 'i18n-api',
+    route: '/api/i18n',
+    section: 'i18n',
+    title: l('API reference', 'Referencia de API'),
+    icon: 'braces',
+    summary: l(
+      'Every symbol exported by @hakistack/i18n and its /engine entry point — generated from the source.',
+      'Cada símbolo exportado por @hakistack/i18n y su entry point /engine, generado desde el código fuente.',
+    ),
+    status: 'beta',
+    keywords: ['api', 'reference', 'referencia', 'i18n', 'types', 'tipos', 'functions', 'funciones'],
+  },
+
   // ── Contributing ────────────────────────────────────────────────────────
   {
     id: 'contributing',
@@ -1278,6 +1420,7 @@ function article(section: DocSection, slug: string, icon: string, title: Localiz
 }
 
 export const SECTION_ORDER: readonly DocSection[] = [
+  'overview',
   'getting-started',
   'foundations',
   'components',
@@ -1285,10 +1428,12 @@ export const SECTION_ORDER: readonly DocSection[] = [
   'guides',
   'api',
   'architecture',
+  'i18n',
   'contributing',
 ];
 
 export const SECTION_TITLES: Record<DocSection, Localized> = {
+  overview: l('Overview', 'Panorama'),
   'getting-started': l('Getting started', 'Primeros pasos'),
   foundations: l('Foundations', 'Fundamentos'),
   components: l('Components', 'Componentes'),
@@ -1296,8 +1441,41 @@ export const SECTION_TITLES: Record<DocSection, Localized> = {
   guides: l('Guides', 'Guías'),
   api: l('API reference', 'Referencia de API'),
   architecture: l('Architecture', 'Arquitectura'),
+  i18n: l('Documentation', 'Documentación'),
   contributing: l('Contributing', 'Contribuir'),
 };
+
+/** Which product each section documents; consecutive sections of a package form one sidebar block. */
+export const SECTION_PRODUCT: Record<DocSection, DocProduct> = {
+  overview: 'hakistack',
+  'getting-started': 'ng-daisyui',
+  foundations: 'ng-daisyui',
+  components: 'ng-daisyui',
+  systems: 'ng-daisyui',
+  guides: 'ng-daisyui',
+  api: 'ng-daisyui',
+  architecture: 'ng-daisyui',
+  i18n: 'i18n',
+  contributing: 'hakistack',
+};
+
+/** npm name shown above a package's block in the sidebar, and the suffix of its page titles. */
+export const PRODUCT_TITLES: Record<DocProduct, string> = {
+  hakistack: 'Hakistack',
+  'ng-daisyui': '@hakistack/ng-daisyui',
+  i18n: '@hakistack/i18n',
+};
+
+/** Short brand used in browser tab titles (`<page> · <brand>`). */
+export const PRODUCT_BRANDS: Record<DocProduct, string> = {
+  hakistack: 'Hakistack',
+  'ng-daisyui': 'ng-daisyui',
+  i18n: 'Hakistack i18n',
+};
+
+export function productOf(page: { readonly section: DocSection }): DocProduct {
+  return SECTION_PRODUCT[page.section];
+}
 
 export const GROUP_ORDER: readonly ComponentGroup[] = ['forms', 'data', 'navigation', 'feedback', 'documents'];
 

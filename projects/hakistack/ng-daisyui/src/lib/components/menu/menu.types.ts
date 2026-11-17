@@ -26,6 +26,9 @@ export type MenuSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 /** How submenus (items with `children`) are presented. */
 export type MenuSubmenuMode = 'inline' | 'dropdown';
 
+/** ARIA pattern of `<hk-menu>` — see {@link MenuConfig.semantics}. */
+export type MenuSemantics = 'auto' | 'navigation' | 'menu';
+
 /**
  * A single entry in an `hk-menu`. The tree is fully recursive via `children`.
  *
@@ -139,7 +142,15 @@ export interface MenuConfig<T = unknown> {
    * Use `collapsed: true` for hover dropdowns on an icon rail.
    */
   submenuMode?: MenuSubmenuMode;
-  /** Accessible label for the menu landmark. */
+  /**
+   * ARIA pattern. `'navigation'`: a list of links (Tab moves between them, the active route gets
+   * `aria-current="page"`); put it inside a `<nav>` (hk-navbar and hk-sidebar do). `'menu'`: an application
+   * menu / menubar with `menuitem` roles, one Tab stop and arrow-key navigation (WAI-ARIA APG).
+   * `'auto'` (default) picks `'navigation'` when every item is a link (`routerLink` / `href`) and `'menu'`
+   * as soon as one item is an action.
+   */
+  semantics?: MenuSemantics;
+  /** Accessible label for the menu (or the list, in navigation semantics). */
   ariaLabel?: string;
   /** Wrap with `rounded-box`. Default `true`. */
   rounded?: boolean;

@@ -115,7 +115,12 @@
   (overlayOutsideClick)="onOverlayOutsideClick($event)"
   (detach)="closeDropdown()"
 >
-  <div class="dropdown-container bg-base-100 border-base-300 rounded-box flex flex-col border shadow" role="dialog" aria-label="Options">
+  <div
+    #panel
+    class="dropdown-container bg-base-100 border-base-300 rounded-box flex flex-col border shadow"
+    role="dialog"
+    aria-label="Options"
+  >
     <!-- Search Input -->
     @if (enableSearch()) {
       <div class="border-base-300 flex-none border-b p-3">
@@ -130,11 +135,13 @@
             [placeholder]="searchPlaceholder()"
             [value]="searchTerm()"
             (input)="onSearchInput($event)"
-            (keydown.escape)="clearSearch($event)"
-            role="searchbox"
+            (keydown.escape)="onSearchEscape($event)"
+            role="combobox"
             aria-label="Search options"
             aria-autocomplete="list"
+            aria-expanded="true"
             [attr.aria-controls]="listboxId"
+            [attr.aria-activedescendant]="highlightedOptionId()"
           />
           @if (hasSearchTerm()) {
             <button
@@ -166,7 +173,7 @@
           {{ isAllSelected() ? clearAllLabel() : selectAllLabel() }}
         </button>
         @if (hasSelection()) {
-          <span class="text-base-content/60 text-xs">{{ selectionCount() }} {{ selectedSuffix() }}</span>
+          <span class="text-base-content/70 text-xs">{{ selectionCount() }} {{ selectedSuffix() }}</span>
         }
       </div>
     }
@@ -224,7 +231,7 @@
           @if (hasGroups()) {
             @for (group of groupedOptions(); track group.label) {
               @if (group.label) {
-                <li class="menu-title text-xs text-base-content/60 px-3 pt-3 pb-1">{{ group.label }}</li>
+                <li class="menu-title text-xs text-base-content/70 px-3 pt-3 pb-1">{{ group.label }}</li>
               }
               @for (option of group.options; track trackByOption($index, option)) {
                 <li
@@ -317,7 +324,7 @@
 
     <!-- No Results -->
     @if (filteredOptions().length === 0 && hasSearchTerm() && enableSearch()) {
-      <div class="text-base-content/60 p-4 text-center" role="status" aria-live="polite">
+      <div class="text-base-content/70 p-4 text-center" role="status" aria-live="polite">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="mx-auto mb-2 h-8 w-8 opacity-50"
@@ -340,7 +347,7 @@
 
     <!-- No Options Available -->
     @if (filteredOptions().length === 0 && (!hasSearchTerm() || !enableSearch())) {
-      <div class="text-base-content/60 p-4 text-center" role="status">
+      <div class="text-base-content/70 p-4 text-center" role="status">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="mx-auto mb-2 h-8 w-8 opacity-50"

@@ -22,3 +22,37 @@ describe('NotificationHostComponent accessibility', () => {
     expect(root.querySelector('hk-notification-item .sr-only')?.textContent).toContain('Error');
   });
 });
+
+describe('NotificationItemComponent auto-dismiss', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  function setup() {
+    TestBed.configureTestingModule({ imports: [NotificationHostComponent] });
+    const fixture = TestBed.createComponent(NotificationHostComponent);
+    const service = TestBed.inject(NotificationService);
+    fixture.detectChanges();
+    service.show({ title: 'Saved', duration: 1000, pauseOnHover: false });
+    fixture.detectChanges();
+    const item = (fixture.nativeElement as HTMLElement).querySelector('hk-notification-item') as HTMLElement;
+    return { fixture, service, item };
+  }
+
+  it('dismisses after its duration', () => {
+    const { service } = setup();
+    vi.advanceTimersByTime(1000);
+    expect(service.notifications()[0]?.dismissing ?? true).toBe(true);
+  });
+
+  it('stays while keyboard focus is inside it, even with pauseOnHover off (WCAG 2.2.1)', () => {
+    const { service, item } = setup();
+    item.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    vi.advanceTimersByTime(5000);
+    expect(service.notifications().length).toBe(1);
+    expect(service.notifications()[0].dismissing).toBeFalsy();
+
+    item.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }));
+    vi.advanceTimersByTime(1000);
+    expect(service.notifications()[0]?.dismissing ?? true).toBe(true);
+  });
+});

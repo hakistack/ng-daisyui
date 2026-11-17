@@ -2,7 +2,18 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { CodeBlockComponent } from '../../shared/code-block.component';
-import { ApiManifestService, KIND_LABELS, KIND_ORDER, ownerPage, sourceUrl } from '../api/api-manifest.service';
+import {
+  ApiManifestService,
+  KIND_LABELS,
+  KIND_ORDER,
+  apiIndexRoute,
+  apiRoute,
+  ownerPage,
+  sourceUrl,
+  symbolPackage,
+  type ApiProduct,
+} from '../api/api-manifest.service';
+import { PRODUCT_BRANDS, PRODUCT_TITLES } from '../catalog/pages';
 import type { ApiSymbol, ApiSymbolKind } from '../api/api-manifest.types';
 import { DocsLocaleService, LocalizePipe, UI, localize } from '../i18n/docs-locale.service';
 import { renderInline } from '../ui/rich-text';
@@ -34,11 +45,13 @@ const T = {
   deprecated: { en: 'deprecated', es: 'obsoleto' },
   notFound: { en: 'No exported symbol is called', es: 'Ningún símbolo exportado se llama' },
   backToIndex: { en: 'All symbols', es: 'Todos los símbolos' },
+  package: { en: 'Package', es: 'Paquete' },
+  otherPackage: { en: 'Also in this repository:', es: 'También en este repositorio:' },
   noDescription: { en: 'No JSDoc description in the source yet.', es: 'Aún no tiene descripción JSDoc en el código.' },
   noMatches: { en: 'No symbols match.', es: 'Ningún símbolo coincide.' },
 };
 
-/** `/api` (index) and `/api/:name` (symbol detail). */
+/** `/api` (index) and `/api/:name` (symbol detail) for ng-daisyui; `/api/i18n[/:name]` for @hakistack/i18n (route data `pkg`). */
 @Component({
   selector: 'app-api-reference',
   imports: [RouterLink, CodeBlockComponent, LocalizePipe],
@@ -53,7 +66,7 @@ const T = {
           <nav aria-label="Breadcrumb" class="text-sm breadcrumbs py-0">
             <ul>
               <li>
-                <a routerLink="/api">{{ t.title | loc: lang() }}</a>
+                <a [routerLink]="indexRoute()">{{ t.title | loc: lang() }} · {{ packageName() }}</a>
               </li>
               <li>{{ kindLabel(s.kind) }}</li>
             </ul>
@@ -62,6 +75,9 @@ const T = {
             <div class="flex flex-wrap items-center gap-2">
               <h1 [id]="'api-' + s.name" class="text-3xl font-semibold font-mono tracking-tight break-all">{{ s.name }}</h1>
               <span class="badge badge-outline">{{ s.kind }}</span>
+              <span class="badge badge-ghost font-mono"
+                ><span class="sr-only">{{ t.package | loc: lang() }}: </span>{{ packageName() }}</span
+              >
               @if (s.deprecated) {
                 <span class="badge badge-warning">{{ t.deprecated | loc: lang() }}</span>
               }
@@ -249,7 +265,7 @@ const T = {
             </section>
           }
           <p>
-            <a class="link" routerLink="/api">← {{ t.backToIndex | loc: lang() }}</a>
+            <a class="link" [routerLink]="indexRoute()">← {{ t.backToIndex | loc: lang() }}</a>
           </p>
         </article>
       } @else {
@@ -259,14 +275,19 @@ const T = {
             {{ t.notFound | loc: lang() }} <code>{{ name() }}</code
             >.
           </p>
-          <a class="link link-primary" routerLink="/api">{{ t.backToIndex | loc: lang() }}</a>
+          <a class="link link-primary" [routerLink]="indexRoute()">{{ t.backToIndex | loc: lang() }}</a>
         </div>
       }
     } @else {
       <div class="space-y-6">
         <header class="space-y-2">
           <h1 class="text-3xl font-semibold tracking-tight">{{ t.title | loc: lang() }}</h1>
+          <p class="font-mono text-sm text-base-content/70">{{ packageName() }}</p>
           <p class="text-base-content/80 max-w-3xl" [innerHTML]="inline(t.lead | loc: lang())"></p>
+          <p class="text-sm">
+            {{ t.otherPackage | loc: lang() }}
+            <a class="link link-primary font-mono" [routerLink]="otherIndex().route">{{ otherIndex().name }}</a>
+          </p>
         </header>
         <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
           <label class="input input-bordered flex items-center gap-2 w-full sm:max-w-sm">
@@ -300,7 +321,7 @@ const T = {
             <ul class="grid gap-x-6 gap-y-1 md:grid-cols-2">
               @for (s of group.items; track s.name) {
                 <li class="min-w-0 py-1">
-                  <a class="link link-hover font-mono text-sm text-primary" [routerLink]="['/api', s.name]">{{ s.name }}</a>
+                  <a class="link link-hover font-mono text-sm text-primary" [routerLink]="route(s)">{{ s.name }}</a>
                   @if (s.description) {
                     <span class="block text-xs text-base-content/70 truncate">{{ firstSentence(s.description) }}</span>
                   }
@@ -318,6 +339,8 @@ const T = {
 export class ApiReferenceComponent {
   /** Route param (component input binding). */
   readonly name = input<string>();
+  /** Route data: `'i18n'` on the @hakistack/i18n routes, absent for ng-daisyui. */
+  readonly pkg = input<string>();
 
   protected readonly manifest = inject(ApiManifestService);
   protected readonly lang = inject(DocsLocaleService).locale;
@@ -329,7 +352,20 @@ export class ApiReferenceComponent {
   protected readonly query = signal('');
   protected readonly kind = signal<ApiSymbolKind | ''>('');
 
-  protected readonly symbol = computed(() => (this.name() ? this.manifest.byName().get(this.name()!) : undefined));
+  protected readonly product = computed<ApiProduct>(() => (this.pkg() === 'i18n' ? 'i18n' : 'ng-daisyui'));
+  protected readonly packageName = computed(() => PRODUCT_TITLES[this.product()]);
+  protected readonly indexRoute = computed(() => apiIndexRoute(this.product()));
+  protected readonly otherIndex = computed(() => {
+    const other: ApiProduct = this.product() === 'i18n' ? 'ng-daisyui' : 'i18n';
+    return { route: apiIndexRoute(other), name: PRODUCT_TITLES[other] };
+  });
+  protected readonly route = apiRoute;
+
+  protected readonly symbol = computed(() => {
+    this.manifest.symbols();
+    const name = this.name();
+    return name ? this.manifest.find(name, this.product()) : undefined;
+  });
   protected readonly owner = computed(() => {
     const s = this.symbol();
     return s ? ownerPage(s) : undefined;
@@ -338,8 +374,12 @@ export class ApiReferenceComponent {
   protected readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
     const k = this.kind();
+    const pkg = this.packageName();
     return (this.manifest.symbols() ?? []).filter(
-      (s) => (!k || s.kind === k) && (!q || s.name.toLowerCase().includes(q) || (s.description ?? '').toLowerCase().includes(q)),
+      (s) =>
+        symbolPackage(s) === pkg &&
+        (!k || s.kind === k) &&
+        (!q || s.name.toLowerCase().includes(q) || (s.description ?? '').toLowerCase().includes(q)),
     );
   });
 
@@ -352,7 +392,8 @@ export class ApiReferenceComponent {
     void this.manifest.load();
     effect(() => {
       const s = this.symbol();
-      this.title.setTitle(s ? `${s.name} — API · ng-daisyui` : `API reference · ng-daisyui`);
+      const brand = PRODUCT_BRANDS[this.product()];
+      this.title.setTitle(s ? `${s.name} — API · ${brand}` : `API reference · ${brand}`);
     });
   }
 
@@ -360,13 +401,15 @@ export class ApiReferenceComponent {
     return localize(KIND_LABELS[kind], this.lang());
   }
   protected inline(text: string): string {
-    // Link symbol names written as `Name` when they are exported.
-    const names = this.manifest.byName();
-    return renderInline(text).replace(/<code class="hk-docs-code">([A-Za-z_][\w]*)<\/code>/g, (m, n: string) =>
-      names.has(n) && n !== this.name()
-        ? `<a class="link link-primary" href="/api/${n}" data-internal="true"><code class="hk-docs-code">${n}</code></a>`
-        : m,
-    );
+    // Link symbol names written as `Name` when this package exports them.
+    const product = this.product();
+    const names = product === 'i18n' ? this.manifest.i18nByName() : this.manifest.byName();
+    return renderInline(text).replace(/<code class="hk-docs-code">([A-Za-z_][\w]*)<\/code>/g, (m, n: string) => {
+      const target = names.get(n);
+      return target && n !== this.name()
+        ? `<a class="link link-primary" href="${apiRoute(target)}" data-internal="true"><code class="hk-docs-code">${n}</code></a>`
+        : m;
+    });
   }
   protected firstSentence(text: string): string {
     const plain = text.replace(/`/g, '');
@@ -378,7 +421,10 @@ export class ApiReferenceComponent {
   }
   protected importLine(s: ApiSymbol): string {
     const typeOnly = s.kind === 'interface' || s.kind === 'type';
-    return `import ${typeOnly ? 'type ' : ''}{ ${s.name} } from '@hakistack/ng-daisyui';`;
+    const line = (from: string) => `import ${typeOnly ? 'type ' : ''}{ ${s.name} } from '${from}';`;
+    const main = line(symbolPackage(s));
+    // The authoring engine is also its own Angular-free entry point (what *.i18n.ts files and the CLI load).
+    return s.area === 'i18n-engine' ? `${main}\n// or, without Angular (*.i18n.ts files, Node):\n${line('@hakistack/i18n/engine')}` : main;
   }
   protected selectorSnippet(s: ApiSymbol): string {
     const sel = s.selector ?? '';

@@ -30,29 +30,6 @@ export function close(handle) {
 }
 
 /**
- * Delete the page at `index` (0-based). Page count + indices shift after —
- * the caller must refresh its page structure.
- * @param {number} handle
- * @param {number} index
- * @returns {boolean}
- */
-export function delete_page(handle, index) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.delete_page(retptr, handle, index);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
  * Embedded document Title (from the metadata dictionary), or `""` if unset.
  * @param {number} handle
  * @returns {string}
@@ -77,37 +54,6 @@ export function document_title(handle) {
 }
 
 /**
- * Interactive form fields on one page, for the form-widget overlay. Each row is
- * `[name, type, x, y, w, h, value, readOnly(0|1), checked(0|1), options[],
- * annotIndex, exportValue, alternateName]`.
- * Rect is top-left-origin PDF points. `type` ∈ text|checkbox|radio|combo|list|
- * button|signature. `value` is the text/selected value; `checked` applies to
- * checkbox/radio; `options` lists choice labels (combo/list). `annotIndex` is the
- * widget's annotation index on the page: several widgets share one field name
- * (radio groups), so writes target the widget by index. `exportValue` is the
- * value a radio/checkbox widget represents when on. `alternateName` is the
- * field's `/TU` tooltip, the accessible label.
- * @param {number} handle
- * @param {number} index
- * @returns {Array<any>}
- */
-export function form_fields(handle, index) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.form_fields(retptr, handle, index);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return takeObject(r0);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
  * Establishes a binding between an external Pdfium WASM module and `pdfium-render`'s WASM module.
  * This function should be called from Javascript once the external Pdfium WASM module has been loaded
  * into the browser. It is essential that this function is called _before_ initializing
@@ -121,31 +67,6 @@ export function form_fields(handle, index) {
 export function initialize_pdfium_render(pdfium_wasm_module, local_wasm_module, debug) {
     const ret = wasm.initialize_pdfium_render(addHeapObject(pdfium_wasm_module), addHeapObject(local_wasm_module), debug);
     return ret !== 0;
-}
-
-/**
- * Insert a blank page of `width`×`height` points at `index` (0-based; clamped
- * to the page count, so `index == count` appends).
- * @param {number} handle
- * @param {number} index
- * @param {number} width
- * @param {number} height
- * @returns {boolean}
- */
-export function insert_blank_page(handle, index, width, height) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.insert_blank_page(retptr, handle, index, width, height);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
 }
 
 /**
@@ -386,70 +307,6 @@ export function render_tile(handle, index, page_width, page_height, x, y, w, h) 
 }
 
 /**
- * Serialize the (possibly form-filled) document back to PDF bytes — for save /
- * download. Includes any `set_field_value` edits.
- * @param {number} handle
- * @returns {Uint8Array}
- */
-export function save_document(handle) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.save_document(retptr, handle);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return takeObject(r0);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
- * Set a form field's value on a page. `value` is the text (text/combo/list),
- * `"true"`/`"false"` for a checkbox, or `"true"` to select a radio button.
- *
- * `annot_index` is the widget's annotation index from `form_fields`. Pass `-1`
- * to target the first widget named `name`. The index matters for radio groups,
- * where every option's widget shares one field name.
- *
- * Checkboxes and radios are toggled through Pdfium's form-fill environment
- * (a simulated click at the widget centre). Pdfium then writes the parent
- * field's `/V` and every kid widget's `/AS` using each widget's real on-state
- * name. A direct dictionary write can't do that correctly; see the
- * `click_form_point` vendored patch.
- *
- * Returns `true` if a writable field was matched and updated.
- * @param {number} handle
- * @param {number} index
- * @param {number} annot_index
- * @param {string} name
- * @param {string} value
- * @returns {boolean}
- */
-export function set_field_value(handle, index, annot_index, name, value) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(value, wasm.__wbindgen_export, wasm.__wbindgen_export2);
-        const len1 = WASM_VECTOR_LEN;
-        wasm.set_field_value(retptr, handle, index, annot_index, ptr0, len0, ptr1, len1);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-/**
  * Replace the set of annotations left out of rendered rasters (the ones the
  * viewer draws in its own layer). `entries` is flat `[page, annotIndex, …]`;
  * an empty list clears it. Rendering hides them only for the duration of the
@@ -461,31 +318,6 @@ export function set_hidden_annotations(handle, entries) {
     const ptr0 = passArray32ToWasm0(entries, wasm.__wbindgen_export);
     const len0 = WASM_VECTOR_LEN;
     wasm.set_hidden_annotations(handle, ptr0, len0);
-}
-
-/**
- * Set a page's rotation (`degrees` ∈ {0, 90, 180, 270}). Applied to the saved
- * document; the viewer also rotates its display via CSS so overlays stay
- * aligned, so this is used transiently around `save_document`.
- * @param {number} handle
- * @param {number} index
- * @param {number} degrees
- * @returns {boolean}
- */
-export function set_page_rotation(handle, index, degrees) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.set_page_rotation(retptr, handle, index, degrees);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 !== 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
 }
 
 export function start() {
